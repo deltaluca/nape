@@ -1,0 +1,303 @@
+package zpp_nape.geom;
+$(import);
+
+/**
+
+	intrusive GENERAL 2x2 matrices (mat)
+
+	intrusive SYMETRIC POSITIVE DEFINITE 2x2 and 3x3 matrices (mat2, mat3)
+
+**/
+
+
+//------------------------------------------------------------------------------
+
+$(mixin global mat_new(acc, n)
+    acc var n`a:Float; acc var n`b:Float;
+    acc var n`c:Float; acc var n`d:Float
+);
+$(mixin global mat_new(n) mat_new(,n));
+
+$(mixin global mat_set(x,y) {
+    x`a = y`a; x`b = y`b;
+    x`c = y`c; x`d = y`d;
+});
+
+$(mixin global mat_set(m,A,B,C,D) {
+	m`a = A; assert(!assert_isNaN(m`a),"mat_set(in m: "+$str(m)+", in a: "+$str(A)+", in b: "+$str(B)+", in c: "+$str(C)+", in d: "+$str(D)+")");
+	m`b = B; assert(!assert_isNaN(m`a),"mat_set(in m: "+$str(m)+", in a: "+$str(A)+", in b: "+$str(B)+", in c: "+$str(C)+", in d: "+$str(D)+")");
+	m`c = C; assert(!assert_isNaN(m`a),"mat_set(in m: "+$str(m)+", in a: "+$str(A)+", in b: "+$str(B)+", in c: "+$str(C)+", in d: "+$str(D)+")");
+	m`d = D; assert(!assert_isNaN(m`a),"mat_set(in m: "+$str(m)+", in a: "+$str(A)+", in b: "+$str(B)+", in c: "+$str(C)+", in d: "+$str(D)+")");
+});
+
+//------------------------------------------------------------------------------
+
+$(mixin global mat_trace(n) (n`a+n`d));
+$(mixin global mat_det  (n) (n`a*n`d - n`b*n`c));
+
+//------------------------------------------------------------------------------
+
+$(mixin global mat_scale(n,s, r) {
+	var t = (s);
+	mat_set(r, n`a*t, n`b*t, n`c*t, n`d*t);
+});
+$(mixin global mat_scaleq(n,s) {
+	var t = (s);
+	n`a *= t; n`b *= t;
+	n`c *= t; n`d *= t;
+});
+$(mixin global mat_add(x,y, r) {
+	mat_set(r, x`a+y`a, x`b+y`b, x`c+y`c, x`d+y`d);
+});
+$(mixin global mat_addeq(x,y, s) {
+	var t = (s);
+	x`a += y`a*t; x`b += y`b*t;
+	x`c += y`c*t; x`d += y`d*t;
+});
+$(mixin global mat_addeq(x,y) mat_addeq(x,y,1));
+
+//------------------------------------------------------------------------------
+
+$(mixin global mat_mul(x,y, r) {
+	mat_set(r, x`a*y`a + x`b*y`c, x`a*y`b + x`b*y`d,
+			   x`c*y`a + x`d*y`c, x`c*y`b + x`d*y`d);
+});
+$(mixin global mat_post_mul(x,y) {
+	var t = x`a*y`a + x`b*y`c;
+	x`b = x`a*y`b + x`b*y`d;
+	x`a = t;
+	var t = x`c*y`a + x`d*y`c;
+	x`d = x`c*y`b + x`d*y`d;
+	x`c = t;
+});
+$(mixin global mat_pre_mul(x,y) {
+	var t = y`a*x`a + y`b*x`c;
+	x`c = y`c*x`a + y`d*x`c;
+	x`a = t;
+	var t = y`a*x`b + y`b*x`d;
+	x`d = y`c*x`b + y`d*x`d;
+	x`b = t;
+});
+
+//------------------------------------------------------------------------------
+
+//invert, but ignore empty row/collumns
+$(mixin global mat_lazy_invert(n) {
+	if(n`a != 0 && n`b != 0 && n`c != 0 && n`d != 0) mat_invert(n);
+	else {
+		if(n`a != 0) n`a = 1/n`a;
+		if(n`d != 0) n`d = 1/n`d;
+	}
+});
+
+$(mixin global mat_invert(n) {
+    var det = mat_det(n);
+	assert(det!=0.0, "mat_invert(in n: "+$str(n)+")");
+    
+    det = 1.0/det;
+    n`b = -n`b*det;
+    n`c = -n`c*det;
+    var t = n`a*det;
+    n`a = n`d*det;
+    n`d = t;
+});
+
+$(mixin global mat_safe_invert(n) {
+    var det = mat_det(n);
+	if(det*det<PR(Const).EPSILON)
+		mat_set(n,0,0,0,0);
+	else {
+		det = 1.0/det;
+		n`b = -n`b*det;
+		n`c = -n`c*det;
+		var t = n`a*det;
+		n`a = n`d*det;
+		n`d = t;
+	}
+});
+
+$(mixin global mat_inversetranspose(n,r) {
+    mat_new(m); mat_set(m,n); mat_invert(m);
+    r`a = ma*n`a + mb*n`b;
+    r`b = ma*n`c + mb*n`d;
+    r`c = mc*n`a + md*n`b;
+    r`d = mc*n`c + md*n`d;
+});
+
+//------------------------------------------------------------------------------
+
+//solve Ax = B for x
+$(mixin global mat_solve(A,B) {
+	var det = mat_det(A);
+	if(det==0) vec_set(B,0,0);
+	else {
+		det = 1/det;
+		var t = A`d*det*B`x - A`b*det*B`y;
+		B`y = A`a*det*B`y - A`c*det*B`x;
+		B`x = t;
+	}
+});
+
+$(mixin global mat_transform(A,v) {
+    var t = A`a*v`x + A`b*v`y;
+    v`y   = A`c*v`x + A`d*v`y;
+    v`x   = t;
+});
+
+$(mixin global mat_transform_hom(A,v) {
+    var t = A`a*v`x + A`b*v`y + A`tx;
+    v`y   = A`c*v`x + A`d*v`y + A`ty;
+    v`x   = t;
+});
+
+//--------------------------------------------------------------------------------------
+
+$(mixin global mat2_new(acc, n)
+	acc var n`a:Float;      /* n`b */
+	acc var n`b:Float; acc var n`c:Float
+);
+$(mixin global mat2_new(n) mat2_new(,n));
+
+$(mixin global mat2_set(m,A,B,C) {
+	m`a = A; 
+	m`b = B; m`c = C;
+});
+
+$(mixin global mat2_scaleq(m,x) {
+	var X = (x);
+	m`a *= X; 
+	m`b *= X; m`c *= X;
+});
+
+$(mixin global mat2_addeq(m,A,B,C) {
+	m`a += A; 
+	m`b += B; m`c += C;
+});
+
+$(mixin global mat2_det(m) (m`a*m`c - m`b*m`b));
+
+$(mixin global mat2_invert(m) {
+	var det = mat2_det(m);
+	if(isNaN(det)) {
+		m`a = m`b = m`c = 0;
+		3;
+	} else if(det<PR(Const).EPSILON) {
+		var flag = 0;
+		if(m`a*m`a > PR(Const).EPSILON) m`a = 1/m`a; else { m`a = 0; flag |= 1; }
+		if(m`c*m`c > PR(Const).EPSILON) m`c = 1/m`c; else { m`c = 0; flag |= 2; }
+		m`b = 0;
+		flag;
+	} else {
+		det = 1/det;
+		var t = m`c*det;
+		m`c = m`a*det;
+		m`a = t;
+		m`b *= -det;
+		0;
+	}
+});
+
+$(mixin global mat2_xform(m,v) {
+	var t = m`a*v`x + m`b*v`y;
+	v`y   = m`b*v`x + m`c*v`y;
+	v`x = t;
+});
+
+$(mixin global mat2_solve(m,v) {
+	var det = mat2_det(m);
+	if(isNaN(det))
+		v`x = v`y = 0;
+	else if(det<PR(Const).EPSILON) {
+		if(m`a*m`a > PR(Const).EPSILON) v`x /= m`a; else v`x = 0;
+		if(m`c*m`c > PR(Const).EPSILON) v`y /= m`c; else v`y = 0;
+	} else {
+		det = 1/det;
+		var t = det*(m`c*v`x - m`b*v`y);
+		v`y   = det*(m`a*v`y - m`b*v`x);
+		v`x = t;
+	}
+});
+
+//--------------------------------------------------------------------------------------------------
+
+$(mixin global mat3_new(acc, n)
+	acc var n`a:Float;       /*n`b*/            /*n`c*/
+	acc var n`b:Float; acc var n`d:Float;       /*n`e*/
+	acc var n`c:Float; acc var n`e:Float; acc var n`f:Float
+);
+$(mixin global mat3_new(n) mat3_new(,n));
+
+$(mixin global mat3_set(m,A,B,D,C,E,F) {
+	m`a = A;  
+	m`b = B; m`d = D; 
+	m`c = C; m`e = E; m`f = F;
+});
+
+$(mixin global mat3_set(m,n) {
+	m`a = n`a;  
+	m`b = n`b; m`d = n`d; 
+	m`c = n`c; m`e = n`e; m`f = n`f;
+});
+
+
+$(mixin global mat3_scaleq(m,x) {
+	var X = (x);
+	m`a *= X;  
+	m`b *= X; m`d *= X; 
+	m`c *= X; m`e *= X; m`f *= X;
+});
+
+$(mixin global mat3_addeq(m,A,B,D,C,E,F) {
+	m`a += A;  
+	m`b += B; m`d += D; 
+	m`c += C; m`e += E; m`f += F;
+});
+
+$(mixin global mat3_det(m) (m`a*(m`d*m`f-m`e*m`e) + m`b*(m`c*m`e-m`b*m`f) + m`c*(m`b*m`e-m`c*m`d)));
+
+$(mixin global mat3_invert(m) {
+	var det = mat3_det(m);
+	if(isNaN(det)) {
+		mat3_set(m,0,0,0,0,0,0);
+		7;
+	}else if(det<PR(Const).EPSILON) {
+		var flag = 0;
+		if(m`a*m`a > PR(Const).EPSILON) m`a = 1/m`a; else { m`a = 0; flag |= 1; }
+		if(m`d*m`d > PR(Const).EPSILON) m`d = 1/m`d; else { m`d = 0; flag |= 2; }
+		if(m`f*m`f > PR(Const).EPSILON) m`f = 1/m`f; else { m`f = 0; flag |= 4; }
+		m`b = m`c = m`e = 0.0;
+		flag;
+	} else {
+		det = 1/det;
+		var A = det*(m`d*m`f-m`e*m`e);  
+		var B = det*(m`e*m`c-m`b*m`f); var D = det*(m`a*m`f-m`c*m`c); 
+		var C = det*(m`b*m`e-m`c*m`d); var E = det*(m`b*m`c-m`a*m`e); var F = det*(m`a*m`d-m`b*m`b);
+		mat3_set(m,A,B,D,C,E,F);
+		0;
+	}
+});
+
+$(mixin global mat3_xform(m,v) {
+	var X = m`a*v`x + m`b*v`y + m`c*v`z;
+	var Y = m`b*v`x + m`d*v`y + m`e*v`z;
+	v`z   = m`c*v`x + m`e*v`y + m`f*v`z;
+	vec_set(v,X,Y);
+});
+
+$(mixin global mat3_solve(m,v) {
+	var det = mat3_det(m);
+	if(isNaN(det))
+		v`x = v`y = v`z = 0;
+	else if(det<PR(Const).EPSILON) {
+		if(m`a*m`a > PR(Const).EPSILON) v`x /= m`a; else v`x = 0;
+		if(m`d*m`d > PR(Const).EPSILON) v`y /= m`d; else v`y = 0;
+		if(m`f*m`f > PR(Const).EPSILON) v`z /= m`f; else v`z = 0;
+	} else {
+		det = 1/det;
+		var B = m`e*m`c-m`b*m`f; var C = m`b*m`e-m`c*m`d; var E = m`b*m`c-m`a*m`e;
+		var X = det*(v`x*(m`d*m`f-m`e*m`e) + v`y*B + v`z*C);
+		var Y = det*(v`x*B + v`y*(m`a*m`f-m`c*m`c) + v`z*E);
+		v`z =   det*(v`x*C + v`y*E + v`z*(m`a*m`d-m`b*m`b));
+		vec_set(v,X,Y);
+	}
+});

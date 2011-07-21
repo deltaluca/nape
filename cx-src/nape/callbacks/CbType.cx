@@ -1,0 +1,69 @@
+package nape.callbacks;
+$(import);
+
+WrapList(CbType,List(PR(CbType)),Node(PR(CbType)),$(mixin closure(x) x.wrapper()) $(mixin erusolc(x) x.pr(inner)))
+
+class CbType {
+    public var pr(inner):PR(CbType);
+
+    property(id,Int,pr(inner).id)
+
+    public function new() {
+        if(PR(CbType).internal) return;
+
+        DEBUG(
+            if(PR(CbType).nextId==0x10000)
+                throw "Error: You have exceeded maximum allowed CbType's... wow";
+        )
+
+        pr(inner) = new PR(CbType)();
+        pr(inner).outer = this;
+    }
+
+    ///---------------------------------------------------------------------------------------------
+
+    public var userData:Dynamic;
+
+    ///---------------------------------------------------------------------------------------------
+
+    property(shapes,ShapeList,{
+		if(pr(inner).wrap_shapes==null)
+            pr(inner).wrap_shapes = PR(ShapeList).get(pr(inner).shapes, true);
+		pr(inner).wrap_shapes;
+	})
+    property(constraints,ConstraintList,{
+		if(pr(inner).wrap_constraints==null)
+            pr(inner).wrap_constraints = PR(ConstraintList).get(pr(inner).constraints, true);
+		pr(inner).wrap_constraints;
+	})
+    property(bodies,BodyList,{
+        if(pr(inner).wrap_bodies==null)
+            pr(inner).wrap_bodies = PR(BodyList).get(pr(inner).bodies, true);
+        pr(inner).wrap_bodies;
+    })
+
+    ///---------------------------------------------------------------------------------------------
+
+    public static var DEFAULT(flibget_DEFAULT,never):CbType;
+    static force_inline function flibget_DEFAULT() return PR(CbType).DEFAULT.wrapper()
+
+    flibmdel public static inline function get(id:Int) {
+        DEBUG(if(id<0 || id>=PR(CbType).nextId) throw "Error: CbType::get : Index out of bounds!";)
+        return PR(CbType).map[id].wrapper();
+    }
+
+    ///---------------------------------------------------------------------------------------------
+
+    property(listeners,ListenerList,{
+        if(pr(inner).wrap_listeners==null)
+            pr(inner).wrap_listeners = PR(ListenerList).get(pr(inner).listeners,true);
+        pr(inner).wrap_listeners;
+    })
+
+    ///---------------------------------------------------------------------------------------------
+
+    @:$keep public inline function toString() {
+        if(id==0) return "CbType(DEFAULT#0)";
+        else return "CbType(#"+id+")";
+    }
+}

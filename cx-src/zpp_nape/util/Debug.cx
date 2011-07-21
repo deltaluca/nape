@@ -1,0 +1,547 @@
+package zpp_nape.util;
+$(import);
+
+class PR(Debug) {
+    public static var internal = false;
+
+    #if flash9
+
+    public var bg_r:Float;
+    public var bg_g:Float;
+    public var bg_b:Float;
+
+    public var bg_col:Int;
+
+    ///---------------------------------------------------------------------------------------------
+
+    flibmdel public inline function sup_setbg(bgcol:Int) {
+        bg_r = (bgcol>>16)&0xff;
+        bg_g = (bgcol>>8)&0xff;
+        bg_b = (bgcol)&0xff;
+        this.bg_col = bgcol;
+    }
+
+    #end
+}
+
+///_________________________________________________________________________________________________
+///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+
+#if flash9
+
+class PR(ShapeDebug) extends PR(Debug) {
+    public var outer:ShapeDebug;
+
+    public var shape:flash.display.Shape;
+    public var graphics:flash.display.Graphics;
+
+    public function new() {
+        shape = new flash.display.Shape();
+        graphics = shape.graphics;
+    }
+
+    flibmdel public inline function setbg(bgColor:Int) {
+        sup_setbg(bgColor);
+    }
+
+    ///---------------------------------------------------------------------------------------------
+
+     pr_debug(
+        $(mixin __lineStyle(XX,col,YY) graphics.lineStyle(XX,col,YY));
+        $(mixin __moveTo(x,y) graphics.moveTo(x,y));
+        $(mixin __lineTo(x,y) graphics.lineTo(x,y));
+        $(mixin __drawCircle(x,y,r) graphics.drawCircle(x,y,r));
+        $(mixin __drawAABB(aabb) graphics.drawRect(aabb.minx,aabb.miny,aabb.width(),aabb.height()));
+    )
+}
+
+#end
+
+///_________________________________________________________________________________________________
+///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+
+#if flash10
+
+class PR(BitmapDebug) extends PR(Debug) {
+    public var outer:BitmapDebug;
+
+    public var bitmap:flash.display.Bitmap;
+
+    public var rect:flash.geom.Rectangle;
+    public var bit:flash.display.BitmapData;
+    public var bytes:flash.utils.ByteArray;
+    public var bgbytes:flash.utils.ByteArray;
+
+    ///---------------------------------------------------------------------------------------------
+
+    public var width:Int;
+    public var height:Int;
+    public var transp:Bool;
+
+    ///---------------------------------------------------------------------------------------------
+
+    flibmdel public inline function setbg(bgColor:Int) {
+        sup_setbg(bgColor);
+        if(!transp) {
+            bgbytes.position = 0;
+            flash.Memory.select(bgbytes);
+            for(i in 0...(bytes.length>>2)) flash.Memory.setI32(i<<2,bgColor);
+            flash.Memory.select(bytes);
+        }
+    }
+
+    public function new(w:Int,h:Int, bgcol:Int, transparent:Bool) {
+        this.transp = transparent;
+        this.width = w;
+        this.height = h;
+
+        bytes = new flash.utils.ByteArray();
+        bytes.length = (w*h)<<2;
+        bytes.endian = flash.utils.Endian.LITTLE_ENDIAN;
+
+        bit = new flash.display.BitmapData(w,h,transparent,transparent?0:bgcol);
+        rect = bit.rect;
+
+        bgbytes = new flash.utils.ByteArray();
+        bgbytes.length = bytes.length;
+        bgbytes.endian = flash.utils.Endian.LITTLE_ENDIAN;
+        setbg(bgcol);
+        if(transparent) {
+            flash.Memory.select(bgbytes);
+            for(i in 0...(bytes.length>>3)) flash.Memory.setDouble(i<<3,0);
+            flash.Memory.select(bytes);
+        }
+
+        bitmap = new flash.display.Bitmap(bit,flash.display.PixelSnapping.NEVER, false);
+    }
+
+    ///---------------------------------------------------------------------------------------------
+
+    flibmdel public inline function clear() {
+        bytes.position = 0;
+        bgbytes.position = 0;
+        bytes.writeBytes(bgbytes);
+    }
+
+    flibmdel public inline function flush() {
+        bit.lock();
+        bytes.position = 0;
+        bit.setPixels(rect,bytes);
+        bit.unlock();
+    }
+
+    ///---------------------------------------------------------------------------------------------
+
+    flibmdel public inline function index(x:Int,y:Int) return y*width+x
+    flibmdel public inline function setpix(ind:Int, col:Int) flash.Memory.setI32(ind<<2,col)
+    flibmdel public inline function setpixel(x:Int, y:Int, col:Int) {
+        if(x>=0 && x<width && y>=0 && y<height) setpix(index(x,y),col);
+    }
+
+    ///---------------------------------------------------------------------------------------------
+
+    flibmdel public inline function __line(x0:Int,y0:Int,x1:Int,y1:Int, col:Int) {
+        $(mixin draw(op1,op2)
+            var err = dx-dy;
+
+            var ind = index(x0,y0);
+            while(true) {
+                if(x0>=0&&x0<width&&y0>=0&&y0<height)
+                    setpix(ind,col);
+
+                if(x0==x1 && y0==y1) break;
+
+                var e2 = err<<1;
+                if(e2>-dy) { err -= dy; x0 op1; ind op1; }
+                if(e2< dx) { err += dx; y0 op2; ind+=off;}
+            }
+        );
+
+        if(x0<x1) {
+            var dx = x1-x0;
+            if(y0<y1) {
+                var dy = y1-y0;
+                var off = 600;
+                draw(++,++);
+            }else {
+                var dy = y0-y1;
+                var off = -600;
+                draw(++,--);
+            }
+        }else {
+            var dx = x0-x1;
+            if(y0<y1) {
+                var dy = y1-y0;
+                var off = 600;
+                draw(--,++);
+            }else {
+                var dy = y0-y1;
+                var off = -600;
+                draw(--,--);
+            }
+        }
+    }
+
+    ///---------------------------------------------------------------------------------------------
+
+    flibmdel public inline function __circle(x0:Int,y0:Int,radius:Int, col:Int) {
+        if(radius==0) setpixel(x0,y0,col);
+        else {
+            if(radius==1) {
+                setpixel(x0,y0+1,col);
+                setpixel(x0,y0-1,col);
+                setpixel(x0+1,y0,col);
+                setpixel(x0-1,y0,col);
+                setpixel(x0-1,y0-1,col);
+                setpixel(x0-1,y0+1,col);
+                setpixel(x0+1,y0-1,col);
+                setpixel(x0+1,y0+1,col);
+            }else {
+                var x = 0;
+                var y = radius;
+                var p = 3-2*radius;
+                while(y>=x) {
+
+                    setpixel(x0+x,y0+y,col);
+                    setpixel(x0+x,y0-y,col);
+                    setpixel(x0-x,y0+y,col);
+                    setpixel(x0-x,y0-y,col);
+                    setpixel(x0+y,y0+x,col);
+                    setpixel(x0+y,y0-x,col);
+                    setpixel(x0-y,y0+x,col);
+                    setpixel(x0-y,y0-x,col);
+
+                    if(p<0) p += 6 + ((x++)<<2);
+                    else    p += 10+ ((x++ - y--)<<2);
+                }
+            }
+        }
+    }
+
+    ///---------------------------------------------------------------------------------------------
+
+    public var penx:Int;
+    public var peny:Int;
+    public var colour:Int;
+
+    flibmdel public inline function __round(x:Float):Int return untyped __int__(x+0.5)
+
+    pr_debug(
+        $(mixin __lineStyle(XX,col,YY) {
+            colour = col;
+        });
+
+        $(mixin __moveTo(x,y) {
+            penx = __round(x);
+            peny = __round(y);
+        });
+        $(mixin __lineTo(x,y) {
+            var nx = __round(x);
+            var ny = __round(y);
+            __line(penx,peny,nx,ny, colour);
+            penx = nx;
+            peny = ny;
+        });
+
+        $(mixin __drawCircle(x,y,r) {
+            penx = __round(x);
+            peny = __round(y);
+            __circle(penx,peny,__round(r), colour);
+        });
+
+        $(mixin __drawAABB(aabb) {
+            __aabb(aabb, colour);
+        });
+    )
+
+    flibmdel public inline function __box(x0:Int,y0:Int,x1:Int,y1:Int, col:Int) {
+        col |= 0xff000000;
+        __line(x0,y0,x0,y1, col);
+        __line(x0,y1,x1,y1, col);
+        __line(x1,y1,x1,y0, col);
+        __line(x1,y0,x0,y0, col);
+    }
+
+    flibmdel public inline function __aabb(aabb:PR(AABB), col:Int) {
+        col |= 0xff000000;
+        var u0 = aabb.minx != -PR(Const).POSINF;
+        var u1 = aabb.maxx !=  PR(Const).POSINF;
+        var v0 = aabb.miny != -PR(Const).POSINF;
+        var v1 = aabb.maxy !=  PR(Const).POSINF;
+
+        var x0 = u0 ? __round(aabb.minx) : 0;
+        var x1 = u1 ? __round(aabb.maxx) : width;
+        var y0 = v0 ? __round(aabb.miny) : 0;
+        var y1 = v1 ? __round(aabb.maxy) : height;
+
+        if(u0) __line(x0,y0,x0,y1,col);
+        if(u1) __line(x1,y0,x1,y1,col);
+        if(v0) __line(x0,y0,x1,y0,col);
+        if(v1) __line(x0,y1,x1,y1,col);
+    }
+}
+
+///_________________________________________________________________________________________________
+///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+
+$(mixin __colour(id,sleep) {
+    var idc:Int = untyped __int__(0xffffff*Math.exp(-id/1500));
+	var _r = (((idc&0xff0000)>>16))*0.7;
+	var _g = (((idc&0xff00)>>8))*0.7;
+	var _b = (idc&0xff)*0.7;
+	
+	if(sleep) {
+        _r = 0.4*_r + 0.6*bg_r;
+        _g = 0.4*_g + 0.6*bg_g;
+        _b = 0.4*_b + 0.6*bg_b;
+    }
+	0xff000000|((untyped __int__(_r))<<16)|((untyped __int__(_g))<<8)|(untyped __int__(_b));
+});
+
+$(mixin __con_colour(id,sleep) {
+    var idc:Int = untyped __int__(0xffffff*Math.exp(-id/2500));
+	var _r = ((idc&0xff0000)>>16)*0.5;
+	var _g = ((idc&0xff00)>>8)*0.5;
+	var _b = (idc&0xff)*0.5;
+
+    _r = _r*0.6 + (0xff-bg_r)*0.4;
+    _g = _g*0.6 + (0xff-bg_g)*0.4;
+    _b = _b*0.6 + (0xff-bg_b)*0.4;
+		
+	if(sleep) {
+        _r = 0.6*_r + 0.4*bg_r;
+        _g = 0.6*_g + 0.4*bg_g;
+        _b = 0.6*_b + 0.4*bg_b;
+    }
+	0xff000000|((untyped __int__(_r))<<16)|((untyped __int__(_g))<<8)|(untyped __int__(_b));
+});
+
+$(mixin __tint(__col,__ncol, __f) {
+    var col = __col;
+    var ncol = __ncol;
+    var f = __f;
+
+    var _r:Int = untyped __int__(((col>>16)&0xff)*f + ((ncol>>16)&0xff)*(1-f));
+    var _g:Int = untyped __int__(((col>>8)&0xff)*f + ((ncol>>8)&0xff)*(1-f));
+    var _b:Int = untyped __int__(((col)&0xff)*f + ((ncol)&0xff)*(1-f));
+    0xff000000|(_r<<16)|(_g<<8)|(_b);
+});
+
+///_________________________________________________________________________________________________
+///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+
+$(mixin pr_debug(utils)
+    utils
+
+    flibmdel public inline function draw_space(space:PR(Space)) {
+        if(outer.drawBodies) Iterate(space.bodies, draw_body);
+        if(outer.drawCollisionArbiters || outer.drawFluidArbiters || outer.drawSensorArbiters)
+            for(arb in space.outer.arbiters) draw_arbiter(arb.pr(inner));
+        if(outer.drawConstraints) Iterate(space.constraints, draw_con);
+    }
+    flibmdel public inline function draw_body(body:PR(Body)) {
+        Iterate(body.shapes, draw_shape);
+        if(outer.drawBodyDetail) {
+            var col = __colour(body.id, body.outer.isSleeping);
+            body.validate_worldCOM();
+            __lineStyle(0.1,__tint(col,0xff0000,0.8),1);
+            __drawCircle(body.worldCOMx,body.worldCOMy,1);
+            body.validate_aabb();
+            __drawAABB(body.aabb);
+        }
+    }
+    flibmdel public inline function draw_shape(shape:PR(Shape)) {
+        var col = __colour(shape.id,false);
+        var body = shape.body;
+        if(body!=null) {
+            var bcol = __colour(body.id, body.outer.isSleeping);
+            col = __tint(col,bcol,0.2);
+            __lineStyle(0.1,col,1.0);
+
+            if(shape.isCircle()) {
+                var circ = shape.circle;
+                circ.validate_worldCOM();
+                var x = circ.worldCOMx;
+                var y = circ.worldCOMy;
+
+                __drawCircle(x,y,circ.radius);
+
+                if(outer.drawShapeAngleIndicators) {
+                    var x0 = circ.worldCOMx + 0.3*circ.radius*body.axisy;
+                    var y0 = circ.worldCOMy + 0.3*circ.radius*body.axisx;
+                    var x1 = circ.worldCOMx + circ.radius*body.axisy;
+                    var y1 = circ.worldCOMy + circ.radius*body.axisx;
+                    __moveTo(x0,y0);
+                    __lineTo(x1,y1);
+                }
+            }else {
+                var poly = shape.polygon;
+                poly.validate_gverts();
+
+                var u = poly.gverts.front();
+                var x0 = u.x;
+                var y0 = u.y;
+                __moveTo(x0,y0);
+                IterIte(u, poly.gverts, poly.gverts.begin().next, {
+                    x0 = u.x;
+                    y0 = u.y;
+                    __lineTo(x0,y0);
+                });
+                var u = poly.gverts.front();
+                var x1 = u.x;
+                var y1 = u.y;
+                __lineTo(x1,y1);
+
+                if(outer.drawShapeAngleIndicators) {
+                    poly.validate_worldCOM();
+                    __moveTo(poly.worldCOMx,poly.worldCOMy);
+                    __lineTo(x1,y1);
+                }
+            }
+
+            if(outer.drawShapeDetail) {
+                shape.validate_worldCOM();
+                __lineStyle(0.1,__tint(col,0xff0000,0.8),1);
+                __drawCircle(shape.worldCOMx,shape.worldCOMy,1);
+                shape.validate_aabb();
+                __drawAABB(shape.aabb);
+            }
+        }
+    }
+
+    flibmdel public inline function draw_arbiter(arb:PR(Arbiter)) {
+        if(arb.outer.isSensorArbiter()) {
+            if(outer.drawSensorArbiters) {
+                var sarb = arb.outer;
+                __lineStyle(0.1,__tint(0xff00,~bg_col,0.7),1);
+                __moveTo(sarb.shape1.worldCOM.x,sarb.shape1.worldCOM.y);
+                __lineTo(sarb.shape2.worldCOM.x,sarb.shape2.worldCOM.y);
+            }
+        }else if(arb.outer.isFluidArbiter()) {
+            if(outer.drawFluidArbiters) {
+                var farb = arb.outer.fluidArbiter;
+                __lineStyle(0.1,__tint(0xff,~bg_col,0.7),1);
+                __drawCircle(farb.position.x,farb.position.y,0.75);
+            }
+        }else {
+            if(outer.drawCollisionArbiters) {
+                var carb = arb.outer.collisionArbiter;
+
+                vec_new(p);
+                if(carb.contacts.length==2) {
+                    var c1 = carb.contacts.at(0).position;
+                    var c2 = carb.contacts.at(1).position;
+                    var n = carb.normal;
+						
+                    var x = 0.661437828;
+                    var y = 0.75;
+                    if(vec_cross(c1.,n.) < vec_cross(c2.,n.)) {
+                        x = -x;
+                        y = -y;
+                    }
+                    __lineStyle(0.1,__tint(0xff,~bg_col,0.7),1);
+                    __moveTo(c1.x+n.x*y-n.y*x,c1.y+n.y*y+n.x*x);
+                    __lineTo(c2.x+n.x*y+n.y*x,c2.y+n.y*y-n.x*x);
+                    __lineStyle(0.1,__tint(0xff0000,~bg_col,0.7),1);
+                    __moveTo(c1.x-n.x*y-n.y*x,c1.y-n.y*y+n.x*x);
+                    __lineTo(c2.x-n.x*y+n.y*x,c2.y-n.y*y-n.x*x);
+						
+                    vec_set(p, 0.5*(c1.x+c2.x), 0.5*(c1.y+c2.y));
+                }else {
+                    vec_set(p, carb.contacts.at(0).position.);
+
+                    __lineStyle(0.1,__tint(0xff00ff,~bg_col,0.7),1);
+                    __drawCircle(px,py,1);
+                }
+					
+                __lineStyle(0.1,__tint(~bg_col,bg_col,0.7),1);
+                __moveTo(px,py);
+                __lineTo(px+carb.normal.x*5,py+carb.normal.y*5);
+            }
+        }
+    }
+
+    flibmdel public inline function draw_con(con:PR(Constraint)) {
+        $(mixin LTW(body,X,R) {
+            body.validate_axis();
+            vec_rotate(X,body.axis,R);
+            vec_addeq(R, body.pos);
+        });
+        $(mixin LTR(body,X,R) {
+            body.validate_axis();
+            vec_rotate(X,body.axis,R);
+        });
+
+        if(con.active) {
+            var red = __tint(0xff0000,~bg_col,0.7);
+            if(con.outer.isSleeping) red = __tint(red, bg_col, 0.4);
+            var blue = __tint(0xff, ~bg_col,0.7);
+            if(con.outer.isSleeping) blue = __tint(blue, bg_col, 0.4);
+            var green = __tint(0xff00, ~bg_col,0.7);
+            if(con.outer.isSleeping) green = __tint(green, bg_col, 0.4);
+
+            if(Std.is(con, PR(PivotJoint))) {
+                var joint = cast(con, PR(PivotJoint));
+
+                vec_new(p1); LTW(joint.b1, joint.a1local, p1);
+                __lineStyle(0.1,blue,1);
+                __drawCircle(p1x,p1y,1);
+
+                vec_new(p2); LTW(joint.b2, joint.a2local, p2);
+                __lineStyle(0.1,red,1);
+                __drawCircle(p2x,p2y,2);
+			}else if(Std.is(con, PR(DistanceJoint))) {
+                var joint = cast(con, PR(DistanceJoint));
+
+                vec_new(p1); LTW(joint.b1, joint.a1local, p1);
+                __lineStyle(0.1,blue,1);
+                __drawCircle(p1x,p1y,1);
+
+                vec_new(p2); LTW(joint.b2, joint.a2local, p2);
+                __lineStyle(0.1,red,1);
+                __drawCircle(p2x,p2y,2);
+			}else if(Std.is(con, PR(WeldJoint))) {
+                var joint = cast(con, PR(WeldJoint));
+
+                vec_new(p1); LTW(joint.b1, joint.a1local, p1);
+                __lineStyle(0.1,blue,1);
+                __drawCircle(p1x,p1y,1);
+
+                vec_new(p2); LTW(joint.b2, joint.a2local, p2);
+                __lineStyle(0.1,red,1);
+                __drawCircle(p2x,p2y,2);
+			}else if(Std.is(con, PR(LineJoint))) {
+                var joint = cast(con, PR(LineJoint));
+
+                vec_new(p1); LTW(joint.b1, joint.a1local, p1);
+
+                __lineStyle(0.1,green,1);
+                vec_new(dir); LTR(joint.b1, joint.nlocal, dir);
+                var min = joint.jointMin;
+                if(joint.jointMin!=-PR(Const).POSINF) {
+                }else min = -1000;
+
+                var max = joint.jointMax;
+                if(joint.jointMax!= PR(Const).POSINF) {
+                }else max = 1000;
+
+                vec_new(e1); vec_set(e1,p1); vec_addeq(e1,dir,min);
+                vec_new(e2); vec_set(e2,p1); vec_addeq(e2,dir,max);
+                __moveTo(e1x,e1y);
+                __lineTo(e2x,e2y);
+
+                if(joint.jointMin!=-PR(Const).POSINF) __drawCircle(e1x,e1y,2);
+                if(joint.jointMax!= PR(Const).POSINF) __drawCircle(e2x,e2y,2);
+
+                vec_new(p2); LTW(joint.b2, joint.a2local, p2);
+                __lineStyle(0.1,red,1);
+                __drawCircle(p2x,p2y,2);
+
+                __lineStyle(0.1,blue,1);
+                __drawCircle(p1x,p1y,2);
+			}
+        }
+    }
+);
+
+#end

@@ -1,0 +1,41 @@
+package zpp_nape.util;
+$(import);
+
+/**
+
+	Intrusive object pooling.
+	
+	class Type {
+		MixPool(Type) //or MixPoolNoNext(Type) if Type already has a field 'next' of type Type
+	}
+	
+	Get (Type)      ; retrieve object from pool, or instantiate new one if empty.
+	Free(Type, obj) ; free object to pool
+	
+	NECESSARY REQUIREMENT: Type has an empty (or possibly empty) constructor.
+
+**/
+
+$(mixin global MixPool(T)
+	static public var pr(pool):T;
+	public var next:T;
+);
+$(mixin global MixPoolNoNext(T)
+	static public var pr(pool):T;
+);
+
+$(mixin global Get(T) {
+	if(T.pr(pool)==null) new T();
+	else {
+		var ret = T.pr(pool);
+		T.pr(pool) = ret.next;
+		ret;
+	}
+});
+$(mixin global Free(T,O) {
+	var o = O;
+	assert(o!=null, "Free(in T: "+$str(T)+", in obj: "+$str(O)+")");
+	o.free();
+	o.next = T.pr(pool);
+	T.pr(pool) = o;
+});

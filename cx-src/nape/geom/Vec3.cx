@@ -1,0 +1,42 @@
+package nape.geom;
+$(import);
+
+class Vec3 {
+	vec3_new(public, $(->));
+	
+	public function new(?x:Float=0,?y:Float=0,?z:Float=0) {
+		vec3_set(this.,$(->));
+	}
+	keep public inline function copy() return new Vec3(x,y,z)
+	
+	//------------------------
+	
+    property(length,Float,vec3_length_slow(this.),{
+		DEBUG(
+			if(isNaN(length)) throw "Error: Vec3::length cannot be NaN";
+			if(vec3_lsq(this.)==0) throw "Error: Cannot set length of a zero vector";
+		)
+		vec3_muleq(this., length/this.length);
+	})
+	
+	keep public inline function lsq() return vec3_lsq(this.)
+	
+	public inline function set(p:Vec3) {
+		DEBUG(if(p==null) throw "Error: Cannot assign null Vec3";)
+		return setxyz(p.x,p.y,p.z);
+	}
+	public inline function setxyz(x:Float,y:Float,z:Float) {
+		vec3_set(this.,$(->));
+		return this;
+	}
+	
+	//-------------------------
+	
+	public inline function xy() return new Vec2(x,y)
+	
+	//-------------------------
+	
+	@:$keep public inline function toString() {
+		return "{ x: "+x+" y: "+y+" z: "+z+" }";
+	}
+}

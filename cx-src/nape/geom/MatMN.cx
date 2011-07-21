@@ -1,0 +1,62 @@
+package nape.geom;
+$(import);
+
+class MatMN {
+	public var pr(inner):PR(MatMN);
+	
+    property(rows,Int,pr(inner).m)
+    property(cols,Int,pr(inner).n)
+	
+	force_inline public function x(row:Int,col:Int) {
+		DEBUG(if(row<0||col<0||row>=rows||col>=cols) throw "Error: MatMN indices out of range";)
+		return pr(inner).x[row*cols+col];
+	}
+	force_inline public function setx(row:Int,col:Int,x:Float) {
+		DEBUG(if(row<0||col<0||row>=rows||col>=cols) throw "Error: MatMN indices out of range";)
+		return pr(inner).x[row*cols+col] = x;
+	}
+	
+	public function new(rows:Int, cols:Int) {
+		DEBUG(if(rows<=0 || cols<=0) throw "Error: MatMN::dimensions cannot be < 1";)
+		pr(inner) = new PR(MatMN)(rows,cols);
+		pr(inner).outer = this;
+	}
+	
+	@:$keep public function toString() {
+		var ret = "{ ";
+		var fst = true;
+		for(i in 0...rows) {
+			if(!fst) ret += "; ";
+			fst = false;
+			for(j in 0...cols)
+				ret += x(i,j)+" ";
+		}
+		ret += "}";
+		return ret;
+	}
+	
+	//--------------------------------------------------------------------------------
+	
+	public function transpose():MatMN {
+		var ret = new MatMN(cols,rows);
+		for(i in 0...rows) {
+			for(j in 0...cols)
+				ret.setx(j,i, x(i,j));
+		}
+		return ret;
+	}
+	
+	public function mul(y:MatMN) {
+		DEBUG(if(cols != y.rows) throw "Error: Matrix dimensions aren't compatible";)
+		var ret = new MatMN(rows,y.cols);
+		for(i in 0...rows) {
+			for(j in 0...y.cols) {
+				var v = 0.0;
+				for(k in 0...cols)
+					v += x(i,k)*y.x(k,j);
+				ret.setx(i,j, v);
+			}
+		}
+		return ret;
+	}
+}

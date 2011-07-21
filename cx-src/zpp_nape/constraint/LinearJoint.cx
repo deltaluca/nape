@@ -1,0 +1,357 @@
+package zpp_nape.constraint;
+$(import);
+/*
+withConstraint(
+
+class PR(BodyData) {
+	public var aouter:LJAngle;
+	
+	public var self:PR(LinearJoint);
+	public var cnt:Int; //reference counting for bodies list.
+	
+	public var b:PR(Body);
+	vec_new(public,V);
+	public var W:Float;
+	
+	//angular gamma.
+	public var gamma:Float;
+	public var active:Bool; //in use as an active LJAngle
+	
+	public function new(b:PR(Body)) {
+		active = false;
+		cnt = 0;
+		this.b = b;
+	}
+}
+
+class PR(DistPair) {
+	public var outer:LJDistancePair;
+	
+	public var self:PR(LinearJoint);
+	
+	public var b1:PR(BodyData); public var rb1:PR(Body);
+	public var b2:PR(BodyData); public var rb2:PR(Body);
+	public var gamma:Float;
+	
+	anchor_new(a1);
+	anchor_new(a2);
+	vec_new(public, n);
+	
+	force_inline public function wake() {
+		if(self!=null) self.wake();
+	}
+	
+	public function new(b1:PR(BodyData), b2:PR(BodyData), a1x:Float, a1y:Float, a2x:Float, a2y:Float, gamma:Float) {
+		this.b1 = b1;
+		this.b2 = b2;
+		this.gamma = gamma;
+		
+		vec_set(a1local, a1);
+		vec_set(a2local, a2);
+	}
+}
+
+class PR(LinearJoint) extends PR(Constraint) {
+	public var outer_zn:LinearJoint;
+	
+	public var bodies:List(PR(BodyData));
+	public var dpairs:List(PR(DistPair));
+	
+	public var ibodies:List(PR(Body)); //used just for wrap_bodies.
+	public var abodies:List(PR(BodyData)); //used just for wrap_angles.
+	public var wrap_bodies:BodyList; //not a wrapper of 'bodies' maintained seperately
+	public var wrap_dpairs:LJDistancePairList;
+	public var wrap_angles:LJAngleList;
+	
+	public inline function data(b:PR(Body)) {
+		var ret:PR(BodyData) = null;
+		Iter(d,bodies,{
+			if(d.b==b) {
+				ret = d;
+				cx_break;
+			}
+		});
+		return ret;
+	}
+	
+	public inline function rem_body(data:PR(BodyData)) {
+		if((--data.cnt)==0) {
+			bodies.remove(data);
+			ibodies.remove(data.b);
+			data.b.constraints.remove(this);
+			data.self = null;
+		}
+	}
+	public inline function add_body(data:PR(BodyData)) {
+		if((data.cnt++)==0) {
+			bodies.add(data);
+			ibodies.add(data.b);
+			data.b.constraints.add(this);
+			data.self = this;
+		}
+	}
+	
+	public inline function swap_angles(data:PR(BodyData), b:PR(Body)) {
+		//rem_body(data);
+	}
+	
+	public var jointMin:Float;
+	public var jointMax:Float;
+	public var scale:Float;
+	public var equal:Bool;
+	public var slack:Bool;
+	
+	$(mixin Cerr() {
+		var C = 0.0;
+		Iter(b,bodies,{
+			vec_set(b.V,0,0);
+			if(b.active) {
+				b.W = b.gamma;
+				C += b.gamma*b.b.rot;
+			}else
+				b.W = 0;
+		});
+		
+		Iter(p,dpairs,{
+			var b1 = p.b1; withConstraint(validate_anchor(b1.b, p.a1));
+			var b2 = p.b2; withConstraint(validate_anchor(b2.b, p.a2));
+			
+			vec_new(d);
+			dx = b2.b.posx + p.a2relx - b1.b.posx - p.a1relx;
+			dy = b2.b.posy + p.a2rely - b1.b.posy - p.a2rely;
+			
+			var dl = vec_lsq(d);
+			if(dl>PR(Const).EPSILON) {
+				dl = PR(Math).sqrt(dl);
+				C += dl*p.gamma;
+				vec_div(d,dl,p.n);
+				
+				vec_subeq(b1.V, p.n, p.gamma);
+				vec_addeq(b2.V, p.n, p.gamma);
+				b1.W -= p.gamma*vec_cross(p.a1rel, p.n);
+				b2.W += p.gamma*vec_cross(p.a2rel, p.n);
+			}
+		});
+		
+		slack = false;
+		if(equal) {
+			C -= jointMax;
+			scale = 1.0;
+		}else if(C>jointMax) {
+			C -= jointMax;
+			scale = 1.0;
+		}else if(C<jointMin) {
+			C = jointMin - C;
+			scale = -1.0;
+		}else {
+			C = 0;
+			scale = 0.0;
+			slack = true;
+		}
+		
+		C;
+	});
+	
+	$(mixin Verr() {
+		var V = 0.0;
+		Iter(b,bodies, V += vec_dot(b.V, b.b.vel) + b.W*b.b.angvel);
+		V*scale;
+	});
+	
+	$(mixin Keff() {
+		var K = 0.0;
+		Iter(b,bodies, K += vec_lsq(b.V)*b.b.smass + b.W*b.W*b.b.sinertia);
+		K;
+	});
+	
+	$(mixin Imp(j,bias) {
+		j *= scale;
+		Iter(b,bodies,{
+			if(bias) {
+				vec_addeq(b.b.pos, b.V, j*b.b.imass);
+				b.b.rot += b.W*j*b.b.iinertia;
+				b.b.validate_axis();
+			}else {
+				vec_addeq(b.b.vel, b.V, j*b.b.imass);
+				b.b.angvel += b.W*j*b.b.iinertia;
+			}
+		});
+	});
+	
+	public var kMass:Float;
+	public var jAcc:Float;
+	public var jMax:Float;
+	
+	public var gamma:Float;
+	public var bias:Float;
+	
+	public function new() {
+		super();
+		jAcc = 0.0;
+		jMax = PR(Const).POSINF;
+		jointMin = PR(Const).NEGINF;
+		jointMax = PR(Const).POSINF;
+		
+		bodies = new List(PR(BodyData))();
+		dpairs = new List(PR(DistPair))();
+		
+		ibodies = new List(PR(Body))();
+		wrap_bodies = PR(BodyList).get(ibodies,true); //immutable
+		
+		var me = this;		
+		
+		abodies = new List(PR(BodyData))();
+		wrap_angles = PR(LJAngleList).get(abodies);
+		wrap_angles.pr(inner).adder = function (x:LJAngle) {
+			if(x.pr(inner).self!=me) {
+				if(x.pr(inner).self != null) x.pr(inner).self.outer_zn.angles.remove(x);
+				
+				var data = me.data(x.pr(inner).b);
+				if(data!=null) {
+					if(data.active) {
+						DEBUG(throw "Error: LinearJoint already has an LJAngle for this body";)
+						return false;
+					}
+						
+					data.gamma = x.pr(inner).gamma;
+					x.pr(inner) = data;
+				}
+				
+				x.pr(inner).active = true;
+				me.add_body(x.pr(inner));
+				
+				return true;
+			}else {
+				var data = x.pr(inner);
+				if(data.active) {
+					DEBUG(throw "Error: LinearJoint already has an LJAngle for this body";)
+					return false;
+				}
+				
+				me.add_body(data);
+				data.active = true;
+				
+				return false;
+			}
+		}
+		wrap_angles.pr(inner).subber = function(x:LJAngle) {
+			x.pr(inner).active = false;
+			me.rem_body(x.pr(inner));
+		}
+	}
+	
+	public override function validate() {
+		Iter(b,bodies,{
+			if(b.b.space != space) throw "Error: Constraints must have each body within the same space to which the constraint has been assigned";
+		});
+		Iter(p,dpairs,{
+			if(p.b1.b.space != space || p.b2.b.space != space) throw "Error: Constraints must have each body within the same space to which the constraint has been assigned";
+			if(p.b1.b == p.b2.b) throw "Error: LinearJoint DistancePair must operate on different bodies";
+		});
+		
+		if(jointMin>jointMax) throw "Error: LinearJoint must have jointMin <= jointMax";
+	}
+	
+	public override function wake_connected() {
+		Iter(b,bodies, b.b.wake());
+	}
+	
+	public override function forest(livestack:List(PR(Body))) {
+		Iter(p,dpairs,DSF(union(p.b1.b,p.b2.b,livestack)));
+		Iter(b,bodies,{
+			if(b.gamma==0) cx_continue;
+			IterIte(c,bodies,cx_ite.next,{
+				if(c.gamma==0) cx_continue;
+				DSF(union(b.b,c.b,livestack));
+			});
+		});
+	}
+	
+	public override function pair_exists(pair_id:Int) {
+		Iter(b,bodies,{
+			IterIte(c,bodies,cx_ite.next,{
+				if(unordered_id(b.b.id,c.b.id) == pair_id)
+					return true;
+			});
+		});
+		return false;
+	}
+	
+	//---------------------------------------------------
+	
+	public override function preStep(dt:Float) {
+		equal = jointMin == jointMax;
+		var C = Cerr;
+		if(!slack) {
+			kMass = Keff;
+			if(kMass!=0) kMass = 1/kMass;
+			
+			if(!stiff) {
+				if(breakUnderError && C*C>maxError*maxError) return true;
+				
+				var biasCoef;
+				kMass *= soft_gamma(frequency,damping,dt,gamma,biasCoef);
+				bias = -C*dt*biasCoef;
+				clamp(bias,maxError);
+			}else {
+				bias = 0;
+				gamma = 0;
+			}
+
+			//warm start
+			Imp(jAcc,false);
+		}else
+			jAcc = 0;
+		
+		return false;
+	}
+	
+	public override function applyImpulseVel() {
+		if(slack) return false;
+		
+		var E = Verr;
+		var j = kMass*(bias - E) - jAcc*gamma;
+		accum(jAcc,j, {
+			if(breakUnderForce) {
+				if(jAcc>jMax || jAcc<-jMax) return true;
+				else if(!equal && jAcc>0) jAcc = 0;
+			}else if(!stiff) {
+				if(equal) clamp(jAcc,jMax);
+				else { if(jAcc>0) jAcc = 0; else if (jAcc<-jMax) jAcc = -jMax; }
+			}else if(!equal && jAcc>0) jAcc = 0;
+		});
+		Imp(j,false);
+		
+		return false;
+	}
+	
+	public override function applyImpulsePos() {
+		var E = Cerr;
+		if(!slack) {
+			if(breakUnderError && E*E > maxError*maxError) return true;
+			if(E*E < PR(Config).SLOP) return false;
+			E *= 0.5;
+			
+			//handle large detachments
+			if(E*E>6) {
+				var K = 0.0;
+				Iter(b,bodies, K += vec_lsq(b.V)*b.b.smass);
+				if(K!=0.0) K = 0.75/K;
+				
+				var j = -K*E;
+				if(equal || j<=0) Imp(j,true);
+				
+				E = Cerr;
+				E *= 0.5;
+			}
+			
+			var K = 1.0/Keff;
+			var j = -K*E;
+			if(equal || j<=0) Imp(j,true);
+		}
+		
+		return false;
+	}
+}
+
+)*/

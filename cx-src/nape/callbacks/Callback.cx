@@ -1,0 +1,86 @@
+package nape.callbacks;
+$(import);
+
+Flags(CbEvent,
+	prop(BEGIN,0)
+	prop(ONGOING,1)
+	prop(END,2)
+	
+	prop(WAKE,3)
+	prop(SLEEP,4)
+	
+	prop(BREAK,5)
+)
+
+class Callback {
+	public var pr(inner):PR(Callback);
+
+    property(event,CbEvent,{
+        [CbEvent.BEGIN,CbEvent.ONGOING,CbEvent.END,CbEvent.WAKE,CbEvent.SLEEP,CbEvent.BREAK][pr(inner).event];
+    })
+
+    ///---------------------------------------------------------------------------------------------
+
+    property(arbiter,Arbiter,{
+        DEBUG(
+            if(pr(inner).event!=Flag(CbEvent,BEGIN)
+            && pr(inner).event!=Flag(CbEvent,ONGOING)
+            && pr(inner).event!=Flag(CbEvent,END))
+                throw "Error: Callback object is not of the right type for 'arbiter' to be valid";
+        )
+        pr(inner).arbiter.wrapper();
+    })
+
+    property(body,Body,{
+        DEBUG(
+            if(pr(inner).event!=Flag(CbEvent,WAKE)
+            && pr(inner).event!=Flag(CbEvent,SLEEP))
+                throw "Error: Callback object is not of the right type for 'body' to be valid";
+            if(!pr(inner).swefBody)
+                throw "Error: Callback object is for a constraint, not a body";
+        )
+        pr(inner).body.outer;
+    })
+
+    property(constraint,Constraint,{
+        DEBUG(
+            if(pr(inner).event!=Flag(CbEvent,WAKE)
+            && pr(inner).event!=Flag(CbEvent,SLEEP)
+            && pr(inner).event!=Flag(CbEvent,BREAK))
+                throw "Error: Callback object is not of the right type for 'constraint' to be valid";
+            if(pr(inner).event!=Flag(CbEvent,BREAK) && pr(inner).swefBody)
+                throw "Error: Callback object is for a body, not a constraint";
+        )
+        pr(inner).constraint.outer;
+    })
+
+    property(hasBody,Bool, {
+        pr(inner).swefBody;
+    })
+    property(hasConstraint,Bool,{
+        !pr(inner).swefBody;
+    })
+
+    ///---------------------------------------------------------------------------------------------
+
+    property(listener,Listener,{
+        pr(inner).listener.outer;
+    })
+
+    ///---------------------------------------------------------------------------------------------
+	
+	public function new() {
+		DEBUG(if(!PR(Callback).internal) throw "Error: Callback cannot be instantiated derp!";)
+	}
+
+    ///---------------------------------------------------------------------------------------------
+
+    @:$keep public inline function toString() {
+        var ret = "Cb:";
+        ret += ["BEGIN","ONGOING","END","WAKE","SLEEP","BREAK"][pr(inner).event];
+        if(pr(inner).event==Flag(CbEvent,WAKE) || pr(inner).event==Flag(CbEvent,SLEEP))
+            ret += ":"+(hasBody ? body.toString() : constraint.toString());
+        ret += " : listener: "+listener;
+        return ret;
+    }
+}

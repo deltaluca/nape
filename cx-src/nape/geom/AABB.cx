@@ -1,0 +1,100 @@
+package nape.geom;
+$(import);
+
+class AABB {
+	public var pr(inner):PR(AABB);
+
+	public function new(?x:Float=0,?y:Float=0,?width:Float=0,?height:Float=0) {
+		DEBUG(
+			if(isNaN(x) || isNaN(y)) throw "Error: AABB position cannot be NaN";
+			if(isNaN(width) || isNaN(height)) throw "Error: AABB dimensions cannot be NaN";
+		)
+		pr(inner) = PR(AABB).get(x,y,x+width,y+height);
+		pr(inner).outer = this;
+	}
+	keep public inline function copy() return pr(inner).copy().wrapper()
+	
+	//----------------------------------------------------------------------------------------------
+	
+	#if flash9
+		keep public static function fromRect(rect:flash.geom.Rectangle) {
+			DEBUG(if(rect==null) throw "Error: Cannot create AABB from null Rectangle";)
+			return new AABB(rect.x,rect.y,rect.width,rect.height);
+		}
+	#end
+	
+	//----------------------------------------------------------------------------------------------
+	
+	$(mixin comp(n)
+        property(n,Vec2,pr(inner).get_`n(),{
+			DEBUG(
+				if(pr(inner).immutable) throw "Error: AABB is immutable";
+			
+				if(n==null) throw "Error: Cannot assign null to AABB::"+$str(n);
+				if(isNaN(x) || isNaN(y)) throw "Error: AABB::"+$str(n)+" components cannot be NaN";
+				if($str(n)=="min") {
+					if(n.x > max.x) throw "Error: Assignment would cause negative width";
+					if(n.y > max.y) throw "Error: Assignment would cause negative height";
+				}else {
+					if(n.x < min.x) throw "Error: Assignment would cause negative width";
+					if(n.y < min.y) throw "Error: Assignment would cause negative height";
+				}
+			)
+			this.n.set(n);
+		})
+	);
+	comp(min)
+	comp(max)
+	
+	//----------------------------------------------------------------------------------------------
+	
+	$(mixin coord(n)
+        property(n,Float,{
+            pr(inner).validate();
+            pr(inner).min`n;
+        },{
+			DEBUG(if(pr(inner).immutable) throw "Error: AABB is immutable";)
+			
+			if(this.n!=n) {
+				DEBUG(
+					if(isNaN(n)) throw "Error: AABB::"+$str(n)+" cannot be NaN";
+					if(n>max.n) throw "Error: Assignment would cause negative "+($str(n)=="x"?"width":"height");
+				)
+				pr(inner).min`n = n;
+				pr(inner).invalidate();
+			}
+		})
+	);
+	coord(x)
+	coord(y)
+	
+	//----------------------------------------------------------------------------------------------
+	
+	$(mixin dim(N,n)
+        property(N,Float,{
+			pr(inner).validate();
+			pr(inner).N();
+		},{
+			DEBUG(if(pr(inner).immutable) throw "Error: AABB is immutable";)
+			
+			if(this.N!=N) {
+				DEBUG(
+					if(isNaN(N)) throw "Error: AABB::"+$str(N)+" cannot be NaN";
+					if(N<0) throw "Error: AABB::"+$str(N)+" ("+N+") must be >= 0";
+				)
+				pr(inner).max`n = this.n+N;
+				pr(inner).invalidate();
+			}
+		})
+	);
+	dim(width, x)
+	dim(height,y)
+	
+	//----------------------------------------------------------------------------------------------
+	
+	//keep is used for swc, use standard metadata so that it's present in swf also.
+	@:$keep public function toString() {
+		pr(inner).validate();
+		return pr(inner).toString();
+	}
+}

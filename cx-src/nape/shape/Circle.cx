@@ -1,0 +1,61 @@
+package nape.shape;
+$(import);
+
+class Circle extends Shape {
+	public var pr(inner_zn):PR(Circle);
+	
+	//----------------------------------------------------------------------------------------------
+	
+	public function new(radius:Float, ?localCOM:Vec2, ?material:Material, ?filter:InteractionFilter, ?cbType:CbType) {
+		DEBUG(try { super(); } catch (e:Dynamic) {})
+		RELEASE(super();)
+		
+		pr(inner_zn) = new PR(Circle)();
+		pr(inner_zn).outer = this;
+		pr(inner_zn).outer_zn = this;
+		pr(inner) = pr(inner_zn);
+		
+		this.radius = radius;
+		if(localCOM==null) vec_set(pr(inner).localCOM,0,0);
+		else vec_set(pr(inner).localCOM,localCOM.);
+		
+		if(material==null) {
+			pr(inner).material = Get(PR(Material));
+			pr(inner).material.addShape(this.pr(inner));
+		}
+		else this.material = material;
+		
+		if(filter==null) {
+			pr(inner).filter = Get(PR(InteractionFilter));
+			pr(inner).filter.addShape(this.pr(inner));
+		}
+		else this.filter = filter;
+
+        if(cbType==null) {
+            pr(inner).cbType = PR(CbType).DEFAULT;
+            pr(inner).cbType.addShape(this.pr(inner));
+        }else this.cbType = cbType;
+	}
+	
+	keep public static function copy(circle:Circle) {
+		DEBUG(if(circle==null) throw "Error: Cannot copy null circle";)
+		return circle.pr(inner).copy().circle;
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+    property(radius,Float,pr(inner_zn).radius,{
+		DEBUG(if(pr(inner).body!=null && pr(inner).body.isStatic() && pr(inner).body.space!=null)
+			throw "Error: Cannot modifiy radius of Circle contained in static object once added to space";
+		)
+		if(radius!=this.radius) {
+			DEBUG(
+				if(isNaN(radius))   throw "Error: Circle::radius cannot be NaN";
+				if(radius<PR(Const).EPSILON) throw "Error: Circle::radius ("+radius+") must be > PR(Const).EPSILON";
+				if(radius>PR(Const).FMAX)    throw "Error: Circle::radius ("+radius+") must be < PR(Const).FMAX";
+			)
+			pr(inner_zn).radius = radius;
+			pr(inner_zn).invalidate_radius();
+		}
+	})
+}

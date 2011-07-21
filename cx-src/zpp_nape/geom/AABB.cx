@@ -1,0 +1,111 @@
+package zpp_nape.geom;
+$(import);
+
+class PR(AABB) {
+	public var _invalidate:PR(AABB)->Dynamic;
+	public var _validate:Void->Dynamic;
+	public var immutable:Bool;
+	
+	flibmdel public inline function validate() {
+		if(_validate!=null) _validate();
+	}
+	flibmdel public inline function invalidate() {
+		if(wrap_min!=null) wrap_min.pr(inner).invalidate();
+		if(wrap_max!=null) wrap_max.pr(inner).invalidate();
+		if(_invalidate!=null) _invalidate(this);
+	}
+	
+	public var outer:AABB;
+	flibmdel public inline function wrapper() {
+		if(outer==null) {
+			outer = new AABB(); //don't care
+			Free(PR(AABB),outer.pr(inner));
+			outer.pr(inner) = this;
+		}
+		return outer;
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+	MixPool(PR(AABB))
+	flibmdel public inline function free() {
+		outer = null;
+		wrap_min = wrap_max = null; //??? not right, should be able to recycle.
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+	public function new() {}
+	flibstaticdel(get) public static inline function get(minx:Float, miny:Float, maxx:Float, maxy:Float) {
+		var ret = Get(PR(AABB));
+		vec_set(ret.min,min);
+		vec_set(ret.max,max);
+		return ret;
+	}
+	flibmdel public inline function copy() return PR(AABB).get(minx,miny,maxx,maxy)
+	
+	//----------------------------------------------------------------------------------------------
+	
+	flibmdel public inline function width () return maxx-minx
+	flibmdel public inline function height() return maxy-miny
+	
+	//----------------------------------------------------------------------------------------------
+	
+	$(mixin comp(n)
+		vec_new(public,n);
+		public var wrap_`n:Vec2;
+		
+		flibmdel public inline function get_`n() {
+			if(wrap_`n==null) {
+				wrap_`n = new Vec2(n`x,n`y);
+				wrap_`n.pr(inner).inuse = true;
+				if(immutable) wrap_`n.pr(inner).immutable = true;
+				else wrap_`n.pr(inner)._invalidate = mod_`n;
+				wrap_`n.pr(inner)._validate = dom_`n;
+			}
+			return wrap_`n;
+		}
+		public function dom_`n() {
+			validate();
+			vec_set(wrap_`n.,n);
+		}
+		public function mod_`n(n:PR(Vec2)) {
+			if(n.x != n`x || n.y != n`y) {
+				vec_set(n,n.);
+				invalidate();
+			}
+		}
+	);
+	comp(min)
+	comp(max)
+	
+	//----------------------------------------------------------------------------------------------
+	
+	flibmdel public inline function intersectX(x:PR(AABB)) {
+		return !(x.minx > maxx || minx > x.maxx);
+	}
+	flibmdel public inline function intersectY(x:PR(AABB)) {
+		return !(x.miny > maxy || miny > x.maxy);
+	}
+	
+	flibmdel public inline function intersect(x:PR(AABB)) {
+		return !(x.miny > maxy || miny > x.maxy || x.minx > maxx || minx > x.maxx);
+	}
+	
+	flibmdel public inline function combine(x:PR(AABB)) {
+		if(x.minx<minx) minx = x.minx;
+		if(x.maxx>maxx) maxx = x.maxx;
+		if(x.miny<miny) miny = x.miny;
+		if(x.maxy>maxy) maxy = x.maxy;
+	}
+	
+	flibmdel public inline function contains(x:PR(AABB)) {
+		return x.minx >= minx && x.miny >= miny && x.maxx <= maxx && x.maxy <= maxy;
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+	flibmdel public inline function toString() {
+		return "{ x: "+minx+" y: "+miny+" w: "+width()+" h: "+height()+" }";
+	}
+}

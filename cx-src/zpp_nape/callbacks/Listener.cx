@@ -1,0 +1,143 @@
+package zpp_nape.callbacks;
+$(import);
+
+class PR(Listener) {
+    public var outer:Listener;
+    public static var internal:Bool = false;
+
+    public var type:Int; //Flag(ListenerType)
+    public var event:Int; //Flag(CbEvent)
+
+    public var body:PR(BodyListener);
+    public var constraint:PR(ConstraintListener);
+    public var interaction:PR(InteractionListener);
+    public var imm:PR(ImmListener);
+
+    public var space:PR(Space);
+}
+
+///_________________________________________________________________________________________________
+///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+
+class PR(BodyListener) extends PR(Listener) {
+    public var outer_zn:BodyListener;
+
+    public var cbType:PR(CbType);
+    public var handler:Body->Void;
+
+    public function new(event:Int, handler:Body->Void) {
+        this.event = event;
+        this.handler = handler;
+        body = this;
+        type = Flag(ListenerType,BODY);
+    }
+
+    flibmdel public inline function addedToSpace() {
+        assert(cbType!=null,"listener added to space with no cbtype associated?");
+
+        if(event==Flag(CbEvent,WAKE))
+             cbType._bodywake.add(this);
+        else cbType._bodysleep.add(this);
+    }
+
+    flibmdel public inline function removedFromSpace() {
+        assert(cbType!=null,"listener removed from space with no cbtype associated?");
+
+        if(event==Flag(CbEvent,WAKE))
+             cbType._bodywake.remove(this);
+        else cbType._bodysleep.remove(this);
+    }
+
+    flibmdel public inline function swapCbType(newcb:PR(CbType)) {
+        assert(newcb!=null,"swap to null cbtype?");
+
+        if(cbType!=null) cbType.listeners.remove(this);
+        newcb.listeners.add(this);
+
+        //handle live data.
+        if(space!=null) {
+            if(cbType!=null) removedFromSpace();
+            cbType = newcb;
+            addedToSpace();
+        }else cbType = newcb;
+    }
+
+    flibmdel public inline function swapEvent(newev:Int) {
+        DEBUG(
+            if(newev != Flag(CbEvent,WAKE) && newev != Flag(CbEvent,SLEEP))
+                throw "Error: BodyListener event must be either WAKE or SLEEP only";
+        )
+        removedFromSpace();
+        event = newev;
+        addedToSpace();
+    }
+}
+
+///_________________________________________________________________________________________________
+///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+
+class PR(ConstraintListener) extends PR(Listener) {
+    public var outer_zn:ConstraintListener;
+
+    public var cbType:PR(CbType);
+    public var handler:Constraint->Void;
+
+    public function new(event:Int, handler:Constraint->Void) {
+        this.event = event;
+        this.handler = handler;
+        constraint = this;
+        type = Flag(ListenerType,CONSTRAINT);
+    }
+
+    flibmdel public inline function addedToSpace() {
+        assert(cbType!=null,"listener added to space with no cbtype associated?");
+
+        if     (event==Flag(CbEvent,WAKE))  cbType._conwake.add(this);
+        else if(event==Flag(CbEvent,SLEEP)) cbType._consleep.add(this);
+        else cbType._break.add(this);
+    }
+
+    flibmdel public inline function removedFromSpace() {
+        assert(cbType!=null,"listener removed from space with no cbtype associated?");
+
+        if     (event==Flag(CbEvent,WAKE))  cbType._conwake.remove(this);
+        else if(event==Flag(CbEvent,SLEEP)) cbType._consleep.remove(this);
+        else cbType._break.remove(this);
+    }
+
+    flibmdel public inline function swapCbType(newcb:PR(CbType)) {
+        assert(newcb!=null,"swap to null cbtype?");
+
+        if(cbType!=null) cbType.listeners.remove(this);
+        newcb.listeners.add(this);
+
+        //handle live data.
+        if(space!=null) {
+            if(cbType!=null) removedFromSpace();
+            cbType = newcb;
+            addedToSpace();
+        }else cbType = newcb;
+    }
+
+    flibmdel public inline function swapEvent(newev:Int) {
+        DEBUG(
+            if(newev != Flag(CbEvent,WAKE) && newev != Flag(CbEvent,SLEEP) && newev != Flag(CbEvent,BREAK))
+                throw "Error: ConstraintListener event must be either WAKE or SLEEP only";
+        )
+        removedFromSpace();
+        event = newev;
+        addedToSpace();
+    }
+}
+
+class PR(InteractionListener) extends PR(Listener) {
+    public var cb1:PR(CbType);
+    public var cb2:PR(CbType);
+    public var handler:Arbiter->Void;
+}
+
+class PR(ImmListener) extends PR(Listener) {
+    public var cb1:PR(CbType);
+    public var cb2:PR(CbType);
+    public var handler:Arbiter->ImmFlag;
+}

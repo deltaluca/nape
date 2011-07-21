@@ -1,0 +1,90 @@
+package zpp_nape.dynamics;
+$(import);
+
+//contains rest of data
+class PR(Contact) {
+	public var outer:Contact;
+	public static var internal:Bool = false;
+	public inline function wrapper() {
+		if(outer==null) {
+			internal = true;
+			outer = new Contact();
+			internal = false;
+			outer.pr(inner) = this;
+		}
+		return outer;
+	}
+	
+	vec_new(public,p);
+	
+	public var inv(pos):Bool;
+	public var wrap_position:Vec2;
+	public function getposition() {
+		var me = this;
+		wrap_position = new Vec2();
+		wrap_position.pr(inner).inuse = true;
+		wrap_position.pr(inner).immutable = true;
+		wrap_position.pr(inner)._validate = function() {
+			DEBUG(if(me.arbiter==null || me.arbiter.cleared) throw "Error: Contact not currently in use";)
+			vec_set(me.wrap_position.pr(inner).,me.p);
+		}
+	}
+
+	//----------------------------------------------------------------------------------------------
+	
+	public var arbiter:PR(Arbiter);
+	public var inner:PR(IContact);
+	
+	//denotes contact is active, and not laying dormant to allow cached values to persist.
+	public var active:Bool;
+	
+	public var stamp:Int; //updated when contact is injected
+	public var hash:Int; //based on features like vertex/edge etc to identify contact uniquely
+	public var fresh:Bool; //set to true when contact is created/re-activated (*not to do with sleeping)
+	
+	public var sBias:Float; //smoothed bias percentage based on relative velocity and PR(Config) constants.
+	public var dist:Float; //penetration distance.
+	
+	public var elasticity:Float; //only used to expose to API for interest sake.
+	
+	//----------------------------------------------------------------------------------------------
+	
+	public function new() {
+		inner = new PR(IContact)();
+	}
+	flibmdel public inline function free() {
+		arbiter = null;
+	}
+	
+	MixPoolNoNext(PR(Contact))
+	MixListMixin(PR(Contact))
+}
+
+//--------------------------------------------------------------------------------------------------
+
+//only contains fields needed by contact iterations
+//these are not pooled and bound explicitly to a pooled full Contact.
+class PR(IContact) {
+	//velocity iterations
+	vec_new(public,r1); //relative contact positions
+	vec_new(public,r2);
+	
+	public var nMass:Float; //effective mass
+	public var tMass:Float;
+	
+	public var bounce:Float;   //per contact bounce/friction
+	public var friction:Float; //based on arbiter values and relative velocities.
+	
+	public var jnAcc:Float; //cached impulse values
+	public var jtAcc:Float;
+	
+	//position iterations
+	public var biasCoef:Float; //per contact biasCoef, averaged for block solver.
+	
+	vec_new(public,lr1); //local reference point.
+	vec_new(public,lr2);
+	
+	public function new() {}
+	
+	MixListMixin(PR(IContact))
+}

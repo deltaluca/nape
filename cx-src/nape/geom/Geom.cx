@@ -1,0 +1,45 @@
+package nape.geom;
+$(import);
+
+class Geom {
+	keep public static function distance(
+		shape1:Shape, shape2:Shape,
+		out1:Vec2, out2:Vec2
+	) {
+		DEBUG(if(out1.pr(inner).immutable || out2.pr(inner).immutable)
+			throw "Error: Supplied Vec2 are immutable";
+		)
+		
+		if(out1.pr(inner)._immutable != null)
+			out1.pr(inner)._immutable();
+			
+		if(out2.pr(inner)._immutable != null)
+			out2.pr(inner)._immutable();
+			
+		DEBUG(if(shape1.body==null || shape2.body==null)
+			throw "Error: Shape must be part of a Body to calculate distances";
+		)
+		
+		var rev = false;
+		if(shape1.isPolygon() && shape2.isCircle()) {
+			rev = true;
+			swap(shape1,shape2);
+		}
+		
+		shape1.pr(inner).validate_worldCOM();
+		shape2.pr(inner).validate_worldCOM();
+			
+		var ret = PR(Distance).distance(
+			out1.pr(inner), out2.pr(inner),
+			shape1.pr(inner),shape2.pr(inner),
+			null
+		);
+		
+		if(rev) {
+			swap(out1.x,out2.x);
+			swap(out1.y,out2.y);
+		}
+		
+		return ret;
+	}
+}

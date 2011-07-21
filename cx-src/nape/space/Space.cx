@@ -1,0 +1,118 @@
+package nape.space;
+$(import);
+
+class Space {
+	public var pr(inner):PR(Space);
+	
+	//----------------------------------------------------------------------------------------------
+	
+    property(gravity,Vec2,{
+		if(pr(inner).wrap_gravity==null) pr(inner).getgravity();
+		pr(inner).wrap_gravity;
+	},{
+        this.gravity.set(gravity);
+    })
+	
+	//----------------------------------------------------------------------------------------------
+	
+    //bodies ]= statics,dynamics,kinematics
+    //dynamics ]= liveBodies
+    property(bodies,    BodyList,pr(inner).wrap_bodies)
+    property(statics,   BodyList,pr(inner).wrap_statics)
+    property(dynamics,  BodyList,pr(inner).wrap_dynamics)
+    property(kinematics,BodyList,pr(inner).wrap_kinematics)
+	property(liveBodies,BodyList,pr(inner).wrap_live)
+
+    //constraints ]= liveConstraints
+    property(constraints,    ConstraintList,pr(inner).wrap_constraints)
+    property(liveConstraints,ConstraintList,pr(inner).wrap_livecon)
+
+	//----------------------------------------------------------------------------------------------
+	
+    //for use with constraints for a world-constant anchor
+    property(world,Body,pr(inner).__static)
+	
+	//----------------------------------------------------------------------------------------------
+	
+    property(arbiters,ArbiterList,{
+		if(pr(inner).wrap_arbiters==null) {
+			var ret = new PR(SpaceArbiterList)();
+			ret.space = pr(inner);
+			pr(inner).wrap_arbiters = ret;
+		}
+		pr(inner).wrap_arbiters;
+	})
+	
+    //----------------------------------------------------------------------------------------------
+
+    property(callbacks,CallbackQueue,{
+        if(pr(inner).wrap_callbacks==null) {
+            PR(Callback).internal = true;
+            var ret = new CallbackQueue();
+            PR(Callback).internal = false;
+            ret.pr(inner) = pr(inner).callbacks;
+            pr(inner).wrap_callbacks = ret;
+        }
+        pr(inner).wrap_callbacks;
+    })
+
+    property(listeners,ListenerList,pr(inner).wrap_listeners)
+
+	//----------------------------------------------------------------------------------------------
+	
+	keep public function step(deltaTime:Float, ?velocityIterations:Int = 6, ?positionIterations:Int = 6) {
+		DEBUG(
+			if(isNaN(deltaTime)) throw "Error: deltaTime cannot be NaN"; //TVB is a cunt. ;)
+			if(deltaTime<=0) throw "Error: deltaTime must be strictly positive";
+			if(velocityIterations<=0) throw "Error: must use atleast one velocity iteration";
+			if(positionIterations<=0) throw "Error: must use atleast one position iteration";
+		)
+		pr(inner).step(deltaTime,velocityIterations,positionIterations);
+	}
+	
+    property(timeStamp,Int,pr(inner).stamp)
+    property(elapsedTime,Float,pr(inner).time)
+
+	//----------------------------------------------------------------------------------------------
+
+	public function new(?gravity:Vec2) {
+		pr(inner) = new PR(Space)(gravity==null?null:gravity.pr(inner));
+		pr(inner).outer = this;
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+	keep public function bodiesUnderPoint(point:Vec2) {
+		DEBUG(if(point==null) throw "Error: Cannot evaluate objects under a null point :)";)
+		return pr(inner).bodiesUnderPoint(point.x,point.y);
+	}
+	
+	keep public function bodiesInAABB(aabb:AABB) {
+		DEBUG(
+			if(aabb==null) throw "Error: Cannot evaluate objects in a null AABB :)";
+			if(aabb.width==0 || aabb.height==0) throw "Error: Cannot evaluate objects in degenerate AABB :/";
+		)
+		return pr(inner).bodiesInAABB(aabb);
+	}
+	
+	keep public function bodiesInCircle(position:Vec2,radius:Float) {
+		DEBUG(
+			if(position==null) throw "Error: Cannot evaluate objects at null circle :)";
+			if(isNaN(radius))  throw "Error: Circle radius cannot be NaN";
+			if(radius<=0)      throw "Error: Circle radius must be strictly positive";
+		)
+		return pr(inner).bodiesInCircle(position,radius);
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+	keep public function rayCast(ray:Ray, ?inner:Bool=false, ?filter:InteractionFilter=null) {
+		DEBUG(if(ray==null) throw "Error: Cannot cast null ray :)";)
+		return pr(inner).rayCast(ray,inner,filter);
+	}
+	
+	keep public function rayMultiCast(ray:Ray, ?inner:Bool=false, ?filter:InteractionFilter=null) {
+		DEBUG(if(ray==null) throw "Error: Cannot cast null ray :)";)
+		return pr(inner).rayMultiCast(ray,inner,filter);
+	}
+}

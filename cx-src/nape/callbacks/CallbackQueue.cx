@@ -1,0 +1,23 @@
+package nape.callbacks;
+$(import);
+
+class CallbackQueue {
+    public var pr(inner):PR(Callback);
+
+    public function new() {
+        DEBUG(
+            if(!PR(Callback).internal)
+                throw "Error: Cannot instantiate a CallbackQueue derp!";
+        )
+    }
+
+    keep public inline function empty() return pr(inner).empty()
+    keep public inline function pop() {
+        DEBUG(if(empty()) throw "Error: CallbackQueue is empty";)
+        var ret = pr(inner).pop();
+        Free(PR(Callback),ret);
+        return ret.wrapper();
+    }
+
+    property(size,Int,pr(inner).length)
+}

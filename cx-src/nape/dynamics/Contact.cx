@@ -1,0 +1,123 @@
+package nape.dynamics;
+$(import);
+
+WrapList(Contact,MixList(PR(Contact)),PR(Contact),$(mixin closure(x) x.wrapper()) $(mixin erusolc(x) x.pr(inner)) $(mixin use_accept true) $(mixin accept(x) x.active && x.arbiter.active))
+
+class Contact {
+	public var pr(inner):PR(Contact);
+	
+    property(active,Bool, pr(inner).active && pr(inner).arbiter!=null && !pr(inner).arbiter.cleared)
+	
+    property(arbiter,CollisionArbiter,{
+        if(pr(inner).arbiter==null) null else pr(inner).arbiter.outer.collisionArbiter;
+    })
+	
+	//------------------------------------------------------------------------
+	
+    property(penetration,Float,{
+		DEBUG(if(!active) throw "Error: Contact not currently in use";)
+		-pr(inner).dist;
+	})
+	
+	property(position,Vec2,{
+		DEBUG(if(!active) throw "Error: Contact not currently in use";)
+		if(pr(inner).wrap_position==null) pr(inner).getposition();
+		pr(inner).wrap_position;
+	})
+
+	property(fresh,Bool,{
+		DEBUG(if(!active) throw "Error: Contact not currently in use";)
+		pr(inner).fresh;
+	})
+	
+	//------------------------------------------------------------------------
+	
+	keep public function normalImpulse(body:Body=null) {
+		DEBUG(if(!active) throw "Error: Contact not currently in use";)
+		var colarb = pr(inner).arbiter.colarb;
+		var cin = pr(inner).inner;
+		if(body==null)
+			return new Vec3(vec_imul(colarb.n, cin.jnAcc));
+		else {
+			DEBUG(if(body!=colarb.b1.outer && body!=colarb.b2.outer) throw "Error: Contact does not relate to the given body";)
+			if(body==colarb.b1.outer)
+				 return new Vec3(vec_imul(colarb.n, -cin.jnAcc), -vec_cross(cin.r1,colarb.n)*cin.jnAcc);
+			else return new Vec3(vec_imul(colarb.n,  cin.jnAcc),  vec_cross(cin.r2,colarb.n)*cin.jnAcc);
+		}
+	}
+	
+	keep public function tangentImpulse(body:Body=null) {
+		DEBUG(if(!active) throw "Error: Contact not currently in use";)
+		var colarb = pr(inner).arbiter.colarb;
+		var cin = pr(inner).inner;
+		if(body==null)
+			return new Vec3(-colarb.ny*cin.jtAcc, colarb.nx*cin.jtAcc);
+		else {
+			DEBUG(if(body!=colarb.b1.outer && body!=colarb.b2.outer) throw "Error: Contact does not relate to the given body";)
+			if(body==colarb.b1.outer)
+				 return new Vec3( colarb.ny*cin.jtAcc, -colarb.nx*cin.jtAcc, -vec_dot(cin.r1,colarb.n)*cin.jtAcc);
+			else return new Vec3(-colarb.ny*cin.jtAcc,  colarb.nx*cin.jtAcc,  vec_dot(cin.r2,colarb.n)*cin.jtAcc);
+		}
+	}
+	
+	keep public function rollingImpulse(body:Body=null) {
+		DEBUG(if(!active) throw "Error: Contact not currently in use";)
+		var colarb = pr(inner).arbiter.colarb;
+		if(body==null)
+			return pr(inner).arbiter.colarb.jrAcc;
+		else {
+			DEBUG(if(body!=colarb.b1.outer && body!=colarb.b2.outer) throw "Error: Contact does not relate to the given body";)
+			if(body==colarb.b1.outer) return -pr(inner).arbiter.colarb.jrAcc;
+			else                      return  pr(inner).arbiter.colarb.jrAcc;
+		}
+	}
+	
+	keep public function totalImpulse(body:Body=null) {
+		DEBUG(if(!active) throw "Error: Contact not currently in use";)
+		
+		var colarb = pr(inner).arbiter.colarb;
+		var cin = pr(inner).inner;
+		if(body==null) {
+			return new Vec3(colarb.nx*cin.jnAcc - colarb.ny*cin.jtAcc,
+							colarb.ny*cin.jnAcc + colarb.nx*cin.jtAcc,
+							colarb.jrAcc);
+		}else {
+			DEBUG(if(body!=colarb.b1.outer && body!=colarb.b2.outer) throw "Error: Contact does not relate to the given body";)
+			vec_new(j, colarb.nx*cin.jnAcc - colarb.ny*cin.jtAcc,
+			           colarb.ny*cin.jnAcc + colarb.nx*cin.jtAcc);
+			if(body==colarb.b1.outer)
+				 return new Vec3(-jx,-jy,-vec_cross(cin.r1,j));
+			else return new Vec3( jx, jy, vec_cross(cin.r2,j));
+		}
+	}
+	
+	//------------------------------------------------------------------------
+	
+    property(restitution,Float, {
+		DEBUG(if(!active) throw "Error: Contact not currently in use";)
+		pr(inner).elasticity;
+	})
+	
+	property(friction,Float, {
+		DEBUG(if(!active) throw "Error: Contact not currently in use";)
+		pr(inner).inner.friction;
+	})
+	
+	property(rollingFriction,Float,{
+		DEBUG(if(!active) throw "Error: Contact not currently in use";)
+		pr(inner).arbiter.colarb.rfric;
+	})
+	
+	//------------------------------------------------------------------------
+	
+	public function new() {
+		DEBUG(if(!PR(Contact).internal) throw "Error: Cannot instantiate Contact derp!";)
+	}
+	
+	@:$keep public function toString() {
+		if(pr(inner).arbiter==null || pr(inner).arbiter.cleared)
+			return "{object-pooled}";
+		else
+			return "{Contact}";
+	}
+}

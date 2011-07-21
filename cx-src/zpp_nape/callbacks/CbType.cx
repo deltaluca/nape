@@ -1,0 +1,87 @@
+package zpp_nape.callbacks;
+$(import);
+
+class PR(CbType) {
+    public var outer:CbType;
+
+    static public var internal:Bool = false;
+    flibmdel public inline function wrapper() {
+        if(outer==null) {
+            internal = true;
+            outer = new CbType();
+            internal = false;
+            outer.pr(inner) = this;
+        }
+        return outer;
+    }
+
+    ///---------------------------------------------------------------------------------------------
+
+    public static var nextId = 0;
+    public var id:Int;
+
+    static public var map = new ARRAY(PR(CbType))();
+    static public var DEFAULT = new PR(CbType)();
+
+    ///---------------------------------------------------------------------------------------------
+
+    public var shapes     :List(PR(Shape));      public var wrap_shapes     :ShapeList;
+    public var constraints:List(PR(Constraint)); public var wrap_constraints:ConstraintList;
+    public var bodies     :List(PR(Body));       public var wrap_bodies     :BodyList;
+
+    flibmdel public inline function addShape     (shape:PR(Shape))      shapes.     add   (shape)
+    flibmdel public inline function addConstraint(con  :PR(Constraint)) constraints.add   (con)
+    flibmdel public inline function addBody      (body :PR(Body))       bodies.     add   (body)
+
+    flibmdel public inline function remShape     (shape:PR(Shape))      shapes.     remove(shape)
+    flibmdel public inline function remConstraint(con  :PR(Constraint)) constraints.remove(con)
+    flibmdel public inline function remBody      (body :PR(Body))       bodies.     remove(body)
+
+    ///---------------------------------------------------------------------------------------------
+
+    ///these are only assigned when listener is added to the space!
+
+    //store actual references as these are one-one
+    public var _bodywake :List(PR(BodyListener));
+    public var _bodysleep:List(PR(BodyListener));
+    public var _conwake  :List(PR(ConstraintListener));
+    public var _consleep :List(PR(ConstraintListener));
+
+    public var _break:List(PR(ConstraintListener));
+
+    //store only flags denoting there exists at least one listener referencing this type
+    //use space maps to determine if one actually exists for specific pair.
+    public var _begin  :Bool;
+    public var _ongoing:Bool;
+    public var _end    :Bool;
+
+    public var _prebegin  :Bool;
+    public var _preongoing:Bool;
+
+    ///this includes all listeners, active or otherwise.
+    public var listeners:List(PR(Listener));
+    public var wrap_listeners:ListenerList;
+
+    ///---------------------------------------------------------------------------------------------
+
+    public function new() {
+        id = nextId++;
+        assert(id<=0xffff,"invalid cbtype id");
+        map.push(this);
+
+        shapes = new List(PR(Shape))();
+        constraints = new List(PR(Constraint))();
+        bodies = new List(PR(Body))();
+
+        _begin = _ongoing = _end = false;
+        _prebegin = _preongoing = false;
+
+        listeners = new List(PR(Listener))();
+
+        _bodywake  = new List(PR(BodyListener))();
+        _bodysleep = new List(PR(BodyListener))();
+        _conwake = new List(PR(ConstraintListener))();
+        _consleep = new List(PR(ConstraintListener))();
+        _break = new List(PR(ConstraintListener))();
+    }
+}

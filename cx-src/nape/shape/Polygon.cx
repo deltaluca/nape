@@ -1,0 +1,154 @@
+package nape.shape;
+$(import);
+
+Flags(ValidationResult,
+	prop(VALID,0)
+	
+	prop(DEGENERATE,1)
+	prop(DEGENERATE_EDGES,2)
+	prop(CONCAVE,3)
+	prop(SELF_INTERSECTING,4)
+)
+
+class Polygon extends Shape {
+	public var pr(inner_zn):PR(Polygon);
+	
+	//----------------------------------------------------------------------------------------------
+	
+	keep public static function copy(polygon:Polygon) {
+		DEBUG(if(polygon==null)
+			throw "Error: Cannot copy null polygon";
+		)
+		return polygon.pr(inner).copy().polygon;
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+	keep public static inline function rect(x:Float,y:Float,width:Float,height:Float) {
+		DEBUG(if(isNaN(x) || isNaN(y) || isNaN(width) || isNaN(height))
+			throw "Error: Polygon.rect cannot accept NaN arguments";
+		)
+		return [new Vec2(x,y), new Vec2(x+width,y), new Vec2(x+width,y+height), new Vec2(x,y+height)];
+	}
+	keep public static inline function box(width:Float, height:Float) {
+		DEBUG(if(isNaN(width) || isNaN(height))
+			throw "Error: Polygon.box cannot accept NaN arguments";
+		)
+		return rect(-width/2,-height/2,width,height);
+	}
+	
+	keep public static inline function regular(width:Float, height:Float, edgeCount:Int, ?angleOffset=0.0) {
+		DEBUG(if(isNaN(width) || isNaN(height) || isNaN(angleOffset))
+			throw "Error: Polygon.regular cannot accept NaN arguments";
+		)
+		var ret = [];
+		var dangle = Math.PI*2/edgeCount;
+		/*var minx = PR(Const).FMAX;
+		var miny = PR(Const).FMAX;
+		var maxx = -PR(Const).FMAX;
+		var maxy = -PR(Const).FMAX;*/
+		for(i in 0...edgeCount) {
+			var ang = i*dangle + angleOffset;
+			var x = new Vec2(Math.cos(ang)*width/2,Math.sin(ang)*height/2);
+			ret.push(x);
+			/*if(x.x<minx) minx = x.x;
+			if(x.y<miny) miny = x.y;
+			if(x.x>maxx) maxx = x.x;
+			if(x.y>maxy) maxy = x.y;*/
+		}
+		/*var sx = width/(maxx-minx);
+		var sy = height/(maxy-miny);
+		for(i in 0...edgeCount) {
+			var x = ret[i];
+			x.x *= sx;
+			x.y *= sy;
+		}*/
+		return ret;
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+    property(localVerts,Vec2List,{
+		if(pr(inner_zn).wrap_lverts==null) pr(inner_zn).get_lverts();
+		pr(inner_zn).wrap_lverts;
+	})
+	
+	property(worldVerts,Vec2List,{
+		if(pr(inner_zn).wrap_gverts==null) pr(inner_zn).get_gverts();
+		pr(inner_zn).wrap_gverts;
+	})
+	
+	property(edges,EdgeList,{
+		if(pr(inner_zn).wrap_edges==null) pr(inner_zn).get_edges();
+		pr(inner_zn).wrap_edges;
+	})
+	
+	//----------------------------------------------------------------------------------------------
+	
+	keep public function validity() {
+		return pr(inner_zn).valid();
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+	public function new(localVerts:Dynamic, ?material:Material, ?filter:InteractionFilter, ?cbType:CbType) {
+		DEBUG(try { super(); } catch (e:Dynamic) {})
+		RELEASE(super();)
+		
+		DEBUG(if(localVerts==null) throw "Error: localVerts cannot be null";)
+		
+		pr(inner_zn) = new PR(Polygon)();
+		pr(inner_zn).outer = this;
+		pr(inner_zn).outer_zn = this;
+		pr(inner) = pr(inner_zn);
+		
+		if(Std.is(localVerts,Array)) {
+			var lv:Array<Dynamic> = localVerts;
+			for(i in lv) {
+				DEBUG(
+					if(i==null) throw "Error: localVerts contains null references";
+					if(!Std.is(i,Vec2)) throw "Error: localVerts contains non Vec2 instances";
+				)
+
+				this.localVerts.push(i.copy());
+			}
+		}#if flash9 else if(Std.is(localVerts,flash.Vector)) {
+			var lv:flash.Vector<Dynamic> = localVerts;
+			for(i in lv) {
+				DEBUG(
+					if(i==null) throw "Error: localVerts contains null references";
+					if(!Std.is(i,Vec2)) throw "Error: localVerts contains non Vec2 instances";
+				)
+				
+				this.localVerts.push(i.copy());
+			}
+		}#end
+		else if(Std.is(localVerts,Vec2List)) {
+			var lv:Vec2List = localVerts;
+			for(i in lv) {
+				DEBUG(if(i==null) throw "Error: localVerts contains null references";)
+				
+				this.localVerts.push(i.copy());
+			}
+		}DEBUG(else
+			throw "Error: Invalid type for localVerts, should be Array<Vec2>, Vec2List or for flash9 flash.Vector<Vec2>";
+		)
+
+		if(material==null) {
+			pr(inner).material = Get(PR(Material));
+			pr(inner).material.addShape(this.pr(inner));
+		}
+		else this.material = material;
+		
+		if(filter==null) {
+			pr(inner).filter = Get(PR(InteractionFilter));
+			pr(inner).filter.addShape(this.pr(inner));
+		}
+		else this.filter = filter;
+
+        if(cbType==null) {
+            pr(inner).cbType = PR(CbType).DEFAULT;
+            pr(inner).cbType.addShape(this.pr(inner));
+        }else this.cbType = cbType;
+	}
+}

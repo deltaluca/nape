@@ -1,0 +1,205 @@
+package zpp_nape.constraint;
+$(import);
+
+withConstraint(
+
+class PR(AngleJoint) extends PR(Constraint) {
+	public var outer_zn:AngleJoint;
+	
+	public var ratio:Float;
+	public var jointMin:Float;
+	public var jointMax:Float;
+	public var slack:Bool;
+	public var equal:Bool;
+	public var scale:Float;
+	//if limits are equal, treat constraint slightly differently for stability.
+	
+	$(mixin Cerr(slack) {
+		var C = ratio*b2.rot - b1.rot;
+		if(equal) {
+			C -= jointMax;
+			slack = false;
+			scale = 1.0;
+		}else {
+			if(C<jointMin) {
+				C = jointMin-C;
+				scale = -1.0;
+				slack = false;
+			} else if(C>jointMax) {
+				C -= jointMax;
+				scale = 1.0;
+				slack = false;
+			}else {
+				scale = 0.0;
+				C = 0;
+				slack = true;
+			}
+		}
+		C;
+	});
+	
+	$(mixin Verr(scale) {
+		scale*(ratio*(b2.angvel+b2.kinangvel) - b1.angvel-b1.kinangvel);
+	});
+	
+	$(mixin Keff() {
+		b1.sinertia + ratio*ratio*b2.sinertia;
+	});
+	
+	$(mixin Imp(scale,j,bias) {
+		if(bias) {
+            b1.delta_rot(-scale*j*b1.iinertia);
+			b2.delta_rot(ratio*scale*j*b2.iinertia);
+		}else {
+			b1.angvel -= scale*b1.iinertia*j;
+			b2.angvel += ratio*scale*b2.iinertia*j;
+		}
+	});
+	
+	flibmdel public inline function bodyImpulse(b:PR(Body)) {
+		if(stepped) {
+			if(b==b1) return new Vec3(0,0,-scale*jAcc);
+			else      return new Vec3(0,0,ratio*scale*jAcc);
+		}else return new Vec3(0,0,0);
+	}
+	
+	//---------------------------------------------------
+	
+	public var b1:PR(Body);
+	public var b2:PR(Body);
+	
+	public var kMass:Float;
+	public var jAcc:Float;
+	public var jMax:Float;
+	
+	public var gamma:Float;
+	public var bias:Float;
+	
+	public var stepped:Bool;
+	
+	//---------------------------------------------------
+	
+	public function new() {
+		super();
+		
+		ratio = 1;
+		jAcc = 0;
+		jMax = PR(Const).POSINF;
+		stepped = false;
+	}
+	
+	public override function validate() {
+		if(b1==b2) throw "Error: AngleJoint cannot be simulated with body1 == body2";
+		if(b1.space != space || b2.space != space) throw "Error: Constraints must have each body within the same space to which the constraint has been assigned";
+		if(jointMin>jointMax) throw "Error: AngleJoint must have jointMin <= jointMax";
+		if(!b1.isDynamic() && !b2.isDynamic()) throw "Error: Constraints cannot have both bodies non-dynamic";
+	}
+	
+	public override function wake_connected() {
+		if(b1.isDynamic()) b1.wake();
+		if(b2.isDynamic()) b2.wake();
+	}
+	
+	public override function forest() {
+		if(b1.isDynamic()) DSF(union(b1,this));
+		if(b2.isDynamic()) DSF(union(b2,this));
+	}
+	
+	public override function pair_exists(pair_id:Int) {
+		return unordered_id(b1.id,b2.id) == pair_id;
+	}
+	
+	public override function destroy() {
+		//no validation has occured.
+		b1.constraints.remove(this);
+        if(b2!=b1)
+            b2.constraints.remove(this);
+	}
+
+    public override function clearcache() {
+        jAcc = 0;
+        pre_dt = -1.0;
+    }
+	
+	//---------------------------------------------------
+	
+	public override function preStep(dt:Float) {
+        if(pre_dt==-1.0) pre_dt = dt;
+        var dtratio = dt/pre_dt;
+        pre_dt = dt;
+
+		stepped = true;
+		
+		equal = jointMin == jointMax;
+		var C = Cerr(slack);
+		if(!slack) {
+			//effective mass
+			kMass = Keff;
+			if(kMass!=0) kMass = 1/kMass;
+			else jAcc = 0;
+			
+			if(!stiff) {
+				if(breakUnderError && C*C > maxError*maxError) return true;
+				
+				var biasCoef;
+				kMass *= soft_gamma(frequency,damping,dt,gamma,biasCoef);
+				
+				bias = -C*dt*biasCoef;
+				clamp(bias,maxError);
+			}else {
+				bias = 0;
+				gamma = 0;
+			}
+			jAcc *= dtratio;
+			jMax = maxForce*dt;
+		}
+		
+		return false;
+	}
+
+    public override function warmStart() {
+        if(!slack)
+            Imp(scale,jAcc,false);
+    }
+	
+	public override function applyImpulseVel() {
+		if(slack) return false;
+		
+		//velocity corrections
+		var E = Verr(scale);
+		var j = kMass*(bias - E) - jAcc*gamma;
+		accum(jAcc,j, {
+			if(breakUnderForce) {
+				if(jAcc>jMax || jAcc<-jMax) return true;
+				else if(!equal && jAcc>0) jAcc = 0;
+			}else if(!stiff) {
+				if(equal) clamp(jAcc,jMax);
+				else { if(jAcc>0) jAcc = 0; else if (jAcc<-jMax) jAcc = -jMax; }
+			}else if(!equal && jAcc>0) jAcc = 0;
+		});
+		Imp(scale,j,false);
+		
+		return false;
+	}
+	
+	public override function applyImpulsePos() {
+		var E; var j;
+		
+		var slack;
+		E = Cerr(slack);
+		if(!slack) {
+			if(breakUnderError && E*E > maxError*maxError) return true;
+			
+			if(E*E < PR(Config).ANGSLOP) return false;
+			E *= 0.5;
+				
+			j = -E*kMass;
+			if(equal || j<0)
+				Imp(scale,j,true);
+		}
+		
+		return false;
+	}
+}
+
+)

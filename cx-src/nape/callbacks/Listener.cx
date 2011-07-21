@@ -1,0 +1,149 @@
+package nape.callbacks;
+$(import);
+
+Flags(ImmFlag,
+    prop(ACCEPT,0)
+    prop(IGNORE,2)
+    prop(ACCEPT_ONCE,3)
+    prop(IGNORE_ONCE,4)
+)
+
+Flags(ListenerType,
+    prop(BODY,0)
+    prop(CONSTRAINT,1)
+    prop(INTERACTION,2)
+    prop(IMM,3)
+)
+
+WrapList(Listener,List(PR(Listener)),Node(PR(Listener)),$(mixin closure(x) x.outer) $(mixin erusolc(x) x.pr(inner)))
+
+///-------------------------------------------------------------------------------------------------
+
+class Listener {
+    public var pr(inner):PR(Listener);
+
+    property(type,ListenerType,{
+        [ListenerType.BODY,ListenerType.CONSTRAINT,ListenerType.INTERACTION,ListenerType.IMM][pr(inner).type];
+    })
+    property(event,CbEvent,{
+        [CbEvent.BEGIN,CbEvent.ONGOING,CbEvent.END,CbEvent.WAKE,CbEvent.SLEEP,CbEvent.BREAK][pr(inner).event];
+    },{
+        DEBUG(if(event==null) throw "Error: Cannot set listener event type to null";)
+        if(this.event!=event) {
+            var xevent = event == CbEvent.BEGIN   ? Flag(CbEvent,BEGIN)   :
+                         event == CbEvent.ONGOING ? Flag(CbEvent,ONGOING) :
+                         event == CbEvent.END     ? Flag(CbEvent,END)     :
+                         event == CbEvent.SLEEP   ? Flag(CbEvent,SLEEP)   :
+                         event == CbEvent.WAKE    ? Flag(CbEvent,WAKE)    :
+                         Flag(CbEvent,BREAK);
+            if(pr(inner).type == Flag(ListenerType,BODY))
+                pr(inner).body.swapEvent(xevent);
+            else if(pr(inner).type == Flag(ListenerType,CONSTRAINT))
+                pr(inner).constraint.swapEvent(xevent);
+        }
+    })
+
+    ///---------------------------------------------------------------------------------------------
+
+    public function new() {
+        DEBUG(if(!PR(Listener).internal) throw "Error: Cannot instantiate Listener derp!";)
+    }
+
+    ///---------------------------------------------------------------------------------------------
+
+    property(space,Space,{
+        if(pr(inner).space==null) null else pr(inner).space.outer;
+    },{
+        if(this.space!=space) {
+            if(pr(inner).space!=null) pr(inner).space.remListener(pr(inner));
+            if(space!=null) space.pr(inner).addListener(pr(inner));
+            else pr(inner).space = null;
+        }
+    })
+
+    ///---------------------------------------------------------------------------------------------
+
+    @:$keep public inline function toString() {
+        var event = ["BEGIN","ONGOING","END","WAKE","SLEEP","BREAK"][pr(inner).type];
+        if(pr(inner).type == Flag(ListenerType,BODY)) {
+            var body = pr(inner).body;
+            return "BodyListener{"+event+"::"+body.outer_zn.cbType+"}";
+        }else if(pr(inner).type == Flag(ListenerType,CONSTRAINT)) {
+            var con = pr(inner).constraint;
+            return "ConstraintListener{"+event+"::"+con.outer_zn.cbType+"}";
+        }else return "???";
+    }
+}
+
+///_________________________________________________________________________________________________
+///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+
+class BodyListener extends Listener {
+    public var pr(inner_zn):PR(BodyListener);
+
+    property(cbType,CbType,pr(inner_zn).cbType.wrapper(),{
+        DEBUG(if(cbType==null) throw "Error: Cannot assign null CbType to Listener";)
+
+        var body = pr(inner_zn);
+        if(body.cbType==null || body.cbType!=cbType.pr(inner))
+            body.swapCbType(cbType.pr(inner));
+    })
+
+    property(handler,Body->Void,pr(inner_zn).handler,pr(inner_zn).handler = handler)
+
+    ///---------------------------------------------------------------------------------------------
+
+    public function new(event:CbEvent, cbType:CbType, ?handler:Body->Void=null) {
+        PR(Listener).internal = true; super(); PR(Listener).internal = false;
+
+        var xevent = -1;
+        if     (event==CbEvent.WAKE)  xevent = Flag(CbEvent,WAKE);
+        else if(event==CbEvent.SLEEP) xevent = Flag(CbEvent,SLEEP);
+        DEBUG(else throw "Error: cbEvent '"+event.toString()+"' is not a valid event type for a BodyListener";)
+        DEBUG(if(cbType==null) throw "Error: BodyListener cbType cannot be null";)
+
+        pr(inner_zn) = new PR(BodyListener)(xevent,handler);
+        pr(inner) = pr(inner_zn);
+        pr(inner).outer = this;
+        pr(inner_zn).outer_zn = this;
+
+        this.cbType = cbType;
+    }
+}
+
+///_________________________________________________________________________________________________
+///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+
+class ConstraintListener extends Listener {
+    public var pr(inner_zn):PR(ConstraintListener);
+
+    property(cbType,CbType,pr(inner_zn).cbType.wrapper(),{
+        DEBUG(if(cbType==null) throw "Error: Cannot assign null CbType to Listener";)
+
+        var con = pr(inner_zn);
+        if(con.cbType==null || con.cbType!=cbType.pr(inner))
+            con.swapCbType(cbType.pr(inner));
+    })
+
+    property(handler,Constraint->Void,pr(inner_zn).handler,pr(inner_zn).handler = handler)
+
+    ///---------------------------------------------------------------------------------------------
+
+    public function new(event:CbEvent, cbType:CbType, ?handler:Constraint->Void=null) {
+        PR(Listener).internal = true; super(); PR(Listener).internal = false;
+
+        var xevent = -1;
+        if     (event==CbEvent.WAKE)  xevent = Flag(CbEvent,WAKE);
+        else if(event==CbEvent.SLEEP) xevent = Flag(CbEvent,SLEEP);
+        else if(event==CbEvent.BREAK) xevent = Flag(CbEvent,BREAK);
+        DEBUG(else throw "Error: cbEvent '"+event.toString()+"' is not a valid event type for a ConstraintListener";)
+        DEBUG(if(cbType==null) throw "Error: ConstraintListener cbType cannot be null";)
+
+        pr(inner_zn) = new PR(ConstraintListener)(xevent,handler);
+        pr(inner) = pr(inner_zn);
+        pr(inner).outer = this;
+        pr(inner_zn).outer_zn = this;
+
+        this.cbType = cbType;
+    }
+}

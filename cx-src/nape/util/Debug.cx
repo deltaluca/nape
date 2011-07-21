@@ -1,0 +1,343 @@
+package nape.util;
+
+$(import);
+
+class Debug {
+    public static function version() {
+        return "Milestone 5.2.1 9/07/11 - \"r3\" build 21:42 11/07/11";
+    }
+
+    #if NAPE_TIMES
+        static public function TIMES(space:Space) {
+            var text = "";
+            text += "FOR:  "+Std.string(Debug.FOR/space.timeStamp).substr(0,5)+"ms"+"\n";
+            text += "COL:  "+Std.string(Debug.BROAD/space.timeStamp).substr(0,5)+"ms"+"\n";
+            text += "PRE:  "+Std.string(Debug.PRE/space.timeStamp).substr(0,5)+"ms"+"\n";
+            text += "POS:  "+Std.string(Debug.POS/space.timeStamp).substr(0,5)+"ms"+"\n";
+            text += "VEL:  "+Std.string(Debug.VEL/space.timeStamp).substr(0,5)+"ms"+"\n";
+            text += "DRAW: "+Std.string(Debug.DRAW/space.timeStamp).substr(0,5)+"ms"+"\n";
+            text += "\n\n";
+            text += "arb: "+Debug.ACNT+"\n";
+            text += "aarb: "+Debug.AACNT+"\n";
+            text += "con: "+Debug.CCNT+"\n";
+            text += "acon: "+Debug.ACCNT+"\n";
+            return text;
+        }
+
+        static public var ACNT = 0;
+        static public var AACNT = 0;
+        static public var CCNT = 0;
+        static public var ACCNT = 0;
+
+        static public var FOR = 0;
+        static public var PRE = 0;
+        static public var VEL = 0;
+        static public var POS = 0;
+        static public var BROAD = 0;
+        static public var DRAW = 0;
+    #end
+
+    ///---------------------------------------------------------------------------------------------
+
+    #if flash9
+
+    keep public static function createGraphic(body:Body):flash.display.Shape {
+		DEBUG(if(body==null) throw "Error: Cannot create debug graphic for null Body";)
+		var ret = new flash.display.Shape();
+		var graphics = ret.graphics;
+
+        var idc:Int = untyped __int__(0xffffff*Math.exp(-body.id/1500));
+        var _r = (((idc&0xff0000)>>16))*0.7;
+        var _g = (((idc&0xff00)>>8))*0.7;
+        var _b = (idc&0xff)*0.7;
+	
+        var col = ((untyped __int__(_r))<<16)|((untyped __int__(_g))<<8)|(untyped __int__(_b));
+        graphics.lineStyle(0.1,col,1);
+
+		for(s in body.shapes) {
+			if(s.isCircle()) graphics.drawCircle(s.circle.localCOM.x,s.circle.localCOM.y,s.circle.radius);
+			else {
+				graphics.moveTo(s.localCOM.x,s.localCOM.y);
+				for(i in 0...s.polygon.worldVerts.length) {
+					var p = s.polygon.localVerts.at(i);
+					graphics.lineTo(p.x,p.y);
+				}
+				var p = s.polygon.localVerts.at(0);
+				graphics.lineTo(p.x,p.y);
+			}
+
+			if(s.isCircle()) {
+				var c = s.circle;
+				graphics.moveTo(c.localCOM.x+c.radius*0.3,c.localCOM.y);
+				graphics.lineTo(c.localCOM.x+c.radius,c.localCOM.y);
+			}
+		}
+			
+		return ret;
+    }
+
+    ///---------------------------------------------------------------------------------------------
+
+    public var drawCollisionArbiters:Bool;
+	public var drawFluidArbiters:Bool;
+	public var drawSensorArbiters:Bool;
+	
+	public var drawBodies:Bool;
+	public var drawBodyDetail:Bool; //requires drawBodies
+	public var drawShapeDetail:Bool; //requires drawBodies
+	public var drawShapeAngleIndicators:Bool; //requires drawBodies
+
+	public var drawConstraints:Bool;
+	public var drawConstraintSprings:Bool; //requires drawConstraints=true
+	public var drawConstraintErrors:Bool; //requires drawconstraints=true
+
+    property(bgColor,Int,{
+        var ret:Int;
+        #if flash10
+            if(Std.is(this,BitmapDebug))
+                 ret = cast(this,BitmapDebug).pr(inner).bg_col;
+            else ret = cast(this,ShapeDebug) .pr(inner).bg_col;
+        #else
+            ret = cast(this,ShapeDebug).pr(inner).bg_col;
+        #end
+        ret;
+    },{
+        #if flash10
+            if(Std.is(this,BitmapDebug))
+                 cast(this,BitmapDebug).pr(inner).setbg(bgColor);
+            else cast(this,ShapeDebug) .pr(inner).setbg(bgColor);
+        #else
+            cast(this,ShapeDebug).pr(inner).setbg(bgColor);
+        #end
+    })
+
+    ///---------------------------------------------------------------------------------------------
+	
+	public function new() {
+        DEBUG(
+            if(!PR(Debug).internal)
+                throw "Error: Cannot instantiate Debug derp!";
+        )
+
+		drawCollisionArbiters = false;
+		drawFluidArbiters = false;
+		drawSensorArbiters = false;
+		drawBodies = true;
+        drawShapeAngleIndicators = true;
+		drawBodyDetail = false;
+		drawShapeDetail = false;
+		drawConstraints = false;
+		drawConstraintSprings = true;
+		drawConstraintErrors = false;
+	}
+
+    ///---------------------------------------------------------------------------------------------
+
+    property(display, flash.display.DisplayObject, {
+        var ret:flash.display.DisplayObject;
+        #if flash10
+            if(Std.is(this, BitmapDebug))
+                 ret = cast(this, BitmapDebug).pr(inner).bitmap;
+            else ret = cast(this, ShapeDebug) .pr(inner).shape;
+        #else
+            ret = cast(this,ShapeDebug).pr(inner).shape;
+        #end
+        ret;
+    })
+
+    ///---------------------------------------------------------------------------------------------
+
+    public function clear():Void {}
+    public function flush():Void {}
+
+    ///---------------------------------------------------------------------------------------------
+
+    public function draw(object:Dynamic):Void {}
+
+    public function drawLine  (start:Vec2, end:Vec2, colour:Int):Void {}
+    public function drawCircle(position:Vec2, radius:Float, colour:Int):Void {}
+    public function drawAABB  (aabb:AABB, colour:Int):Void {}
+
+    #end
+}
+
+///_________________________________________________________________________________________________
+///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+
+$(mixin __draw(obj) {
+    if  (Std.is(obj,Space))      pr(inner).draw_space(cast(obj,Space     ).pr(inner));
+    elif(Std.is(obj,Body ))      pr(inner).draw_body (cast(obj,Body      ).pr(inner));
+    elif(Std.is(obj,Shape))      pr(inner).draw_shape(cast(obj,Shape     ).pr(inner));
+    elif(Std.is(obj,Constraint)) pr(inner).draw_con  (cast(obj,Constraint).pr(inner));
+    DEBUG(else throw "Error: Unhandled object type for Debug draw";)
+});
+
+///_________________________________________________________________________________________________
+///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+
+#if flash9
+
+class ShapeDebug extends Debug {
+    public var pr(inner):PR(ShapeDebug);
+
+    public function new(bgColor=0x333333) {
+        DEBUG(PR(Debug).internal = true;)
+        super();
+        DEBUG(PR(Debug).internal = false;)
+
+        pr(inner) = new PR(ShapeDebug)();
+        pr(inner).outer = this;
+        this.bgColor = bgColor;
+    }
+
+    ///---------------------------------------------------------------------------------------------
+
+    public override function clear() pr(inner).graphics.clear()
+
+    ///---------------------------------------------------------------------------------------------
+
+    public override function drawLine(start:Vec2, end:Vec2, colour:Int) {
+        DEBUG(
+            if(start==null) throw "Error: drawLine::start cannot be null";
+            if(end  ==null) throw "Error: drawLine::end cannot be null";
+        )
+        var g = pr(inner).graphics;
+
+        g.lineStyle(0.1,colour&0xffffff,1);
+        g.moveTo(start.x,start.y);
+        g.lineTo(end.x,end.y);
+    }
+
+    public override function drawCircle(position:Vec2, radius:Float, colour:Int) {
+        DEBUG(
+            if(position==null) throw "Error: drawCircle::position cannot be null";
+            if(isNaN(radius) || radius<0) throw "Error: drawCircle::radius must be >=0";
+        )
+        var g = pr(inner).graphics;
+
+        g.lineStyle(0.1,colour&0xffffff,1);
+        g.drawCircle(position.x,position.y,radius);
+    }
+
+    public override function drawAABB(aabb:AABB, colour:Int) {
+        DEBUG(if(aabb==null) throw "Error: drawAABB::aabb cannot be null";)
+        var g = pr(inner).graphics;
+
+        g.lineStyle(0.1,colour&0xffffff,1);
+        g.drawRect(aabb.x,aabb.y,aabb.width,aabb.height);
+    }
+
+    ///---------------------------------------------------------------------------------------------
+
+    public override function draw(object:Dynamic) __draw(object)
+}
+
+#end
+
+///_________________________________________________________________________________________________
+///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+
+#if flash10
+
+class BitmapDebug extends Debug {
+    public var pr(inner):PR(BitmapDebug);
+
+    public function new(width:Int, height:Int, bgColor:Int = 0x333333, transparent:Bool=false) {
+        DEBUG(if(width <=0) throw "Error: FastDebug width must be > 0";)
+        DEBUG(if(height<=0) throw "Error: FastDebug height must be > 0";)
+
+        DEBUG(PR(Debug).internal = true;)
+        super();
+        DEBUG(PR(Debug).internal = false;)
+
+        pr(inner) = new PR(BitmapDebug)(width,height,bgColor,transparent);
+        pr(inner).outer = this;
+    }
+
+    ///---------------------------------------------------------------------------------------------
+
+    public override function clear() pr(inner).clear()
+    public override function flush() pr(inner).flush()
+
+    ///---------------------------------------------------------------------------------------------
+
+    public override function drawLine(start:Vec2, end:Vec2, colour:Int) {
+        DEBUG(
+            if(start==null) throw "Error: drawLine::start cannot be null";
+            if(end  ==null) throw "Error: drawLine::end cannot be null";
+        )
+        var x0:Int = untyped __int__(start.x+0.5);
+        var y0:Int = untyped __int__(start.y+0.5);
+        var x1:Int = untyped __int__(end.x+0.5);
+        var y1:Int = untyped __int__(end.y+0.5);
+        pr(inner).__line(x0,y0,x1,y1,colour|0xff000000);
+    }
+
+    public override function drawCircle(position:Vec2, radius:Float, colour:Int) {
+        DEBUG(
+            if(position==null) throw "Error: drawCircle::position cannot be null";
+            if(isNaN(radius) || radius<0) throw "Error: drawCircle::radius must be >=0";
+        )
+        var x:Int = untyped __int__(position.x+0.5);
+        var y:Int = untyped __int__(position.y+0.5);
+        var r:Int = untyped __int__(radius+0.5);
+        pr(inner).__circle(x,y,r, colour|0xff000000);
+    }
+
+    public override function drawAABB(aabb:AABB, colour:Int) {
+        DEBUG(if(aabb==null) throw "Error: drawAABB::aabb cannot be null";)
+        pr(inner).__aabb(aabb.pr(inner), colour);
+    }
+
+    ///---------------------------------------------------------------------------------------------
+
+    public override function draw(object:Dynamic) __draw(object)
+}
+
+#end
+
+///-------------------------------------------------------------------------------------------------
+
+#if false
+
+    public function linearWave(graphics:Graphics, x1:Float,y1:Float, x2:Float,y2:Float) {
+		vec_new(d, x2-x1, y2-y1);
+		vec_diveq(d,8);
+		
+		vec_new(n); vec_set(n,d);
+		if(vec_lsq(n)<0.1) return;
+		
+		vec_normal(n); vec_muleq(n,4); //2*r
+		
+		graphics.moveTo(x1,y1);
+		graphics.curveTo(x1+dx  +nx,y1+dy  +ny, x1+dx*2,y1+dy*2);
+		graphics.curveTo(x1+dx*3-nx,y1+dy*3-ny, x1+dx*4,y1+dy*4);
+		graphics.curveTo(x1+dx*5+nx,y1+dy*5+ny, x1+dx*6,y1+dy*6);
+		graphics.curveTo(x1+dx*7-nx,y1+dy*7-ny, x2,y2);
+	}
+	public function linearSaw(graphics:Graphics, x1:Float,y1:Float, x2:Float,y2:Float) {
+		vec_new(d, x2-x1, y2-y1);
+		vec_diveq(d,8);
+		
+		vec_new(n); vec_set(n,d);
+		if(vec_lsq(n)<0.1) return;
+		
+		vec_normal(n); vec_muleq(n,2); //r
+		
+		graphics.moveTo(x1,y1);
+		graphics.lineTo(x1+dx  +nx,y1+dy  +ny);
+		
+		graphics.moveTo(x1+dx  -nx,y1+dy  -ny);
+		graphics.lineTo(x1+dx*3+nx,y1+dy*3+ny);
+		
+		graphics.moveTo(x1+dx*3-nx,y1+dy*3-ny);
+		graphics.lineTo(x1+dx*5+nx,y1+dy*5+ny);
+		
+		graphics.moveTo(x1+dx*5-nx,y1+dy*5-ny);
+		graphics.lineTo(x1+dx*7+nx,y1+dy*7+ny);
+		
+		graphics.moveTo(x1+dx*7-nx,y1+dy*7-ny);
+		graphics.lineTo(x2,y2);
+	}
+
+#end

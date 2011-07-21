@@ -1,0 +1,63 @@
+package zpp_nape.util;
+$(import);
+
+$(mixin global QueueMix(T)
+    public var prev:T;
+    public var next:T;
+    public var length:Int;
+    /*
+        for the actual list, next = front, prev = back
+    */
+
+    //push to back of queue
+    flibmdel public inline function push(obj:T) {
+        assert(obj!=null,"push null?");
+        if(prev!=null) prev.next = obj;
+        else next = obj;
+        obj.prev = prev;
+        obj.next = null;
+        prev = obj;
+        length++;
+    }
+
+    //pop from front of queue
+    flibmdel public inline function pop():T {
+        assert(next!=null,"empty queue");
+        var ret = next;
+        next = ret.next;
+        if(next==null) prev = null;
+        else next.prev = null;
+        length--;
+        return ret;
+    }
+
+    flibmdel public inline function empty() return next==null
+
+    flibmdel public inline function clear() while(!empty()) pop()
+
+    flibmdel public inline function splice(o:T) {
+        var ret = o.next;
+        //
+        if(o.prev==null) {
+            next = o.next;
+            if(next!=null) next.prev = null;
+            else prev = null;
+        }else {
+            o.prev.next = o.next;
+            if(o.next!=null) o.next.prev = o.prev;
+            else prev = o.prev;
+        }
+        //
+        length--;
+        return ret;
+    }
+);
+
+$(mixin global IterQueue(i,queue,block) {
+    var cx_ite = queue.next;
+    while(cx_ite!=null) {
+        var i = cx_ite;
+        block;
+        cx_ite = cx_ite.next;
+    }
+});

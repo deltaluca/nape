@@ -1,0 +1,64 @@
+package zpp_nape.util;
+$(import);
+
+#if flash10
+	import flash.Memory;
+	import flash.utils.ByteArray;
+#end
+
+$(mixin global isNaN(x) (x!=x));
+
+class PR(Math) {
+	flibstaticdel(sqrt) public static inline function sqrt(x:Float) {
+		assert(!assert_isNaN(x),"PR(Math).sqrt");
+		#if flash10
+			return if(x==0.0) 0.0 else 1/invsqrt(x);
+		#else
+			return Math.sqrt(x);
+		#end
+	}
+	flibstaticdel(invsqrt) public static inline function invsqrt(x:Float) {
+		assert(!assert_isNaN(x) && x!=0.0,"PR(Math).invsqrt");
+		#if flash10
+			Memory.setFloat(0,x);
+			Memory.setI32(0,0x5f3759df - (Memory.getI32(0)>>1));
+			var x2 = Memory.getFloat(0);
+			return x2*(1.5-0.5*x*x2*x2);
+		#else
+			return 1.0/sqrt(x);
+		#end
+	}
+	
+	flibstaticdel(sqr) public static inline function sqr(x:Float) {
+		assert(!assert_isNaN(x),"PR(Math).sqr");
+		return x*x;
+	}
+	
+	flibstaticdel(clamp2) public static inline function clamp2(x:Float,a:Float) {
+		assert(!assert_isNaN(x) && !assert_isNaN(a),"PR(Math).clamp2 -> "+x+" -> "+a);
+		return clamp(x,-a,a);
+	}
+	flibstaticdel(clamp) public static inline function clamp(x:Float,a:Float,b:Float) {
+		assert(!assert_isNaN(x) && !assert_isNaN(a) && !assert_isNaN(b),"PR(Math).clamp2 -> "+x+" -> "+a+" -> "+b);
+		return if(x<a) a else if(x>b) b else x;
+	}
+}
+
+$(mixin global ordered_id(a,b) ({
+	#if NAPE_ASSERT //prevent possible side effects occuring twice
+		var A = a; var B = b;
+		assert(A<=B,"ordered_id(in a: "+$str(a)+", in b: "+$str(b)+")");
+		(A<<16)|B;
+	#else
+		((a)<<16)|(b);
+	#end
+}));
+$(mixin global unsafe_ordered_id(a,b) ({
+	((a)<<16)|(b);
+}));
+$(mixin global unordered_id(a,b) (a < b ? ordered_id(a,b) : ordered_id(b,a)));
+
+//not really maths, but whatever
+$(mixin global swap(x,y) { var t = x; x = y; y = t; });
+
+$(mixin global clamp(x,m) { if(x<-m) x = -m; else if(x>m) x = m; });

@@ -1,0 +1,72 @@
+package zpp_nape.shape;
+$(import);
+
+class PR(Edge) {
+	MixPool(PR(Edge))
+	flibmdel public inline function free() {
+		polygon = null;
+	}
+	
+	public var polygon:PR(Polygon);
+	
+	static public var internal:Bool;
+	public var outer:Edge;
+	
+	flibmdel public inline function wrapper() {
+		if(outer==null) {
+			internal = true;
+			outer = new Edge();
+			internal = false;
+			outer.pr(inner) = this;
+		}
+		return outer;
+	}
+	
+	vec_new(public,lnorm); public var wrap_lnorm:Vec2;
+	vec_new(public,gnorm); public var wrap_gnorm:Vec2;
+	
+	public var length:Float;
+	public var lprojection:Float;
+	public var gprojection:Float;
+	
+	public var lp0:PR(Vec2); public var gp0:PR(Vec2);
+	public var lp1:PR(Vec2); public var gp1:PR(Vec2);
+	public var tp0:Float; public var tp1:Float; // normal × vertex (world coordinates)
+	
+	public function get_lnorm() {
+		var me = this;
+		wrap_lnorm = new Vec2(lnormx,lnormy);
+		wrap_lnorm.pr(inner).immutable = true;
+		wrap_lnorm.pr(inner)._validate = function() {
+			DEBUG(if(me.polygon==null)
+				throw "Error: Edge not currently in use";
+			)
+			me.polygon.validate_laxi();
+			vec_set(me.wrap_lnorm.pr(inner).,me.lnorm);
+		}
+	}
+	public function get_gnorm() {
+		var me = this;
+		wrap_gnorm = new Vec2(gnormx,gnormy);
+		wrap_gnorm.pr(inner).immutable = true;
+		wrap_gnorm.pr(inner)._validate = function() {
+			DEBUG(
+				if(me.polygon==null)
+					throw "Error: Edge not currently in use";
+				if(me.polygon.body==null)
+					throw "Error: Edge worldNormal only makes sense if the parent Polygon is contained within a rigid body";
+			)
+				
+			me.polygon.validate_gaxi();
+			vec_set(me.wrap_gnorm.pr(inner).,me.gnorm);
+		}
+	}
+	
+	public function new() {
+		vec_set(lnorm,0,0);
+		vec_set(gnorm,0,0);
+		length = 0;
+		lprojection = 0;
+		gprojection = 0;
+	}
+}

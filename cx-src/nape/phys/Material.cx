@@ -1,0 +1,72 @@
+package nape.phys;
+$(import);
+
+class Material {
+	
+	FeatureMix(Material,material)
+	
+	public function new(?elasticity:Float=0.0,?dynamicFriction:Float=1.0,?staticFriction:Float=2.0,?density:Float=1,?rollingFriction:Float=0.01) {
+		pr(inner) = Get(PR(Material));
+		pr(inner).outer = this;
+		
+		this.elasticity = elasticity;
+		this.dynamicFriction = dynamicFriction;
+		this.staticFriction = staticFriction;
+		this.density = density;
+		this.rollingFriction = rollingFriction;
+	}
+	
+	keep public inline function copy() {
+		return new Material(elasticity,dynamicFriction,staticFriction,density,rollingFriction);
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+	public var userData:Bool;
+	
+	//----------------------------------------------------------------------------------------------
+	
+	$(mixin prop(n,flags)
+        property(n,Float,pr(inner).n * ($str(n)=="density" ? 1000 : 1),{
+			if(n!=this.n) {
+				DEBUG(
+					if(isNaN(n)) throw "Error: Material::"+$str(n)+" cannot be NaN";
+					if($str(n)!="elasticity" && n<0) throw "Error: Material::"+$str(n)+" ("+n+") must be >= 0";
+					if($str(n)=="density" && n==0) throw "Error: Material::density cannot be 0";
+					if($str(n)!="elasticity" && n==PR(Const).POSINF) throw "Error: Material::"+$str(n)+" cannot be infinite";
+				)
+				pr(inner).n = n / ($str(n)=="density" ? 1000 : 1);
+				pr(inner).invalidate(flags);
+			}
+		})
+	);
+	prop(elasticity,PR(Material).WAKE|PR(Material).ARBITERS)
+	prop(dynamicFriction,PR(Material).WAKE|PR(Material).ANGDRAG|PR(Material).ARBITERS)
+	prop(staticFriction,PR(Material).WAKE|PR(Material).ARBITERS)
+	prop(density,PR(Material).WAKE|PR(Material).PROPS)
+	prop(rollingFriction,PR(Material).WAKE|PR(Material).ARBITERS)
+	
+	//----------------------------------------------------------------------------------------------
+	
+	@:$keep public function toString() {
+        return "{ elasticity: "+elasticity
+               +" dynamicFriction: "+dynamicFriction
+               +" staticFriction: "+staticFriction
+               +" density: "+density
+			   +" rollingFriction: "+rollingFriction
+               +" }";
+    }
+	
+	//----------------------------------------------------------------------------------------------
+	
+	$(mixin mat(N,x,y,z,w,r) keep public static inline function N() return new Material(x,y,z,w,r));
+	
+	mat(wood,   0.4,0.2, 0.38,0.7, 0.005)
+	mat(steel,  0.2,0.57,0.74,7.8, 0.001)
+	mat(ice,    0.3,0.03,0.1 ,0.9, 0.0001)
+	mat(rubber, 0.8,1.0, 1.4, 1.5, 0.01)
+	mat(glass,  0.4,0.4, 0.94,2.6, 0.002)
+	
+	mat(sand,  -1.0,0.45,0.6, 1.6, 16.0)
+	
+}

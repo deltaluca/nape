@@ -1,0 +1,248 @@
+package zpp_nape.constraint;
+$(import);
+
+withConstraint(
+
+class PR(DistanceJoint) extends PR(Constraint) {
+	public var outer_zn:DistanceJoint;
+	
+	public var jointMin:Float;
+	public var jointMax:Float;
+	public var slack:Bool;
+	public var equal:Bool;
+	//if limits are equal, treat constraint slightly differently for stability.
+	
+	$(mixin Cerr(r1,r2,n,slack) {
+		n`x = (b2.posx+r2`x)-(b1.posx+r1`x);
+		n`y = (b2.posy+r2`y)-(b1.posy+r1`y);
+		var C = vec_lsq(n);
+		if(C<PR(Const).EPSILON) {
+			vec_set(n,0,0);
+			C = 0;
+			slack = true;
+		} else {
+			C = PR(Math).sqrt(C);
+			vec_diveq(n,C);
+			if(equal) {
+				C -= jointMax;
+				slack = false;
+			}else {
+				if(C<jointMin) {
+					C = jointMin-C;
+					vec_negate(n);
+					slack = false;
+				} else if(C>jointMax) {
+					C -= jointMax;
+					slack = false;
+				}else {
+					vec_set(n,0,0);
+					C = 0;
+					slack = true;
+				}
+			}
+		}
+		C;
+	});
+	
+	vec_new(public, n);
+	public var cx1:Float;
+	public var cx2:Float;
+	
+	$(mixin Verr() {
+		n`x*(b2.velx+b2.kinvelx-b1.velx-b1.kinvelx) + n`y*(b2.vely+b2.kinvely-b1.vely-b1.kinvely) + (b2.angvel+b2.kinangvel)*cx2 - (b1.angvel+b1.kinangvel)*cx1;
+	});
+	
+	$(mixin Keff(r1,r2,n,cx1,cx2) {
+		cx1 = vec_cross(r1,n);
+		cx2 = vec_cross(r2,n);
+		b1.smass + b2.smass + cx1*cx1*b1.sinertia + cx2*cx2*b2.sinertia;
+	});
+	
+	$(mixin Imp(r1,r2,n,cx1,cx2,j,bias) {
+		if(bias) {
+			vec_subeq(b1.pos, n, b1.imass*j);
+			vec_addeq(b2.pos, n, b2.imass*j);
+            b1.delta_rot(-cx1*b1.iinertia*j);
+            b2.delta_rot( cx2*b2.iinertia*j);
+		}else {
+			vec_subeq(b1.vel, n, b1.imass*j);
+			vec_addeq(b2.vel, n, b2.imass*j);
+			b1.angvel -= cx1*b1.iinertia*j;
+			b2.angvel += cx2*b2.iinertia*j;
+		}
+	});
+	
+	flibmdel public inline function bodyImpulse(b:PR(Body)) {
+		if(stepped) {
+			if(b==b1) return new Vec3(-jAcc*nx,-jAcc*ny,-cx1*jAcc);
+			else      return new Vec3( jAcc*nx, jAcc*ny, cx2*jAcc);
+		}else return new Vec3(0,0,0);
+	}
+	
+	//---------------------------------------------------
+	
+	public var b1:PR(Body); anchor_new(a1);
+	public var b2:PR(Body); anchor_new(a2);
+	
+	public var kMass:Float;
+	public var jAcc:Float;
+	public var jMax:Float;
+	
+	public var gamma:Float;
+	public var bias:Float;
+	
+	public var stepped:Bool;
+	
+	//---------------------------------------------------
+	
+	public function new() {
+		super();
+		
+		anchor_init(a1);
+		anchor_init(a2);
+		
+		jAcc = 0;
+		jMax = PR(Const).POSINF;
+		stepped = false;
+		cx1 = cx2 = 0;
+	}
+	
+	public override function validate() {
+		if(b1==b2) throw "Error: DistanceJoint cannot be simulated with body1 == body2";
+		if(b1.space != space || b2.space != space) throw "Error: Constraints must have each body within the same space to which the constraint has been assigned";
+		if(jointMin>jointMax) throw "Error: DistanceJoint must have jointMin <= jointMax";
+		if(!b1.isDynamic() && !b2.isDynamic()) throw "Error: Constraints cannot have both bodies non-dynamic";
+	}
+	
+	public override function wake_connected() {
+		if(b1.isDynamic()) b1.wake();
+		if(b2.isDynamic()) b2.wake();
+	}
+	
+	public override function forest() {
+		if(b1.isDynamic()) DSF(union(b1,this));
+		if(b2.isDynamic()) DSF(union(b2,this));
+	}
+	
+	public override function pair_exists(pair_id:Int) {
+		return unordered_id(b1.id,b2.id) == pair_id;
+	}
+	
+	public override function destroy() {
+		//no validation has occured.
+		b1.constraints.remove(this);
+        if(b2!=b1)
+            b2.constraints.remove(this);
+	}
+
+    public override function clearcache() {
+        jAcc = 0;
+        pre_dt = -1.0;
+    }
+	
+	//---------------------------------------------------
+	
+	public override function preStep(dt:Float) {
+        if(pre_dt==-1.0) pre_dt = dt;
+        var dtratio = dt/pre_dt;
+        pre_dt = dt;
+
+		stepped = true;
+		equal = jointMin == jointMax;
+		validate_anchor(b1,a1);
+		validate_anchor(b2,a2);
+		
+		var C = Cerr(a1rel,a2rel,n,slack);
+		if(!slack) {
+			//effective mass
+			kMass = Keff(a1rel,a2rel,n,cx1,cx2);
+			if(kMass!=0) kMass = 1/kMass;
+			else jAcc = 0;
+			
+			if(!stiff) {
+				if(breakUnderError && C*C>maxError*maxError) return true;
+				var biasCoef;
+				kMass *= soft_gamma(frequency,damping,dt,gamma,biasCoef);
+				bias = -C*dt*biasCoef;
+				clamp(bias,maxError);
+			}else {
+				bias = 0;
+				gamma = 0;
+			}
+			jAcc *= dtratio;
+			jMax = maxForce*dt;
+		}
+		
+		return false;
+	}
+
+    public override function warmStart() {
+        if(!slack)
+            Imp(a1rel,a2rel,n,cx1,cx2,jAcc,false);
+    }
+
+	
+	public override function applyImpulseVel() {
+		if(slack) return false;
+		
+		//velocity corrections
+		var E = Verr;
+		var j = kMass*(bias - E) - jAcc*gamma;
+		accum(jAcc,j, {
+			if(breakUnderForce) {
+				if(jAcc>jMax || jAcc<-jMax) return true;
+				else if(!equal && jAcc>0) jAcc = 0;
+			}else if(!stiff) {
+				if(equal) clamp(jAcc,jMax);
+				else { if(jAcc>0) jAcc = 0; else if (jAcc<-jMax) jAcc = -jMax; }
+			}else if(!equal && jAcc>0) jAcc = 0;
+		});
+		Imp(a1rel,a2rel,n,cx1,cx2,j,false);
+		
+		return false;
+	}
+	
+	public override function applyImpulsePos() {
+		var E; var j;
+		//positional corrections
+		vec_new(r1); bias_xform(b1,a1local,r1);
+		vec_new(r2); bias_xform(b2,a2local,r2);
+			
+		var slack; vec_new(n);
+		E = Cerr(r1,r2,n,slack);
+		if(!slack) {
+			if(breakUnderError && E*E > maxError*maxError) return true;
+			
+			if(E*E < PR(Config).SLOP) return false;
+			E *= 0.5;
+			
+			//handle large detachment
+			if(E*E > 6) {
+				var k = b1.smass + b2.smass;
+				if(k>PR(Const).EPSILON) {
+					k = 0.75/k; //don't completely solve error
+					j = -E*k;
+					if(equal || j<0) {
+						vec_subeq(b1.pos, n,j*b1.imass);
+						vec_addeq(b2.pos, n,j*b2.imass);
+					
+						//recalculate error
+						E = Cerr(r1,r2,n,slack);
+						E *= 0.5;
+					}
+				}
+			}
+			
+			var cx1, cx2;
+			var k = Keff(r1,r2,n,cx1,cx2);
+			if(k!=0) k = 1/k;
+			j = -E*k;
+			if(equal || j<0)
+				Imp(r1,r2,n,cx1,cx2,j,true);
+		}
+		
+		return false;
+	}
+}
+
+)

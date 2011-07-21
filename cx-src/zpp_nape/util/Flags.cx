@@ -1,0 +1,14 @@
+package zpp_nape.util;
+$(import);
+
+class PR(Flags) {
+	public static var internal:Bool = false;
+
+	$(expand global FlagsInit(N,F,I)
+		public static var F`_`N:F;
+		public static inline var id_`F`_`N = I;
+		//ABC corrupt errors when remove id? okay then, whatever
+	);
+}
+
+$(mixin global Flag(F,N) PR(Flags).id_`F`_`N);

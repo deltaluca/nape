@@ -1,0 +1,74 @@
+package nape.dynamics;
+$(import);
+
+class InteractionFilter {
+	
+	FeatureMix(InteractionFilter,filter)
+	
+	$(mixin prop(n)
+        property(n,Int,pr(inner).n,{
+            if(this.n!=n) {
+                pr(inner).n = n;
+                pr(inner).invalidate();
+            }
+        })
+	);
+	
+	prop(collisionGroup)
+	prop(collisionMask)
+	
+	prop(sensorGroup)
+	prop(sensorMask)
+	
+	prop(fluidGroup)
+	prop(fluidMask)
+	
+	//----------------------------------------------------------------------------------------------
+	
+	public var userData:Dynamic;
+
+    $(mixin filter(n)
+        property(n,InteractionFilter->InteractionFilter->Bool,pr(inner).n,{
+            if(this.n!=n) {
+                pr(inner).n = n;
+                pr(inner).invalidate();
+            }
+        })
+    );
+    filter(collisionFilter)
+    filter(sensorFilter)
+    filter(fluidFilter)
+	
+	//----------------------------------------------------------------------------------------------
+	
+	public function new(?collisionGroup=1,?collisionMask=-1,?sensorGroup=1,?sensorMask=-1,?fluidGroup=1,?fluidMask=-1) {
+		pr(inner) = Get(PR(InteractionFilter));
+		pr(inner).outer = this;
+		
+		this.collisionGroup = collisionGroup;
+		this.collisionMask = collisionMask;
+		this.sensorGroup = sensorGroup;
+		this.sensorMask = sensorMask;
+		this.fluidGroup = fluidGroup;
+		this.fluidMask = fluidMask;
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+	keep public function shouldCollide(filter:InteractionFilter) return pr(inner).shouldCollide(filter.pr(inner))
+	keep public function shouldSense  (filter:InteractionFilter) return pr(inner).shouldSense(filter.pr(inner))
+	
+	keep public function shouldFlow(filter:InteractionFilter) return pr(inner).shouldFlow(filter.pr(inner))
+	
+	//----------------------------------------------------------------------------------------------
+	
+	keep public inline function copy() return new InteractionFilter(collisionGroup,collisionMask,sensorGroup,sensorMask,fluidGroup,fluidMask)
+	
+	//----------------------------------------------------------------------------------------------
+	
+	keep public function toString() {
+		$(mixin hex(n) StringTools.$hex(n,8));
+		return "{ collision: "+hex(collisionGroup)+"~"+hex(collisionMask)+" sensor: "+hex(sensorGroup)+"~"+hex(sensorMask)+" fluid: "+hex(fluidGroup)+"~"+hex(fluidMask)+" }";
+	}
+	
+}

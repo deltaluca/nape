@@ -1,0 +1,59 @@
+package nape.shape;
+$(import);
+
+WrapList(Edge,List(PR(Edge)),Node(PR(Edge)),$(mixin closure(x) x.wrapper()) $(mixin erusolc(x) x.pr(inner)) $(mixin reversal(i) (i==length-1 ? i : length-2-i)))
+
+class Edge {
+	public var pr(inner):PR(Edge);
+	
+	public function new() {
+		DEBUG(if(!PR(Edge).internal) throw "Error: Cannot instantiate an Edge derp!";)
+	}
+
+    property(localNormal,Vec2,{
+		DEBUG(if(pr(inner).polygon==null) throw "Error: Edge not current in use";)
+		if(pr(inner).wrap_lnorm==null) pr(inner).get_lnorm();
+		pr(inner).wrap_lnorm;
+	})
+    property(worldNormal,Vec2,{
+		DEBUG(if(pr(inner).polygon==null) throw "Error: Edge not current in use";)
+		if(pr(inner).wrap_gnorm==null) pr(inner).get_gnorm();
+		pr(inner).wrap_gnorm;
+	})
+	
+    property(length,Float,{
+		DEBUG(if(pr(inner).polygon==null) throw "Error: Edge not current in use";)
+		pr(inner).polygon.validate_laxi();
+		pr(inner).length;
+	})
+	
+    property(localProjection,Float,{
+		DEBUG(if(pr(inner).polygon==null) throw "Error: Edge not current in use";)
+		pr(inner).polygon.validate_laxi();
+		pr(inner).lprojection;
+	})
+
+    property(worldProjection,Float,{
+		DEBUG(
+			if(pr(inner).polygon==null) throw "Error: Edge not current in use";
+			if(pr(inner).polygon.body==null)
+				throw "Error: Edge world projection only makes sense for Polygons contained within a rigid body";
+		)
+		pr(inner).polygon.validate_gaxi();
+		pr(inner).gprojection;
+	})
+
+	@:$keep public inline function toString() {
+		if(pr(inner).polygon==null)
+			return "Edge(object-pooled)";
+		else if(pr(inner).polygon.body==null) {
+			pr(inner).polygon.validate_laxi();
+			return "{ localNormal : "+vec_str(pr(inner).lnorm)+" }";
+		} else {
+			pr(inner).polygon.validate_gaxi();
+			return "{ localNormal : "+vec_str(pr(inner).lnorm)
+			       +" worldNormal : "+vec_str(pr(inner).gnorm)
+				 +" }";
+		}
+	}
+}

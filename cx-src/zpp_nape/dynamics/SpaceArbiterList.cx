@@ -1,0 +1,153 @@
+package zpp_nape.dynamics;
+$(import);
+
+class PR(SpaceArbiterList) extends ArbiterList {
+	
+	$(mixin map (x) {
+		x(space.c_arbiters(true));
+		x(space.c_arbiters(false));
+		x(space.f_arbiters);
+		x(space.s_arbiters);
+	});
+	
+	public var space:PR(Space);
+	
+	public var _length:Int;
+	public var inv(length):Bool;
+	
+	public function new() {
+		super();
+		
+		at_index_0 = 0; at_index_1 = 0;
+		at_index_2 = 0; at_index_3 = 0;
+		inv(length) = true;
+		_length = 0;
+		
+		lengths = new Array<Int>();
+		for(i in 0...4) lengths.push(0);
+	}
+	
+	public inline override function pr(gl)() {
+		pr(vm)();
+		
+		if(inv(length)) {
+			_length = 0;
+			var ind = 0;
+			map(
+				$(mixin doit(arbs) {
+					var len = 0;
+					Iter(i, arbs, if(i.active) len++);
+					lengths[ind++] = len;
+					_length += len;
+				})
+				doit
+			);
+			
+			inv(length) = false;
+		}
+		
+		return _length;
+	}
+	
+	//records length of sub lists as viewed by user to make realignment of iterators faster!
+	public var lengths : Array<Int>;
+	
+	public var ite_0 : Node(PR(ColArbiter));
+	public var ite_1 : Node(PR(ColArbiter));
+	public var ite_2 : Node(PR(FluidArbiter));
+	public var ite_3 : Node(PR(SensorArbiter));
+	
+	public var at_index_0 : Int;
+	public var at_index_1 : Int;
+	public var at_index_2 : Int;
+	public var at_index_3 : Int;
+
+	public inline override function pr(vm)() {
+		var modified = false;
+		map(
+			$(mixin doit(arbs) if(arbs.modified) { modified = true; arbs.modified = false; })
+			doit
+		);
+		if(modified) {
+			DEBUG(if(pr(inner).iterators!=null) {
+				Iter(i,pr(inner).iterators,{
+					if(i.pr(critical)) throw "Error: Lists should never be modified once hasNext() has been called, and before next() has been called on iterators to the list as it is not defined behaviour. In this case it appears that you are using api functions that modify this list between hasNext() and next() calls which bypass the usual checks.";
+				});
+			})
+			
+			inv(length) = true;
+			_length = 0;
+			
+			ite_0 = null; ite_1 = null;
+			ite_2 = null; ite_3 = null;
+		}
+	}
+	
+	public inline override function push(obj:Arbiter):Bool {
+		DEBUG(throw "Error: ArbiterList is immutable";)
+		return false;
+	}
+	public inline override function pop():Arbiter {
+		DEBUG(throw "Error: ArbiterList is immutable";)
+		return null;
+	}
+	public inline override function unshift(obj:Arbiter):Bool {
+		DEBUG(throw "Error: ArbiterList is immutable";)
+		return false;
+	}
+	public inline override function shift():Arbiter {
+		DEBUG(throw "Error: ArbiterList is immutable";)
+		return null;
+	}
+	public inline override function remove(obj:Arbiter):Bool {
+		DEBUG(throw "Error: ArbiterList is immutable";)
+		return false;
+	}
+    public inline override function clear() {
+		DEBUG(throw "Error: ArbiterList is immutable";)
+	}
+	
+	public inline override function at(index:Int):Arbiter {
+		pr(vm)();
+		
+		DEBUG(if(index<0 || index>=length) throw "Error: Index out of bounds";)
+		
+		//determine which list we need to access, realign iterator if necessary
+		var ret:Arbiter = null;
+		var accum_length = 0;
+		$(expand method doit(ind,arbs) if(ret==null) {
+			if(index < accum_length + lengths[ind]) {
+				var offset = index - accum_length;
+				if(offset < at_index_`ind || ite_`ind == null) {
+					at_index_`ind = 0;
+					ite_`ind = arbs.begin();
+					while(true) {
+						var x = ite_`ind.elem();
+						if(x.active) break;
+						ite_`ind = ite_`ind.next;
+					}
+				}
+				while(at_index_`ind!=offset) {
+					at_index_`ind++;
+					ite_`ind = ite_`ind.next;
+					while(true) {
+						var x = ite_`ind.elem();
+						if(x.active) break;
+						ite_`ind = ite_`ind.next;
+					}
+				}
+				ret = ite_`ind.elem().wrapper();
+			}else
+				accum_length += lengths[ind];
+		});
+		
+		//need to pass index as part of the argument, so cannot do it through haxe
+		//thefore cannot use map macro with 'ind' variable; le sigh
+		doit(0,space.c_arbiters(true))
+		doit(1,space.c_arbiters(false))
+		doit(2,space.f_arbiters)
+		doit(3,space.s_arbiters)
+		
+		return ret;
+	}
+}

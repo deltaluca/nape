@@ -1,0 +1,821 @@
+package zpp_nape.util;
+$(import);
+
+//--------------------------------------------------------------------------------------------------
+
+$(mixin global List(T) GenList(T) ZNPList_`T);
+$(expand global GenList(T)
+class List(T) {
+	public var head:Node(T);
+	public function new() {}
+	flibmdel public inline function begin() return head
+	
+	ListMixin(
+		$(mixin _setbeg(i) head=i)
+		$(mixin _new   (o) {
+			var ret = Get(Node(T));
+			ret.elt = o;
+			ret;
+		})
+		$(mixin _delete(i) Free(Node(T),i))
+		$(mixin _delelt(o) {})
+		$(mixin _clear true)
+	,
+		List(T),T,Node(T)
+	)
+});
+
+$(mixin global AllocList(T) GenAllocList(T) ZNPAllocList_`T);
+$(expand global GenAllocList(T)
+class AllocList(T) {
+	public var head:Node(T);
+	public function new() {}
+	flibmdel public inline function begin() return head
+	
+	ListMixin(
+		$(mixin _setbeg(i) head=i)
+		$(mixin _new   (o) {
+			var ret = Get(Node(T));
+			ret.elt = o;
+			ret;
+		})
+		$(mixin _delete(i) Free(Node(T),i))
+		$(mixin _delelt(o) Free(T,o))
+		$(mixin _clear true)
+	,
+		AllocList(T),T,Node(T)
+	)
+});
+
+$(mixin global Node(T) GenNode(T) ZNPNode_`T);
+$(expand global GenNode(T)
+class Node(T) {
+	MixPoolNoNext(Node(T))
+	
+	public var next:Node(T);
+	flibmdel public inline function free() {
+		elt = null;
+	}
+	public var elt:T;
+	public function new() {}
+	flibmdel public inline function elem() return elt
+});
+
+//--------------------------------------------------------------------------------------------------
+
+$(expand global MixDerivedList(T,ListT,IteT,defs)
+	$(mixin accept(x) true);
+	$(mixin use_accept false);
+	
+	$(mixin copy_elt(o) { DEBUG(throw "Error: "+$str(T)+" is not a copyable type";) });
+	
+	class PR(Mix`T`List) extends T`List {
+		defs
+		
+		public var inner:ListT;
+		
+		public var _length:Int;
+		public var inv(length):Bool;
+		
+		public var at_ite:IteT;
+		public var at_index:Int;
+		
+		flibmdel public static inline function get(list:ListT,?immutable=false) {
+			var ret = new PR(Mix`T`List)();
+			ret.inner = list;
+			ret.pr(inner).immutable = immutable;
+			return ret;
+		}
+		
+		public function new() {
+			super();
+			
+			at_ite = null;
+			at_index = 0;
+			inv(length) = true;
+			_length = 0;
+		}
+		
+		public inline override function pr(gl)() {
+			pr(vm)();
+			
+			if(inv(length)) {
+				_length = 0;
+				Iter(i, inner, if(accept(i)) _length++);
+				inv(length) = false;
+			}
+			
+			return _length;
+		}
+		
+		public inline override function pr(vm)() {
+			pr(inner).validate();
+			
+			if(inner.modified) {
+				DEBUG(if(pr(inner).iterators!=null) {
+					Iter(i,pr(inner).iterators,{
+					if(i.pr(critical)) throw "Error: Lists should never be modified once hasNext() has been called, and before next() has been called on iterators to the list as it is not defined behaviour. In this case it appears that you are using api functions that modify this list between hasNext() and next() calls which bypass the usual checks.";
+					});
+				})
+				
+				inv(length) = true;
+				_length = 0;
+				at_ite = null;
+			}
+		}
+		
+		keep public inline override function at(index:Int):T {
+			pr(vm)();
+			
+			DEBUG(if(index<0 || index>=length) throw "Error: Index out of bounds";)
+			
+			if(pr(inner).reverse_flag) index = length-1-index;
+			
+			if(index < at_index || at_ite == null) {
+				at_index = 0;
+				at_ite = inner.begin();
+				while(true) {
+					var x = at_ite.elem();
+					if(accept(x)) break;
+					at_ite = at_ite.next;
+				}
+			}
+			while(at_index!=index) {
+				at_index++;
+				at_ite = at_ite.next;
+				while(true) {
+					var x = at_ite.elem();
+					if(accept(x)) break;
+					at_ite = at_ite.next;
+				}
+			}
+			
+			return closure(at_ite.elem());
+		}
+		
+		keep public override inline function push(obj:T) {
+			DEBUG(if(pr(inner).immutable) throw "Error: "+$str(T)+"List is immutable";)
+			pr(inner).modify_test();
+			
+			pr(vm)();
+			DEBUG(if(obj.pr(inner).inuse) throw "Error: "+$str(T)+" is already in use";)
+			
+			var cont = if(pr(inner).adder!=null) pr(inner).adder(obj) else true;
+			if(cont) {
+				if(pr(inner).reverse_flag)
+					inner.add(erusolc(obj));
+				else {
+					var ite = inner.iterator_at(length-1);
+					inner.insert(ite,erusolc(obj));
+				}
+				pr(inner).invalidate();
+				
+				if(pr(inner).post_adder!=null) pr(inner).post_adder(obj);
+			}
+			return cont;
+		}
+		keep public override inline function unshift(obj:T) {
+			DEBUG(if(pr(inner).immutable) throw "Error: "+$str(T)+"List is immutable";)
+			pr(inner).modify_test();
+			
+			pr(vm)();
+			DEBUG(if(obj.pr(inner).inuse) throw "Error: "+$str(T)+" is already in use";)
+			
+			var cont = if(pr(inner).adder!=null) pr(inner).adder(obj) else true;
+			if(cont) {
+				if(pr(inner).reverse_flag) {
+					var ite = inner.iterator_at(length-1);
+					inner.insert(ite,erusolc(obj));
+				}else
+					inner.add(erusolc(obj));
+				pr(inner).invalidate();
+				
+				if(pr(inner).post_adder!=null) pr(inner).post_adder(obj);
+			}
+			return cont;
+		}
+		
+		keep public override inline function pop():T {
+			DEBUG(if(pr(inner).immutable) throw "Error: "+$str(T)+"List is immutable";)
+			pr(inner).modify_test();
+			DEBUG(if(empty()) throw "Error: Cannot remove from empty list";)
+			pr(vm)();
+			
+			var ret = null;
+			if(pr(inner).reverse_flag) {
+				ret = inner.front();
+				var retx = closure(ret);
+				if(pr(inner).subber!=null) pr(inner).subber(retx);
+				inner.pop();
+			}else {
+				if(at_ite!=null && at_ite.next == null) at_ite = null;
+				var ite = length==1 ? null : inner.iterator_at(length-2);
+				ret = ite == null ? inner.front() : ite.next.elem();
+				var retx = closure(ret);
+				if(pr(inner).subber!=null) pr(inner).subber(retx);
+				inner.erase(ite);
+			}
+			
+			pr(inner).invalidate();
+			var retx = closure(ret);
+			return retx;
+		}
+		keep public override inline function shift():T {
+			DEBUG(if(pr(inner).immutable) throw "Error: "+$str(T)+"List is immutable";)
+			pr(inner).modify_test();
+			DEBUG(if(empty()) throw "Error: Cannot remove from empty list";)
+			pr(vm)();
+			
+			var ret = null;
+			if(pr(inner).reverse_flag) {
+				if(at_ite!=null && at_ite.next == null) at_ite = null;
+				var ite = length==1 ? null : inner.iterator_at(length-2);
+				ret = ite == null ? inner.front() : ite.next.elem();
+				var retx = closure(ret);
+				if(pr(inner).subber!=null) pr(inner).subber(retx);
+				inner.erase(ite);
+			}else {
+				ret = inner.front();
+				var retx = closure(ret);
+				if(pr(inner).subber!=null) pr(inner).subber(retx);
+				inner.pop();
+			}
+			
+			pr(inner).invalidate();
+			var retx = closure(ret);
+			return retx;
+		}
+		
+		keep public override inline function remove(obj:T):Bool {
+			DEBUG(if(pr(inner).immutable) throw "Error: "+$str(T)+"List is immutable";)
+			pr(inner).modify_test();
+			
+			pr(vm)();
+			
+			var ret = Exists(x,inner,erusolc(obj)==x);
+			if(ret) {
+				if(pr(inner).subber!=null) pr(inner).subber(obj);
+				inner.remove(erusolc(obj));
+				pr(inner).invalidate();
+			}
+			return ret;
+		}
+
+        keep public override inline function clear() {
+            DEBUG(if(pr(inner).immutable) throw "Error: "+$str(T)+"List is immutable";)
+            if(pr(inner).reverse_flag) {
+                while(!empty()) pop();
+            }else {
+                while(!empty()) shift();
+            }
+        }
+	}
+);
+
+$(expand global PRWrapList(T,ListT,IteT)
+	class PR(T`List) {
+		public var outer:T`List;
+		
+		public var inner:ListT;
+		public var immutable:Bool;
+		
+		public var _invalidated:Bool;
+		public var _invalidate:PR(T`List)->Dynamic;
+		public var _validate:Void->Dynamic;
+		public var _modifiable:Void->Dynamic;
+		
+		public var iterators:List(T`Iterator);
+		public static var internal:Bool = false; //used to prevent instantiation of iterator type
+		
+		//to be called when object is added/removed
+		public var adder:T->Bool; public var post_adder:T->Dynamic;
+		public var subber:T->Dynamic;
+		
+		//used for transparent reversal of list
+		public var reverse_flag:Bool;
+		
+		flibstaticdel(get) public static inline function get(list:ListT,?imm:Bool=false) {
+			var ret = new T`List();
+			ret.pr(inner).inner = list;
+			if(imm) ret.pr(inner).immutable = true;
+			ret.pr(inner).inv(length) = true;
+			return ret;
+		}
+		
+		flibmdel public inline function valmod() {
+			validate();
+			if(inner.modified) {
+				DEBUG(if(iterators!=null) {
+					Iter(i,iterators,{
+						if(i.pr(critical)) throw "Error: Lists should never be modified once hasNext() has been called, and before next() has been called on iterators to the list as it is not defined behaviour. In this case it appears that you are using api functions that modify this list between hasNext() and next() calls which bypass the usual checks.";
+					});
+				})
+				
+				if(inner.pushmod) push_ite = null;
+				at_ite = null;
+				length += inner.mcnt;
+				
+				inner.modified = false;
+				inner.pushmod = false;
+				inner.mcnt = 0;
+				inv(length) = true;
+			}
+		}
+		
+		flibmdel public inline function modified() {
+			inv(length) = true;
+			at_ite = null;
+			push_ite = null;
+		}
+		flibmdel public inline function modify_test() {
+			DEBUG(
+				if(_modifiable!=null) _modifiable();
+			
+				if(iterators!=null) {
+					Iter(i,iterators,{
+						if(i.pr(critical)) throw "Error: Lists should never be modified once hasNext() has been called, and before next() has been called on iterators to the list as it is not defined behaviour";
+					});
+				}
+			)
+		}
+		
+		flibmdel public inline function validate() {
+			if(_invalidated) {
+				_invalidated = false;
+				if(_validate!=null) _validate();
+			}
+		}
+		flibmdel public inline function invalidate() {
+			_invalidated = true;
+			if(_invalidate!=null) _invalidate(this);
+		}
+		
+		public var at_index:Int;
+		public var at_ite:IteT;
+		
+		public var push_ite:IteT;
+		
+		public var length:Int;
+		public var inv(length):Bool;
+		
+		public var user_length:Int; //may differ from 'real' length
+		
+		public function new() {
+			inner = new ListT();
+		}
+	}
+);
+
+//--------------------------------------------------------------------------------------------------
+
+$(mixin global MixListMixin(T)
+	public var next:T;
+	flibmdel public inline function elem () return this
+	flibmdel public inline function begin() return next
+	
+	public var inuse:Bool;
+	
+	ListMixin(
+		$(mixin _setbeg(i) next=i);
+		$(mixin _new(o) { o.inuse = true; o; });
+		$(mixin _delete(o) {});
+		$(mixin _delelt(o) { o.inuse = false; });
+		$(mixin _clear false);
+	,
+		T,T,T
+	)
+);
+$(mixin global MixList(T) T);
+
+//--------------------------------------------------------------------------------------------------
+
+
+$(mixin global ListMixin(defs,Cons,T,I)
+	defs
+	
+	public var modified:Bool;
+	public var pushmod:Bool;
+	public var mcnt:Int;
+
+    flibmdel public inline function add(o:T) {
+		assert(o!=null && !has(o),"add -> "+o);
+		
+        var temp = _new(o);
+        temp.next = begin();
+        _setbeg(temp);
+		
+		modified=true;
+		mcnt++;
+    }
+
+    flibmdel public inline function addAll(x:Cons) {
+		assert(x!=null,"addAll -> "+x);
+		Iterate(x,add);
+	}
+
+    flibmdel public inline function insert(cur:I,o:T) {
+		assert(o != null && !has(o),"cur -> "+cur+" -> "+o);
+		
+        if(cur==null) { add(o); return begin(); }
+        else {
+            var temp = _new(o);
+            temp.next = cur.next;
+            cur.next = temp;
+			
+			pushmod = modified = true;
+			mcnt++;
+			
+            return temp;
+        }
+    }
+
+    //----------------------------------------------------------------------------------------------
+
+    flibmdel public inline function pop():Void {
+		assert(!empty(), "pop");
+		
+        var ret = begin();
+        _setbeg(ret.next);
+        _delelt(ret.elem());
+        _delete(ret);
+		
+		modified = true;
+		mcnt--;
+    }
+
+    flibmdel public inline function pop_unsafe():T {
+		assert(!empty(), "pop_unsafe");
+		
+        var ret = front();
+        pop();
+        return ret;
+    }
+
+    //----------------------------------------------------------------------------------------------
+
+    flibmdel public inline function remove(obj:T):Bool {
+		assert(obj!=null && has(obj), "remove -> "+obj);
+		
+        var pre = null;
+        var cur = begin();
+        var ret = false;
+        while(cur!=null) {
+            if(cur.elem()==obj) {
+                erase(pre);
+                ret = true;
+                break;
+            }
+            pre = cur;
+            cur = cur.next;
+        }
+        return ret;
+    }
+
+    flibmdel public inline function erase(pre:I):I {
+		assert(!empty(),"erase -> "+pre);
+		if(pre==null) { pop(); return begin(); }
+		else {
+			var old = pre.next;
+			var cur = old.next;
+			pre.next = cur;
+			_delelt(old.elem());
+			_delete(old);
+			
+			modified = true;
+			if(cur==null) pushmod = true;
+			mcnt--;
+			
+			return cur;
+		}
+    }
+
+    flibmdel public inline function splice(pre:I,n:Int):I {
+        while(n-->0 && pre.next!=null) erase(pre);
+        return pre.next;
+    }
+
+    flibmdel public inline function clear() {
+        if(_clear) {
+            while(!empty()) {
+                var old = begin();
+                _setbeg(old.next);
+                _delelt(old.elem());
+                _delete(old);
+				mcnt--;
+            }
+			
+			modified = true;
+			pushmod = true;
+        }
+    }
+
+    //----------------------------------------------------------------------------------------------
+
+    flibmdel public inline function reverse() {
+        var cur = begin();
+        var pre = null;
+        while(cur!=null) {
+            var nx = cur.next;
+            cur.next = pre;
+            _setbeg(cur);
+            pre = cur;
+            cur = nx;
+        }
+		modified = true;
+		pushmod = true;
+    }
+
+    //----------------------------------------------------------------------------------------------
+
+    flibmdel public inline function empty():Bool return begin()==null
+
+    flibmdel public inline function size() {
+        var cnt = 0;
+        var cur = begin();
+        while(cur!=null) { cnt++; cur = cur.next; }
+        return cnt;
+    }
+
+    flibmdel public inline function has(obj:T) {
+		assert(obj!=null,"has -> "+obj);
+		return Exists(npite, this, npite==obj);
+	}
+
+    //----------------------------------------------------------------------------------------------
+
+    flibmdel public inline function front() return begin().elem()
+
+    flibmdel public inline function back() {
+        var ret = begin();
+        var cur = ret;
+        while(cur!=null) { ret = cur; cur = cur.next; }
+        return ret.elem();
+    }
+
+	//ind = -1 is valid, and gives null.
+    flibmdel public inline function iterator_at(ind:Int) {
+		assert(ind>=-1 && ind<size(),"iterator_at -> "+ind);
+        var ret = begin();
+        while(ind-->0 && ret!=null) ret = ret.next;
+        return ret;
+    }
+
+    flibmdel public inline function at(ind:Int) {
+		assert(ind>=0 && ind<size(),"at -> "+ind);
+        var it = iterator_at(ind);
+        return if(it!=null) it.elem() else null;
+    }
+
+);
+
+//--------------------------------------------------------------------------------------------------
+
+$(mixin global InsertSort(i,list,less) {
+	var pre = null;
+	Iter(j,list,{
+		if(less(i,j))
+			cx_break;
+		pre = cx_ite;
+	});
+	list.insert(pre,i);
+});
+
+//--------------------------------------------------------------------------------------------------
+
+$(mixin global Exists(i,list,predicate) ({
+	var ret = false;
+	Iter(i,list,{
+		if($predicate) {
+			ret = true;
+			break;
+		}
+	});
+	ret;
+}));
+
+$(mixin global ForAll(i,list,predicate) (!Exists(i,list,!($predicate))));
+
+//--------------------------------------------------------------------------------------------------
+
+$(mixin global Iter(i,list,closure) IterIte(i,list,list.begin(),closure));
+$(mixin global IterIte(i,list,listite,closure) ${->
+	var cx_ite = listite;
+	while(cx_ite != null) {
+		var i = cx_ite.elem();
+		
+		$(mixin cx_continue { cx_ite = cx_ite.next; continue; });
+		$(mixin cx_break break);
+		$(cx_continue,cx_break->closure);
+
+		cx_ite = cx_ite.next;
+	}
+});
+$(mixin global Iterate(list,closure) IterateIte(list,list.begin(),closure));
+$(mixin global IterateIte(list,listite,closure) IterIte(i,list,listite,closure(i)));
+
+$(mixin global IterCycle(i,list,listite,closure) ${->
+	var beg_ite = listite;
+	var cx_ite = listite;
+	$(mixin cx_continue { cx_ite = cx_ite.next; if(cx_ite==null) cx_ite = list.begin(); continue; });
+	$(mixin cx_break { cx_ite = beg_ite; break; });
+	do {
+		var i = cx_ite.elem();
+		$(cx_continue,cx_break->closure);
+		cx_ite = cx_ite.next; if(cx_ite==null) cx_ite = list.begin();
+	}while(false);
+	while(cx_ite != beg_ite) {
+		var i = cx_ite.elem();
+		$(cx_continue,cx_break->closure);
+		cx_ite = cx_ite.next; if(cx_ite==null) cx_ite = list.begin();
+	}
+});
+
+//--------------------------------------------------------------------------------------------------
+
+$(mixin global Iter2(i,j,list,closure) ${->
+	var cx_cont = true;
+	var cx_itei = list.begin();
+	var i = cx_itei.elem();
+	var cx_itej = cx_itei.next;
+	
+	while(cx_itej!=null) {
+		var j = cx_itej.elem();
+		$(mixin cx_continue { cx_next; continue; });
+		$(mixin cx_break { cx_cont = false; break; });
+		$(cx_continue,cx_break->closure);
+		
+		$(mixin cx_next {
+			cx_itei = cx_itej; i = j;
+			cx_itej = cx_itej.next;
+		});
+		cx_next;
+	}
+	
+	if(cx_cont) {
+		do {
+			cx_itej = list.begin();
+			var j = cx_itej.elem();
+			$(mixin cx_continue break);
+			$(mixin cx_break break);
+			$(cx_continue,cx_break->closure);
+		}while(false);
+	}
+});
+
+$(mixin global Iter2_noite(i,j,list,closure) ${->
+	var cx_cont = true;
+	var cx_ite = list.begin();
+	var i = cx_ite.elem();
+	cx_ite = cx_ite.next;
+	
+	while(cx_ite!=null) {
+		var j = cx_ite.elem();
+		$(mixin cx_continue { cx_next; continue; });
+		$(mixin cx_break { cx_cont = false; break; });
+		$(cx_continue,cx_break->closure);
+		
+		$(mixin cx_next {
+			i = j;
+			cx_ite = cx_ite.next;
+		});
+		cx_next;
+	}
+	
+	if(cx_cont) {
+		do {
+			var j = list.front();
+			$(mixin cx_continue break);
+			$(mixin cx_break break);
+			$(cx_continue,cx_break->closure);
+		}while(false);
+	}
+});
+
+$(mixin global Iter2_fast(i,j,list,closure) ${->
+	var cx_ite = list.begin();
+	var i = cx_ite.elem();
+	cx_ite = cx_ite.next;
+	
+	while(cx_ite!=null) {
+		var j = cx_ite.elem();
+		$closure;
+		i = j;
+		cx_ite = cx_ite.next;
+	}
+	
+	var j = list.front();
+	$closure;
+});
+
+//--------------------------------------------------------------------------------------------------
+
+$(mixin global Iter3(i,j,k,list,closure) ${->
+	var cx_cont = true;
+	var cx_itei = list.begin();
+	var i = cx_itei.elem();
+	var cx_itej = cx_itei.next;
+	var j = cx_itej.elem();
+	var cx_itek = cx_itej.next;
+	
+	while(cx_itek!=null) {
+		var k = cx_itek.elem();
+		$(mixin cx_continue { cx_next; continue; });
+		$(mixin cx_break { cx_cont = false; break; });
+		$(cx_continue,cx_break->closure);
+
+		cx_next;
+	}
+	
+	$(mixin cx_next {
+		cx_itei = cx_itej; cx_itej = cx_itek;
+		i = j; j = k;
+		cx_itek = cx_itek.next;
+	});
+	
+	if(cx_cont) {
+		cx_itek = list.begin();
+		var k = cx_itek.elem();
+		do {
+			$(mixin cx_continue break);
+			$(mixin cx_break { cx_cont = false; break; });
+			$(cx_continue,cx_break->closure);
+		}while(false);
+		
+		if(cx_cont) {
+			cx_next;
+			var k = cx_itek.elem();
+			do {
+				$(mixin cx_continue break);
+				$(mixin cx_break break);
+				$(cx_continue,cx_break->closure);
+			}while(false);
+		}
+	}
+});
+
+$(mixin global Iter3_noite(i,j,k,list,closure) ${->
+	var cx_cont = true;
+	var cx_ite = list.begin();
+	var i = cx_ite.elem();
+	cx_ite = cx_ite.next;
+	var j = cx_ite.elem();
+	cx_ite = cx_ite.next;
+	
+	while(cx_ite!=null) {
+		var k = cx_ite.elem();
+		$(mixin cx_continue { cx_next; continue; });
+		$(mixin cx_break { cx_cont = false; break; });
+		$(cx_continue,cx_break->closure);
+		
+		cx_next;
+	}
+	
+	$(mixin cx_next {
+		i = j; j = k;
+		cx_ite = cx_ite.next;
+	});
+	
+	if(cx_cont) {
+		cx_ite = list.begin();
+		var k = cx_ite.elem();
+		do {
+			$(mixin cx_continue break);
+			$(mixin cx_break { cx_cont = false; break; });
+			$(cx_continue,cx_break->closure);
+		}while(false);
+		
+		if(cx_cont) {
+			cx_next;
+			var k = cx_ite.elem();
+			do {
+				$(mixin cx_continue break);
+				$(mixin cx_break break);
+				$(cx_continue,cx_break->closure);
+			}while(false);
+		}
+	}
+});
+
+$(mixin global Iter3_fast(i,j,k,list,closure) ${->
+	var cx_ite = list.begin();
+	var i = cx_ite.elem();
+	cx_ite = cx_ite.next;
+	var j = cx_ite.elem();
+	cx_ite = cx_ite.next;
+	
+	while(cx_ite!=null) {
+		var k = cx_ite.elem();
+		$closure;
+		i = j; j = k;
+		cx_ite = cx_ite.next;
+	}
+	
+	cx_ite = list.begin();
+	var k = cx_ite.elem();
+	$closure;
+	
+	i = j; j = k;
+	cx_ite = cx_ite.next;
+	var k = cx_ite.elem();
+	$closure;
+});

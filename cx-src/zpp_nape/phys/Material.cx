@@ -1,0 +1,47 @@
+package zpp_nape.phys;
+$(import);
+
+class PR(Material) {
+	
+	PRFeatureMix(Material,material)
+	
+	public var dynamicFriction:Float;
+	public var staticFriction:Float;
+	public var density:Float;
+	public var elasticity:Float;
+	
+	public var rollingFriction:Float;
+	
+	//----------------------------------------------------------------------------------------------
+	
+	public function new() {
+		feature_cons();
+		elasticity = 0;
+		dynamicFriction = 1;
+		staticFriction = 2;
+		density = 0.001;
+		rollingFriction = 0.01;
+	}
+	
+	flibmdel public inline function copy() {
+		var ret = new PR(Material)();
+		ret.dynamicFriction = dynamicFriction;
+		ret.staticFriction = staticFriction;
+		ret.density = density;
+		ret.elasticity = elasticity;
+		ret.rollingFriction = rollingFriction;
+		return ret;
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+	flibstaticdel(WAKE) public static inline var WAKE=1;
+	flibstaticdel(PROPS) public static inline var PROPS=2;
+	flibstaticdel(ANGDRAG) public static inline var ANGDRAG=4;
+	flibstaticdel(ARBITERS) public static inline var ARBITERS=8;
+	
+	flibmdel public inline function invalidate(x:Int) {
+		Iter(s,shapes,s.invalidate_material(x));
+	}
+	
+}

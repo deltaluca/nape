@@ -1,0 +1,1123 @@
+package zpp_nape.dynamics;
+$(import);
+
+class PR(ArbiterHash) {
+    public var table:ARRAY(PR(Arbiter));
+
+    public function new() {
+        #if flash10
+            table = new flash.Vector<PR(Arbiter)>(0x10000,true);
+        #else
+            table = new Array<PR(Arbiter)>();
+        #end
+    }
+
+    public inline function get(id:Int):PR(Arbiter) {
+        var n = table[hash(id)];
+        if(n==null) return null;
+        else if(n.id == id) return n;
+        else {
+            do n = n.hnext
+            while(n!=null && n.id != id);
+            return n;
+        }
+    }
+
+    public inline function add(arb:PR(Arbiter)) {
+        var h = hash(arb.id);
+        var n = table[h];
+        if(n==null) {
+            table[h] = arb;
+            arb.hnext = null;
+        } else {
+            #if NAPE_ASSERT
+                var nor = n;
+                while(n!=null) {
+                    if(n.id==arb.id) throw "ASSERTION: ArbiterHash already contains arbiter with given id";
+                    n = n.hnext;
+                }
+                n = nor;
+            #end
+            arb.hnext = n.hnext;
+            n.hnext = arb;
+        }
+    }
+
+    public inline function remove(arb:PR(Arbiter)) {
+        var h = hash(arb.id);
+        var n = table[h];
+        if(n==arb) table[h] = n.hnext;
+        else if(n!=null) {
+            var pre:PR(Arbiter);
+            do { pre = n; n = n.hnext; }
+            while(n != null && n != arb);
+            if(n!=null) pre.hnext = n.hnext;
+        }
+        arb.hnext = null;
+    }
+
+    public inline function hash(key:Int) return (key*73856093) & 0xffff
+}
+
+///_________________________________________________________________________________________________
+///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+
+class PR(Arbiter) {
+	public var outer:Arbiter;
+
+	public static var internal = false;
+	public function wrapper() {
+		if(outer==null) {
+            //disable derp! errors.
+			internal = true;
+
+			if(type==COL) {
+				colarb.outer_zn = new CollisionArbiter();
+				outer = colarb.outer_zn;
+			}else if(type==FLUID) {
+				fluidarb.outer_zn = new FluidArbiter();
+				outer = fluidarb.outer_zn;
+			}
+			else outer = new Arbiter();
+            outer.pr(inner) = this;
+
+            //re-enable derp! errors
+			internal = false;
+		}
+		return outer;
+	}
+
+    ///---------------------------------------------------------------------------------------------
+
+    //used in hash map
+    public var hnext:PR(Arbiter);
+
+	public function new() {}
+
+    ///---------------------------------------------------------------------------------------------
+
+	//pairwise id of features.
+	//  dynamic-dynamic  :- id(a,b) [a<b based on shape types and then id]
+	//  static-dynamic   :- id(s,d)  ""
+	public var id:Int;
+
+    ///---------------------------------------------------------------------------------------------
+
+	//3 different time stamps:
+	//       stamp : updated in narrowphase to avoid duplicate work whether an interaction occured
+    //               or not
+	//    up_stamp : the time at which arbiter was last active in terms of interaction, updated in
+	//	 		     narrowphase, but also when an arbiter is awoken based on sleep_stamp
+	// sleep_stamp : set when arbiter is put to sleep so that we can keep track of the inactive
+    //               state of arbiters; aka an arbiter inactive but persisting for 3 steps after
+	//               waking will have an up_stamp such that it appears to have been inactive and
+	//               persisting for 3 steps even after waking.
+	public var       stamp:Int;
+	public var    up_stamp:Int;
+	public var sleep_stamp:Int;
+
+    ///---------------------------------------------------------------------------------------------
+	
+	//if false, arbiter should not be exposed to user or worked on: is only used to persist contacts
+	public var active:Bool;
+
+	//set when arbiter is removed prematurely from objects and waiting to be removed by space later.
+	public var cleared:Bool;
+
+    //set when arbiter is sweffed
+    public var sleeping:Bool;
+
+    ///---------------------------------------------------------------------------------------------
+	
+    //arbiter properties need to be recalculated come next pre-step
+	public var invalidated:Bool;
+
+    ///---------------------------------------------------------------------------------------------
+	
+	public var b1:PR(Body);
+	public var b2:PR(Body);
+	
+	//used internally in certain places to avoid recursing types
+	public var ws1:PR(Shape);
+    public var ws2:PR(Shape);
+	
+	//called from narrowphase.
+	flibmdel public inline function swap_features() {
+        ///assert pre-condition satisfied
+        assert(type==COL,"Arbiter::swap_features");
+
+		swap(b1,b2);
+		swap(ws1,ws2);
+        swap(colarb.s1,colarb.s2);
+	}
+
+    ///---------------------------------------------------------------------------------------------
+	
+	public var type:Int;
+	flibstaticdel(COL)    public static inline var COL    = 0;
+	flibstaticdel(FLUID)  public static inline var FLUID  = 1;
+	flibstaticdel(SENSOR) public static inline var SENSOR = 2;
+
+    //to be used in stead of runtime casting of arbiter.
+    public var colarb   :PR(ColArbiter);
+    public var fluidarb :PR(FluidArbiter);
+    public var sensorarb:PR(SensorArbiter);
+
+    ///---------------------------------------------------------------------------------------------
+	
+	//called when want to retire arbiter from objects, but let full retire wait for space.step()
+	//given argument should not have arbiter removed as is done externally
+	flibmdel public inline function lazyRetire(s:PR(Space), b:PR(Body)=null) {
+        ///at entry, arbiter should not have already been cleared.
+        assert(!cleared,"Arbiter::lazyRetire");
+		cleared = true;
+
+		if(b==null) {
+			b1.arbiters.remove(this);
+			b2.arbiters.remove(this);
+		}else {
+			if(b1==b) b2.arbiters.remove(this);
+			else      b1.arbiters.remove(this);
+		}
+		s.map_arb.remove(this);
+		
+        active = false;
+		//need to tell wrapped space::arbiters list about non structual changes
+		//only one of the lists needs notifiying for the changes to take place
+		//so this suffices whether this arbiter is a fluid arbiter or not.
+		s.f_arbiters.modified = true;
+	}
+
+    ///---------------------------------------------------------------------------------------------
+	
+    //called by sub-types on assignment.
+	flibmdel public inline function sup_assign(s1:PR(Shape),s2:PR(Shape),id:Int) {
+		b1 = s1.body; ws1 = s1;
+		b2 = s2.body; ws2 = s2;
+		this.id = id;
+		
+		b1.arbiters.add(this);
+		b2.arbiters.add(this);
+		
+		active   = true;
+		cleared  = false;
+		sleeping = false;
+	}
+	
+    //called by sub-types on retirement.
+	flibmdel public inline function sup_retire() {
+        ///arbiter should not have been fully retired yet, check this via body existance
+        assert(b1!=null,"Arbiter::sup_retire");
+        assert(b2!=null,"Arbiter::sup_retire");
+
+        if(!cleared) { //only need to remove arbiters if not prematurely cleared.
+			b1.arbiters.remove(this);
+			b2.arbiters.remove(this);
+		}
+		b1 = b2 = null;
+
+		active = false;
+	}
+}
+
+///_________________________________________________________________________________________________
+///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+
+class PR(SensorArbiter) extends PR(Arbiter) {
+	MixPool(PR(SensorArbiter))
+	flibmdel public inline function free() {}
+	
+	public function new() {
+		super();
+		type = PR(Arbiter).SENSOR;
+		sensorarb = this;
+	}
+
+    ///---------------------------------------------------------------------------------------------
+	
+	flibmdel public inline function assign(s1:PR(Shape),s2:PR(Shape),id:Int) {
+		sup_assign(s1,s2,id);
+	}
+	
+	flibmdel public inline function retire() {
+		sup_retire();
+		Free(PR(SensorArbiter),this);
+	}
+}
+
+///_________________________________________________________________________________________________
+///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+
+class PR(FluidArbiter) extends PR(Arbiter) {
+	public var outer_zn:FluidArbiter;
+	MixPool(PR(FluidArbiter))
+	flibmdel public inline function free() {}
+
+    ///---------------------------------------------------------------------------------------------
+	
+    //assigned by narrowphase
+	vec_new(public,centroid); ///world coord.
+	public var overlap:Float;
+
+    //relative centroid positions.
+    vec_new(public,r1); ///relative to b1.
+	vec_new(public,r2); ///relative to b2.
+
+    ///---------------------------------------------------------------------------------------------
+
+    //may be set in pre-step to shortcut drag operations.
+    public var nodrag:Bool;
+
+    //angular drag
+    public var wMass:Float;
+    public var adamp:Float; //accumulated impulse
+    public var agamma:Float;
+	
+    //linear drag
+    mat2_new(public, vMass);
+    vec_new(public,damp); //accumulated impulse
+    public var lgamma:Float;
+
+    ///* for calculation of lgamma and vMass, this stores the direction of relative linear velocity
+    ///  so as to approximate how much drag to apply, this is kept here so as to be persistant
+    ///  so that if we should reach a singularity, we can fall back on the previous value persisted.
+    vec_new(public,n);
+
+    ///used only for API
+    vec_new(public,buoy); //cached buoyancy impulse
+
+    ///---------------------------------------------------------------------------------------------
+	
+	public var wrap_position:Vec2;
+	public function getposition() {
+		var me = this;
+		wrap_position = new Vec2();
+		wrap_position.pr(inner).inuse = true;
+		wrap_position.pr(inner).immutable = true;
+		wrap_position.pr(inner)._validate = function() {
+			DEBUG(if(me.cleared) throw "Error: Arbiter not currently in use";)
+			vec_set(me.wrap_position.pr(inner).,me.centroid);
+		}
+	}
+
+    ///---------------------------------------------------------------------------------------------
+	
+	public function new() {
+		super();
+		type = PR(Arbiter).FLUID;
+		fluidarb = this;
+		
+		vec_set(buoy,0,0);
+        pre_dt = -1.0;
+	}
+
+    ///---------------------------------------------------------------------------------------------
+	
+	flibmdel public inline function assign(s1:PR(Shape),s2:PR(Shape),id:Int) {
+		sup_assign(s1,s2,id);
+
+		vec_set(n,0,1);
+		vec_set(damp,0,0);
+		adamp = 0.0;
+	}
+	
+	flibmdel public inline function retire() {
+		sup_retire();
+		Free(PR(FluidArbiter),this);
+        pre_dt = -1.0;
+	}
+
+    ///---------------------------------------------------------------------------------------------
+
+    flibmdel public inline function inject(area:Float,cx:Float,cy:Float) {
+		overlap = area;
+		vec_set(centroid,c);
+	}
+
+    ///---------------------------------------------------------------------------------------------
+	
+    public var pre_dt:Float;
+	flibmdel public inline function preStep(s:PR(Space), dt:Float) {
+        if(pre_dt==-1.0) pre_dt = dt;
+        var dtratio = dt/pre_dt;
+        pre_dt = dt;
+
+		vec_sub(centroid,b1.pos,r1);
+		vec_sub(centroid,b2.pos,r2);
+		
+		//----------------------
+		//buoyancy
+		
+		vec_new(buoy,0,0);
+		if(ws1.fluidEnabled && ws2.fluidEnabled) {
+			var mass1 = overlap*ws1.fluidProperties.density;
+			var mass2 = overlap*ws2.fluidProperties.density;
+			if     (mass1>mass2) vec_subeq(buoy, s.gravity, mass1+mass2);
+			else if(mass1<mass2) vec_addeq(buoy, s.gravity, mass1+mass2);
+			else if(vec_dot(ws1.worldCOM,s.gravity)>vec_dot(ws2.worldCOM,s.gravity))
+				vec_subeq(buoy, s.gravity, mass1+mass2);
+			else
+				vec_addeq(buoy, s.gravity, mass1+mass2);
+		}else if(ws1.fluidEnabled) {
+			var mass = overlap*ws1.fluidProperties.density;
+			vec_subeq(buoy, s.gravity, mass);
+		}else if(ws2.fluidEnabled) {
+			var mass = overlap*ws2.fluidProperties.density;
+			vec_addeq(buoy, s.gravity, mass);
+		}
+		vec_muleq(buoy, dt);
+		vec_set(this.buoy,buoy);
+		
+		if(b1.isDynamic()) {
+            vec_subeq(b1.force, buoy, 1/dt);
+            b1.torque -= vec_cross(r1,buoy)/dt;
+		}
+		if(b2.isDynamic()) {
+            vec_addeq(b2.force, buoy, 1/dt);
+            b2.torque += vec_cross(r2,buoy)/dt;
+		}
+		
+		if((!ws1.fluidEnabled || ws1.fluidProperties.viscosity==0)
+		&& (!ws1.fluidEnabled || ws1.fluidProperties.viscosity==0)) {
+			nodrag = true;
+			vec_set(damp,0,0);
+			adamp = 0;
+		}else {
+			nodrag = false;
+		
+			//----------------------
+			//angular drag
+			
+			var tViscosity = 0.0;
+			if(ws1.fluidEnabled) {
+				ws2.validate_angDrag();
+				tViscosity += ws1.fluidProperties.viscosity*ws2.angDrag*overlap/ws2.area;
+			}
+			if(ws2.fluidEnabled) {
+				ws1.validate_angDrag();
+				tViscosity += ws2.fluidProperties.viscosity*ws1.angDrag*overlap/ws1.area;
+			}
+
+			if(tViscosity!=0) {
+				var iSum = b1.sinertia + b2.sinertia;
+				if(iSum!=0) wMass = 1/iSum;
+				else wMass = 0.0;
+				
+				var biasCoef;
+				tViscosity *= 0.0004;
+				wMass *= withConstraint(soft_gamma(tViscosity,1,dt,agamma,biasCoef));
+			}else {
+				wMass = 0.0;
+				agamma = 0.0;
+			}
+
+			//----------------------
+			//linear drag
+				
+			vec_new(vrn,
+			(b2.velx+b2.kinvelx-r2y*(b2.angvel+b2.kinangvel))-(b1.velx+b1.kinvelx-r1y*(b2.angvel+b2.kinangvel)),
+			(b2.vely+b2.kinvely+r2x*(b2.angvel+b2.kinangvel))-(b1.vely+b1.kinvely+r1x*(b1.angvel+b1.kinangvel))
+			);
+				
+			if(vec_lsq(vrn) < PR(Const).EPSILON) {
+				//use previous vr, best guess as to direction velocity will take the objects
+				//since i don't want to use a 2d constraint here.
+			}else {
+				vec_normalise(vrn); vec_set(n,vrn);
+			}
+				
+			var tViscosity = 0.0;
+			if(ws1.fluidEnabled) {
+				var f = -ws1.fluidProperties.viscosity*overlap/ws2.area;
+				if(ws2.type == Flag(ShapeType,CIRCLE))
+					tViscosity -= f * ws2.circle.radius*PR(Config).FLUID_COEF_LIN / (2*ws2.circle.radius*Math.PI);
+				else {
+					var poly = ws2.polygon;
+					var bord = 0.0;
+					var acc = 0.0;
+					Iter(ex,poly.edges,{
+						bord += ex.length;
+						var fact = f*ex.length*vec_dot(ex.gnorm,n);
+						if(fact>0) fact = fact *= -PR(Config).ANGDRAGCOEF_VACUUM;
+						acc -= fact*0.5*PR(Config).FLUID_COEF_LIN;
+					});
+					tViscosity += acc/bord;
+				}
+			}
+			if(ws2.fluidEnabled) {
+				var f = -ws2.fluidProperties.viscosity*overlap/ws1.area;
+				if(ws1.type == Flag(ShapeType,CIRCLE))
+					tViscosity -= f * ws1.circle.radius*PR(Config).FLUID_COEF_LIN / (2*ws1.circle.radius*Math.PI);
+				else {
+					var poly = ws1.polygon;
+					var bord = 0.0;
+					var acc = 0.0;
+					Iter(ex,poly.edges,{
+						bord += ex.length;
+						var fact = f*ex.length*vec_dot(ex.gnorm,n);
+						if(fact>0) fact = fact *= -PR(Config).ANGDRAGCOEF_VACUUM;
+						acc -= fact*0.5*PR(Config).FLUID_COEF_LIN;
+					});
+					tViscosity += acc/bord;
+				}
+			}
+			
+			if(tViscosity!=0) {
+				var m = b1.smass + b2.smass;
+				mat2_new(K);
+				mat2_set(K, m,0,m);
+				$(mixin body(b,r) if(b.sinertia!=0) {
+					var X = r`x*b.sinertia;
+					var Y = r`y*b.sinertia;
+					mat2_addeq(K, Y*r`y,
+								 -Y*r`x, X*r`x);
+				});
+				body(b1,r1);
+				body(b2,r2);
+				
+				mat2_invert(K);
+				mat2_set(vMass,Ka,Kb,Kc);
+				
+				var biasCoef;
+				mat2_scaleq(vMass,withConstraint(soft_gamma(tViscosity,1,dt,lgamma,biasCoef)));
+			}else {
+				mat2_set(vMass,0,0,0);
+				lgamma = 0.0;
+			}
+		}
+
+        vec_muleq(damp,dtratio);
+        adamp *= dtratio;
+	}
+
+    ///---------------------------------------------------------------------------------------------
+
+    flibmdel public inline function warmStart() {
+		vec_subeq(b1.vel, damp, b1.imass);
+		vec_addeq(b2.vel, damp, b2.imass);
+		b1.angvel -= b1.iinertia*vec_cross(r1,damp);
+		b2.angvel += b2.iinertia*vec_cross(r2,damp);
+			
+		b1.angvel -= adamp*b1.iinertia;
+        b2.angvel += adamp*b2.iinertia;
+    }
+	
+	flibmdel public inline function applyImpulseVel() {
+		if(!nodrag) {
+            var w1 = b1.angvel+b1.kinangvel;
+            var w2 = b2.angvel+b2.kinangvel;
+            vec_new(j,
+                (b1.velx+b1.kinvelx - r1y*w1) - (b2.velx+b2.kinvelx - r2y*w2),
+                (b1.vely+b1.kinvely + r1x*w1) - (b2.vely+b2.kinvely + r2x*w2)
+            );
+	
+			mat2_xform(vMass,j);
+			vec_subeq(j, damp,lgamma);
+			vec_addeq(damp, j);
+			
+			vec_subeq(b1.vel, j, b1.imass);
+			vec_addeq(b2.vel, j, b2.imass);
+			b1.angvel -= b1.iinertia*vec_cross(r1,j);
+			b2.angvel += b2.iinertia*vec_cross(r2,j);
+			
+			var j_damp = (w1-w2)*wMass - adamp*agamma;
+			adamp += j_damp;
+			
+			b1.angvel -= j_damp*b1.iinertia;
+			b2.angvel += j_damp*b2.iinertia;
+		}
+	}
+}
+
+///_________________________________________________________________________________________________
+///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+
+class PR(ColArbiter) extends PR(Arbiter) {
+	public var outer_zn:CollisionArbiter;
+
+    ///---------------------------------------------------------------------------------------------
+
+	//computed based on feature materials
+	public var dyn_fric:Float;
+	public var stat_fric:Float;
+	public var restitution:Float;
+	public var rfric:Float;
+
+    ///---------------------------------------------------------------------------------------------
+	
+	public var s1:PR(Shape);
+	public var s2:PR(Shape);
+
+    ///---------------------------------------------------------------------------------------------
+	
+    public var contacts:MixList(PR(Contact)); public var wrap_contacts:ContactList;
+	public var innards:MixList(PR(IContact)); //for faster iteration in impulse loops
+
+    ///---------------------------------------------------------------------------------------------
+
+	//velocity iterations
+	vec_new(public, n); //normal (shared between contacts)
+
+    ///---------------------------------------------------------------------------------------------
+	
+	public var wrap_normal:Vec2;
+	public function getnormal() {
+		var me = this;
+		wrap_normal = new Vec2(0,0);
+		wrap_normal.pr(inner).immutable = true;
+		wrap_normal.pr(inner).inuse = true;
+		wrap_normal.pr(inner)._validate = function() {
+			if(me.cleared) throw "Error: Arbiter not currently in use";
+			vec_set(me.wrap_normal.pr(inner).,me.n);
+		}
+	}
+
+    ///---------------------------------------------------------------------------------------------
+	
+	//block solver
+	mat2_new(kMass);
+	mat2_new(K);
+	
+	public var rMass:Float; //rolling mass
+	public var jrAcc:Float; //accumulated rolling impulse
+
+    var rn1a:Float; var rt1a:Float;
+    var rn1b:Float; var rt1b:Float;
+    var rn2a:Float; var rt2a:Float;
+    var rn2b:Float; var rt2b:Float;
+
+    var k1x:Float; var k1y:Float;
+    var k2x:Float; var k2y:Float;
+	
+	//surface velocity
+	vec_new(public, surface);
+
+    ///---------------------------------------------------------------------------------------------
+	
+	//position iterations
+	public static force_inline var FACE1  = 0;
+	public static force_inline var FACE2  = 1;
+	public static force_inline var CIRCLE = 2;
+	
+	public var ptype:Int; //PR(ColArbiter).FACE1/2,CIRCLE
+	vec_new(public, lnorm); public var lproj:Float;
+	public var radius:Float;
+	public var rev:Bool; //normal needs reversing in positional iterations
+	
+    ///---------------------------------------------------------------------------------------------
+
+	//active contacts
+	public var c1:PR(IContact); public var oc1:PR(Contact);
+	public var c2:PR(IContact); public var oc2:PR(Contact);
+	public var hc2:Bool; //has contact 2
+
+    ///---------------------------------------------------------------------------------------------
+
+    MixPool(PR(ColArbiter))
+	
+	public function new() {
+		pre_dt = -1.0;
+
+		super();
+		contacts = new MixList(PR(Contact))();
+		innards = new MixList(PR(IContact))();
+		type = PR(Arbiter).COL;
+		colarb = this;
+	}
+	flibmdel public inline function free() {}
+	
+    public var stat:Bool; //one of the bodies is non-dynamic (different arbiter list)
+
+	///---------------------------------------------------------------------------------------------
+	
+	flibmdel
+    public inline function injectContact(px:Float,py:Float,nx:Float,ny:Float,dist:Float,hash:Int) {
+		var c:PR(Contact) = null;
+		Iter(cur,contacts, if(hash==cur.hash) { c = cur; break; });
+		
+		if(c==null) {
+			c = Get(PR(Contact));
+			var ci = c.inner;
+			ci.jnAcc = ci.jtAcc = 0;
+			c.sBias = -1; //resets
+			c.hash = hash;
+			c.fresh = true;
+			c.arbiter = this;
+			jrAcc = 0;
+			contacts.add(c);
+			innards.add(ci);
+		}else
+			c.fresh = false; //c.stamp +1 != stamp
+		
+		vec_set(c.p,p);
+		vec_set(this.n,n);
+		c.dist = dist;
+		c.stamp = stamp;
+		
+		return c;
+	}
+	
+	///---------------------------------------------------------------------------------------------
+	
+	flibmdel public inline function assign(s1:PR(Shape),s2:PR(Shape),id:Int) {
+		sup_assign(s1,s2,id);
+		this.s1 = s1;
+		this.s2 = s2;
+
+        calcProperties();
+	}
+
+	///---------------------------------------------------------------------------------------------
+	
+	flibmdel public inline function calcProperties() {
+		if(s1.material.elasticity==PR(Const).NEGINF || s2.material.elasticity==PR(Const).NEGINF)
+			restitution = 0;
+		else if(s1.material.elasticity==PR(Const).POSINF || s2.material.elasticity==PR(Const).POSINF)
+			restitution = 1;
+		else
+			restitution = (s1.material.elasticity+s2.material.elasticity)/2;
+			
+		if(restitution<0) restitution = 0;
+		if(restitution>1) restitution = 1;
+		
+		dyn_fric = PR(Math).sqrt(s1.material.dynamicFriction*s2.material.dynamicFriction);
+		stat_fric = PR(Math).sqrt(s1.material.staticFriction*s2.material.staticFriction);
+		
+		rfric = PR(Math).sqrt(s1.material.rollingFriction*s2.material.rollingFriction);
+	}
+
+    ///---------------------------------------------------------------------------------------------
+	
+	flibmdel public inline function validate_props() {
+		if(invalidated) {
+			invalidated = false;
+			calcProperties();
+		}
+	}
+	
+    ///---------------------------------------------------------------------------------------------
+	
+	flibmdel public inline function retire() {
+		sup_retire();
+		while(!contacts.empty()) {
+			Free(PR(Contact),contacts.pop_unsafe());
+			innards.pop();
+		}
+		Free(PR(ColArbiter),this);
+        pre_dt = -1.0;
+	}
+	
+	///---------------------------------------------------------------------------------------------
+	
+	$(mixin local calc_relvel(vr,c) {
+		var ang = b2.angvel + b2.kinangvel;
+		vr`x = (b2.velx + b2.kinvelx - c.r2y*ang);
+		vr`y = (b2.vely + b2.kinvely + c.r2x*ang);
+        ang = b1.angvel + b1.kinangvel;
+        vr`x -= (b1.velx + b1.kinvelx - c.r1y*ang);
+        vr`y -= (b1.vely + b1.kinvely + c.r1x*ang);
+	});
+	
+	///---------------------------------------------------------------------------------------------
+	
+    public var pre_dt:Float;
+	flibmdel public inline function preStep(dt:Float) {
+		validate_props();
+
+        #if NAPE_TIMES Debug.AACNT++; #end
+
+        if(pre_dt==-1.0) pre_dt = dt;
+        var dtratio = dt/pre_dt;
+        pre_dt = dt;
+		
+		var mass_sum = b1.smass + b2.smass;
+		hc2 = false;
+		var fst = true;
+
+		//remove old contacts, do per-contact calculations.
+		var pre = null; var prei = null;
+		var cx_itei = innards.begin();
+		Iter(c,contacts,{
+			if(c.stamp+PR(Config).PERSIST<stamp) {
+				cx_ite = contacts.erase(pre);
+				cx_itei = innards.erase(prei);
+				Free(PR(Contact),c);
+				continue;
+			}
+
+            #if NAPE_TIMES Debug.CCNT++; #end
+			
+			var ci = c.inner;
+
+			var pact = c.active;
+			c.active = c.stamp==stamp;
+			//necessary to notify list of non strutual changes when using accept mode for API.
+			if(pact!=c.active) contacts.modified = true;
+			
+			if(c.active) {
+                #if NAPE_TIMES Debug.ACCNT++; #end
+
+				if(fst) {
+					fst = false;
+					c1 = ci;
+					oc1 = c;
+				} else {
+					hc2 = true;
+					c2 = ci;
+					oc2 = c;
+				}
+				
+				vec_sub(c.p,b2.pos,ci.r2);
+				vec_sub(c.p,b1.pos,ci.r1);
+				
+				var kt = mass_sum + b2.sinertia * PR(Math).sqr(vec_dot(ci.r2,n));
+                kt += b1.sinertia * PR(Math).sqr(vec_dot(ci.r1,n));
+				ci.tMass = if(kt<PR(Const).EPSILON) 0 else 1.0/kt;
+				
+				var nt = mass_sum + b2.sinertia * PR(Math).sqr(vec_cross(ci.r2,n));
+				nt += b1.sinertia * PR(Math).sqr(vec_cross(ci.r1,n));
+				ci.nMass = if(nt<PR(Const).EPSILON) 0 else 1.0/nt;
+				
+				vec_new(vr); calc_relvel(vr,ci);
+				var vdot = vec_dot(n, vr);
+				
+				var nb = PR(Config).MIN_BIAS_COEF;
+				var delta = 1 - PR(Config).VEL_BIAS_COEF * vdot*vdot; if(delta<0) delta = 0;
+				delta -= c.dist*PR(Config).BIAS_PEN_COEF;
+				if(delta<0) delta = 0;
+				if(delta>1) delta = 1;
+					
+				nb += PR(Config).DEL_BIAS_COEF * delta;
+				if(nb>1) nb = 1;
+					
+				if(c.sBias==-1) c.sBias = nb;
+				else            c.sBias = PR(Config).INT_BIAS_COEF * c.sBias + PR(Config).SUB_BIAS_COEF * nb;
+				ci.biasCoef = c.sBias;
+                if(stat) {
+                    ci.biasCoef *= 2;
+                    if(ci.biasCoef>1) ci.biasCoef = 1;
+                }
+				
+				//c.elasticity = if(vdot > -30) 0.0 else restitution;//*Math.atan(0.5*(-vdot-25))*2/Math.PI;
+                c.elasticity = restitution;
+				ci.bounce = vdot*c.elasticity;
+
+				vdot = vec_cross(n,vr);
+				if(vdot*vdot>PR(Config).STATIC_VELSQ) {
+					ci.friction = dyn_fric;
+				}else {
+					ci.friction = stat_fric;
+				}
+
+                ci.jnAcc *= dtratio;
+                ci.jtAcc *= dtratio;
+			}
+			
+			pre = cx_ite;
+			prei = cx_itei;
+			cx_itei = cx_itei.next;
+		});
+
+        jrAcc *= dtratio;
+		
+        if(!fst) {
+            rn1a = vec_cross(c1.r1, n); rt1a = vec_dot(c1.r1, n);
+			rn1b = vec_cross(c1.r2, n); rt1b = vec_dot(c1.r2, n);
+            k1x = b2.kinvelx - c1.r2y*b2.kinangvel - (b1.kinvelx - c1.r1y*b1.kinangvel);
+            k1y = b2.kinvely + c1.r2x*b2.kinangvel - (b1.kinvely + c1.r1x*b1.kinangvel);
+        }
+		if(hc2) {
+			rn2a = vec_cross(c2.r1, n); rt2a = vec_dot(c2.r1, n);
+			rn2b = vec_cross(c2.r2, n); rt2b = vec_dot(c2.r2, n);
+            k2x = b2.kinvelx - c2.r2y*b2.kinangvel - (b1.kinvelx - c2.r1y*b1.kinangvel);
+            k2y = b2.kinvely + c2.r2x*b2.kinangvel - (b1.kinvely + c2.r1x*b1.kinangvel);
+			
+			mat2_set(kMass, mass_sum + b1.sinertia*rn1a*rn1a + b2.sinertia*rn1b*rn1b,
+							mass_sum + b1.sinertia*rn1a*rn2a + b2.sinertia*rn1b*rn2b,
+							mass_sum + b1.sinertia*rn2a*rn2a + b2.sinertia*rn2b*rn2b
+			);
+			
+			if(kMassa*kMassa < PR(Config).ILL * mat2_det(kMass)) {
+				mat2_set(K,kMassa,kMassb,kMassc);
+				mat2_invert(kMass);
+			}else {
+				hc2 = false;
+				if(oc2.dist<oc1.dist)
+					swap(c1,c2);
+				oc2.active = false;
+				contacts.modified = true;
+			}
+		}
+		
+		//surface velocity
+		vec_set(surface,b2.svel);
+		vec_addeq(surface,b1.svel);
+		vec_negate(surface);
+		
+		//rolling mass
+		rMass = b1.smass + b2.smass;
+		if(rMass!=0) rMass = 1/rMass;
+
+		return !fst;
+	}
+	
+    flibmdel public inline function warmStart() {
+				appImp(c1,c1.jnAcc,c1.jtAcc);
+		if(hc2) appImp(c2,c2.jnAcc,c2.jtAcc);
+			
+		b2.angvel += jrAcc*b2.iinertia;
+        b1.angvel -= jrAcc*b1.iinertia;
+    }
+
+	///---------------------------------------------------------------------------------------------
+	
+	$(mixin local appImp(c,jn,jt) {
+		var jx = nx*jn - ny*jt;
+		var jy = ny*jn + nx*jt;
+
+        vec_subeq(b1.vel, j, b1.imass);
+        b1.angvel -= b1.iinertia * vec_cross(c.r1,j);
+		vec_addeq(b2.vel, j, b2.imass);
+		b2.angvel += b2.iinertia * vec_cross(c.r2,j);
+	});
+
+    ///---------------------------------------------------------------------------------------------
+	
+    ///very verbose in an attempt to improve performance.
+    flibmdel public inline function applyImpulseVel(bouncy:Bool) {
+        $(mixin friction(N,jnAcc) {
+            dv`N`x = k`N`x + b2.velx - c`N.r2y*b2.angvel - (b1.velx - c`N.r1y*b1.angvel);
+            dv`N`y = k`N`y + b2.vely + c`N.r2x*b2.angvel - (b1.vely + c`N.r1x*b1.angvel);
+
+            var jt = (vec_cross(n,dv`N) + surfacex)*c`N.tMass;
+			var jtMax = c`N.friction * jnAcc; var jtOld = c`N.jtAcc;
+			var cjtAcc = jtOld - jt; if(cjtAcc>jtMax) cjtAcc = jtMax else if(cjtAcc<-jtMax) cjtAcc = -jtMax;
+			jt = cjtAcc - jtOld; c`N.jtAcc = cjtAcc;
+
+            //impulse
+            jx = -ny*jt; jy = nx*jt;
+            vec_addeq(b2.vel, j, b2.imass);
+            b2.angvel += b2.iinertia*rt`N`b*jt;
+            vec_subeq(b1.vel, j, b1.imass);
+            b1.angvel -= b1.iinertia*rt`N`a*jt;
+        });
+
+        if(hc2) {
+            ///normal
+            var dv1x = k1x + b2.velx - c1.r2y*b2.angvel - ( b1.velx - c1.r1y*b1.angvel);
+            var dv1y = k1y + b2.vely + c1.r2x*b2.angvel - ( b1.vely + c1.r1x*b1.angvel);
+            var dv2x = k2x + b2.velx - c2.r2y*b2.angvel - ( b1.velx - c2.r1y*b1.angvel);
+            var dv2y = k2y + b2.vely + c2.r2x*b2.angvel - ( b1.vely + c2.r1x*b1.angvel);
+
+            vec_new(a, c1.jnAcc, c2.jnAcc);
+
+            var jnx = vec_dot(dv1,n)+surfacey + (bouncy?c1.bounce:0.0) - (Ka*ax + Kb*ay);
+            var jny = vec_dot(dv2,n)+surfacey + (bouncy?c2.bounce:0.0) - (Kb*ax + Kc*ay);
+
+            var xx = -(kMassa*jnx + kMassb*jny);
+            var xy = -(kMassb*jnx + kMassc*jny);
+
+            if(xx>=0 && xy>=0) { vec_sub(x,a,jn); c1.jnAcc = xx; c2.jnAcc = xy; }
+            else {
+                xx = -c1.nMass*jnx;
+                if(xx>=0 && (Kb*xx+jny)>=0) { jnx = xx-ax; jny = -ay; c1.jnAcc = xx; c2.jnAcc = xy = 0; }
+                else {
+                    xy = -c2.nMass*jny;
+                    if(xy>=0 && (Kb*xy+jnx)>=0) { jnx = -ax; jny = xy-ay; c1.jnAcc = xx = 0; c2.jnAcc = xy; }
+                    else if(jnx>=0 && jny>=0) { jnx = -ax; jny = -ay; c1.jnAcc = c2.jnAcc = xx = xy = 0; }
+                }
+            }
+
+            //impulse
+            var jn = jnx+jny;
+            var jx = nx*jn; var jy = ny*jn;
+            vec_addeq(b2.vel, j, b2.imass);
+            b2.angvel += b2.iinertia*(rn1b*jnx + rn2b*jny);
+            vec_subeq(b1.vel, j, b1.imass);
+            b1.angvel -= b1.iinertia*(rn1a*jnx + rn2a*jny);
+
+
+            friction(1,xx)
+            friction(2,xy)
+        }else {
+            ///normal
+            var dv1x = k1x + b2.velx - c1.r2y*b2.angvel - (b1.velx - c1.r1y*b1.angvel);
+            var dv1y = k1y + b2.vely + c1.r2x*b2.angvel - (b1.vely + c1.r1x*b1.angvel);
+
+			var jn = ((bouncy?c1.bounce:0) + vec_dot(n,dv1) + surfacey)*c1.nMass;
+			var jnOld = c1.jnAcc;
+			var cjnAcc = jnOld - jn; if(cjnAcc<0) cjnAcc = 0;
+			jn = cjnAcc - jnOld; c1.jnAcc = cjnAcc;
+			
+            //impulse
+            var jx = nx*jn; var jy = ny*jn;
+            vec_addeq(b2.vel, j, b2.imass);
+            b2.angvel += b2.iinertia*rn1b*jn;
+            vec_subeq(b1.vel, j, b1.imass);
+            b1.angvel -= b1.iinertia*rn1a*jn;
+
+            friction(1,cjnAcc)
+
+			//atleast one object is a circle
+			if(radius!=0) {
+				///rolling
+				var dw = b2.angvel - (b1.angvel);
+				var jr = dw*rMass;
+
+				var jMax = rfric*cjnAcc;
+				var jOld = jrAcc;
+				jrAcc -= jr;
+				if(jrAcc>jMax) jrAcc = jMax; if(jrAcc<-jMax) jrAcc = -jMax;
+				jr = jrAcc - jOld;
+					
+				b2.angvel += jr*b2.iinertia;
+				b1.angvel -= jr*b1.iinertia;
+			}
+		}
+    }
+
+    ///---------------------------------------------------------------------------------------------
+	
+    flibmdel public inline function applyImpulsePos() {
+		if(ptype==PR(ColArbiter).CIRCLE) {
+			var c = c1;
+			
+			vec_new(d);
+			vec_new(r2); vec_rotate(c.lr2, b2.axis, r2);
+			vec_addeq(r2,b2.pos);
+
+			vec_new(r1); vec_rotate(c.lr1, b1.axis, r1);
+			vec_addeq(r1,b1.pos);
+			
+			vec_new(d); vec_sub(r2,r1,d);
+				
+			var dl = vec_lsq(d);
+			var r = radius - PR(Config).OVERLAP;
+			if(dl < r*r) {
+				dl = PR(Math).sqrt(dl);
+				vec_diveq(d,dl);
+				
+				vec_new(p,
+					0.5*(r1x+r2x),
+					0.5*(r1y+r2y)
+				);
+				
+				var pen = dl-r;
+				
+				vec_sub(p,b1.pos,r1);
+				vec_sub(p,b2.pos,r2);
+				
+				var rn1 = vec_cross(r1,d);
+                var rn2 = vec_cross(r2,d);
+
+                var K = b2.smass + rn2*rn2*b2.sinertia + b1.smass + rn1*rn1*b1.sinertia;
+                if(K!=0) {
+                    var jn = -c1.biasCoef*pen/K;
+                    vec_new(J); vec_mul(d, jn, J);
+
+                    vec_subeq(b1.pos, J, b1.imass);
+                    b1.delta_rot(-rn1*b1.iinertia*jn);
+                    vec_addeq(b2.pos, J, b2.imass);
+                    b2.delta_rot(rn2*b2.iinertia*jn);
+                }
+			}
+		}else {
+			vec_new(gnorm);
+			var gproj;
+			vec_new(clip1); vec_new(clip2,0,0);
+			
+			if(ptype==PR(ColArbiter).FACE1) {
+				vec_rotate(lnorm, b1.axis, gnorm);
+				gproj = lproj + vec_dot(gnorm, b1.pos);
+				vec_rotate(c1.lr1, b2.axis, clip1);
+				vec_addeq(clip1,b2.pos);
+				if(hc2) {
+					vec_rotate(c2.lr1, b2.axis, clip2);
+					vec_addeq(clip2,b2.pos);
+				}
+			}else {
+				vec_rotate(lnorm, b2.axis, gnorm);
+				gproj = lproj + vec_dot(gnorm, b2.pos);
+				vec_rotate(c1.lr1, b1.axis, clip1);
+				vec_addeq(clip1,b1.pos);
+				if(hc2) {
+					vec_rotate(c2.lr1, b1.axis, clip2);
+					vec_addeq(clip2,b1.pos);
+				}
+			}
+			
+			var err1 = vec_dot(clip1,gnorm) - gproj + radius;
+			err1 += PR(Config).OVERLAP;
+
+			var err2 = 0.0;
+			if(hc2) {
+				err2 = vec_dot(clip2,gnorm) - gproj;
+                err2 += PR(Config).OVERLAP;
+			}
+
+            if(err1<0 || err2<0) {
+                if(rev) vec_negate(gnorm);
+
+                vec_new(c1r1); vec_sub(clip1,b1.pos,c1r1);
+                vec_new(c1r2); vec_sub(clip1,b2.pos,c1r2);
+                vec_new(c2r1,0,0); vec_new(c2r2,0,0);
+                if(hc2) {
+                    vec_sub(clip2,b1.pos,c2r1);
+                    vec_sub(clip2,b2.pos,c2r2);
+
+                    var rn1a = vec_cross(c1r1, gnorm);
+                    var rn1b = vec_cross(c1r2, gnorm);
+                    var rn2a = vec_cross(c2r1, gnorm);
+                    var rn2b = vec_cross(c2r2, gnorm);
+
+                    var mass_sum = b1.smass + b2.smass;
+                    mat2_set(kMass, mass_sum + (b1.sinertia*rn1a*rn1a) + b2.sinertia*rn1b*rn1b,
+                                    mass_sum + (b1.sinertia*rn1a*rn2a) + b2.sinertia*rn1b*rn2b,
+                                    mass_sum + (b1.sinertia*rn2a*rn2a) + b2.sinertia*rn2b*rn2b
+                    );
+
+                    mat2_new(K); mat2_set(K,kMassa,kMassb,kMassc);
+
+                    var bc = (c1.biasCoef + c2.biasCoef)*0.5;
+                    vec_new(b, err1*bc, err2*bc);
+
+                    do {
+                        $(mixin app() {
+                            vec_subeq(b1.pos, gnorm, (xx+xy)*b1.imass);
+                            b1.delta_rot(-b1.iinertia*(rn1a*xx + rn2a*xy));
+                            vec_addeq(b2.pos, gnorm, (xx+xy)*b2.imass);
+                            b2.delta_rot(b2.iinertia*(rn1b*xx + rn2b*xy));
+
+                            break;
+                        });
+
+                        vec_new(x); vec_set(x,b); vec_negate(x); mat2_solve(kMass,x);
+                        if(xx >= 0 && xy >= 0) app;
+
+                        vec_set(x, -bx/K`a, 0);
+                        var vn2 = K`b*xx + by;
+                        if(xx >= 0 && vn2 >= 0) app;
+
+                        vec_set(x, 0, -by/K`c);
+                        var vn1 = K`b*xy + bx;
+                        if(xy>=0 && vn1 >= 0) app;
+                    }while(false);
+                }else {
+                    var rn1 = vec_cross(c1r1,gnorm);
+                    var rn2 = vec_cross(c1r2,gnorm);
+
+                    var K = b2.smass + rn2*rn2*b2.sinertia + b1.smass + rn1*rn1*b1.sinertia;
+                    if(K!=0) {
+                        var jn = -c1.biasCoef*err1/K;
+                        vec_new(J); vec_mul(gnorm, jn, J);
+
+                        vec_subeq(b1.pos, J, b1.imass);
+                        b1.delta_rot(-rn1*b1.iinertia*jn);
+                        vec_addeq(b2.pos, J, b2.imass);
+                        b2.delta_rot(rn2*b2.iinertia*jn);
+                    }
+                }
+            }
+		}
+	}
+}

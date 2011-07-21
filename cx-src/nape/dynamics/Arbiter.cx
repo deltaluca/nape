@@ -1,0 +1,263 @@
+package nape.dynamics;
+$(import);
+
+Flags(ArbiterType,
+	prop(COLLISION,0)
+	prop(FLUID,1)
+	prop(SENSOR,2)
+)
+
+//use_inline false allows sub-class PR(SpaceArbiterList) to be defined and work transparently.
+WrapList(Arbiter,List(PR(Arbiter)),Node(PR(Arbiter)),$(mixin closure(x) x.wrapper()) $(mixin erusolc(x) x.pr(inner)) $(mixin use_accept true) $(mixin accept(x) x.active) $(mixin inline() $(->)) $(mixin use_inline false))
+
+//--------------------------------------------------------------------------------------------------
+
+class Arbiter {
+	public var pr(inner):PR(Arbiter);
+	
+    property(id,Int,{
+        DEBUG(if(!active) throw "Error: Arbiter not currently in use";)
+        pr(inner).id;
+    })
+	
+    property(active,Bool,!pr(inner).cleared)
+	
+	//----------------------------------------------------------------------------------------------
+	
+    property(type,ArbiterType,{
+        [ArbiterType.COLLISION,ArbiterType.FLUID,ArbiterType.SENSOR][pr(inner).type];
+    })
+	
+	keep public inline function isCollisionArbiter() {
+		return pr(inner).type == PR(Arbiter).COL;
+	}
+	keep public inline function isFluidArbiter() {
+		return pr(inner).type == PR(Arbiter).FLUID;
+	}
+	keep public inline function isSensorArbiter() {
+		return pr(inner).type == PR(Arbiter).SENSOR;
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+    property(collisionArbiter,CollisionArbiter,{
+        if(isCollisionArbiter()) pr(inner).colarb.outer_zn else null;
+    })
+
+    property(fluidArbiter,FluidArbiter,{
+        if(isFluidArbiter()) pr(inner).fluidarb.outer_zn else null;
+    })
+	
+	//----------------------------------------------------------------------------------------------
+	
+	$(mixin flip() (pr(inner).ws1.id > pr(inner).ws2.id));
+
+    property(shape1,Shape,{
+        DEBUG(if(!active) throw "Error: Arbiter not currently in use";)
+        flip ? pr(inner).ws2.outer : pr(inner).ws1.outer;
+    })
+	property(shape2,Shape,{
+        DEBUG(if(!active) throw "Error: Arbiter not currently in use";)
+        flip ? pr(inner).ws1.outer : pr(inner).ws2.outer;
+    })
+
+    property(body1,Body,{
+        DEBUG(if(!active) throw "Error: Arbiter not currently in use";)
+        flip ? pr(inner).b2.outer : pr(inner).b1.outer;
+    })
+    property(body2,Body,{
+        DEBUG(if(!active) throw "Error: Arbiter not currently in use";)
+        flip ? pr(inner).b1.outer : pr(inner).b2.outer;
+    })
+
+	//----------------------------------------------------------------------------------------------
+	
+	keep public function totalImpulse(?body:Body,?freshOnly:Bool=false) {
+		DEBUG(if(!active) throw "Error: Arbiter not currently in use";)
+		DEBUG(if(body!=null && body!=body1 && body!=body2) throw "Error: Arbiter does not relate to body";)
+		
+		return new Vec3(0,0,0);
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+	public function new() {
+		if(!PR(Arbiter).internal)
+			DEBUG(throw "Error: Cannot instantiate Arbiter derp!";)
+	}
+	
+	@:$keep public function toString() {
+		var ret = if(isCollisionArbiter()) "CollisionArbiter";
+		else if(isFluidArbiter()) "FluidArbiter";
+		else "SensorArbiter";
+		
+		if(pr(inner).cleared) return ret+"(object-pooled)";
+		
+		else
+		return ret +"("+
+			shape1.toString()
+		+ "|" +
+			shape2.toString()
+		+ ")"+(isCollisionArbiter() ? "["+["SD","DD"][pr(inner).colarb.stat?0:1]+"]" : "");
+	}
+}
+
+//--------------------------------------------------------------------------------------------------
+
+class CollisionArbiter extends Arbiter {
+
+    property(contacts,ContactList,{
+        DEBUG(if(!active) throw "Error: Arbiter not currently in use";)
+		if(pr(inner).colarb.wrap_contacts==null)
+            pr(inner).colarb.wrap_contacts = PR(ContactList).get(pr(inner).colarb.contacts,true);
+		pr(inner).colarb.wrap_contacts;
+    })
+	
+    property(normal,Vec2,{
+        DEBUG(if(!active) throw "Error: Arbiter not currently in use";)
+		if(pr(inner).colarb.wrap_normal==null) pr(inner).colarb.getnormal();
+		pr(inner).colarb.wrap_normal;
+    })
+
+	//----------------------------------------------------------------------------------------------
+	
+	keep public function normalImpulse(?body:Body=null,?freshOnly:Bool=false) {
+		DEBUG(if(!active) throw "Error: Arbiter not currently in use";)
+		DEBUG(if(body!=null && body!=body1 && body!=body2) throw "Error: Arbiter does not relate to body";)
+		
+		vec3_new(ret, 0,0,0);
+		var colarb = pr(inner).colarb;
+		$(mixin con(c) {
+			if(!freshOnly || c.fresh) {
+				var imp = c.wrapper().normalImpulse(body);
+				vec3_addeq(ret,imp.);
+			}
+		});
+		con(colarb.oc1);
+		if(colarb.hc2) con(colarb.oc2);
+		
+		return new Vec3(retx,rety,retz);
+	}
+	
+	keep public function tangentImpulse(?body:Body=null,?freshOnly:Bool=false) {
+		DEBUG(if(!active) throw "Error: Arbiter not currently in use";)
+		DEBUG(if(body!=null && body!=body1 && body!=body2) throw "Error: Arbiter does not relate to body";)
+		
+		vec3_new(ret, 0,0,0);
+		
+		var colarb = pr(inner).colarb;
+		$(mixin con(c) {
+			if(!freshOnly || c.fresh) {
+				var imp = c.wrapper().tangentImpulse(body);
+				vec3_addeq(ret,imp.);
+			}
+		});
+		con(colarb.oc1);
+		if(colarb.hc2) con(colarb.oc2);
+		
+		return new Vec3(retx,rety,retz);
+	}
+	
+	keep public override function totalImpulse(?body:Body=null,?freshOnly:Bool=false) {
+		DEBUG(if(!active) throw "Error: Arbiter not currently in use";)
+		DEBUG(if(body!=null && body!=body1 && body!=body2) throw "Error: Arbiter does not relate to body";)
+		
+		vec3_new(ret, 0,0,0);
+		
+		var colarb = pr(inner).colarb;
+		$(mixin con(c) {
+			if(!freshOnly || c.fresh) {
+				var imp = c.wrapper().totalImpulse(body);
+				vec3_addeq(ret,imp.);
+			}
+		});
+		con(colarb.oc1);
+		if(colarb.hc2) con(colarb.oc2);
+		
+		return new Vec3(retx,rety,retz);
+	}
+	
+	keep public function rollingImpulse(?body:Body=null,?freshOnly:Bool=false) {
+		DEBUG(if(!active) throw "Error: Arbiter not currently in use";)
+		DEBUG(if(body!=null && body!=body1 && body!=body2) throw "Error: Arbiter does not relate to body";)
+		
+		var colarb = pr(inner).colarb;
+		if(!freshOnly || colarb.oc1.fresh) return colarb.oc1.wrapper().rollingImpulse(body);
+		else return 0.0;
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+    $(mixin prop(N,n)
+        property(N,Float,{
+            DEBUG(if(!active) throw "Error: Arbiter not currently in use";)
+            var colarb = pr(inner).colarb;
+            colarb.validate_props();
+            colarb.n;
+        })
+    );
+    prop(restitution,     restitution)
+    prop(dynamicFriction, dyn_fric)
+    prop(staticFriction,  stat_fric)
+    prop(rollingFriction, rfric)
+
+	//----------------------------------------------------------------------------------------------
+	
+	public function new() {
+		DEBUG(if(!PR(Arbiter).internal)
+			throw "Error: Cannot instantiate CollisionArbiter derp!";
+		)
+		super();
+	}
+}
+
+//--------------------------------------------------------------------------------------------------
+
+class FluidArbiter extends Arbiter {
+	
+    property(position,Vec2, {
+		DEBUG(if(!active) throw "Error: Arbiter not currently in use";)
+		if(pr(inner).fluidarb.wrap_position==null) pr(inner).fluidarb.getposition();
+		pr(inner).fluidarb.wrap_position;
+	})
+	
+	property(overlap,Float,{
+		DEBUG(if(!active) throw "Error: Arbiter not currently in use";)
+		pr(inner).fluidarb.overlap;
+	})
+	
+	//----------------------------------------------------------------------------------------------
+	
+	keep public function buoyancyImpulse(?body:Body=null) {
+		DEBUG(if(!active) throw "Error: Arbiter not currently in use";)
+		DEBUG(if(body!=null && body!=body1 && body!=body2) throw "Error: Arbiter does not relate to body";)
+		
+		var farb = pr(inner).fluidarb;
+		return new Vec3(farb.buoyx,farb.buoyy);
+	}
+	
+	keep public function dragImpulse(?body:Body=null) {
+		DEBUG(if(!active) throw "Error: Arbiter not currently in use";)
+		DEBUG(if(body!=null && body!=body1 && body!=body2) throw "Error: Arbiter does not relate to body";)
+		
+		var farb = pr(inner).fluidarb;
+		return new Vec3(farb.dampx,farb.dampy,farb.adamp);
+	}
+	
+	keep public override function totalImpulse(?body:Body=null,?freshOnly:Bool=false) {
+		DEBUG(if(!active) throw "Error: Arbiter not currently in use";)
+		DEBUG(if(body!=null && body!=body1 && body!=body2) throw "Error: Arbiter does not relate to body";)
+		
+		var farb = pr(inner).fluidarb;
+		return new Vec3(farb.dampx+farb.buoyx,farb.dampy+farb.buoyy,farb.adamp);
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+	public function new() {
+		DEBUG(if(!PR(Arbiter).internal)
+			throw "Error: Cannot instantiate FluidArbiter derp!";
+		)
+		super();
+	}
+}

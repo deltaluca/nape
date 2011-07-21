@@ -1,0 +1,192 @@
+package nape.shape;
+$(import);
+
+Flags(ShapeType,
+	prop(CIRCLE,0)
+	prop(POLYGON,1)
+)
+
+//--------------------------------------------------------------------------------------------------
+
+WrapList(Shape,List(PR(Shape)),Node(PR(Shape)),$(mixin closure(x) x.outer) $(mixin erusolc(x) x.pr(inner)))
+
+class Shape {
+	public var pr(inner):PR(Shape);
+	
+    property(type,ShapeType,{
+        [ShapeType.CIRCLE,ShapeType.POLYGON][pr(inner).type];
+    })
+	
+    property(id,Int,pr(inner).id)
+	
+	keep public inline function isCircle () return pr(inner).isCircle()
+	keep public inline function isPolygon() return pr(inner).isPolygon()
+	
+	//----------------------------------------------------------------------------------------------
+	
+	function new() {
+		DEBUG(throw "Error: Shape cannot be instantiated derp!";)
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+	public var userData:Dynamic;
+	
+	//----------------------------------------------------------------------------------------------
+	
+    property(body,Body,{
+		if(pr(inner).body!=null) pr(inner).body.outer else null;
+	},{
+		if(this.body!=body) {
+			if(pr(inner).body!=null) this.body.shapes.remove(this);
+			if(body!=null) body.shapes.add(this);
+		}
+	})
+	
+    property(circle, Circle, if(isCircle())  pr(inner).circle.outer_zn  else null)
+	property(polygon,Polygon,if(isPolygon()) pr(inner).polygon.outer_zn else null)
+
+	//----------------------------------------------------------------------------------------------
+	
+	property(worldCOM,Vec2,{
+		if(pr(inner).wrap_worldCOM==null) {
+			pr(inner).wrap_worldCOM = new Vec2(pr(inner).worldCOMx,pr(inner).worldCOMy);
+			pr(inner).wrap_worldCOM.pr(inner).inuse = true;
+			pr(inner).wrap_worldCOM.pr(inner).immutable = true;
+			pr(inner).wrap_worldCOM.pr(inner)._validate = pr(inner).getworldCOM;
+		}
+		pr(inner).wrap_worldCOM;
+	})
+	
+	property(localCOM,Vec2,{
+		if(pr(inner).wrap_localCOM==null) {
+			if(isCircle()) pr(inner).circle.setupLocalCOM();
+			else           pr(inner).polygon.setupLocalCOM();
+		}
+		pr(inner).wrap_localCOM;
+	},{
+        this.localCOM.set(localCOM);
+    })
+	
+	//----------------------------------------------------------------------------------------------
+	
+    property(area,   Float, { pr(inner).validate_area_inertia(); pr(inner).area;    })
+    property(inertia,Float, { pr(inner).validate_area_inertia(); pr(inner).inertia; })
+    property(angDrag,Float, { pr(inner).validate_angDrag();      pr(inner).angDrag; })
+
+	//----------------------------------------------------------------------------------------------
+	
+    property(material,Material,pr(inner).material.wrapper(),{
+        DEBUG(if(material==null) throw "Error: Cannot assign null as Shape material";)
+        pr(inner).setMaterial(material.pr(inner));
+    })
+	
+    property(filter,InteractionFilter,pr(inner).filter.wrapper(),{
+		DEBUG(if(filter==null) throw "Error: Cannot assign null as Shape filter";)
+		pr(inner).setFilter(filter.pr(inner));
+	})
+	
+    property(fluidProperties,FluidProperties,{
+		if(pr(inner).fluidProperties==null) pr(inner).setFluid(new FluidProperties().pr(inner));
+		pr(inner).fluidProperties.wrapper();
+	},{
+		DEBUG(if(fluidProperties==null) throw "Error: Cannot assign null as Shape fluidProperties, disable fluids by setting fluidEnabled to false";)
+		pr(inner).setFluid(fluidProperties.pr(inner));
+	})
+	
+    property(fluidEnabled,Bool,pr(inner).fluidEnabled,{
+		pr(inner).fluidEnabled = fluidEnabled;
+		if(fluidEnabled && pr(inner).fluidProperties==null) this.fluidProperties = new FluidProperties();
+		pr(inner).wake();
+	})
+	
+	//----------------------------------------------------------------------------------------------
+
+    property(cbType,CbType,pr(inner).cbType.wrapper(),{
+        DEBUG(if(cbType==null) throw "Error: Cannot assign null CbType to Shape";)
+        pr(inner).setCbType(cbType.pr(inner));
+    })
+
+    //----------------------------------------------------------------------------------------------
+	
+    property(bounds,AABB,pr(inner).aabb.wrapper())
+	
+	//----------------------------------------------------------------------------------------------
+	
+	keep public function translate(displacement:Vec2) {
+		DEBUG(
+			if(pr(inner).body!=null && pr(inner).body.space!=null && pr(inner).body.isStatic())
+				throw "Error: Cannot modify Shape belonging to a static Object once inside a Space";
+			if(displacement==null) throw "Error: Cannot displace Shape by null Vec2";
+		)
+		if(displacement.lsq() > 0) {
+			if(isCircle()) pr(inner).circle.__translate(displacement.x,displacement.y);
+			else           pr(inner).polygon.__translate(displacement.x,displacement.y);
+		}
+	}
+	keep public function scale(scalex:Float,scaley:Float) {
+		DEBUG(
+            if(pr(inner).body!=null && pr(inner).body.space!=null && pr(inner).body.isStatic())
+                    throw "Error: Cannot modify Shape belonging to a static Object once inside a Space";
+                if(isNaN(scalex) || isNaN(scaley)) throw "Error: Cannot scale Shape by NaN";
+		)
+		if(scalex!=0 && scaley!=0) {
+			if(isCircle()) {
+				var d = scalex*scalex-scaley*scaley;
+				if(d*d<PR(Const).EPSILON) {
+					pr(inner).circle.__scale(scalex,scaley);
+				}DEBUG(else
+					throw "Error: Cannot perform a non equal scaling on a Circle";
+				)
+			}else pr(inner).polygon.__scale(scalex,scaley);
+		}
+	}
+	keep public function rotate(angle:Float) {
+		DEBUG(
+			if(pr(inner).body!=null && pr(inner).body.space!=null && pr(inner).body.isStatic())
+				throw "Error: Cannot modify Shape belonging to a static Object once inside a Space";
+			if(isNaN(angle)) throw "Error: Cannot rotate Shape by NaN";
+		)
+		var dr = angle%(2*Math.PI);
+		if(dr!=0.0) {
+			var cos = Math.cos(angle);
+			var sin = Math.sin(angle);
+			if(isCircle()) pr(inner).circle.__rotate(sin,cos);
+			else           pr(inner).polygon.__rotate(sin,cos);
+		}
+	}
+	
+	keep public function transform(matrix:Mat23) {
+		DEBUG(
+			if(pr(inner).body!=null && pr(inner).body.space!=null && pr(inner).body.isStatic())
+				throw "Error: Cannot modify Shape belonging to a static Object once inside a Space";
+			if(matrix==null) throw "Error: Cannot transform Shape by null matrix";
+			if(matrix.singular()) throw "Error: Cannot transform Shape by a singular matrix";
+		)
+		
+		if(isCircle()) {
+			if(matrix.equiorthogonal()) {
+				pr(inner).circle.__transform(matrix);
+			}DEBUG(else
+				throw "Error: Cannot transform Circle by a non equiorthogonal matrix";
+			)
+		}else
+			pr(inner).polygon.__transform(matrix);
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+	keep public static function copy(shape:Shape) {
+		DEBUG(if(shape==null)
+			throw "Error: Cannot copy null Shape";
+		)
+		return shape.pr(inner).copy();
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+	@:$keep public inline function toString() {
+		var ret = isCircle() ? "Circle" : "Polygon";
+		return ret + "#" + id;
+	}
+}

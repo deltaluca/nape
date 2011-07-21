@@ -1,0 +1,1513 @@
+package zpp_nape.space;
+$(import);
+
+class PR(SweepData) {
+	MixPool(PR(SweepData))
+	public var prev:PR(SweepData);
+	
+	public var shape:PR(Shape);
+	public var aabb:PR(AABB);
+	flibmdel public inline function free() {
+		prev = null;
+		shape = null;
+		aabb = null;
+	}
+	
+	public function new() {}
+
+	flibmdel public inline function gt(x:PR(SweepData)) {
+		return aabb.minx > x.aabb.minx;
+	}
+}
+
+class PR(Island) {
+	MixPoolNoNext(PR(Island))
+	MixListMixin(PR(Island))
+	
+	public var comps:List(PR(Component));
+	public var sleep:Bool;
+	public var waket:Int;
+	
+	flibmdel public inline function free() {
+		waket = 0;
+	}
+	public function new() {
+		comps = new List(PR(Component))();
+		waket = 0;
+	}
+}
+
+class PR(Component) {
+	MixPool(PR(Component))
+	DSF(Mixin(PR(Component)));
+	
+	public var isBody:Bool;
+	public var body:PR(Body);
+	public var constraint:PR(Constraint);
+	
+	public var island:PR(Island);
+	public var sleeping:Bool;
+    public var waket:Int;
+    public var woken:Bool;
+	
+	flibmdel public inline function free() {}
+	public function new() {
+        reset();
+        woken = false;
+    }
+
+	flibmdel public inline function reset() {
+		sleeping = false;
+		island = null;
+		parent = this;
+		rank = 0;
+	}
+}
+
+class PR(Space) {
+	public var outer:Space;
+	
+	vec_new(public,gravity); public var wrap_gravity:Vec2;
+	public function getgravity() {
+		var me = this;
+		wrap_gravity = new Vec2(gravityx,gravityy);
+		wrap_gravity.pr(inner).inuse = true;
+		wrap_gravity.pr(inner)._invalidate = function(x:PR(Vec2)) {
+			vec_set(me.gravity,x.);
+		}
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+	public var bodies    :List(PR(Body)); public var wrap_bodies    :BodyList;
+	public var statics   :List(PR(Body)); public var wrap_statics   :BodyList;
+	public var dynamics  :List(PR(Body)); public var wrap_dynamics  :BodyList;
+	public var kinematics:List(PR(Body)); public var wrap_kinematics:BodyList;
+	
+	public var constraints:List(PR(Constraint));  public var wrap_constraints:ConstraintList;
+	
+	public var sweep:PR(SweepData);
+	
+	public var __static:Body; //for constraint use.
+	
+	//----------------------------------------------------------------------------------------------
+	
+	public var stamp:Int;
+    public var midstep:Bool;
+    public var time:Float;
+	
+	//----------------------------------------------------------------------------------------------
+	
+	$(define global public var c_arbiters(stat):List(PR(ColArbiter)););
+	public var f_arbiters:List(PR(FluidArbiter));
+	public var s_arbiters:List(PR(SensorArbiter));
+
+	public var map_arb:PR(ArbiterHash);
+	public var wrap_arbiters:ArbiterList;
+	
+	//----------------------------------------------------------------------------------------------
+	
+	public var live:List(PR(Body)); //live subset of dynamics.
+	public var wrap_live:BodyList;
+	
+	public var live_constraints:List(PR(Constraint)); //live subset of constraints
+	public var wrap_livecon:ConstraintList;
+	
+	//list of static/kinematics that need to be put to sleep after the next call to space.step()
+	public var staticsleep:List(PR(Body));
+	
+	//used by forest method
+	public var islands:MixList(PR(Island));
+
+    //----------------------------------------------------------------------------------------------
+
+    public var listeners:List(PR(Listener));
+    public var wrap_listeners:ListenerList;
+
+    public var callbacks:PR(Callback); //as a deque
+    public var wrap_callbacks:CallbackQueue;
+	
+	//----------------------------------------------------------------------------------------------
+	
+	public function new(gravity:PR(Vec2)) {
+        time = 0.0;
+		var me = this;
+		
+		if(gravity!=null) vec_set(this.gravity,gravity.);
+		else vec_set(this.gravity,0,0);
+		
+		bodies = new List(PR(Body))();
+		wrap_bodies = PR(BodyList).get(bodies);
+		wrap_bodies.pr(inner).adder = function(x:Body) {
+			if(x.pr(inner).space!=me) {
+				if(x.pr(inner).space!=null) x.pr(inner).space.outer.bodies.remove(x);
+				me.addBody(x.pr(inner),0);
+				return true;
+			}else return false;
+		};
+		wrap_bodies.pr(inner).subber = function(x:Body) {
+			me.removeBody(x.pr(inner),0);
+		};
+		
+		/// _invalidate method on these lists? is it needed?!
+
+		$(mixin wrap_bodies(T,t)
+			t`s = new List(PR(Body))();
+			wrap_`t`s = PR(BodyList).get(t`s);
+			wrap_`t`s.pr(inner).adder = function(x:Body) {
+				DEBUG(if(x.type!=BodyType.T) throw "Error: Cannot add non-"+$str(t)+" Body to "+$str(t)+"s list";)
+				if(x.pr(inner).space!=me) {
+					if(x.pr(inner).space!=null) x.pr(inner).space.outer.t`s.remove(x);
+					me.addBody(x.pr(inner),Flag(BodyType,T));
+					return true;
+				}else return false;
+			}
+			wrap_`t`s.pr(inner).subber = function(x:Body) {
+				me.removeBody(x.pr(inner),Flag(BodyType,T));
+			}
+		);
+		wrap_bodies(STATIC,static)
+		wrap_bodies(DYNAMIC,dynamic)
+		wrap_bodies(KINEMATIC,kinematic)
+		
+		c_arbiters(true) = new List(PR(ColArbiter))();
+		c_arbiters(false) = new List(PR(ColArbiter))();
+		f_arbiters = new List(PR(FluidArbiter))();
+		s_arbiters = new List(PR(SensorArbiter))();
+		
+		map_arb = new PR(ArbiterHash)();
+		
+		islands = new MixList(PR(Island))();
+		
+		live = new List(PR(Body))();
+		wrap_live = PR(BodyList).get(live,true);
+		
+		staticsleep = new List(PR(Body))();
+		
+		constraints = new List(PR(Constraint))();
+		wrap_constraints = PR(ConstraintList).get(constraints);
+		wrap_constraints.pr(inner).adder = function(x:Constraint) {
+			if(x.pr(inner).space!=me) {
+				if(x.pr(inner).space!=null) x.pr(inner).space.outer.constraints.remove(x);
+				me.addConstraint(x.pr(inner));
+				return true;
+			}else return false;
+		};
+		wrap_constraints.pr(inner).subber = function(x:Constraint) {
+			me.remConstraint(x.pr(inner));
+		};
+		
+		live_constraints = new List(PR(Constraint))();
+		wrap_livecon = PR(ConstraintList).get(live_constraints,true);
+		
+		__static = PR(Body).__static();
+		__static.pr(inner).space = this;
+
+        callbacks = new PR(Callback)(); //as a deque
+        midstep = false;
+
+        listeners = new List(PR(Listener))();
+        wrap_listeners = PR(ListenerList).get(listeners);
+        wrap_listeners.pr(inner).adder = function(x:Listener) {
+            if(x.pr(inner).space!=me) {
+                if(x.pr(inner).space!=null) x.pr(inner).space.outer.listeners.remove(x);
+                me.addListener(x.pr(inner));
+                return true;
+            }else return false;
+        };
+        wrap_listeners.pr(inner).subber = function(x:Listener) {
+            me.remListener(x.pr(inner));
+        };
+	}
+	
+	//----------------------------------------------------------------------------------------------
+
+    flibmdel inline public function addListener(x:PR(Listener)) {
+        x.space = this;
+        if(x.type==Flag(ListenerType,BODY))
+            x.body.addedToSpace();
+        else if(x.type==Flag(ListenerType,CONSTRAINT))
+            x.constraint.addedToSpace();
+    }
+    flibmdel inline public function remListener(x:PR(Listener)) {
+        x.space = null;
+        if(x.type==Flag(ListenerType,BODY))
+            x.body.removedFromSpace();
+        else if(x.type==Flag(ListenerType,CONSTRAINT))
+            x.constraint.removedFromSpace();
+    }
+
+    //----------------------------------------------------------------------------------------------
+
+	//called when Body has it's type changed.
+	flibmdel inline public function transmitType(p:PR(Body),new_type:Int) {
+		//wake object
+		wake(p);
+		
+		if     (p.type == Flag(BodyType,DYNAMIC))   { dynamics.remove(p);   live.remove(p);        }
+		else if(p.type == Flag(BodyType,KINEMATIC)) { kinematics.remove(p); staticsleep.remove(p); }
+		else if(p.type == Flag(BodyType,STATIC))    { statics.remove(p);    staticsleep.remove(p); }
+		
+		p.type = new_type;
+		
+		if     (p.type == Flag(BodyType,DYNAMIC))   dynamics.add(p);
+		else if(p.type == Flag(BodyType,KINEMATIC)) kinematics.add(p);
+		else if(p.type == Flag(BodyType,STATIC))    statics.add(p);
+		
+		if(p.type == Flag(BodyType,STATIC)) static_validation(p);
+		
+		//wake again, as new type of body
+		p.component.sleeping = true; wake(p,true);
+	}
+	
+	flibmdel public inline function added_shape(s:PR(Shape)) {
+		var dat = Get(PR(SweepData));
+		s.sweep = dat;
+		dat.shape = s;
+		dat.aabb = s.aabb;
+		//insert at beginning, let broadphase deal with it.
+		dat.next = sweep;
+		if(sweep!=null) sweep.prev = dat;
+		sweep = dat;
+		//wake the object
+		wake(s.body);
+	}
+	flibmdel public inline function removed_shape(s:PR(Shape), ?deleting=false) {
+		var body = s.body;
+		
+		//if object is in the course of being deleted, don't want to wake it!
+		if(!deleting) {
+			//wake object first!
+			body.wake();
+		}
+		
+		var pre = null;
+		Iter(xarb,body.arbiters,{
+			var rem = xarb.ws1 == s || xarb.ws2 == s;
+			if(rem) {
+				//wake connected first.
+				if(xarb.b1 != body && xarb.b1.isDynamic()) wake(xarb.b1);
+				if(xarb.b2 != body && xarb.b2.isDynamic()) wake(xarb.b2);
+				
+				xarb.lazyRetire(this,body);
+				cx_ite = body.arbiters.erase(pre);
+				continue;
+			}
+			
+			pre = cx_ite;
+		});
+		
+		var dat = s.sweep;
+		if(dat.prev==null) sweep = dat.next;
+		else dat.prev.next = dat.next;
+		if(dat.next!=null) dat.next.prev = dat.prev;
+		Free(PR(SweepData),dat);
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+	public inline function addConstraint(con:PR(Constraint)) {
+		con.space = this;
+		if(con.active) {
+            assert(con.component.island==null,"newly added constraint has an island??");
+			con.component.sleeping = true;
+			wake_constraint(con,true);
+		}
+	}
+	
+	public inline function remConstraint(con:PR(Constraint)) {
+		if(con.active) {
+			wake_constraint(con,true);
+			live_constraints.remove(con);
+		}
+		con.space = null;
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+	//flag = 0 if already added to bodies list, -1 if nothing has yet been done
+	public inline function addBody(body:PR(Body),?flag:Int=-1) {
+		body.space = this;
+
+        assert(body.component.island==null,"newly added body has an island??");
+		body.component.sleeping = true;
+        wake(body,true);
+			
+		Iter(shape,body.shapes,added_shape(shape));
+			
+		if(body.isStatic()) {
+			//validation won't be done on statics later.
+			static_validation(body);
+
+			if(flag!=Flag(BodyType,STATIC)) statics.add(body);
+			if(flag==-1) bodies.add(body);
+		}else {
+			if(body.isDynamic()) {
+				if(flag!=Flag(BodyType,DYNAMIC)) dynamics.add(body);
+				if(flag==-1) bodies.add(body);
+			}else {
+				if(flag!=Flag(BodyType,KINEMATIC)) kinematics.add(body);
+				if(flag==-1) bodies.add(body);
+			}
+		}
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+	//flag = 0 if already removed from bodies list, -1 if nothing has yet been done
+	public inline function removeBody(body:PR(Body),?flag:Int=-1) {
+		if(body.isStatic()) {
+			if(flag!=Flag(BodyType,STATIC)) statics.remove(body);
+			if(flag==-1) bodies.remove(body);
+			
+			wake(body,true);
+			staticsleep.remove(body);
+		}else {
+			if(body.isDynamic()) {
+				if(flag!=Flag(BodyType,DYNAMIC)) dynamics.remove(body);
+				if(flag==-1) bodies.remove(body);
+				
+				wake(body,true);
+				live.remove(body);
+			}else {
+				if(flag!=Flag(BodyType,KINEMATIC)) kinematics.remove(body);
+				if(flag==-1) bodies.remove(body);
+				
+				wake(body,true);
+				staticsleep.remove(body);
+			}
+		}
+		Iter(shape,body.shapes,removed_shape(shape,true));
+		
+		body.removedFromSpace();
+		body.space = null;
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+	public inline function bodiesUnderPoint(x:Float,y:Float) {
+        sync_broadphase();
+
+		var v = PR(Vec2).get(x,y);
+		var ret = new BodyList();
+		var a = sweep;
+		while(a!=null && a.aabb.minx> x) a = a.next;
+		while(a!=null && a.aabb.minx<=x) {
+			if(a.aabb.maxx>=x && a.aabb.miny<=y && a.aabb.maxy>=y) {
+				var shape = a.shape;
+				var body = shape.body;
+				if(!ret.pr(inner).inner.has(body)) {
+					if(shape.isCircle()) {
+						if(PR(Collide).circleContains(shape.circle,v))
+							ret.push(body.outer);
+					}else {
+						if(PR(Collide).polyContains(shape.polygon,v))
+							ret.push(body.outer);
+					}
+				}
+			}
+			a = a.next;
+		}
+		Free(PR(Vec2),v);
+		return ret;
+	}
+	
+	/**
+		could probably make this more 'effecient' on the polygon init. to avoid use of api.
+		but until someone 'needs' more performance on such a feature which i can't see ever
+		being used heavily, i don't see a need.
+	**/
+	public var aabbShape:Shape;
+	public inline function bodiesInAABB(aabb:AABB) {
+        sync_broadphase();
+
+		if(aabbShape==null) {
+			var body = new Body(BodyType.STATIC);
+			body.shapes.add(aabbShape = new Polygon(Polygon.rect(aabb.x,aabb.y,aabb.width,aabb.height)));
+		}else {
+			var ab = aabbShape.pr(inner).aabb;
+			var sx = aabb.width/ab.width();
+			var sy = aabb.height/ab.height();
+			aabbShape.transform(new Mat23(sx,0,0,sy,aabb.x-sx*ab.minx,aabb.y-sy*ab.miny));
+		}
+		//validate essential properties
+		aabbShape.pr(inner).validate_aabb();
+		aabbShape.pr(inner).polygon.validate_gaxi();
+
+		var ab = aabbShape.pr(inner).aabb;
+		var ret = new BodyList();
+		var a = sweep;
+		while(a!=null && a.aabb.maxx< ab.minx) a = a.next;
+		while(a!=null && a.aabb.minx<=ab.maxx) {
+			if(ab.contains(a.aabb)) {
+				var shape = a.shape;
+				var body = shape.body;
+				if(!ret.pr(inner).inner.has(body))
+					ret.push(body.outer);
+			}
+			else if(a.aabb.intersect(ab)) {
+				var shape = a.shape;
+				var body = shape.body;
+				if(!ret.pr(inner).inner.has(body)) {
+					if(PR(Collide).testCollide(shape,aabbShape.pr(inner)))
+						ret.push(body.outer);
+				}
+			}
+			a = a.next;
+		}
+		return ret;
+	}
+	
+	public var circShape:Shape;
+	public inline function bodiesInCircle(pos:Vec2,rad:Float) {
+        sync_broadphase();
+
+		if(circShape==null) {
+			var body = new Body(BodyType.STATIC);
+			body.shapes.add(circShape = new Circle(rad,pos));
+		}else {
+			var ci = circShape.pr(inner).circle;
+			var ss = rad/ci.radius;
+			circShape.transform(new Mat23(ss,0,0,ss,pos.x-ss*ci.localCOMx,pos.y-ss*ci.localCOMy));
+		}
+		//validate essential properties
+		circShape.pr(inner).validate_aabb();
+
+		var ab = circShape.pr(inner).aabb;
+		var ret = new BodyList();
+		var a = sweep;
+		while(a!=null && a.aabb.maxx< ab.minx) a = a.next;
+		while(a!=null && a.aabb.minx<=ab.maxx) {
+			var shape = a.shape;
+			var body = shape.body;
+			if(!ret.pr(inner).inner.has(body)) {
+				if(PR(Collide).testCollide(circShape.pr(inner),shape))
+					ret.push(body.outer);
+			}
+			a = a.next;
+		}
+		return ret;
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+	public inline function rayCast(ray:Ray,inner:Bool,filter:InteractionFilter) {
+        sync_broadphase();
+		ray.pr(inner).validate_dir();
+		
+		var rayab = ray.pr(inner).rayAABB();
+
+		var mint = PR(Const).POSINF;
+		var minres:RayResult = null;
+		//special case for dirx <,=,> 0 to abuse sweep space a little if possible.
+		if(ray.direction.x==0) {
+			var a = sweep;
+			while(a!=null && a.aabb.minx <= rayab.minx) {
+				if(a.aabb.intersect(rayab) && (filter==null || a.shape.filter.shouldCollide(filter.pr(inner)))) {
+					var t = ray.pr(inner).aabbsect(a.aabb);
+					if(t>=0 && t<mint) {
+						var result =
+							if(a.shape.isCircle()) ray.pr(inner).circlesect(a.shape.circle,inner,mint)
+							else ray.pr(inner).polysect(a.shape.polygon,inner,mint);
+							
+						if(result!=null) {
+							mint = result.distance;
+							minres = result;
+						}
+					}
+				}
+				a = a.next;
+			}
+		}else if(ray.direction.x<0) {
+			var a = sweep;
+			//use reverse order.
+			var b = null;
+			while(a!=null && a.aabb.minx <= rayab.maxx) { b = a; a = a.next; }
+			a = b;
+			while(a!=null) {
+				if(a.aabb.intersect(rayab) && (filter==null || a.shape.filter.shouldCollide(filter.pr(inner)))) {
+					var t = ray.pr(inner).aabbsect(a.aabb);
+					if(t>=0 && t<mint) {
+						var result =
+							if(a.shape.isCircle()) ray.pr(inner).circlesect(a.shape.circle,inner,mint)
+							else ray.pr(inner).polysect(a.shape.polygon,inner,mint);
+							
+						if(result!=null) {
+							mint = result.distance;
+							minres = result;
+						}
+					}
+				}
+				a = a.prev;
+			}
+		}else {
+			var a = sweep;
+			while(a!=null && a.aabb.minx <= rayab.maxx && a.aabb.minx < ray.origin.x+ray.pr(inner).dirx*mint) {
+				if(a.aabb.intersect(rayab) && (filter==null || a.shape.filter.shouldCollide(filter.pr(inner)))) {
+					var t = ray.pr(inner).aabbsect(a.aabb);
+					if(t>=0 && t<mint) {
+						var result =
+							if(a.shape.isCircle()) ray.pr(inner).circlesect(a.shape.circle,inner,mint)
+							else ray.pr(inner).polysect(a.shape.polygon,inner,mint);
+							
+						if(result!=null) {
+							mint = result.distance;
+							minres = result;
+						}
+					}
+				}
+				a = a.next;
+			}
+		}
+		
+		return minres;
+	}
+	
+	public inline function rayMultiCast(ray:Ray,inner:Bool,filter:InteractionFilter) {
+        sync_broadphase();
+		ray.pr(inner).validate_dir();
+		
+		var rayab = ray.pr(inner).rayAABB();
+
+		var ret = new RayResultList();
+		
+		//special case for dirx <,=,> 0 to abuse sweep space a little if possible.
+		if(ray.direction.x==0) {
+			var a = sweep;
+			while(a!=null && a.aabb.minx <= rayab.minx) {
+				if(a.aabb.intersect(rayab) && (filter==null || a.shape.filter.shouldCollide(filter.pr(inner)))) {
+					var t = ray.pr(inner).aabbsect(a.aabb);
+					if(t>=0) {
+						if(a.shape.isCircle()) ray.pr(inner).circlesect2(a.shape.circle,inner,ret);
+						else ray.pr(inner).polysect2(a.shape.polygon,inner,ret);
+					}
+				}
+				a = a.next;
+			}
+		}else if(ray.direction.x<0) {
+			var a = sweep;
+			//use reverse order.
+			var b = null;
+			while(a!=null && a.aabb.minx <= rayab.maxx) { b = a; a = a.next; }
+			a = b;
+			while(a!=null) {
+				if(a.aabb.intersect(rayab) && (filter==null || a.shape.filter.shouldCollide(filter.pr(inner)))) {
+					var t = ray.pr(inner).aabbsect(a.aabb);
+					if(t>=0) {
+						if(a.shape.isCircle()) ray.pr(inner).circlesect2(a.shape.circle,inner,ret);
+						else ray.pr(inner).polysect2(a.shape.polygon,inner,ret);
+					}
+				}
+				a = a.prev;
+			}
+		}else {
+			var a = sweep;
+			while(a!=null && a.aabb.minx <= rayab.maxx) {
+				if(a.aabb.intersect(rayab) && (filter==null || a.shape.filter.shouldCollide(filter.pr(inner)))) {
+					var t = ray.pr(inner).aabbsect(a.aabb);
+					if(t>=0) {
+						if(a.shape.isCircle()) ray.pr(inner).circlesect2(a.shape.circle,inner,ret);
+						else ray.pr(inner).polysect2(a.shape.polygon,inner,ret);
+					}
+				}
+				a = a.next;
+			}
+		}
+		
+		return ret;
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+    public function sync_broadphase() {
+        ///TODO: make this use the invalidation system.
+        validation();
+        sync_broadphase_fast();
+    }
+
+    public function sync_broadphase_fast() {
+        //sort list.
+		var a = sweep.next;
+		while(a!=null) {
+			var n = a.next;
+			var b = a.prev;
+			if(a.gt(b)) { a = n; continue; }
+			while(b.prev != null && b.prev.gt(a)) b = b.prev;
+			//remove a
+			var prev = a.prev;
+			prev.next = a.next;
+			if(a.next!=null) a.next.prev = prev;
+			//insert a before b
+			if(b.prev==null) {
+				a.prev = null; sweep = a;
+				a.next = b; b.prev = a;
+			}else {
+				a.prev = b.prev; b.prev = a;
+				a.prev.next = a; a.next = b;
+			}
+			a = n;
+		}
+    }
+
+	public function broadphase() {
+		if(sweep!=null) {
+			sync_broadphase();
+
+			//collide
+			var d1 = sweep;
+			while(d1!=null) {
+				var d2 = d1.next;
+                var s1 = d1.shape;
+                var b1 = s1.body;
+
+				var bottom = d1.aabb.maxx;
+				while(d2!=null) {
+					if(d2.aabb.minx > bottom) break;
+					
+					var s2 = d2.shape;
+                    var b2 = s2.body;
+
+                    if(b2==b1) {
+                        d2 = d2.next;
+                        continue;
+                    }
+
+					if(b1.isStatic() && b2.isStatic()) {
+						d2 = d2.next;
+						continue;
+					}
+					if(b1.component.sleeping && b2.component.sleeping) {
+						d2 = d2.next;
+						continue;
+					}
+					if(s1.aabb.intersectY(s2.aabb)) {
+                        narrowPhase(s1,s2, !b1.isDynamic()||!b2.isDynamic());
+					}
+					
+					d2 = d2.next;
+				}
+				d1 = d1.next;
+			}
+		}
+	}
+	
+	//----------------------------------------------------------------------------------------------
+
+    public var any_handler:Bool; //set to true in step if any callback object needs to call a handler
+    public inline function push_callback(i:PR(Listener),hasHandler:Bool) {
+        var cb = Get(PR(Callback));
+        callbacks.push(cb);
+        cb.listener = i;
+        cb.handler = hasHandler;
+        any_handler = any_handler || hasHandler;
+        return cb;
+    }
+
+    //----------------------------------------------------------------------------------------------
+	
+	public function step(deltaTime:Float, ?velocityIterations:Int=6, ?positionIterations:Int=6) {
+        time += deltaTime;
+
+        any_handler = false;
+
+        midstep = true;
+        var elastic = velocityIterations>>1;
+        var inelastic = velocityIterations-elastic;
+
+		stamp++;
+		validation();
+		
+        #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
+		broadphase();
+        #if NAPE_TIMES Debug.BROAD += flash.Lib.getTimer()-pt; #end
+
+        #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
+		doForests(deltaTime);
+        #if NAPE_TIMES Debug.FOR += flash.Lib.getTimer()-pt; #end
+
+        #if NAPE_TIMES
+            Debug.ACNT = 0;
+            Debug.AACNT = 0;
+            Debug.CCNT = 0;
+            Debug.ACCNT = 0;
+        #end
+
+		#if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
+        prestep(deltaTime);
+        #if NAPE_TIMES Debug.PRE += flash.Lib.getTimer()-pt; #end
+
+        #if NAPE_TIEMS var pt = flash.Lib.getTimer(); #end
+        iterateVel(elastic,true);
+        #if NAPE_TIMES Debug.VEL += flash.Lib.getTimer()-pt; #end
+
+        updateVel(deltaTime);
+		warmStart();
+
+        #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
+		iterateVel(inelastic,false);
+        #if NAPE_TIMES Debug.VEL += flash.Lib.getTimer()-pt; #end
+		
+		updatePos(deltaTime);
+		
+		$(mixin doit(list) {
+			Iter(cur,list,{
+				vec_set(cur.pre_pos,cur.pos);
+				cur.pre_rot = cur.rot;
+			});
+		});
+		doit(kinematics);
+		doit(live);
+		
+        #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
+		iteratePos(positionIterations);
+        #if NAPE_TIMES Debug.POS += flash.Lib.getTimer()-pt; #end
+		
+		$(mixin doit2(list) {
+			Iter(cur,list,{
+				if(!vec_eq(cur.pos,cur.pre_pos))
+					cur.invalidate_pos();
+				vec_set(cur.pre_pos,cur.pos);
+				if(cur.pre_rot!=cur.rot)
+					cur.invalidate_rot();
+				cur.pre_rot = cur.rot;
+			});
+		});
+		doit2(kinematics);
+		doit2(live);
+		
+		while(!staticsleep.empty()) {
+			var b = staticsleep.pop_unsafe();
+			assert(!b.isDynamic(), "step :: swef static/kinematics");
+			b.component.sleeping = true;
+		}
+        midstep = false;
+
+        //process handlers
+        if(any_handler) {
+            IterQueue(cb,callbacks,{
+                if(cb.handler) {
+                    if(cb.listener.type==Flag(ListenerType,BODY)) {
+                        var o = cb.listener.body;
+                        o.handler(cb.body.outer);
+                    }else if(cb.listener.type==Flag(ListenerType,CONSTRAINT)) {
+                        var o = cb.listener.constraint;
+                        o.handler(cb.constraint.outer);
+                    }
+
+                    cx_ite = callbacks.splice(cb);
+                    Free(PR(Callback),cb);
+                    continue;
+                }
+            });
+        }
+	}
+	
+	//----------------------------------------------------------------------------------------------
+
+    flibmdel public inline function bodyCbWake(b:PR(Body)) {
+        if(b.isDynamic() && !b.cbType._bodywake.empty()) {
+            if(midstep) {
+                Iter(i,b.cbType._bodywake,{
+                    var cb = push_callback(i,i.handler!=null);
+                    cb.event = Flag(CbEvent,WAKE);
+                    cb.swefBody = true;
+                    cb.body = b;
+                });
+            }else
+                b.component.woken = true;
+        }
+    }
+
+    flibmdel public inline function bodyCbSleep(b:PR(Body)) {
+        if(b.isDynamic() && !b.cbType._bodysleep.empty()) {
+            Iter(i,b.cbType._bodysleep,{
+                var cb = push_callback(i,i.handler!=null);
+                cb.event = Flag(CbEvent,SLEEP);
+                cb.swefBody = true;
+                cb.body = b;
+            });
+        }
+    }
+
+    //----------------------------------------------------------------------------------------------
+
+    flibmdel public inline function constraintCbWake(con:PR(Constraint)) {
+        if(!con.cbType._conwake.empty()) {
+            if(midstep) {
+                Iter(i,con.cbType._conwake,{
+                    var cb = push_callback(i,i.handler!=null);
+                    cb.event = Flag(CbEvent,WAKE);
+                    cb.swefBody = false;
+                    cb.constraint = con;
+                });
+            }else
+                con.component.woken = true;
+        }
+    }
+
+    flibmdel public inline function constraintCbSleep(con:PR(Constraint)) {
+        if(!con.cbType._consleep.empty()) {
+            Iter(i,con.cbType._consleep,{
+                var cb = push_callback(i,i.handler!=null);
+                cb.event = Flag(CbEvent,SLEEP);
+                cb.swefBody = false;
+                cb.constraint = con;
+            });
+        }
+    }
+
+    flibmdel public inline function constraintCbBreak(con:PR(Constraint)) {
+        if(!con.cbType._break.empty()) {
+            Iter(i,con.cbType._break,{
+                var cb = push_callback(i,i.handler!=null);
+                cb.event = Flag(CbEvent,BREAK);
+                cb.swefBody = false;
+                cb.constraint = con;
+            });
+        }
+    }
+
+    //----------------------------------------------------------------------------------------------
+	
+	flibmdel public inline function wakeIsland(i:PR(Island)) {
+		assert(i.sleep,"this island is not sleeping but referenced? wtf");
+		
+		while(!i.comps.empty()) {
+			var c = i.comps.pop_unsafe();
+			assert(c.sleeping, "???");
+			c.waket = stamp+1;
+
+			if(c.isBody) {
+				var b = c.body;
+						
+				assert(b.isDynamic(),"din din");
+				live.add(b);
+				
+				Iter(arb, b.arbiters, {
+					if(arb.sleeping) {
+						arb.sleeping = false;
+						arb.up_stamp += stamp - arb.sleep_stamp;
+						if(arb.type == PR(Arbiter).COL) {
+							var carb = arb.colarb;
+							if(carb.stat)
+								c_arbiters(true).add(carb);
+							else
+								c_arbiters(false).add(carb);
+						} else if(arb.type == PR(Arbiter).FLUID)
+							f_arbiters.add(arb.fluidarb);
+						else
+							s_arbiters.add(arb.sensorarb);
+					}
+				});
+
+                bodyCbWake(b);
+			}else {
+				var con = c.constraint;
+				live_constraints.add(con);
+
+                constraintCbWake(con);
+			}
+			c.reset();
+		}
+		
+		Free(PR(Island),i);
+	}
+	
+	public function wake(o:PR(Body),?fst=false) {
+		if(!o.world) {
+			o.component.waket = stamp+1;
+			if(o.component.sleeping) {
+				if(o.component.island==null) {
+					//new body, or forced wake, or kinematic/static
+					o.component.sleeping = false;
+					if(o.isKinematic() || o.isStatic())
+						staticsleep.add(o);
+					else
+						live.add(o);
+						
+					if(!o.isDynamic()) {
+						//wake any constraints that might exist
+						Iter(con,o.constraints,wake_constraint(con));
+						//wake any touching bodies
+						Iter(arb,o.arbiters,{
+							if(arb.sleeping) {
+								arb.sleeping = false;
+								arb.up_stamp += stamp - arb.sleep_stamp;
+								if(arb.type == PR(Arbiter).COL) {
+									var carb = arb.colarb;
+									if(carb.stat)
+										c_arbiters(true).add(carb);
+									else
+										c_arbiters(false).add(carb);
+								}else if(arb.type == PR(Arbiter).FLUID)
+										f_arbiters.add(arb.fluidarb);
+								else
+									s_arbiters.add(arb.sensorarb);
+							}
+                            if(arb.type != PR(Arbiter).SENSOR && !arb.cleared && arb.up_stamp==stamp) {
+								if(arb.b1.isDynamic() && arb.b1.component.sleeping) wake(arb.b1);
+								if(arb.b2.isDynamic() && arb.b2.component.sleeping) wake(arb.b2);
+							}
+						});
+					}else if(!fst) bodyCbWake(o);
+				}else {
+					//wake island
+					wakeIsland(o.component.island);
+				}
+                assert(o.component.island==null,"woken, but island non-null?");
+				return true;
+			}else return false;
+		}else return true;
+	}
+	
+	flibmdel public inline function wake_constraint(con:PR(Constraint),?fst=false) {
+		if(con.active) {
+            con.component.waket = stamp+1;
+            if(con.component.sleeping) {
+                if(con.component.island==null) {
+                    //new constraint
+                    con.component.sleeping = false;
+                    live_constraints.add(con);
+                    con.wake_connected();
+
+                    if(!fst) constraintCbWake(con);
+                }else {
+                    //wake island
+                    wakeIsland(con.component.island);
+                }
+                assert(con.component.island==null,"woken (con), but island non-null?");
+                return true;
+            }else return false;
+		}else
+			return false;
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+	public function doForests(dt:Float) {
+		//build set foreset.
+		Iter(arb, c_arbiters(false), {
+            if(!arb.cleared && arb.up_stamp==stamp) {
+                if(arb.b1.isDynamic() && arb.b2.isDynamic())
+                    DSF(union(arb.b1, arb.b2))
+            }
+		});
+		Iter(arb, f_arbiters, {
+            if(!arb.cleared && arb.up_stamp==stamp) {
+                if(arb.b1.isDynamic() && arb.b2.isDynamic())
+                    DSF(union(arb.b1, arb.b2))
+            }
+		});
+		Iter(con, live_constraints, con.forest());
+		
+		//build islands
+		while(!live.empty()) {
+			var o = live.pop_unsafe();
+			var oc = o.component;
+			
+			var root = DSF(find(oc));
+			if(root.island==null) {
+				root.island = Get(PR(Island));
+				islands.add(root.island);
+				root.island.sleep = true;
+			}
+			oc.island = root.island;
+			oc.island.comps.add(oc);
+			var rest = o.atRest(dt);
+			oc.island.sleep = oc.island.sleep && rest;
+			if(oc.waket > oc.island.waket) oc.island.waket = oc.waket;
+		}
+		while(!live_constraints.empty()) {
+			var o = live_constraints.pop_unsafe();
+			var oc = o.component;
+			
+			var root = DSF(find(oc));
+			assert(root.island!=null,"constraint without bodies?");
+			
+			oc.island = root.island;
+			oc.island.comps.add(oc);
+            if(oc.waket > oc.island.waket) oc.island.waket = oc.waket;
+		}
+
+		//build new live lists from islands
+		//destroy waking islands, retain sleeping islands for waking later when necessary.
+		while(!islands.empty()) {
+			var i = islands.pop_unsafe();
+			if(i.sleep) {
+				Iter(c,i.comps,{
+					if(c.isBody) {
+						var b = c.body;
+						vec_set(b.vel,0,0);
+						b.angvel = 0;
+						vec_set(b.force,0,0);
+						b.torque = 0;
+
+                        bodyCbSleep(b);
+					}else {
+                        var con = c.constraint;
+                        constraintCbSleep(con);
+                    }
+					c.sleeping = true;
+				});
+			}else {
+				while(!i.comps.empty()) {
+					var c = i.comps.pop_unsafe();
+                    c.waket = i.waket;
+					if(c.isBody) live.add(c.body);
+					else         live_constraints.add(c.constraint);
+					c.reset();
+				}
+				Free(PR(Island),i);
+			}
+		}
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+	flibmdel public inline function static_validation(body:PR(Body)) {
+		//validate body properties needed here as they are not 'allowed' to change
+		//(material can be changed, but due to static nature, mass/inertia remain infinite)
+		body.validate_aabb(); //validates worldVerts/worldCOM of shapes and their AABB
+		body.validate_mass();
+		body.validate_inertia();
+        DEBUG(
+            if(body.velx!=0 || body.vely!=0 || body.angvel!=0)
+                throw "Error: Static body cannot have any real velocity, only kinematic or surface velocities";
+        )
+		Iter(s,body.shapes,{
+			if(s.isPolygon()) {
+				s.polygon.validate_gaxi();
+				DEBUG(
+					var res = s.polygon.valid();
+					if(res!=ValidationResult.VALID) {
+						throw "Error: Cannot simulate with an invalid Polygon : "+s.polygon.outer.toString()+" is invalid : "+res.toString();
+					}
+				)
+			}
+		});
+		//check: no other properties (Body worldCOM, shape worldCOM(polygon) are needed?)
+	}
+	
+	public function validation() {
+		$(mixin update(list, kin) {
+			Iter(cur,list,{
+				DEBUG(if(cur.shapes.empty())
+					throw "Error: Cannot simulate an empty Body";
+				)
+				
+				cur.validate_mass();
+				cur.validate_inertia();
+				cur.validate_aabb();
+				cur.validate_gravMass();
+				cur.validate_worldCOM();
+				cur.validate_axis();
+					
+				Iter(s,cur.shapes,{
+					if(s.isPolygon()) {
+						DEBUG(
+							var res = s.polygon.valid();
+							if(res!=ValidationResult.VALID) {
+								throw "Error: Cannot simulate with an invalid Polygon : "+s.polygon.outer.toString()+" is invalid : "+res.toString();
+							}
+						)
+						s.polygon.validate_gaxi();
+					}
+				});
+
+                //wake callbacks
+                if(!kin) {
+                    if(cur.component.woken) {
+                        Iter(i,cur.cbType._bodywake,{
+                            var cb = push_callback(i,i.handler!=null);
+                            cb.event = Flag(CbEvent,WAKE);
+                            cb.swefBody = true;
+                            cb.body = cur;
+                        });
+                    }
+                    cur.component.woken = false;
+                }
+			});
+		});
+		
+		update(live,false);
+		update(kinematics,true);
+		
+		//check validity of constraints' set-up.
+        //do wake callbacks
+        Iter(con,live_constraints,{
+            if(con.active) {
+                DEBUG(con.validate();)
+                if(con.component.woken) {
+                    Iter(i,con.cbType._conwake,{
+                        var cb = push_callback(i,i.handler!=null);
+                        cb.event = Flag(CbEvent,WAKE);
+                        cb.swefBody = false;
+                        cb.constraint = con;
+                    });
+                }
+                con.component.woken = false;
+            }
+        });
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+	public function updateVel(dt:Float) {
+		var pre = null;
+		Iter(cur,live,{
+			vec_addeq(cur.force,gravity,cur.gravMass);
+			vec_addeq(cur.force,cur.vel,-PR(Config).GLOBAL_LIN_DRAG*cur.mass);
+			if(cur.smass!=0.0)
+				vec_addeq(cur.vel,cur.force,dt*cur.imass);
+			
+			vec_set(cur.force,0,0);
+			
+			if(cur.sinertia!=0.0) {
+				vec_new(dp); vec_sub(cur.worldCOM,cur.pos,dp);
+				cur.torque += vec_cross(dp,gravity)*cur.gravMass;
+				cur.torque -= cur.angvel*PR(Config).GLOBAL_ANG_DRAG*cur.inertia;
+				cur.angvel += cur.torque*dt*cur.iinertia;
+			}
+			cur.torque = 0;
+			
+			pre = cx_ite;
+		});
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+	public function updatePos(dt:Float) {
+		Iter(cur,live,{
+			if(cur.velx!=0 || cur.vely!=0) {
+				vec_addeq(cur.pos,cur.vel,dt);
+				cur.invalidate_pos();
+			}
+			if(cur.angvel!=0) {
+				cur.rot += cur.angvel*dt;
+				cur.invalidate_rot();
+				cur.quick_validate_axis();
+			}
+		});
+		
+		Iter(cur,kinematics,{
+			if(cur.velx!=0 || cur.vely!=0) {
+				vec_addeq(cur.pos, cur.vel, dt);
+				cur.invalidate_pos();
+			}
+			if(cur.angvel!=0) {
+				cur.rot += cur.angvel*dt;
+				cur.invalidate_rot();
+				cur.quick_validate_axis();
+			}
+		});
+	}
+
+	//----------------------------------------------------------------------------------------------
+	
+	public function prestep(dt:Float) {
+		
+		var pre = null;
+		Iter(con,live_constraints,{
+			if(con.preStep(dt)) {
+				cx_ite = live_constraints.erase(pre);
+
+                if(con.removeOnBreak) {
+                    //set sleeping to true as already removed from live list.
+                    con.component.sleeping = true; remConstraint(con);
+                    constraints.remove(con);
+                }else
+                    con.active = false;
+
+                con.clearcache();
+                constraintCbBreak(con);
+				continue;
+			}
+			pre = cx_ite;
+		});
+		
+		$(mixin prestep(arbs,action) {
+			var pre = null;
+			Iter(arb,arbs,{
+				if(!arb.cleared && (arb.b1.component.sleeping && arb.b2.component.sleeping)) {
+					arb.sleep_stamp = stamp;
+					arb.sleeping = true;
+					cx_ite = arbs.erase(pre);
+					continue;
+				}
+
+                #if NAPE_TIMES Debug.ACNT++; #end
+				
+				//if(arb.up_stamp==stamp-1)
+				//	trace("end");
+			
+				//no need for sensor/fluid arbiters to persist after deactivation, just remove now.
+				if(arb.cleared
+                 || ((arb.type==PR(Arbiter).SENSOR||arb.type==PR(Arbiter).FLUID) && arb.up_stamp<stamp)
+				 || arb.up_stamp+PR(Config).PERSIST<stamp)
+				{
+					if(!arb.cleared)
+						map_arb.remove(arb);
+					arb.retire();
+					cx_ite = arbs.erase(pre);
+					continue;
+				}
+				
+				var pact = arb.active;
+				arb.active = arb.up_stamp==stamp;
+
+				if(!(action)) arb.active = false;
+				
+				//necessary to notify lists of non structual changes for API
+				if(pact!=arb.active) {
+					arb.b1.arbiters.modified = true;
+					arb.b2.arbiters.modified = true;
+					arbs.modified = true;
+				}
+				
+				pre = cx_ite;
+			});
+		});
+		
+		prestep(c_arbiters(true),  if(arb.active) arb.preStep(dt));
+		prestep(c_arbiters(false), if(arb.active) arb.preStep(dt));
+		prestep(f_arbiters,      { if(arb.active) arb.preStep(this,dt); true; });
+		prestep(s_arbiters,{true;});
+	}
+
+	//----------------------------------------------------------------------------------------------
+	
+    public function warmStart() {
+        Iter(arb,f_arbiters,       if(arb.active) arb.warmStart());
+        Iter(arb,c_arbiters(false),if(arb.active) arb.warmStart());
+        Iter(arb,c_arbiters(true), if(arb.active) arb.warmStart());
+        Iter(con,live_constraints, con.warmStart());
+	}
+
+	public function iterateVel(times:Int,bouncy:Bool) {
+		for(i in 0...times) {
+			Iter(arb,f_arbiters,if(arb.active) arb.applyImpulseVel());
+			
+			var pre = null;
+			Iter(con,live_constraints, {
+				if(con.applyImpulseVel()) {
+					cx_ite = live_constraints.erase(pre);
+
+					if(con.removeOnBreak) {
+                        //set sleeping to true as already removed from live list.
+                        con.component.sleeping = true; remConstraint(con);
+                        constraints.remove(con);
+                    }else
+                        con.active = false;
+
+                    con.clearcache();
+
+                    constraintCbBreak(con);
+					continue;
+				}
+				pre = cx_ite;
+			});
+				
+			Iter(arb,c_arbiters(false),if(arb.active) arb.applyImpulseVel(bouncy));
+			Iter(arb,c_arbiters(true), if(arb.active) arb.applyImpulseVel(bouncy));
+		}
+	}
+	public function iteratePos(times:Int) {
+		for(i in 0...times) {
+			//ignore soft constraints.
+			var pre = null;
+			Iter(con,live_constraints, {
+				if(con.stiff) {
+					if(con.applyImpulsePos()) {
+						cx_ite = live_constraints.erase(pre);
+						
+                        if(con.removeOnBreak) {
+                            //set sleeping to true as already removed from live list.
+                            con.component.sleeping = true; remConstraint(con);
+                            constraints.remove(con);
+                        }else
+                            con.active = false;
+
+                        con.clearcache();
+
+                        constraintCbBreak(con);
+						continue;
+					}
+				}
+				pre = cx_ite;
+			});
+				
+			Iter(arb,c_arbiters(false),if(arb.active) arb.applyImpulsePos());
+			Iter(arb,c_arbiters(true), if(arb.active) arb.applyImpulsePos());
+		}
+	}
+
+	//----------------------------------------------------------------------------------------------
+	
+
+	public inline function narrowPhase(s1:PR(Shape),s2:PR(Shape), stat:Bool) {
+        var b1 = s1.body;
+		var b2 = s2.body;
+
+        assert(!(b1.isStatic() && b2.isStatic()), "both objects static?");
+
+        //check if constraints exists such that this should be ignored
+        var pair_id = unordered_id(b1.id,b2.id);
+        if(!Exists(con, b1.constraints, con.ignore && con.pair_exists(pair_id))) {
+
+            var gcol = s1.filter.shouldCollide(s2.filter)
+                && !(b1.imass==0 && b2.imass==0 && b1.iinertia==0 && b2.iinertia==0);
+					
+            var scol = s1.filter.shouldSense(s2.filter);
+				
+            var fcol = (s1.fluidEnabled || s2.fluidEnabled) && s1.filter.shouldFlow(s2.filter) &&
+              ! (  (s1.fluidEnabled &&  b1.isDynamic() && !s2.fluidEnabled && !b2.isDynamic())
+                || (s2.fluidEnabled &&  b2.isDynamic() && !s1.fluidEnabled && !b1.isDynamic())
+                || (s1.fluidEnabled && !b1.isDynamic() && !b2.isDynamic())
+                || (s2.fluidEnabled && !b2.isDynamic() && !b1.isDynamic())
+            );
+				
+            if(scol || gcol || fcol) {
+                var sa,sb;
+                if(s1.type > s2.type) { sa = s2; sb = s1; }
+                else if(s1.type == s2.type) {
+                    if(s1.id < s2.id) { sa = s1; sb = s2; }
+                    else              { sb = s1; sa = s2; }
+                }else { sa = s1; sb = s2; }
+                var reverse = sa == s2;
+                //id's need not be ordered.
+                var id = unsafe_ordered_id(sa.id,sb.id);
+
+                if(fcol) {
+                    var xarb = map_arb.get(id);
+                    var first = xarb==null;
+
+                    var arb;
+                    if(first) arb = Get(PR(FluidArbiter))
+                    else {
+                        if(xarb.fluidarb==null) {
+                            xarb.lazyRetire(this,null);
+                            arb = Get(PR(FluidArbiter));
+                            first = true;
+                        }else
+                            arb = xarb.fluidarb;
+                    }
+						
+                    if(first || arb.stamp!=stamp) {
+                        arb.stamp = stamp;
+							
+                        if(PR(Collide).flowCollide(sa,sb,arb)) {
+                            if(first) {
+                                arb.assign(s1,s2,id);
+                                f_arbiters.add(arb);
+                                map_arb.add(arb);
+                            }
+                            arb.up_stamp = arb.stamp;
+								
+                            if(arb.b1.component.sleeping && arb.b1.isDynamic())
+                                wake(arb.b1);
+                            if(arb.b2.component.sleeping && arb.b2.isDynamic())
+                                wake(arb.b2);
+								
+                            if(arb.sleeping) {
+                                arb.sleeping = false;
+                                f_arbiters.add(arb);
+                            }
+								
+                        }else if(first)
+                            Free(PR(FluidArbiter),arb);
+                    }
+                } else if(gcol) {
+                    var carbs = stat ? c_arbiters(true) : c_arbiters(false);
+
+                    var xarb = map_arb.get(id);
+                    var first = xarb==null;
+						
+                    var arb;
+                    if(first) {
+                        arb = Get(PR(ColArbiter));
+                        arb.stat = stat;
+                    } else {
+                        if(xarb.colarb==null) {
+                            xarb.lazyRetire(this,null);
+                            arb = Get(PR(ColArbiter));
+                            arb.stat = stat;
+                            first = true;
+                        }else {
+                            arb = xarb.colarb;
+                            reverse = sa != arb.s1;
+
+                            if(arb.stat != stat) {
+                                arb.stat = stat;
+                                if(!arb.sleeping) {
+                                    (if(stat) c_arbiters(false) else c_arbiters(true)).remove(arb);
+                                    carbs.add(arb);
+                                }
+                            }
+                        }
+                    }
+
+                    if(first || arb.stamp!=stamp) {
+                        arb.stamp = stamp;
+
+                        if(PR(Collide).contactCollide(sa,sb,arb,reverse)) {
+                            if(first) {
+                                arb.assign(s1,s2,id);
+                                carbs.add(arb);
+                                map_arb.add(arb);
+                            }
+                            arb.up_stamp = arb.stamp;
+
+                            if(arb.b1.component.sleeping && arb.b1.isDynamic())
+                                wake(arb.b1);
+                            if(arb.b2.component.sleeping && arb.b2.isDynamic())
+                                wake(arb.b2);
+								
+                            if(arb.sleeping) {
+                                arb.sleeping = false;
+                                carbs.add(arb);
+                            }
+								
+                        }else{
+                            if(first)
+                                Free(PR(ColArbiter),arb);
+                        }
+                    }
+                } else if(scol) {
+                    var xarb = map_arb.get(id);
+                    var first = xarb==null;
+						
+                    var arb;
+                    if(first) arb = Get(PR(SensorArbiter))
+                    else {
+                        if(xarb.sensorarb==null) {
+                            xarb.lazyRetire(this,null);
+                            arb = Get(PR(SensorArbiter));
+                            first = true;
+                        }else
+                            arb = xarb.sensorarb;
+                    }
+						
+                    if(first || arb.stamp!=stamp) {
+                        arb.stamp = stamp;
+							
+                        if(PR(Collide).testCollide(sa,sb)) {
+                            if(first) {
+                                arb.assign(s1,s2,id);
+                                s_arbiters.add(arb);
+                                map_arb.add(arb);
+                            }
+                            arb.up_stamp = arb.stamp;
+
+                            if(arb.sleeping) {
+                                arb.sleeping = false;
+                                s_arbiters.add(arb);
+                            }
+								
+                        }else if(first)
+                            Free(PR(SensorArbiter),arb);
+                    }
+				}
+			}
+		}
+	}
+}

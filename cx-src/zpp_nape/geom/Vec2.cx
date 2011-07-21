@@ -1,0 +1,57 @@
+package zpp_nape.geom;
+$(import);
+
+class PR(Vec2) {
+	public var _invalidate:PR(Vec2)->Dynamic;
+	public var _validate:Void->Dynamic;
+	public var immutable:Bool;
+	public var _immutable:Void->Dynamic;
+	
+	flibmdel public inline function validate() {
+		if(_validate!=null) _validate();
+	}
+	flibmdel public inline function invalidate() {
+		if(_invalidate!=null) _invalidate(this);
+	}
+	
+	public var outer:Vec2;
+	flibmdel public inline function wrapper() {
+		if(outer==null) {
+			outer = new Vec2(); //don't care
+			Free(PR(Vec2),outer.pr(inner));
+			outer.pr(inner) = this;
+		}
+		return outer;
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+	MixPoolNoNext(PR(Vec2))
+	flibmdel public inline function free() {
+		outer = null;
+	}
+	
+	MixListMixin(PR(Vec2))
+	vec_new(public,$(->));
+	
+	//----------------------------------------------------------------------------------------------
+	
+	static var nextid = 0;
+	public var id:Int;
+	public function new() { id = nextid++; }
+	flibstaticdel(get) public inline static function get(x:Float, y:Float, ?immutable=false) {
+		var ret = Get(PR(Vec2));
+		ret._immutable = null;
+		ret.immutable = immutable;
+		ret._validate = null;
+		ret._invalidate = null;
+		vec_set(ret.,);
+		return ret;
+	}
+	
+	flibmdel public inline function copy() return get(x,y)
+	
+	//----------------------------------------------------------------------------------------------
+	
+	flibmdel public inline function toString() return "{ x: "+x+" y: "+y+" }"
+}

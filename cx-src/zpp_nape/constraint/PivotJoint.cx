@@ -1,0 +1,208 @@
+package zpp_nape.constraint;
+$(import);
+
+withConstraint(
+
+class PR(PivotJoint) extends PR(Constraint) {
+	public var outer_zn:PivotJoint;
+	
+	$(mixin Cerr(r1,r2,C) {
+		C`x = (b2.posx+r2`x)-(b1.posx+r1`x);
+		C`y = (b2.posy+r2`y)-(b1.posy+r1`y);
+	});
+	$(mixin Verr(V) {
+		V`x = (b2.velx+b2.kinvelx-a2rely*(b2.angvel+b2.kinangvel))-(b1.velx+b1.kinvelx-a1rely*(b1.angvel+b1.kinangvel));
+		V`y = (b2.vely+b2.kinvely+a2relx*(b2.angvel+b2.kinangvel))-(b1.vely+b1.kinvely+a1relx*(b1.angvel+b1.kinangvel));
+	});
+	$(mixin Keff(r1,r2,K) {
+		var m = b1.smass + b2.smass;
+		mat2_set(K, m,
+					0,m);
+		$(mixin body(b,r) if(b.sinertia!=0) {
+			var X = r`x*b.sinertia;
+			var Y = r`y*b.sinertia;
+			mat2_addeq(K, Y*r`y,
+			             -Y*r`x, X*r`x);
+		});
+		body(b1,r1);
+		body(b2,r2);
+	});
+	$(mixin Imp(r1,r2,j,bias) {
+		if(bias) {
+			vec_subeq(b1.pos, j,b1.imass);
+			vec_addeq(b2.pos, j,b2.imass);
+			b1.delta_rot(-vec_cross(r1,j)*b1.iinertia);
+			b2.delta_rot( vec_cross(r2,j)*b2.iinertia);
+		}else {
+			vec_subeq(b1.vel, j,b1.imass);
+			vec_addeq(b2.vel, j,b2.imass);
+			b1.angvel -= vec_cross(r1,j)*b1.iinertia;
+			b2.angvel += vec_cross(r2,j)*b2.iinertia;
+		}
+	});
+	
+	flibmdel public inline function bodyImpulse(b:PR(Body)) {
+		if(stepped) {
+			if(b==b1) return new Vec3(-jAccx,-jAccy,-vec_cross(a1rel,jAcc));
+			else      return new Vec3( jAccx, jAccy, vec_cross(a2rel,jAcc));
+		}else return new Vec3(0,0,0);
+	}
+	
+	//---------------------------------------------------
+	
+	public var b1:PR(Body); anchor_new(a1);
+	public var b2:PR(Body); anchor_new(a2);
+	
+	mat2_new(public,kMass);
+	vec_new(public,jAcc);
+	public var jMax:Float;
+	
+	public var gamma:Float;
+	vec_new(public,bias);
+	
+	public var stepped:Bool;
+	
+	//---------------------------------------------------
+	
+	public function new() {
+		super();
+		stepped = false;
+		vec_set(jAcc,0,0);
+		jMax = PR(Const).POSINF;
+		
+		anchor_init(a1);
+		anchor_init(a2);
+	}
+	
+	public override function validate() {
+		if(b1==b2) throw "Error: PivotJoint cannot be simulated with body1 == body2";
+		if(b1.space != space || b2.space != space) throw "Error: Constraints must have each body within the same space to which the constraint has been assigned";
+		if(!b1.isDynamic() && !b2.isDynamic()) throw "Error: Constraints cannot have both bodies non-dynamic";
+	}
+	
+	public override function wake_connected() {
+		if(b1.isDynamic()) b1.wake();
+		if(b2.isDynamic()) b2.wake();
+	}
+	
+	public override function forest() {
+		if(b1.isDynamic()) DSF(union(b1,this));
+		if(b2.isDynamic()) DSF(union(b2,this));
+	}
+	
+	public override function pair_exists(pair_id:Int) {
+		return unordered_id(b1.id,b2.id) == pair_id;
+	}
+	
+	public override function destroy() {
+        //no validation has occured.
+		b1.constraints.remove(this);
+        if(b2!=b1)
+            b2.constraints.remove(this);
+	}
+
+    public override function clearcache() {
+        vec_set(jAcc,0,0);
+        pre_dt = -1.0;
+    }
+
+	//---------------------------------------------------
+	
+	public override function preStep(dt:Float) {
+        if(pre_dt==-1.0) pre_dt = dt;
+        var dtratio = dt/pre_dt;
+        pre_dt = dt;
+
+		stepped = true;
+		
+		validate_anchor(b1,a1);
+		validate_anchor(b2,a2);
+		
+		//effective mass
+		Keff(a1rel,a2rel,kMass);
+		var flag = mat2_invert(kMass);
+		if((flag&1)!=0) jAccx = 0;
+		if((flag&2)!=0) jAccy = 0;
+		
+		if(!stiff) {
+			var biasCoef;
+			mat2_scaleq(kMass, soft_gamma(frequency,damping,dt,gamma,biasCoef));
+			Cerr(a1rel,a2rel,bias);
+			
+			if(breakUnderError && vec_lsq(bias) > maxError*maxError) return true;
+			
+			vec_muleq(bias,-dt*biasCoef);
+			vec_clamp(bias,maxError);
+		}else {
+			vec_set(bias,0,0);
+			gamma = 0;
+		}
+
+		vec_muleq(jAcc,dtratio);
+		jMax = maxForce*dt;
+		
+		return false;
+	}
+
+    public override function warmStart() {
+		Imp(a1rel,a2rel,jAcc,false);
+    }
+	
+	public override function applyImpulseVel() {
+		vec_new(E); Verr(E);
+		vec_new(J); vec_sub(bias,E, J);
+		mat2_xform(kMass,J);
+		vec_subeq(J,jAcc,gamma);
+		
+		accum2(jAcc,J,{
+			if(breakUnderForce) {
+				if(vec_lsq(jAcc) > jMax*jMax)
+					return true;
+			}else if(!stiff)
+				vec_clamp(jAcc,jMax);
+		});
+		Imp(a1rel,a2rel,J,false);
+		
+		return false;
+	}
+	
+	public override function applyImpulsePos() {
+		vec_new(r1); bias_xform(b1,a1local,r1);
+		vec_new(r2); bias_xform(b2,a2local,r2);
+		vec_new(E); Cerr(r1,r2,E);
+		
+		if(breakUnderError && vec_lsq(E) > maxError*maxError) return true;
+		if(vec_lsq(E) < PR(Config).SLOP) return false;
+		
+		vec_muleq(E,0.5);
+		
+		vec_new(J);
+		//handle large detachment
+		if(vec_lsq(E) > 6) {
+			var k = b1.smass + b2.smass;
+			if(k>PR(Const).EPSILON) {
+				k = 0.75/k; //don't completely solve error
+				vec_set(J,-Ex*k,-Ey*k);
+				vec_clamp(J,20);
+				
+				vec_subeq(b1.pos, J,b1.imass);
+				vec_addeq(b2.pos, J,b2.imass);
+				
+				//recalculate error
+				Cerr(r1,r2,E);
+				vec_muleq(E,0.5);
+			}
+		}
+		
+		mat2_new(K); Keff(r1,r2,K);
+		vec_set(J,-Ex,-Ey);
+		vec_clamp(J,6);
+		mat2_solve(K,J);
+		
+		Imp(r1,r2,J,true);
+
+		return false;
+	}
+}
+
+)

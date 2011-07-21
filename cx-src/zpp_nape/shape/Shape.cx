@@ -1,0 +1,304 @@
+package zpp_nape.shape;
+$(import);
+
+class PR(Shape) {
+	public var outer:Shape;
+	public var body:PR(Body);
+	
+	public var type:Int;
+	static var nextId = 0;
+	public var id:Int;
+	
+	flibmdel public inline function isCircle() return type==Flag(ShapeType,CIRCLE)
+	flibmdel public inline function isPolygon() return type==Flag(ShapeType,POLYGON)
+	
+	//----------------------------------------------------------------------------------------------
+	
+	public var area:Float; public var inv(area_inertia):Bool;
+	public var inertia:Float;
+	public var angDrag:Float; public var inv(angDrag):Bool;
+	
+	//----------------------------------------------------------------------------------------------
+	
+	vec_new(public,localCOM); public var inv(localCOM):Bool;
+	vec_new(public,worldCOM); public var inv(worldCOM):Bool;
+	public var wrap_localCOM:Vec2;
+	public var wrap_worldCOM:Vec2;
+	
+	//----------------------------------------------------------------------------------------------
+	
+	public var circle:PR(Circle);
+	public var polygon:PR(Polygon);
+	
+	public var material:PR(Material);
+	public var filter:PR(InteractionFilter);
+	public var fluidProperties:PR(FluidProperties);
+	
+	public var fluidEnabled:Bool;
+
+    public var cbType:PR(CbType);
+	
+	//----------------------------------------------------------------------------------------------
+	
+	//for sweep and prune
+	public var sweep:PR(SweepData);
+	
+	//----------------------------------------------------------------------------------------------
+	
+	public var aabb:PR(AABB); public var inv(aabb):Bool;
+	flibmdel public inline function validate_aabb() {
+		//dependancy checked
+		if(inv(aabb)) {
+			if(body!=null) {
+				inv(aabb) = false;
+				if(isCircle()) circle.__validate_aabb();
+				else           polygon.__validate_aabb();
+			}
+		}
+	}
+	flibmdel public inline function invalidate_aabb() {
+		//dependancy checked
+		inv(aabb) = true;
+		if(body!=null) body.invalidate_aabb();
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+	flibmdel public inline function validate_area_inertia() {
+		//dependancy checked
+		if(inv(area_inertia)) {
+			inv(area_inertia) = false;
+			if(isCircle()) circle.__validate_area_inertia();
+			else           polygon.__validate_area_inertia();
+		}
+	}
+	flibmdel public inline function validate_angDrag() {
+		//dependancy checked
+		if(inv(angDrag)) {
+			inv(angDrag) = false;
+			if(isCircle()) circle.__validate_angDrag();
+			else           polygon.__validate_angDrag();
+		}
+	}
+	flibmdel public inline function validate_localCOM() {
+		//dependancy checked
+		if(inv(localCOM)) {
+			inv(localCOM) = false;
+			
+			if(isPolygon()) polygon.__validate_localCOM();
+			
+			if(wrap_localCOM!=null)
+				vec_set(wrap_localCOM.pr(inner).,localCOM);
+		}
+	}
+	flibmdel public inline function validate_worldCOM() {
+		//dependancy checked
+		if(inv(worldCOM)) {
+			if(body!=null) {
+				inv(worldCOM) = false;
+				validate_localCOM();
+				body.validate_axis();
+				vec_localglobal(body.axis,body.pos, localCOM,worldCOM);
+				if(wrap_worldCOM!=null)
+					vec_set(wrap_worldCOM.pr(inner).,worldCOM);
+			}
+		}
+	}
+	public function getworldCOM() {
+		DEBUG(if(body==null) throw "Error: worldCOM only makes sense when Shape belongs to a Body";)
+		validate_worldCOM();
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+	flibmdel public inline function invalidate_area_inertia() {
+		//dependancy checked
+		inv(area_inertia) = true;
+		if(body!=null) {
+			body.invalidate_localCOM();
+			body.invalidate_mass();
+			body.invalidate_inertia();
+		}
+	}
+	flibmdel public inline function invalidate_angDrag() {
+		//dependancy checked
+		inv(angDrag) = true;
+	}
+	flibmdel public inline function invalidate_localCOM() {
+		//dependancy checked
+		inv(localCOM) = true;
+		invalidate_area_inertia(); //specificaly inertia
+		invalidate_angDrag();
+		invalidate_worldCOM();
+		if(body!=null) body.invalidate_localCOM();
+	}
+	flibmdel public inline function invalidate_worldCOM() {
+		//dependancy checked
+		inv(worldCOM) = true;
+		invalidate_aabb();
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+	public function invalidate_material(flags:Int) {
+		if((flags&PR(Material).WAKE)!=0)
+			wake();
+		
+		if((flags&PR(Material).ARBITERS)!=0) {
+			if(body!=null) body.refreshArbiters();
+		}
+		
+        if((flags&PR(Material).PROPS)!=0) {
+			//dependancy checked
+			if(body!=null) {
+				body.invalidate_localCOM();
+				body.invalidate_mass();
+				body.invalidate_inertia();
+			}
+		}
+		
+		if((flags&PR(Material).ANGDRAG)!=0) {
+			//dependancy checked
+			invalidate_angDrag();
+		}
+	}
+	
+	flibmdel public inline function invalidate_filter() wake()
+	flibmdel public inline function invalidate_fluidprops() {
+		if(fluidEnabled)
+			wake();
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+	flibmdel public inline function wake() {
+		if(body!=null) body.wake();
+	}
+	
+	function new(type:Int) {
+		this.type = type;
+		id = nextId++;
+		aabb = PR(AABB).get(0,0,0,0);
+		aabb.immutable = true;
+		var me = this;
+		aabb._validate = function() {
+			DEBUG(if(me.body==null) throw "Error: bounds only makes sense when Shape belongs to a Body";)
+			me.validate_aabb();
+		};
+		inv(area_inertia) = inv(angDrag) = inv(localCOM) = true;
+		
+		vec_set(localCOM,0,0);
+		vec_set(worldCOM,0,0);
+		
+		fluidEnabled = false;
+		fluidProperties = null;
+		body = null;
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+	public function setMaterial(material:PR(Material)) {
+		if(this.material!=material) {
+			DEBUG(if(!material.shared && !material.shapes.empty())
+				throw "Error: Material cannot be shared unless it's shared property is set";
+			)
+			if(this.material!=null) this.material.remShape(this);
+			this.material = material;
+			material.addShape(this);
+			
+			wake();
+			if(body!=null) body.refreshArbiters();
+		}
+	}
+	
+	public function setFilter(filter:PR(InteractionFilter)) {
+		if(this.filter!=filter) {
+			DEBUG(if(!filter.shared && !filter.shapes.empty())
+				throw "Error: InteractionFilter cannot be shared unless it's shared property is set";
+			)
+			
+			if(this.filter!=null) this.filter.remShape(this);
+			this.filter = filter;
+			filter.addShape(this);
+			
+			wake();
+		}
+	}
+	
+	public function setFluid(fluid:PR(FluidProperties)) {
+		if(fluidProperties != fluid) {
+			DEBUG(if(!fluid.shared && !fluid.shapes.empty())
+				throw "Error: FluidProperties cannot be shared unless it's shared property is set";
+			)
+			if(fluidProperties!=null) fluidProperties.remShape(this);
+			fluidProperties = fluid;
+			fluid.addShape(this);
+			
+			if(fluidEnabled)
+				wake();
+		}
+	}
+
+    public function setCbType(cbType:PR(CbType)) {
+        if(this.cbType != cbType) {
+            if(this.cbType!=null) this.cbType.remShape(this);
+            this.cbType = cbType;
+            cbType.addShape(this);
+
+            wake();
+        }
+    }
+	
+	//----------------------------------------------------------------------------------------------
+	
+	flibmdel public inline function addedToBody() {
+		//dependancy checked
+		invalidate_worldCOM();
+		invalidate_aabb();
+	}
+	flibmdel public inline function removedFromBody() {}
+	
+	public function copy() {
+		var ret:PR(Shape) = null;
+		if(isCircle()) ret = circle.__copy();
+		else ret = polygon.__copy();
+		
+		if(!inv(area_inertia)) {
+			ret.area = area;
+			ret.inertia = inertia;
+		}else ret.invalidate_area_inertia();
+		
+		if(!inv(angDrag))
+			ret.angDrag = angDrag;
+		else ret.invalidate_angDrag();
+		
+		if(!inv(aabb)) {
+			vec_set(ret.aabb.min,aabb.min);
+			vec_set(ret.aabb.max,aabb.max);
+		}else ret.invalidate_aabb();
+		
+		//copied shape has default material/filter allocated, don't need it!
+		ret.material.remShape(ret); Free(PR(Material),ret.material);
+		ret.filter.remShape(ret); Free(PR(InteractionFilter),ret.filter);
+		
+		if(material.shared) ret.material = material;
+		else ret.material = material.copy();
+		ret.material.addShape(ret);
+		
+		if(filter.shared) ret.filter = filter;
+		else ret.filter = filter.copy();
+		ret.filter.addShape(ret);
+		
+		if(fluidProperties!=null) {
+			if(fluidProperties.shared) ret.fluidProperties = fluidProperties;
+			else ret.fluidProperties = fluidProperties.copy();
+			ret.fluidProperties.addShape(ret);
+		}
+		ret.fluidEnabled = fluidEnabled;
+		
+        ret.cbType = cbType;
+        ret.cbType.addShape(ret);
+
+		return ret.outer;
+	}
+}

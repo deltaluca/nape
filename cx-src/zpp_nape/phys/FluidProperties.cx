@@ -1,0 +1,28 @@
+package zpp_nape.phys;
+$(import);
+
+class PR(FluidProperties) {
+	
+	PRFeatureMix(FluidProperties,fluidProperties)
+	
+	flibmdel public inline function copy() {
+		var ret = Get(PR(FluidProperties));
+		ret.viscosity = viscosity;
+		ret.density = density;
+		return ret;
+	}
+	
+	public function new() {
+		feature_cons();
+		density = viscosity = 1;
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+	public var viscosity:Float;
+	public var density:Float;
+	
+	flibmdel public inline function invalidate() {
+		Iter(shape,shapes,shape.invalidate_fluidprops());
+	}
+}

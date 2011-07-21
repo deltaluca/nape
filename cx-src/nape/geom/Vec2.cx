@@ -1,0 +1,165 @@
+package nape.geom;
+$(import);
+
+//use_inline false allows sub-class PR(MixVec2List) to be defined and work transparently.
+WrapList(Vec2,List(PR(Vec2)),Node(PR(Vec2)),$(mixin closure(x) x.wrapper()) $(mixin erusolc(x) x.pr(inner)) $(mixin inline() $(->)) $(mixin use_inline false) $(mixin copy_elt(x) x.copy()))
+
+MixDerivedList(Vec2,MixList(PR(Vec2)),PR(Vec2),$(mixin closure(x) x.wrapper()) $(mixin erusolc(x) x.pr(inner)) $(mixin copy_elt(x) x.copy()))
+
+class Vec2 {
+	public var pr(inner):PR(Vec2);
+	
+	public function new(?x:Float=0, ?y:Float=0) {
+		DEBUG(if(isNaN(x) || isNaN(y)) throw "Error: Vec2 components cannot be NaN";)
+		pr(inner) = PR(Vec2).get(x,y);
+		pr(inner).outer = this;
+	}
+	keep public inline function copy() return new Vec2(x,y)
+	
+	//----------------------------------------------------------------------------------------------
+	
+	#if flash9
+		keep public static function fromPoint(point:flash.geom.Point) {
+			DEBUG(
+				if(point==null) throw "Error: Cannot create Vec2 from null Point object";
+				if(isNaN(point.x) || isNaN(point.y))
+					throw "Error: Error: Vec2 components cannot be NaN";
+			)
+			return new Vec2(point.x,point.y);
+		}
+	#end
+	
+	keep public static function fromPolar(length:Float,angle:Float) {
+		DEBUG(
+			if(isNaN(length)) throw "Error: Vec2::length cannot be NaN";
+			if(isNaN(angle))  throw "Error: Vec2::angle cannot be NaN";
+		)
+		return new Vec2(length*Math.cos(angle),length*Math.sin(angle));
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+	$(mixin comp(n)
+        property(n,Float,{
+            pr(inner).validate();
+            pr(inner).n;
+        },{
+			DEBUG(
+				if(pr(inner).immutable) throw "Error: Vec2 is immutable";
+				if(pr(inner)._immutable!=null) pr(inner)._immutable();
+			)
+			
+			if(this.n!=n) {
+				DEBUG(if(isNaN(n)) throw "Error: Vec2::"+$str(n)+" cannot be NaN";)
+				pr(inner).n = n;
+				pr(inner).invalidate();
+			}
+		})
+	);
+	comp(x)
+	comp(y)
+	
+	//----------------------------------------------------------------------------------------------
+		
+    property(length,Float,vec_length_slow(this.),{
+		DEBUG(
+			if(pr(inner).immutable) throw "Error: Vec2 is immutable";
+		
+			if(isNaN(length)) throw "Error: Vec2::length cannot be NaN";
+			if(vec_lsq(this.)==0) throw "Error: Cannot set length of a zero vector";
+		)
+		vec_muleq(this., length/vec_length_slow(this.));
+		pr(inner).invalidate();
+	})
+	
+	keep public function lsq() return vec_lsq(this.)
+	
+	//----------------------------------------------------------------------------------------------
+	
+	public function set(p:Vec2) {
+		DEBUG(
+			if(pr(inner).immutable) throw "Error: Vec2 is immutable";
+		
+			if(p==null) throw "Error: Cannot assign null Vec2";
+		)
+		return setxy(p.x,p.y);
+	}
+	public function setxy(x:Float,y:Float) {
+		DEBUG(
+			if(pr(inner).immutable) throw "Error: Vec2 is immutable";
+		
+			if(isNaN(x) || isNaN(y)) throw "Error: Vec2 components cannot be NaN";
+		)
+		if(!vec_eq(this.,$(->))) {
+			vec_set(pr(inner).,$(->));
+			pr(inner).invalidate();
+		}
+		return this;
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+    property(angle,Float, {
+		if(x==y && x==0) 0.0 else Math.atan2(y,x);
+	},{
+		DEBUG(
+			if(pr(inner).immutable) throw "Error: Vec2 is immutable";
+		
+			if(isNaN(angle))  throw "Error: Vec2::angle cannot be NaN";
+		)
+		var l = length;
+		setxy(l*Math.cos(angle),l*Math.sin(angle));
+	})
+	
+	//----------------------------------------------------------------------------------------------
+	
+	keep public inline function add  (a:Vec2) {
+		DEBUG(if(a==null) throw "Error: Cannot add null vectors";)
+		return new Vec2(vec_iadd($(->),a.));
+	}
+	keep public inline function sub  (a:Vec2) {
+		DEBUG(if(a==null) throw "Error: Cannot subtract null vectors";)
+		return new Vec2(vec_isub($(->),a.));
+	}
+	keep public inline function mul (s:Float) {
+		DEBUG(if(isNaN(s)) throw "Error: Cannot multiply with NaN";)
+		return new Vec2(vec_imul($(->),s));
+	}
+	keep public inline function addeq(a:Vec2) {
+		DEBUG(
+			if(pr(inner).immutable) throw "Error: Vec2 is immutable";
+			if(a==null) throw "Error: Cannot add null vectors";
+		)
+		return setxy(vec_iadd($(->),a.));
+	}
+	keep public inline function subeq(a:Vec2) {
+		DEBUG(
+			if(pr(inner).immutable) throw "Error: Vec2 is immutable";
+			if(a==null) throw "Error: Cannot subtract null vectors";
+		)
+		return setxy(vec_isub($(->),a.));
+	}
+	keep public inline function muleq(s:Float) {
+		DEBUG(
+			if(pr(inner).immutable) throw "Error: Vec2 is immutable";
+			if(isNaN(s)) throw "Error: Cannot multiply with NaN";
+		)
+		return setxy(vec_imul($(->),s));
+	}
+	keep public inline function dot  (a:Vec2) {
+		DEBUG(if(a==null) throw "Error: Cannot take dot product with null vector";)
+		return vec_dot($(->),a.);
+	}
+	keep public inline function cross(a:Vec2) {
+		DEBUG(if(a==null) throw "Error: Cannot take cross product with null vector";)
+		return vec_cross($(->),a.);
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+	//keep is only for swc, use standard metadata
+	@:$keep public function toString() {
+		pr(inner).validate();
+		return pr(inner).toString();
+	}
+}

@@ -1,0 +1,49 @@
+package zpp_nape.dynamics;
+$(import);
+
+class PR(InteractionFilter) {
+	
+	PRFeatureMix(InteractionFilter,filter)
+	
+	public function new() {
+		feature_cons();
+		collisionGroup = sensorGroup = fluidGroup = 1;
+		collisionMask = sensorMask = fluidMask = -1;
+	}
+	
+	public function copy() {
+		var ret = Get(PR(InteractionFilter));
+		ret.collisionGroup = collisionGroup;
+		ret.collisionMask = collisionMask;
+		ret.sensorGroup = sensorGroup;
+		ret.sensorMask = sensorMask;
+		ret.fluidGroup = fluidGroup;
+		ret.fluidMask = fluidMask;
+		return ret;
+	}
+	
+    //----------------------------------------------------------------------------------------------
+	
+    $(mixin int(n,N)
+        public var n`Group:Int;
+        public var n`Mask :Int;
+
+        public var n`Filter:InteractionFilter->InteractionFilter->Bool;
+
+        flibmdel public inline function should`N(x:PR(InteractionFilter)) {
+            var ret = (n`Group&x.n`Mask)!=0 && (x.n`Group&n`Mask)!=0;
+            return ret && (n`Filter==null || n`Filter(wrapper(),x.wrapper()));
+        }
+    );
+
+    int(collision,Collide)
+    int(sensor,   Sense)
+    int(fluid,    Flow)
+	
+	//----------------------------------------------------------------------------------------------
+
+	public function invalidate() {
+		Iter(s,shapes,s.invalidate_filter());
+	}
+	
+}

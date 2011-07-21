@@ -1,0 +1,89 @@
+package nape.geom;
+$(import);
+
+class RayResult {
+	public var normal:Vec2;
+	public var distance:Float;
+	public var inner:Bool;
+	public var shape:Shape;
+	
+	public function new(normal:Vec2, distance:Float, inner:Bool, shape:Shape) {
+		DEBUG(if(!PR(Ray).internal) throw "Error: RayResult cannot be instantiated derp!";)
+		
+		this.normal = normal.copy();
+		this.distance = distance;
+		this.inner = inner;
+		this.shape = shape;
+	}
+	
+	@:$keep public function toString() {
+		return "{ shape: "+shape+" distance: "+distance +" ?inner: "+inner+" }";
+	}
+}
+
+WrapList(RayResult,List(RayResult),Node(RayResult),$(mixin closure(x) x) $(mixin erusolc(x) x))
+
+class Ray {
+	public var pr(inner):PR(Ray);
+	
+	public var userData:Dynamic;
+	
+	//----------------------------------------------------------------------------
+	
+    property(origin,Vec2,pr(inner).origin,{
+        DEBUG(if(origin==null) throw "Error: Ray::origin cannot be null";)
+		pr(inner).origin.set(origin);
+		vec_set(pr(inner).origin,origin.);
+    })
+
+    property(direction,Vec2,pr(inner).direction,{
+        DEBUG(
+			if(direction==null) throw "Error: Ray::direction cannot be null";
+			if(direction.lsq()<PR(Const).EPSILON) throw "Error: Ray::direction cannot be degenerate";
+		)
+		pr(inner).direction.set(direction);
+		vec_set(pr(inner).dir,pr(inner).direction.);
+		pr(inner).invalidate_dir();
+    })
+	
+    property(maxDistance,Float,pr(inner).maxdist,{
+        DEBUG(if(isNaN(maxDistance)) throw "Error: maxDistance cannot be NaN";)
+		pr(inner).maxdist = maxDistance;
+    })
+	
+	//----------------------------------------------------------------------------
+
+    public function aabb() return pr(inner).rayAABB().wrapper()
+
+    //----------------------------------------------------------------------------
+	
+	public function copy() {
+		var ret = new Ray(origin,direction);
+		ret.maxDistance = maxDistance;
+		return ret;
+	}
+	
+	public function at(distance:Float) {
+		pr(inner).validate_dir();
+		return new Vec2(origin.x+distance*pr(inner).dirx,origin.y+distance*pr(inner).diry);
+	}
+	
+	//----------------------------------------------------------------------------
+	
+	public function new(origin:Vec2, direction:Vec2) {
+		pr(inner) = new PR(Ray)();
+		this.origin = origin;
+		this.direction = direction;
+		pr(inner).maxdist = PR(Const).POSINF;
+	}
+	
+	public static function fromSegment(start:Vec2,end:Vec2) {
+		DEBUG(
+			if(start==null) throw "Error: Ray::fromSegment::start is null";
+			if(end  ==null) throw "Error: Ray::fromSegment::end is null";
+		)
+		var ret = new Ray(start,end.sub(start));
+		ret.maxDistance = Math.sqrt(vec_dsq(start.,end.));
+		return ret;
+	}
+}
