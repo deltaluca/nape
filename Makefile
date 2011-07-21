@@ -1,6 +1,7 @@
+SWFV = 10.3
 
 local: pre_compile
-	haxe -cp src -main DummyNapeMain -swf bin/nape.swf -swf-version 10.3 \
+	haxe -cp src -main DummyNapeMain -swf bin/nape.swf -swf-version $(SWFV) \
 	     -swf-header 600:600:60:333333 \
 	     -D NAPE_ASSERT --no-inline -debug \
 	     -D NAPE_TIMES
@@ -18,30 +19,28 @@ release: pre_compile
 	haxe -cp src -main DummyNapeMain -cpp cpp --no-inline
 #	assert
 	haxe -cp src -main DummyNapeMain -swf bin/release/assert_nape.swc \
-	     -swf-version 10.3 -D swc -D flib -D NAPE_NO_INLINE -D NAPE_ASSERT
+	     -swf-version $(SWFV) -D swc -D flib -D NAPE_NO_INLINE -D NAPE_ASSERT
 	flib bin/release/assert_nape.swc
 	haxe -cp src -main DummyNapeMain -swf bin/release/assert_nape9.swc \
 	     -swf-version 9 -D swc -D flib -D NAPE_NO_INLINE -D NAPE_ASSERT
 	flib bin/release/assert_nape9.swc
 #	debug
 	haxe -cp src -main DummyNapeMain -swf bin/release/debug_nape.swc \
-	     -swf-version 10.3 -D swc -D flib --dead-code-elimination
+	     -swf-version $(SWFV) -D swc -D flib --dead-code-elimination
 	flib bin/release/debug_nape.swc
 	haxe -cp src -main DummyNapeMain -swf bin/release/debug_nape9.swc \
 	     -swf-version 9 -D swc -D flib --dead-code-elimination
 	flib bin/release/debug_nape9.swc
 #	release
 	haxe -cp src -main DummyNapeMain -swf bin/release/release_nape.swc \
-	     -swf-version 10.3 -D swc -D flib --dead-code-elimination \
+	     -swf-version $(SWFV) -D swc -D flib --dead-code-elimination \
 	     -D NAPE_RELEASE_BUILD
 	flib bin/release/release_nape.swc
 	haxe -cp src -main DummyNapeMain -swf bin/release/release_nape9.swc \
-	     -swf-version 10.3 -D swc -D flib --dead-code-elimination \
+	     -swf-version $(SWFV) -D swc -D flib --dead-code-elimination \
 	     -D NAPE_RELEASE_BUILD
 #	tar
-	find src -name "*.hx" -type f | xargs tar cvf bin/release/hx-src.tar
-	rm -f bin/release/hx-src.tar.gz
-	gzip bin/release/hx-src.tar
+	find src -name "*.hx" -type f | xargs tar cvfz bin/release/hx-src.tar.gz
 
 clean:
 	rm -rvf bin/release/
@@ -51,7 +50,4 @@ clean:
 	rm bin/nape.swf
 
 tar:
-	find cx-src -name "*.cx" -type f | xargs tar cvf nape.tar
-	tar rf nape.tar Makefile
-	rm -f nape.tar.gz
-	gzip nape.tar
+	find cx-src -name "*.cx" -type f | xargs tar cvfz nape.tar.gz Makefile
