@@ -30,8 +30,13 @@ class PR(Constraint) {
 	
 	//ignore collisions between bodies
 	public var ignore:Bool;
+
+    //velocity only constraints
+    public var __velocity:Bool;
 	
 	public function new() {
+	    __velocity = false;
+	    
         id = nextId++;
 
 		stiff = true;
@@ -189,6 +194,7 @@ $(mixin global withConstraint(block)
 	//-----------------------------------------------------------
 	
 	$(mixin accum(jAcc,j, constraint) {
+	    assert(!assert_isNaN(j),"accum nan");
 		var jOld = jAcc;
 		jAcc += j;
 		constraint;

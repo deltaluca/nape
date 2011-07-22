@@ -1,0 +1,61 @@
+package nape.constraint;
+$(import);
+
+withConstraint(
+
+class MotorJoint extends Constraint {
+	public var pr(inner_zn):PR(MotorJoint);
+
+	wrap_body_new(body1,b1, $(mixin new(b) pr(inner_zn).b2!=b) new)
+	wrap_body_new(body2,b2, $(mixin new(b) pr(inner_zn).b1!=b) new)
+
+    property(ratio,Float,pr(inner_zn).ratio,{
+		DEBUG(if(isNaN(ratio)) throw "Error: MotorJoint::ratio cannot be NaN";)
+		if(this.ratio != ratio) {
+			pr(inner_zn).ratio = ratio;
+			pr(inner).wake();
+		}
+	})
+	
+    property(rate,Float,pr(inner_zn).rate,{
+        DEBUG(if(isNaN(rate)) throw "Error: MotorJoint::rate cannot be NaN";)
+        if(this.rate != rate) {
+            pr(inner_zn).rate = rate;
+            pr(inner).wake();
+        }
+    })
+	
+	//-----------------------------------
+	
+	public function new(body1:Body, body2:Body, ?rate:Float=0.0, ?ratio:Float=1.0) {
+		DEBUG(try { super(); } catch (e:Dynamic) {})
+		RELEASE(super();)
+		
+		pr(inner_zn) = new PR(MotorJoint)();
+		pr(inner) = pr(inner_zn);
+		pr(inner).outer = this;
+		pr(inner_zn).outer_zn = this;
+		
+		this.body1 = body1;
+		this.body2 = body2;
+        this.rate = rate;
+        this.ratio = ratio;
+	}
+	
+	public override function impulse() {
+		var ret = new MatMN(1,1);
+		ret.setx(0,0, pr(inner_zn).jAcc);
+		return ret;
+	}
+	
+	public override function bodyImpulse(body:Body) {
+		DEBUG(if(body==null) throw "Error: Cannot evaluate impulse on null body";
+			  if(body!=body1 && body!=body2) throw "Error: Body is not linked to this constraint";
+		)
+		if(!active) return new Vec3();
+		else        return pr(inner_zn).bodyImpulse(body.pr(inner));
+	}
+	
+}
+
+)
