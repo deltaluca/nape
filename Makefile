@@ -1,6 +1,7 @@
 SWFV = 10.3
 
 local: pre_compile
+	mkdir -p bin
 	haxe -cp src -main DummyNapeMain -swf bin/nape.swf -swf-version $(SWFV) \
 	     -swf-header 600:600:60:333333 \
 	     -D NAPE_ASSERT --no-inline -debug \
@@ -15,6 +16,7 @@ pre_compile:
 	caxe -o src cx-src -tc 2 --times
 
 release: pre_compile
+	mkdir -p bin/release
 #	cpp
 	haxe -cp src -main DummyNapeMain -cpp cpp --no-inline
 #	assert
