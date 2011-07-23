@@ -159,6 +159,7 @@ class Debug {
     public function drawAABB  (aabb:AABB, colour:Int):Void {}
     
     public function drawFilledTriangle(p0:Vec2, p1:Vec2, p2:Vec2, colour:Int):Void {}
+    public function drawFilledCircle(position:Vec2, radius:Float, colour:Int):Void {}
 
     #end
 }
@@ -228,6 +229,29 @@ class ShapeDebug extends Debug {
         g.lineStyle(0.1,colour&0xffffff,1);
         g.drawRect(aabb.x,aabb.y,aabb.width,aabb.height);
     }
+    
+    public override function drawFilledTriangle(p0:Vec2, p1:Vec2, p2:Vec2, colour:Int) {
+        DEBUG(if(p0==null || p1==null || p2==null) throw "Error: drawFilledTriangle can't use null points";)
+        var g = pr(inner).graphics;
+        g.lineStyle(0,0,0);
+        g.beginFill(colour&0xffffff,1);
+        g.moveTo(p0.x,p0.y);
+        g.lineTo(p1.x,p1.y);
+        g.lineTo(p2.x,p2.y);
+        g.endFill();
+    }
+
+    public override function drawFilledCircle(position:Vec2, radius:Float, colour:Int) {
+        DEBUG(
+            if(position==null) throw "Error: drawFilledCircle::position cannot be null";
+            if(isNaN(radius) || radius<0) throw "Error: drawFilledCircle::radius must be >=0";
+        )
+        var g = pr(inner).graphics;
+        g.lineStyle(0,0,0);
+        g.beginFill(colour&0xffffff,1);
+        g.drawCircle(position.x,position.y,radius);
+        g.endFill();
+    }
 
     ///---------------------------------------------------------------------------------------------
 
@@ -293,7 +317,18 @@ class BitmapDebug extends Debug {
 
     public override function drawFilledTriangle(p0:Vec2, p1:Vec2, p2:Vec2, colour:Int) {
         DEBUG(if(p0==null || p1==null || p2==null) throw "Error: drawFilledTriangle can't use null points";)
-        pr(inner).__tri(p0.pr(inner),p1.pr(inner),p2.pr(inner), colour);
+        pr(inner).__tri(p0,p1,p2, colour);
+    }
+
+    public override function drawFilledCircle(position:Vec2, radius:Float, colour:Int) {
+        DEBUG(
+            if(position==null) throw "Error: drawFilledCircle::position cannot be null";
+            if(isNaN(radius) || radius<0) throw "Error: drawFilledCircle::radius must be >=0";
+        )
+        var x:Int = untyped __int__(position.x+0.5);
+        var y:Int = untyped __int__(position.y+0.5);
+        var r:Int = untyped __int__(radius+0.5);
+        pr(inner).__fcircle(x,y,r, colour|0xff000000);
     }
 
     ///---------------------------------------------------------------------------------------------

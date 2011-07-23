@@ -13,7 +13,7 @@ local: pre_compile
 pre_compile:
 	rm -rf src
 	mkdir src
-	caxe -o src cx-src -tc 2 --times
+	caxe -o src cx-src -tc 4 --times
 
 release: pre_compile
 	mkdir -p bin/release

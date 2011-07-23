@@ -1,9 +1,52 @@
 package zpp_nape.util;
 $(import);
 
+$(define global class Queue(T) {
+    public var nodes:QueueNode(T);
+    
+    public function new() {
+        nodes = new QueueNode(T)(null);
+    }
+    
+    property(length,Int,nodes.length)
+    
+    flibmdel public inline function push    (obj:T) nodes.push    (new QueueNode(T)(obj))
+    flibmdel public inline function push_rev(obj:T) nodes.push_rev(new QueueNode(T)(obj))
+
+    flibmdel public inline function pop    () return nodes.pop    ().elt    
+    flibmdel public inline function pop_rev() return nodes.pop_rev().elt    
+    
+    flibmdel public inline function empty() return nodes.empty()
+    
+    flibmdel public inline function     at(i) return nodes.    at(i).elt
+    flibmdel public inline function rev_at(i) return nodes.rev_at(i).elt
+    
+    @:$keep public function toString() {
+        var ret = "top -> ";
+        for(i in 0...length) {
+            if(i!=0) ret += ", ";
+            ret += at(i).toString();
+        }
+        ret += " <- bot";
+        return ret;
+    }
+});
+
+$(mixin QueueNodeRec(T) QueueNode(T));
+$(define global class QueueNode(T) {
+    QueueMix(QueueNodeRec(T))
+    public var elt:T;
+    
+    public function new(elt:T) this.elt = elt
+});
+
 $(mixin global QueueMix(T)
-    public var prev:T;
     public var next:T;
+    QueueMixNoNext(T)
+);
+
+$(mixin global QueueMixNoNext(T)
+    public var prev:T;
     public var length:Int;
     /*
         for the actual list, next = front, prev = back
@@ -19,6 +62,17 @@ $(mixin global QueueMix(T)
         prev = obj;
         length++;
     }
+    
+    //push to front of queue
+    flibmdel public inline function push_rev(obj:T) {
+        assert(obj!=null,"push_rev null?");
+        if(next!=null) next.prev = obj;
+        else prev = obj;
+        obj.next = next;
+        obj.prev = null;
+        next = obj;
+        length++;
+    }
 
     //pop from front of queue
     flibmdel public inline function pop():T {
@@ -27,6 +81,17 @@ $(mixin global QueueMix(T)
         next = ret.next;
         if(next==null) prev = null;
         else next.prev = null;
+        length--;
+        return ret;
+    }
+    
+    //pop from back of queue
+    flibmdel public inline function pop_rev():T {
+        assert(prev!=null,"empty queue");
+        var ret = prev;
+        prev = ret.prev;
+        if(prev==null) next = null;
+        else prev.next = null;
         length--;
         return ret;
     }
@@ -49,6 +114,37 @@ $(mixin global QueueMix(T)
         }
         //
         length--;
+        return ret;
+    }
+    
+    flibmdel public inline function rotateL() {
+        push(pop());
+    }
+    flibmdel public inline function rotateR() {
+        push_rev(pop_rev());
+    }
+    
+    flibmdel public inline function cycleNext(o:T) {
+        assert(o!=null,"cyclNext null?");
+        if(o.next==null) return next;
+        else return o.next;
+    }
+    flibmdel public inline function cyclePrev(o:T) {
+        assert(o!=null,"cyclPrev null?");
+        if(o.prev==null) return prev;
+        else return o.prev;
+    }
+    
+    flibmdel public inline function at(i:Int) {
+        assert(i>=0 && i<length, "at index bounds");
+        var ret = next;
+        while(i--!=0) ret = ret.next;
+        return ret;
+    }
+    flibmdel public inline function rev_at(i:Int) {
+        assert(i>=0 && i<length, "rev_at index bounds");
+        var ret = prev;
+        while(i--!=0) ret = ret.prev;
         return ret;
     }
 );

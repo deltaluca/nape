@@ -182,7 +182,7 @@ class PR(BitmapDebug) extends PR(Debug) {
         }
     }
     
-    flibmdel public inline function __tri(p0:PR(Vec2),p1:PR(Vec2),p2:PR(Vec2),col:Int) {
+    flibmdel public inline function __tri(p0:Vec2,p1:Vec2,p2:Vec2,col:Int) {
         var p0x = __round(p0.x); var p0y = __round(p0.y);
         var p1x = __round(p1.x); var p1y = __round(p1.y);
         var p2x = __round(p2.x); var p2y = __round(p2.y);
@@ -271,6 +271,38 @@ class PR(BitmapDebug) extends PR(Debug) {
                     setpixel(x0-y,y0+x,col);
                     setpixel(x0-y,y0-x,col);
 
+                    if(p<0) p += 6 + ((x++)<<2);
+                    else    p += 10+ ((x++ - y--)<<2);
+                }
+            }
+        }
+    }
+    
+    flibmdel public inline function __fcircle(x0:Int,y0:Int,radius:Int, col:Int) {
+        if(radius==0) setpixel(x0,y0,col);
+        else {
+            if(radius==1) {
+                setpixel(x0,y0+1,col);
+                setpixel(x0,y0-1,col);
+                setpixel(x0+1,y0,col);
+                setpixel(x0-1,y0,col);
+                setpixel(x0-1,y0-1,col);
+                setpixel(x0-1,y0+1,col);
+                setpixel(x0+1,y0-1,col);
+                setpixel(x0+1,y0+1,col);
+            }else {
+                var x = 0;
+                var y = radius;
+                var p = 3-2*radius;
+                while(y>=x) {
+                    for(ix in x0-x...x0+x+1) {
+                        setpixel(ix,y0-y,col);
+                        setpixel(ix,y0+y,col);
+                    }
+                    for(ix in x0-y...x0+y+1) {
+                        setpixel(ix,y0+x,col);
+                        setpixel(ix,y0-x,col);
+                    }
                     if(p<0) p += 6 + ((x++)<<2);
                     else    p += 10+ ((x++ - y--)<<2);
                 }
