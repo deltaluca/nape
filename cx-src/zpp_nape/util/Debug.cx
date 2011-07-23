@@ -181,6 +181,66 @@ class PR(BitmapDebug) extends PR(Debug) {
             }
         }
     }
+    
+    flibmdel public inline function __tri(p0:PR(Vec2),p1:PR(Vec2),p2:PR(Vec2),col:Int) {
+        var p0x = __round(p0.x); var p0y = __round(p0.y);
+        var p1x = __round(p1.x); var p1y = __round(p1.y);
+        var p2x = __round(p2.x); var p2y = __round(p2.y);
+        
+        //sort vertices
+        $(mixin iswap(a,b) { a ^= b; b ^= a; a ^= b; });
+        if(p1y<p0y) { iswap(p0x,p1x); iswap(p0y,p1y); }
+        if(p2y<p0y) { iswap(p0x,p1x); iswap(p0y,p1y); iswap(p0x,p2x); iswap(p0y,p2y); }
+        if(!(p2y < p0y) && (p2y < p1y)) { iswap(p1x,p2x); iswap(p1y,p2y); }
+        
+        $(mixin scan(x0,y0,x1,y1, u0,v0,u1,v1) {
+            var rx0:Float = x0; var rx1:Float = u0;
+            var m0 = (x1-x0)/(y1-y0);
+            var m1 = (u1-u0)/(v1-v0);
+
+            if(y0<0) {
+                var dy = -y0;
+                rx0 += m0*dy;
+                rx1 += m1*dy;
+                y0 = u0 = 0;
+            }
+            
+            do {
+                var px0 = __round(rx0); if(px0<0) px0 = 0;
+                var px1 = __round(rx1); if(px1>=width) px1 = width-1;
+                
+                if(px0<=px1) {
+                    var ind = index(px0,y0);
+                    do setpix(ind++,col)
+                    while(++px0<=px1);
+                }
+                
+                y0++; v0++;
+                rx0 += m0;
+                rx1 += m1;
+            }while(v0<=v1 && v0<height && y0<=y1);
+            
+            x0 = __round(rx0);
+            u0 = __round(rx1);
+        });
+        
+        var ix = p0x;
+        var iy = p0y;
+        var ux = ix;
+        var uy = iy;
+        //direction
+        if((p0x-p2x)*(p1y-p2y) - (p0y-p2y)*(p1x-p2x) < 0) {
+            //left middle
+            if(p0y!=p1y) scan(ux,uy,p1x,p1y, ix,iy,p2x,p2y);
+            else { ux = p1x; uy = p1y; }
+            if(p1y!=p2y) scan(ux,uy,p2x,p2y, ix,iy,p2x,p2y);
+        }else {
+            //right middle
+            if(p0y!=p1y) scan(ix,iy,p2x,p2y, ux,uy,p1x,p1y);
+            else { ux = p1x; uy = p1y; }
+            if(p1y!=p2y) scan(ix,iy,p2x,p2y, ux,uy,p2x,p2y);
+        }
+    }
 
     ///---------------------------------------------------------------------------------------------
 

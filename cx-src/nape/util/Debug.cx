@@ -157,6 +157,8 @@ class Debug {
     public function drawLine  (start:Vec2, end:Vec2, colour:Int):Void {}
     public function drawCircle(position:Vec2, radius:Float, colour:Int):Void {}
     public function drawAABB  (aabb:AABB, colour:Int):Void {}
+    
+    public function drawFilledTriangle(p0:Vec2, p1:Vec2, p2:Vec2, colour:Int):Void {}
 
     #end
 }
@@ -287,6 +289,11 @@ class BitmapDebug extends Debug {
     public override function drawAABB(aabb:AABB, colour:Int) {
         DEBUG(if(aabb==null) throw "Error: drawAABB::aabb cannot be null";)
         pr(inner).__aabb(aabb.pr(inner), colour);
+    }
+
+    public override function drawFilledTriangle(p0:Vec2, p1:Vec2, p2:Vec2, colour:Int) {
+        DEBUG(if(p0==null || p1==null || p2==null) throw "Error: drawFilledTriangle can't use null points";)
+        pr(inner).__tri(p0.pr(inner),p1.pr(inner),p2.pr(inner), colour);
     }
 
     ///---------------------------------------------------------------------------------------------

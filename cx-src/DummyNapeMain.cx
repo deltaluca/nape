@@ -11,7 +11,211 @@ class DummyNapeMain {
 	static function main() {}
 }
 
-#else
+#elseif true
+
+class Pair<A,B> {
+    public var fst:A;
+    public var snd:B;
+    
+    public function new(fst:A,snd:B) {
+        this.fst = fst;
+        this.snd = snd;
+    }
+}
+
+class GVec2 extends Vec2 {
+    public var hullVertex:Bool;
+    
+    public function new(x:Float,y:Float) {
+        super(x,y);
+        hullVertex = false;
+    }
+}
+
+typedef PairGVec2 = Pair<GVec2,GVec2>;
+
+class GPoly {
+    public var verts:List(GVec2);
+    public var bridges:List(PairGVec2);
+    public var pockets:List(GPoly);
+    
+    public function new() {
+        verts = new List(GVec2)();
+        bridges = new List(PairGVec2)();
+        pockets = new List(GPoly)();
+    }
+    
+    public function convexHull() {
+        var hull = new GPoly();
+        
+        $(mixin isLeft(_u,_v, _p) ({
+            var u = _u; var v = _v; var p = _p;
+            (v.x-u.x)*(p.y-u.y) - (p.x-u.x)*(v.y-u.y);
+        }));
+        
+        return hull;
+    }
+    
+    public function _convexHull() {
+        $(mixin isLeft(_u,_v, _p) ({
+            var u = _u; var v = _v; var p = _p;
+            (v.x-u.x)*(p.y-u.y) - (p.x-u.x)*(v.y-u.y);
+        }));
+    
+        var hull = new ARRAY(GVec2)(2*verts.size()+1, true);
+        
+        //initialise convex hull with first 3 vertices.
+        var bot = verts.size()-2; var top = bot+3;
+        hull[bot] = hull[top] = verts.at(2);
+        if(isLeft(verts.at(0),verts.at(1),verts.at(2)) > 0) {
+            hull[bot+1] = verts.at(0);
+            hull[bot+2] = verts.at(1);
+        }else {
+            hull[bot+1] = verts.at(1);
+            hull[bot+2] = verts.at(0);
+        }
+        
+        //compute hull
+        IterIte(i, verts, verts.iterator_at(3), {
+            //test if next vertex is inside the hull
+            if((isLeft(hull[bot],hull[bot+1],i) > 0) &&
+               (isLeft(hull[top-1],hull[top],i) > 0))
+                cx_continue;
+            
+            //incrementally add an exterior vertex to hull
+            while(isLeft(hull[bot],hull[bot+1],i) <= 0) bot++;
+            hull[--bot] = i;
+            
+            while(isLeft(hull[top-1],hull[top],i) <= 0) top--;
+            hull[++top] = i;
+        });
+        
+        var ret = new GPoly();
+        for(h in 0...(top-bot)) {
+            ret.verts.add(hull[bot+h]);
+            hull[bot+h].hullVertex = true;
+        }
+        
+        //-------------------
+        
+        $(mixin pocket(pre,cx_ite) {
+            var pock = new GPoly();
+            var ite = pre;
+            while(ite!=cx_ite) {
+                pock.verts.add(ite.elem());
+                ite = ite.next;
+                if(ite==null) ite = verts.begin();
+            }
+            pock.verts.add(cx_ite.elem());
+            pockets.add(pock);
+        });
+        
+        var pre:Node(GVec2) = null;
+        var valid:Bool = false;
+        Iter(i, verts, {
+            if(i.hullVertex) {
+                if(pre==null) {
+                    pre = cx_ite;
+                    valid = false;
+                } else if(valid) {
+                    bridges.add(new PairGVec2(pre.elem(),i));
+                    pocket(pre,cx_ite);                    
+                    pre = cx_ite;
+                    valid = false;
+                } else
+                    pre = cx_ite;
+            }else if(pre!=null) valid = true;
+        });
+        var i = verts.front();
+        if(i.hullVertex && pre!=null && valid) {
+            bridges.add(new PairGVec2(pre.elem(),i));
+            pocket(pre,verts.begin());
+        }
+        
+        return ret;
+    }
+    
+    public function isConvex() {
+        var neg = false;
+        var pos = false;
+        Iter3_fast(u,v,w, verts,{
+            vec_new(a); vec_sub(w.,v.,a);
+            vec_new(b); vec_sub(v.,u.,b);
+            var dot = vec_cross(a,b);
+            if(dot> PR(Const).EPSILON) pos = true;
+            if(dot<-PR(Const).EPSILON) neg = true;
+            
+            if(pos&&neg) return false;
+        });
+        
+        return true;
+    }
+    
+    public function area() {
+        var A = 0.0;
+        Iter2(u,v, verts, {
+            A += vec_cross(u.,v.);
+        });
+        return A*0.5;
+    }
+    
+    public function draw(debug:Debug, col:Int) {
+        Iter2(u,v, verts,{
+            debug.drawLine(u,v, col);
+            debug.drawCircle(u,1.5,col);
+            
+            if(u.hullVertex)
+                debug.drawCircle(u,3.5,col);
+        })
+        
+        Iter(p, pockets, {
+            Iter2(u,v, p.verts,{
+                debug.drawLine(u,v,0xff00);
+            });
+        });
+        
+        Iter(b, bridges, {
+            debug.drawLine(b.fst,b.snd,0xff0000);
+        });
+    }
+}
+
+class DummyNapeMain {
+    static function main() {
+        var c = flash.Lib.current;
+        haxe.Log.setColor(0xffffff);
+        
+		var debug = new BitmapDebug(600,600,0x333333);
+        c.addChild(debug.display);
+       
+        var poly = new GPoly();
+        $(mixin v2(x,y) poly.verts.add(new GVec2(x,y)));
+        
+        v2(30,150);
+        v2(50,50);
+        v2(150,70);
+        v2(200,150);
+        v2(250,100);
+        v2(200,30);
+        v2(300,50);
+        v2(400,100);
+        v2(460,300);
+        v2(550,200);
+        v2(550,500);
+        v2(400,350);
+        v2(200,500);
+        v2(100,300);
+        v2(50,350);
+        
+        var hull = poly.convexHull();
+        hull.draw(debug,0x660000);
+        poly.draw(debug,0xffffff);
+        
+        debug.flush();
+    }
+}
+
+#elseif false
 
 class DummyNapeMain {
 	static function main() {
