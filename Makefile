@@ -15,32 +15,31 @@ pre_compile:
 	mkdir src
 	caxe -o src cx-src -tc 2 --times
 
+SWC_FLAGS = -cp src --dead-code-elimination --macro "include('nape')" --macro "include('zpp_nape')" -D flib -D swc
+
+ASSERT_FLAGS  = $(SWC_FLAGS) -D NAPE_NO_INLINE -D NAPE_ASSERT
+DEBUG_FLAGS   = $(SWC_FLAGS)
+RELEASE_FLAGS = $(SWC_FLAGS) -D NAPE_RELEASE_BUILD
+
 release: pre_compile
 	mkdir -p bin/release
 #	cpp
 	haxe -cp src -main DummyNapeMain -cpp cpp --no-inline
 #	assert
-	haxe -cp src -main DummyNapeMain -swf bin/release/assert_nape.swc \
-	     -swf-version $(SWFV) -D swc -D flib -D NAPE_NO_INLINE -D NAPE_ASSERT
+	haxe -swf bin/release/assert_nape.swc -swf-version $(SWFV) $(ASSERT_FLAGS)
 	flib bin/release/assert_nape.swc
-	haxe -cp src -main DummyNapeMain -swf bin/release/assert_nape9.swc \
-	     -swf-version 9 -D swc -D flib -D NAPE_NO_INLINE -D NAPE_ASSERT
+	haxe -swf bin/release/assert_nape9.swc -swf-version 9 $(ASSERT_FLAGS)
 	flib bin/release/assert_nape9.swc
 #	debug
-	haxe -cp src -main DummyNapeMain -swf bin/release/debug_nape.swc \
-	     -swf-version $(SWFV) -D swc -D flib --dead-code-elimination
+	haxe -swf bin/release/debug_nape.swc -swf-version $(SWFV) $(DEBUG_FLAGS)
 	flib bin/release/debug_nape.swc
-	haxe -cp src -main DummyNapeMain -swf bin/release/debug_nape9.swc \
-	     -swf-version 9 -D swc -D flib --dead-code-elimination
+	haxe -swf bin/release/debug_nape9.swc -swf-version 9 $(DEBUG_FLAGS)
 	flib bin/release/debug_nape9.swc
 #	release
-	haxe -cp src -main DummyNapeMain -swf bin/release/release_nape.swc \
-	     -swf-version $(SWFV) -D swc -D flib --dead-code-elimination \
-	     -D NAPE_RELEASE_BUILD
+	haxe -swf bin/release/release_nape.swc -swf-version $(SWFV) $(RELEASE_FLAGS)
 	flib bin/release/release_nape.swc
-	haxe -cp src -main DummyNapeMain -swf bin/release/release_nape9.swc \
-	     -swf-version $(SWFV) -D swc -D flib --dead-code-elimination \
-	     -D NAPE_RELEASE_BUILD
+	haxe -swf bin/release/release_nape9.swc -swf-version 9 $(RELEASE_FLAGS)
+	flib bin/release/release_nape9.swc
 #	tar
 	find src -name "*.hx" -type f | xargs tar cvfz bin/release/hx-src.tar.gz
 
