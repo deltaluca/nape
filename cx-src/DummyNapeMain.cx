@@ -15,11 +15,6 @@ class DummyNapeMain {
 
 class DummyNapeMain {
 	static function main() {
-	}
-}
-
-class DummyNapeMains {
-	static function main() {
         var c = flash.Lib.current;
         haxe.Log.setColor(0xffffff);
 
@@ -39,27 +34,61 @@ class DummyNapeMains {
 
         debug.drawConstraints = true;
         c.stage.quality = flash.display.StageQuality.LOW;
+
+		for(X in 0...3) {
+				var px = 300-150 + 150*X;
+	
+		var tri = new Body(BodyType.STATIC);
+		tri.shapes.add(new Polygon(Polygon.regular(50,50,3)));
+		tri.position.setxy(px,300);
+		tri.space = space;
+
+		var ball = new Body();
+		ball.shapes.add(new Circle(25));
+		ball.space = space;
+
+		var pre = tri;
+		for(i in 0...20) {
+			var link = new Body();
+			link.shapes.add(new Circle(4));
+			link.space = space;
+			link.position.setxy(px+25,300+(i+1)*8);
+
+			var a1 = if(pre==tri) new Vec2(25,0) else new Vec2(0,4);
+			var con = new PivotJoint(pre,link,a1,new Vec2(0,-4));
+			con.space = space;
+			con.ignore = true;
+			pre = link;
+		}
+//		ball.shapes.at(0).material.density /= 4;
+		ball.position.setxy(px+25,300+20*8+4+12.5);
+		var con = new PivotJoint(pre,ball,new Vec2(0,4), new Vec2(0,-25));
+		con.space = space;
+		con.ignore = true;
+		}
+
+		var mcon = new PivotJoint(space.world,space.world, new Vec2(), new Vec2());
+		mcon.stiff = false;
+		mcon.maxForce = 10000;
+		mcon.active = false;
+		mcon.space = space;
+
+		c.stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function (ev) {
+			var pv = new Vec2(c.mouseX,c.mouseY);
+			var bods = space.bodiesUnderPoint(pv);
+			for(b in bods) {
+				if(b.isDynamic()) {
+					mcon.body2 = b;
+					mcon.anchor2 = b.worldToLocal(pv);
+					mcon.active = true;
+					break;
+				}
+			}
+		});
+		c.stage.addEventListener(flash.events.MouseEvent.MOUSE_UP, function (ev) {
+			mcon.active = false;
+		});
         
-        var body = function(x,y,r) {
-            var b = new Body(BodyType.DYNAMIC);
-            b.allowMovement = false;
-            b.position.setxy(x,y);
-            b.shapes.add(new Circle(r));
-            b.space = space;
-            return b;
-        };
-        
-        var b1 = body(100,300,50);
-        var b2 = body(300,300,50);
-        b1.angularVel = 5;
-        
-        var con = new MotorJoint(b1,b2,0,1.5);
-        con.space = space;
-        
-        var con2 = new AngleJoint(b1,b2,0,0);
-        con2.ratio = 1.5;
-        con2.space = space;
-//        con.maxForce = 1000;
 
 		var tim = new haxe.Timer(0);
         tim.run = function() {
@@ -68,7 +97,9 @@ class DummyNapeMains {
             txt.text = "fps: "+Std.string(1/dt).substr(0,5);
             pt = ct;
 
-            space.step(1/60,8,8);
+			mcon.anchor1.setxy(c.mouseX,c.mouseY);
+            space.step(1/120,20,20);
+            space.step(1/120,20,20);
             
             #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
             debug.clear();
