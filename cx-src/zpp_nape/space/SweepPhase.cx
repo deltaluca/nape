@@ -1,0 +1,463 @@
+package zpp_nape.space;
+$(import);
+
+class PR(SweepData) {
+	MixPool(PR(SweepData))
+	public var prev:PR(SweepData);
+	
+	public var shape:PR(Shape);
+	public var aabb:PR(AABB); //=shape.aabb
+	flibmdel public inline function free() {
+		prev = null;
+		shape = null;
+		aabb = null;
+	}
+	flibmdel public inline function alloc() {}
+	
+	public function new() {}
+
+	flibmdel public inline function gt(x:PR(SweepData)) {
+		return aabb.minx > x.aabb.minx;
+	}
+}
+
+
+//1D sweep and prune.
+class PR(SweepPhase) extends PR(Broadphase) {
+	public var list:PR(SweepData);
+
+	public function new(space:PR(Space)) {
+		this.space = space; 
+		is_sweep = true;
+		sweep = this;
+	}
+
+	//======================================================================================
+
+	public inline function __insert(shape:PR(Shape)) {
+		assert(shape.sweep==null,"SweepPhase::insert");
+
+		var dat = Get(PR(SweepData));
+		shape.sweep = dat;
+		dat.shape = shape;
+		dat.aabb = shape.aabb;
+		//insert at beginning, let broadphase deal with it.
+		dat.next = list;
+		if(list!=null) list.prev = dat;
+		list = dat;
+	}
+	public inline function __remove(shape:PR(Shape)) {
+		assert(shape.sweep!=null,"SweepPhase::remove");
+
+		var dat = shape.sweep;
+		if(dat.prev==null) list = dat.next;
+		else dat.prev.next = dat.next;
+		if(dat.next!=null) dat.next.prev = dat.prev;
+		shape.sweep = null;
+		Free(PR(SweepData),dat);
+	}
+
+	//======================================================================================
+
+    public inline function sync_broadphase() {
+        ///TODO: make this use the invalidation system.
+		//validate shape aabb's
+        space.validation();
+        sync_broadphase_fast();
+    }
+
+    public inline function sync_broadphase_fast() {
+        //sort list.
+		var a = list.next;
+		while(a!=null) {
+			var n = a.next;
+			var b = a.prev;
+			if(a.gt(b)) { a = n; continue; }
+			while(b.prev != null && b.prev.gt(a)) b = b.prev;
+			//remove a
+			var prev = a.prev;
+			prev.next = a.next;
+			if(a.next!=null) a.next.prev = prev;
+			//insert a before b
+			if(b.prev==null) {
+				a.prev = null; list = a;
+				a.next = b; b.prev = a;
+			}else {
+				a.prev = b.prev; b.prev = a;
+				a.prev.next = a; a.next = b;
+			}
+			a = n;
+		}
+    }
+
+	public override function broadphase() {
+		if(list!=null) {
+			//validation is already done on aabb's
+			sync_broadphase_fast();
+
+			//collide
+			var d1 = list;
+			while(d1!=null) {
+				var d2 = d1.next;
+                var s1 = d1.shape;
+                var b1 = s1.body;
+
+				var bottom = d1.aabb.maxx;
+				while(d2!=null) {
+					if(d2.aabb.minx > bottom) break;
+					
+					var s2 = d2.shape;
+                    var b2 = s2.body;
+
+                    if(b2==b1) {
+                        d2 = d2.next;
+                        continue;
+                    }
+
+					if(b1.isStatic() && b2.isStatic()) {
+						d2 = d2.next;
+						continue;
+					}
+					if(b1.component.sleeping && b2.component.sleeping) {
+						d2 = d2.next;
+						continue;
+					}
+					if(s1.aabb.intersectY(s2.aabb)) {
+                        space.narrowPhase(s1,s2, !b1.isDynamic()||!b2.isDynamic());
+					}
+					
+					d2 = d2.next;
+				}
+				d1 = d1.next;
+			}
+		}
+	}
+
+	//==============================================================================================
+
+	public override function shapesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)) {
+        sync_broadphase();
+
+		var v = PR(Vec2).get(x,y);
+		var ret = new ShapeList();
+		var a = list;
+		while(a!=null && a.aabb.minx> x) a = a.next;
+		while(a!=null && a.aabb.minx<=x) {
+			if(a.aabb.maxx>=x && a.aabb.miny<=y && a.aabb.maxy>=y) {
+				var shape = a.shape;
+				if(filter==null || shape.filter.shouldCollide(filter)) {
+					if(shape.isCircle()) {
+						if(PR(Collide).circleContains(shape.circle,v))
+							ret.push(shape.outer);
+					}else {
+						if(PR(Collide).polyContains(shape.polygon,v))
+							ret.push(shape.outer);
+					}
+				}
+			}
+			a = a.next;
+		}
+		Free(PR(Vec2),v);
+		return ret;
+	}	
+	public override function bodiesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)) {
+        sync_broadphase();
+
+		var v = PR(Vec2).get(x,y);
+		var ret = new BodyList();
+		var a = list;
+		while(a!=null && a.aabb.minx> x) a = a.next;
+		while(a!=null && a.aabb.minx<=x) {
+			if(a.aabb.maxx>=x && a.aabb.miny<=y && a.aabb.maxy>=y) {
+				var shape = a.shape;
+				var body = shape.body.outer;
+				if(!ret.has(body)) {
+					if(filter==null || shape.filter.shouldCollide(filter)) {
+						if(shape.isCircle()) {
+							if(PR(Collide).circleContains(shape.circle,v))
+								ret.push(body);
+						}else {
+							if(PR(Collide).polyContains(shape.polygon,v))
+								ret.push(body);
+						}
+					}
+				}
+			}
+			a = a.next;
+		}
+		Free(PR(Vec2),v);
+		return ret;
+	}
+
+	//==============================================================================================
+
+	public override function shapesInAABB(aabb:PR(AABB),filter:PR(InteractionFilter)) {
+		sync_broadphase();
+		updateAABBShape(aabb);
+
+		var ab = aabbShape.pr(inner).aabb;
+		var ret = new ShapeList();
+		var a = list;
+		while(a!=null && a.aabb.maxx< ab.minx) a = a.next;
+		while(a!=null && a.aabb.minx<=ab.maxx) {
+			var shape = a.shape;
+			if(filter==null || shape.filter.shouldCollide(filter)) {
+				if(ab.contains(a.aabb))
+					ret.push(shape.outer);
+				else if(a.aabb.intersect(ab)) {
+					if(PR(Collide).testCollide(shape,aabbShape.pr(inner)))
+						ret.push(shape.outer);
+				}
+			}
+			a = a.next;
+		}
+		return ret;
+	}
+	public override function bodiesInAABB(aabb:PR(AABB),filter:PR(InteractionFilter)) {
+		sync_broadphase();
+		updateAABBShape(aabb);
+
+		var ab = aabbShape.pr(inner).aabb;
+		var ret = new BodyList();
+		var a = list;
+		while(a!=null && a.aabb.maxx< ab.minx) a = a.next;
+		while(a!=null && a.aabb.minx<=ab.maxx) {
+			var shape = a.shape;
+			var body = shape.body.outer;
+			if(!ret.has(body)) {
+				if(filter==null || shape.filter.shouldCollide(filter)) {
+					if(ab.contains(a.aabb))
+						ret.push(body);
+					else if(a.aabb.intersect(ab)) {
+						if(PR(Collide).testCollide(shape,aabbShape.pr(inner)))
+							ret.push(body);
+					}
+				}
+			}
+			a = a.next;
+		}
+		return ret;
+	}
+
+	//==============================================================================================
+
+	public override function shapesInCircle(x:Float,y:Float,r:Float,filter:PR(InteractionFilter)) {
+		sync_broadphase();
+		updateCircShape(x,y,r);
+
+		var ab = circShape.pr(inner).aabb;
+		var ret = new ShapeList();
+		var a = list;
+		while(a!=null && a.aabb.maxx< ab.minx) a = a.next;
+		while(a!=null && a.aabb.minx<=ab.maxx) {
+			if(a.aabb.intersect(ab)) {
+				var shape = a.shape;
+				if(filter==null || shape.filter.shouldCollide(filter)) {
+					if(PR(Collide).testCollide(shape,circShape.pr(inner)))
+						ret.push(shape.outer);
+				}
+			}
+			a = a.next;
+		}
+		return ret;
+	}
+	public override function bodiesInCircle(x:Float,y:Float,r:Float,filter:PR(InteractionFilter)) {
+		sync_broadphase();
+		updateCircShape(x,y,r);
+
+		var ab = circShape.pr(inner).aabb;
+		var ret = new BodyList();
+		var a = list;
+		while(a!=null && a.aabb.maxx< ab.minx) a = a.next;
+		while(a!=null && a.aabb.minx<=ab.maxx) {
+			if(a.aabb.intersect(ab)) {
+				var shape = a.shape;
+				var body = shape.body.outer;
+				if(!ret.has(body)) {
+					if(filter==null || shape.filter.shouldCollide(filter)) {
+						if(PR(Collide).testCollide(shape,circShape.pr(inner)))
+							ret.push(body);
+					}
+				}
+			}
+			a = a.next;
+		}
+		return ret;
+	}
+
+	//==============================================================================================
+
+	public override function shapesInShape(shape:PR(Shape),filter:PR(InteractionFilter)) {
+		sync_broadphase();
+		validateShape(shape);
+
+		var ab = shape.aabb;
+		var ret = new ShapeList();
+		var a = list;
+		while(a!=null && a.aabb.maxx< ab.minx) a = a.next;
+		while(a!=null && a.aabb.minx<=ab.maxx) {
+			if(a.aabb.intersect(ab)) {
+				var shape2 = a.shape;
+				if(filter==null || shape2.filter.shouldCollide(filter)) {
+					if(PR(Collide).testCollide(shape2,shape))
+						ret.push(shape2.outer);
+				}
+			}
+			a = a.next;
+		}
+		return ret;
+	}
+	public override function bodiesInShape(shape:PR(Shape),filter:PR(InteractionFilter)) {
+		sync_broadphase();
+		validateShape(shape);
+
+		var ab = shape.aabb;
+		var ret = new BodyList();
+		var a = list;
+		while(a!=null && a.aabb.maxx< ab.minx) a = a.next;
+		while(a!=null && a.aabb.minx<=ab.maxx) {
+			if(a.aabb.intersect(ab)) {
+				var shape2 = a.shape;
+				var body = shape2.body.outer;
+				if(!ret.has(body)) {
+					if(filter==null || shape2.filter.shouldCollide(filter)) {
+						if(PR(Collide).testCollide(shape2,shape))
+							ret.push(body);
+					}
+				}
+			}
+			a = a.next;
+		}
+		return ret;
+	}
+
+	//==============================================================================================
+
+	public override function rayCast(ray:PR(Ray),inner:Bool,filter:PR(InteractionFilter)) {
+        sync_broadphase();
+		ray.validate_dir();
+		
+		var rayab = ray.rayAABB();
+
+		var mint = PR(Const).POSINF;
+		var minres:RayResult = null;
+		//special case for dirx <,=,> 0 to abuse sweep space a little if possible.
+		if(ray.dirx==0) {
+			var a = list;
+			while(a!=null && a.aabb.minx <= rayab.minx) {
+				if(a.aabb.intersect(rayab) && (filter==null || a.shape.filter.shouldCollide(filter))) {
+					var t = ray.aabbsect(a.aabb);
+					if(t>=0 && t<mint) {
+						var result =
+							if(a.shape.isCircle()) ray.circlesect(a.shape.circle,inner,mint)
+							else ray.polysect(a.shape.polygon,inner,mint);
+							
+						if(result!=null) {
+							mint = result.distance;
+							minres = result;
+						}
+					}
+				}
+				a = a.next;
+			}
+		}else if(ray.dirx<0) {
+			var a = list;
+			//use reverse order.
+			var b = null;
+			while(a!=null && a.aabb.minx <= rayab.maxx) { b = a; a = a.next; }
+			a = b;
+			while(a!=null) {
+				if(a.aabb.intersect(rayab) && (filter==null || a.shape.filter.shouldCollide(filter))) {
+					var t = ray.aabbsect(a.aabb);
+					if(t>=0 && t<mint) {
+						var result =
+							if(a.shape.isCircle()) ray.circlesect(a.shape.circle,inner,mint)
+							else ray.polysect(a.shape.polygon,inner,mint);
+							
+						if(result!=null) {
+							mint = result.distance;
+							minres = result;
+						}
+					}
+				}
+				a = a.prev;
+			}
+		}else {
+			var a = list;
+			while(a!=null && a.aabb.minx <= rayab.maxx && a.aabb.minx < ray.originx+ray.dirx*mint) {
+				if(a.aabb.intersect(rayab) && (filter==null || a.shape.filter.shouldCollide(filter))) {
+					var t = ray.aabbsect(a.aabb);
+					if(t>=0 && t<mint) {
+						var result =
+							if(a.shape.isCircle()) ray.circlesect(a.shape.circle,inner,mint)
+							else ray.polysect(a.shape.polygon,inner,mint);
+							
+						if(result!=null) {
+							mint = result.distance;
+							minres = result;
+						}
+					}
+				}
+				a = a.next;
+			}
+		}
+		
+		return minres;
+	}
+	
+	public override function rayMultiCast(ray:PR(Ray),inner:Bool,filter:PR(InteractionFilter)) {
+        sync_broadphase();
+		ray.validate_dir();
+		
+		var rayab = ray.rayAABB();
+
+		var ret = new RayResultList();
+		
+		//special case for dirx <,=,> 0 to abuse sweep space a little if possible.
+		if(ray.dirx==0) {
+			var a = list;
+			while(a!=null && a.aabb.minx <= rayab.minx) {
+				if(a.aabb.intersect(rayab) && (filter==null || a.shape.filter.shouldCollide(filter))) {
+					var t = ray.aabbsect(a.aabb);
+					if(t>=0) {
+						if(a.shape.isCircle()) ray.circlesect2(a.shape.circle,inner,ret);
+						else ray.polysect2(a.shape.polygon,inner,ret);
+					}
+				}
+				a = a.next;
+			}
+		}else if(ray.dirx<0) {
+			var a = list;
+			//use reverse order.
+			var b = null;
+			while(a!=null && a.aabb.minx <= rayab.maxx) { b = a; a = a.next; }
+			a = b;
+			while(a!=null) {
+				if(a.aabb.intersect(rayab) && (filter==null || a.shape.filter.shouldCollide(filter))) {
+					var t = ray.aabbsect(a.aabb);
+					if(t>=0) {
+						if(a.shape.isCircle()) ray.circlesect2(a.shape.circle,inner,ret);
+						else ray.polysect2(a.shape.polygon,inner,ret);
+					}
+				}
+				a = a.prev;
+			}
+		}else {
+			var a = list;
+			while(a!=null && a.aabb.minx <= rayab.maxx) {
+				if(a.aabb.intersect(rayab) && (filter==null || a.shape.filter.shouldCollide(filter))) {
+					var t = ray.aabbsect(a.aabb);
+					if(t>=0) {
+						if(a.shape.isCircle()) ray.circlesect2(a.shape.circle,inner,ret);
+						else ray.polysect2(a.shape.polygon,inner,ret);
+					}
+				}
+				a = a.next;
+			}
+		}
+		
+		return ret;
+	}
+}
+
+

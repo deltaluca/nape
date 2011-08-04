@@ -1,6 +1,11 @@
 package nape.space;
 $(import);
 
+Flags(Broadphase,
+    prop(DYNAMIC_AABB_TREE, 0)
+    prop(SWEEP_AND_PRUNE, 1)
+)
+
 class Space {
 	public var pr(inner):PR(Space);
 	
@@ -12,6 +17,10 @@ class Space {
 	},{
         this.gravity.set(gravity);
     })
+
+	property(broadphase,Broadphase,{
+		pr(inner).bphase.is_sweep ? Broadphase.SWEEP_AND_PRUNE : Broadphase.DYNAMIC_AABB_TREE;
+	})
 	
 	//----------------------------------------------------------------------------------------------
 	
@@ -60,7 +69,7 @@ class Space {
 
 	//----------------------------------------------------------------------------------------------
 	
-	keep public function step(deltaTime:Float, ?velocityIterations:Int = 6, ?positionIterations:Int = 6) {
+	keep public function step(deltaTime:Float, ?velocityIterations:Int = 10, ?positionIterations:Int = 10) {
 		DEBUG(
 			if(isNaN(deltaTime)) throw "Error: deltaTime cannot be NaN"; //TVB is a cunt. ;)
 			if(deltaTime<=0) throw "Error: deltaTime must be strictly positive";
@@ -75,34 +84,79 @@ class Space {
 
 	//----------------------------------------------------------------------------------------------
 
-	public function new(?gravity:Vec2) {
-		pr(inner) = new PR(Space)(gravity==null?null:gravity.pr(inner));
+	public function new(?gravity:Vec2,?broadphase:Broadphase) {
+		pr(inner) = new PR(Space)(gravity==null?null:gravity.pr(inner),broadphase);
 		pr(inner).outer = this;
 	}
 	
 	//----------------------------------------------------------------------------------------------
-	
-	keep public function bodiesUnderPoint(point:Vec2) {
-		DEBUG(if(point==null) throw "Error: Cannot evaluate objects under a null point :)";)
-		return pr(inner).bodiesUnderPoint(point.x,point.y);
+
+	keep public function shapesUnderPoint(point:Vec2,?filter:InteractionFilter=null) {
+		DEBUG(if(point==null) throw "Error: Cannot evaluate shapes under a null point :)";)
+		return pr(inner).shapesUnderPoint(point.x,point.y,filter==null?null:filter.pr(inner));
 	}
-	
-	keep public function bodiesInAABB(aabb:AABB) {
+	keep public function bodiesUnderPoint(point:Vec2,?filter:InteractionFilter=null) {
+		DEBUG(if(point==null) throw "Error: Cannot evaluate objects under a null point :)";)
+		return pr(inner).bodiesUnderPoint(point.x,point.y,filter==null?null:filter.pr(inner));
+	}
+
+	keep public function shapesInAABB(aabb:AABB,?filter:InteractionFilter=null) {
+		DEBUG(
+			if(aabb==null) throw "Error: Cannot evaluate shapes in a null AABB :)";
+			if(aabb.width==0 || aabb.height==0) throw "Error: Cannot evaluate shapes in degenerate AABB :/";
+		)
+		return pr(inner).shapesInAABB(aabb,filter==null?null:filter.pr(inner));
+	}
+	keep public function bodiesInAABB(aabb:AABB,?filter:InteractionFilter=null) {
 		DEBUG(
 			if(aabb==null) throw "Error: Cannot evaluate objects in a null AABB :)";
 			if(aabb.width==0 || aabb.height==0) throw "Error: Cannot evaluate objects in degenerate AABB :/";
 		)
-		return pr(inner).bodiesInAABB(aabb);
+		return pr(inner).bodiesInAABB(aabb,filter==null?null:filter.pr(inner));
 	}
-	
-	keep public function bodiesInCircle(position:Vec2,radius:Float) {
+
+	keep public function shapesInCircle(position:Vec2,radius:Float,?filter:InteractionFilter=null) {
+		DEBUG(
+			if(position==null) throw "Error: Cannot evaluate shapes at null circle :)";
+			if(isNaN(radius))  throw "Error: Circle radius cannot be NaN";
+			if(radius<=0)      throw "Error: Circle radius must be strictly positive";
+		)
+		return pr(inner).shapesInCircle(position,radius,filter==null?null:filter.pr(inner));
+	}
+	keep public function bodiesInCircle(position:Vec2,radius:Float,?filter:InteractionFilter=null) {
 		DEBUG(
 			if(position==null) throw "Error: Cannot evaluate objects at null circle :)";
 			if(isNaN(radius))  throw "Error: Circle radius cannot be NaN";
 			if(radius<=0)      throw "Error: Circle radius must be strictly positive";
 		)
-		return pr(inner).bodiesInCircle(position,radius);
+		return pr(inner).bodiesInCircle(position,radius,filter==null?null:filter.pr(inner));
 	}
+
+	keep public function shapesInShape(shape:Shape,?filter:InteractionFilter=null) {
+		DEBUG(
+			if(shape==null) throw "Error: Cannot evaluate shapes in a null shapes :)";
+			if(shape.body==null) throw "Error: Query shape needs to be inside a Body to be well defined :)";
+			if(shape.isPolygon()) {
+				var res = shape.pr(inner).polygon.valid();
+				if(res!=ValidationResult.VALID)
+					throw "Error: Polygon query shape is invalid : "+res.toString();
+			}
+		)
+		return pr(inner).shapesInShape(shape.pr(inner),filter==null?null:filter.pr(inner));
+	}
+	keep public function bodiesInShape(shape:Shape,?filter:InteractionFilter=null) {
+		DEBUG(
+			if(shape==null) throw "Error: Cannot evaluate bodies in a null shapes :)";
+			if(shape.body==null) throw "Error: Query shape needs to be inside a Body to be well defined :)";
+			if(shape.isPolygon()) {
+				var res = shape.pr(inner).polygon.valid();
+				if(res!=ValidationResult.VALID)
+					throw "Error: Polygon query shape is invalid : "+res.toString();
+			}
+		)
+		return pr(inner).bodiesInShape(shape.pr(inner),filter==null?null:filter.pr(inner));
+	}
+
 	
 	//----------------------------------------------------------------------------------------------
 	

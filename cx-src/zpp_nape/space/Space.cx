@@ -1,25 +1,6 @@
 package zpp_nape.space;
 $(import);
 
-class PR(SweepData) {
-	MixPool(PR(SweepData))
-	public var prev:PR(SweepData);
-	
-	public var shape:PR(Shape);
-	public var aabb:PR(AABB);
-	flibmdel public inline function free() {
-		prev = null;
-		shape = null;
-		aabb = null;
-	}
-	
-	public function new() {}
-
-	flibmdel public inline function gt(x:PR(SweepData)) {
-		return aabb.minx > x.aabb.minx;
-	}
-}
-
 class PR(Island) {
 	MixPoolNoNext(PR(Island))
 	MixListMixin(PR(Island))
@@ -86,7 +67,7 @@ class PR(Space) {
 	
 	public var constraints:List(PR(Constraint));  public var wrap_constraints:ConstraintList;
 	
-	public var sweep:PR(SweepData);
+	public var bphase:PR(Broadphase);
 	
 	public var __static:Body; //for constraint use.
 	
@@ -129,7 +110,12 @@ class PR(Space) {
 	
 	//----------------------------------------------------------------------------------------------
 	
-	public function new(gravity:PR(Vec2)) {
+	public function new(gravity:PR(Vec2),broadphase:Broadphase) {
+		if(broadphase==null || broadphase==Broadphase.DYNAMIC_AABB_TREE)
+			bphase = new PR(DynAABBPhase)(this);
+		elif(broadphase==Broadphase.SWEEP_AND_PRUNE)
+			bphase = new PR(SweepPhase)(this);
+
         time = 0.0;
 		var me = this;
 		
@@ -261,16 +247,9 @@ class PR(Space) {
 	}
 	
 	flibmdel public inline function added_shape(s:PR(Shape)) {
-		var dat = Get(PR(SweepData));
-		s.sweep = dat;
-		dat.shape = s;
-		dat.aabb = s.aabb;
-		//insert at beginning, let broadphase deal with it.
-		dat.next = sweep;
-		if(sweep!=null) sweep.prev = dat;
-		sweep = dat;
 		//wake the object
 		wake(s.body);
+		bphase.insert(s);
 	}
 	flibmdel public inline function removed_shape(s:PR(Shape), ?deleting=false) {
 		var body = s.body;
@@ -297,11 +276,7 @@ class PR(Space) {
 			pre = cx_ite;
 		});
 		
-		var dat = s.sweep;
-		if(dat.prev==null) sweep = dat.next;
-		else dat.prev.next = dat.next;
-		if(dat.next!=null) dat.next.prev = dat.prev;
-		Free(PR(SweepData),dat);
+		bphase.remove(s);
 	}
 	
 	//----------------------------------------------------------------------------------------------
@@ -384,311 +359,42 @@ class PR(Space) {
 	}
 	
 	//----------------------------------------------------------------------------------------------
-	
-	public inline function bodiesUnderPoint(x:Float,y:Float) {
-        sync_broadphase();
 
-		var v = PR(Vec2).get(x,y);
-		var ret = new BodyList();
-		var a = sweep;
-		while(a!=null && a.aabb.minx> x) a = a.next;
-		while(a!=null && a.aabb.minx<=x) {
-			if(a.aabb.maxx>=x && a.aabb.miny<=y && a.aabb.maxy>=y) {
-				var shape = a.shape;
-				var body = shape.body;
-				if(!ret.pr(inner).inner.has(body)) {
-					if(shape.isCircle()) {
-						if(PR(Collide).circleContains(shape.circle,v))
-							ret.push(body.outer);
-					}else {
-						if(PR(Collide).polyContains(shape.polygon,v))
-							ret.push(body.outer);
-					}
-				}
-			}
-			a = a.next;
-		}
-		Free(PR(Vec2),v);
-		return ret;
+	public inline function shapesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)) {
+		return bphase.shapesUnderPoint(x,y,filter);
+	}
+	public inline function bodiesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)) {
+		return bphase.bodiesUnderPoint(x,y,filter);
 	}
 	
-	/**
-		could probably make this more 'effecient' on the polygon init. to avoid use of api.
-		but until someone 'needs' more performance on such a feature which i can't see ever
-		being used heavily, i don't see a need.
-	**/
-	public var aabbShape:Shape;
-	public inline function bodiesInAABB(aabb:AABB) {
-        sync_broadphase();
-
-		if(aabbShape==null) {
-			var body = new Body(BodyType.STATIC);
-			body.shapes.add(aabbShape = new Polygon(Polygon.rect(aabb.x,aabb.y,aabb.width,aabb.height)));
-		}else {
-			var ab = aabbShape.pr(inner).aabb;
-			var sx = aabb.width/ab.width();
-			var sy = aabb.height/ab.height();
-			aabbShape.transform(new Mat23(sx,0,0,sy,aabb.x-sx*ab.minx,aabb.y-sy*ab.miny));
-		}
-		//validate essential properties
-		aabbShape.pr(inner).validate_aabb();
-		aabbShape.pr(inner).polygon.validate_gaxi();
-
-		var ab = aabbShape.pr(inner).aabb;
-		var ret = new BodyList();
-		var a = sweep;
-		while(a!=null && a.aabb.maxx< ab.minx) a = a.next;
-		while(a!=null && a.aabb.minx<=ab.maxx) {
-			if(ab.contains(a.aabb)) {
-				var shape = a.shape;
-				var body = shape.body;
-				if(!ret.pr(inner).inner.has(body))
-					ret.push(body.outer);
-			}
-			else if(a.aabb.intersect(ab)) {
-				var shape = a.shape;
-				var body = shape.body;
-				if(!ret.pr(inner).inner.has(body)) {
-					if(PR(Collide).testCollide(shape,aabbShape.pr(inner)))
-						ret.push(body.outer);
-				}
-			}
-			a = a.next;
-		}
-		return ret;
+	public inline function shapesInAABB(aabb:AABB,filter:PR(InteractionFilter)) {
+		return bphase.shapesInAABB(aabb.pr(inner),filter);
+	}
+	public inline function bodiesInAABB(aabb:AABB,filter:PR(InteractionFilter)) {
+   		return bphase.bodiesInAABB(aabb.pr(inner),filter);
 	}
 	
-	public var circShape:Shape;
-	public inline function bodiesInCircle(pos:Vec2,rad:Float) {
-        sync_broadphase();
+	public inline function shapesInCircle(pos:Vec2,rad:Float,filter:PR(InteractionFilter)) {
+		return bphase.shapesInCircle(pos.x,pos.y,rad,filter);
+	}
+	public inline function bodiesInCircle(pos:Vec2,rad:Float,filter:PR(InteractionFilter)) {
+   		return bphase.bodiesInCircle(pos.x,pos.y,rad,filter);
+	}
 
-		if(circShape==null) {
-			var body = new Body(BodyType.STATIC);
-			body.shapes.add(circShape = new Circle(rad,pos));
-		}else {
-			var ci = circShape.pr(inner).circle;
-			var ss = rad/ci.radius;
-			circShape.transform(new Mat23(ss,0,0,ss,pos.x-ss*ci.localCOMx,pos.y-ss*ci.localCOMy));
-		}
-		//validate essential properties
-		circShape.pr(inner).validate_aabb();
-
-		var ab = circShape.pr(inner).aabb;
-		var ret = new BodyList();
-		var a = sweep;
-		while(a!=null && a.aabb.maxx< ab.minx) a = a.next;
-		while(a!=null && a.aabb.minx<=ab.maxx) {
-			var shape = a.shape;
-			var body = shape.body;
-			if(!ret.pr(inner).inner.has(body)) {
-				if(PR(Collide).testCollide(circShape.pr(inner),shape))
-					ret.push(body.outer);
-			}
-			a = a.next;
-		}
-		return ret;
+	public inline function shapesInShape(shape:PR(Shape),filter:PR(InteractionFilter)) {
+		return bphase.shapesInShape(shape,filter);
+	}
+	public inline function bodiesInShape(shape:PR(Shape),filter:PR(InteractionFilter)) {
+		return bphase.bodiesInShape(shape,filter);
 	}
 	
 	//----------------------------------------------------------------------------------------------
 	
 	public inline function rayCast(ray:Ray,inner:Bool,filter:InteractionFilter) {
-        sync_broadphase();
-		ray.pr(inner).validate_dir();
-		
-		var rayab = ray.pr(inner).rayAABB();
-
-		var mint = PR(Const).POSINF;
-		var minres:RayResult = null;
-		//special case for dirx <,=,> 0 to abuse sweep space a little if possible.
-		if(ray.direction.x==0) {
-			var a = sweep;
-			while(a!=null && a.aabb.minx <= rayab.minx) {
-				if(a.aabb.intersect(rayab) && (filter==null || a.shape.filter.shouldCollide(filter.pr(inner)))) {
-					var t = ray.pr(inner).aabbsect(a.aabb);
-					if(t>=0 && t<mint) {
-						var result =
-							if(a.shape.isCircle()) ray.pr(inner).circlesect(a.shape.circle,inner,mint)
-							else ray.pr(inner).polysect(a.shape.polygon,inner,mint);
-							
-						if(result!=null) {
-							mint = result.distance;
-							minres = result;
-						}
-					}
-				}
-				a = a.next;
-			}
-		}else if(ray.direction.x<0) {
-			var a = sweep;
-			//use reverse order.
-			var b = null;
-			while(a!=null && a.aabb.minx <= rayab.maxx) { b = a; a = a.next; }
-			a = b;
-			while(a!=null) {
-				if(a.aabb.intersect(rayab) && (filter==null || a.shape.filter.shouldCollide(filter.pr(inner)))) {
-					var t = ray.pr(inner).aabbsect(a.aabb);
-					if(t>=0 && t<mint) {
-						var result =
-							if(a.shape.isCircle()) ray.pr(inner).circlesect(a.shape.circle,inner,mint)
-							else ray.pr(inner).polysect(a.shape.polygon,inner,mint);
-							
-						if(result!=null) {
-							mint = result.distance;
-							minres = result;
-						}
-					}
-				}
-				a = a.prev;
-			}
-		}else {
-			var a = sweep;
-			while(a!=null && a.aabb.minx <= rayab.maxx && a.aabb.minx < ray.origin.x+ray.pr(inner).dirx*mint) {
-				if(a.aabb.intersect(rayab) && (filter==null || a.shape.filter.shouldCollide(filter.pr(inner)))) {
-					var t = ray.pr(inner).aabbsect(a.aabb);
-					if(t>=0 && t<mint) {
-						var result =
-							if(a.shape.isCircle()) ray.pr(inner).circlesect(a.shape.circle,inner,mint)
-							else ray.pr(inner).polysect(a.shape.polygon,inner,mint);
-							
-						if(result!=null) {
-							mint = result.distance;
-							minres = result;
-						}
-					}
-				}
-				a = a.next;
-			}
-		}
-		
-		return minres;
+   		return bphase.rayCast(ray.pr(inner),inner,filter==null ? null : filter.pr(inner));
 	}
-	
 	public inline function rayMultiCast(ray:Ray,inner:Bool,filter:InteractionFilter) {
-        sync_broadphase();
-		ray.pr(inner).validate_dir();
-		
-		var rayab = ray.pr(inner).rayAABB();
-
-		var ret = new RayResultList();
-		
-		//special case for dirx <,=,> 0 to abuse sweep space a little if possible.
-		if(ray.direction.x==0) {
-			var a = sweep;
-			while(a!=null && a.aabb.minx <= rayab.minx) {
-				if(a.aabb.intersect(rayab) && (filter==null || a.shape.filter.shouldCollide(filter.pr(inner)))) {
-					var t = ray.pr(inner).aabbsect(a.aabb);
-					if(t>=0) {
-						if(a.shape.isCircle()) ray.pr(inner).circlesect2(a.shape.circle,inner,ret);
-						else ray.pr(inner).polysect2(a.shape.polygon,inner,ret);
-					}
-				}
-				a = a.next;
-			}
-		}else if(ray.direction.x<0) {
-			var a = sweep;
-			//use reverse order.
-			var b = null;
-			while(a!=null && a.aabb.minx <= rayab.maxx) { b = a; a = a.next; }
-			a = b;
-			while(a!=null) {
-				if(a.aabb.intersect(rayab) && (filter==null || a.shape.filter.shouldCollide(filter.pr(inner)))) {
-					var t = ray.pr(inner).aabbsect(a.aabb);
-					if(t>=0) {
-						if(a.shape.isCircle()) ray.pr(inner).circlesect2(a.shape.circle,inner,ret);
-						else ray.pr(inner).polysect2(a.shape.polygon,inner,ret);
-					}
-				}
-				a = a.prev;
-			}
-		}else {
-			var a = sweep;
-			while(a!=null && a.aabb.minx <= rayab.maxx) {
-				if(a.aabb.intersect(rayab) && (filter==null || a.shape.filter.shouldCollide(filter.pr(inner)))) {
-					var t = ray.pr(inner).aabbsect(a.aabb);
-					if(t>=0) {
-						if(a.shape.isCircle()) ray.pr(inner).circlesect2(a.shape.circle,inner,ret);
-						else ray.pr(inner).polysect2(a.shape.polygon,inner,ret);
-					}
-				}
-				a = a.next;
-			}
-		}
-		
-		return ret;
-	}
-	
-	//----------------------------------------------------------------------------------------------
-	
-    public function sync_broadphase() {
-        ///TODO: make this use the invalidation system.
-        validation();
-        sync_broadphase_fast();
-    }
-
-    public function sync_broadphase_fast() {
-        //sort list.
-		var a = sweep.next;
-		while(a!=null) {
-			var n = a.next;
-			var b = a.prev;
-			if(a.gt(b)) { a = n; continue; }
-			while(b.prev != null && b.prev.gt(a)) b = b.prev;
-			//remove a
-			var prev = a.prev;
-			prev.next = a.next;
-			if(a.next!=null) a.next.prev = prev;
-			//insert a before b
-			if(b.prev==null) {
-				a.prev = null; sweep = a;
-				a.next = b; b.prev = a;
-			}else {
-				a.prev = b.prev; b.prev = a;
-				a.prev.next = a; a.next = b;
-			}
-			a = n;
-		}
-    }
-
-	public function broadphase() {
-		if(sweep!=null) {
-			sync_broadphase();
-
-			//collide
-			var d1 = sweep;
-			while(d1!=null) {
-				var d2 = d1.next;
-                var s1 = d1.shape;
-                var b1 = s1.body;
-
-				var bottom = d1.aabb.maxx;
-				while(d2!=null) {
-					if(d2.aabb.minx > bottom) break;
-					
-					var s2 = d2.shape;
-                    var b2 = s2.body;
-
-                    if(b2==b1) {
-                        d2 = d2.next;
-                        continue;
-                    }
-
-					if(b1.isStatic() && b2.isStatic()) {
-						d2 = d2.next;
-						continue;
-					}
-					if(b1.component.sleeping && b2.component.sleeping) {
-						d2 = d2.next;
-						continue;
-					}
-					if(s1.aabb.intersectY(s2.aabb)) {
-                        narrowPhase(s1,s2, !b1.isDynamic()||!b2.isDynamic());
-					}
-					
-					d2 = d2.next;
-				}
-				d1 = d1.next;
-			}
-		}
+   		return bphase.rayMultiCast(ray.pr(inner),inner,filter==null ? null : filter.pr(inner));
 	}
 	
 	//----------------------------------------------------------------------------------------------
@@ -705,7 +411,7 @@ class PR(Space) {
 
     //----------------------------------------------------------------------------------------------
 	
-	public function step(deltaTime:Float, ?velocityIterations:Int=6, ?positionIterations:Int=6) {
+	public function step(deltaTime:Float, velocityIterations:Int, positionIterations:Int) {
         time += deltaTime;
 
         any_handler = false;
@@ -718,7 +424,7 @@ class PR(Space) {
 		validation();
 		
         #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
-		broadphase();
+		bphase.broadphase();
         #if NAPE_TIMES Debug.BROAD += flash.Lib.getTimer()-pt; #end
 
         #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
