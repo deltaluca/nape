@@ -1,67 +1,6 @@
 package zpp_nape.dynamics;
 $(import);
 
-class PR(ArbiterHash) {
-    public var table:ARRAY(PR(Arbiter));
-
-    public function new() {
-        #if flash10
-            table = new flash.Vector<PR(Arbiter)>(0x10000,true);
-        #else
-            table = new Array<PR(Arbiter)>();
-        #end
-    }
-
-    public inline function get(id:Int):PR(Arbiter) {
-        var n = table[hash(id)];
-        if(n==null) return null;
-        else if(n.id == id) return n;
-        else {
-            do n = n.hnext
-            while(n!=null && n.id != id);
-            return n;
-        }
-    }
-
-    public inline function add(arb:PR(Arbiter)) {
-        var h = hash(arb.id);
-        var n = table[h];
-        if(n==null) {
-            table[h] = arb;
-            arb.hnext = null;
-        } else {
-            #if NAPE_ASSERT
-                var nor = n;
-                while(n!=null) {
-                    if(n.id==arb.id) throw "ASSERTION: ArbiterHash already contains arbiter with given id";
-                    n = n.hnext;
-                }
-                n = nor;
-            #end
-            arb.hnext = n.hnext;
-            n.hnext = arb;
-        }
-    }
-
-    public inline function remove(arb:PR(Arbiter)) {
-        var h = hash(arb.id);
-        var n = table[h];
-        if(n==arb) table[h] = n.hnext;
-        else if(n!=null) {
-            var pre:PR(Arbiter);
-            do { pre = n; n = n.hnext; }
-            while(n != null && n != arb);
-            if(n!=null) pre.hnext = n.hnext;
-        }
-        arb.hnext = null;
-    }
-
-    public inline function hash(key:Int) return (key*73856093) & 0xffff
-}
-
-///_________________________________________________________________________________________________
-///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
-
 class PR(Arbiter) {
 	public var outer:Arbiter;
 

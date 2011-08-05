@@ -1,0 +1,73 @@
+package zpp_nape.util;
+$(import);
+
+$(define global class FastHash(T) {
+    public var table:ARRAY(T);
+
+    public function new() {
+        #if flash10
+            table = new flash.Vector<T>(0x10000,true);
+        #else
+            table = new Array<T>();
+        #end
+    }
+
+    public inline function get(id:Int):T {
+        var n = table[hash(id)];
+        if(n==null) return null;
+        else if(n.id == id) return n;
+        else {
+            do n = n.hnext
+            while(n!=null && n.id != id);
+            return n;
+        }
+    }
+
+	public inline function has(id:Int):Bool {
+		var n = table[hash(id)];
+		if(n==null) return false;
+		else if(n.id == id) return true;
+		else {
+			do n = n.hnext
+			while(n!=null && n.id!=id);
+			return n!=null;
+		}
+	}
+
+    public inline function add(arb:T) {
+	    assert(arb!=null,"cannot add null to hash");
+        var h = hash(arb.id);
+        var n = table[h];
+        if(n==null) {
+            table[h] = arb;
+            arb.hnext = null;
+        } else {
+            #if NAPE_ASSERT
+                var nor = n;
+                while(n!=null) {
+                    if(n.id==arb.id) throw "ASSERTION: FastHash("+$str(T)+") already contains object with given id";
+                    n = n.hnext;
+                }
+                n = nor;
+            #end
+            arb.hnext = n.hnext;
+            n.hnext = arb;
+        }
+    }
+
+    public inline function remove(arb:T) {
+		assert(arb!=null,"cannot remove null from hash");
+        var h = hash(arb.id);
+        var n = table[h];
+        if(n==arb) table[h] = n.hnext;
+        else if(n!=null) {
+            var pre:T;
+            do { pre = n; n = n.hnext; }
+            while(n != null && n != arb);
+            if(n!=null) pre.hnext = n.hnext;
+        }
+        arb.hnext = null;
+    }
+
+    public inline function hash(key:Int) return (key*73856093) & 0xffff
+});
