@@ -18,7 +18,8 @@ class DummyNapeMain {
         var c = flash.Lib.current;
         haxe.Log.setColor(0xffffff);
 
-		var space = new Space(new Vec2(0,400),Broadphase.SWEEP_AND_PRUNE);
+		//var space = new Space(new Vec2(0,400),Broadphase.SWEEP_AND_PRUNE);
+		var space = new Space(new Vec2(0,400),Broadphase.DYNAMIC_AABB_TREE);
 		var debug = new BitmapDebug(600,600,0x333333);
         c.addChild(debug.display);
 		
@@ -35,7 +36,7 @@ class DummyNapeMain {
         debug.drawConstraints = true;
         c.stage.quality = flash.display.StageQuality.LOW;
 
-		for(X in 0...3) {
+		for(X in 0...1) {
 				var px = 300-150 + 150*X;
 	
 		var tri = new Body(BodyType.STATIC);
@@ -45,7 +46,6 @@ class DummyNapeMain {
 
 		var ball = new Body();
 		ball.shapes.add(new Circle(25));
-		ball.space = space;
 
 		var pre = tri;
 		for(i in 0...20) {
@@ -62,6 +62,7 @@ class DummyNapeMain {
 		}
 //		ball.shapes.at(0).material.density /= 4;
 		ball.position.setxy(px+25,300+20*8+4+12.5);
+		ball.space = space;
 		var con = new PivotJoint(pre,ball,new Vec2(0,4), new Vec2(0,-25));
 		con.space = space;
 		con.ignore = true;
