@@ -7,6 +7,7 @@ class PR(AABBNode) {
 	public var shape:PR(Shape);
 
 	//tree links
+	public var dyn:Bool; //dtree or stree
 	public var parent:PR(AABBNode);
 	public var child1:PR(AABBNode);
 	public var child2:PR(AABBNode);
@@ -252,23 +253,126 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 		this.space = space;
 		is_sweep = false;
 		dynab = this;
+
+		stree = new PR(AABBTree)();
+		dtree = new PR(AABBTree)();
+	}
+
+	//==============================================================
+
+	public inline function dyn(shape:PR(Shape)) {
+		if(shape.body.isStatic()) return false;
+		else return !shape.body.component.sleeping;
 	}
 
 	//==============================================================
 
 	public inline function __insert(shape:PR(Shape)) {
 		assert(shape.node==null,"shape has been inserted already");
+		assert(shape.body!=null,"shape inserted with no body");
+
 		var node = Get(PR(AABBNode));
 		node.shape = shape;
 		shape.node = node;
 
+		shape.validate_aabb();
 		node.aabb.set_expand(shape.aabb,FATTEN);
 		node.height = 0;
+
+		if(node.dyn = dyn(shape))
+			 dtree.insertLeaf(node);
+		else stree.insertLeaf(node);
 	}
 	public inline function __remove(shape:PR(Shape)) {
+		assert(shape.node!=null,"shape has not been inserted yet");
+		assert(shape.body!=null,"do i need this assertion?");
+
+		var node = shape.node;
+		if(node.dyn) dtree.removeLeaf(node);
+		else         stree.removeLeaf(node);
+		Free(PR(AABBNode),node);
+
+		shape.node = null;
 	}
-	public inline function __sync  (shape:PR(Shape)) {
+	public inline function __sync(shape:PR(Shape)) {
+		assert(shape.node!=null,"shape not inserted yet for sync");
+		assert(!shape.body.isStatic(),"static shape being synced?");
+
+		var node = shape.node;
+		shape.validate_aabb();
+		var sync = !(node.dyn && node.aabb.contains(shape.aabb));
+		if(sync) {
+			if(node.dyn) dtree.removeLeaf(node);
+			else         stree.removeLeaf(node);
+
+			var aabb = node.aabb;
+			aabb.set_expand(shape.aabb,FATTEN);
+		
+			//handle sync due to body falling asleep	
+			if(node.dyn = dyn(shape))
+				 dtree.insertLeaf(node);
+			else stree.insertLeaf(node);
+		}
     }	
 
+	//==============================================================
+
+	public override function broadphase() {
+	}
+
+	//==============================================================
+
+	//iterate tree, descending into a subtree only if condition is true
+	//execute block on each leaf shape.
+	$(mixin Iter(tree,condition,block) {
+		var stack = new List(PR(AABBNode))();
+		stack.add(tree.root);
+		while(!stack.empty()) {
+			var node = stack.pop_unsafe();
+			assert(node!=null,"null node");
+			if(condition(node)) {
+				if(node.isLeaf()) {
+					block(node.shape);
+				}else {
+					if(node.child1!=null) stack.add(node.child1);
+					if(node.child2!=null) stack.add(node.child2);
+				}
+			}
+		}
+	});
+
+	//==============================================================
+
+	//iterate for leaves containing given point
+	$(mixin IterPoint(tree,point,block) Iter(tree,$(mixin cond(node) node.aabb.containsPoint(point)) cond, block));
+
+	public override function bodiesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)) {
+		var v = PR(Vec2).get(x,y);
+		var ret = new BodyList();
+
+		$(mixin dotree(tree) {
+			IterPoint(tree,v, $(mixin block(shape) {
+				var body = shape.body.outer;
+				if(!ret.has(body)) {
+					if(filter==null || shape.filter.shouldCollide(filter)) {
+		                if(shape.isCircle()) {
+	                        if(PR(Collide).circleContains(shape.circle,v))
+	                            ret.push(body);
+	                    }else {
+	                        if(PR(Collide).polyContains(shape.polygon,v))
+	                            ret.push(body);
+	                    }
+					}
+				}
+			}) block)
+		});
+		dotree(stree)
+		dotree(dtree)
+
+		Free(PR(Vec2),v);
+		return ret;
+	}
+
+	//==============================================================
 	//==============================================================
 }

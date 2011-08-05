@@ -477,6 +477,11 @@ class PR(Space) {
 				if(cur.pre_rot!=cur.rot)
 					cur.invalidate_rot();
 				cur.pre_rot = cur.rot;
+
+				//OMG THIS IS SO BAD PLEASE CHANGE THIS
+				if(!bphase.is_sweep)
+					Iter(shape,cur.shapes,bphase.sync(shape))
+				//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 			});
 		});
 		doit2(kinematics);
@@ -622,6 +627,10 @@ class PR(Space) {
 	
 	public function wake(o:PR(Body),?fst=false) {
 		if(!o.world) {
+			//OMG THIS IS SO BAD. PLEASE PLEASE CHANGE THIS
+			if(!fst && !bphase.is_sweep)
+				Iter(shape, o.shapes, if(shape.node!=null) bphase.sync(shape));
+			//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 			o.component.waket = stamp+1;
 			if(o.component.sleeping) {
 				if(o.component.island==null) {
