@@ -1,8 +1,252 @@
 package zpp_nape.space;
 $(import);
 
+class PR(AABBNode) {
+	//fattened AABB
+	public var aabb :PR(AABB);
+	public var shape:PR(Shape);
+
+	//tree links
+	public var parent:PR(AABBNode);
+	public var child1:PR(AABBNode);
+	public var child2:PR(AABBNode);
+
+	//sub-tree height
+	public var height:Int;
+
+	public function new() {
+		height = -1;
+	}
+
+	MixPool(PR(AABBNode))
+	flibmdel public inline function alloc() {
+		aabb = Get(PR(AABB));
+		child1 = child2 = parent = null;
+		next = null;
+		marked = false;
+	}
+	flibmdel public inline function free() {
+		height = -1;
+		Free(PR(AABB),aabb);
+	}
+
+	//used in maintaining list of objects that have been re-inserted
+	//for updating interaction pairs
+	public var mnext:PR(AABBNode);
+	public var marked:Bool;
+
+	flibmdel public inline function isLeaf() return child1==null
+}
+
+class PR(AABBPair) {
+	public var n1:PR(AABBNode);
+	public var n2:PR(AABBNode);
+
+	//for hash
+	public var id:Int;
+	public var hnext:PR(AABBPair);
+
+	MixPool(PR(AABBPair))
+	public function new() {}
+	flibmdel public inline function alloc() {}
+	flibmdel public inline function free () {}
+}
+
+class PR(AABBTree) {
+	public var root:PR(AABBNode);
+	public function new() {}
+
+    //----------------------------------------------------------------------------------------------
+    
+    public static var tmpaabb = new PR(AABB)();
+    flibmdel public function insertLeaf(leaf:PR(AABBNode)) {
+/*        //add to move stack.
+        if(!leaf.marked) {
+            leaf.mnext = movestack;
+            movestack = leaf;
+            leaf.marked = true;
+        }
+  */  
+        if(root==null) {
+            root = leaf;
+            root.parent = null;
+        }else {
+            var leafaabb = leaf.aabb;
+            var node = root;
+            while(!node.isLeaf()) {
+                var child1 = node.child1;
+                var child2 = node.child2;
+                
+                var area = node.aabb.perimeter();
+                tmpaabb.set_combine(node.aabb,leafaabb);
+                var carea = tmpaabb.perimeter();
+                
+                //cost of creating a new parent for this node and the new leaf
+                var cost = 2*carea;
+                //min. cost of pushing the leaf further down the tree
+                var icost = 2*(carea - area);
+                
+                //cost of descending into child
+                $(mixin cost_descend(child) ({
+                    tmpaabb.set_combine(leafaabb,child.aabb);
+                    if(child.isLeaf()) tmpaabb.perimeter() + icost;
+                    else {
+                        var oarea = child.aabb.perimeter();
+                        var narea = tmpaabb.perimeter();
+                        (narea - oarea) + icost;
+                    }
+                }));
+                
+                var cost1 = cost_descend(child1);
+                var cost2 = cost_descend(child2);
+                
+                //descend according to min. cost
+                if(cost < cost1 && cost < cost2) break;
+                else node = cost1 < cost2 ? child1 : child2;
+            }
+            
+            var sibling = node;
+            
+            //create a new parent
+            var oparent = sibling.parent;
+            var nparent = Get(PR(AABBNode));
+            nparent.parent = oparent;
+            nparent.aabb.set_combine(leafaabb,sibling.aabb);
+            nparent.height = sibling.height + 1;
+            
+            if(oparent != null) {
+                //sibling not the root
+                if(oparent.child1 == sibling)
+                     oparent.child1 = nparent;
+                else oparent.child2 = nparent;
+                
+                nparent.child1 = sibling;
+                nparent.child2 = leaf;
+                sibling.parent = nparent;
+                leaf.parent = nparent;
+            }else {
+                //sibling is the root.
+                nparent.child1 = sibling;
+                nparent.child2 = leaf;
+                sibling.parent = nparent;
+                leaf.parent = nparent;
+                root = nparent;
+            }
+            
+            //walk back up the tree fixing heights and aabbs
+            node = leaf.parent;
+            while(node != null) {
+                node = balance(node);
+                
+                var child1 = node.child1;
+                var child2 = node.child2;
+                node.height = 1 + max(child1.height, child2.height);
+                node.aabb.set_combine(child1.aabb,child2.aabb);
+                
+                node = node.parent;
+            }
+        }
+    }
+
+    flibmdel public function removeLeaf(leaf:PR(AABBNode)) {
+        if(leaf==root) {
+            root = null;
+            return;
+        }else {
+            var parent = leaf.parent;
+            var gparent = parent.parent;
+            var sibling = if(parent.child1==leaf) parent.child2 else parent.child1;
+            
+            if(gparent != null) {
+                //destroy parent and connect sibling to gparent
+                if(gparent.child1==parent)
+                     gparent.child1 = sibling;
+                else gparent.child2 = sibling;
+                sibling.parent = gparent;
+                
+                Free(PR(AABBNode),parent);
+                
+                //adjust ancestor bounds.
+                var node = gparent;
+                while(node != null) {
+                    node = balance(node);
+                    
+                    var child1 = node.child1;
+                    var child2 = node.child2;
+                    
+                    node.aabb.set_combine(child1.aabb,child2.aabb);
+                    node.height = 1 + max(child1.height, child2.height);
+                    node = node.parent;
+                }
+            }else {
+                root = sibling;
+                sibling.parent = null;
+                
+                Free(PR(AABBNode),parent);
+            }
+        }
+    }
+    
+    flibmdel public inline function balance(a:PR(AABBNode)) {
+        if(a.isLeaf() || a.height < 2) return a;
+        else {
+            var b = a.child1;
+            var c = a.child2;
+            
+            //rotate b or c up, with childN corresponding to child1/child2 for b/c
+            $(mixin rotate_up(rot,other, childN) {
+                var f = rot.child1;
+                var g = rot.child2;
+                
+                //swap a<->rot
+                rot.child1 = a;
+                rot.parent = a.parent;
+                a.parent = rot;
+                
+                //a's old parent should point to rot
+                if(rot.parent != null) {
+                    if(rot.parent.child1 == a)
+                         rot.parent.child1 = rot;
+                    else rot.parent.child2 = rot;
+                }else root = rot;
+                
+                //rotate
+                $(mixin rotate(f,g) {
+                    rot.child2 = f;
+                    a.childN = g;
+                    g.parent = a;
+                    a.aabb.  set_combine(other.aabb,g.aabb);
+                    rot.aabb.set_combine(a.aabb,    f.aabb);
+                    
+                    a.  height = 1 + max(other.height, g.height);
+                    rot.height = 1 + max(a.height,     f.height);
+                });
+                if(f.height > g.height)
+                     rotate(f,g);
+                else rotate(g,f);
+                
+                return rot;
+            });
+            
+            var balance = c.height - b.height;
+            if  (balance > 1) rotate_up(c,b,child2);
+            elif(balance <-1) rotate_up(b,c,child1);
+            else return a;
+        }
+    }
+
+}
+
 //Double Dynamic AABB tree.
 class PR(DynAABBPhase) extends PR(Broadphase) {
+	inline static var FATTEN = 3.5;
+	
+	//note kinematics are treat no differently here than dynamics
+	public var stree:PR(AABBTree); //for static/sleeping objects
+	public var dtree:PR(AABBTree); //for non-static, non-sleeping objects
+
+	public var pairs:PR(AABBPair); //intrusive list
+	public var pairhash:FastHash(PR(AABBPair));
 
 	public function new(space:PR(Space)) {
 		this.space = space;
@@ -13,6 +257,13 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 	//==============================================================
 
 	public inline function __insert(shape:PR(Shape)) {
+		assert(shape.node==null,"shape has been inserted already");
+		var node = Get(PR(AABBNode));
+		node.shape = shape;
+		shape.node = node;
+
+		node.aabb.set_expand(shape.aabb,FATTEN);
+		node.height = 0;
 	}
 	public inline function __remove(shape:PR(Shape)) {
 	}

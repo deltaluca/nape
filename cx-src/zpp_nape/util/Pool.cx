@@ -25,12 +25,14 @@ $(mixin global MixPoolNoNext(T)
 );
 
 $(mixin global Get(T) {
-	if(T.pr(pool)==null) new T();
+	var ret:T;
+	if(T.pr(pool)==null) ret = new T();
 	else {
-		var ret = T.pr(pool);
+		ret = T.pr(pool);
 		T.pr(pool) = ret.next;
-		ret;
 	}
+	ret.alloc();
+	ret;
 });
 $(mixin global Free(T,O) {
 	var o = O;

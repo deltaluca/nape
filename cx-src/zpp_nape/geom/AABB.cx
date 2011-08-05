@@ -28,6 +28,7 @@ class PR(AABB) {
 	//----------------------------------------------------------------------------------------------
 	
 	MixPool(PR(AABB))
+	flibmdel public inline function alloc() {}
 	flibmdel public inline function free() {
 		outer = null;
 		wrap_min = wrap_max = null; //??? not right, should be able to recycle.
@@ -48,6 +49,8 @@ class PR(AABB) {
 	
 	flibmdel public inline function width () return maxx-minx
 	flibmdel public inline function height() return maxy-miny
+
+	flibmdel public inline function perimeter() return (width()+height())*2
 	
 	//----------------------------------------------------------------------------------------------
 	
@@ -101,6 +104,20 @@ class PR(AABB) {
 	
 	flibmdel public inline function contains(x:PR(AABB)) {
 		return x.minx >= minx && x.miny >= miny && x.maxx <= maxx && x.maxy <= maxy;
+	}
+
+	flibmdel public inline function set_combine(a:PR(AABB),b:PR(AABB)) {
+		minx = if(a.minx<b.minx) a.minx else b.minx;
+		miny = if(a.miny<b.miny) a.miny else b.miny;
+		maxx = if(a.maxx>b.maxx) a.maxx else b.maxx;
+		maxy = if(a.maxy>b.maxy) a.maxy else b.maxy;
+	}
+
+	flibmdel public inline function set_expand(a:PR(AABB),fatten:Float) {
+		minx = a.minx - fatten;
+		miny = a.miny - fatten;
+		maxx = a.maxx + fatten;
+		maxy = a.maxy + fatten;
 	}
 	
 	//----------------------------------------------------------------------------------------------
