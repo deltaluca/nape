@@ -205,7 +205,7 @@ class PR(SweepPhase) extends PR(Broadphase) {
 				if(ab.contains(a.aabb))
 					ret.push(shape.outer);
 				else if(a.aabb.intersect(ab)) {
-					if(PR(Collide).testCollide(shape,aabbShape.pr(inner)))
+					if(PR(Collide).testCollide_safe(shape,aabbShape.pr(inner)))
 						ret.push(shape.outer);
 				}
 			}
@@ -229,7 +229,7 @@ class PR(SweepPhase) extends PR(Broadphase) {
 					if(ab.contains(a.aabb))
 						ret.push(body);
 					else if(a.aabb.intersect(ab)) {
-						if(PR(Collide).testCollide(shape,aabbShape.pr(inner)))
+						if(PR(Collide).testCollide_safe(shape,aabbShape.pr(inner)))
 							ret.push(body);
 					}
 				}
@@ -253,7 +253,7 @@ class PR(SweepPhase) extends PR(Broadphase) {
 			if(a.aabb.intersect(ab)) {
 				var shape = a.shape;
 				if(filter==null || shape.filter.shouldCollide(filter)) {
-					if(PR(Collide).testCollide(shape,circShape.pr(inner)))
+					if(PR(Collide).testCollide_safe(shape,circShape.pr(inner)))
 						ret.push(shape.outer);
 				}
 			}
@@ -275,7 +275,7 @@ class PR(SweepPhase) extends PR(Broadphase) {
 				var body = shape.body.outer;
 				if(!ret.has(body)) {
 					if(filter==null || shape.filter.shouldCollide(filter)) {
-						if(PR(Collide).testCollide(shape,circShape.pr(inner)))
+						if(PR(Collide).testCollide_safe(shape,circShape.pr(inner)))
 							ret.push(body);
 					}
 				}
@@ -299,7 +299,7 @@ class PR(SweepPhase) extends PR(Broadphase) {
 			if(a.aabb.intersect(ab)) {
 				var shape2 = a.shape;
 				if(filter==null || shape2.filter.shouldCollide(filter)) {
-					if(PR(Collide).testCollide(shape2,shape))
+					if(PR(Collide).testCollide_safe(shape2,shape))
 						ret.push(shape2.outer);
 				}
 			}
@@ -321,7 +321,7 @@ class PR(SweepPhase) extends PR(Broadphase) {
 				var body = shape2.body.outer;
 				if(!ret.has(body)) {
 					if(filter==null || shape2.filter.shouldCollide(filter)) {
-						if(PR(Collide).testCollide(shape2,shape))
+						if(PR(Collide).testCollide_safe(shape2,shape))
 							ret.push(body);
 					}
 				}

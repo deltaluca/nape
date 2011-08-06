@@ -434,7 +434,7 @@ $(mixin pr_debug(utils)
     flibmdel public inline function draw_body(body:PR(Body)) {
         Iterate(body.shapes, draw_shape);
         if(outer.drawBodyDetail) {
-            var col = __colour(body.id, body.outer.isSleeping);
+            var col = __colour(body.id, body.space!=null && body.outer.isSleeping);
             body.validate_worldCOM();
             __lineStyle(0.1,__tint(col,0xff0000,0.8),1);
             __drawCircle(body.worldCOMx,body.worldCOMy,1);
@@ -446,7 +446,7 @@ $(mixin pr_debug(utils)
         var col = __colour(shape.id,false);
         var body = shape.body;
         if(body!=null) {
-            var bcol = __colour(body.id, body.outer.isSleeping);
+            var bcol = __colour(body.id, body.space!=null && body.outer.isSleeping);
             col = __tint(col,bcol,0.2);
             __lineStyle(0.1,col,1.0);
 

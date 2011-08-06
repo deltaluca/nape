@@ -381,6 +381,7 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 			node.first_sync = false;
 
 		var aabb = node.aabb;
+		assert(!shape.inv(aabb),"shape aabb invalidated still");
 		aabb.set_expand(shape.aabb,FATTEN);
 
 		//add a velocity contribution
@@ -627,5 +628,144 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 	}
 
 	//==============================================================
+
+	//iterate over leaves intersecting given aabb
+	$(mixin IterAABB(tree,AABB,block) IterTree(tree,$(mixin cond(node) node.aabb.intersect(AABB)) cond, block));
+
+	public override function shapesInAABB(aabb:PR(AABB), filter:PR(InteractionFilter)) {
+		sync_broadphase();
+		updateAABBShape(aabb);
+
+		var ab = aabbShape.pr(inner).aabb;
+		var ret = new ShapeList();
+		
+		$(mixin dotree(tree) {
+			IterAABB(tree,ab, $(mixin block(shape) {
+				if(filter==null || shape.filter.shouldCollide(filter)) {
+					if(ab.contains(shape.aabb))
+						ret.push(shape.outer);
+					else if(PR(Collide).testCollide_safe(shape,aabbShape.pr(inner)))
+						ret.push(shape.outer);
+				}
+			}) block)
+		});
+		dotree(stree)
+		dotree(dtree)
+		return ret;
+	}
+
+	public override function bodiesInAABB(aabb:PR(AABB), filter:PR(InteractionFilter)) {
+		sync_broadphase();
+		updateAABBShape(aabb);
+
+		var ab = aabbShape.pr(inner).aabb;
+		var ret = new BodyList();
+		
+		$(mixin dotree(tree) {
+			IterAABB(tree,ab, $(mixin block(shape) {
+				var body = shape.body.outer;
+				if(!ret.has(body)) {
+					if(filter==null || shape.filter.shouldCollide(filter)) {
+						if(ab.contains(shape.aabb))
+							ret.push(body);
+						else if(PR(Collide).testCollide_safe(shape,aabbShape.pr(inner)))
+							ret.push(body);
+					}
+				}
+			}) block)
+		});
+		dotree(stree)
+		dotree(dtree)
+		return ret;
+	}
+
 	//==============================================================
+
+	public override function shapesInCircle(x:Float,y:Float,r:Float, filter:PR(InteractionFilter)) {
+		sync_broadphase();
+		updateCircShape(x,y,r);
+
+		var ab = circShape.pr(inner).aabb;
+		var ret = new ShapeList();
+		
+		$(mixin dotree(tree) {
+			IterAABB(tree,ab, $(mixin block(shape) {
+				if(filter==null || shape.filter.shouldCollide(filter)) {
+					if(PR(Collide).testCollide_safe(shape,circShape.pr(inner)))
+						ret.push(shape.outer);
+				}
+			}) block)
+		});
+		dotree(stree)
+		dotree(dtree)
+		return ret;
+	}
+
+	public override function bodiesInCircle(x:Float,y:Float,r:Float, filter:PR(InteractionFilter)) {
+		sync_broadphase();
+		updateCircShape(x,y,r);
+
+		var ab = circShape.pr(inner).aabb;
+		var ret = new BodyList();
+		
+		$(mixin dotree(tree) {
+			IterAABB(tree,ab, $(mixin block(shape) {
+				var body = shape.body.outer;
+				if(!ret.has(body)) {
+					if(filter==null || shape.filter.shouldCollide(filter)) {
+						if(PR(Collide).testCollide_safe(shape,circShape.pr(inner)))
+							ret.push(body);
+					}
+				}
+			}) block)
+		});
+		dotree(stree)
+		dotree(dtree)
+		return ret;
+	}
+
+	//==============================================================
+
+	public override function shapesInShape(shp:PR(Shape), filter:PR(InteractionFilter)) {
+		sync_broadphase();
+		validateShape(shp);
+
+		var ab = shp.aabb;
+		var ret = new ShapeList();
+		
+		$(mixin dotree(tree) {
+			IterAABB(tree,ab, $(mixin block(shape) {
+				if(filter==null || shape.filter.shouldCollide(filter)) {
+					if(PR(Collide).testCollide_safe(shape,shp))
+						ret.push(shape.outer);
+				}
+			}) block)
+		});
+		dotree(stree)
+		dotree(dtree)
+		return ret;
+	}
+
+	public override function bodiesInShape(shp:PR(Shape), filter:PR(InteractionFilter)) {
+		sync_broadphase();
+		validateShape(shp);
+
+		var ab = shp.aabb;
+		var ret = new BodyList();
+		
+		$(mixin dotree(tree) {
+			IterAABB(tree,ab, $(mixin block(shape) {
+				var body = shape.body.outer;
+				if(!ret.has(body)) {
+					if(filter==null || shape.filter.shouldCollide(filter)) {
+						if(PR(Collide).testCollide_safe(shape,shp))
+							ret.push(body);
+					}
+				}
+			}) block)
+		});
+		dotree(stree)
+		dotree(dtree)
+		return ret;
+	}
 }

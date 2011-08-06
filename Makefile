@@ -3,9 +3,8 @@ SWFV = 10.3
 local: pre_compile
 	mkdir -p bin
 	haxe -cp src -main DummyNapeMain -swf bin/nape.swf -swf-version $(SWFV) --times \
-	     -swf-header 600:600:60:333333 \
+	     -swf-header 600:600:60:333333 --dead-code-elimination \
 	     -D NAPE_TIMES
-#	     -D NAPE_ASSERT --no-inline -debug
 #	     -D NAPE_RELEASE_BUILD
 #	firefox bin/index.html
 	fp bin/nape.swf

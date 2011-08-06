@@ -108,6 +108,10 @@ class DummyNapeMain {
 			mcon.active = false;
 		});
         
+		var mbody = new Body();
+		var mshape:Shape = null;
+		mbody.shapes.add(mshape = new Polygon(Polygon.regular(50,70,4,0.3)));
+//		mbody.shapes.add(mshape = new Circle(40));
 
 		var tim = new haxe.Timer(0);
         tim.run = function() {
@@ -118,16 +122,26 @@ class DummyNapeMain {
 
             debug.clear();
 			mcon.anchor1.setxy(c.mouseX,c.mouseY);
-            space.step(1/50,20,20);
+            space.step(1/40,40,40);
             
             #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
             debug.draw(space);
-            debug.flush();
             #if NAPE_TIMES Debug.DRAW += flash.Lib.getTimer()-pt; #end
 
             #if NAPE_TIMES
                 txt.text += "\n\n"+Debug.TIMES(space);
             #end
+
+			debug.draw(mbody);
+			mbody.position.setxy(c.mouseX,c.mouseY);
+			mbody.rotation += 1/100;
+			var bods = space.shapesInShape(mshape);
+//			var bods = space.shapesInCircle(mshape.worldCOM,mshape.circle.radius);
+			for(b in bods) {
+				debug.drawCircle(b.worldCOM,4,0xffffff);
+			}
+
+            debug.flush();
 		}
 	}
 }
