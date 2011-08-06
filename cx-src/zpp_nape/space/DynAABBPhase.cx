@@ -24,17 +24,24 @@ class PR(AABBNode) {
 		aabb = Get(PR(AABB));
 		child1 = child2 = parent = null;
 		next = null;
-		marked = false;
+		moved = false;
+		synced = false;
+		first_sync = false;
 	}
 	flibmdel public inline function free() {
 		height = -1;
 		Free(PR(AABB),aabb);
 	}
 
-	//used in maintaining list of objects that have been re-inserted
-	//for updating interaction pairs
+	//maintaining list of objects that have been re-inserted
+	//for updating interaction pairs (vv)
+	
 	public var mnext:PR(AABBNode);
-	public var marked:Bool;
+	public var moved:Bool; //exists in move list.
+
+	public var snext:PR(AABBNode);
+	public var synced:Bool; //exists in sync list.
+	public var first_sync:Bool; //to avoid unnecessary work when syncing for the first time.
 
 	flibmdel public inline function isLeaf() return child1==null
 }
@@ -42,6 +49,8 @@ class PR(AABBNode) {
 class PR(AABBPair) {
 	public var n1:PR(AABBNode);
 	public var n2:PR(AABBNode);
+	public var first:Bool;
+	public var sleeping:Bool;
 
 	//for hash
 	public var id:Int;
@@ -61,13 +70,6 @@ class PR(AABBTree) {
     
     public static var tmpaabb = new PR(AABB)();
     flibmdel public function insertLeaf(leaf:PR(AABBNode)) {
-/*        //add to move stack.
-        if(!leaf.marked) {
-            leaf.mnext = movestack;
-            movestack = leaf;
-            leaf.marked = true;
-        }
-  */  
         if(root==null) {
             root = leaf;
             root.parent = null;
@@ -249,7 +251,35 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 	public var pairs:PR(AABBPair); //intrusive list
 	public var pairhash:FastHash(PR(AABBPair));
 
-	public var syncs:List(PR(Shape)); //list of shapes to be synced.
+	public var syncs:PR(AABBNode); //intrusive list
+	public var moves:PR(AABBNode); //intrusice list
+
+	//since i use different 'next' variables, cannot use a MixList.
+	$(mixin iadd(list,obj,next) {
+		assert(obj.next==null,"object already in list");
+		obj.next = list;
+		list = obj;
+	});
+	$(mixin ipop(list,next) ({
+		assert(list!=null,"pop from empty list!");
+		var ret = list;
+		list = ret.next;
+		ret.next = null;
+		ret;
+	}));
+	$(mixin irem(list,obj,next) {
+		var pre = null;
+		var cur = list;
+		while(cur!=null) {
+			if(cur==obj) break;
+			pre = cur;
+			cur = cur.next;
+		}
+		assert(cur!=null,"object not in the list");
+		if(pre==null) list = cur.next;
+		else pre.next = cur.next;
+		cur.next = null;
+	});
 
 	public function new(space:PR(Space)) {
 		this.space = space;
@@ -258,7 +288,8 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 
 		stree = new PR(AABBTree)();
 		dtree = new PR(AABBTree)();
-		syncs = new List(PR(Shape))();
+
+		pairhash = new FastHash(PR(AABBPair))();
 	}
 
 	//==============================================================
@@ -268,97 +299,229 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 		else return !shape.body.component.sleeping;
 	}
 
-	public inline function sync_broadphase() {
-		while(!syncs.empty()) {
-			var shape = syncs.pop_unsafe();
-			assert(shape.node_sync,"node doesn't need syncing?");
-			assert(shape.body!=null,"shape with no body can't be synced");
-
-			var node = shape.node;
-			//allocate a node if shape has not yet been inserted.
-			if(node==null) {
-				node = Get(PR(AABBNode));
-				node.shape = shape;
-				shape.node = node;
-			}
-			//otherwise remove it from it's old tree.
-			else if(node.dyn)
-				 dtree.removeLeaf(node);
-			else stree.removeLeaf(node);
-
-			var aabb = node.aabb;
-			aabb.set_expand(shape.aabb,FATTEN);
-
-			//and insert/re-insert
-			if(node.dyn = dyn(shape))
-				 dtree.insertLeaf(node);
-			else stree.insertLeaf(node);
-
-			shape.node_sync = false;
-		}
-	}
-
 	//==============================================================
 
 	public inline function __insert(shape:PR(Shape)) {
 		assert(shape.node==null,"shape has been inserted already");
 		assert(shape.body!=null,"shape inserted with no body");
-		assert(!shape.node_sync,"shape is already in sync list?");
+
+		var node = Get(PR(AABBNode));
+		node.shape = shape;
+		shape.node = node;
 
 		//defer actual insertion until broadphase needs to be synced
 		//makes sense to do this; as a shape may exist in the space
 		//and then have transformations applied etc which would
 		//required it to be re-synced again anyways.
-		shape.node_sync = true;
-		syncs.add(shape);
+		assert(!node.synced,"node is already in sync list?");
+		node.synced = true;
+		node.first_sync = true;
+		iadd(syncs,node,snext);
 	}
 	public inline function __remove(shape:PR(Shape)) {
 		assert(shape.body!=null,"do i need this assertion?");
+		assert(shape.node!=null,"shape has no node?");
 
 		var node = shape.node;
 		//shape might not have been 'actually' inserted yet.
-		if(node!=null) {
+		if(!node.first_sync) {
 			if(node.dyn) dtree.removeLeaf(node);
 			else         stree.removeLeaf(node);
-			Free(PR(AABBNode),node);
 		}
 		shape.node = null;
 
 		//remove from sync list if waiting to be synced
-		if(shape.node_sync) {
-			syncs.remove(shape);
-			shape.node_sync = false;
-		}
+		if(node.synced)	irem(syncs,node,snext);
+		if(node.moved)  irem(moves,node,mnext);
+
+		Free(PR(AABBNode),node);
 	}
 	public inline function __sync(shape:PR(Shape)) {
 		assert(!shape.body.isStatic(),"static shape being synced?");
 	
+		var node = shape.node;
 		//defer syncing until it is necessary.	
-		if(!shape.node_sync) {
-			var node = shape.node;
+		if(!node.synced) {
 			shape.validate_aabb();
 			//only sync if shape has changed mode (dyn/stat tree)
 			//or has left it's fattened aabb
 			var sync = node.dyn != dyn(shape) || !node.aabb.contains(shape.aabb);
 			//var sync = !(node.dyn && node.aabb.contains(shape.aabb));
 			if(sync) {
-				shape.node_sync = true;
-				syncs.add(shape);
+				node.synced = true;
+				iadd(syncs,node,snext);
 			}
 		}
     }	
 
 	//==============================================================
+	/*
+		In an effort to reduce runtime work, whenever possible
+		the broadphase does not actually generate the moves list
+		at all, and simply uses the syncs list.
+
+		If this is not possible, then a constant switch is done
+		and from that point on moves list is updated as per usual.
+	*/
+
+	$(mixin syncnode(node) {
+		var shape = node.shape;
+		assert(node.synced,"node doesn't need syncing?");
+		assert(shape.body!=null,"shape with no body can't be synced");
+
+		//if this isn't the node's first sync, remove from tree.
+		if(!node.first_sync) {
+			if(node.dyn) dtree.removeLeaf(node);
+			else         stree.removeLeaf(node);
+		}else
+			node.first_sync = false;
+
+		var aabb = node.aabb;
+		aabb.set_expand(shape.aabb,FATTEN);
+
+		//and insert/re-insert
+		if(node.dyn = dyn(shape))
+			 dtree.insertLeaf(node);
+		else stree.insertLeaf(node);
+
+		node.synced = false;
+	});
+
+	public inline function sync_broadphase() {
+		if(syncs!=null) {
+			if(moves==null) {
+				var node = syncs;
+				while(node!=null) {
+					syncnode(node);
+	
+					//add to moves list, remove from syncs list.
+					node.moved = true;
+					node.mnext = node.snext;
+					node.snext = null;
+					node = node.mnext;
+				}
+	
+				//final pointer swap
+				swap(syncs,moves)
+			}else
+			{
+				while(syncs!=null) {
+					var node = ipop(syncs,snext);
+					syncnode(node);
+	
+					if(!node.moved) {
+						node.moved = true;
+						iadd(moves,node,mnext);
+					}
+				}
+			}
+		}
+	}
 
 	public override function broadphase() {
-		sync_broadphase();
+		//finish syncing whatever is left to sync.
+		var node = syncs;
+		while(node!=null) {
+			syncnode(node);
+			node = node.snext;
+		}
+
+		//process moves + syncs list to generate new pairs.
+		$(mixin proc(list,lnext) {
+			while(list!=null) {
+				var leaf = ipop(list,lnext);
+				var lshape = leaf.shape;
+				var lbody = lshape.body;
+
+				assert(!(lbody.component.sleeping && lbody.isStatic()),"a sleeping static?");
+				if(lbody.component.sleeping) continue;
+				
+				var ab = leaf.aabb;
+				var stack = null;
+				$(mixin dotree(tree) {
+					iadd(stack,tree.root,next);
+					while(stack!=null) {
+						var node = ipop(stack,next);
+						if(node==leaf) continue;
+
+						if(node.isLeaf()) {
+							var shape = node.shape;
+							if(shape.body != lshape.body) {
+								if(ab.intersect(node.aabb)) {
+									var id = unordered_id(lshape.id,shape.id);
+									var p = pairhash.get(id);
+									if(p!=null) {
+										if(p.sleeping) {
+											p.sleeping = false;
+											p.next = pairs;
+											pairs = p;
+											p.first = true; //avoid bounds check in main loop.
+										}
+										continue;
+									}
+
+									p = Get(PR(AABBPair));
+									p.n1 = leaf;
+									p.n2 = node;
+									p.id = id;
+									p.next = pairs;
+									pairs = p;
+									pairhash.add(p);
+									p.first = true; //avoid bounds check in main loop.
+								}
+							}
+						}else if(ab.intersect(node.aabb)) {
+							if(node.child1!=null) iadd(stack,node.child1,next);
+							if(node.child2!=null) iadd(stack,node.child2,next);
+						}
+					}
+				});
+
+				dotree(dtree);
+				if(!lbody.isStatic())
+					dotree(stree)
+			}
+		});
+		proc(syncs,snext)
+		proc(moves,mnext)
+
+		//process pairs (+ remove no longer valid pairs)
+		var pre:PR(AABBPair) = null;
+		var cur = pairs;
+		while(cur!=null) {
+			if(!cur.first && !cur.n1.aabb.intersect(cur.n2.aabb)) {
+				if(pre==null) pairs = cur.next;
+				else          pre.next = cur.next;
+				pairhash.remove(cur);
+				cur = cur.next;
+				continue;
+			}
+
+			var s1 = cur.n1.shape;
+			var s2 = cur.n2.shape;
+			if((s1.body.component.sleeping || s1.body.isStatic())
+			&& (s2.body.component.sleeping || s2.body.isStatic())) {
+				cur.sleeping = true;
+				if(pre==null) pairs = cur.next;
+				else          pre.next = cur.next;
+				cur = cur.next;
+				continue;
+			}
+
+			cur.first = false;
+			if(s1.aabb.intersect(s2.aabb))
+				space.narrowPhase(s1,s2,s1.body.isStatic() || s2.body.isStatic());
+
+			pre = cur;
+			cur = cur.next;
+		}
 	}
 
 	//==============================================================
 
 	//iterate tree, descending into a subtree only if condition is true
 	//execute block on each leaf shape.
-	$(mixin Iter(tree,condition,block) {
+	$(mixin IterTree(tree,condition,block) {
 		if(tree.root!=null) {
 			var stack = new List(PR(AABBNode))();
 			stack.add(tree.root);
@@ -380,7 +543,7 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 	//==============================================================
 
 	//iterate for leaves containing given point
-	$(mixin IterPoint(tree,point,block) Iter(tree,$(mixin cond(node) node.aabb.containsPoint(point)) cond, block));
+	$(mixin IterPoint(tree,point,block) IterTree(tree,$(mixin cond(node) node.aabb.containsPoint(point)) cond, block));
 
 	public override function shapesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)) {
 		sync_broadphase();
