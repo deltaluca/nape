@@ -56,6 +56,9 @@ class PR(AABBPair) {
 	public var id:Int;
 	public var hnext:PR(AABBPair);
 
+	//optimisation to avoid second lookup if possible.
+	public var arb:PR(Arbiter);
+
 	MixPool(PR(AABBPair))
 	public function new() {}
 	flibmdel public inline function alloc() {}
@@ -69,7 +72,7 @@ class PR(AABBTree) {
     //----------------------------------------------------------------------------------------------
     
     public static var tmpaabb = new PR(AABB)();
-    flibmdel public function insertLeaf(leaf:PR(AABBNode)) {
+    flibmdel public inline function insertLeaf(leaf:PR(AABBNode)) {
         if(root==null) {
             root = leaf;
             root.parent = null;
@@ -151,7 +154,7 @@ class PR(AABBTree) {
         }
     }
 
-    flibmdel public function removeLeaf(leaf:PR(AABBNode)) {
+    flibmdel public inline function removeLeaf(leaf:PR(AABBNode)) {
         if(leaf==root) {
             root = null;
             return;
@@ -242,7 +245,8 @@ class PR(AABBTree) {
 
 //Double Dynamic AABB tree.
 class PR(DynAABBPhase) extends PR(Broadphase) {
-	inline static var FATTEN = 3.5;
+	inline static var FATTEN = 3.0;
+	inline static var VEL_STEPS = 2.0;
 	
 	//note kinematics are treat no differently here than dynamics
 	public var stree:PR(AABBTree); //for static/sleeping objects
@@ -379,6 +383,18 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 		var aabb = node.aabb;
 		aabb.set_expand(shape.aabb,FATTEN);
 
+		//add a velocity contribution
+        vec_new(vel, shape.body.velx, shape.body.vely);
+        var ang = shape.body.angvel;
+        velx -= (shape.worldCOMy-shape.body.posy)*ang;
+        vely += (shape.worldCOMx-shape.body.posx)*ang;
+            
+        ///make this based on space steps.
+        vec_muleq(vel, space.pre_dt*VEL_STEPS);
+            
+        if(velx<0) aabb.minx += velx; else aabb.maxx += velx;
+        if(vely<0) aabb.miny += vely; else aabb.maxy += vely;
+
 		//and insert/re-insert
 		if(node.dyn = dyn(shape))
 			 dtree.insertLeaf(node);
@@ -387,7 +403,7 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 		node.synced = false;
 	});
 
-	public inline function sync_broadphase() {
+	public function sync_broadphase() {
 		if(syncs!=null) {
 			if(moves==null) {
 				var node = syncs;
@@ -395,6 +411,7 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 					syncnode(node);
 	
 					//add to moves list, remove from syncs list.
+					assert(!node.moved,"node already moved apparently?");
 					node.moved = true;
 					node.mnext = node.snext;
 					node.snext = null;
@@ -430,6 +447,8 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 		$(mixin proc(list,lnext) {
 			while(list!=null) {
 				var leaf = ipop(list,lnext);
+				if($str(list)=="moves") leaf.moved = false;
+				else assert(!leaf.moved,"leaf also in move list?");
 				var lshape = leaf.shape;
 				var lbody = lshape.body;
 
@@ -493,14 +512,18 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 				if(pre==null) pairs = cur.next;
 				else          pre.next = cur.next;
 				pairhash.remove(cur);
-				cur = cur.next;
+				var nxt = cur.next;
+				if(cur.arb!=null) cur.arb.pair = null;
+				cur.arb = null;
+				Free(PR(AABBPair),cur);
+				cur = nxt;
 				continue;
 			}
 
-			var s1 = cur.n1.shape;
-			var s2 = cur.n2.shape;
-			if((s1.body.component.sleeping || s1.body.isStatic())
-			&& (s2.body.component.sleeping || s2.body.isStatic())) {
+			var s1 = cur.n1.shape; var b1 = s1.body;
+			var s2 = cur.n2.shape; var b2 = s2.body;
+			if((b1.component.sleeping || b1.isStatic())
+			&& (b2.component.sleeping || b2.isStatic())) {
 				cur.sleeping = true;
 				if(pre==null) pairs = cur.next;
 				else          pre.next = cur.next;
@@ -509,8 +532,11 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 			}
 
 			cur.first = false;
-			if(s1.aabb.intersect(s2.aabb))
-				space.narrowPhase(s1,s2,s1.body.isStatic() || s2.body.isStatic());
+			if(s1.aabb.intersect(s2.aabb)) {
+				assert(cur.arb==null || cur.arb.id == cur.id || cur.arb.id == (cur.id>>>16)|(cur.id<<16), "arbiter doesn't match AABB pair");
+				cur.arb = space.narrowPhase(s1,s2,!b1.isDynamic() || !b2.isDynamic(), cur.arb);
+				if(cur.arb!=null) cur.arb.pair = cur;
+			}
 
 			pre = cur;
 			cur = cur.next;

@@ -8,19 +8,27 @@ class Debug {
     }
 
     #if NAPE_TIMES
+		static public var ltime = 0;
         static public function TIMES(space:Space) {
             var text = "";
-            text += "FOR:  "+Std.string(Debug.FOR/space.timeStamp).substr(0,5)+"ms"+"\n";
-            text += "COL:  "+Std.string(Debug.BROAD/space.timeStamp).substr(0,5)+"ms"+"\n";
-            text += "PRE:  "+Std.string(Debug.PRE/space.timeStamp).substr(0,5)+"ms"+"\n";
-            text += "POS:  "+Std.string(Debug.POS/space.timeStamp).substr(0,5)+"ms"+"\n";
-            text += "VEL:  "+Std.string(Debug.VEL/space.timeStamp).substr(0,5)+"ms"+"\n";
-            text += "DRAW: "+Std.string(Debug.DRAW/space.timeStamp).substr(0,5)+"ms"+"\n";
+			var dt = space.timeStamp - ltime;
+            text += "FOR:  "+Std.string(Debug.FOR/dt).substr(0,5)+"ms"+"\n";
+            text += "COL:  "+Std.string(Debug.BROAD/dt).substr(0,5)+"ms"+"\n";
+            text += "PRE:  "+Std.string(Debug.PRE/dt).substr(0,5)+"ms"+"\n";
+            text += "POS:  "+Std.string(Debug.POS/dt).substr(0,5)+"ms"+"\n";
+            text += "VEL:  "+Std.string(Debug.VEL/dt).substr(0,5)+"ms"+"\n";
+            text += "DRAW: "+Std.string(Debug.DRAW/dt).substr(0,5)+"ms"+"\n";
             text += "\n\n";
             text += "arb: "+Debug.ACNT+"\n";
             text += "aarb: "+Debug.AACNT+"\n";
             text += "con: "+Debug.CCNT+"\n";
             text += "acon: "+Debug.ACCNT+"\n";
+
+			if(space.timeStamp-ltime > 250) {
+				Debug.FOR = Debug.BROAD = Debug.PRE = Debug.POS = Debug.VEL = Debug.DRAW = 0;
+				ltime = space.timeStamp;
+			}
+
             return text;
         }
 

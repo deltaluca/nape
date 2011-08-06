@@ -4,11 +4,11 @@ local: pre_compile
 	mkdir -p bin
 	haxe -cp src -main DummyNapeMain -swf bin/nape.swf -swf-version $(SWFV) --times \
 	     -swf-header 600:600:60:333333 \
-	     -D NAPE_TIMES \
-	     -D NAPE_ASSERT --no-inline -debug
+	     -D NAPE_TIMES
+#	     -D NAPE_ASSERT --no-inline -debug
 #	     -D NAPE_RELEASE_BUILD
 #	firefox bin/index.html
-	flashplayerdebugger bin/nape.swf
+	fp bin/nape.swf
 
 pre_compile:
 	rm -rf src

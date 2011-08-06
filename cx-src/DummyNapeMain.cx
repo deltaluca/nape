@@ -12,7 +12,6 @@ class DummyNapeMain {
 }
 
 #else 
-
 class DummyNapeMain {
 	static public var debug:Debug;
 	static function main() {
@@ -30,6 +29,7 @@ class DummyNapeMain {
         c.addChild(txt);
 
         var pt = flash.Lib.getTimer();
+		txt.x = 300;
         txt.width = 600;
         txt.height = 600;
         txt.selectable = false;
@@ -39,12 +39,17 @@ class DummyNapeMain {
 
 		var walls = new Body(BodyType.STATIC);
 		walls.shapes.add(new Polygon(Polygon.rect(0,550,600,50)));
+		walls.shapes.add(new Polygon(Polygon.rect(0,0,600,50)));
+		walls.shapes.add(new Polygon(Polygon.rect(0,0,50,600)));
+		walls.shapes.add(new Polygon(Polygon.rect(550,0,50,600)));
 		walls.space = space;
 
-		for(i in 0...20) {
+		for(i in 0...300) {
 			var b = new Body();
-			b.shapes.add(new Polygon(Polygon.box(20,20)));
-			b.position.setxy(Math.random()*500+50,Math.random()*500);
+			b.shapes.add(new Polygon(Polygon.box(16,16)));
+			var xi = i%18;
+			var yi =Std.int( (i-xi)/18);
+			b.position.setxy(50+xi*16,50+yi*16);
 			b.space = space;
 		}
 
@@ -82,7 +87,7 @@ class DummyNapeMain {
 
 		var mcon = new PivotJoint(space.world,space.world, new Vec2(), new Vec2());
 		mcon.stiff = false;
-		mcon.maxForce = 10000;
+		mcon.maxForce = 50000;
 		mcon.active = false;
 		mcon.space = space;
 

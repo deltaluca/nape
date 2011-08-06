@@ -112,6 +112,8 @@ class PR(Space) {
 	//----------------------------------------------------------------------------------------------
 	
 	public function new(gravity:PR(Vec2),broadphase:Broadphase) {
+		pre_dt = 0.0;
+
 		if(broadphase==null || broadphase==Broadphase.DYNAMIC_AABB_TREE)
 			bphase = new PR(DynAABBPhase)(this);
 		elif(broadphase==Broadphase.SWEEP_AND_PRUNE)
@@ -411,9 +413,11 @@ class PR(Space) {
     }
 
     //----------------------------------------------------------------------------------------------
-	
+
+	public var pre_dt:Float;	
 	public function step(deltaTime:Float, velocityIterations:Int, positionIterations:Int) {
         time += deltaTime;
+		pre_dt = deltaTime;
 
         any_handler = false;
 
@@ -489,9 +493,6 @@ class PR(Space) {
 			var b = staticsleep.pop_unsafe();
 			assert(!b.isDynamic(), "step :: swef static/kinematics");
 			b.component.sleeping = true;
-			//sync with dyn aabb broadphase on sleep.
-			if(b.isKinematic() && !bphase.is_sweep)
-				Iter(shape,b.shapes,bphase.sync(shape))
 		}
         midstep = false;
 
@@ -628,7 +629,7 @@ class PR(Space) {
 	
 	public function wake(o:PR(Body),?fst=false) {
 		if(!o.world) {
-			if(!fst && !bphase.is_sweep)
+			if(!fst && !bphase.is_sweep && !o.isStatic())
 				Iter(shape, o.shapes, if(shape.node!=null) bphase.sync(shape));
 
 			o.component.waket = stamp+1;
@@ -1065,7 +1066,9 @@ class PR(Space) {
 	//----------------------------------------------------------------------------------------------
 	
 
-	public inline function narrowPhase(s1:PR(Shape),s2:PR(Shape), stat:Bool) {
+	public inline function narrowPhase(s1:PR(Shape),s2:PR(Shape), stat:Bool, ?in_arb:PR(Arbiter)=null) {
+		var ret:PR(Arbiter) = null;
+
         var b1 = s1.body;
 		var b2 = s2.body;
 
@@ -1099,7 +1102,7 @@ class PR(Space) {
                 var id = unsafe_ordered_id(sa.id,sb.id);
 
                 if(fcol) {
-                    var xarb = map_arb.get(id);
+                    var xarb = if(in_arb==null) map_arb.get(id) else in_arb;
                     var first = xarb==null;
 
                     var arb;
@@ -1133,14 +1136,15 @@ class PR(Space) {
                                 arb.sleeping = false;
                                 f_arbiters.add(arb);
                             }
-								
+
+							ret = arb;
                         }else if(first)
                             Free(PR(FluidArbiter),arb);
                     }
                 } else if(gcol) {
                     var carbs = stat ? c_arbiters(true) : c_arbiters(false);
 
-                    var xarb = map_arb.get(id);
+                    var xarb = if(in_arb==null) map_arb.get(id) else in_arb;
                     var first = xarb==null;
 						
                     var arb;
@@ -1167,6 +1171,7 @@ class PR(Space) {
                         }
                     }
 
+					assert(bphase.is_sweep || first || arb.stamp!=stamp, "??"+arb.stamp+":"+stamp);
                     if(first || arb.stamp!=stamp) {
                         arb.stamp = stamp;
 
@@ -1188,13 +1193,14 @@ class PR(Space) {
                                 carbs.add(arb);
                             }
 								
+							ret = arb;
                         }else{
                             if(first)
                                 Free(PR(ColArbiter),arb);
                         }
                     }
                 } else if(scol) {
-                    var xarb = map_arb.get(id);
+                    var xarb = if(in_arb==null) map_arb.get(id) else in_arb;
                     var first = xarb==null;
 						
                     var arb;
@@ -1224,11 +1230,13 @@ class PR(Space) {
                                 s_arbiters.add(arb);
                             }
 								
+							ret = arb;
                         }else if(first)
                             Free(PR(SensorArbiter),arb);
                     }
 				}
 			}
 		}
+		return ret;
 	}
 }
