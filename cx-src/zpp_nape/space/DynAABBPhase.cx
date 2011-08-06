@@ -249,6 +249,8 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 	public var pairs:PR(AABBPair); //intrusive list
 	public var pairhash:FastHash(PR(AABBPair));
 
+	public var syncs:List(PR(Shape)); //list of shapes to be synced.
+
 	public function new(space:PR(Space)) {
 		this.space = space;
 		is_sweep = false;
@@ -256,6 +258,7 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 
 		stree = new PR(AABBTree)();
 		dtree = new PR(AABBTree)();
+		syncs = new List(PR(Shape))();
 	}
 
 	//==============================================================
@@ -265,59 +268,90 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 		else return !shape.body.component.sleeping;
 	}
 
+	public inline function sync_broadphase() {
+		while(!syncs.empty()) {
+			var shape = syncs.pop_unsafe();
+			assert(shape.node_sync,"node doesn't need syncing?");
+			assert(shape.body!=null,"shape with no body can't be synced");
+
+			var node = shape.node;
+			//allocate a node if shape has not yet been inserted.
+			if(node==null) {
+				node = Get(PR(AABBNode));
+				node.shape = shape;
+				shape.node = node;
+			}
+			//otherwise remove it from it's old tree.
+			else if(node.dyn)
+				 dtree.removeLeaf(node);
+			else stree.removeLeaf(node);
+
+			var aabb = node.aabb;
+			aabb.set_expand(shape.aabb,FATTEN);
+
+			//and insert/re-insert
+			if(node.dyn = dyn(shape))
+				 dtree.insertLeaf(node);
+			else stree.insertLeaf(node);
+
+			shape.node_sync = false;
+		}
+	}
+
 	//==============================================================
 
 	public inline function __insert(shape:PR(Shape)) {
 		assert(shape.node==null,"shape has been inserted already");
 		assert(shape.body!=null,"shape inserted with no body");
+		assert(!shape.node_sync,"shape is already in sync list?");
 
-		var node = Get(PR(AABBNode));
-		node.shape = shape;
-		shape.node = node;
-
-		shape.validate_aabb();
-		node.aabb.set_expand(shape.aabb,FATTEN);
-		node.height = 0;
-
-		if(node.dyn = dyn(shape))
-			 dtree.insertLeaf(node);
-		else stree.insertLeaf(node);
+		//defer actual insertion until broadphase needs to be synced
+		//makes sense to do this; as a shape may exist in the space
+		//and then have transformations applied etc which would
+		//required it to be re-synced again anyways.
+		shape.node_sync = true;
+		syncs.add(shape);
 	}
 	public inline function __remove(shape:PR(Shape)) {
-		assert(shape.node!=null,"shape has not been inserted yet");
 		assert(shape.body!=null,"do i need this assertion?");
 
 		var node = shape.node;
-		if(node.dyn) dtree.removeLeaf(node);
-		else         stree.removeLeaf(node);
-		Free(PR(AABBNode),node);
-
-		shape.node = null;
-	}
-	public inline function __sync(shape:PR(Shape)) {
-		assert(shape.node!=null,"shape not inserted yet for sync");
-		assert(!shape.body.isStatic(),"static shape being synced?");
-
-		var node = shape.node;
-		shape.validate_aabb();
-		var sync = !(node.dyn && node.aabb.contains(shape.aabb));
-		if(sync) {
+		//shape might not have been 'actually' inserted yet.
+		if(node!=null) {
 			if(node.dyn) dtree.removeLeaf(node);
 			else         stree.removeLeaf(node);
+			Free(PR(AABBNode),node);
+		}
+		shape.node = null;
 
-			var aabb = node.aabb;
-			aabb.set_expand(shape.aabb,FATTEN);
-		
-			//handle sync due to body falling asleep	
-			if(node.dyn = dyn(shape))
-				 dtree.insertLeaf(node);
-			else stree.insertLeaf(node);
+		//remove from sync list if waiting to be synced
+		if(shape.node_sync) {
+			syncs.remove(shape);
+			shape.node_sync = false;
+		}
+	}
+	public inline function __sync(shape:PR(Shape)) {
+		assert(!shape.body.isStatic(),"static shape being synced?");
+	
+		//defer syncing until it is necessary.	
+		if(!shape.node_sync) {
+			var node = shape.node;
+			shape.validate_aabb();
+			//only sync if shape has changed mode (dyn/stat tree)
+			//or has left it's fattened aabb
+			var sync = node.dyn != dyn(shape) || !node.aabb.contains(shape.aabb);
+			//var sync = !(node.dyn && node.aabb.contains(shape.aabb));
+			if(sync) {
+				shape.node_sync = true;
+				syncs.add(shape);
+			}
 		}
     }	
 
 	//==============================================================
 
 	public override function broadphase() {
+		sync_broadphase();
 	}
 
 	//==============================================================
@@ -325,17 +359,19 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 	//iterate tree, descending into a subtree only if condition is true
 	//execute block on each leaf shape.
 	$(mixin Iter(tree,condition,block) {
-		var stack = new List(PR(AABBNode))();
-		stack.add(tree.root);
-		while(!stack.empty()) {
-			var node = stack.pop_unsafe();
-			assert(node!=null,"null node");
-			if(condition(node)) {
-				if(node.isLeaf()) {
-					block(node.shape);
-				}else {
-					if(node.child1!=null) stack.add(node.child1);
-					if(node.child2!=null) stack.add(node.child2);
+		if(tree.root!=null) {
+			var stack = new List(PR(AABBNode))();
+			stack.add(tree.root);
+			while(!stack.empty()) {
+				var node = stack.pop_unsafe();
+				assert(node!=null,"null node");
+				if(condition(node)) {
+					if(node.isLeaf()) {
+						block(node.shape);
+					}else {
+						if(node.child1!=null) stack.add(node.child1);
+						if(node.child2!=null) stack.add(node.child2);
+					}
 				}
 			}
 		}
@@ -346,7 +382,35 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 	//iterate for leaves containing given point
 	$(mixin IterPoint(tree,point,block) Iter(tree,$(mixin cond(node) node.aabb.containsPoint(point)) cond, block));
 
+	public override function shapesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)) {
+		sync_broadphase();
+
+		var v = PR(Vec2).get(x,y);
+		var ret = new ShapeList();
+
+		$(mixin dotree(tree) {
+			IterPoint(tree,v, $(mixin block(shape) {
+				if(filter==null || shape.filter.shouldCollide(filter)) {
+		            if(shape.isCircle()) {
+	                    if(PR(Collide).circleContains(shape.circle,v))
+	                        ret.push(shape.outer);
+	                }else {
+	                    if(PR(Collide).polyContains(shape.polygon,v))
+	                        ret.push(shape.outer);
+	                }
+				}
+			}) block)
+		});
+		dotree(stree)
+		dotree(dtree)
+
+		Free(PR(Vec2),v);
+		return ret;
+	}
+
 	public override function bodiesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)) {
+		sync_broadphase();
+
 		var v = PR(Vec2).get(x,y);
 		var ret = new BodyList();
 

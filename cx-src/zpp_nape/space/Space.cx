@@ -478,10 +478,8 @@ class PR(Space) {
 					cur.invalidate_rot();
 				cur.pre_rot = cur.rot;
 
-				//OMG THIS IS SO BAD PLEASE CHANGE THIS
 				if(!bphase.is_sweep)
 					Iter(shape,cur.shapes,bphase.sync(shape))
-				//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 			});
 		});
 		doit2(kinematics);
@@ -491,6 +489,9 @@ class PR(Space) {
 			var b = staticsleep.pop_unsafe();
 			assert(!b.isDynamic(), "step :: swef static/kinematics");
 			b.component.sleeping = true;
+			//sync with dyn aabb broadphase on sleep.
+			if(b.isKinematic() && !bphase.is_sweep)
+				Iter(shape,b.shapes,bphase.sync(shape))
 		}
         midstep = false;
 
@@ -627,10 +628,9 @@ class PR(Space) {
 	
 	public function wake(o:PR(Body),?fst=false) {
 		if(!o.world) {
-			//OMG THIS IS SO BAD. PLEASE PLEASE CHANGE THIS
 			if(!fst && !bphase.is_sweep)
 				Iter(shape, o.shapes, if(shape.node!=null) bphase.sync(shape));
-			//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 			o.component.waket = stamp+1;
 			if(o.component.sleeping) {
 				if(o.component.island==null) {
@@ -758,12 +758,17 @@ class PR(Space) {
 						vec_set(b.force,0,0);
 						b.torque = 0;
 
+						c.sleeping = true;
+						//sync with dyn aabb broadphase on sleep
+						if(!bphase.is_sweep)
+							Iter(shape,b.shapes,bphase.sync(shape))
+
                         bodyCbSleep(b);
 					}else {
                         var con = c.constraint;
                         constraintCbSleep(con);
+						c.sleeping = true;
                     }
-					c.sleeping = true;
 				});
 			}else {
 				while(!i.comps.empty()) {

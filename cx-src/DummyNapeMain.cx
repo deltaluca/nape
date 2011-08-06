@@ -19,7 +19,7 @@ class DummyNapeMain {
         haxe.Log.setColor(0xffffff);
 
 		//var space = new Space(new Vec2(0,400),Broadphase.SWEEP_AND_PRUNE);
-		var space = new Space(new Vec2(0,400),Broadphase.DYNAMIC_AABB_TREE);
+		var space = new Space(new Vec2(0,0),Broadphase.DYNAMIC_AABB_TREE);
 		var debug = new BitmapDebug(600,600,0x333333);
         c.addChild(debug.display);
 		
@@ -36,7 +36,18 @@ class DummyNapeMain {
         debug.drawConstraints = true;
         c.stage.quality = flash.display.StageQuality.LOW;
 
-		for(X in 0...1) {
+		var walls = new Body(BodyType.STATIC);
+		walls.shapes.add(new Polygon(Polygon.rect(0,550,600,50)));
+		walls.space = space;
+
+		for(i in 0...20) {
+			var b = new Body();
+			b.shapes.add(new Polygon(Polygon.box(20,20)));
+			b.position.setxy(Math.random()*500+50,Math.random()*500);
+			b.space = space;
+		}
+
+		for(X in 0...0) {
 				var px = 300-150 + 150*X;
 	
 		var tri = new Body(BodyType.STATIC);
@@ -99,10 +110,7 @@ class DummyNapeMain {
             pt = ct;
 
 			mcon.anchor1.setxy(c.mouseX,c.mouseY);
-            space.step(1/240,20,20);
-            space.step(1/240,20,20);
-            space.step(1/240,20,20);
-            space.step(1/240,20,20);
+            space.step(1/50,20,20);
             
             #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
             debug.clear();
