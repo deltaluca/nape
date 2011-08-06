@@ -615,13 +615,18 @@ class PR(Space) {
 				});
 
                 bodyCbWake(b);
+				c.reset();
+
+				//sync with aabb broadphase
+				if(!bphase.is_sweep && !b.isStatic())
+					Iter(shape, b.shapes, if(shape.node!=null) bphase.sync(shape));
 			}else {
 				var con = c.constraint;
 				live_constraints.add(con);
 
                 constraintCbWake(con);
+				c.reset();
 			}
-			c.reset();
 		}
 		
 		Free(PR(Island),i);
@@ -629,9 +634,6 @@ class PR(Space) {
 	
 	public function wake(o:PR(Body),?fst=false) {
 		if(!o.world) {
-			if(!fst && !bphase.is_sweep && !o.isStatic())
-				Iter(shape, o.shapes, if(shape.node!=null) bphase.sync(shape));
-
 			o.component.waket = stamp+1;
 			if(o.component.sleeping) {
 				if(o.component.island==null) {
@@ -667,11 +669,16 @@ class PR(Space) {
 							}
 						});
 					}else if(!fst) bodyCbWake(o);
+
+					//sync with aabb broadphase
+					if(!fst && !bphase.is_sweep && !o.isStatic())
+						Iter(shape, o.shapes, if(shape.node!=null) bphase.sync(shape));
 				}else {
 					//wake island
 					wakeIsland(o.component.island);
 				}
                 assert(o.component.island==null,"woken, but island non-null?");
+
 				return true;
 			}else return false;
 		}else return true;
