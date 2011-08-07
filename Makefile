@@ -23,7 +23,7 @@ RELEASE_FLAGS = $(SWC_FLAGS) -D NAPE_RELEASE_BUILD
 release: pre_compile
 	mkdir -p bin/release
 #	cpp
-	haxe -cp src -main DummyNapeMain -cpp cpp --no-inline
+#	haxe -cp src -main DummyNapeMain -cpp cpp --no-inline
 #	assert
 	haxe -swf bin/release/assert_nape.swc -swf-version $(SWFV) $(ASSERT_FLAGS)
 	flib bin/release/assert_nape.swc
