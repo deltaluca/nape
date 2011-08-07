@@ -11,11 +11,18 @@ class PR(Ray) {
 	vec_new(public,origin);
 	vec_new(public,dir);
 	vec_new(public,idir);
+
+	//for aabbtest
+	vec_new(public,normal);
+	vec_new(public,absnormal);
 	
 	public function new() {
 		origin = new Vec2();
 		direction = new Vec2();
 		var me = this;
+		origin.pr(inner)._invalidate = function(x:PR(Vec2)) {
+			vec_set(me.origin,x.);
+		}
 		direction.pr(inner)._invalidate = function(x:PR(Vec2)) {
 			vec_set(me.dir,x.);
 			me.invalidate_dir();
@@ -33,6 +40,9 @@ class PR(Ray) {
 			DEBUG(if(vec_lsq(dir)<PR(Const).EPSILON) throw "Error: Ray::direction is degenerate";)
 			vec_normalise_slow(dir);
 			vec_set(idir,1/dirx,1/diry);
+
+			vec_set(normal,-diry,dirx);
+			vec_set(absnormal,abs(normalx),abs(normaly));
 		}
 	}
 	
@@ -57,7 +67,16 @@ class PR(Ray) {
 		return rayab;
 	}
 
-	public function aabbsect(a:PR(AABB)) {
+	flibmdel public inline function aabbtest(a:PR(AABB)) {
+		// | dot(v, p1-c) | >= dot ( |v|, h )
+		var dot1 = normalx*(originx - 0.5*(a.minx+a.maxx))
+		         + normaly*(originy - 0.5*(a.miny+a.maxy));
+		var dot2 = absnormalx*0.5*(a.maxx-a.minx)
+		         + absnormaly*0.5*(a.maxy-a.miny);
+		return abs(dot1) < dot2;
+	}
+
+	flibmdel public inline function aabbsect(a:PR(AABB)) {
 		var cx = originx >= a.minx && originx <= a.maxx;
 		var cy = originy >= a.miny && originy <= a.maxy;
 		if(cx && cy) return 0.0; //shortcut

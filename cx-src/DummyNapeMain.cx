@@ -108,11 +108,6 @@ class DummyNapeMain {
 			mcon.active = false;
 		});
         
-		var mbody = new Body();
-		var mshape:Shape = null;
-		mbody.shapes.add(mshape = new Polygon(Polygon.regular(50,70,4,0.3)));
-//		mbody.shapes.add(mshape = new Circle(40));
-
 		var tim = new haxe.Timer(0);
         tim.run = function() {
             var ct = flash.Lib.getTimer();
@@ -132,15 +127,19 @@ class DummyNapeMain {
                 txt.text += "\n\n"+Debug.TIMES(space);
             #end
 
-			debug.draw(mbody);
-			mbody.position.setxy(c.mouseX,c.mouseY);
-			mbody.rotation += 1/100;
-			var bods = space.shapesInShape(mshape);
-//			var bods = space.shapesInCircle(mshape.worldCOM,mshape.circle.radius);
-			for(b in bods) {
-				debug.drawCircle(b.worldCOM,4,0xffffff);
+			var ray = new Ray(new Vec2(300,300), new Vec2(300-c.mouseX,300-c.mouseY).mul(-1));
+			for(i in 0...200) {
+				var res = space.rayCast(ray);
+				if(res!=null) {
+				//	debug.drawLine(ray.origin, ray.at(res.distance), 0xff00ff);
+				//	debug.drawCircle(ray.at(res.distance),2,0xffff);
+					ray.origin.x += ray.pr(inner).dirx*res.distance;
+					ray.origin.y += ray.pr(inner).diry*res.distance;
+					var dot = res.normal.dot(ray.direction)*2;
+					ray.direction.x -= dot*res.normal.x;
+					ray.direction.y -= dot*res.normal.y;
+				}
 			}
-
             debug.flush();
 		}
 	}
