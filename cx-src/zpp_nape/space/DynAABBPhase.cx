@@ -775,48 +775,46 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 	//==============================================================
 
 	public var openlist:List(PR(AABBNode));
-	//to avoid lots of parameters assume variables exist:
-	// ray, rayab, mint
-	$(mixin raynode(node) {
-		if(node!=null) {
-//			if(rayab.intersect(node.aabb)) {
-			if(ray.aabbtest(node.aabb)) {
-				var t = ray.aabbsect(node.aabb);
-				if(t>=0 && t<mint) {
-					node.rayt = t;
-					InsertSort(node, openlist, $(mixin lt(x,y) (x.rayt < y.rayt)) lt);
-				}
-			}
-		}
-	});
-
+	
 	public override function rayCast(ray:PR(Ray),inner:Bool,filter:PR(InteractionFilter)) {
 		if(openlist==null) openlist = new List(PR(AABBNode))();
 
 		sync_broadphase();
 		ray.validate_dir();
-		var rayab = ray.rayAABB();
 		var mint = ray.maxdist;
+
+		$(mixin raynode(node) {
+			if(node!=null) {
+				if(ray.aabbtest(node.aabb)) {
+					var t = ray.aabbsect(node.aabb);
+					if(t>=0 && t<mint) {
+						node.rayt = t;
+						InsertSort(node, openlist, $(mixin lt(x,y) (x.rayt < y.rayt)) lt);
+					}
+				}
+			}
+		});
 
 		raynode(dtree.root);
 		raynode(stree.root);
 
 		var minres:RayResult = null;
 
-		var pre = ray.origin;
 		while(!openlist.empty()) {
 			var cnode = openlist.pop_unsafe();
 			if(cnode.rayt >= mint) break;
 
 			if(cnode.isLeaf()) {
 				var shape = cnode.shape;
-				var result =
-					if(shape.isCircle()) ray.circlesect(shape.circle, inner,mint)
-					else if(ray.aabbtest(shape.aabb)) ray.polysect(shape.polygon,inner,mint);
-					else null;
-				if(result!=null) {
-					mint = result.distance;
-					minres = result;
+				if(filter==null || shape.filter.shouldCollide(filter)) {
+					var result =
+						if(shape.isCircle()) ray.circlesect(shape.circle, inner,mint)
+						else if(ray.aabbtest(shape.aabb)) ray.polysect(shape.polygon,inner,mint);
+						else null;
+					if(result!=null) {
+						mint = result.distance;
+						minres = result;
+					}
 				}
 			}else {
 				raynode(cnode.child1);
@@ -826,5 +824,50 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 
 		openlist.clear();
 		return minres;
+	}
+
+	public override function rayMultiCast(ray:PR(Ray),inner:Bool,filter:PR(InteractionFilter)) {
+		if(openlist==null) openlist = new List(PR(AABBNode))();
+
+		sync_broadphase();
+		ray.validate_dir();
+
+		var inf = ray.maxdist == PR(Const).POSINF;
+		var ret = new RayResultList();
+
+		$(mixin raynode(node) {
+			if(node!=null) {
+				if(ray.aabbtest(node.aabb)) {
+					if(inf)
+						openlist.add(node);
+					else {
+						var t = ray.aabbsect(node.aabb);
+						if(t>=0 && t<ray.maxdist)
+							openlist.add(node);
+					}
+				}
+			}
+		});
+
+		raynode(dtree.root);
+		raynode(stree.root);
+
+		while(!openlist.empty()) {
+			var cnode = openlist.pop_unsafe();
+			if(cnode.isLeaf()) {
+				var shape = cnode.shape;
+				if(filter==null || shape.filter.shouldCollide(filter)) {
+					if(shape.isCircle()) ray.circlesect2(shape.circle,inner,ret);
+					else if(ray.aabbtest(shape.aabb))
+						ray.polysect2(shape.polygon,inner,ret);
+				}
+			}else {
+				raynode(cnode.child1);
+				raynode(cnode.child2);
+			}
+		}
+
+		openlist.clear();
+		return ret;
 	}
 }

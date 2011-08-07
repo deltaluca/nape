@@ -128,17 +128,11 @@ class DummyNapeMain {
             #end
 
 			var ray = new Ray(new Vec2(300,300), new Vec2(300-c.mouseX,300-c.mouseY).mul(-1));
-			for(i in 0...200) {
-				var res = space.rayCast(ray);
-				if(res!=null) {
+			var res = space.rayMultiCast(ray,true);
+			for(r in res) {
+				debug.drawCircle(ray.at(r.distance),2,0xffff);
 				//	debug.drawLine(ray.origin, ray.at(res.distance), 0xff00ff);
 				//	debug.drawCircle(ray.at(res.distance),2,0xffff);
-					ray.origin.x += ray.pr(inner).dirx*res.distance;
-					ray.origin.y += ray.pr(inner).diry*res.distance;
-					var dot = res.normal.dot(ray.direction)*2;
-					ray.direction.x -= dot*res.normal.x;
-					ray.direction.y -= dot*res.normal.y;
-				}
 			}
             debug.flush();
 		}
