@@ -31,8 +31,8 @@ class PR(InteractionFilter) {
         public var n`Filter:InteractionFilter->InteractionFilter->Bool;
 
         flibmdel public inline function should`N(x:PR(InteractionFilter)) {
-            var ret = (n`Group&x.n`Mask)!=0 && (x.n`Group&n`Mask)!=0;
-            return ret && (n`Filter==null || n`Filter(wrapper(),x.wrapper()));
+			return ((  n`Filter==null && (n`Mask&x.n`Group)!=0) || (  n`Filter!=null &&   n`Filter(wrapper(),x.wrapper())))
+			    && ((x.n`Filter==null && (x.n`Mask&n`Group)!=0) || (x.n`Filter!=null && x.n`Filter(x.wrapper(),wrapper())));
         }
     );
 
