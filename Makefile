@@ -47,7 +47,7 @@ clean:
 	mkdir bin/release
 	rm -rvf cpp
 	rm -rvf src
-	rm bin/nape.swf
+	rm -f bin/nape.swf
 
 tar:
 	find cx-src -name "*.cx" -type f | xargs tar cvfz nape.tar.gz Makefile

@@ -13,8 +13,64 @@ class DummyNapeMain {
 
 #else 
 class DummyNapeMain {
-	static public var debug:Debug;
 	static function main() {
+		var c = flash.Lib.current;
+		haxe.Log.setColor(0xffffff);
+		debug = new ShapeDebug(0x333333);
+		c.addChild(debug.display);
+		var txt = new flash.text.TextField();
+		txt.defaultTextFormat = new flash.text.TextFormat(null,null,0xffffff);
+		c.addChild(txt);
+		txt.width = 600;
+		txt.height = 600;
+		txt.selectable = false;
+		c.stage.quality = flash.display.StageQuality.LOW;
+
+			var space = new Space(new Vec2(0, 450), Broadphase.DYNAMIC_AABB_TREE);
+//			var space = new Space(new Vec2(0, 450), Broadphase.SWEEP_AND_PRUNE);
+
+			var waterBody = new Body(BodyType.STATIC, new Vec2(0, 0));
+			var heroBody = new Body(BodyType.DYNAMIC, new Vec2(0, 0));
+			var randomBody = new Body(BodyType.DYNAMIC, new Vec2(0, 0));
+			
+			var waterShape = new Polygon([new Vec2(0, 200), new Vec2(700, 200), new Vec2(700, 500), new Vec2(0, 500)], new Material(), new InteractionFilter(1, 1));
+			waterShape.fluidEnabled = true;
+			waterShape.fluidProperties = new FluidProperties(2.75, 1.5);
+			waterBody.shapes.add(waterShape);
+			waterBody.space = space;
+			
+			var shape = new Circle(15, new Vec2(0, 13), new Material(0, 0, 0, 1.5, 0), new InteractionFilter(1, 1));
+			var shape2 = new Circle(13, new Vec2(0, -13), new Material(0, 0, 0, 1.5, 0), new InteractionFilter(1, 1));
+			var feet = new Circle(6, new Vec2(0, 24), new Material(0, 8, 9, 1, 1), new InteractionFilter(1, 1));
+			heroBody.shapes.add(shape);
+			heroBody.shapes.add(shape2);
+			heroBody.shapes.add(feet);
+			heroBody.space = space;
+			
+			var randomShape = new Polygon(Polygon.rect(0, 0, 30, 30), Material.wood(), new InteractionFilter(1, 1));
+			randomBody.shapes.add(randomShape);
+			randomBody.align();
+			randomBody.space = space;
+			
+			heroBody.position.x = 450;
+			heroBody.position.y = 100;
+			heroBody.allowRotation = false;
+			
+			randomBody.position.x = 200;
+			randomBody.position.y = 100;
+			
+			space.step(1 / 1000);
+			
+			c.addEventListener(flash.events.Event.ENTER_FRAME, function(_) {
+				space.step(1/60);
+				debug.clear();
+				debug.draw(space);
+				debug.flush();
+			});
+	}
+
+	static public var debug:Debug;
+	static function mains() {
         var c = flash.Lib.current;
         haxe.Log.setColor(0xffffff);
 
