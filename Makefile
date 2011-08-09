@@ -7,7 +7,7 @@ local: pre_compile
 	     -D NAPE_TIMES
 #	     -D NAPE_RELEASE_BUILD
 #	firefox bin/index.html
-	fp bin/nape.swf
+	debugfp bin/nape.swf
 
 pre_compile:
 	rm -rf src
