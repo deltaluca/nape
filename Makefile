@@ -41,6 +41,20 @@ release: pre_compile
 	flib bin/release/release_nape9.swc
 #	tar
 	find src -name "*.hx" -type f | xargs tar cvfz bin/release/hx-src.tar.gz
+#   haxe 'swcs'
+	unzip bin/release/assert_nape.swc -x catalog.xml
+	mv library.swf bin/release/haxe_assert_nape.swf
+	unzip bin/release/assert_nape9.swc -x catalog.xml
+	mv library.swf bin/release/haxe_assert_nape9.swf
+	unzip bin/release/debug_nape.swc -x catalog.xml
+	mv library.swf bin/release/haxe_debug_nape.swf
+	unzip bin/release/debug_nape9.swc -x catalog.xml
+	mv library.swf bin/release/haxe_debug_nape9.swf
+	unzip bin/release/release_nape.swc -x catalog.xml
+	mv library.swf bin/release/haxe_release_nape.swf
+	unzip bin/release/release_nape9.swc -x catalog.xml
+	mv library.swf bin/release/haxe_release_nape9.swf
+
 
 clean:
 	rm -rvf bin/release/
