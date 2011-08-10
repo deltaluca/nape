@@ -41,6 +41,8 @@ release: pre_compile
 	flib bin/release/release_nape9.swc
 #	tar
 	find src -name "*.hx" -type f | xargs tar cvfz bin/release/hx-src.tar.gz
+	rm -f bin/release/hx-src.zip
+	find src -name "*.hx" -type f | xargs zip bin/release/hx-src
 #   haxe 'swcs'
 	unzip bin/release/assert_nape.swc -x catalog.xml
 	mv library.swf bin/release/haxe_assert_nape.swf
@@ -65,3 +67,5 @@ clean:
 
 tar:
 	find cx-src -name "*.cx" -type f | xargs tar cvfz nape.tar.gz Makefile
+	rm -f nape.zip
+	find cx-src -name "*.cx" -type f | xargs zip nape Makefile
