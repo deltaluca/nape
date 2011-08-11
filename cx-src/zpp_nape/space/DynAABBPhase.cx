@@ -347,6 +347,7 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 		assert(!shape.body.isStatic(),"static shape being synced?");
 	
 		var node = shape.node;
+		assert(node!=null,"shape has no node?");
 		//defer syncing until it is necessary.	
 		if(!node.synced) {
 			shape.validate_aabb();
@@ -462,7 +463,8 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 				var ab = leaf.aabb;
 				var stack = null;
 				$(mixin dotree(tree) {
-					iadd(stack,tree.root,next);
+					if(tree.root!=null)
+						iadd(stack,tree.root,next);
 					while(stack!=null) {
 						var node = ipop(stack,next);
 						if(node==leaf) continue;

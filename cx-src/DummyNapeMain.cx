@@ -14,7 +14,32 @@ class DummyNapeMain {
 #else 
 class DummyNapeMain {
 	static public var debug:Debug;
+
 	static function main() {
+		var c = flash.Lib.current;
+		haxe.Log.setColor(0xffffff);
+
+		var space = new Space(null, Broadphase.DYNAMIC_AABB_TREE);
+		var debug = new BitmapDebug(600,600,0x333333,false);
+		c.addChild(debug.display);
+
+		var body = new Body();
+		body.position.setxy(300,50);
+		body.shapes.add(new Polygon(Polygon.box(20,20)));
+		body.space = space;
+		body.velocity.y = 150;
+
+		var body = new Body();
+		body.position.setxy(300,550);
+		body.shapes.add(new Polygon(Polygon.box(20,20)));
+		body.space = space;
+		body.velocity.y = -150;
+
+		space.step(1/60);
+
+	}
+
+	static function mains() {
         var c = flash.Lib.current;
         haxe.Log.setColor(0xffffff);
 
