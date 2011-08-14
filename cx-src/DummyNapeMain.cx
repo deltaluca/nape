@@ -4,63 +4,26 @@ $(import);
 
 #if cpp
 class DummyNapeMain {
-	static function main() {}
-}
-#elseif swc
-class DummyNapeMain {
-	static function main() {}
-}
-
-#else 
-class DummyNapeMain {
-	static public var debug:Debug;
-
 	static function main() {
-		var c = flash.Lib.current;
-		haxe.Log.setColor(0xffffff);
+		var w = 600;
+		var h = 600;
+		var fps = 60;
+		var bgColor = 0x333333;
+		var flags =
+			nme.Lib.BORDERLESS |
+			nme.Lib.HARDWARE |
+			nme.Lib.VSYNC |
+			0;
+		var name = "Test Nape hxcpp/nme";
 
-		var space = new Space(null, Broadphase.DYNAMIC_AABB_TREE);
-		var debug = new BitmapDebug(600,600,0x333333,false);
-		c.addChild(debug.display);
-
-		var body = new Body();
-		body.position.setxy(300,50);
-		body.shapes.add(new Polygon(Polygon.box(20,20)));
-		body.space = space;
-		body.velocity.y = 150;
-
-		var body = new Body();
-		body.position.setxy(300,550);
-		body.shapes.add(new Polygon(Polygon.box(20,20)));
-		body.space = space;
-		body.velocity.y = -150;
-
-		space.step(1/60);
-
+		nme.Lib.create(function() { new DummyNapeMain(); },w,h,fps,bgColor,flags,name);
 	}
 
-	static function mains() {
-        var c = flash.Lib.current;
-        haxe.Log.setColor(0xffffff);
-
-		//var space = new Space(new Vec2(0,400),Broadphase.SWEEP_AND_PRUNE);
+	function new() {
+		var c = nme.Lib.current;
 		var space = new Space(new Vec2(0,400));
-		/*var*/ debug = new BitmapDebug(600,600,0x333333);
-        c.addChild(debug.display);
-		
-        var txt = new flash.text.TextField();
-        txt.x = 20;
-        txt.defaultTextFormat = new flash.text.TextFormat(null,null,0xffffff);
-        c.addChild(txt);
-
-        var pt = flash.Lib.getTimer();
-		txt.x = 300;
-        txt.width = 600;
-        txt.height = 600;
-        txt.selectable = false;
-
-        debug.drawConstraints = true;
-        c.stage.quality = flash.display.StageQuality.LOW;
+		var debug = new ShapeDebug(0x333333);
+		c.addChild(debug.display);
 
 		var walls = new Body(BodyType.STATIC);
 		walls.shapes.add(new Polygon(Polygon.rect(0,550,600,50)));
@@ -82,45 +45,13 @@ class DummyNapeMain {
 			s.filter.fluidMask = 1;
 		}
 
-		for(i in 0...300) {
+		for(i in 0...1000) {
 			var b = new Body();
-			b.shapes.add(new Polygon(Polygon.box(16,16)));
-			var xi = i%18;
-			var yi =Std.int( (i-xi)/18);
-			b.position.setxy(50+xi*16,50+yi*16);
+			b.shapes.add(new Polygon(Polygon.box(15,15)));
+			var xi = i%32;
+			var yi =Std.int( (i-xi)/32);
+			b.position.setxy(50+xi*15,50+yi*15);
 			b.space = space;
-		}
-
-		for(X in 0...0) {
-				var px = 300-150 + 150*X;
-	
-		var tri = new Body(BodyType.STATIC);
-		tri.shapes.add(new Polygon(Polygon.regular(50,50,3)));
-		tri.position.setxy(px,300);
-		tri.space = space;
-
-		var ball = new Body();
-		ball.shapes.add(new Circle(25));
-
-		var pre = tri;
-		for(i in 0...20) {
-			var link = new Body();
-			link.shapes.add(new Circle(4));
-			link.space = space;
-			link.position.setxy(px+25,300+(i+1)*8);
-
-			var a1 = if(pre==tri) new Vec2(25,0) else new Vec2(0,4);
-			var con = new PivotJoint(pre,link,a1,new Vec2(0,-4));
-			con.space = space;
-			con.ignore = true;
-			pre = link;
-		}
-//		ball.shapes.at(0).material.density /= 4;
-		ball.position.setxy(px+25,300+20*8+4+12.5);
-		ball.space = space;
-		var con = new PivotJoint(pre,ball,new Vec2(0,4), new Vec2(0,-25));
-		con.space = space;
-		con.ignore = true;
 		}
 
 		var mcon = new PivotJoint(space.world,space.world, new Vec2(), new Vec2());
@@ -131,9 +62,7 @@ class DummyNapeMain {
 
 		c.stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function (ev) {
 			var pv = new Vec2(c.mouseX,c.mouseY);
-			var bods:BodyList = null;
-			for(i in 0...10000)
-			bods = space.bodiesUnderPoint(pv);
+			var bods = space.bodiesUnderPoint(pv);
 			for(b in bods) {
 				if(b.isDynamic()) {
 					mcon.body2 = b;
@@ -149,9 +78,127 @@ class DummyNapeMain {
         
 		var tim = new haxe.Timer(0);
         tim.run = function() {
+
+            debug.clear();
+
+			mcon.anchor1.setxy(c.mouseX,c.mouseY);
+            space.step(1/60,20,10);
+            
+            debug.draw(space);
+            debug.flush();
+		}
+
+	}
+}
+#elseif swc
+class DummyNapeMain {
+	static function main() {}
+}
+
+#else 
+class DummyNapeMain {
+	static public var debug:Debug;
+
+	static function main() {
+        var c = flash.Lib.current;
+        haxe.Log.setColor(0xffffff);
+
+//		var space = new Space(new Vec2(0,400),Broadphase.SWEEP_AND_PRUNE);
+		var space = new Space(new Vec2(0,400));
+		/*var*/ debug = new BitmapDebug(600,600,0x333333);
+        c.addChild(debug.display);
+		
+        var txt = new flash.text.TextField();
+        txt.defaultTextFormat = new flash.text.TextFormat("Courier New",null,0xffffff);
+        c.addChild(txt);
+        txt.width = 600;
+        txt.height = 600;
+        txt.selectable = false;
+
+        var pt = flash.Lib.getTimer();
+
+        debug.drawConstraints = true;
+        c.stage.quality = flash.display.StageQuality.LOW;
+
+		var mcon = new PivotJoint(space.world,space.world, new Vec2(), new Vec2());
+		mcon.stiff = false;
+		mcon.maxForce = 50000;
+
+		var init = function() {
+			var bods = space.bodies.copy();
+
+			space.clear();
+
+			space.gravity.setxy(0,400);
+			for(b in bods) {
+				b.space = space;
+				if(b.isDynamic()) {
+					b.velocity.y -= 50;
+					b.rotation += 1;
+				}
+			}
+			bods.clear();
+
+			mcon.active = false;
+			mcon.space = space;
+		}
+
+		var walls = new Body(BodyType.STATIC);
+		walls.shapes.add(new Polygon(Polygon.rect(0,550,600,50)));
+		walls.shapes.add(new Polygon(Polygon.rect(0,0,600,50)));
+		walls.shapes.add(new Polygon(Polygon.rect(0,0,50,600)));
+		walls.shapes.add(new Polygon(Polygon.rect(550,0,50,600)));
+		walls.space = space;
+	
+		for(i in 0...4) {
+			var b = new Body();
+			var s = new Circle(60);
+			s.fluidEnabled = true;
+			s.fluidProperties.density = 2;
+			s.material.density = 2;
+			s.body = b;
+			b.space = space;
+			b.position.setxy(Math.random()*500+50,Math.random()*500+50);
+			s.filter.fluidGroup = 2;
+			s.filter.fluidMask = 1;
+		}
+	
+		for(i in 0...300) {
+			var b = new Body();
+			b.shapes.add(new Polygon(Polygon.box(16,16)));
+			var xi = i%18;
+			var yi =Std.int( (i-xi)/18);
+			b.position.setxy(50+xi*16,50+yi*16);
+			b.space = space;
+		}
+
+		mcon.active = false;
+		mcon.space = space;
+
+		c.stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function (ev) {
+			var pv = new Vec2(c.mouseX,c.mouseY);
+			var bods:BodyList = null;
+			bods = space.bodiesUnderPoint(pv);
+			for(b in bods) {
+				if(b.isDynamic()) {
+					mcon.body2 = b;
+					mcon.anchor2 = b.worldToLocal(pv);
+					mcon.active = true;
+					break;
+				}
+			}
+		});
+		c.stage.addEventListener(flash.events.MouseEvent.MOUSE_UP, function (ev) {
+			mcon.active = false;
+		});
+        
+		var tim2 = new haxe.Timer(2000);
+		tim2.run = init;
+
+		var tim = new haxe.Timer(0);
+        tim.run = function() {
             var ct = flash.Lib.getTimer();
             var dt = (ct-pt)/1000;
-            txt.text = "fps: "+Std.string(1/dt).substr(0,5);
             pt = ct;
 
             debug.clear();
@@ -162,17 +209,17 @@ class DummyNapeMain {
             debug.draw(space);
             #if NAPE_TIMES Debug.DRAW += flash.Lib.getTimer()-pt; #end
 
+			txt.text = "";
+			#if NAPE_POOL_STATS
+				txt.text += PR(POOL_STATS).dump()+"\n";
+			#end
+
+            txt.text += "fps: "+Std.string(1/dt).substr(0,5)+"\n";
+
             #if NAPE_TIMES
-                txt.text += "\n\n"+Debug.TIMES(space);
+                txt.text += "\n"+Debug.TIMES(space);
             #end
 
-			var ray = new Ray(new Vec2(300,300), new Vec2(300-c.mouseX,300-c.mouseY).mul(-1));
-			var res = space.rayMultiCast(ray,true);
-			for(r in res) {
-				debug.drawCircle(ray.at(r.distance),2,0xffff);
-				//	debug.drawLine(ray.origin, ray.at(res.distance), 0xff00ff);
-				//	debug.drawCircle(ray.at(res.distance),2,0xffff);
-			}
             debug.flush();
 		}
 	}

@@ -56,6 +56,13 @@ class PR(Space) {
 		wrap_gravity.pr(inner).inuse = true;
 		wrap_gravity.pr(inner)._invalidate = function(x:PR(Vec2)) {
 			vec_set(me.gravity,x.);
+
+			Iter(b, me.bodies, {
+				me.wake(b);
+			});
+		}
+		wrap_gravity.pr(inner)._validate = function() {
+			vec_set(me.wrap_gravity.pr(inner).,me.gravity)
 		}
 	}
 	
@@ -109,6 +116,53 @@ class PR(Space) {
     public var callbacks:PR(Callback); //as a deque
     public var wrap_callbacks:CallbackQueue;
 	
+	//----------------------------------------------------------------------------------------------
+
+	public function clear() {
+		//clear user lists
+		ClearWith(b, bodies,     b.space = null);
+		ClearWith(b, statics,    b.space = null);
+		ClearWith(b, dynamics,   b.space = null);
+		ClearWith(b, kinematics, b.space = null);
+
+		ClearWith(c, constraints, c.space = null);
+
+		callbacks.clear();
+		ClearWith(c, listeners, remListener(c));
+
+		///clear internal lists to object pools if applicable
+		//arbiters
+		ClearWith(arb, c_arbiters(true),  arb.retire());
+		ClearWith(arb, c_arbiters(false), arb.retire());
+		ClearWith(arb, s_arbiters,        arb.retire());
+		ClearWith(arb, f_arbiters,        arb.retire());
+		map_arb.clear();
+
+		//broadphase
+		bphase.clear();
+
+		//islands
+		while(!islands.empty()) {
+			var isl = islands.pop_unsafe();
+			ClearWith(c,isl.comps, c.reset());
+			Free(PR(Island),isl);
+		}
+
+		//other
+		staticsleep.clear();
+		live.clear();
+		live_constraints.clear();
+
+		//nearly forgot these
+		stamp = 0;
+		time = 0.0;
+		vec_set(gravity,0,0);
+		#if NAPE_TIMES
+			Debug.FOR = Debug.BROAD = Debug.PRE = Debug.POS = Debug.VEL = Debug.DRAW = 0;
+			Debug.ltime = 0;
+		#end
+	}
+
 	//----------------------------------------------------------------------------------------------
 	
 	public function new(gravity:PR(Vec2),broadphase:Broadphase) {

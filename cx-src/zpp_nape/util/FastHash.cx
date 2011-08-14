@@ -12,6 +12,19 @@ $(define global class FastHash(T) {
         #end
     }
 
+ 	public inline function clear() {
+		for(i in 0...table.length) {
+			var n = table[i];
+			if(n==null) continue;
+			while(n.hnext!=null) {
+				var t = n.hnext;
+				n.hnext = null;
+				n = t;
+			}
+			table[i] = null;
+		}
+	}
+
     public inline function get(id:Int):T {
         var n = table[hash(id)];
         if(n==null) return null;

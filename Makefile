@@ -4,11 +4,15 @@ local: pre_compile
 	mkdir -p bin
 	haxe -cp src -main DummyNapeMain -swf bin/nape.swf -swf-version $(SWFV) --times \
 	     -swf-header 600:600:60:333333 --dead-code-elimination \
-	     -D NAPE_TIMES
+	     -D NAPE_TIMES -D NAPE_POOL_STATS
 #		 -D NAPE_ASSERT --no-inline -debug
 #	     -D NAPE_RELEASE_BUILD
 #	firefox bin/index.html
 	debugfp bin/nape.swf
+
+cpp: pre_compile
+	haxe -cp src -lib nme --remap flash:nme -main DummyNapeMain -cpp cpp --no-inline -D no_traces
+	./cpp/DummyNapeMain
 
 pre_compile:
 	rm -rf src
@@ -24,7 +28,7 @@ RELEASE_FLAGS = $(SWC_FLAGS) -D NAPE_RELEASE_BUILD
 release: pre_compile
 	mkdir -p bin/release
 #	cpp
-#	haxe -cp src -main DummyNapeMain -cpp cpp --no-inline
+	haxe -cp src -main DummyNapeMain -cpp cpp --no-inline -D HXCPP_M64 -D HXFCGI -D no_traces
 #	assert
 	haxe -swf bin/release/assert_nape.swc -swf-version $(SWFV) $(ASSERT_FLAGS)
 	flib bin/release/assert_nape.swc

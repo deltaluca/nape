@@ -12,17 +12,17 @@ class Debug {
         static public function TIMES(space:Space) {
             var text = "";
 			var dt = space.timeStamp - ltime;
-            text += "FOR:  "+Std.string(Debug.FOR/dt).substr(0,5)+"ms"+"\n";
-            text += "COL:  "+Std.string(Debug.BROAD/dt).substr(0,5)+"ms"+"\n";
-            text += "PRE:  "+Std.string(Debug.PRE/dt).substr(0,5)+"ms"+"\n";
-            text += "POS:  "+Std.string(Debug.POS/dt).substr(0,5)+"ms"+"\n";
-            text += "VEL:  "+Std.string(Debug.VEL/dt).substr(0,5)+"ms"+"\n";
-            text += "DRAW: "+Std.string(Debug.DRAW/dt).substr(0,5)+"ms"+"\n";
-            text += "\n\n";
-            text += "arb: "+Debug.ACNT+"\n";
-            text += "aarb: "+Debug.AACNT+"\n";
-            text += "con: "+Debug.CCNT+"\n";
-            text += "acon: "+Debug.ACCNT+"\n";
+            text += "Set-Forest:    "+Std.string(Debug.FOR/dt).substr(0,5)+"ms"+"\n";
+            text += "Collision:     "+Std.string(Debug.BROAD/dt).substr(0,5)+"ms"+"\n";
+            text += "Prestep:       "+Std.string(Debug.PRE/dt).substr(0,5)+"ms"+"\n";
+            text += "Position It.:  "+Std.string(Debug.POS/dt).substr(0,5)+"ms"+"\n";
+            text += "Velocity It.:  "+Std.string(Debug.VEL/dt).substr(0,5)+"ms"+"\n";
+            text += "Debug Draw:    "+Std.string(Debug.DRAW/dt).substr(0,5)+"ms"+"\n";
+            text += "\n";
+            text += "arb:        "+Debug.ACNT+"\n";
+            text += "active arb: "+Debug.AACNT+"\n";
+            text += "con:        "+Debug.CCNT+"\n";
+            text += "active con: "+Debug.ACCNT+"\n";
 
 			if(space.timeStamp-ltime > 50) {
 				Debug.FOR = Debug.BROAD = Debug.PRE = Debug.POS = Debug.VEL = Debug.DRAW = 0;
@@ -47,19 +47,19 @@ class Debug {
 
     ///---------------------------------------------------------------------------------------------
 
-    #if flash9
+    #if (flash9||nme)
 
     keep public static function createGraphic(body:Body):flash.display.Shape {
 		DEBUG(if(body==null) throw "Error: Cannot create debug graphic for null Body";)
 		var ret = new flash.display.Shape();
 		var graphics = ret.graphics;
 
-        var idc:Int = untyped __int__(0xffffff*Math.exp(-body.id/1500));
+        var idc:Int = fastint(0xffffff*Math.exp(-body.id/1500));
         var _r = (((idc&0xff0000)>>16))*0.7;
         var _g = (((idc&0xff00)>>8))*0.7;
         var _b = (idc&0xff)*0.7;
 	
-        var col = ((untyped __int__(_r))<<16)|((untyped __int__(_g))<<8)|(untyped __int__(_b));
+        var col = ((fastint(_r))<<16)|((fastint(_g))<<8)|(fastint(_b));
         graphics.lineStyle(0.1,col,1);
 
 		for(s in body.shapes) {
@@ -186,7 +186,7 @@ $(mixin __draw(obj) {
 ///_________________________________________________________________________________________________
 ///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 
-#if flash9
+#if (flash9||nme)
 
 class ShapeDebug extends Debug {
     public var pr(inner):PR(ShapeDebug);
@@ -300,10 +300,10 @@ class BitmapDebug extends Debug {
             if(start==null) throw "Error: drawLine::start cannot be null";
             if(end  ==null) throw "Error: drawLine::end cannot be null";
         )
-        var x0:Int = untyped __int__(start.x+0.5);
-        var y0:Int = untyped __int__(start.y+0.5);
-        var x1:Int = untyped __int__(end.x+0.5);
-        var y1:Int = untyped __int__(end.y+0.5);
+        var x0:Int = fastint(start.x+0.5);
+        var y0:Int = fastint(start.y+0.5);
+        var x1:Int = fastint(end.x+0.5);
+        var y1:Int = fastint(end.y+0.5);
         pr(inner).__line(x0,y0,x1,y1,colour|0xff000000);
     }
 
@@ -312,9 +312,9 @@ class BitmapDebug extends Debug {
             if(position==null) throw "Error: drawCircle::position cannot be null";
             if(isNaN(radius) || radius<0) throw "Error: drawCircle::radius must be >=0";
         )
-        var x:Int = untyped __int__(position.x+0.5);
-        var y:Int = untyped __int__(position.y+0.5);
-        var r:Int = untyped __int__(radius+0.5);
+        var x:Int = fastint(position.x+0.5);
+        var y:Int = fastint(position.y+0.5);
+        var r:Int = fastint(radius+0.5);
         pr(inner).__circle(x,y,r, colour|0xff000000);
     }
 
@@ -333,9 +333,9 @@ class BitmapDebug extends Debug {
             if(position==null) throw "Error: drawFilledCircle::position cannot be null";
             if(isNaN(radius) || radius<0) throw "Error: drawFilledCircle::radius must be >=0";
         )
-        var x:Int = untyped __int__(position.x+0.5);
-        var y:Int = untyped __int__(position.y+0.5);
-        var r:Int = untyped __int__(radius+0.5);
+        var x:Int = fastint(position.x+0.5);
+        var y:Int = fastint(position.y+0.5);
+        var r:Int = fastint(radius+0.5);
         pr(inner).__fcircle(x,y,r, colour|0xff000000);
     }
 

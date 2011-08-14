@@ -1,6 +1,33 @@
 package zpp_nape.space;
 $(import);
 
+//since i use different 'next' variables, cannot use a MixList.
+$(mixin iadd(list,obj,next) {
+	assert(obj.next==null,"object already in list");
+	obj.next = list;
+	list = obj;
+});
+$(mixin ipop(list,next) ({
+	assert(list!=null,"pop from empty list!");
+	var ret = list;
+	list = ret.next;
+	ret.next = null;
+	ret;
+}));
+$(mixin irem(list,obj,next) {
+	var pre = null;
+	var cur = list;
+	while(cur!=null) {
+		if(cur==obj) break;
+		pre = cur;
+		cur = cur.next;
+	}
+	assert(cur!=null,"object not in the list");
+	if(pre==null) list = cur.next;
+	else pre.next = cur.next;
+	cur.next = null;
+});
+
 class PR(AABBNode) {
 	//fattened AABB
 	public var aabb :PR(AABB);
@@ -26,7 +53,7 @@ class PR(AABBNode) {
 	flibmdel public inline function alloc() {
 		aabb = Get(PR(AABB));
 		child1 = child2 = parent = null;
-		next = null;
+		next = null; snext = null; mnext = null;
 		moved = false;
 		synced = false;
 		first_sync = false;
@@ -73,6 +100,24 @@ class PR(AABBTree) {
 	public function new() {}
 
     //----------------------------------------------------------------------------------------------
+  
+  	public function clear() { 
+		if(root==null) return;
+
+   		var stack:PR(AABBNode) = null;
+		iadd(stack,root,next);
+		while(stack!=null) {
+			var node = ipop(stack,next);
+			if(node.isLeaf()) {
+				node.shape.node = null;
+				node.shape = null;
+			}else {
+				if(node.child1!=null) iadd(stack,node.child1,next);
+				if(node.child2!=null) iadd(stack,node.child2,next);
+			}
+			Free(PR(AABBNode),node);
+		}
+	}
     
     public static var tmpaabb = new PR(AABB)();
     flibmdel public inline function insertLeaf(leaf:PR(AABBNode)) {
@@ -261,33 +306,6 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 	public var syncs:PR(AABBNode); //intrusive list
 	public var moves:PR(AABBNode); //intrusice list
 
-	//since i use different 'next' variables, cannot use a MixList.
-	$(mixin iadd(list,obj,next) {
-		assert(obj.next==null,"object already in list");
-		obj.next = list;
-		list = obj;
-	});
-	$(mixin ipop(list,next) ({
-		assert(list!=null,"pop from empty list!");
-		var ret = list;
-		list = ret.next;
-		ret.next = null;
-		ret;
-	}));
-	$(mixin irem(list,obj,next) {
-		var pre = null;
-		var cur = list;
-		while(cur!=null) {
-			if(cur==obj) break;
-			pre = cur;
-			cur = cur.next;
-		}
-		assert(cur!=null,"object not in the list");
-		if(pre==null) list = cur.next;
-		else pre.next = cur.next;
-		cur.next = null;
-	});
-
 	public function new(space:PR(Space)) {
 		this.space = space;
 		is_sweep = false;
@@ -301,14 +319,14 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 
 	//==============================================================
 
-	public inline function dyn(shape:PR(Shape)) {
+	flibmdel public inline function dyn(shape:PR(Shape)) {
 		if(shape.body.isStatic()) return false;
 		else return !shape.body.component.sleeping;
 	}
 
 	//==============================================================
 
-	public inline function __insert(shape:PR(Shape)) {
+	flibmdel public inline function __insert(shape:PR(Shape)) {
 		assert(shape.node==null,"shape has been inserted already");
 		assert(shape.body!=null,"shape inserted with no body");
 
@@ -325,7 +343,7 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 		node.first_sync = true;
 		iadd(syncs,node,snext);
 	}
-	public inline function __remove(shape:PR(Shape)) {
+	flibmdel public inline function __remove(shape:PR(Shape)) {
 		assert(shape.body!=null,"do i need this assertion?");
 		assert(shape.node!=null,"shape has no node?");
 
@@ -343,7 +361,7 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 
 		Free(PR(AABBNode),node);
 	}
-	public inline function __sync(shape:PR(Shape)) {
+	flibmdel public inline function __sync(shape:PR(Shape)) {
 		assert(!shape.body.isStatic(),"static shape being synced?");
 	
 		var node = shape.node;
@@ -547,6 +565,34 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 			pre = cur;
 			cur = cur.next;
 		}
+	}
+
+	//==============================================================
+
+	//could DEFINATELY be improved, but not important right now
+	public override function clear() {
+		while(syncs!=null) {
+			var next = syncs.snext;
+			syncs.snext = null;
+			syncs = next;
+		}
+		while(moves!=null) {
+			var next = moves.mnext;
+			moves.mnext = null;
+			moves = next;
+		}
+
+		pairhash.clear();
+		while(pairs!=null) {
+			var nxt = pairs.next;
+			if(pairs.arb!=null) pairs.arb.pair = null;
+			pairs.arb = null;
+			Free(PR(AABBPair),pairs);
+			pairs = nxt;
+		}
+
+		dtree.clear();
+		stree.clear();
 	}
 
 	//==============================================================

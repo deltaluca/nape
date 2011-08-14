@@ -4,7 +4,7 @@ $(import);
 class PR(Debug) {
     public static var internal = false;
 
-    #if flash9
+    #if (flash9||nme)
 
     public var bg_r:Float;
     public var bg_g:Float;
@@ -27,7 +27,7 @@ class PR(Debug) {
 ///_________________________________________________________________________________________________
 ///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 
-#if flash9
+#if (flash9||nme)
 
 class PR(ShapeDebug) extends PR(Debug) {
     public var outer:ShapeDebug;
@@ -316,7 +316,7 @@ class PR(BitmapDebug) extends PR(Debug) {
     public var peny:Int;
     public var colour:Int;
 
-    flibmdel public inline function __round(x:Float):Int return untyped __int__(x+0.5)
+    flibmdel public inline function __round(x:Float):Int return fastint(x+0.5)
 
     pr_debug(
         $(mixin __lineStyle(XX,col,YY) {
@@ -377,7 +377,7 @@ class PR(BitmapDebug) extends PR(Debug) {
 ///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 
 $(mixin __colour(id,sleep) {
-    var idc:Int = untyped __int__(0xffffff*Math.exp(-id/1500));
+    var idc:Int = fastint(0xffffff*Math.exp(-(id%500)/1500));
 	var _r = (((idc&0xff0000)>>16))*0.7;
 	var _g = (((idc&0xff00)>>8))*0.7;
 	var _b = (idc&0xff)*0.7;
@@ -387,11 +387,11 @@ $(mixin __colour(id,sleep) {
         _g = 0.4*_g + 0.6*bg_g;
         _b = 0.4*_b + 0.6*bg_b;
     }
-	0xff000000|((untyped __int__(_r))<<16)|((untyped __int__(_g))<<8)|(untyped __int__(_b));
+	0xff000000|((fastint(_r))<<16)|((fastint(_g))<<8)|(fastint(_b));
 });
 
 $(mixin __con_colour(id,sleep) {
-    var idc:Int = untyped __int__(0xffffff*Math.exp(-id/2500));
+    var idc:Int = fastint(0xffffff*Math.exp(-(id%500)/2500));
 	var _r = ((idc&0xff0000)>>16)*0.5;
 	var _g = ((idc&0xff00)>>8)*0.5;
 	var _b = (idc&0xff)*0.5;
@@ -405,7 +405,7 @@ $(mixin __con_colour(id,sleep) {
         _g = 0.6*_g + 0.4*bg_g;
         _b = 0.6*_b + 0.4*bg_b;
     }
-	0xff000000|((untyped __int__(_r))<<16)|((untyped __int__(_g))<<8)|(untyped __int__(_b));
+	0xff000000|((fastint(_r))<<16)|((fastint(_g))<<8)|(fastint(_b));
 });
 
 $(mixin __tint(__col,__ncol, __f) {
@@ -413,9 +413,9 @@ $(mixin __tint(__col,__ncol, __f) {
     var ncol = __ncol;
     var f = __f;
 
-    var _r:Int = untyped __int__(((col>>16)&0xff)*f + ((ncol>>16)&0xff)*(1-f));
-    var _g:Int = untyped __int__(((col>>8)&0xff)*f + ((ncol>>8)&0xff)*(1-f));
-    var _b:Int = untyped __int__(((col)&0xff)*f + ((ncol)&0xff)*(1-f));
+    var _r:Int = fastint(((col>>16)&0xff)*f + ((ncol>>16)&0xff)*(1-f));
+    var _g:Int = fastint(((col>>8)&0xff)*f + ((ncol>>8)&0xff)*(1-f));
+    var _b:Int = fastint(((col)&0xff)*f + ((ncol)&0xff)*(1-f));
     0xff000000|(_r<<16)|(_g<<8)|(_b);
 });
 

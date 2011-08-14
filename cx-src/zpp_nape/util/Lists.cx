@@ -497,15 +497,7 @@ $(mixin global ListMixin(defs,Cons,T,I)
 
     flibmdel public inline function clear() {
         if(_clear) {
-            while(!empty()) {
-                var old = begin();
-                _setbeg(old.next);
-                _delelt(old.elem());
-                _delete(old);
-				mcnt--;
-            }
-			
-			modified = true;
+            while(!empty()) pop();
 			pushmod = true;
         }
     }
@@ -595,6 +587,15 @@ $(mixin global Exists(i,list,predicate) ({
 }));
 
 $(mixin global ForAll(i,list,predicate) (!Exists(i,list,!($predicate))));
+
+//--------------------------------------------------------------------------------------------------
+
+$(mixin global ClearWith(i,list,closure) {
+	while(!list.empty()) {
+		var i = list.pop_unsafe();
+		closure;
+	}
+});
 
 //--------------------------------------------------------------------------------------------------
 
