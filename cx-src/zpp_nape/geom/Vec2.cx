@@ -28,7 +28,12 @@ class PR(Vec2) {
 	
 	MixPoolNoNext(PR(Vec2))
 	flibmdel public inline function free() {
+		if(outer!=null)
+			outer.pr(inner) = null;
 		outer = null;
+		_immutable = null;
+		_validate = null;
+		_invalidate = null;
 	}
 	flibmdel public inline function alloc() {}
 	
@@ -39,13 +44,12 @@ class PR(Vec2) {
 	
 	static var nextid = 0;
 	public var id:Int;
-	public function new() { id = nextid++; }
+	public function new() {
+		id = nextid++;
+	}
 	flibstaticdel(get) public inline static function get(x:Float, y:Float, ?immutable=false) {
 		var ret = Get(PR(Vec2));
-		ret._immutable = null;
 		ret.immutable = immutable;
-		ret._validate = null;
-		ret._invalidate = null;
 		vec_set(ret.,);
 		return ret;
 	}

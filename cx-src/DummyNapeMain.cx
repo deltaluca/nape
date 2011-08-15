@@ -96,10 +96,40 @@ class DummyNapeMain {
 }
 
 #else 
+
+class Empty { public function new() {} }
+
 class DummyNapeMain {
 	static public var debug:Debug;
 
 	static function main() {
+		var c = flash.Lib.current;
+
+        var txt = new flash.text.TextField();
+		txt.defaultTextFormat = new flash.text.TextFormat("Courier New",null,0xffffff);
+		c.addChild(txt);
+		txt.y = 20;
+		txt.width = 600;
+		txt.height = 600;
+		txt.selectable = false;
+		c.addChild(txt);
+
+		var tim = new flash.utils.Timer(1);
+		tim.addEventListener(flash.events.TimerEvent.TIMER, function (_) {
+			for(i in 0...1000) {
+//				var v = new Vec2();
+//				v.pr(inner).outer = null;
+//				v.pr(inner) = null;
+				new Empty();
+			}
+			
+			txt.text = PR(POOL_STATS).dump()+"\n\nhiya";
+		});
+
+		tim.start();
+	}
+
+	static function mains() {
         var c = flash.Lib.current;
         haxe.Log.setColor(0xffffff);
 
@@ -125,11 +155,12 @@ class DummyNapeMain {
 		mcon.maxForce = 50000;
 
 		var init = function() {
-			var bods = space.bodies.copy();
+//			var bods = space.bodies.copy();
 
 			space.clear();
+			Debug.clearObjectPools();
 
-			space.gravity.setxy(0,400);
+/*			space.gravity.setxy(0,400);
 			for(b in bods) {
 				b.space = space;
 				if(b.isDynamic()) {
@@ -140,7 +171,7 @@ class DummyNapeMain {
 			bods.clear();
 
 			mcon.active = false;
-			mcon.space = space;
+			mcon.space = space;*/
 		}
 
 		var walls = new Body(BodyType.STATIC);

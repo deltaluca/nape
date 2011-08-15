@@ -30,8 +30,11 @@ class PR(AABB) {
 	MixPool(PR(AABB))
 	flibmdel public inline function alloc() {}
 	flibmdel public inline function free() {
+		if(outer!=null) outer.pr(inner) = null;
 		outer = null;
-		wrap_min = wrap_max = null; //??? not right, should be able to recycle.
+		wrap_min = wrap_max = null;
+		_invalidate = null;
+		_validate = null;
 	}
 	
 	//----------------------------------------------------------------------------------------------

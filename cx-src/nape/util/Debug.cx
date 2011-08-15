@@ -7,6 +7,19 @@ class Debug {
         return "Milestone 5.3 7/08/11 - \"r4\" build 00:43 15/08/11";
     }
 
+	public static function clearObjectPools() {
+		$(expand global CLEARPOOL(T) {
+			while(T.pr(pool)!=null) {
+				var nxt = T.pr(pool).next;
+				T.pr(pool).next = null;
+				T.pr(pool) = nxt;
+			}
+			#if NAPE_POOL_STATS
+			    T.POOL_TOT = T.POOL_CNT = T.POOL_ADDNEW = T.POOL_ADD = T.POOL_SUB = 0;
+			#end
+		});
+	}
+
     #if NAPE_TIMES
 		static public var ltime = 0;
         static public function TIMES(space:Space) {
