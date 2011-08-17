@@ -46,6 +46,13 @@ class PR(Shape) {
 	public var node:PR(AABBNode);
 	
 	//----------------------------------------------------------------------------------------------
+
+	public inline function clear() {
+		if(isCircle()) circle.__clear();
+		else          polygon.__clear();
+	}
+
+	//----------------------------------------------------------------------------------------------
 	
 	public var aabb:PR(AABB); public var inv(aabb):Bool;
 	flibmdel public inline function validate_aabb() {
@@ -195,6 +202,8 @@ class PR(Shape) {
 		fluidEnabled = false;
 		fluidProperties = null;
 		body = null;
+
+		//cbType handled in Circle/Polygon public class constructors
 	}
 	
 	//----------------------------------------------------------------------------------------------
@@ -204,9 +213,12 @@ class PR(Shape) {
 			DEBUG(if(!material.shared && !material.shapes.empty())
 				throw "Error: Material cannot be shared unless it's shared property is set";
 			)
-			if(this.material!=null) this.material.remShape(this);
+			if(body!=null && body.space!=null) {
+				if(this.material!=null) this.material.remShape(this);
+			}
 			this.material = material;
-			material.addShape(this);
+			if(body!=null && body.space!=null)
+				material.addShape(this);
 			
 			wake();
 			if(body!=null) body.refreshArbiters();
@@ -219,9 +231,12 @@ class PR(Shape) {
 				throw "Error: InteractionFilter cannot be shared unless it's shared property is set";
 			)
 			
-			if(this.filter!=null) this.filter.remShape(this);
+			if(body!=null && body.space!=null) {
+				if(this.filter!=null) this.filter.remShape(this);
+			}
 			this.filter = filter;
-			filter.addShape(this);
+			if(body!=null && body.space!=null)
+				filter.addShape(this);
 			
 			wake();
 		}
@@ -232,9 +247,12 @@ class PR(Shape) {
 			DEBUG(if(!fluid.shared && !fluid.shapes.empty())
 				throw "Error: FluidProperties cannot be shared unless it's shared property is set";
 			)
-			if(fluidProperties!=null) fluidProperties.remShape(this);
+			if(body!=null && body.space!=null) {
+				if(fluidProperties!=null) fluidProperties.remShape(this);
+			}
 			fluidProperties = fluid;
-			fluid.addShape(this);
+			if(body!=null && body.space!=null)
+				fluid.addShape(this);
 			
 			if(fluidEnabled)
 				wake();
@@ -243,9 +261,12 @@ class PR(Shape) {
 
     public function setCbType(cbType:PR(CbType)) {
         if(this.cbType != cbType) {
-            if(this.cbType!=null) this.cbType.remShape(this);
+			if(body!=null && body.space!=null) {
+	            if(this.cbType!=null) this.cbType.remShape(this);
+			}
             this.cbType = cbType;
-            cbType.addShape(this);
+			if(body!=null && body.space!=null)
+	            cbType.addShape(this);
 
             wake();
         }
@@ -258,7 +279,23 @@ class PR(Shape) {
 		invalidate_worldCOM();
 		invalidate_aabb();
 	}
-	flibmdel public inline function removedFromBody() {}
+	flibmdel public inline function removedFromBody() {
+	}
+
+	flibmdel public inline function addedToSpace() {
+		cbType.addShape(this);
+		material.addShape(this);
+		filter.addShape(this);
+		if(fluidProperties!=null)
+			fluidProperties.addShape(this);
+	}
+	flibmdel public inline function removedFromSpace() {
+		cbType.remShape(this);
+		material.remShape(this);
+		filter.remShape(this);
+		if(fluidProperties!=null)
+			fluidProperties.remShape(this);
+	}
 	
 	public function copy() {
 		var ret:PR(Shape) = null;
@@ -285,21 +322,17 @@ class PR(Shape) {
 		
 		if(material.shared) ret.material = material;
 		else ret.material = material.copy();
-		ret.material.addShape(ret);
 		
 		if(filter.shared) ret.filter = filter;
 		else ret.filter = filter.copy();
-		ret.filter.addShape(ret);
 		
 		if(fluidProperties!=null) {
 			if(fluidProperties.shared) ret.fluidProperties = fluidProperties;
 			else ret.fluidProperties = fluidProperties.copy();
-			ret.fluidProperties.addShape(ret);
 		}
 		ret.fluidEnabled = fluidEnabled;
 		
         ret.cbType = cbType;
-        ret.cbType.addShape(ret);
 
 		return ret.outer;
 	}

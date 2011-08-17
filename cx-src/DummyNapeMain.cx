@@ -97,39 +97,47 @@ class DummyNapeMain {
 
 #else 
 
-class Empty { public function new() {} }
+class Tracer {
+	static public function trace(objs:Array<Dynamic>,txt:flash.text.TextField) {
+		var dict_id = 0;
+		var stack = [];
+		var dict = new flash.utils.Dictionary(false);
+		var idl = [];
+
+		$(mixin pushobj(i) ({
+			if((untyped dict[i])!=null) (untyped dict[i]).id;
+			else {
+				var o = { id: dict_id++, obj:i, refs:[] };
+				untyped dict[i] = o;
+				stack.push(o);
+				idl.push(o);
+				o.id;
+			}
+		}));
+
+		for(i in objs) pushobj(i);
+
+		while(stack.length>0) {
+			var cur = stack.shift();
+			var cls = Type.getClass(cur.obj);
+			for(o in Type.getInstanceFields(cls)) {
+				var field:Dynamic = Reflect.field(cur.obj, o);
+				if(field!=null && Reflect.isObject(field)) {
+					cur.refs.push({ name:o, id:	pushobj(field) });
+				}
+			}
+		}
+	
+		for(i in idl) {
+			txt.text += "id: "+i.id+" refs:"+Std.string(i.refs)+" = "+Std.string(i.obj)+"\n";
+		}
+	}
+}
 
 class DummyNapeMain {
 	static public var debug:Debug;
 
 	static function main() {
-		var c = flash.Lib.current;
-
-        var txt = new flash.text.TextField();
-		txt.defaultTextFormat = new flash.text.TextFormat("Courier New",null,0xffffff);
-		c.addChild(txt);
-		txt.y = 20;
-		txt.width = 600;
-		txt.height = 600;
-		txt.selectable = false;
-		c.addChild(txt);
-
-		var tim = new flash.utils.Timer(1);
-		tim.addEventListener(flash.events.TimerEvent.TIMER, function (_) {
-			for(i in 0...1000) {
-//				var v = new Vec2();
-//				v.pr(inner).outer = null;
-//				v.pr(inner) = null;
-				new Empty();
-			}
-			
-			txt.text = PR(POOL_STATS).dump()+"\n\nhiya";
-		});
-
-		tim.start();
-	}
-
-	static function mains() {
         var c = flash.Lib.current;
         haxe.Log.setColor(0xffffff);
 
@@ -137,13 +145,15 @@ class DummyNapeMain {
 		var space = new Space(new Vec2(0,400));
 		/*var*/ debug = new BitmapDebug(600,600,0x333333);
         c.addChild(debug.display);
-		
+
+	
         var txt = new flash.text.TextField();
         txt.defaultTextFormat = new flash.text.TextFormat("Courier New",null,0xffffff);
         c.addChild(txt);
         txt.width = 600;
         txt.height = 600;
-        txt.selectable = false;
+        txt.selectable = true;
+		txt.multiline = true;
 
         var pt = flash.Lib.getTimer();
 
@@ -153,14 +163,14 @@ class DummyNapeMain {
 		var mcon = new PivotJoint(space.world,space.world, new Vec2(), new Vec2());
 		mcon.stiff = false;
 		mcon.maxForce = 50000;
+//		var mcon:Dynamic = null;
 
 		var init = function() {
 //			var bods = space.bodies.copy();
 
 			space.clear();
-			Debug.clearObjectPools();
-
-/*			space.gravity.setxy(0,400);
+			space.gravity.setxy(0,400);
+/*
 			for(b in bods) {
 				b.space = space;
 				if(b.isDynamic()) {
@@ -172,7 +182,7 @@ class DummyNapeMain {
 
 			mcon.active = false;
 			mcon.space = space;*/
-		}
+//		}
 
 		var walls = new Body(BodyType.STATIC);
 		walls.shapes.add(new Polygon(Polygon.rect(0,550,600,50)));
@@ -205,6 +215,7 @@ class DummyNapeMain {
 
 		mcon.active = false;
 		mcon.space = space;
+	}
 
 		c.stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function (ev) {
 			var pv = new Vec2(c.mouseX,c.mouseY);
@@ -223,8 +234,12 @@ class DummyNapeMain {
 			mcon.active = false;
 		});
         
-		var tim2 = new haxe.Timer(2000);
+		var tim2 = new haxe.Timer(5000);
 		tim2.run = init;
+		init();
+//		space.clear();
+//		Tracer.trace([space],txt);
+//		return;
 
 		var tim = new haxe.Timer(0);
         tim.run = function() {
@@ -250,6 +265,18 @@ class DummyNapeMain {
             #if NAPE_TIMES
                 txt.text += "\n"+Debug.TIMES(space);
             #end
+
+			var prec = function(x:Float,y:Int) {
+				return Std.string(Std.int(x*Math.pow(10,y))*Math.pow(10,-y));
+			}
+			var mem = function(x:Float) {
+				if(x<1024) return Std.string(x)+"B";
+				else if(x<1024*1024) return prec(x/1024,2)+"KiB";
+				else                 return prec(x/1024/1024,2)+"MiB";
+			};
+
+			txt.text += "\n\nMAX: "+mem(flash.system.System.totalMemory);
+			txt.text +=   "\nCUR: "+mem(flash.system.System.totalMemory-flash.system.System.freeMemory);
 
             debug.flush();
 		}

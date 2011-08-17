@@ -17,7 +17,8 @@ class Constraint {
     },{
 		if(this.space!=space) {
             //prevent wake callback on adding to space.
-            pr(inner).component.woken = false;
+			if(pr(inner).component!=null)
+	            pr(inner).component.woken = false;
 
             pr(inner).clearcache();
 
@@ -29,21 +30,29 @@ class Constraint {
 	
 	//---------------------------------------------------
 	
-    property(isSleeping,Bool,pr(inner).component.sleeping)
+    property(isSleeping,Bool,{
+		DEBUG(if(pr(inner).space==null||!pr(inner).active)
+			throw "Error: isSleeping only makes sense if constraint is active and inside a space";
+		)
+		pr(inner).component.sleeping;
+	})
 
 	//---------------------------------------------------
 
 	property(active,Bool,pr(inner).active,{
 		if(this.active!=active) {
             //prevent wake callback on activation
-            pr(inner).component.woken = false;
+			if(pr(inner).component!=null)
+	            pr(inner).component.woken = false;
 
             pr(inner).clearcache();
 
 			if(active) {
                 pr(inner).active = active;
+				pr(inner).activate();
 				if(pr(inner).space!=null) {
-					pr(inner).component.sleeping = true;
+					if(pr(inner).component!=null)
+						pr(inner).component.sleeping = true;
 					//pr(inner).wake();
                     //prevent wake callback
                     pr(inner).space.wake_constraint(pr(inner),true);
@@ -54,6 +63,7 @@ class Constraint {
 					pr(inner).space.live_constraints.remove(pr(inner));
 				}
                 pr(inner).active = active;
+				pr(inner).deactivate();
 			}
 		}
 	})

@@ -31,8 +31,14 @@ class PR(Component) {
 	public var sleeping:Bool;
     public var waket:Int;
     public var woken:Bool;
-	
-	flibmdel public inline function free() {}
+
+	flibmdel public inline function free() {
+		body = null;
+		constraint = null;
+		assert(island==null,"component freeed whilst connected to an island?");
+	}
+	flibmdel public inline function alloc() {}
+
 	public function new() {
         reset();
         woken = false;
@@ -119,14 +125,6 @@ class PR(Space) {
 	//----------------------------------------------------------------------------------------------
 
 	public function clear() {
-		//clear user lists
-		ClearWith(b, bodies,     b.space = null);
-		ClearWith(b, statics,    b.space = null);
-		ClearWith(b, dynamics,   b.space = null);
-		ClearWith(b, kinematics, b.space = null);
-
-		ClearWith(c, constraints, c.space = null);
-
 		callbacks.clear();
 		ClearWith(c, listeners, remListener(c));
 
@@ -142,11 +140,32 @@ class PR(Space) {
 		bphase.clear();
 
 		//islands
+		assert(islands.empty(),"islands exist... wuh?");
+		/*
 		while(!islands.empty()) {
 			var isl = islands.pop_unsafe();
 			ClearWith(c,isl.comps, c.reset());
 			Free(PR(Island),isl);
-		}
+		}*/
+
+		//handle islands that exist implicitly through components.
+		$(mixin isl(comp) {
+			if(comp!=null) {
+				var i = comp.island;
+				if(i!=null) {
+					ClearWith(c,i.comps,c.reset());
+					Free(PR(Island),i);
+				}
+			}
+		});
+
+		//clear user lists
+		ClearWith(b, bodies,     { isl(b.component); b.removedFromSpace(); b.space = null; });
+		statics.clear();
+		dynamics.clear();
+		kinematics.clear();
+
+		ClearWith(c, constraints, { isl(c.component); c.removedFromSpace(); c.space = null; });
 
 		//other
 		staticsleep.clear();
@@ -307,6 +326,8 @@ class PR(Space) {
 		//wake the object
 		wake(s.body);
 		bphase.insert(s);
+
+		s.addedToSpace();
 	}
 	flibmdel public inline function removed_shape(s:PR(Shape), ?deleting=false) {
 		var body = s.body;
@@ -334,6 +355,8 @@ class PR(Space) {
 		});
 		
 		bphase.remove(s);
+
+		s.removedFromSpace();
 	}
 	
 	//----------------------------------------------------------------------------------------------
@@ -345,6 +368,8 @@ class PR(Space) {
 			con.component.sleeping = true;
 			wake_constraint(con,true);
 		}
+
+		con.addedToSpace();
 	}
 	
 	public inline function remConstraint(con:PR(Constraint)) {
@@ -352,6 +377,7 @@ class PR(Space) {
 			wake_constraint(con,true);
 			live_constraints.remove(con);
 		}
+		con.removedFromSpace();
 		con.space = null;
 	}
 	
@@ -360,6 +386,8 @@ class PR(Space) {
 	//flag = 0 if already added to bodies list, -1 if nothing has yet been done
 	public inline function addBody(body:PR(Body),?flag:Int=-1) {
 		body.space = this;
+
+		body.addedToSpace();
 
         assert(body.component.island==null,"newly added body has an island??");
 		body.component.sleeping = true;
@@ -688,6 +716,7 @@ class PR(Space) {
 	
 	public function wake(o:PR(Body),?fst=false) {
 		if(!o.world) {
+			assert(o.component!=null,"body woken, but no component exists?");
 			o.component.waket = stamp+1;
 			if(o.component.sleeping) {
 				if(o.component.island==null) {
@@ -740,6 +769,7 @@ class PR(Space) {
 	
 	flibmdel public inline function wake_constraint(con:PR(Constraint),?fst=false) {
 		if(con.active) {
+			assert(con.component!=null,"constraint woken but no component exists?");
             con.component.waket = stamp+1;
             if(con.component.sleeping) {
                 if(con.component.island==null) {

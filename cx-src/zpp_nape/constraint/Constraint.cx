@@ -4,6 +4,8 @@ $(import);
 class PR(Constraint) {
 	public var outer:Constraint;
 
+	public inline function clear() {}
+
     public var id:Int;
     static var nextId = 0;
 	
@@ -48,16 +50,62 @@ class PR(Constraint) {
 		maxError = PR(Const).POSINF;
 		breakUnderForce = false;
 		
-		component = new PR(Component)();
-		component.isBody = false;
-		component.constraint = this;
-
         cbType = PR(CbType).DEFAULT;
-        cbType.addConstraint(this);
 
         removeOnBreak = true;
         pre_dt = -1.0;
 	}
+
+	//------------------------------------------------------------------------------------
+
+    public function setCbType(cbType:PR(CbType)) {
+        if(this.cbType != cbType) {
+			if(space!=null) {
+	            if(this.cbType!=null) this.cbType.remConstraint(this);
+			}
+            this.cbType = cbType;
+			if(space!=null)
+	            cbType.addConstraint(this);
+
+            wake();
+        }
+    }
+	
+	//------------------------------------------------------------------------------------
+
+	flibmdel public inline function activate() {
+		if(space!=null) activeInSpace();
+	}
+	flibmdel public inline function deactivate() {
+		if(space!=null) inactiveOrOutSpace();
+	}
+
+	flibmdel public inline function addedToSpace() {
+		if(active) activeInSpace();
+	}
+	flibmdel public inline function removedFromSpace() {
+		if(active) inactiveOrOutSpace();
+	}
+
+	//------------------------------------------------------------------------------------
+
+	flibmdel public inline function activeInSpace() {
+		cbType.addConstraint(this);
+		
+		assert(component==null,"already has a component?");
+		component = Get(PR(Component));
+		component.isBody = false;
+		component.constraint = this;
+	}
+
+	flibmdel public inline function inactiveOrOutSpace() {
+		cbType.remConstraint(this);
+
+		Free(PR(Component),component);
+		component = null;
+	}
+
+	//------------------------------------------------------------------------------------
 
     //clear cached impulses
     keep public function clearcache() { assert(false,"clearcache not overriden"); }
@@ -104,16 +152,6 @@ class PR(Constraint) {
 	//----------------------------------------------------------------------------------------------
 
     public var cbType:PR(CbType);
-
-    flibmdel public inline function setCbType(cbType:PR(CbType)) {
-        if(this.cbType != cbType) {
-            if(this.cbType!=null) this.cbType.remConstraint(this);
-            this.cbType = cbType;
-            cbType.addConstraint(this);
-
-            wake();
-        }
-    }
 }
 
 $(mixin global withConstraint(block)

@@ -483,16 +483,29 @@ class PR(Body) {
 
     flibmdel public inline function setCbType(cbType:PR(CbType)) {
         if(this.cbType != cbType) {
-            if(this.cbType!=null) this.cbType.remBody(this);
+			if(space!=null) {
+	            if(this.cbType!=null) this.cbType.remBody(this);
+			}
             this.cbType = cbType;
-            cbType.addBody(this);
+			if(space!=null)
+	            cbType.addBody(this);
 
             wake();
         }
     }
 
     //----------------------------------------------------------------------------------------------
-	
+
+	public inline function clear() {
+//		outer.pr(inner) = null;
+//		outer = null;
+
+		ClearWith(s, shapes, { s.body = null; }); 
+	}
+
+    //----------------------------------------------------------------------------------------------
+
+	//used for space.world static rogue body.
 	public static function __static():Body {
 		var ret = new Body(BodyType.STATIC);
 		var si = ret.pr(inner);
@@ -503,6 +516,8 @@ class PR(Body) {
 		return ret;
 	}
 	
+    //----------------------------------------------------------------------------------------------
+
 	public function new() {
 		world = false;
 		
@@ -579,22 +594,33 @@ class PR(Body) {
 				throw "Error: Cannot modifiy shapes of static object once added to Space";
 		};
 		
-		component = new PR(Component)();
-		component.isBody = true;
-		component.body = this;
-
         cbType = PR(CbType).DEFAULT;
-        cbType.addBody(this);
 	}
 	
 	//----------------------------------------------------------------------------------------------
 	
+	flibmdel public inline function addedToSpace() {
+		assert(component==null,"already has a component?");
+
+		component = Get(PR(Component));
+		component.isBody = true;
+		component.body = this;
+
+		//cbTypes only maintain list of ACTIVE bodies
+		cbType.addBody(this);
+	}
+
 	flibmdel public inline function removedFromSpace() {
 		while(!arbiters.empty()) {
 			var arb = arbiters.pop_unsafe();
 			arb.lazyRetire(space,this);
 		}
-        component.sleeping = false;
+
+		Free(PR(Component),component);
+		component = null;
+
+		//cbTypes only maintain list of ACTIVE bodies.
+		cbType.remBody(this);
 	}
 	
 	//----------------------------------------------------------------------------------------------
@@ -652,7 +678,6 @@ class PR(Body) {
 		else ret.invalidate_worldCOM();
 
         ret.cbType = cbType;
-        ret.cbType.addBody(ret);
 		
 		return ret.outer;
 	}
