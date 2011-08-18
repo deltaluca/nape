@@ -497,10 +497,44 @@ class PR(Body) {
     //----------------------------------------------------------------------------------------------
 
 	public inline function clear() {
-//		outer.pr(inner) = null;
-//		outer = null;
+		DEBUG(if(space!=null) throw "Error: Cannot clear a Body if it is currently being used by a Space!";)
+		DEBUG(if(!constraints.empty()) throw "Error: Cannot clear a Body if it is currently being used by a constraint!";)
+		
+		ClearWith(s,shapes, {
+			s.removedFromBody();
+			s.body = null;
+		});
+		invalidate_shapes();
 
-		ClearWith(s, shapes, { s.body = null; }); 
+		vec_set(pre_pos,0,0);
+		vec_set(pos,0,0);
+		vec_set(vel,0,0);
+		vec_set(force,0,0);
+		vec_set(kinvel,0,0);
+		vec_set(svel,0,0);
+
+		angvel = torque = kinangvel = pre_rot = rot = 0;
+
+		invalidate_pos();
+		invalidate_rot();
+		vec_set(axis,0,1); inv(axis) = false;
+
+		massMode = Flag(MassMode,DEFAULT);
+		gravMassMode = Flag(GravMassMode,DEFAULT);
+		gravMassScale = 1.0;
+		inertiaMode = Flag(InertiaMode,DEFAULT);
+
+		norotate = false;
+		nomove = false;
+
+		#if flash9
+			hasgraphic = false;
+			graphic = null;
+			vec_set(gdelta,0,0);
+			grotdelta = 0;
+		#end
+
+		cbType = PR(CbType).DEFAULT;
 	}
 
     //----------------------------------------------------------------------------------------------
