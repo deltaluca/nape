@@ -35,24 +35,25 @@ class PR(BodyListener) extends PR(Listener) {
     flibmdel public inline function addedToSpace() {
         assert(cbType!=null,"listener added to space with no cbtype associated?");
 
+		cbType.listeners.add(this);
+
         if(event==Flag(CbEvent,WAKE))
-             cbType._bodywake.add(this);
-        else cbType._bodysleep.add(this);
+             cbType._bodywake = this;
+        else cbType._bodysleep = this;
     }
 
     flibmdel public inline function removedFromSpace() {
         assert(cbType!=null,"listener removed from space with no cbtype associated?");
 
+		cbType.listeners.remove(this);
+
         if(event==Flag(CbEvent,WAKE))
-             cbType._bodywake.remove(this);
-        else cbType._bodysleep.remove(this);
+             cbType._bodywake = null;
+        else cbType._bodysleep = null;
     }
 
     flibmdel public inline function swapCbType(newcb:PR(CbType)) {
         assert(newcb!=null,"swap to null cbtype?");
-
-        if(cbType!=null) cbType.listeners.remove(this);
-        newcb.listeners.add(this);
 
         //handle live data.
         if(space!=null) {
@@ -92,24 +93,25 @@ class PR(ConstraintListener) extends PR(Listener) {
     flibmdel public inline function addedToSpace() {
         assert(cbType!=null,"listener added to space with no cbtype associated?");
 
-        if     (event==Flag(CbEvent,WAKE))  cbType._conwake.add(this);
-        else if(event==Flag(CbEvent,SLEEP)) cbType._consleep.add(this);
-        else cbType._break.add(this);
+		cbType.listeners.add(this);
+
+        if     (event==Flag(CbEvent,WAKE))  cbType._conwake = this;
+        else if(event==Flag(CbEvent,SLEEP)) cbType._consleep = this;
+        else cbType._break = this;
     }
 
     flibmdel public inline function removedFromSpace() {
         assert(cbType!=null,"listener removed from space with no cbtype associated?");
 
-        if     (event==Flag(CbEvent,WAKE))  cbType._conwake.remove(this);
-        else if(event==Flag(CbEvent,SLEEP)) cbType._consleep.remove(this);
-        else cbType._break.remove(this);
+		cbType.listeners.remove(this);
+
+        if     (event==Flag(CbEvent,WAKE))  cbType._conwake = this;
+        else if(event==Flag(CbEvent,SLEEP)) cbType._consleep = this;
+        else cbType._break = this;
     }
 
     flibmdel public inline function swapCbType(newcb:PR(CbType)) {
         assert(newcb!=null,"swap to null cbtype?");
-
-        if(cbType!=null) cbType.listeners.remove(this);
-        newcb.listeners.add(this);
 
         //handle live data.
         if(space!=null) {

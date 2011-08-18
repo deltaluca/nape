@@ -25,6 +25,7 @@ class PR(CbType) {
 
     ///---------------------------------------------------------------------------------------------
 
+	//only ACTIVE shape/constriants/bodies are referenced to avoid memory leaks
     public var shapes     :List(PR(Shape));      public var wrap_shapes     :ShapeList;
     public var constraints:List(PR(Constraint)); public var wrap_constraints:ConstraintList;
     public var bodies     :List(PR(Body));       public var wrap_bodies     :BodyList;
@@ -42,12 +43,11 @@ class PR(CbType) {
     ///these are only assigned when listener is added to the space!
 
     //store actual references as these are one-one
-    public var _bodywake :List(PR(BodyListener));
-    public var _bodysleep:List(PR(BodyListener));
-    public var _conwake  :List(PR(ConstraintListener));
-    public var _consleep :List(PR(ConstraintListener));
-
-    public var _break:List(PR(ConstraintListener));
+    public var _bodywake :PR(BodyListener);
+    public var _bodysleep:PR(BodyListener);
+    public var _conwake  :PR(ConstraintListener);
+    public var _consleep :PR(ConstraintListener);
+    public var _break    :PR(ConstraintListener);
 
     //store only flags denoting there exists at least one listener referencing this type
     //use space maps to determine if one actually exists for specific pair.
@@ -76,11 +76,5 @@ class PR(CbType) {
         _prebegin = _preongoing = false;
 
         listeners = new List(PR(Listener))();
-
-        _bodywake  = new List(PR(BodyListener))();
-        _bodysleep = new List(PR(BodyListener))();
-        _conwake = new List(PR(ConstraintListener))();
-        _consleep = new List(PR(ConstraintListener))();
-        _break = new List(PR(ConstraintListener))();
     }
 }
