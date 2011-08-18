@@ -91,8 +91,12 @@ class PR(AABBPair) {
 
 	MixPool(PR(AABBPair))
 	public function new() {}
-	flibmdel public inline function alloc() {}
-	flibmdel public inline function free () {}
+	flibmdel public inline function alloc() {
+		assert(arb==null,"node still has an arbiter when going into pool??");
+	}
+	flibmdel public inline function free () {
+		assert(arb==null,"node still has an arbiter when going into pool??");
+	}
 }
 
 class PR(AABBTree) {
@@ -577,11 +581,21 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 		while(syncs!=null) {
 			var next = syncs.snext;
 			syncs.snext = null;
+			if(syncs.first_sync) {
+				syncs.shape.node = null;
+				syncs.shape.removedFromSpace();
+				syncs.shape = null;
+			}
 			syncs = next;
 		}
 		while(moves!=null) {
 			var next = moves.mnext;
 			moves.mnext = null;
+			if(moves.first_sync) {
+				moves.shape.node = null;
+				moves.shape.removedFromSpace();
+				moves.shape = null;
+			}
 			moves = next;
 		}
 

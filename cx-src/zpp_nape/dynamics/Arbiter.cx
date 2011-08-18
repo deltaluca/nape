@@ -171,8 +171,8 @@ class PR(Arbiter) {
 
 class PR(SensorArbiter) extends PR(Arbiter) {
 	MixPool(PR(SensorArbiter))
-	flibmdel public inline function alloc() {}
-	flibmdel public inline function free() {}
+	flibmdel public inline function alloc() { assert(pair==null,"AABBNode pair exists on arb going out of pool? (sensor)"); }
+	flibmdel public inline function free() { assert(pair==null,"AABBNode pair exists on arb going into pool? (sensor)"); }
 	
 	public function new() {
 		super();
@@ -198,8 +198,8 @@ class PR(SensorArbiter) extends PR(Arbiter) {
 class PR(FluidArbiter) extends PR(Arbiter) {
 	public var outer_zn:FluidArbiter;
 	MixPool(PR(FluidArbiter))
-	flibmdel public inline function alloc() {}
-	flibmdel public inline function free() {}
+	flibmdel public inline function alloc() { assert(pair==null,"AABBNode pair exists on arb going out of pool? (fluid)"); }
+	flibmdel public inline function free() { assert(pair==null,"AABBNode pair exists on arb going into pool? (fluid)"); }
 
     ///---------------------------------------------------------------------------------------------
 	
@@ -572,8 +572,8 @@ class PR(ColArbiter) extends PR(Arbiter) {
 		type = PR(Arbiter).COL;
 		colarb = this;
 	}
-	flibmdel public inline function alloc() {}
-	flibmdel public inline function free() {}
+	flibmdel public inline function alloc() { assert(pair==null,"AABBNode exists on col arbiter going out of pool?"); }
+	flibmdel public inline function free() { assert(pair==null,"AABBNode exists on col arbiter going into pool?"); }
 	
     public var stat:Bool; //one of the bodies is non-dynamic (different arbiter list)
 
