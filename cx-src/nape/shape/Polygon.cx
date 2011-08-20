@@ -28,7 +28,7 @@ class Polygon extends Shape {
 		DEBUG(if(isNaN(x) || isNaN(y) || isNaN(width) || isNaN(height))
 			throw "Error: Polygon.rect cannot accept NaN arguments";
 		)
-		return [new Vec2(x,y), new Vec2(x+width,y), new Vec2(x+width,y+height), new Vec2(x,y+height)];
+		return [Vec2.get(x,y), Vec2.get(x+width,y), Vec2.get(x+width,y+height), Vec2.get(x,y+height)];
 	}
 	keep public static inline function box(width:Float, height:Float) {
 		DEBUG(if(isNaN(width) || isNaN(height))
@@ -43,26 +43,11 @@ class Polygon extends Shape {
 		)
 		var ret = [];
 		var dangle = Math.PI*2/edgeCount;
-		/*var minx = PR(Const).FMAX;
-		var miny = PR(Const).FMAX;
-		var maxx = -PR(Const).FMAX;
-		var maxy = -PR(Const).FMAX;*/
 		for(i in 0...edgeCount) {
 			var ang = i*dangle + angleOffset;
-			var x = new Vec2(Math.cos(ang)*width/2,Math.sin(ang)*height/2);
+			var x = Vec2.get(Math.cos(ang)*width/2,Math.sin(ang)*height/2);
 			ret.push(x);
-			/*if(x.x<minx) minx = x.x;
-			if(x.y<miny) miny = x.y;
-			if(x.x>maxx) maxx = x.x;
-			if(x.y>maxy) maxy = x.y;*/
 		}
-		/*var sx = width/(maxx-minx);
-		var sy = height/(maxy-miny);
-		for(i in 0...edgeCount) {
-			var x = ret[i];
-			x.x *= sx;
-			x.y *= sy;
-		}*/
 		return ret;
 	}
 	
@@ -109,6 +94,7 @@ class Polygon extends Shape {
 					if(i==null) throw "Error: localVerts contains null references";
 					if(!Std.is(i,Vec2)) throw "Error: localVerts contains non Vec2 instances";
 				)
+				Disposed(i,Vec2);
 
 				this.localVerts.push(i.copy());
 			}
@@ -119,7 +105,8 @@ class Polygon extends Shape {
 					if(i==null) throw "Error: localVerts contains null references";
 					if(!Std.is(i,Vec2)) throw "Error: localVerts contains non Vec2 instances";
 				)
-				
+				Disposed(i,Vec2);
+					
 				this.localVerts.push(i.copy());
 			}
 		}#end
@@ -127,7 +114,8 @@ class Polygon extends Shape {
 			var lv:Vec2List = localVerts;
 			for(i in lv) {
 				DEBUG(if(i==null) throw "Error: localVerts contains null references";)
-				
+				Disposed(i,Vec2);
+
 				this.localVerts.push(i.copy());
 			}
 		}DEBUG(else

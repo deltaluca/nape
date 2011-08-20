@@ -18,6 +18,16 @@ class Debug {
 			    T.POOL_TOT = T.POOL_CNT = T.POOL_ADDNEW = T.POOL_ADD = T.POOL_SUB = 0;
 			#end
 		});
+		$(expand global PUBCLEARPOOL(T) {
+			while(PR(PubPool).pool`T!=null) {
+				var nxt = PR(PubPool).pool`T.pr(pool);
+				PR(PubPool).pool`T.pr(pool) = null;
+				PR(PubPool).pool`T = nxt;
+			}
+			#if NAPE_POOL_STATS
+			    T.POOL_TOT = T.POOL_CNT = T.POOL_ADDNEW = T.POOL_ADD = T.POOL_SUB = 0;
+			#end
+		});
 	}
 
     #if NAPE_TIMES
@@ -221,6 +231,8 @@ class ShapeDebug extends Debug {
     ///---------------------------------------------------------------------------------------------
 
     public override function drawLine(start:Vec2, end:Vec2, colour:Int) {
+		Disposed(start,Vec2);
+		Disposed(end,Vec2);
         DEBUG(
             if(start==null) throw "Error: drawLine::start cannot be null";
             if(end  ==null) throw "Error: drawLine::end cannot be null";
@@ -233,6 +245,7 @@ class ShapeDebug extends Debug {
     }
 
     public override function drawCircle(position:Vec2, radius:Float, colour:Int) {
+		Disposed(position,Vec2);
         DEBUG(
             if(position==null) throw "Error: drawCircle::position cannot be null";
             if(isNaN(radius) || radius<0) throw "Error: drawCircle::radius must be >=0";
@@ -252,6 +265,9 @@ class ShapeDebug extends Debug {
     }
     
     public override function drawFilledTriangle(p0:Vec2, p1:Vec2, p2:Vec2, colour:Int) {
+		Disposed(p0,Vec2);
+		Disposed(p1,Vec2);
+		Disposed(p2,Vec2);
         DEBUG(if(p0==null || p1==null || p2==null) throw "Error: drawFilledTriangle can't use null points";)
         var g = pr(inner).graphics;
         g.lineStyle(0,0,0);
@@ -263,6 +279,7 @@ class ShapeDebug extends Debug {
     }
 
     public override function drawFilledCircle(position:Vec2, radius:Float, colour:Int) {
+		Disposed(position,Vec2);
         DEBUG(
             if(position==null) throw "Error: drawFilledCircle::position cannot be null";
             if(isNaN(radius) || radius<0) throw "Error: drawFilledCircle::radius must be >=0";
@@ -309,6 +326,8 @@ class BitmapDebug extends Debug {
     ///---------------------------------------------------------------------------------------------
 
     public override function drawLine(start:Vec2, end:Vec2, colour:Int) {
+		Disposed(start,Vec2);
+		Disposed(end,Vec2);
         DEBUG(
             if(start==null) throw "Error: drawLine::start cannot be null";
             if(end  ==null) throw "Error: drawLine::end cannot be null";
@@ -321,6 +340,7 @@ class BitmapDebug extends Debug {
     }
 
     public override function drawCircle(position:Vec2, radius:Float, colour:Int) {
+		Disposed(position,Vec2);
         DEBUG(
             if(position==null) throw "Error: drawCircle::position cannot be null";
             if(isNaN(radius) || radius<0) throw "Error: drawCircle::radius must be >=0";
@@ -337,11 +357,13 @@ class BitmapDebug extends Debug {
     }
 
     public override function drawFilledTriangle(p0:Vec2, p1:Vec2, p2:Vec2, colour:Int) {
+		Disposed(p0,Vec2); Disposed(p1,Vec2); Disposed(p2,Vec2);
         DEBUG(if(p0==null || p1==null || p2==null) throw "Error: drawFilledTriangle can't use null points";)
         pr(inner).__tri(p0,p1,p2, colour);
     }
 
     public override function drawFilledCircle(position:Vec2, radius:Float, colour:Int) {
+		Disposed(position,Vec2);
         DEBUG(
             if(position==null) throw "Error: drawFilledCircle::position cannot be null";
             if(isNaN(radius) || radius<0) throw "Error: drawFilledCircle::radius must be >=0";

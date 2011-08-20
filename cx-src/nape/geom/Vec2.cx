@@ -8,14 +8,38 @@ MixDerivedList(Vec2,MixList(PR(Vec2)),PR(Vec2),$(mixin closure(x) x.wrapper()) $
 
 class Vec2 {
 	public var pr(inner):PR(Vec2);
+
+	PublicMixPool(Vec2)
+
+	public static inline function get(?x:Float=0,?y:Float=0) {
+		DEBUG(if(isNaN(x) || isNaN(y)) throw "Error: Vec2 components cannot be NaN";)
+		var ret = PublicGet(Vec2);
+		ret.pr(inner) = PR(Vec2).get(x,y);
+		ret.pr(inner).outer = ret;
+		return ret;
+	}
+	public inline function dispose() {
+		Disposed(this,Vec2);
+		DEBUG(if(pr(inner).inuse) throw "Error: This Vec2 is not disposable";)
+
+		var pr = pr(inner);
+		pr(inner).outer = null;
+		pr(inner) = null;
+		PublicFree(Vec2,this);
+		Free(PR(Vec2),pr);
+	}
 	
 	public function new(?x:Float=0, ?y:Float=0) {
 		DEBUG(if(isNaN(x) || isNaN(y)) throw "Error: Vec2 components cannot be NaN";)
 		pr(inner) = PR(Vec2).get(x,y);
 		pr(inner).outer = this;
 	}
-	keep public inline function copy() return new Vec2(x,y)
-	
+	keep public inline function copy() {
+		Disposed(this,Vec2);
+
+		return Vec2.get(x,y);
+	}
+
 	//----------------------------------------------------------------------------------------------
 	
 	#if flash9
@@ -25,7 +49,7 @@ class Vec2 {
 				if(isNaN(point.x) || isNaN(point.y))
 					throw "Error: Error: Vec2 components cannot be NaN";
 			)
-			return new Vec2(point.x,point.y);
+			return Vec2.get(point.x,point.y);
 		}
 	#end
 	
@@ -34,16 +58,20 @@ class Vec2 {
 			if(isNaN(length)) throw "Error: Vec2::length cannot be NaN";
 			if(isNaN(angle))  throw "Error: Vec2::angle cannot be NaN";
 		)
-		return new Vec2(length*Math.cos(angle),length*Math.sin(angle));
+		return Vec2.get(length*Math.cos(angle),length*Math.sin(angle));
 	}
 	
 	//----------------------------------------------------------------------------------------------
 	
 	$(mixin comp(n)
         property(n,Float,{
+			Disposed(this,Vec2);
+
             pr(inner).validate();
             pr(inner).n;
         },{
+			Disposed(this,Vec2);
+
 			DEBUG(
 				if(pr(inner).immutable) throw "Error: Vec2 is immutable";
 				if(pr(inner)._immutable!=null) pr(inner)._immutable();
@@ -61,7 +89,13 @@ class Vec2 {
 	
 	//----------------------------------------------------------------------------------------------
 		
-    property(length,Float,vec_length_slow(this.),{
+    property(length,Float,{
+		Disposed(this,Vec2);
+
+		vec_length_slow(this.);
+	},{
+		Disposed(this,Vec2);
+
 		DEBUG(
 			if(pr(inner).immutable) throw "Error: Vec2 is immutable";
 		
@@ -72,11 +106,18 @@ class Vec2 {
 		pr(inner).invalidate();
 	})
 	
-	keep public function lsq() return vec_lsq(this.)
+	keep public function lsq() {
+		Disposed(this,Vec2);
+
+		return vec_lsq(this.);
+	}
 	
 	//----------------------------------------------------------------------------------------------
 	
 	public function set(p:Vec2) {
+		Disposed(this,Vec2);
+		Disposed(p,Vec2);
+
 		DEBUG(
 			if(pr(inner).immutable) throw "Error: Vec2 is immutable";
 		
@@ -85,6 +126,8 @@ class Vec2 {
 		return setxy(p.x,p.y);
 	}
 	public function setxy(x:Float,y:Float) {
+		Disposed(this,Vec2);
+
 		DEBUG(
 			if(pr(inner).immutable) throw "Error: Vec2 is immutable";
 		
@@ -100,8 +143,12 @@ class Vec2 {
 	//----------------------------------------------------------------------------------------------
 	
     property(angle,Float, {
+		Disposed(this,Vec2);
+
 		if(x==y && x==0) 0.0 else Math.atan2(y,x);
 	},{
+		Disposed(this,Vec2);
+
 		DEBUG(
 			if(pr(inner).immutable) throw "Error: Vec2 is immutable";
 		
@@ -114,18 +161,29 @@ class Vec2 {
 	//----------------------------------------------------------------------------------------------
 	
 	keep public inline function add  (a:Vec2) {
+		Disposed(this,Vec2);
+		Disposed(a,Vec2);
+
 		DEBUG(if(a==null) throw "Error: Cannot add null vectors";)
-		return new Vec2(vec_iadd($(->),a.));
+		return Vec2.get(vec_iadd($(->),a.));
 	}
 	keep public inline function sub  (a:Vec2) {
+		Disposed(this,Vec2);
+		Disposed(a,Vec2);
+
 		DEBUG(if(a==null) throw "Error: Cannot subtract null vectors";)
-		return new Vec2(vec_isub($(->),a.));
+		return Vec2.get(vec_isub($(->),a.));
 	}
 	keep public inline function mul (s:Float) {
+		Disposed(this,Vec2);
+
 		DEBUG(if(isNaN(s)) throw "Error: Cannot multiply with NaN";)
-		return new Vec2(vec_imul($(->),s));
+		return Vec2.get(vec_imul($(->),s));
 	}
 	keep public inline function addeq(a:Vec2) {
+		Disposed(this,Vec2);
+		Disposed(a,Vec2);
+
 		DEBUG(
 			if(pr(inner).immutable) throw "Error: Vec2 is immutable";
 			if(a==null) throw "Error: Cannot add null vectors";
@@ -133,6 +191,9 @@ class Vec2 {
 		return setxy(vec_iadd($(->),a.));
 	}
 	keep public inline function subeq(a:Vec2) {
+		Disposed(this,Vec2);
+		Disposed(a,Vec2);
+
 		DEBUG(
 			if(pr(inner).immutable) throw "Error: Vec2 is immutable";
 			if(a==null) throw "Error: Cannot subtract null vectors";
@@ -140,6 +201,8 @@ class Vec2 {
 		return setxy(vec_isub($(->),a.));
 	}
 	keep public inline function muleq(s:Float) {
+		Disposed(this,Vec2);
+
 		DEBUG(
 			if(pr(inner).immutable) throw "Error: Vec2 is immutable";
 			if(isNaN(s)) throw "Error: Cannot multiply with NaN";
@@ -147,10 +210,16 @@ class Vec2 {
 		return setxy(vec_imul($(->),s));
 	}
 	keep public inline function dot  (a:Vec2) {
+		Disposed(this,Vec2);
+		Disposed(a,Vec2);
+
 		DEBUG(if(a==null) throw "Error: Cannot take dot product with null vector";)
 		return vec_dot($(->),a.);
 	}
 	keep public inline function cross(a:Vec2) {
+		Disposed(this,Vec2);
+		Disposed(a,Vec2);
+
 		DEBUG(if(a==null) throw "Error: Cannot take cross product with null vector";)
 		return vec_cross($(->),a.);
 	}
@@ -159,6 +228,8 @@ class Vec2 {
 	
 	//keep is only for swc, use standard metadata
 	@:$keep public function toString() {
+		Disposed(this,Vec2);
+
 		pr(inner).validate();
 		return pr(inner).toString();
 	}

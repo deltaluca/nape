@@ -118,7 +118,10 @@ class Body {
 	public function new(?type:BodyType,?position:Vec2) {
 		pr(inner) = new PR(Body)();
 		pr(inner).outer = this;
-		if(position!=null) vec_set(pr(inner).pos,position.);
+		if(position!=null) {
+			Disposed(position,Vec2);
+			vec_set(pr(inner).pos,position.);
+		}
 		else vec_set(pr(inner).pos,0,0);
 		this.type = type == null ? BodyType.DYNAMIC : type;
 	}
@@ -136,6 +139,8 @@ class Body {
             if(pr(inner).wrap==null) pr(inner).setup();
             pr(inner).wrap;
         },{
+			Disposed(n,Vec2);
+			DEBUG(if(n==null) throw "Error: Body::"+$str(n)+" cannot be null";)
             this.n.set(n);
         })
     );
@@ -375,31 +380,37 @@ class Body {
 	keep public inline function localToWorld(v:Vec2) return relativeToWorld(localToRelative(v))
 	keep public inline function worldToLocal(v:Vec2) return relativeToLocal(worldToRelative(v))
 	keep public inline function relativeToWorld(v:Vec2) {
+		Disposed(v,Vec2);
 		DEBUG(if(v==null) throw "Error: Cannot transform null Vec2";)
-		return new Vec2(v.x+pr(inner).posx,v.y+pr(inner).posy);
+		return Vec2.get(v.x+pr(inner).posx,v.y+pr(inner).posy);
 	}
 	keep public inline function worldToRelative(v:Vec2) {
+		Disposed(v,Vec2);
 		DEBUG(if(v==null) throw "Error: Cannot transform null Vec2";)
-		return new Vec2(v.x-pr(inner).posx,v.y-pr(inner).posy);
+		return Vec2.get(v.x-pr(inner).posx,v.y-pr(inner).posy);
 	}
 	keep public inline function localToRelative(v:Vec2) {
+		Disposed(v,Vec2);
 		DEBUG(if(v==null) throw "Error: Cannot transform null Vec2";)
 		pr(inner).validate_axis();
 		vec_new(temp);
 		vec_rotate(v.,pr(inner).axis,temp);
-		return new Vec2(tempx,tempy);
+		return Vec2.get(tempx,tempy);
 	}
 	keep public inline function relativeToLocal(v:Vec2) {
+		Disposed(v,Vec2);
 		DEBUG(if(v==null) throw "Error: Cannot transform null Vec2";)
 		pr(inner).validate_axis();
 		vec_new(temp);
 		vec_revrot(v.,pr(inner).axis,temp);
-		return new Vec2(tempx,tempy);
+		return Vec2.get(tempx,tempy);
 	}
 	
 	//----------------------------------------------------------------------------------------------
 	
 	keep public function applyLocalForce(force:Vec2,?pos:Vec2) {
+		Disposed(force,Vec2);
+		Disposed(pos,Vec2);
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		
 		vec_addeq(pr(inner).force,force.);
@@ -412,6 +423,9 @@ class Body {
 		if(isDynamic()) pr(inner).invalidate_wake();
 	}
 	keep public function applyRelativeForce(force:Vec2,?pos:Vec2) {
+		Disposed(force,Vec2);
+		Disposed(pos,Vec2);
+
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		
 		vec_addeq(pr(inner).force,force.);
@@ -420,6 +434,9 @@ class Body {
 		if(isDynamic()) pr(inner).invalidate_wake();
 	}
 	keep public function applyWorldForce(force:Vec2,pos:Vec2) {
+		Disposed(force,Vec2);
+		Disposed(pos,Vec2);
+
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		
 		vec_addeq(pr(inner).force,force.);
@@ -433,6 +450,9 @@ class Body {
 	//----------------------------------------------------------------------------------------------
 	
 	keep public function applyLocalImpulse(impulse:Vec2,?pos:Vec2) {
+		Disposed(impulse,Vec2);
+		Disposed(pos,Vec2);
+
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		
         pr(inner).validate_mass();
@@ -447,6 +467,9 @@ class Body {
 		if(isDynamic()) pr(inner).invalidate_wake();
 	}
 	keep public function applyRelativeImpulse(impulse:Vec2,?pos:Vec2) {
+		Disposed(impulse,Vec2);
+		Disposed(pos,Vec2);
+
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		
         pr(inner).validate_mass();
@@ -458,6 +481,9 @@ class Body {
 		if(isDynamic()) pr(inner).invalidate_wake();
 	}
 	keep public function applyWorldImpulse(impulse:Vec2,pos:Vec2) {
+		Disposed(impulse,Vec2);
+		Disposed(pos,Vec2);
+
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		
         pr(inner).validate_mass();
@@ -473,6 +499,7 @@ class Body {
 	//----------------------------------------------------------------------------------------------
 	
 	keep public function translateShapes(displacement:Vec2) {
+		Disposed(displacement,Vec2);
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		
 		Iter(s,pr(inner).shapes,s.outer.translate(displacement));
@@ -500,7 +527,7 @@ class Body {
 			throw "Error: Cannot align empty Body";
 		)
 		pr(inner).validate_localCOM();
-		var dx = new Vec2(-pr(inner).localCOMx,-pr(inner).localCOMy);
+		var dx = Vec2.get(-pr(inner).localCOMx,-pr(inner).localCOMy);
 		translateShapes(dx);
 		dx = localToRelative(dx);
 		position.subeq(dx);
@@ -533,7 +560,7 @@ class Body {
         property(n,Vec2,{
             DEBUG(if(pr(inner).world) throw "Error: Space::world has no "+$str(n);)
             if(pr(inner).wrap_`n==null) {
-                pr(inner).wrap_`n = new Vec2();
+                pr(inner).wrap_`n = Vec2.get();
                 pr(inner).wrap_`n.pr(inner).inuse = true;
                 pr(inner).wrap_`n.pr(inner).immutable = true;
                 pr(inner).wrap_`n.pr(inner)._validate = pr(inner).get`n;
@@ -564,7 +591,7 @@ class Body {
 			var imp = arb.wrapper().collisionArbiter.normalImpulse(this,freshOnly);
 			vec3_addeq(ret, imp.);
 		});
-		return new Vec2(retx,rety);
+		return Vec2.get(retx,rety);
 	}
 	keep public function tangentImpulse(?body:Body=null,?freshOnly:Bool=false) {
 		vec3_new(ret,0,0,0);
@@ -572,7 +599,7 @@ class Body {
 			var imp = arb.wrapper().collisionArbiter.tangentImpulse(this,freshOnly);
 			vec3_addeq(ret, imp.);
 		});
-		return new Vec2(retx,rety);
+		return Vec2.get(retx,rety);
 	}
 	keep public function totalContactsImpulse(?body:Body=null,?freshOnly:Bool=false) {
 		vec3_new(ret,0,0,0);

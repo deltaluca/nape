@@ -50,7 +50,7 @@ class Shape {
 	
 	property(worldCOM,Vec2,{
 		if(pr(inner).wrap_worldCOM==null) {
-			pr(inner).wrap_worldCOM = new Vec2(pr(inner).worldCOMx,pr(inner).worldCOMy);
+			pr(inner).wrap_worldCOM = Vec2.get(pr(inner).worldCOMx,pr(inner).worldCOMy);
 			pr(inner).wrap_worldCOM.pr(inner).inuse = true;
 			pr(inner).wrap_worldCOM.pr(inner).immutable = true;
 			pr(inner).wrap_worldCOM.pr(inner)._validate = pr(inner).getworldCOM;
@@ -65,6 +65,8 @@ class Shape {
 		}
 		pr(inner).wrap_localCOM;
 	},{
+		Disposed(localCOM,Vec2);
+		DEBUG(if(localCOM==null) throw "Error: Shape::localCOM cannot be null";)
         this.localCOM.set(localCOM);
     })
 	
@@ -114,6 +116,7 @@ class Shape {
 	//----------------------------------------------------------------------------------------------
 	
 	keep public function translate(displacement:Vec2) {
+		Disposed(displacement,Vec2);
 		DEBUG(
 			if(pr(inner).body!=null && pr(inner).body.space!=null && pr(inner).body.isStatic())
 				throw "Error: Cannot modify Shape belonging to a static Object once inside a Space";

@@ -15,6 +15,8 @@ class Space {
 		if(pr(inner).wrap_gravity==null) pr(inner).getgravity();
 		pr(inner).wrap_gravity;
 	},{
+		Disposed(gravity,Vec2);
+		DEBUG(if(gravity==null) throw "Error: Space::gravity cannot be null";)
         this.gravity.set(gravity);
     })
 
@@ -89,6 +91,7 @@ class Space {
 	//----------------------------------------------------------------------------------------------
 
 	public function new(?gravity:Vec2,?broadphase:Broadphase) {
+		Disposed(gravity,Vec2);
 		pr(inner) = new PR(Space)(gravity==null?null:gravity.pr(inner),broadphase);
 		pr(inner).outer = this;
 	}
@@ -96,10 +99,12 @@ class Space {
 	//----------------------------------------------------------------------------------------------
 
 	keep public function shapesUnderPoint(point:Vec2,?filter:InteractionFilter=null) {
+		Disposed(point,Vec2);
 		DEBUG(if(point==null) throw "Error: Cannot evaluate shapes under a null point :)";)
 		return pr(inner).shapesUnderPoint(point.x,point.y,filter==null?null:filter.pr(inner));
 	}
 	keep public function bodiesUnderPoint(point:Vec2,?filter:InteractionFilter=null) {
+		Disposed(point,Vec2);
 		DEBUG(if(point==null) throw "Error: Cannot evaluate objects under a null point :)";)
 		return pr(inner).bodiesUnderPoint(point.x,point.y,filter==null?null:filter.pr(inner));
 	}
@@ -120,6 +125,7 @@ class Space {
 	}
 
 	keep public function shapesInCircle(position:Vec2,radius:Float,?filter:InteractionFilter=null) {
+		Disposed(position,Vec2);
 		DEBUG(
 			if(position==null) throw "Error: Cannot evaluate shapes at null circle :)";
 			if(isNaN(radius))  throw "Error: Circle radius cannot be NaN";
@@ -128,6 +134,7 @@ class Space {
 		return pr(inner).shapesInCircle(position,radius,filter==null?null:filter.pr(inner));
 	}
 	keep public function bodiesInCircle(position:Vec2,radius:Float,?filter:InteractionFilter=null) {
+		Disposed(position,Vec2);
 		DEBUG(
 			if(position==null) throw "Error: Cannot evaluate objects at null circle :)";
 			if(isNaN(radius))  throw "Error: Circle radius cannot be NaN";

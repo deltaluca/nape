@@ -16,6 +16,29 @@ $(import);
 
 **/
 
+//for public API types.
+$(mixin global PublicMixPool(T)
+	public var pr(pool):T;
+	DEBUG(public var pr(disp):Bool;)
+	PublicMixPoolNoNext(T)
+);
+$(mixin global PublicMixPoolNoNext(T)
+	STATS(T)
+	PUBCLEARPOOL(T)
+	PUBLICPOOL(T)
+);
+
+$(mixin global Disposed(o,T) { DEBUG(if(o.pr(disp)) throw "Error: "+$str(T)+" has been disposed and cannot be used!";) });
+
+class PR(PubPool) {
+	$(expand file PUBLICPOOL(T)
+		public static var pool`T:T = null;
+	);
+}
+
+//------------------------------------------------
+
+//for inner types.
 $(mixin global MixPool(T)
 	public var next:T;
 	MixPoolNoNext(T)
@@ -23,6 +46,11 @@ $(mixin global MixPool(T)
 $(mixin global MixPoolNoNext(T)
 	static public var pr(pool):T;
 
+	STATS(T)
+	CLEARPOOL(T)
+);
+
+$(mixin STATS(T)
 	#if NAPE_POOL_STATS
 		static public var POOL_CNT:Int = 0;
 		static public var POOL_TOT:Int = 0;
@@ -31,8 +59,31 @@ $(mixin global MixPoolNoNext(T)
 		static public var POOL_SUB:Int = 0;
 		POOLSTATS(T)
 	#end
-	CLEARPOOL(T)
 );
+
+//-------------------------------------------
+
+//for public API types
+$(mixin global PublicGet(T) {
+	var ret:T;
+	if(PR(PubPool).pool`T==null) {
+		ret = new T();
+		#if NAPE_POOL_STATS
+			T.POOL_TOT++;
+			T.POOL_ADDNEW++;
+		#end
+	}else {
+		ret = PR(PubPool).pool`T;
+		PR(PubPool).pool`T = ret.pr(pool);
+		ret.pr(pool) = null;
+		DEBUG(ret.pr(disp) = false;)
+		#if NAPE_POOL_STATS
+			T.POOL_CNT--;
+			T.POOL_ADD++;
+		#end
+	}
+	ret;
+});
 
 $(mixin global Get(T) {
 	var ret:T;
@@ -54,6 +105,19 @@ $(mixin global Get(T) {
 	ret.alloc();
 	ret;
 });
+
+$(mixin global PublicFree(T,O) {
+	var o = O;
+	assert(o!=null, "PublicFree(in T: "+$str(T)+", in obj: "+$str(O)+")");
+	o.pr(pool) = PR(PubPool).pool`T;
+	PR(PubPool).pool`T = o;
+	#if NAPE_POOL_STATS
+		T.POOL_CNT++;
+		T.POOL_SUB++;
+	#end
+	DEBUG(o.pr(disp)=true;)
+});
+
 $(mixin global Free(T,O) {
 	var o = O;
 	assert(o!=null, "Free(in T: "+$str(T)+", in obj: "+$str(O)+")");
