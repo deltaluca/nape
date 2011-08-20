@@ -425,24 +425,49 @@ $(mixin __tint(__col,__ncol, __f) {
 $(mixin pr_debug(utils)
     utils
 
-    flibmdel public inline function draw_space(space:PR(Space)) {
-        if(outer.drawBodies) Iterate(space.bodies, draw_body);
+	$(mixin mat_xform_hom(Anull,A,u,v) if(Anull) vec_set(v,u) else mat_transform_hom(A.,u,v));
+	$(mixin mat_xform    (Anull,A,u,v) if(Anull) vec_set(v,u) else mat_transform    (A.,u,v));
+	$(mixin mat_xform_hom(Anull,A,u) if(!Anull) mat_transform_hom(A.,u));
+	$(mixin mat_xform    (Anull,A,u) if(!Anull) mat_transform    (A.,u));
+
+	$(mixin __AABB(xnull,xform,aabb) {
+		if(xnull) __drawAABB(aabb);
+		else {
+			vec_new(o); mat_xform_hom(false,xform,aabb.min,o);
+			vec_new(w,aabb.width(),0);  mat_xform(false,xform,w);
+			vec_new(h,0,aabb.height()); mat_xform(false,xform,h);
+
+			__moveTo(ox,oy);
+			__lineTo(ox+wx,oy+wy);
+			__lineTo(ox+wx+hx,oy+wy+hy);
+			__lineTo(ox+hx,oy+hy);
+			__lineTo(ox,oy);
+		}
+	});
+
+    flibmdel public inline function draw_space(space:PR(Space),xform:PR(Mat23),xdet:Float,xnull:Bool) {
+        if(outer.drawBodies) Iter(b, space.bodies, draw_body(b,xform,xdet,xnull));
         if(outer.drawCollisionArbiters || outer.drawFluidArbiters || outer.drawSensorArbiters)
-            for(arb in space.outer.arbiters) draw_arbiter(arb.pr(inner));
-        if(outer.drawConstraints) Iterate(space.constraints, draw_con);
+            for(arb in space.outer.arbiters) draw_arbiter(arb.pr(inner),xform,xdet,xnull);
+        if(outer.drawConstraints) Iter(c, space.constraints, draw_con(c,xform,xdet,xnull));
     }
-    flibmdel public inline function draw_body(body:PR(Body)) {
-        Iterate(body.shapes, draw_shape);
+    flibmdel public inline function draw_body(body:PR(Body),xform:PR(Mat23),xdet:Float,xnull:Bool) {
+        Iter(s,body.shapes, draw_shape(s,xform,xdet,xnull));
         if(outer.drawBodyDetail) {
             var col = __colour(body.id, body.space!=null && body.outer.isSleeping);
             body.validate_worldCOM();
             __lineStyle(0.1,__tint(col,0xff0000,0.8),1);
-            __drawCircle(body.worldCOMx,body.worldCOMy,1);
+
+			vec_new(p);
+			mat_xform_hom(xnull,xform,body.worldCOM,p);
+
+            __drawCircle(px,py,1);
+
             body.validate_aabb();
-            __drawAABB(body.aabb);
+			__AABB(xnull,xform,body.aabb);
         }
     }
-    flibmdel public inline function draw_shape(shape:PR(Shape)) {
+    flibmdel public inline function draw_shape(shape:PR(Shape),xform:PR(Mat23),xdet:Float,xnull:Bool) {
         var col = __colour(shape.id,false);
         var body = shape.body;
         if(body!=null) {
@@ -453,67 +478,78 @@ $(mixin pr_debug(utils)
             if(shape.isCircle()) {
                 var circ = shape.circle;
                 circ.validate_worldCOM();
-                var x = circ.worldCOMx;
-                var y = circ.worldCOMy;
-
-                __drawCircle(x,y,circ.radius);
+                var vx = circ.worldCOMx;
+                var vy = circ.worldCOMy;
+				mat_xform_hom(xnull,xform,v);
+                __drawCircle(vx,vy,circ.radius*xdet);
 
                 if(outer.drawShapeAngleIndicators) {
-                    var x0 = circ.worldCOMx + 0.3*circ.radius*body.axisy;
-                    var y0 = circ.worldCOMy + 0.3*circ.radius*body.axisx;
-                    var x1 = circ.worldCOMx + circ.radius*body.axisy;
-                    var y1 = circ.worldCOMy + circ.radius*body.axisx;
-                    __moveTo(x0,y0);
-                    __lineTo(x1,y1);
+                    var v0x = circ.worldCOMx + 0.3*circ.radius*body.axisy;
+                    var v0y = circ.worldCOMy + 0.3*circ.radius*body.axisx;
+                    var v1x = circ.worldCOMx + circ.radius*body.axisy;
+                    var v1y = circ.worldCOMy + circ.radius*body.axisx;
+
+					mat_xform_hom(xnull,xform,v0);
+					mat_xform_hom(xnull,xform,v1);
+                    __moveTo(v0x,v0y);
+                    __lineTo(v1x,v1y);
                 }
             }else {
                 var poly = shape.polygon;
                 poly.validate_gverts();
 
                 var u = poly.gverts.front();
-                var x0 = u.x;
-                var y0 = u.y;
-                __moveTo(x0,y0);
+                var vx = u.x;
+                var vy = u.y;
+				mat_xform_hom(xnull,xform,v);
+                __moveTo(vx,vy);
+				var vox = vx;
+				var voy = vy;
                 IterIte(u, poly.gverts, poly.gverts.begin().next, {
-                    x0 = u.x;
-                    y0 = u.y;
-                    __lineTo(x0,y0);
+                    vx = u.x;
+                    vy = u.y;
+					mat_xform_hom(xnull,xform,v);
+                    __lineTo(vx,vy);
                 });
-                var u = poly.gverts.front();
-                var x1 = u.x;
-                var y1 = u.y;
-                __lineTo(x1,y1);
+                __lineTo(vox,voy);
 
                 if(outer.drawShapeAngleIndicators) {
                     poly.validate_worldCOM();
-                    __moveTo(poly.worldCOMx,poly.worldCOMy);
-                    __lineTo(x1,y1);
+					mat_xform_hom(xnull,xform,poly.worldCOM,v);
+                    __moveTo(vx,vy);
+                    __lineTo(vox,voy);
                 }
             }
 
             if(outer.drawShapeDetail) {
                 shape.validate_worldCOM();
                 __lineStyle(0.1,__tint(col,0xff0000,0.8),1);
-                __drawCircle(shape.worldCOMx,shape.worldCOMy,1);
+				vec_new(v); mat_xform_hom(xnull,xform,shape.worldCOM,v);
+                __drawCircle(vx,vy,1);
+
                 shape.validate_aabb();
-                __drawAABB(shape.aabb);
+				__AABB(xnull,xform,shape.aabb);
             }
         }
     }
 
-    flibmdel public inline function draw_arbiter(arb:PR(Arbiter)) {
+    flibmdel public inline function draw_arbiter(arb:PR(Arbiter),xform:PR(Mat23),xdet:Float,xnull:Bool) {
+		vec_new(v);
         if(arb.outer.isSensorArbiter()) {
             if(outer.drawSensorArbiters) {
                 var sarb = arb.outer;
                 __lineStyle(0.1,__tint(0xff00,~bg_col,0.7),1);
-                __moveTo(sarb.shape1.worldCOM.x,sarb.shape1.worldCOM.y);
-                __lineTo(sarb.shape2.worldCOM.x,sarb.shape2.worldCOM.y);
+				mat_xform_hom(xnull,xform,sarb.shape1.worldCOM.,v);
+                __moveTo(vx,vy);
+				mat_xform_hom(xnull,xform,sarb.shape2.worldCOM.,v);
+                __lineTo(vx,vy);
             }
         }else if(arb.outer.isFluidArbiter()) {
             if(outer.drawFluidArbiters) {
                 var farb = arb.outer.fluidArbiter;
                 __lineStyle(0.1,__tint(0xff,~bg_col,0.7),1);
-                __drawCircle(farb.position.x,farb.position.y,0.75);
+				mat_xform_hom(xnull,xform,farb.position.,v);
+                __drawCircle(vx,vy,0.75);
             }
         }else {
             if(outer.drawCollisionArbiters) {
@@ -532,15 +568,26 @@ $(mixin pr_debug(utils)
                         y = -y;
                     }
                     __lineStyle(0.1,__tint(0xff,~bg_col,0.7),1);
-                    __moveTo(c1.x+n.x*y-n.y*x,c1.y+n.y*y+n.x*x);
-                    __lineTo(c2.x+n.x*y+n.y*x,c2.y+n.y*y-n.x*x);
+					vec_set(v,c1.x+n.x*y-n.y*x,c1.y+n.y*y+n.x*x);
+					mat_xform_hom(xnull,xform,v);
+                    __moveTo(vx,vy);
+					vec_set(v,c2.x+n.x*y+n.y*x,c2.y+n.y*y-n.x*x);
+					mat_xform_hom(xnull,xform,v);
+                    __lineTo(vx,vy);
+
                     __lineStyle(0.1,__tint(0xff0000,~bg_col,0.7),1);
-                    __moveTo(c1.x-n.x*y-n.y*x,c1.y-n.y*y+n.x*x);
-                    __lineTo(c2.x-n.x*y+n.y*x,c2.y-n.y*y-n.x*x);
+					vec_set(v,c1.x-n.x*y-n.y*x,c1.y-n.y*y+n.x*x);
+					mat_xform_hom(xnull,xform,v);
+                    __moveTo(vx,vy);
+					vec_set(v,c2.x-n.x*y+n.y*x,c2.y-n.y*y-n.x*x);
+					mat_xform_hom(xnull,xform,v);
+                    __lineTo(vx,vy);
 						
                     vec_set(p, 0.5*(c1.x+c2.x), 0.5*(c1.y+c2.y));
+					mat_xform_hom(xnull,xform,p);
                 }else {
                     vec_set(p, carb.contacts.at(0).position.);
+					mat_xform_hom(xnull,xform,p);
 
                     __lineStyle(0.1,__tint(0xff00ff,~bg_col,0.7),1);
                     __drawCircle(px,py,1);
@@ -548,20 +595,24 @@ $(mixin pr_debug(utils)
 					
                 __lineStyle(0.1,__tint(~bg_col,bg_col,0.7),1);
                 __moveTo(px,py);
-                __lineTo(px+carb.normal.x*5,py+carb.normal.y*5);
+				vec_set(v,carb.normal.x*5,carb.normal.y*5);
+				mat_xform(xnull,xform,v);
+                __lineTo(px+vx,py+vy);
             }
         }
     }
 
-    flibmdel public inline function draw_con(con:PR(Constraint)) {
+    flibmdel public inline function draw_con(con:PR(Constraint),xform:PR(Mat23),xdet:Float,xnull:Bool) {
         $(mixin LTW(body,X,R) {
             body.validate_axis();
             vec_rotate(X,body.axis,R);
             vec_addeq(R, body.pos);
+			mat_xform_hom(xnull,xform,R);
         });
         $(mixin LTR(body,X,R) {
             body.validate_axis();
             vec_rotate(X,body.axis,R);
+			mat_xform(xnull,xform,R);
         });
 
         if(con.active) {

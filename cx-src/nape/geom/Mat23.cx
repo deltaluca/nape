@@ -95,6 +95,18 @@ class Mat23 {
 			p.x * c + p.y * d + ty
 		);
 	}
+
+	keep public function inverse_transform(p:Vec2):Vec2 {
+		var det = determinant;
+		DEBUG(if(det*det<PR(Const).EPSILON)
+			throw "Error: Matrix is singular and cannot be inverted in course of inverse transformation";
+		)
+		det = 1.0/det;
+		return Vec2.get(
+			(p.x*d - p.y*b + b*ty - d*tx)*det,
+			(p.y*a - p.x*c + c*tx - a*ty)*det
+		);
+	}
 	
 	//----------------------------------------------------------------------------------------------
 	

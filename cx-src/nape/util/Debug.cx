@@ -183,7 +183,7 @@ class Debug {
 
     ///---------------------------------------------------------------------------------------------
 
-    public function draw(object:Dynamic):Void {}
+    public function draw(object:Dynamic,?xform:Mat23):Void {}
 
     public function drawLine  (start:Vec2, end:Vec2, colour:Int):Void {}
     public function drawCircle(position:Vec2, radius:Float, colour:Int):Void {}
@@ -198,12 +198,25 @@ class Debug {
 ///_________________________________________________________________________________________________
 ///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 
-$(mixin __draw(obj) {
-    if  (Std.is(obj,Space))      pr(inner).draw_space(cast(obj,Space     ).pr(inner));
-    elif(Std.is(obj,Body ))      pr(inner).draw_body (cast(obj,Body      ).pr(inner));
-    elif(Std.is(obj,Shape))      pr(inner).draw_shape(cast(obj,Shape     ).pr(inner));
-    elif(Std.is(obj,Constraint)) pr(inner).draw_con  (cast(obj,Constraint).pr(inner));
-    DEBUG(else throw "Error: Unhandled object type for Debug draw";)
+$(mixin __draw(obj,xform) {
+	DEBUG(if(xform!=null && !xform.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform";)
+
+	if(xform==null) {
+	    if  (Std.is(obj,Space))      pr(inner).draw_space(cast(obj,Space     ).pr(inner), null,1.0,true);
+	    elif(Std.is(obj,Body ))      pr(inner).draw_body (cast(obj,Body      ).pr(inner), null,1.0,true);
+	    elif(Std.is(obj,Shape))      pr(inner).draw_shape(cast(obj,Shape     ).pr(inner), null,1.0,true);
+	    elif(Std.is(obj,Constraint)) pr(inner).draw_con  (cast(obj,Constraint).pr(inner), null,1.0,true);
+	    DEBUG(else throw "Error: Unhandled object type for Debug draw";)
+	}else {
+		var xforms = xform.pr(inner);
+		var xdet = PR(Math).sqrt(abs(xform.determinant));
+	    if  (Std.is(obj,Space))      pr(inner).draw_space(cast(obj,Space     ).pr(inner), xforms,xdet,false);
+	    elif(Std.is(obj,Body ))      pr(inner).draw_body (cast(obj,Body      ).pr(inner), xforms,xdet,false);
+	    elif(Std.is(obj,Shape))      pr(inner).draw_shape(cast(obj,Shape     ).pr(inner), xforms,xdet,false);
+	    elif(Std.is(obj,Constraint)) pr(inner).draw_con  (cast(obj,Constraint).pr(inner), xforms,xdet,false);
+	    DEBUG(else throw "Error: Unhandled object type for Debug draw";)
+	}
+
 });
 
 ///_________________________________________________________________________________________________
@@ -293,7 +306,7 @@ class ShapeDebug extends Debug {
 
     ///---------------------------------------------------------------------------------------------
 
-    public override function draw(object:Dynamic) __draw(object)
+    public override function draw(object:Dynamic,?xform:Mat23) __draw(object,xform)
 }
 
 #end
@@ -376,7 +389,7 @@ class BitmapDebug extends Debug {
 
     ///---------------------------------------------------------------------------------------------
 
-    public override function draw(object:Dynamic) __draw(object)
+    public override function draw(object:Dynamic,?xform:Mat23) __draw(object,xform)
 }
 
 #end
