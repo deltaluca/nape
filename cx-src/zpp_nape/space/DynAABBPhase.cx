@@ -564,9 +564,14 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 
 			cur.first = false;
 			if(s1.aabb.intersect(s2.aabb)) {
-				assert(cur.arb==null || cur.arb.id == cur.id || cur.arb.id == (cur.id>>>16)|(cur.id<<16), "arbiter doesn't match AABB pair");
+				assert(cur.arb==null || cur.arb.pair==cur, "arbiter/pair don't match up");
+				var oarb = cur.arb;
 				cur.arb = space.narrowPhase(s1,s2,!b1.isDynamic() || !b2.isDynamic(), cur.arb);
-				if(cur.arb!=null) cur.arb.pair = cur;
+				assert(oarb==null||cur.arb==null||oarb==cur.arb,"oh dear...");
+				if(cur.arb==null) {
+					if(oarb!=null) oarb.pair = null;
+				}else
+					cur.arb.pair = cur;
 			}
 
 			pre = cur;

@@ -4,7 +4,7 @@ $(import);
 
 class Debug {
     public static function version() {
-        return "Milestone 5.3 7/08/11 - \"r5\" build 15:40 18/08/11";
+        return "Milestone 5.3 7/08/11 - \"r6\" build 23:51 20/08/11";
     }
 
 	public static function clearObjectPools() {
@@ -143,7 +143,7 @@ class Debug {
     })
 
     ///---------------------------------------------------------------------------------------------
-	
+
 	public function new() {
         DEBUG(
             if(!PR(Debug).internal)
@@ -178,12 +178,29 @@ class Debug {
 
     ///---------------------------------------------------------------------------------------------
 
+	property(transform, Mat23, {
+		var ret:PR(Debug);
+	    #if flash10
+            if(Std.is(this, BitmapDebug))
+                 ret= cast(this, BitmapDebug).pr(inner);
+            else ret = cast(this, ShapeDebug) .pr(inner);
+        #else
+            ret = cast(this,ShapeDebug).pr(inner);
+        #end
+
+		if(ret.xform==null) ret.setform();
+		ret.xform.outer;
+	}, {
+		DEBUG(if(transform==null) throw "Error: Cannot set Debug::transform to null";)
+		this.transform.set(transform);
+	})
+
     public function clear():Void {}
     public function flush():Void {}
 
     ///---------------------------------------------------------------------------------------------
 
-    public function draw(object:Dynamic,?xform:Mat23):Void {}
+    public function draw(object:Dynamic):Void {}
 
     public function drawLine  (start:Vec2, end:Vec2, colour:Int):Void {}
     public function drawCircle(position:Vec2, radius:Float, colour:Int):Void {}
@@ -198,22 +215,20 @@ class Debug {
 ///_________________________________________________________________________________________________
 ///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 
-$(mixin __draw(obj,xform) {
-	DEBUG(if(xform!=null && !xform.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform";)
+$(mixin __draw(obj) {
+	DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
 
-	if(xform==null) {
+	if(pr(inner).xnull) {
 	    if  (Std.is(obj,Space))      pr(inner).draw_space(cast(obj,Space     ).pr(inner), null,1.0,true);
 	    elif(Std.is(obj,Body ))      pr(inner).draw_body (cast(obj,Body      ).pr(inner), null,1.0,true);
 	    elif(Std.is(obj,Shape))      pr(inner).draw_shape(cast(obj,Shape     ).pr(inner), null,1.0,true);
 	    elif(Std.is(obj,Constraint)) pr(inner).draw_con  (cast(obj,Constraint).pr(inner), null,1.0,true);
 	    DEBUG(else throw "Error: Unhandled object type for Debug draw";)
 	}else {
-		var xforms = xform.pr(inner);
-		var xdet = PR(Math).sqrt(abs(xform.determinant));
-	    if  (Std.is(obj,Space))      pr(inner).draw_space(cast(obj,Space     ).pr(inner), xforms,xdet,false);
-	    elif(Std.is(obj,Body ))      pr(inner).draw_body (cast(obj,Body      ).pr(inner), xforms,xdet,false);
-	    elif(Std.is(obj,Shape))      pr(inner).draw_shape(cast(obj,Shape     ).pr(inner), xforms,xdet,false);
-	    elif(Std.is(obj,Constraint)) pr(inner).draw_con  (cast(obj,Constraint).pr(inner), xforms,xdet,false);
+	    if  (Std.is(obj,Space))      pr(inner).draw_space(cast(obj,Space     ).pr(inner), pr(inner).xform,pr(inner).xdet,false);
+	    elif(Std.is(obj,Body ))      pr(inner).draw_body (cast(obj,Body      ).pr(inner), pr(inner).xform,pr(inner).xdet,false);
+	    elif(Std.is(obj,Shape))      pr(inner).draw_shape(cast(obj,Shape     ).pr(inner), pr(inner).xform,pr(inner).xdet,false);
+	    elif(Std.is(obj,Constraint)) pr(inner).draw_con  (cast(obj,Constraint).pr(inner), pr(inner).xform,pr(inner).xdet,false);
 	    DEBUG(else throw "Error: Unhandled object type for Debug draw";)
 	}
 
@@ -253,8 +268,15 @@ class ShapeDebug extends Debug {
         var g = pr(inner).graphics;
 
         g.lineStyle(0.1,colour&0xffffff,1);
-        g.moveTo(start.x,start.y);
-        g.lineTo(end.x,end.y);
+		if(pr(inner).xnull) {
+	        g.moveTo(start.x,start.y);
+	        g.lineTo(end.x,end.y);
+		}else {
+			var v = pr(inner).xform.outer.transform(start);
+			g.moveTo(v.x,v.y); v.dispose();
+			v = pr(inner).xform.outer.transform(end);
+			g.lineTo(v.x,v.y); v.dispose();
+		}
     }
 
     public override function drawCircle(position:Vec2, radius:Float, colour:Int) {
@@ -266,7 +288,13 @@ class ShapeDebug extends Debug {
         var g = pr(inner).graphics;
 
         g.lineStyle(0.1,colour&0xffffff,1);
-        g.drawCircle(position.x,position.y,radius);
+		if(pr(inner).xnull)
+	        g.drawCircle(position.x,position.y,radius);
+		else {
+			var v = pr(inner).xform.outer.transform(position);
+			g.drawCircle(v.x,v.y,radius*pr(inner).xdet);
+			v.dispose();
+		}
     }
 
     public override function drawAABB(aabb:AABB, colour:Int) {
@@ -274,7 +302,23 @@ class ShapeDebug extends Debug {
         var g = pr(inner).graphics;
 
         g.lineStyle(0.1,colour&0xffffff,1);
-        g.drawRect(aabb.x,aabb.y,aabb.width,aabb.height);
+		if(pr(inner).xnull)
+	        g.drawRect(aabb.x,aabb.y,aabb.width,aabb.height);
+		else {
+			var v = pr(inner).xform.outer.transform(aabb.min);
+			var w = Vec2.get(aabb.width,0);  var w2 = pr(inner).xform.outer.transform(w,true);
+			var h = Vec2.get(aabb.height,0); var h2 = pr(inner).xform.outer.transform(h,true);
+
+			g.moveTo(v.x,v.y);
+			g.lineTo(v.x+w2.x,v.y+w2.y);
+			g.lineTo(v.x+w2.x+h2.x,v.y+w2.y+h2.y);
+			g.lineTo(v.x+h2.x,v.y+h2.y);
+			g.lineTo(v.x,v.y);
+
+			v.dispose();
+			w.dispose(); w2.dispose();
+			h.dispose(); h2.dispose();
+		}
     }
     
     public override function drawFilledTriangle(p0:Vec2, p1:Vec2, p2:Vec2, colour:Int) {
@@ -285,9 +329,18 @@ class ShapeDebug extends Debug {
         var g = pr(inner).graphics;
         g.lineStyle(0,0,0);
         g.beginFill(colour&0xffffff,1);
-        g.moveTo(p0.x,p0.y);
-        g.lineTo(p1.x,p1.y);
-        g.lineTo(p2.x,p2.y);
+		if(pr(inner).xnull) {
+	        g.moveTo(p0.x,p0.y);
+	        g.lineTo(p1.x,p1.y);
+	        g.lineTo(p2.x,p2.y);
+		}else {
+			var v = pr(inner).xform.outer.transform(p0);
+			g.moveTo(v.x,v.y); v.dispose();
+			v = pr(inner).xform.outer.transform(p1);
+			g.lineTo(v.x,v.y); v.dispose();
+			v = pr(inner).xform.outer.transform(p2);
+			g.lineTo(v.x,v.y); v.dispose();
+		}
         g.endFill();
     }
 
@@ -300,13 +353,19 @@ class ShapeDebug extends Debug {
         var g = pr(inner).graphics;
         g.lineStyle(0,0,0);
         g.beginFill(colour&0xffffff,1);
-        g.drawCircle(position.x,position.y,radius);
+		if(pr(inner).xnull)
+	        g.drawCircle(position.x,position.y,radius);
+		else {
+			var v = pr(inner).xform.outer.transform(position);
+			g.drawCircle(v.x,v.y,radius*pr(inner).xdet);
+			v.dispose();
+		}
         g.endFill();
     }
 
     ///---------------------------------------------------------------------------------------------
 
-    public override function draw(object:Dynamic,?xform:Mat23) __draw(object,xform)
+    public override function draw(object:Dynamic) __draw(object)
 }
 
 #end
@@ -345,11 +404,23 @@ class BitmapDebug extends Debug {
             if(start==null) throw "Error: drawLine::start cannot be null";
             if(end  ==null) throw "Error: drawLine::end cannot be null";
         )
-        var x0:Int = fastint(start.x+0.5);
-        var y0:Int = fastint(start.y+0.5);
-        var x1:Int = fastint(end.x+0.5);
-        var y1:Int = fastint(end.y+0.5);
-        pr(inner).__line(x0,y0,x1,y1,colour|0xff000000);
+		if(pr(inner).xnull) {
+	        var x0:Int = fastint(start.x+0.5);
+	        var y0:Int = fastint(start.y+0.5);
+	        var x1:Int = fastint(end.x+0.5);
+	        var y1:Int = fastint(end.y+0.5);
+	        pr(inner).__line(x0,y0,x1,y1,colour|0xff000000);
+		}else {
+			var v = pr(inner).xform.outer.transform(start);
+			var x0:Int = fastint(v.x+0.5);
+			var y0:Int = fastint(v.y+0.5);
+			v.dispose();
+			v = pr(inner).xform.outer.transform(end);
+			var x1:Int = fastint(v.x+0.5);
+			var y1:Int = fastint(v.y+0.5);
+			v.dispose();
+	        pr(inner).__line(x0,y0,x1,y1,colour|0xff000000);
+		}
     }
 
     public override function drawCircle(position:Vec2, radius:Float, colour:Int) {
@@ -358,15 +429,49 @@ class BitmapDebug extends Debug {
             if(position==null) throw "Error: drawCircle::position cannot be null";
             if(isNaN(radius) || radius<0) throw "Error: drawCircle::radius must be >=0";
         )
-        var x:Int = fastint(position.x+0.5);
-        var y:Int = fastint(position.y+0.5);
-        var r:Int = fastint(radius+0.5);
-        pr(inner).__circle(x,y,r, colour|0xff000000);
+		if(pr(inner).xnull) {
+	        var x:Int = fastint(position.x+0.5);
+	        var y:Int = fastint(position.y+0.5);
+	        var r:Int = fastint(radius+0.5);
+	        pr(inner).__circle(x,y,r, colour|0xff000000);
+		}else {
+			var v = pr(inner).xform.outer.transform(position);
+			var x:Int = fastint(v.x+0.5);
+			var y:Int = fastint(v.y+0.5);
+			v.dispose();
+			var r:Int = fastint(radius*pr(inner).xdet+0.5);
+			pr(inner).__circle(x,y,r, colour|0xff000000);
+		}
     }
 
     public override function drawAABB(aabb:AABB, colour:Int) {
         DEBUG(if(aabb==null) throw "Error: drawAABB::aabb cannot be null";)
-        pr(inner).__aabb(aabb.pr(inner), colour);
+		if(pr(inner).xnull)
+	        pr(inner).__aabb(aabb.pr(inner), colour);
+		else {
+			var v = pr(inner).xform.outer.transform(aabb.min);
+			var w = Vec2.get(aabb.width,0);  var w2 = pr(inner).xform.outer.transform(w,true);
+			var h = Vec2.get(0,aabb.height); var h2 = pr(inner).xform.outer.transform(h,true);
+
+			var x0:Int = fastint(v.x+0.5);
+			var y0:Int = fastint(v.y+0.5);
+			var x1:Int = fastint(v.x+w2.x+0.5);
+			var y1:Int = fastint(v.y+w2.y+0.5);
+			var x2:Int = fastint(v.x+w2.x+h2.x+0.5);
+			var y2:Int = fastint(v.y+w2.y+h2.y+0.5);
+			var x3:Int = fastint(v.x+h2.x+0.5);
+			var y3:Int = fastint(v.y+h2.y+0.5);
+
+			v.dispose();
+			w.dispose(); w2.dispose();
+			h.dispose(); h2.dispose();
+
+			var col = colour|0xff000000;
+	        pr(inner).__line(x0,y0,x1,y1,col);
+	        pr(inner).__line(x1,y1,x2,y2,col);
+	        pr(inner).__line(x2,y2,x3,y3,col);
+	        pr(inner).__line(x3,y3,x0,y0,col);
+		}
     }
 
     public override function drawFilledTriangle(p0:Vec2, p1:Vec2, p2:Vec2, colour:Int) {
@@ -381,15 +486,24 @@ class BitmapDebug extends Debug {
             if(position==null) throw "Error: drawFilledCircle::position cannot be null";
             if(isNaN(radius) || radius<0) throw "Error: drawFilledCircle::radius must be >=0";
         )
-        var x:Int = fastint(position.x+0.5);
-        var y:Int = fastint(position.y+0.5);
-        var r:Int = fastint(radius+0.5);
-        pr(inner).__fcircle(x,y,r, colour|0xff000000);
+		if(pr(inner).xnull) {
+	        var x:Int = fastint(position.x+0.5);
+	        var y:Int = fastint(position.y+0.5);
+	        var r:Int = fastint(radius+0.5);
+	        pr(inner).__fcircle(x,y,r, colour|0xff000000);
+		}else {
+			var v = pr(inner).xform.outer.transform(position);
+			var x:Int = fastint(v.x+0.5);
+			var y:Int = fastint(v.y+0.5);
+			v.dispose();
+			var r:Int = fastint(radius*pr(inner).xdet+0.5);
+	        pr(inner).__fcircle(x,y,r, colour|0xff000000);
+ 		}
     }
 
     ///---------------------------------------------------------------------------------------------
 
-    public override function draw(object:Dynamic,?xform:Mat23) __draw(object,xform)
+    public override function draw(object:Dynamic) __draw(object)
 }
 
 #end

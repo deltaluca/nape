@@ -14,6 +14,28 @@ class PR(Debug) {
 
     ///---------------------------------------------------------------------------------------------
 
+	public var xform:PR(Mat23);
+	public var xnull:Bool;
+	public var xdet:Float;
+
+	public function new() {
+		xnull = true;
+		xdet = 1.0;
+	}
+
+	public function setform() {
+		//don't bother not using wrapper since it'll exist ALWAYS.
+		xform = new Mat23().pr(inner);
+		var me = this;
+		xform.__invalidate = function() {
+			me.xdet = PR(Math).sqrt(abs(me.xform.outer.determinant));
+			me.xnull = me.xform.a == 1.0 && me.xform.b == 0.0 && me.xform.c == 0.0 && me.xform.d == 1.0
+			        && me.xform.tx == 0.0 && me.xform.ty == 0.0;
+		}
+	}
+
+    ///---------------------------------------------------------------------------------------------
+
     flibmdel public inline function sup_setbg(bgcol:Int) {
         bg_r = (bgcol>>16)&0xff;
         bg_g = (bgcol>>8)&0xff;
@@ -36,6 +58,7 @@ class PR(ShapeDebug) extends PR(Debug) {
     public var graphics:flash.display.Graphics;
 
     public function new() {
+		super();
         shape = new flash.display.Shape();
         graphics = shape.graphics;
     }
@@ -91,6 +114,7 @@ class PR(BitmapDebug) extends PR(Debug) {
     }
 
     public function new(w:Int,h:Int, bgcol:Int, transparent:Bool) {
+		super();
         this.transp = transparent;
         this.width = w;
         this.height = h;
@@ -183,9 +207,19 @@ class PR(BitmapDebug) extends PR(Debug) {
     }
     
     flibmdel public inline function __tri(p0:Vec2,p1:Vec2,p2:Vec2,col:Int) {
+		if(!xnull) {
+			p0 = xform.outer.transform(p0);
+			p1 = xform.outer.transform(p1);
+			p2 = xform.outer.transform(p2);
+		}
         var p0x = __round(p0.x); var p0y = __round(p0.y);
         var p1x = __round(p1.x); var p1y = __round(p1.y);
         var p2x = __round(p2.x); var p2y = __round(p2.y);
+		if(!xnull) {
+			p0.dispose();
+			p1.dispose();
+			p2.dispose();
+		}
         
         //sort vertices
         $(mixin iswap(a,b) { a ^= b; b ^= a; a ^= b; });

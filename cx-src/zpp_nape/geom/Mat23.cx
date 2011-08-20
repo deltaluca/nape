@@ -2,9 +2,31 @@ package zpp_nape.geom;
 $(import);
 
 class PR(Mat23) {
+	public var outer:Mat23;
+	flibmdel public inline function wrapper() {
+		if(outer==null) {
+			outer = new Mat23();
+			Free(PR(Mat23),outer.pr(inner));
+			outer.pr(inner) = this;
+		}
+		return outer;
+	}
+
 	mat_new(public,$(->));
     vec_new(public,t);
+
+	public var __invalidate:Void->Void;
 	
+	//----------------------------------------------------------------------------------------------
+
+	public inline function set(m:PR(Mat23)) {
+		setas(m.a,m.b,m.c,m.d,m.tx,m.ty);
+	}
+	public inline function setas(a:Float,b:Float,c:Float,d:Float,tx:Float,ty:Float) {
+		vec_set(this.t,t);
+		mat_set(this.,$(->));
+	}
+
 	//----------------------------------------------------------------------------------------------
 	
 	MixPool(PR(Mat23))
