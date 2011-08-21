@@ -685,7 +685,8 @@ class PR(Space) {
 
 			if(c.isBody) {
 				var b = c.body;
-						
+					
+				assert(b.space==this,"wakeIsland:: body is not actually IN this space??");	
 				assert(b.isDynamic(),"din din");
 				live.add(b);
 				
@@ -714,6 +715,7 @@ class PR(Space) {
 					Iter(shape, b.shapes, if(shape.node!=null) bphase.sync(shape));
 			}else {
 				var con = c.constraint;
+				assert(con.space==this,"wakeIsland:: constraint is not actually IN this space??");
 				live_constraints.add(con);
 
                 constraintCbWake(con);
@@ -725,6 +727,7 @@ class PR(Space) {
 	}
 	
 	public function wake(o:PR(Body),?fst=false) {
+		assert(o.space==this,"object being woken in the space... is not actually in the space!");
 		if(!o.world) {
 			assert(o.component!=null,"body woken, but no component exists?");
 			o.component.waket = stamp+1;
@@ -739,7 +742,8 @@ class PR(Space) {
 						
 					if(!o.isDynamic()) {
 						//wake any constraints that might exist
-						Iter(con,o.constraints,wake_constraint(con));
+						//check that only constraints IN the space are woken!!
+						Iter(con,o.constraints,if(con.space==this) wake_constraint(con));
 						//wake any touching bodies
 						Iter(arb,o.arbiters,{
 							if(arb.sleeping) {
@@ -778,6 +782,7 @@ class PR(Space) {
 	}
 	
 	flibmdel public inline function wake_constraint(con:PR(Constraint),?fst=false) {
+		assert(con.space==this,"constraint woken, but not actually IN the space!");
 		if(con.active) {
 			assert(con.component!=null,"constraint woken but no component exists?");
             con.component.waket = stamp+1;

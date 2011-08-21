@@ -166,6 +166,56 @@ class Tracer {
 class DummyNapeMain {
 	static public var debug:Debug;
 
+	static function mainss() {
+		var debug = new BitmapDebug(600,600,0xffffff);
+		var grav = new Vec2(0,20*30);
+		var world = new Space(grav);
+
+		var dyn = new Body();
+		dyn.position.setxy(100,100);
+		var filter = new InteractionFilter(1,-1);
+		var mat = new Material(0.1,0.5,0.5,0.5,0.1);
+		mat.shared = true;
+
+		var shape:Shape = new Circle(10, new Vec2(0,0), mat,filter);
+		dyn.type = BodyType.DYNAMIC;
+		dyn.allowRotation = false;
+		dyn.gravMass = 0;
+		dyn.shapes.add(shape);
+		world.bodies.add(dyn);
+
+		filter = new InteractionFilter(128,0);
+		var anchor = new Body();
+		anchor.position.setxy(20,200);
+		anchor.type = BodyType.STATIC;
+		shape = new Polygon(Polygon.box(100,100), mat,filter);
+		anchor.shapes.add(shape);
+		world.bodies.add(anchor);
+
+		var joint = new LineJoint(anchor,dyn,new Vec2(),new Vec2(),new Vec2(1,0),0,2000);
+		world.constraints.add(joint);
+
+		var c = flash.Lib.current;
+		c.addChild(debug.display);
+
+		var tim = new haxe.Timer(Std.int(1000/60));
+		tim.run = function() {
+			world.step(1/60,37,37);
+
+			var mat = new Mat23();
+			debug.transform = mat;
+			debug.clear();
+			debug.draw(world);
+			debug.flush();
+		}
+
+		haxe.Timer.delay(function(){
+			joint.space = null; 
+			anchor.space = null;
+			dyn.space = null;
+		},1000);
+	}
+
 	static function main() {
         var c = flash.Lib.current;
         haxe.Log.setColor(0xffffff);
@@ -241,7 +291,8 @@ class DummyNapeMain {
 			s.filter.fluidGroup = 2;
 			s.filter.fluidMask = 1;
 		}
-	
+
+		var pre:Body = null;	
 		for(i in 0...450) {
 			var b = new Body();
 			b.shapes.add(new Polygon(Polygon.box(16,16)));
@@ -249,6 +300,14 @@ class DummyNapeMain {
 			var yi =Std.int( (i-xi)/18);
 			b.position.setxy(50+xi*16,50+yi*16);
 			b.space = space;
+
+            if(pre!=null) {
+				var mid = pre.position.add(b.position).muleq(0.5);
+				space.constraints.add(new PivotJoint(pre,b,pre.worldToLocal(mid),b.worldToLocal(mid)));
+			}
+
+			pre = b;
+			if((i+1)%18==0) pre = null;
 		}
 
 		mcon.active = false;
@@ -295,8 +354,19 @@ class DummyNapeMain {
             debug.clear();
 			mcon.anchor1.set(mat.inverse_transform(new Vec2(c.mouseX,c.mouseY)));
 
-			if(!space.bodies.empty())
-			(space.bodies.at(Std.int(space.bodies.length*Math.random()))).space = null;
+			if(!space.bodies.empty()) {
+				var b = space.dynamics.at(Std.int(space.dynamics.length*Math.random()));
+				if(Math.random()<0.5) {
+					b.space = null;
+					for(c in b.constraints) c.space = null;
+				}else {
+					b.type = BodyType.STATIC;
+					for(c in b.constraints) {
+						var con:PivotJoint = cast(c,PivotJoint);
+						if(con.body1.isStatic() && con.body2.isStatic()) con.space = null;
+					}
+				}
+			}
 
             space.step(1/40,8,4);
             
