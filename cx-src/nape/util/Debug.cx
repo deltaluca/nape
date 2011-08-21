@@ -127,8 +127,12 @@ class Debug {
     property(bgColor,Int,{
 		pr(inner).bg_col;
     },{
-		if(pr(inner).isbmp) pr(inner).d_bmp.setbg(bgColor);
-		else                pr(inner).d_shape.setbg(bgColor);
+		#if flash10
+			if(pr(inner).isbmp) pr(inner).d_bmp.setbg(bgColor);
+			else                pr(inner).d_shape.setbg(bgColor);
+		#else
+			pr(inner).d_shape.setbg(bgColor);
+		#end
     })
 
     ///---------------------------------------------------------------------------------------------
@@ -156,10 +160,14 @@ class Debug {
     ///---------------------------------------------------------------------------------------------
 
     property(display, flash.display.DisplayObject, {
-		var ret:flash.display.DisplayObject;
-		if(pr(inner).isbmp) ret = pr(inner).d_bmp.bitmap;
-		else                ret = pr(inner).d_shape.shape;
-		ret;
+		#if flash10
+			var ret:flash.display.DisplayObject;
+			if(pr(inner).isbmp) ret = pr(inner).d_bmp.bitmap;
+			else                ret = pr(inner).d_shape.shape;
+			ret;
+		#else
+			pr(inner).d_shape.shape;
+		#end
     })
 
 	public var cullingEnabled:Bool;
