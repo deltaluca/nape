@@ -248,7 +248,7 @@ class DummyNapeMain {
 			var xi = i%18;
 			var yi =Std.int( (i-xi)/18);
 			b.position.setxy(50+xi*16,50+yi*16);
-			space.dynamics.add(b);
+			b.space = space;
 		}
 
 		mcon.active = false;
@@ -295,7 +295,8 @@ class DummyNapeMain {
             debug.clear();
 			mcon.anchor1.set(mat.inverse_transform(new Vec2(c.mouseX,c.mouseY)));
 
-			space.dynamics.remove(space.dynamics.at(Std.int(space.dynamics.length*Math.random())));
+			if(!space.bodies.empty())
+			(space.bodies.at(Std.int(space.bodies.length*Math.random()))).space = null;
 
             space.step(1/40,8,4);
             
