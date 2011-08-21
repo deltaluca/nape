@@ -399,14 +399,20 @@ class PR(Space) {
 			static_validation(body);
 
 			if(flag!=Flag(BodyType,STATIC)) statics.add(body);
-			if(flag==-1) bodies.add(body);
+			if(flag!=0) bodies.add(body);
+
+			assert(staticsleep.has(body),"a2b f="+flag);
 		}else {
 			if(body.isDynamic()) {
 				if(flag!=Flag(BodyType,DYNAMIC)) dynamics.add(body);
-				if(flag==-1) bodies.add(body);
+				if(flag!=0) bodies.add(body);
+
+				assert(live.has(body),"a4b f="+flag);
 			}else {
 				if(flag!=Flag(BodyType,KINEMATIC)) kinematics.add(body);
-				if(flag==-1) bodies.add(body);
+				if(flag!=0) bodies.add(body);
+
+				assert(staticsleep.has(body),"a6b f="+flag);
 			}
 		}
 	}
@@ -416,24 +422,34 @@ class PR(Space) {
 	//flag = 0 if already removed from bodies list, -1 if nothing has yet been done
 	public inline function removeBody(body:PR(Body),?flag:Int=-1) {
 		if(body.isStatic()) {
+			assert(statics.has(body)||bodies.has(body),"neither? stat="+statics.has(body));
+
 			if(flag!=Flag(BodyType,STATIC)) statics.remove(body);
-			if(flag==-1) bodies.remove(body);
+			if(flag!=0) bodies.remove(body);
 			
 			wake(body,true);
+
+			assert(!body.component.sleeping,"as3");
+			assert(staticsleep.has(body),"as4");
+
 			staticsleep.remove(body);
+
+			assert(!staticsleep.has(body),"e1");
 		}else {
 			if(body.isDynamic()) {
 				if(flag!=Flag(BodyType,DYNAMIC)) dynamics.remove(body);
-				if(flag==-1) bodies.remove(body);
+				if(flag!=0) bodies.remove(body);
 				
 				wake(body,true);
 				live.remove(body);
+				assert(!live.has(body),"e3b");
 			}else {
 				if(flag!=Flag(BodyType,KINEMATIC)) kinematics.remove(body);
-				if(flag==-1) bodies.remove(body);
+				if(flag!=0) bodies.remove(body);
 				
 				wake(body,true);
 				staticsleep.remove(body);
+				assert(!staticsleep.has(body),"e4");
 			}
 		}
 		Iter(shape,body.shapes,removed_shape(shape,true));
@@ -452,7 +468,7 @@ class PR(Space) {
 	}
 	
 	public inline function shapesInAABB(aabb:AABB,strict:Bool,filter:PR(InteractionFilter)) {
-		return bphase.shapesInAABB(aabb.pr(inner),filter);
+		return bphase.shapesInAABB(aabb.pr(inner),strict,filter);
 	}
 	public inline function bodiesInAABB(aabb:AABB,strict:Bool,filter:PR(InteractionFilter)) {
    		return bphase.bodiesInAABB(aabb.pr(inner),strict,filter);
