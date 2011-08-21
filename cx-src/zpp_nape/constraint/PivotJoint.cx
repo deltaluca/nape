@@ -49,6 +49,20 @@ class PR(PivotJoint) extends PR(Constraint) {
 	}
 	
 	//---------------------------------------------------
+
+	public override function activeBodies() {
+		active_body(b1);
+		if(b2!=b1)
+			active_body(b2);
+	}
+
+	public override function inactiveBodies() {
+		inactive_body(b1);
+		if(b2!=b1)
+			inactive_body(b2);
+	}
+
+	//---------------------------------------------------
 	
 	public var b1:PR(Body); anchor_new(a1);
 	public var b2:PR(Body); anchor_new(a2);
@@ -75,9 +89,9 @@ class PR(PivotJoint) extends PR(Constraint) {
 	}
 	
 	public override function validate() {
-		if(b1==b2) throw "Error: PivotJoint cannot be simulated with body1 == body2";
-		if(b1.space != space || b2.space != space) throw "Error: Constraints must have each body within the same space to which the constraint has been assigned";
-		if(!b1.isDynamic() && !b2.isDynamic()) throw "Error: Constraints cannot have both bodies non-dynamic";
+		if(b1==b2) throw "Error: PivotJoint cannot be simulated with body1 == body2 (body1=body2="+b1.outer.toString()+")";
+		if(b1.space != space || b2.space != space) throw "Error: Constraints must have each body within the same space to which the constraint has been assigned (body1="+b1.outer.toString()+", body2="+b2.outer.toString()+")";
+		if(!b1.isDynamic() && !b2.isDynamic()) throw "Error: Constraints cannot have both bodies non-dynamic (body1="+b1.outer.toString()+", body2="+b2.outer.toString()+")";
 	}
 	
 	public override function wake_connected() {

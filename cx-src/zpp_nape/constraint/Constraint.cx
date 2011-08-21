@@ -60,11 +60,11 @@ class PR(Constraint) {
 
     public function setCbType(cbType:PR(CbType)) {
         if(this.cbType != cbType) {
-			if(space!=null) {
+			if(space!=null && active) {
 	            if(this.cbType!=null) this.cbType.remConstraint(this);
 			}
             this.cbType = cbType;
-			if(space!=null)
+			if(space!=null && active)
 	            cbType.addConstraint(this);
 
             wake();
@@ -96,6 +96,9 @@ class PR(Constraint) {
 		component = Get(PR(Component));
 		component.isBody = false;
 		component.constraint = this;
+
+		//do body lists
+		activeBodies();
 	}
 
 	flibmdel public inline function inactiveOrOutSpace() {
@@ -103,7 +106,16 @@ class PR(Constraint) {
 
 		Free(PR(Component),component);
 		component = null;
+
+		//do body lists
+		inactiveBodies();
 	}
+
+	//------------------------------------------------------------------------------------
+
+	//update body constraint lists.
+	keep public function   activeBodies() { assert(false,  "activeBodies not overriden"); }
+	keep public function inactiveBodies() { assert(false,"inactiveBodies not overriden"); }
 
 	//------------------------------------------------------------------------------------
 
@@ -202,19 +214,33 @@ $(mixin global withConstraint(block)
         	DEBUG(if(B==null) throw "Error: Constraint::"+$str(B)+" cannot be null";)
 			if(B.pr(inner) != pr(inner_zn).b) {
 				if(pr(inner_zn).b != null) {
-                    if(new(pr(inner_zn).b))
-                        pr(inner_zn).b.constraints.remove(this.pr(inner));
+                    if(active && space!=null && new(pr(inner_zn).b)) {
+						inactive_body(pr(inner_zn).b, this.pr(inner));
+//                      pr(inner_zn).b.constraints.remove(this.pr(inner));
+					}
 
-                    if(active)
+                    if(active && space!=null)
                         pr(inner_zn).b.wake(); //wake old object!
 				}
 				pr(inner_zn).b = B.pr(inner);
-				if(new(B.pr(inner)))
-					B.pr(inner).constraints.add(this.pr(inner));
+				if(active && space!=null && new(B.pr(inner))) {
+					active_body(B.pr(inner),this.pr(inner));
+//					B.pr(inner).constraints.add(this.pr(inner));
+				}
 				pr(inner).wake();
 			}
 		})
 	);
+
+	$(mixin active_body(b) active_body(b,this));
+	$(mixin active_body(b,this) {
+		b.constraints.add(this);
+	});
+
+	$(mixin inactive_body(b) inactive_body(b,this));
+	$(mixin inactive_body(b,this) {
+		b.constraints.remove(this);
+	});
 	
 	//-----------------------------------------------------------
 	

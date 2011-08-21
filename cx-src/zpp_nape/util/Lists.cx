@@ -399,7 +399,7 @@ $(mixin global ListMixin(defs,Cons,T,I)
 	public var mcnt:Int;
 
     flibmdel public inline function add(o:T) {
-		assert(o!=null && !has(o),"add -> o="+o);
+		assert(o!=null && !has(o),"[ListMixin("+$str(T)+"] add -> o="+o);
 		
         var temp = _new(o);
         temp.next = begin();
@@ -410,12 +410,12 @@ $(mixin global ListMixin(defs,Cons,T,I)
     }
 
     flibmdel public inline function addAll(x:Cons) {
-		assert(x!=null,"addAll -> "+x);
+		assert(x!=null,"[ListMixin("+$str(T)+"] addAll -> "+x);
 		Iterate(x,add);
 	}
 
     flibmdel public inline function insert(cur:I,o:T) {
-		assert(o != null && !has(o),"cur -> "+cur+" -> "+o);
+		assert(o != null && !has(o),"[ListMixin("+$str(T)+"] cur -> "+cur+" -> "+o);
 		
         if(cur==null) { add(o); return begin(); }
         else {
@@ -433,7 +433,7 @@ $(mixin global ListMixin(defs,Cons,T,I)
     //----------------------------------------------------------------------------------------------
 
     flibmdel public inline function pop():Void {
-		assert(!empty(), "pop");
+		assert(!empty(), "[ListMixin("+$str(T)+"] pop");
 		
         var ret = begin();
         _setbeg(ret.next);
@@ -445,7 +445,7 @@ $(mixin global ListMixin(defs,Cons,T,I)
     }
 
     flibmdel public inline function pop_unsafe():T {
-		assert(!empty(), "pop_unsafe");
+		assert(!empty(), "[ListMixin("+$str(T)+"] pop_unsafe");
 		
         var ret = front();
         pop();
@@ -455,7 +455,7 @@ $(mixin global ListMixin(defs,Cons,T,I)
     //----------------------------------------------------------------------------------------------
 
     flibmdel public inline function remove(obj:T):Bool {
-		assert(obj!=null && has(obj), "remove -> "+obj);
+		assert(obj!=null && has(obj), "[ListMixin("+$str(T)+"] remove -> "+obj);
 		
         var pre = null;
         var cur = begin();
@@ -473,7 +473,7 @@ $(mixin global ListMixin(defs,Cons,T,I)
     }
 
     flibmdel public inline function erase(pre:I):I {
-		assert(!empty(),"erase -> "+pre);
+		assert(!empty(),"[ListMixin("+$str(T)+"] erase -> "+pre);
 		if(pre==null) { pop(); return begin(); }
 		else {
 			var old = pre.next;
@@ -530,7 +530,7 @@ $(mixin global ListMixin(defs,Cons,T,I)
     }
 
     flibmdel public inline function has(obj:T) {
-		assert(obj!=null,"has -> "+obj);
+		assert(obj!=null,"[ListMixin("+$str(T)+"] has -> "+obj);
 		return Exists(npite, this, npite==obj);
 	}
 
@@ -547,14 +547,14 @@ $(mixin global ListMixin(defs,Cons,T,I)
 
 	//ind = -1 is valid, and gives null.
     flibmdel public inline function iterator_at(ind:Int) {
-		assert(ind>=-1 && ind<size(),"iterator_at -> "+ind);
+		assert(ind>=-1 && ind<size(),"[ListMixin("+$str(T)+"] iterator_at -> "+ind);
         var ret = begin();
         while(ind-->0 && ret!=null) ret = ret.next;
         return ret;
     }
 
     flibmdel public inline function at(ind:Int) {
-		assert(ind>=0 && ind<size(),"at -> "+ind);
+		assert(ind>=0 && ind<size(),"[ListMixin("+$str(T)+"] at -> "+ind);
         var it = iterator_at(ind);
         return if(it!=null) it.elem() else null;
     }

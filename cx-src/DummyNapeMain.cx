@@ -237,7 +237,7 @@ class DummyNapeMain {
 
         var pt = flash.Lib.getTimer();
 
-        debug.drawConstraints = true;
+//        debug.drawConstraints = true;
         c.stage.quality = flash.display.StageQuality.LOW;
 
 		var bb = new Body();
@@ -334,7 +334,8 @@ class DummyNapeMain {
 		});
         
 		var tim2 = new haxe.Timer(5000); //5000
-		tim2.run = function() { init(); init(); init(); init(); init(); }
+//		tim2.run = function() { init(); init(); init(); init(); init(); }
+		tim2.run = function() { init(); }
 		init();
 //		Tracer.trace([space],txt);
 //		return;
@@ -354,17 +355,11 @@ class DummyNapeMain {
             debug.clear();
 			mcon.anchor1.set(mat.inverse_transform(new Vec2(c.mouseX,c.mouseY)));
 
-			if(!space.bodies.empty()) {
+			if(!space.dynamics.empty()) {
 				var b = space.dynamics.at(Std.int(space.dynamics.length*Math.random()));
-				if(Math.random()<0.5) {
-					b.space = null;
-					for(c in b.constraints) c.space = null;
-				}else {
-					b.type = BodyType.STATIC;
-					for(c in b.constraints) {
-						var con:PivotJoint = cast(c,PivotJoint);
-						if(con.body1.isStatic() && con.body2.isStatic()) con.space = null;
-					}
+				b.space = null;
+				while(!b.constraints.empty()) {
+					b.constraints.at(0).space = null;
 				}
 			}
 
