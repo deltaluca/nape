@@ -201,7 +201,7 @@ class PR(SweepPhase) extends PR(Broadphase) {
 
 	//==============================================================================================
 
-	public override function shapesInAABB(aabb:PR(AABB),filter:PR(InteractionFilter)) {
+	public override function shapesInAABB(aabb:PR(AABB),strict:Bool,filter:PR(InteractionFilter)) {
 		sync_broadphase();
 		updateAABBShape(aabb);
 
@@ -212,18 +212,21 @@ class PR(SweepPhase) extends PR(Broadphase) {
 		while(a!=null && a.aabb.minx<=ab.maxx) {
 			var shape = a.shape;
 			if(filter==null || shape.filter.shouldCollide(filter)) {
-				if(ab.contains(a.aabb))
-					ret.push(shape.outer);
-				else if(a.aabb.intersect(ab)) {
-					if(PR(Collide).testCollide_safe(shape,aabbShape.pr(inner)))
+				if(strict) {
+					if(ab.contains(a.aabb))
 						ret.push(shape.outer);
-				}
+					else if(a.aabb.intersect(ab)) {
+						if(PR(Collide).testCollide_safe(shape,aabbShape.pr(inner)))
+							ret.push(shape.outer);
+					}
+				}else if(a.aabb.intersect(ab))
+					ret.push(shape.outer);
 			}
 			a = a.next;
 		}
 		return ret;
 	}
-	public override function bodiesInAABB(aabb:PR(AABB),filter:PR(InteractionFilter)) {
+	public override function bodiesInAABB(aabb:PR(AABB),strict:Bool,filter:PR(InteractionFilter)) {
 		sync_broadphase();
 		updateAABBShape(aabb);
 
@@ -236,12 +239,15 @@ class PR(SweepPhase) extends PR(Broadphase) {
 			var body = shape.body.outer;
 			if(!ret.has(body)) {
 				if(filter==null || shape.filter.shouldCollide(filter)) {
-					if(ab.contains(a.aabb))
-						ret.push(body);
-					else if(a.aabb.intersect(ab)) {
-						if(PR(Collide).testCollide_safe(shape,aabbShape.pr(inner)))
+					if(strict) {
+						if(ab.contains(a.aabb))
 							ret.push(body);
-					}
+						else if(a.aabb.intersect(ab)) {
+							if(PR(Collide).testCollide_safe(shape,aabbShape.pr(inner)))
+								ret.push(body);
+						}
+					}else if(a.aabb.intersect(ab))
+						ret.push(body);
 				}
 			}
 			a = a.next;

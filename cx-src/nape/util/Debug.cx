@@ -160,6 +160,8 @@ class Debug {
 		drawConstraints = false;
 		drawConstraintSprings = true;
 		drawConstraintErrors = false;
+
+		cullingEnabled = false;
 	}
 
     ///---------------------------------------------------------------------------------------------
@@ -175,6 +177,8 @@ class Debug {
         #end
         ret;
     })
+
+	public var cullingEnabled:Bool;
 
     ///---------------------------------------------------------------------------------------------
 
@@ -242,12 +246,15 @@ $(mixin __draw(obj) {
 class ShapeDebug extends Debug {
     public var pr(inner):PR(ShapeDebug);
 
-    public function new(bgColor=0x333333) {
+    public function new(width:Int,height:Int,bgColor=0x333333) {
+        DEBUG(if(width <=0) throw "Error: Debug width must be > 0";)
+        DEBUG(if(height<=0) throw "Error: Debug height must be > 0";)
+
         DEBUG(PR(Debug).internal = true;)
         super();
         DEBUG(PR(Debug).internal = false;)
 
-        pr(inner) = new PR(ShapeDebug)();
+        pr(inner) = new PR(ShapeDebug)(width,height);
         pr(inner).outer = this;
         this.bgColor = bgColor;
     }
@@ -389,8 +396,8 @@ class BitmapDebug extends Debug {
     public var pr(inner):PR(BitmapDebug);
 
     public function new(width:Int, height:Int, bgColor:Int = 0x333333, transparent:Bool=false) {
-        DEBUG(if(width <=0) throw "Error: FastDebug width must be > 0";)
-        DEBUG(if(height<=0) throw "Error: FastDebug height must be > 0";)
+        DEBUG(if(width <=0) throw "Error: Debug width must be > 0";)
+        DEBUG(if(height<=0) throw "Error: Debug height must be > 0";)
 
         DEBUG(PR(Debug).internal = true;)
         super();

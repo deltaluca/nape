@@ -705,7 +705,45 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 	//iterate over leaves intersecting given aabb
 	$(mixin IterAABB(tree,AABB,block) IterTree(tree,$(mixin cond(node) node.aabb.intersect(AABB)) cond, block));
 
-	public override function shapesInAABB(aabb:PR(AABB), filter:PR(InteractionFilter)) {
+	$(mixin IterRealAABB(tree,AABB,block,block2) {
+		if(tree.root!=null) {
+			var stack = new List(PR(AABBNode))();
+			stack.add(tree.root);
+			while(!stack.empty()) {
+				var node = stack.pop_unsafe();
+				assert(node!=null,"null node");
+				if(AABB.contains(node.aabb)) {
+					if(node.isLeaf()) {
+						block2(node.shape);
+					}else {
+
+						//faster traversal.
+						var stack2 = new List(PR(AABBNode))();
+						stack2.add(node);
+						while(!stack2.empty()) {
+							var node = stack2.pop_unsafe();
+							if(node.isLeaf()) block2(node.shape);
+							else {
+								if(node.child1!=null) stack2.add(node.child1);
+								if(node.child2!=null) stack2.add(node.child2);
+							}
+						}
+
+					}
+				}
+				else if(node.aabb.intersect(AABB)) {
+					if(node.isLeaf()) {
+						block(node.shape);
+					}else {
+						if(node.child1!=null) stack.add(node.child1);
+						if(node.child2!=null) stack.add(node.child2);
+					}
+				}
+			}
+		}
+	});
+
+	public override function shapesInAABB(aabb:PR(AABB), strict:Bool, filter:PR(InteractionFilter)) {
 		sync_broadphase();
 		updateAABBShape(aabb);
 
@@ -713,21 +751,28 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 		var ret = new ShapeList();
 		
 		$(mixin dotree(tree) {
-			IterAABB(tree,ab, $(mixin block(shape) {
+			IterRealAABB(tree,ab, $(mixin block(shape) {
 				if(filter==null || shape.filter.shouldCollide(filter)) {
-					if(ab.contains(shape.aabb))
-						ret.push(shape.outer);
-					else if(PR(Collide).testCollide_safe(shape,aabbShape.pr(inner)))
+					if(strict) {
+						if(ab.contains(shape.aabb))
+							ret.push(shape.outer);
+						else if(PR(Collide).testCollide_safe(shape,aabbShape.pr(inner)))
+							ret.push(shape.outer);
+					}else
 						ret.push(shape.outer);
 				}
-			}) block)
+			}) block,
+			$(mixin block2(shape) {
+				ret.push(shape.outer);
+			}) block2
+			)
 		});
 		dotree(stree)
 		dotree(dtree)
 		return ret;
 	}
 
-	public override function bodiesInAABB(aabb:PR(AABB), filter:PR(InteractionFilter)) {
+	public override function bodiesInAABB(aabb:PR(AABB), strict:Bool, filter:PR(InteractionFilter)) {
 		sync_broadphase();
 		updateAABBShape(aabb);
 
@@ -735,17 +780,25 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 		var ret = new BodyList();
 		
 		$(mixin dotree(tree) {
-			IterAABB(tree,ab, $(mixin block(shape) {
+			IterRealAABB(tree,ab, $(mixin block(shape) {
 				var body = shape.body.outer;
 				if(!ret.has(body)) {
 					if(filter==null || shape.filter.shouldCollide(filter)) {
-						if(ab.contains(shape.aabb))
-							ret.push(body);
-						else if(PR(Collide).testCollide_safe(shape,aabbShape.pr(inner)))
+						if(strict) {
+							if(ab.contains(shape.aabb))
+								ret.push(body);
+							else if(PR(Collide).testCollide_safe(shape,aabbShape.pr(inner)))
+								ret.push(body);
+						}else
 							ret.push(body);
 					}
 				}
-			}) block)
+			}) block,
+			$(mixin block2(shape) {
+				var body = shape.body.outer;
+				if(!ret.has(body)) ret.push(body);
+			}) block2
+			)
 		});
 		dotree(stree)
 		dotree(dtree)
