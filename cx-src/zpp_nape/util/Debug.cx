@@ -10,7 +10,13 @@ $(import);
 class PR(Debug) {
     public static var internal = false;
 
-    #if (flash9||nme)
+	public var outer:Debug;
+
+	public var isbmp:Bool;
+	public var d_bmp  :PR(BitmapDebug);
+	public var d_shape:PR(ShapeDebug);
+
+    ///---------------------------------------------------------------------------------------------
 
     public var bg_r:Float;
     public var bg_g:Float;
@@ -102,8 +108,6 @@ class PR(Debug) {
         bg_b = (bgcol)&0xff;
         this.bg_col = bgcol;
     }
-
-    #end
 }
 
 ///_________________________________________________________________________________________________
@@ -112,7 +116,7 @@ class PR(Debug) {
 #if (flash9||nme)
 
 class PR(ShapeDebug) extends PR(Debug) {
-    public var outer:ShapeDebug;
+    public var outer_zn:ShapeDebug;
 
     public var shape:flash.display.Shape;
     public var graphics:flash.display.Graphics;
@@ -121,6 +125,9 @@ class PR(ShapeDebug) extends PR(Debug) {
 		super(width,height);
         shape = new flash.display.Shape();
         graphics = shape.graphics;
+
+		isbmp = false;
+		d_shape = this;
     }
 
     flibmdel public inline function setbg(bgColor:Int) {
@@ -146,7 +153,7 @@ class PR(ShapeDebug) extends PR(Debug) {
 #if flash10
 
 class PR(BitmapDebug) extends PR(Debug) {
-    public var outer:BitmapDebug;
+    public var outer_zn:BitmapDebug;
 
     public var bitmap:flash.display.Bitmap;
 
@@ -193,6 +200,9 @@ class PR(BitmapDebug) extends PR(Debug) {
         }
 
         bitmap = new flash.display.Bitmap(bit,flash.display.PixelSnapping.NEVER, false);
+
+		isbmp = true;
+		d_bmp = this;
     }
 
     ///---------------------------------------------------------------------------------------------

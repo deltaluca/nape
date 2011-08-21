@@ -109,6 +109,8 @@ class Debug {
 
     ///---------------------------------------------------------------------------------------------
 
+	public var pr(inner):PR(Debug);
+
     public var drawCollisionArbiters:Bool;
 	public var drawFluidArbiters:Bool;
 	public var drawSensorArbiters:Bool;
@@ -123,23 +125,10 @@ class Debug {
 	public var drawConstraintErrors:Bool; //requires drawconstraints=true
 
     property(bgColor,Int,{
-        var ret:Int;
-        #if flash10
-            if(Std.is(this,BitmapDebug))
-                 ret = cast(this,BitmapDebug).pr(inner).bg_col;
-            else ret = cast(this,ShapeDebug) .pr(inner).bg_col;
-        #else
-            ret = cast(this,ShapeDebug).pr(inner).bg_col;
-        #end
-        ret;
+		pr(inner).bg_col;
     },{
-        #if flash10
-            if(Std.is(this,BitmapDebug))
-                 cast(this,BitmapDebug).pr(inner).setbg(bgColor);
-            else cast(this,ShapeDebug) .pr(inner).setbg(bgColor);
-        #else
-            cast(this,ShapeDebug).pr(inner).setbg(bgColor);
-        #end
+		if(pr(inner).isbmp) pr(inner).d_bmp.setbg(bgColor);
+		else                pr(inner).d_shape.setbg(bgColor);
     })
 
     ///---------------------------------------------------------------------------------------------
@@ -167,15 +156,10 @@ class Debug {
     ///---------------------------------------------------------------------------------------------
 
     property(display, flash.display.DisplayObject, {
-        var ret:flash.display.DisplayObject;
-        #if flash10
-            if(Std.is(this, BitmapDebug))
-                 ret = cast(this, BitmapDebug).pr(inner).bitmap;
-            else ret = cast(this, ShapeDebug) .pr(inner).shape;
-        #else
-            ret = cast(this,ShapeDebug).pr(inner).shape;
-        #end
-        ret;
+		var ret:flash.display.DisplayObject;
+		if(pr(inner).isbmp) ret = pr(inner).d_bmp.bitmap;
+		else                ret = pr(inner).d_shape.shape;
+		ret;
     })
 
 	public var cullingEnabled:Bool;
@@ -183,17 +167,8 @@ class Debug {
     ///---------------------------------------------------------------------------------------------
 
 	property(transform, Mat23, {
-		var ret:PR(Debug);
-	    #if flash10
-            if(Std.is(this, BitmapDebug))
-                 ret= cast(this, BitmapDebug).pr(inner);
-            else ret = cast(this, ShapeDebug) .pr(inner);
-        #else
-            ret = cast(this,ShapeDebug).pr(inner);
-        #end
-
-		if(ret.xform==null) ret.setform();
-		ret.xform.outer;
+		if(pr(inner).xform==null) pr(inner).setform();
+		pr(inner).xform.outer;
 	}, {
 		DEBUG(if(transform==null) throw "Error: Cannot set Debug::transform to null";)
 		this.transform.set(transform);
@@ -223,16 +198,16 @@ $(mixin __draw(obj) {
 	DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
 
 	if(pr(inner).xnull) {
-	    if  (Std.is(obj,Space))      pr(inner).draw_space(cast(obj,Space     ).pr(inner), null,1.0,true);
-	    elif(Std.is(obj,Body ))      pr(inner).draw_body (cast(obj,Body      ).pr(inner), null,1.0,true);
-	    elif(Std.is(obj,Shape))      pr(inner).draw_shape(cast(obj,Shape     ).pr(inner), null,1.0,true);
-	    elif(Std.is(obj,Constraint)) pr(inner).draw_con  (cast(obj,Constraint).pr(inner), null,1.0,true);
+	    if  (Std.is(obj,Space))      pr(inner_zn).draw_space(cast(obj,Space     ).pr(inner), null,1.0,true);
+	    elif(Std.is(obj,Body ))      pr(inner_zn).draw_body (cast(obj,Body      ).pr(inner), null,1.0,true);
+	    elif(Std.is(obj,Shape))      pr(inner_zn).draw_shape(cast(obj,Shape     ).pr(inner), null,1.0,true);
+	    elif(Std.is(obj,Constraint)) pr(inner_zn).draw_con  (cast(obj,Constraint).pr(inner), null,1.0,true);
 	    DEBUG(else throw "Error: Unhandled object type for Debug draw";)
 	}else {
-	    if  (Std.is(obj,Space))      pr(inner).draw_space(cast(obj,Space     ).pr(inner), pr(inner).xform,pr(inner).xdet,false);
-	    elif(Std.is(obj,Body ))      pr(inner).draw_body (cast(obj,Body      ).pr(inner), pr(inner).xform,pr(inner).xdet,false);
-	    elif(Std.is(obj,Shape))      pr(inner).draw_shape(cast(obj,Shape     ).pr(inner), pr(inner).xform,pr(inner).xdet,false);
-	    elif(Std.is(obj,Constraint)) pr(inner).draw_con  (cast(obj,Constraint).pr(inner), pr(inner).xform,pr(inner).xdet,false);
+	    if  (Std.is(obj,Space))      pr(inner_zn).draw_space(cast(obj,Space     ).pr(inner), pr(inner).xform,pr(inner).xdet,false);
+	    elif(Std.is(obj,Body ))      pr(inner_zn).draw_body (cast(obj,Body      ).pr(inner), pr(inner).xform,pr(inner).xdet,false);
+	    elif(Std.is(obj,Shape))      pr(inner_zn).draw_shape(cast(obj,Shape     ).pr(inner), pr(inner).xform,pr(inner).xdet,false);
+	    elif(Std.is(obj,Constraint)) pr(inner_zn).draw_con  (cast(obj,Constraint).pr(inner), pr(inner).xform,pr(inner).xdet,false);
 	    DEBUG(else throw "Error: Unhandled object type for Debug draw";)
 	}
 
@@ -244,7 +219,7 @@ $(mixin __draw(obj) {
 #if (flash9||nme)
 
 class ShapeDebug extends Debug {
-    public var pr(inner):PR(ShapeDebug);
+    public var pr(inner_zn):PR(ShapeDebug);
 
     public function new(width:Int,height:Int,bgColor=0x333333) {
         DEBUG(if(width <=0) throw "Error: Debug width must be > 0";)
@@ -254,14 +229,17 @@ class ShapeDebug extends Debug {
         super();
         DEBUG(PR(Debug).internal = false;)
 
-        pr(inner) = new PR(ShapeDebug)(width,height);
-        pr(inner).outer = this;
+        pr(inner_zn) = new PR(ShapeDebug)(width,height);
+        pr(inner_zn).outer_zn = this;
+		pr(inner) = pr(inner_zn);
+		pr(inner).outer = this;
+
         this.bgColor = bgColor;
     }
 
     ///---------------------------------------------------------------------------------------------
 
-    public override function clear() pr(inner).graphics.clear()
+    public override function clear() pr(inner_zn).graphics.clear()
 
     ///---------------------------------------------------------------------------------------------
 
@@ -274,7 +252,7 @@ class ShapeDebug extends Debug {
             if(start==null) throw "Error: drawLine::start cannot be null";
             if(end  ==null) throw "Error: drawLine::end cannot be null";
         )
-        var g = pr(inner).graphics;
+        var g = pr(inner_zn).graphics;
 
         g.lineStyle(0.1,colour&0xffffff,1);
 		if(pr(inner).xnull) {
@@ -296,7 +274,7 @@ class ShapeDebug extends Debug {
             if(position==null) throw "Error: drawCircle::position cannot be null";
             if(isNaN(radius) || radius<0) throw "Error: drawCircle::radius must be >=0";
         )
-        var g = pr(inner).graphics;
+        var g = pr(inner_zn).graphics;
 
         g.lineStyle(0.1,colour&0xffffff,1);
 		if(pr(inner).xnull)
@@ -312,7 +290,7 @@ class ShapeDebug extends Debug {
 		DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
 
         DEBUG(if(aabb==null) throw "Error: drawAABB::aabb cannot be null";)
-        var g = pr(inner).graphics;
+        var g = pr(inner_zn).graphics;
 
         g.lineStyle(0.1,colour&0xffffff,1);
 		if(pr(inner).xnull)
@@ -341,7 +319,7 @@ class ShapeDebug extends Debug {
 		Disposed(p1,Vec2);
 		Disposed(p2,Vec2);
         DEBUG(if(p0==null || p1==null || p2==null) throw "Error: drawFilledTriangle can't use null points";)
-        var g = pr(inner).graphics;
+        var g = pr(inner_zn).graphics;
         g.lineStyle(0,0,0);
         g.beginFill(colour&0xffffff,1);
 		if(pr(inner).xnull) {
@@ -367,7 +345,7 @@ class ShapeDebug extends Debug {
             if(position==null) throw "Error: drawFilledCircle::position cannot be null";
             if(isNaN(radius) || radius<0) throw "Error: drawFilledCircle::radius must be >=0";
         )
-        var g = pr(inner).graphics;
+        var g = pr(inner_zn).graphics;
         g.lineStyle(0,0,0);
         g.beginFill(colour&0xffffff,1);
 		if(pr(inner).xnull)
@@ -393,7 +371,7 @@ class ShapeDebug extends Debug {
 #if flash10
 
 class BitmapDebug extends Debug {
-    public var pr(inner):PR(BitmapDebug);
+    public var pr(inner_zn):PR(BitmapDebug);
 
     public function new(width:Int, height:Int, bgColor:Int = 0x333333, transparent:Bool=false) {
         DEBUG(if(width <=0) throw "Error: Debug width must be > 0";)
@@ -403,14 +381,16 @@ class BitmapDebug extends Debug {
         super();
         DEBUG(PR(Debug).internal = false;)
 
-        pr(inner) = new PR(BitmapDebug)(width,height,bgColor,transparent);
-        pr(inner).outer = this;
+        pr(inner_zn) = new PR(BitmapDebug)(width,height,bgColor,transparent);
+        pr(inner_zn).outer_zn = this;
+		pr(inner) = pr(inner_zn);
+		pr(inner).outer = this;
     }
 
     ///---------------------------------------------------------------------------------------------
 
-    public override function clear() pr(inner).clear()
-    public override function flush() pr(inner).flush()
+    public override function clear() pr(inner_zn).clear()
+    public override function flush() pr(inner_zn).flush()
 
     ///---------------------------------------------------------------------------------------------
 
@@ -428,7 +408,7 @@ class BitmapDebug extends Debug {
 	        var y0:Int = fastint(start.y+0.5);
 	        var x1:Int = fastint(end.x+0.5);
 	        var y1:Int = fastint(end.y+0.5);
-	        pr(inner).__line(x0,y0,x1,y1,colour|0xff000000);
+	        pr(inner_zn).__line(x0,y0,x1,y1,colour|0xff000000);
 		}else {
 			var v = pr(inner).xform.outer.transform(start);
 			var x0:Int = fastint(v.x+0.5);
@@ -438,7 +418,7 @@ class BitmapDebug extends Debug {
 			var x1:Int = fastint(v.x+0.5);
 			var y1:Int = fastint(v.y+0.5);
 			v.dispose();
-	        pr(inner).__line(x0,y0,x1,y1,colour|0xff000000);
+	        pr(inner_zn).__line(x0,y0,x1,y1,colour|0xff000000);
 		}
     }
 
@@ -454,14 +434,14 @@ class BitmapDebug extends Debug {
 	        var x:Int = fastint(position.x+0.5);
 	        var y:Int = fastint(position.y+0.5);
 	        var r:Int = fastint(radius+0.5);
-	        pr(inner).__circle(x,y,r, colour|0xff000000);
+	        pr(inner_zn).__circle(x,y,r, colour|0xff000000);
 		}else {
 			var v = pr(inner).xform.outer.transform(position);
 			var x:Int = fastint(v.x+0.5);
 			var y:Int = fastint(v.y+0.5);
 			v.dispose();
 			var r:Int = fastint(radius*pr(inner).xdet+0.5);
-			pr(inner).__circle(x,y,r, colour|0xff000000);
+			pr(inner_zn).__circle(x,y,r, colour|0xff000000);
 		}
     }
 
@@ -470,7 +450,7 @@ class BitmapDebug extends Debug {
 
         DEBUG(if(aabb==null) throw "Error: drawAABB::aabb cannot be null";)
 		if(pr(inner).xnull)
-	        pr(inner).__aabb(aabb.pr(inner), colour);
+	        pr(inner_zn).__aabb(aabb.pr(inner), colour);
 		else {
 			var v = pr(inner).xform.outer.transform(aabb.min);
 			var w = Vec2.get(aabb.width,0);  var w2 = pr(inner).xform.outer.transform(w,true);
@@ -490,10 +470,10 @@ class BitmapDebug extends Debug {
 			h.dispose(); h2.dispose();
 
 			var col = colour|0xff000000;
-	        pr(inner).__line(x0,y0,x1,y1,col);
-	        pr(inner).__line(x1,y1,x2,y2,col);
-	        pr(inner).__line(x2,y2,x3,y3,col);
-	        pr(inner).__line(x3,y3,x0,y0,col);
+	        pr(inner_zn).__line(x0,y0,x1,y1,col);
+	        pr(inner_zn).__line(x1,y1,x2,y2,col);
+	        pr(inner_zn).__line(x2,y2,x3,y3,col);
+	        pr(inner_zn).__line(x3,y3,x0,y0,col);
 		}
     }
 
@@ -502,7 +482,7 @@ class BitmapDebug extends Debug {
 
 		Disposed(p0,Vec2); Disposed(p1,Vec2); Disposed(p2,Vec2);
         DEBUG(if(p0==null || p1==null || p2==null) throw "Error: drawFilledTriangle can't use null points";)
-        pr(inner).__tri(p0,p1,p2, colour);
+        pr(inner_zn).__tri(p0,p1,p2, colour);
     }
 
     public override function drawFilledCircle(position:Vec2, radius:Float, colour:Int) {
@@ -517,14 +497,14 @@ class BitmapDebug extends Debug {
 	        var x:Int = fastint(position.x+0.5);
 	        var y:Int = fastint(position.y+0.5);
 	        var r:Int = fastint(radius+0.5);
-	        pr(inner).__fcircle(x,y,r, colour|0xff000000);
+	        pr(inner_zn).__fcircle(x,y,r, colour|0xff000000);
 		}else {
 			var v = pr(inner).xform.outer.transform(position);
 			var x:Int = fastint(v.x+0.5);
 			var y:Int = fastint(v.y+0.5);
 			v.dispose();
 			var r:Int = fastint(radius*pr(inner).xdet+0.5);
-	        pr(inner).__fcircle(x,y,r, colour|0xff000000);
+	        pr(inner_zn).__fcircle(x,y,r, colour|0xff000000);
  		}
     }
 

@@ -55,8 +55,6 @@ class PR(AABBNode) {
 	MixPool(PR(AABBNode))
 	flibmdel public inline function alloc() {
 		aabb = Get(PR(AABB));
-		child1 = child2 = parent = null;
-		next = null; snext = null; mnext = null;
 		moved = false;
 		synced = false;
 		first_sync = false;
@@ -64,6 +62,8 @@ class PR(AABBNode) {
 	flibmdel public inline function free() {
 		height = -1;
 		Free(PR(AABB),aabb);
+		child1 = child2 = parent = null;
+		next = null; snext = null; mnext = null;
 	}
 
 	//maintaining list of objects that have been re-inserted
@@ -99,6 +99,8 @@ class PR(AABBPair) {
 	}
 	flibmdel public inline function free () {
 		assert(arb==null,"node still has an arbiter when going into pool??");
+		n1 = n2 = null;
+		hnext = null;
 	}
 }
 
@@ -591,11 +593,14 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 				assert(cur.arb==null || cur.arb.pair==cur, "arbiter/pair don't match up");
 				var oarb = cur.arb;
 				cur.arb = space.narrowPhase(s1,s2,!b1.isDynamic() || !b2.isDynamic(), cur.arb);
-				assert(oarb==null||cur.arb==null||oarb==cur.arb,"oh dear...");
 				if(cur.arb==null) {
 					if(oarb!=null) oarb.pair = null;
 				}else
 					cur.arb.pair = cur;
+				#if NAPE_ASSERT
+					if(cur.arb!=oarb)
+						assert(oarb==null || oarb.pair==null,"oh deary me");
+				#end
 			}
 
 			pre = cur;
