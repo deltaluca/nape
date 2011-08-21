@@ -14,6 +14,12 @@ $(mixin ipop(list,next) ({
 	ret.next = null;
 	ret;
 }));
+$(mixin ierase(list,pre,cur,next) {
+	assert(cur!=null,"cur = null");
+	if(pre==null) list = cur.next;
+	else pre.next = cur.next;
+	cur.next = null;
+});
 $(mixin irem(list,obj,next) {
 	var pre = null;
 	var cur = list;
@@ -22,10 +28,7 @@ $(mixin irem(list,obj,next) {
 		pre = cur;
 		cur = cur.next;
 	}
-	assert(cur!=null,"object not in the list");
-	if(pre==null) list = cur.next;
-	else pre.next = cur.next;
-	cur.next = null;
+	ierase(list,pre,cur,next);
 });
 
 class PR(AABBNode) {
@@ -365,6 +368,27 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 		//remove from sync list if waiting to be synced
 		if(node.synced)	irem(syncs,node,snext);
 		if(node.moved)  irem(moves,node,mnext);
+
+		//remove any pairs that may exist
+		var pre = null;
+		var cur = pairs;
+		while(cur!=null) {
+			var nxt = cur.next;
+			if(cur.n1 == node || cur.n2==node) {
+				if(pre==null) pairs    = nxt;
+				else          pre.next = nxt;
+
+				pairhash.remove(cur);
+				if(cur.arb!=null) cur.arb.pair = null;
+				cur.arb = null;
+				Free(PR(AABBPair),cur);
+
+				cur = nxt;
+				continue;
+			}
+			pre = cur;
+			cur = nxt;
+		}
 
 		Free(PR(AABBNode),node);
 	}
