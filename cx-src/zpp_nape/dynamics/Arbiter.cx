@@ -35,10 +35,10 @@ class PR(Arbiter) {
 
     ///---------------------------------------------------------------------------------------------
 
-	//pairwise id of features.
 	//  dynamic-dynamic  :- id(a,b) [a<b based on shape types and then id]
 	//  static-dynamic   :- id(s,d)  ""
 	public var id:Int;
+	public var di:Int;
 
     ///---------------------------------------------------------------------------------------------
 
@@ -136,10 +136,11 @@ class PR(Arbiter) {
     ///---------------------------------------------------------------------------------------------
 	
     //called by sub-types on assignment.
-	flibmdel public inline function sup_assign(s1:PR(Shape),s2:PR(Shape),id:Int) {
+	flibmdel public inline function sup_assign(s1:PR(Shape),s2:PR(Shape),id:Int,di:Int) {
 		b1 = s1.body; ws1 = s1;
 		b2 = s2.body; ws2 = s2;
 		this.id = id;
+		this.di = di;
 		
 		b1.arbiters.add(this);
 		b2.arbiters.add(this);
@@ -182,8 +183,8 @@ class PR(SensorArbiter) extends PR(Arbiter) {
 
     ///---------------------------------------------------------------------------------------------
 	
-	flibmdel public inline function assign(s1:PR(Shape),s2:PR(Shape),id:Int) {
-		sup_assign(s1,s2,id);
+	flibmdel public inline function assign(s1:PR(Shape),s2:PR(Shape),id:Int,di:Int) {
+		sup_assign(s1,s2,id,di);
 	}
 	
 	flibmdel public inline function retire() {
@@ -261,8 +262,8 @@ class PR(FluidArbiter) extends PR(Arbiter) {
 
     ///---------------------------------------------------------------------------------------------
 	
-	flibmdel public inline function assign(s1:PR(Shape),s2:PR(Shape),id:Int) {
-		sup_assign(s1,s2,id);
+	flibmdel public inline function assign(s1:PR(Shape),s2:PR(Shape),id:Int,di:Int) {
+		sup_assign(s1,s2,id,di);
 
 		vec_set(n,0,1);
 		vec_set(damp,0,0);
@@ -608,8 +609,8 @@ class PR(ColArbiter) extends PR(Arbiter) {
 	
 	///---------------------------------------------------------------------------------------------
 	
-	flibmdel public inline function assign(s1:PR(Shape),s2:PR(Shape),id:Int) {
-		sup_assign(s1,s2,id);
+	flibmdel public inline function assign(s1:PR(Shape),s2:PR(Shape),id:Int,di:Int) {
+		sup_assign(s1,s2,id,di);
 		this.s1 = s1;
 		this.s2 = s2;
 

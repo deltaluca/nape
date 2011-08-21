@@ -70,6 +70,9 @@ $(define global class FastHash2(T) {
 				Debug.HASH++;
 			#end
 		}
+		#if NAPE_TIMES
+			Debug.HASHT++;
+		#end
 	}
 
 	public inline function remove(arb:T) {
@@ -88,7 +91,9 @@ $(define global class FastHash2(T) {
 		arb.hnext = null;
 	}
 
-	public inline function hash(id:Int,di:Int) return (id^(~di))&0xffff
+	public inline function hash(id:Int,di:Int) return ((id*106039)+di)&0xffff
+//	public inline function hash(id:Int,di:Int) return ((~(id*106039))^di)&0xffff
+//	public inline function hash(a,b) return 0
 });
 
 $(define global class FastHash(T) {
@@ -160,6 +165,9 @@ $(define global class FastHash(T) {
 				Debug.HASH++;
 			#end
         }
+		#if NAPE_TIMES
+			Debug.HASHT++;
+		#end
     }
 
     public inline function remove(arb:T) {

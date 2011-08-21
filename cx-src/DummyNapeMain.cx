@@ -301,7 +301,7 @@ class DummyNapeMain {
 			b.position.setxy(50+xi*16,50+yi*16);
 			b.space = space;
 
-            if(pre!=null) {
+            if(pre!=null && false) {
 				var mid = pre.position.add(b.position).muleq(0.5);
 				space.constraints.add(new PivotJoint(pre,b,pre.worldToLocal(mid),b.worldToLocal(mid)));
 			}
@@ -333,21 +333,20 @@ class DummyNapeMain {
 			mcon.active = false;
 		});
         
-		var tim2 = new haxe.Timer(5000); //5000
-//		tim2.run = function() { init(); init(); init(); init(); init(); }
-		tim2.run = function() { init(); }
+		var tim2 = new haxe.Timer(3000); //5000
+		tim2.run = function() { for(i in 0...10) init(); }
+//		tim2.run = function() { init(); }
 		init();
 //		Tracer.trace([space],txt);
 //		return;
 
-		var tim2 = new haxe.Timer(1000); //1000
-		tim2.run = function () { 
+		var tim2 = new haxe.Timer(100); //1000
+/*		tim2.run = function () { 
 			mat = new Mat23(2*Math.random()-1,2*Math.random()-1,2*Math.random()-1,2*Math.random()-1,Math.random()*100-50,Math.random()*100-50).equiorthogonalise();
 			mat = Mat23.translation(-300,-300).concat(mat).concat(Mat23.translation(300,300));	
-		}
+		}*/
 
 		var tim = new haxe.Timer(0);
-		haxe.Timer.delay(function() { tim2.stop(); tim.stop(); },10000);
 
         tim.run = function() {
             var ct = flash.Lib.getTimer();

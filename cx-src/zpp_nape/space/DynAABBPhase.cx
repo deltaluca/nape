@@ -87,6 +87,7 @@ class PR(AABBPair) {
 
 	//for hash
 	public var id:Int;
+	public var di:Int;
 	public var hnext:PR(AABBPair);
 
 	//optimisation to avoid second lookup if possible.
@@ -313,7 +314,7 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 	public var dtree:PR(AABBTree); //for non-static, non-sleeping objects
 
 	public var pairs:PR(AABBPair); //intrusive list
-	public var pairhash:FastHash(PR(AABBPair));
+	public var pairhash:FastHash2(PR(AABBPair));
 
 	public var syncs:PR(AABBNode); //intrusive list
 	public var moves:PR(AABBNode); //intrusice list
@@ -326,7 +327,7 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 		stree = new PR(AABBTree)();
 		dtree = new PR(AABBTree)();
 
-		pairhash = new FastHash(PR(AABBPair))();
+		pairhash = new FastHash2(PR(AABBPair))();
 	}
 
 	//==============================================================
@@ -524,8 +525,7 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 							var shape = node.shape;
 							if(shape.body != lshape.body) {
 								if(ab.intersect(node.aabb)) {
-									var id = unordered_id(lshape.id,shape.id);
-									var p = pairhash.get(id);
+									var p = (lshape.id < shape.id ? pairhash.get(lshape.id,shape.id) : pairhash.get(shape.id,lshape.id));
 									if(p!=null) {
 										if(p.sleeping) {
 											p.sleeping = false;
@@ -539,7 +539,8 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 									p = Get(PR(AABBPair));
 									p.n1 = leaf;
 									p.n2 = node;
-									p.id = id;
+									if(lshape.id<shape.id) { p.id = lshape.id; p.di = shape.id; }
+									else                   { p.id = shape.id; p.di = lshape.id; }
 									p.next = pairs;
 									pairs = p;
 									pairhash.add(p);

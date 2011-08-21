@@ -97,7 +97,7 @@ class PR(Space) {
 	public var f_arbiters:List(PR(FluidArbiter));
 	public var s_arbiters:List(PR(SensorArbiter));
 
-	public var map_arb:FastHash(PR(Arbiter));
+	public var map_arb:FastHash2(PR(Arbiter));
 	public var wrap_arbiters:ArbiterList;
 	
 	//----------------------------------------------------------------------------------------------
@@ -237,7 +237,7 @@ class PR(Space) {
 		f_arbiters = new List(PR(FluidArbiter))();
 		s_arbiters = new List(PR(SensorArbiter))();
 		
-		map_arb = new FastHash(PR(Arbiter))();
+		map_arb = new FastHash2(PR(Arbiter))();
 		
 		islands = new MixList(PR(Island))();
 		
@@ -1178,8 +1178,7 @@ class PR(Space) {
         assert(!(b1.isStatic() && b2.isStatic()), "both objects static?");
 
         //check if constraints exists such that this should be ignored
-        var pair_id = unordered_id(b1.id,b2.id);
-        if(!Exists(con, b1.constraints, con.ignore && con.pair_exists(pair_id))) {
+        if(!Exists(con, b1.constraints, con.ignore && con.pair_exists(s1.id,s2.id))) {
 
             var gcol = s1.filter.shouldCollide(s2.filter)
                 && !(b1.imass==0 && b2.imass==0 && b1.iinertia==0 && b2.iinertia==0);
@@ -1201,11 +1200,9 @@ class PR(Space) {
                     else              { sb = s1; sa = s2; }
                 }else { sa = s1; sb = s2; }
                 var reverse = sa == s2;
-                //id's need not be ordered.
-                var id = unsafe_ordered_id(sa.id,sb.id);
 
                 if(fcol) {
-                    var xarb = if(in_arb==null) map_arb.get(id) else in_arb;
+                    var xarb = if(in_arb==null) map_arb.get(sa.id,sb.id) else in_arb;
                     var first = xarb==null;
 
                     var arb;
@@ -1224,7 +1221,7 @@ class PR(Space) {
 							
                         if(PR(Collide).flowCollide(sa,sb,arb)) {
                             if(first) {
-                                arb.assign(s1,s2,id);
+                                arb.assign(s1,s2,sa.id,sb.id);
                                 f_arbiters.add(arb);
                                 map_arb.add(arb);
                             }
@@ -1247,7 +1244,7 @@ class PR(Space) {
                 } else if(gcol) {
                     var carbs = stat ? c_arbiters(true) : c_arbiters(false);
 
-                    var xarb = if(in_arb==null) map_arb.get(id) else in_arb;
+                    var xarb = if(in_arb==null) map_arb.get(sa.id,sb.id) else in_arb;
                     var first = xarb==null;
 						
                     var arb;
@@ -1280,7 +1277,7 @@ class PR(Space) {
 
                         if(PR(Collide).contactCollide(sa,sb,arb,reverse)) {
                             if(first) {
-                                arb.assign(s1,s2,id);
+                                arb.assign(s1,s2,sa.id,sb.id);
                                 carbs.add(arb);
                                 map_arb.add(arb);
                             }
@@ -1303,7 +1300,7 @@ class PR(Space) {
                         }
                     }
                 } else if(scol) {
-                    var xarb = if(in_arb==null) map_arb.get(id) else in_arb;
+                    var xarb = if(in_arb==null) map_arb.get(sa.id,sb.id) else in_arb;
                     var first = xarb==null;
 						
                     var arb;
@@ -1322,7 +1319,7 @@ class PR(Space) {
 							
                         if(PR(Collide).testCollide(sa,sb)) {
                             if(first) {
-                                arb.assign(s1,s2,id);
+                                arb.assign(s1,s2,sa.id,sb.id);
                                 s_arbiters.add(arb);
                                 map_arb.add(arb);
                             }
