@@ -1,6 +1,96 @@
 package zpp_nape.util;
 $(import);
 
+$(define global class FastHash2(T) {
+	public var table:ARRAY(T);
+
+	public function new() {
+		#if flash10
+			table = new flash.Vector<T>(0x10000,true);
+		#else
+			table = new Array<T>();
+			for(i in 0...0x10000) table.push(null);
+		#end
+	}
+
+	public inline function clear() {
+		for(i in 0...table.length) {
+			var n = table[i];
+			if(n==null) continue;
+			while(n.hnext!=null) {
+				var t = n.hnext;
+				n.hnext = null;
+				n = t;
+			}
+			table[i] = null;
+		}
+	}
+
+	public inline function get(id:Int,di:Int):T {
+		var n = table[hash(id,di)];
+		if(n==null) return null;
+		else if(n.id == id && n.di == di) return n;
+		else {
+			do n = n.hnext
+			while(n!=null && (n.id != id || n.di != di));
+			return n;
+		}
+	}
+
+	public inline function has(id:Int,di:Int):Bool {
+		var n = table[hash(id,di)];
+		if(n==null) return false;
+		else if(n.id == id && n.di == di) return true;
+		else {
+			do n = n.hnext
+			while(n!=null && (n.id != id || n.di != di));
+			return n!=null;
+		}
+	}
+
+	public inline function add(arb:T) {
+		assert(arb!=null,"cannot add null to hash2");
+		var h = hash(arb.id,arb.di);
+		var n = table[h];
+		if(n==null) {
+			table[h] = arb;
+			arb.hnext = null;
+		}else {
+			#if NAPE_ASSERT
+				var nor = n;
+				while(n!=null) {
+					if(n.id==arb.id && n.di==arb.di) throw "ASSERTION: FastHash2("+$str(T)+") already cotnains object with ids";
+					n = n.hnext;
+				}
+				n = nor;
+			#end
+			arb.hnext = n.hnext;
+			n.hnext = arb;
+			#if NAPE_TIMES
+				Debug.HASH++;
+			#end
+		}
+	}
+
+	public inline function remove(arb:T) {
+		assert(arb!=null,"cannot remove null from hash2");
+		var h = hash(arb.id,arb.di);
+		var n = table[h];
+		if(n==arb) table[h] = n.hnext;
+		else if(n!=null) {
+			var pre:T;
+			do { pre = n; n = n.hnext; }
+			while(n!=null && n!=arb);
+
+			assert(n!=null,"object doesn't exist in hash2");
+			pre.hnext = n.hnext;
+		}
+		arb.hnext = null;
+	}
+
+	public inline function hash(id:Int,di:Int) return (id^(~di))&0xffff
+});
+
 $(define global class FastHash(T) {
     public var table:ARRAY(T);
 
@@ -9,6 +99,7 @@ $(define global class FastHash(T) {
             table = new flash.Vector<T>(0x10000,true);
         #else
             table = new Array<T>();
+			for(i in 0...0x10000) table.push(null);
         #end
     }
 
@@ -65,6 +156,9 @@ $(define global class FastHash(T) {
             #end
             arb.hnext = n.hnext;
             n.hnext = arb;
+			#if NAPE_TIMES
+				Debug.HASH++;
+			#end
         }
     }
 
@@ -82,5 +176,5 @@ $(define global class FastHash(T) {
         arb.hnext = null;
     }
 
-    public inline function hash(key:Int) return (key*73856093) & 0xffff
+    public inline function hash(key:Int) return (key*106039) & 0xffff
 });
