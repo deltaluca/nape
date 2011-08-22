@@ -5,11 +5,11 @@ local: pre_compile
 	haxe -cp src -main DummyNapeMain -swf bin/nape.swf -swf-version $(SWFV) --times \
 	     -swf-header 600:600:60:333333 --dead-code-elimination \
 	     -D NAPE_RELEASE_BUILD 
-#		 -D NAPE_TIMES
 #		 -D NAPE_ASSERT --no-inline -debug
+#		 -D NAPE_TIMES
 #	     -D NAPE_POOL_STATS
 #	firefox bin/index.html
-	fp bin/nape.swf
+	debugfp bin/nape.swf
 
 cpp: pre_compile
 	haxe -cp src -lib nme --remap flash:nme -main DummyNapeMain -cpp cpp --no-inline -D no_traces
