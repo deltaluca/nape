@@ -119,12 +119,24 @@ $(define class Tree(T,lt) {
 		return ret.elt;
 	}
 
+	public function lower_bound(obj:T) {
+		var ret = null;
+		traverse(function(elt:T) {
+			if(ret==null) {
+				if(!lt(elt,obj)) {
+					ret = elt;
+				}
+			}
+		});
+		return ret;
+	}
+
 	public function traverse(cb:T->Void) {
 		var trav:Node(T)->Void = null;
 		trav = function(node:Node(T)) {
-			if(node.child1!=null) { PR(Monotone).traces("<-L"); trav(node.child1); }
+			if(node.child1!=null) { trav(node.child1); }
 			if(node.elt!=null) cb(node.elt);
-			if(node.child2!=null) { PR(Monotone).traces("R->"); trav(node.child2); }
+			if(node.child2!=null) { trav(node.child2); }
 		}
 		if(root!=null) trav(root);
 	}
@@ -138,7 +150,112 @@ enum TypeV {
 	tEnd;
 }
 
-typedef Edge = {fst:Vec2, snd:Vec2, helper:Int};
+typedef Edge = {fst:PR(PartitionVertex), snd:PR(PartitionVertex), helper:Int};
+
+class PR(PartitionPoly) {
+	public var vertices:Array<PR(PartitionVertex)>;
+	public function new(p:Array<Vec2>) {
+		vertices = new Array<PR(PartitionVertex)>();
+		for(v in p) vertices.push(new PR(PartitionVertex)(v));
+	}
+
+	public function insert_diagonal(a:PR(PartitionVertex),b:PR(PartitionVertex)) {
+		a.insert_diag(b);
+		b.insert_diag(a);
+	}
+
+	public function partition() {
+		var cur = 0;
+		var prev = vertices.length-1;
+		do {
+			var next = (cur+1)%vertices.length;
+			vertices[cur].sort_diagonals(vertices[prev],vertices[next]);
+			prev = cur;
+		}while(++cur != vertices.length);
+
+		var rets = [];
+		make_polygon(0,rets);
+		return rets;
+	}
+
+	public static var cols = [0xff00,0xff,0xffff,0xff00ff,0xff8000,0xffff00];
+	public static var icol =0;
+
+	public function make_polygon(start:Int,rets:Array<Array<Vec2>>) {
+		var poly:Array<Vec2> = [];
+		var next = start;
+		do {
+			poly.push(vertices[next]);
+			if(vertices[next].has_unused_diagonals()) {
+				var diag = vertices[next].current_diagonal();
+				vertices[next].advance_diagonal();	
+				if(diag == vertices[start]) {
+					break;
+				}else
+					next = make_polygon(next,rets);
+			}else next = (next+1)%vertices.length;
+		}while(next!=start);
+		rets.push(poly);
+		return next;
+	}
+}
+
+class PR(PartitionVertex) extends Vec2 {
+	public var diagonals:Array<PR(PartitionVertex)>;
+	public var curdiag:Int;
+
+	public function new(v:Vec2) {
+		super(v.x,v.y);
+		diagonals = new Array<PR(PartitionVertex)>();
+		curdiag = 0;
+	}
+
+	public function insert_diag(x:PR(PartitionVertex)) {
+		diagonals.push(x);
+	}
+
+	public static function orient(a:PR(PartitionVertex),b:PR(PartitionVertex),c:PR(PartitionVertex)) {
+		var ret = a.sub(b).cross(c.sub(b));
+		if(ret<0) ret = -1;
+		if(ret>0) ret = 1;
+		return Std.int(ret);
+	}
+
+	public static function cw_diag(prev:PR(PartitionVertex),vertex:PR(PartitionVertex), vorient:Int, x:PR(PartitionVertex),y:PR(PartitionVertex)) {
+		var d1 = orient(prev,vertex,x);
+		var d2 = orient(prev,vertex,y);
+		var d1_d2 = orient(x,vertex,y);
+
+		if(d1==d2) return d1_d2 == -1;
+
+		if(d1==0) return d2 == vorient;
+
+		return d1 != vorient;
+	}
+
+	public inline function has_unused_diagonals() return curdiag < diagonals.length
+	public inline function current_diagonal() return diagonals[curdiag]
+	public inline function advance_diagonal() curdiag++
+
+	public function sort_diagonals(prev:PR(PartitionVertex), next:PR(PartitionVertex)) {
+		var vorient = orient(prev,this,next);
+		var me = this;
+		diagonals.sort(function (x,y) return cw_diag(prev,me,vorient,x,y) ? -1 : 1);
+
+		//std::unique
+		var i = 0;
+		var j = 0;
+		while(++j<diagonals.length) {
+			if(diagonals[i]!=diagonals[j]) {
+				diagonals[++i] = diagonals[j];
+			}
+		}
+		while(diagonals.length>i+1) diagonals.pop();
+		//end std::unique
+
+		curdiag = 0;
+	}
+}
 
 class PR(Monotone) {
 
@@ -152,7 +269,7 @@ class PR(Monotone) {
 	public static function comp_x_at_y_2(vertex:Vec2,edge:Edge) {
 		//assume edge not horizontal
 		var flip = edge.snd.y > edge.fst.y;
-		var ret = edge.snd.sub(edge.fst).cross(vertex);
+		var ret = edge.snd.sub(edge.fst).cross(vertex.sub(edge.fst));
 		if(flip) ret = -ret;
 		return ret;
 	}
@@ -194,10 +311,10 @@ class PR(Monotone) {
 		return comp_x_at_y_2(p.fst,q) >= 0;
 	}
 
-	public static function type(P:Array<Vec2>,i:Int) {
-		var v0 = P[(i+P.length-1)%P.length];
+	public static function type(P:Array<PR(PartitionVertex)>,pl:Int,i:Int) {
+		var v0 = P[(i+pl-1)%pl];
 		var v = P[i];
-		var v1 = P[(i+1)%P.length];
+		var v1 = P[(i+1)%pl];
 
 		var b0 = below(v0,v);
 		var b1 = below(v1,v);
@@ -213,128 +330,114 @@ class PR(Monotone) {
 			return tRegular;
 	}
 	
-	public static var txt:flash.text.TextField;
-	static public function traces (x:Dynamic) { txt.text += Std.string(x)+"\n"; }
+	public static function lss(a:Int,b:Int) return a<b
 	public static function partition(P:Array<Vec2>) {
 		if(debug==null) {
-			debug = new BitmapDebug(600,600,0x333333);
+			debug = new BitmapDebug(600,600,0);
 			flash.Lib.current.addChild(debug.display);
-			debug.display.scaleY = -1;
-			debug.display.y = 600;
+		}else debug.clear();
 
-			txt = new flash.text.TextField();
-	        txt.defaultTextFormat = new flash.text.TextFormat("Courier New",null,0xffffff);
-	        txt.width = 600;
-	        txt.height = 600;
-	        txt.selectable = true;
-			txt.multiline = true;
-			flash.Lib.current.addChild(txt);
-		}
-
-
-		render(P,0xffffff);
+		var poly = new PR(PartitionPoly)(P);
+		render(poly.vertices,0xffffff);
 
 		var D:Array<Edge> = [];
 		for(i in 0...P.length) {
 			var j = (i+1)%P.length;
-			D.push({fst:P[i],snd:P[j],helper:-1});
+			D.push({fst:poly.vertices[i],snd:poly.vertices[j],helper:-1});
 		}
 
-		var Q = new Queue(Vec2,!PR(Monotone).below)();
-		for(p in P) Q.insert(p);		
+		var Q = new Queue(PR(PartitionVertex),!PR(Monotone).below)();
+		for(p in poly.vertices) Q.insert(p);		
 		
 		var T = new Tree(Edge,PR(Monotone).left)();	
 		while(!Q.empty()) {
 			var v = Q.pop();
 			var i = 0;
-			for(j in 0...P.length) { if(P[j]==v) { i = j; break; } }
+			for(j in 0...P.length) { if(poly.vertices[j]==v) { i = j; break; } }
 
 			debug.drawCircle(v,2.5,0xffffff);
 			debug.flush();
-			traces("------------------");
-			traces(i+" "+type(P,i)+" "+v);
-
-			switch(type(P,i)) {
+			switch(type(poly.vertices,P.length,i)) {
 				case tStart:
-					traces("D[i]={helper:"+D[i].helper+" fst:"+D[i].fst+" snd:"+D[i].snd+"}");
 					D[i].helper = i;
 					T.insert(D[i]);
-					T.traverse(function (e:Edge) { traces(" --> helper:"+e.helper+" fst:"+e.fst+" snd:"+e.snd); });	
 				case tEnd:
 					var e = D[(i-1+D.length)%D.length];
-					if(Type.enumEq(type(P,e.helper),tMerge)) {
-						debug.drawLine(v,P[e.helper],0xff0000);
+					if(Type.enumEq(type(poly.vertices,P.length,e.helper),tMerge)) {
+						debug.drawLine(v,poly.vertices[e.helper],0xff0000);
 						debug.flush();
+
+						poly.insert_diagonal(v,poly.vertices[e.helper]);
 					}
 					T.remove(e);
 				case tSplit:
-					var e = T.first();
+					var e = T.lower_bound(D[i]);
 					{
-						debug.drawLine(v,P[e.helper],0xff0000);
+						debug.drawLine(v,poly.vertices[e.helper],0xff0000);
 						debug.flush();
+
+						poly.insert_diagonal(v,poly.vertices[e.helper]);
 					}
 					e.helper = i;
 					T.insert(D[i]);
 					D[i].helper = i;
 				case tMerge:
 					var e = D[(i-1+D.length)%D.length];
-					traces("D[i-1]={helper:"+e.helper+" fst:"+e.fst+" snd:"+e.snd+"}");
-					traces("   type="+type(P,e.helper));
-					if(Type.enumEq(type(P,e.helper),tMerge)) {
-						debug.drawLine(v,P[e.helper],0xff0000);
+					if(Type.enumEq(type(poly.vertices,P.length,e.helper),tMerge)) {
+						debug.drawLine(v,poly.vertices[e.helper],0xff0000);
 						debug.flush();
+
+						poly.insert_diagonal(v,poly.vertices[e.helper]);
 					}
-					T.traverse(function (e:Edge) { traces(" --> helper:"+e.helper+" fst:"+e.fst+" snd:"+e.snd); });	
 					T.remove(e);
-					traces("++");
-					T.traverse(function (e:Edge) { traces(" --> helper:"+e.helper+" fst:"+e.fst+" snd:"+e.snd); });	
-					var e = T.first();
-					traces("left={helper:"+e.helper+" fst:"+e.fst+" snd:"+e.snd+"}");
-					traces("   type="+type(P,e.helper));
-					if(Type.enumEq(type(P,e.helper),tMerge)) {
-						debug.drawLine(v,P[e.helper],0xff0000);
+					var e = T.lower_bound(D[i]);
+					if(Type.enumEq(type(poly.vertices,P.length,e.helper),tMerge)) {
+						debug.drawLine(v,poly.vertices[e.helper],0xff0000);
 						debug.flush();
+
+						poly.insert_diagonal(v,poly.vertices[e.helper]);
 					}
 					e.helper = i;
-					T.traverse(function (e:Edge) { traces(" --> helper:"+e.helper+" fst:"+e.fst+" snd:"+e.snd); });	
 				case tRegular:
-					var pre = P[(i-1+P.length)%P.length];
-					var nxt = P[(i+1)%P.length];
-					traces("pre: "+pre);
-					traces("nxt: "+nxt);
+					var pre = poly.vertices[(i-1+P.length)%P.length];
+					var nxt = poly.vertices[(i+1)%P.length];
 					if(pre.y > v.y || (pre.y==v.y && nxt.y < v.y)) {
-						traces(" --1st");
 						var e = D[(i-1+D.length)%D.length];
-						traces("D[i-1]={helper:"+e.helper+" fst:"+e.fst+" snd:"+e.snd+"}");
-						traces("   type="+type(P,e.helper));
-						if(Type.enumEq(type(P,e.helper),tMerge)) {
-							debug.drawLine(v,P[e.helper],0xff0000);
+						if(Type.enumEq(type(poly.vertices,P.length,e.helper),tMerge)) {
+							debug.drawLine(v,poly.vertices[e.helper],0xff0000);
 							debug.flush();
+
+							poly.insert_diagonal(v,poly.vertices[e.helper]);
 						}
 						T.remove(e);
 						T.insert(D[i]);
 						D[i].helper = i;
 					}else {
-						traces(" --2nd");
-						var e = T.first();
-						traces("   type="+type(P,e.helper));
-						if(Type.enumEq(type(P,e.helper),tMerge)) {
-							debug.drawLine(v,P[e.helper],0xff0000);
+						var e = T.lower_bound(D[i]);
+						if(Type.enumEq(type(poly.vertices,P.length,e.helper),tMerge)) {
+							debug.drawLine(v,poly.vertices[e.helper],0xff0000);
 							debug.flush();
+
+							poly.insert_diagonal(v,poly.vertices[e.helper]);
 						}
 						e.helper = i;
 					}
-					T.traverse(function (e:Edge) { traces(" --> helper:"+e.helper+" fst:"+e.fst+" snd:"+e.snd); });	
 			}
 		}
 
 		debug.flush();
+
+		return poly.partition();
 	}
 
-	public static function render(poly:Array<Vec2>, col:Int) {
+	public static function render(poly:Array<PR(PartitionVertex)>, col:Int) {
 		for(i in 0...poly.length) {
 			var j = (i+1)%poly.length;
-			debug.drawLine(poly[i],poly[j],col);
+
+			var u = poly[i].add(new Vec2(Math.random()*5-2.5,Math.random()*5-2.5));
+			var v = poly[j].add(new Vec2(Math.random()*5-2.5,Math.random()*5-2.5));
+
+			debug.drawLine(u,v,col);
 		}
 	}
 

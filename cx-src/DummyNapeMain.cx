@@ -218,25 +218,14 @@ class DummyNapeMain {
 
 	static function main() {
         haxe.Log.setColor(0xffffff);
-		var P = [
-			new Vec2(290,600-115),
-			new Vec2(260,600-125),
-			new Vec2(250,600-50),
-			new Vec2(220,600-70),
-			new Vec2(200,600-50),
-			new Vec2(150,600-111),
-			new Vec2(180,600-110),
-			new Vec2(170,600-140),
-			new Vec2(140,600-120),
-			new Vec2(120,600-180),
-			new Vec2(160,600-260),
-			new Vec2(210,600-230),
-			new Vec2(250,600-240),
-			new Vec2(240,600-170),
-			new Vec2(280,600-180)
-		];
+		var P = [];
 
-		PR(Monotone).partition(P);
+		var c = flash.Lib.current;
+		c.stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function (_) {
+			P.push(new Vec2(c.mouseX,c.mouseY));
+			if(P.length>=3)
+				PR(Monotone).partition(P);
+		});
 	}
 
 
