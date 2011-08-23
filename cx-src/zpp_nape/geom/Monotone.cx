@@ -1,0 +1,341 @@
+package zpp_nape.geom;
+$(import);
+
+$(define class Queue(T,lt) {
+	public var first:Node(T);
+	public function new() {}
+
+	public function insert(obj:T) {
+		if(first==null) {
+			first = new Node(T)();
+			first.elt = obj;
+			return;
+		}
+
+		var pre = null;
+		var cur = first;
+		while(cur!=null && lt(cur.elt,obj)) { pre = cur; cur = cur.next; }
+		var node = new Node(T)();
+		node.elt = obj;
+		if(pre!=null) {
+			node.next = pre.next;
+			pre.next = node;
+		}else {
+			node.next = first;
+			first = node;
+		}
+	}
+
+	public function pop():T {
+		var ret = first.elt;
+		first = first.next;
+		return ret;
+	}
+
+	public function empty() return first==null
+});
+
+$(define class Node(T) {
+	public var next:Node(T);
+
+	public var elt:T;
+
+	public var child1:Node(T);
+	public var child2:Node(T);
+
+	public function new() {}
+});
+
+$(define class Tree(T,lt) {
+	public var root:Node(T);
+	public function new() {}
+
+	public function insert(obj:T) {
+		if(root==null) {
+			root = new Node(T)();
+			root.elt = obj;
+			return;
+		}
+
+		var cur = root;
+		while(true) {
+			if(lt(obj,cur.elt)) {
+				if(cur.child1==null) {
+					cur.child1 = new Node(T)();
+					cur.child1.elt = obj;
+					break;
+				}else cur = cur.child1;
+			}else {
+				if(cur.child2==null) {
+					cur.child2 = new Node(T)();
+					cur.child2.elt = obj;
+					break;
+				}else cur = cur.child2;
+			}
+		}
+	}
+
+	public function remove(obj:T) {
+		var par = null;
+		var cur = root;
+		while(cur.elt!=obj) {
+			par = cur;
+			if(lt(obj,cur.elt)) cur = cur.child1;
+			else                cur = cur.child2;
+		}
+
+		if(cur.child1==null && cur.child2==null) {
+			if(par!=null) {
+				if(par.child1==cur) par.child1 = null;
+				else par.child2 = null;
+			}else
+				root = null;
+		}else if(cur.child1!=null && cur.child2!=null) {
+			var pn = cur;
+			var nn = cur.child2;
+			while(nn.child1!=null) { pn=nn; nn = nn.child1; }
+			
+			cur.elt = nn.elt;
+			if(pn!=cur) pn.child1 = null;
+			else cur.child2 = null;
+		}else {
+			if(cur.child1!=null) {
+				if(par!=null) {
+					if(par.child1==cur) par.child1 = cur.child1;
+					else par.child2 = cur.child1;
+				}else root = cur.child1;
+			}else {
+				if(par!=null) {
+					if(par.child1==cur) par.child1 = cur.child2;
+					else par.child2 = cur.child2;
+				}else root = cur.child2;
+			}
+		}
+	}
+
+	public function first() {
+		var ret = root;
+		while(ret.child1!=null) ret = ret.child1;
+		return ret.elt;
+	}
+
+	public function traverse(cb:T->Void) {
+		var trav:Node(T)->Void = null;
+		trav = function(node:Node(T)) {
+			if(node.child1!=null) { PR(Monotone).traces("<-L"); trav(node.child1); }
+			if(node.elt!=null) cb(node.elt);
+			if(node.child2!=null) { PR(Monotone).traces("R->"); trav(node.child2); }
+		}
+		if(root!=null) trav(root);
+	}
+});
+
+enum TypeV {
+	tStart;
+	tSplit;
+	tRegular;
+	tMerge;
+	tEnd;
+}
+
+typedef Edge = {fst:Vec2, snd:Vec2, helper:Int};
+
+class PR(Monotone) {
+
+	public static var debug:Debug = null;
+
+	public static function below(p:Vec2,q:Vec2) {
+		return p.y < q.y || (p.y==q.y && p.x>q.x);
+	}
+
+
+	public static function comp_x_at_y_2(vertex:Vec2,edge:Edge) {
+		//assume edge not horizontal
+		var flip = edge.snd.y > edge.fst.y;
+		var ret = edge.snd.sub(edge.fst).cross(vertex);
+		if(flip) ret = -ret;
+		return ret;
+	}
+	public static function lrg_x_vertex_y(edge:Edge,vertex:Vec2) {
+		if(edge.fst.y==edge.snd.y) {
+			if(edge.fst.x < edge.snd.x) return edge.fst.x > vertex.x;
+			else                        return edge.snd.x > vertex.x;
+		}else {
+			return comp_x_at_y_2(vertex,edge) < 0;
+		}
+	}
+	public static function left(p:Edge,q:Edge) {
+		if(p.fst==q.fst && p.snd==q.snd) return false;
+
+		if(p.fst==q.snd) return  lrg_x_vertex_y(p,q.fst);
+		if(p.snd==q.fst) return !lrg_x_vertex_y(q,p.fst);
+		if(p.fst==q.fst) return  lrg_x_vertex_y(p,q.snd);
+		if(p.snd==q.snd) return  lrg_x_vertex_y(p,q.fst);
+
+		//neither endpoint shared
+		if(p.fst.y==p.snd.y) {
+			if(q.fst.y==q.snd.y) {
+				var pmax:Vec2;
+				var qmax:Vec2;
+				pmax = if(p.fst.x < p.snd.x) p.snd else p.fst;
+				qmax = if(q.fst.x < q.snd.x) q.snd else q.fst;
+				return pmax.x > qmax.x;
+			}else
+				return comp_x_at_y_2(p.fst,q) > 0;
+		}
+
+		var qlrg = comp_x_at_y_2(q.fst,p) < 0;
+		var aqlrg= comp_x_at_y_2(q.snd,p) < 0;
+		if(qlrg==aqlrg) return qlrg;
+
+		if(q.fst.y==q.snd.y) {
+			return comp_x_at_y_2(q.fst, p) > 0;
+		}
+		return comp_x_at_y_2(p.fst,q) >= 0;
+	}
+
+	public static function type(P:Array<Vec2>,i:Int) {
+		var v0 = P[(i+P.length-1)%P.length];
+		var v = P[i];
+		var v1 = P[(i+1)%P.length];
+
+		var b0 = below(v0,v);
+		var b1 = below(v1,v);
+		if(b0 && b1) {
+			if(v1.sub(v).cross(v0.sub(v)) > 0)
+				 return tStart;
+			else return tSplit;
+		}else if(!b0 && !b1) {
+			if(v1.sub(v).cross(v0.sub(v)) > 0)
+				 return tEnd;
+			else return tMerge;
+		}else
+			return tRegular;
+	}
+	
+	public static var txt:flash.text.TextField;
+	static public function traces (x:Dynamic) { txt.text += Std.string(x)+"\n"; }
+	public static function partition(P:Array<Vec2>) {
+		if(debug==null) {
+			debug = new BitmapDebug(600,600,0x333333);
+			flash.Lib.current.addChild(debug.display);
+			debug.display.scaleY = -1;
+			debug.display.y = 600;
+
+			txt = new flash.text.TextField();
+	        txt.defaultTextFormat = new flash.text.TextFormat("Courier New",null,0xffffff);
+	        txt.width = 600;
+	        txt.height = 600;
+	        txt.selectable = true;
+			txt.multiline = true;
+			flash.Lib.current.addChild(txt);
+		}
+
+
+		render(P,0xffffff);
+
+		var D:Array<Edge> = [];
+		for(i in 0...P.length) {
+			var j = (i+1)%P.length;
+			D.push({fst:P[i],snd:P[j],helper:-1});
+		}
+
+		var Q = new Queue(Vec2,!PR(Monotone).below)();
+		for(p in P) Q.insert(p);		
+		
+		var T = new Tree(Edge,PR(Monotone).left)();	
+		while(!Q.empty()) {
+			var v = Q.pop();
+			var i = 0;
+			for(j in 0...P.length) { if(P[j]==v) { i = j; break; } }
+
+			debug.drawCircle(v,2.5,0xffffff);
+			debug.flush();
+			traces("------------------");
+			traces(i+" "+type(P,i)+" "+v);
+
+			switch(type(P,i)) {
+				case tStart:
+					traces("D[i]={helper:"+D[i].helper+" fst:"+D[i].fst+" snd:"+D[i].snd+"}");
+					D[i].helper = i;
+					T.insert(D[i]);
+					T.traverse(function (e:Edge) { traces(" --> helper:"+e.helper+" fst:"+e.fst+" snd:"+e.snd); });	
+				case tEnd:
+					var e = D[(i-1+D.length)%D.length];
+					if(Type.enumEq(type(P,e.helper),tMerge)) {
+						debug.drawLine(v,P[e.helper],0xff0000);
+						debug.flush();
+					}
+					T.remove(e);
+				case tSplit:
+					var e = T.first();
+					{
+						debug.drawLine(v,P[e.helper],0xff0000);
+						debug.flush();
+					}
+					e.helper = i;
+					T.insert(D[i]);
+					D[i].helper = i;
+				case tMerge:
+					var e = D[(i-1+D.length)%D.length];
+					traces("D[i-1]={helper:"+e.helper+" fst:"+e.fst+" snd:"+e.snd+"}");
+					traces("   type="+type(P,e.helper));
+					if(Type.enumEq(type(P,e.helper),tMerge)) {
+						debug.drawLine(v,P[e.helper],0xff0000);
+						debug.flush();
+					}
+					T.traverse(function (e:Edge) { traces(" --> helper:"+e.helper+" fst:"+e.fst+" snd:"+e.snd); });	
+					T.remove(e);
+					traces("++");
+					T.traverse(function (e:Edge) { traces(" --> helper:"+e.helper+" fst:"+e.fst+" snd:"+e.snd); });	
+					var e = T.first();
+					traces("left={helper:"+e.helper+" fst:"+e.fst+" snd:"+e.snd+"}");
+					traces("   type="+type(P,e.helper));
+					if(Type.enumEq(type(P,e.helper),tMerge)) {
+						debug.drawLine(v,P[e.helper],0xff0000);
+						debug.flush();
+					}
+					e.helper = i;
+					T.traverse(function (e:Edge) { traces(" --> helper:"+e.helper+" fst:"+e.fst+" snd:"+e.snd); });	
+				case tRegular:
+					var pre = P[(i-1+P.length)%P.length];
+					var nxt = P[(i+1)%P.length];
+					traces("pre: "+pre);
+					traces("nxt: "+nxt);
+					if(pre.y > v.y || (pre.y==v.y && nxt.y < v.y)) {
+						traces(" --1st");
+						var e = D[(i-1+D.length)%D.length];
+						traces("D[i-1]={helper:"+e.helper+" fst:"+e.fst+" snd:"+e.snd+"}");
+						traces("   type="+type(P,e.helper));
+						if(Type.enumEq(type(P,e.helper),tMerge)) {
+							debug.drawLine(v,P[e.helper],0xff0000);
+							debug.flush();
+						}
+						T.remove(e);
+						T.insert(D[i]);
+						D[i].helper = i;
+					}else {
+						traces(" --2nd");
+						var e = T.first();
+						traces("   type="+type(P,e.helper));
+						if(Type.enumEq(type(P,e.helper),tMerge)) {
+							debug.drawLine(v,P[e.helper],0xff0000);
+							debug.flush();
+						}
+						e.helper = i;
+					}
+					T.traverse(function (e:Edge) { traces(" --> helper:"+e.helper+" fst:"+e.fst+" snd:"+e.snd); });	
+			}
+		}
+
+		debug.flush();
+	}
+
+	public static function render(poly:Array<Vec2>, col:Int) {
+		for(i in 0...poly.length) {
+			var j = (i+1)%poly.length;
+			debug.drawLine(poly[i],poly[j],col);
+		}
+	}
+
+}
