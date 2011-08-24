@@ -29,8 +29,15 @@ class PR(Shape) {
 	
 	public var circle:PR(Circle);
 	public var polygon:PR(Polygon);
-	
+
+	//changes for memory reasons means that Material's now only track 'active' shapes
+	//and so this reference material is used to check for changes when things like 'mass' etc are verified.
+	//as the material may not have been able to notify the shape of changes.
+	//
+	//changes elsewhere in this file are marked with #
+    public var refmaterial:PR(Material);
 	public var material:PR(Material);
+
 	public var filter:PR(InteractionFilter);
 	public var fluidProperties:PR(FluidProperties);
 	
@@ -83,8 +90,16 @@ class PR(Shape) {
 	}
 	flibmdel public inline function validate_angDrag() {
 		//dependancy checked
-		if(inv(angDrag)) {
+		if(inv(angDrag)
+		// # changes mean inv(angDrag) may not be 'correct'
+		   || refmaterial.dynamicFriction != material.dynamicFriction
+		// #
+		) {
 			inv(angDrag) = false;
+			// # no other properties depend on dyn_fric.
+			//   so no invalidation needed.
+			refmaterial.dynamicFriction = material.dynamicFriction;
+			// #
 			if(isCircle()) circle.__validate_angDrag();
 			else           polygon.__validate_angDrag();
 		}
@@ -148,7 +163,10 @@ class PR(Shape) {
 	}
 	
 	//----------------------------------------------------------------------------------------------
-	
+
+	// # things like waking are still valid
+	//   as this shape will currently be active
+	//   if wake would perform any side effect.	
 	public function invalidate_material(flags:Int) {
 		if((flags&PR(Material).WAKE)!=0)
 			wake();
@@ -157,6 +175,8 @@ class PR(Shape) {
 			if(body!=null) body.refreshArbiters();
 		}
 		
+		// # these are not strictly needed any more
+		//   but may aswell keep them.
         if((flags&PR(Material).PROPS)!=0) {
 			//dependancy checked
 			if(body!=null) {
@@ -170,8 +190,15 @@ class PR(Shape) {
 			//dependancy checked
 			invalidate_angDrag();
 		}
+
+		// #
+		refmaterial.set(material);
+		// #
 	}
-	
+
+    // # again things like waking are still valid
+	//   as these are called for active shapes
+	//   for which wake() will have a side effect.	
 	flibmdel public inline function invalidate_filter() wake()
 	flibmdel public inline function invalidate_fluidprops() {
 		if(fluidEnabled)
@@ -204,6 +231,10 @@ class PR(Shape) {
 		body = null;
 
 		//cbType handled in Circle/Polygon public class constructors
+
+		// #
+		refmaterial = new PR(Material)();
+		// #
 	}
 	
 	//----------------------------------------------------------------------------------------------
