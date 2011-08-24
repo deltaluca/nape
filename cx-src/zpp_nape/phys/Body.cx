@@ -256,11 +256,21 @@ class PR(Body) {
 	}
 	flibmdel public inline function validate_mass() {
 		//dependancy checked
-		if(inv(mass)) {
+		// # changes to Material memory use (see Shape.cx)
+		var exist = Exists(s,shapes,s.refmaterial.density!=s.material.density);
+		// #
+		if(inv(mass)
+		// #
+		 || (massMode==Flag(MassMode,DEFAULT) && exist)
+		// #
+		) {
 			inv(mass) = false;
 			if(massMode==Flag(MassMode,DEFAULT)) {
 				cmass = 0;
 				Iter(s,shapes,{
+					// #
+					s.refmaterial.density = s.material.density;
+					// #
 					s.validate_area_inertia();
 					cmass += s.area*s.material.density;
 				});
@@ -272,6 +282,9 @@ class PR(Body) {
 				mass = PR(Const).POSINF;
 				imass = smass = 0.0;
 			}
+			// #
+			if(exist) invalidate_inertia();
+			// #
 		}
 	}
 	
@@ -341,11 +354,21 @@ class PR(Body) {
 	}
 	flibmdel public inline function validate_inertia() {
 		//dependancy checked
-		if(inv(inertia)) {
+		// # changes to Material memory use (see Shape.cx)
+		var exist = Exists(s,shapes,s.refmaterial.density!=s.material.density);
+		// #
+		if(inv(inertia)
+		// #
+		 || (inertiaMode==Flag(InertiaMode,DEFAULT) && exist)
+		// #
+		) {
 			inv(inertia) = false;
 			if(inertiaMode==Flag(InertiaMode,DEFAULT)) {
 				cinertia = 0;
 				Iter(s,shapes,{
+					// #
+					s.refmaterial.density = s.material.density;
+					// #
 					s.validate_area_inertia();
 					cinertia += s.inertia*s.area*s.material.density;
 				});
@@ -357,6 +380,9 @@ class PR(Body) {
 				inertia = PR(Const).POSINF;
 				sinertia = iinertia = 0;
 			}
+			// #
+			if(exist) invalidate_inertia();
+			// #
 		}
 	}
 	
