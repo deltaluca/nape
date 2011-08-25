@@ -41,7 +41,12 @@ $(expand genSet(T) class Set(T) {
 	public var prev:Set(T);
 	public var next:Set(T);
 	public var parent:Set(T);
-	public var isred:Bool; //as opposed to black.
+
+	public var colour:Int;
+	$(mixin RED 0);
+	$(mixin BLACK 1);
+	$(mixin NEG_RED() (-1));
+	$(mixin DBL_BLACK 2);
 
 	public function new() {}
 
@@ -60,69 +65,180 @@ $(expand genSet(T) class Set(T) {
 		return cur!=null && cur.data==obj;
 	}
 
-	public inline function insert(obj:T) {
-		assert(!has(obj),"object already in set");
+	public function remove(obj:T) {
+		var cur = parent;
+		while(cur!=null && cur.data!=obj) {
+			if(obj.rb_lt(cur.data))
+				 cur = cur.prev;
+			else cur = cur.next;
+		}
+		if(cur!=null && cur.data==obj) remove_node(cur);
+	}
 
-		//ROTATE(x,left,right) = left rotation
-		//ROTATE(x,right,left) = right rotation
-		$(mixin ROTATE(x,L,R) {
-			var y = x.R;
-			x.R = y.L;
-			if(y.L!=null) y.L.parent = x;
-			y.parent = x.parent;
-			if(x.parent==null) parent = y; //root
-			elif(x==x.parent.L) x.parent.L = y;
-			else                x.parent.R = y;
-			y.L = x;
-			x.parent = y;
+	$(mixin set_link(cur,link,obj) { cur.link = obj; if(obj!=null) obj.parent = cur; });
+	$(mixin rep_node(cur,obj) {
+		var par = cur.parent;
+		if(par==null) {
+			parent = obj;
+		}else if(par.prev==cur) par.prev = obj;
+		else                    par.next = obj;
+		if(obj!=null) obj.parent = par;
+	}); 
+
+	public function remove_node(cur:Set(T)) {
+		//cur has two children so swap with it's successor
+		if(cur.next!=null && cur.prev!=null) {
+			var sm = cur.next;
+			while(sm.prev!=null) sm = sm.prev;
+			cur.data = sm.data;
+			cur = sm;
+		}
+
+		assert(cur.next==null || cur.prev==null,"node still has two children??");
+		var child = if(cur.prev==null) cur.next else cur.prev;
+		
+		//rebalance
+		if(cur.colour==BLACK) {
+			if(cur.prev!=null || cur.next!=null)
+				child.colour = BLACK;
+			else if(cur.parent!=null) {
+				//yay :(
+				var parent = cur.parent;
+				while(true) {
+					parent.colour++;
+					parent.prev.colour--;
+					parent.next.colour--;
+
+					$(mixin DO(D) {
+						var child = parent.D;
+						if(child.colour==NEG_RED) {
+							__fix_neg_red(child);
+							break;
+						}else if(child.colour==RED) {
+							$(mixin DO2(S) {
+								if(child.S!=null && child.S.colour==RED) {
+									__fix_dbl_red(child.S);
+									break;
+								}
+							});
+							DO2(prev) DO2(next)
+						}
+					});
+					DO(prev) DO(next)
+
+					if(parent.colour==DBL_BLACK) {
+						if(parent.parent==null) { parent.colour = BLACK; }
+						else { parent = parent.parent; continue; }
+					}
+
+					break;
+				}
+			}
+		}
+
+		//and finally
+		rep_node(cur,child);
+
+		cur.parent = cur.prev = cur.next = null;
+		Free(Set(T),cur);
+	}
+
+	public inline function __fix_neg_red(negred:Set(T)) {
+		var parent = negred.parent;
+
+		$(mixin DO(L,R) {
+			var nl = negred.L; var nr = negred.R;
+			var trl = nr.L; var trr = nr.R;
+			nl.colour = RED;
+			negred.colour = parent.colour = BLACK;
+			set_link(negred,R,trl);
+			swap(parent.data,nr.data);
+			set_link(nr,L,trr);
+			set_link(nr,R,parent.R);
+			set_link(parent,R,nr);
+			nl;
 		});
+
+		var child = if(parent.prev==negred)
+			 DO(prev,next);
+		else DO(next,prev);
+
+		if  (child.prev!=null && child.prev.colour==RED) __fix_dbl_red(child.prev);
+		elif(child.next!=null && child.next.colour==RED) __fix_dbl_red(child.next);
+	}
+
+	public inline function __fix_dbl_red(x:Set(T)) {
+		while(true) {
+			var par = x.parent;
+			var g = par.parent;
+			if(g==null) { par.colour = BLACK; break; }
+
+			var n1:Set(T), n2:Set(T), n3:Set(T), t1:Set(T), t2:Set(T), t3:Set(T), t4:Set(T);
+			if(par==g.prev) {
+				n3 = g; t4 = g.next;
+				if(x==par.prev) {
+					n1 = x; n2 = par;
+					t1 = x.prev; t2 = x.next; t3 = par.next;
+				}else {
+					n1 = par; n2 = x;
+					t1 = par.prev; t2 = x.prev; t3 = x.next;
+				}
+			}else {
+				n1 = g; t1 = g.prev;
+				if(x==par.prev) {
+					n2 = x; n3 = par;
+					t2 = x.prev; t3 = x.next; t4 = par.next;
+				}else {
+					n2 = par; n3 = x;
+					t2 = par.prev; t3 = x.prev; t4 = x.next;
+				}
+			}
+
+			rep_node(g,n2);
+
+			set_link(n1,prev,t1); set_link(n1,next,t2);
+			set_link(n2,prev,n1); set_link(n2,next,n3);
+			set_link(n3,prev,t3); set_link(n3,next,t4);
+
+			n2.colour = g.colour-1;
+			n1.colour = BLACK;
+			n3.colour = BLACK;
+
+			if(n2==parent) parent.colour = BLACK;
+			else if(n2.colour==RED && n2.parent.colour==RED) {
+				x = n2;
+				continue;
+			}
+
+			break;
+		}
+	}
+
+	public function insert(obj:T) {
+		assert(!has(obj),"object already in set");
 
 		var x = Get(Set(T));
 		x.data = obj;
 
-		__insert(x);
-
-		//rebalancing tree and satisfaction of red-black properties
-		while(x!=parent/*root*/ && x.parent.isred) {
-			var g = x.parent.parent;
-			$(mixin IF(L,R) {
-				var y = g.R;
-				if(y!=null && y.isred) {
-					x.parent.isred = y.isred = false;
-					g.isred = true;
-					x = g;
-				}else {
-					if(x==x.parent.R) {
-						x = x.parent;
-						ROTATE(x,L,R);
-					}
-					x.parent.isred = false;
-					g = x.parent.parent;
-					g.isred = true;
-					ROTATE(g,R,L);
-				}
-			});
-			if(x.parent==g.prev) IF(prev,next) else IF(next,prev);
-		}
-		parent.isred = false; //root
-	}
-
-	inline function __insert(n:Set(T)) {
-		n.isred = true;
-
-		if(parent==null) parent = n; //roots
+		if(parent==null) parent = x; //roots
 		else {
 			var cur = parent; //root
 			while(true) {
-				if(n.data.rb_lt(cur.data)) {
-					if(cur.prev==null) { cur.prev = n; n.parent = cur; break; }
+				if(x.data.rb_lt(cur.data)) {
+					if(cur.prev==null) { cur.prev = x; x.parent = cur; break; }
 					else cur = cur.prev;
 				}else {
-					if(cur.next==null) { cur.next = n; n.parent = cur; break; }
+					if(cur.next==null) { cur.next = x; x.parent = cur; break; }
 					else cur = cur.next;
 				}
 			}
 		}
-		return n;
+
+		if(x.parent==null)
+			x.colour = BLACK;
+		else {
+			x.colour = RED;
+			if(x.parent.colour==RED) __fix_dbl_red(x);
+		}
 	}
 });
