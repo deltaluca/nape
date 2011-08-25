@@ -21,20 +21,24 @@ $(expand global genCircular(T) class ZPP_Circular_`T {
 	public var prev:Circular(T);
 	public var elt:T;
 
-	public function new(obj:T) {
-		elt = obj;
+	public static inline function get(obj:T) {
+		var ret = Get(Circular(T));
+		ret.elt = obj;
+		return ret;
 	}
+
+	function new() {}
 });
 
-$(mixin global circular(block)
+$(mixin global circular(T, block)
 	block
 
 	//------------------------------------------------------------------------------------
 
 	//insert obj before node, return object.
 	//NOTE: node must be mutable and pure!!
-	$(mixin push_before(T, node, O) {
-		var obj = new Circular(T)(O);
+	$(mixin push_before(node, O) {
+		var obj = Circular(T).get(O);
 
 		if(node==null)
 			node = obj.prev = obj.next = obj;
@@ -50,8 +54,8 @@ $(mixin global circular(block)
 
 	//insert obj after node, return object.
 	//NOTE: node must be mutable and pure!!
-	$(mixin push_after(T, node, O) {
-		var obj = new Circular(T)(O);
+	$(mixin push_after(node, O) {
+		var obj = Circular(T).get(O);
 
 		if(node==null)
 			node = obj.prev = obj.next = obj;
@@ -68,7 +72,7 @@ $(mixin global circular(block)
 	//------------------------------------------------------------------------------------
 
 	//pop element and return element which preceeded it
-	$(mixin pop_ret_before(T, node) {
+	$(mixin pop_ret_before(node) {
 		assert(!empty(node), "can't pop from empty list derpiderp");
 		if(singular(node)) {
 			node.next = node.prev = null;
@@ -85,7 +89,7 @@ $(mixin global circular(block)
 	});
 
 	//pop element and return element which suceeded it
-	$(mixin pop_ret_after(T,node) {
+	$(mixin pop_ret_after(node) {
 		assert(!empty(node), "can't pop from empty list herpaderp");
 		if(singular(node)) {
 			node.next = node.prev = null;
@@ -101,7 +105,7 @@ $(mixin global circular(block)
 		}
 	});
 
-	$(mixin pop(T,node) {
+	$(mixin pop(node) {
 		assert(!empty(node), "can't pop from empty list herpaderp");
 		if(singular(node)) {
 			node.next = node.prev = null;
@@ -114,7 +118,7 @@ $(mixin global circular(block)
 		}
 	});
 
-	$(mixin clear(T,node) {
+	$(mixin clear(node) {
 		while(!empty(node)) node = pop_ret_after(T,node)
 	});
 
@@ -177,18 +181,18 @@ $(mixin global circular(block)
 
 	//sort list using L as a pivot.
 	//returning the smallest element as given by 'lt'
-	$(mixin sort(T,L,lt) {
-	var list = L;
-	if(!empty(list) && !singular(list)) {
+	$(mixin sort(L,lt) {
+	var xxlist = L;
+	if(!empty(xxlist) && !singular(xxlist)) {
 		//break circular list temporarily
-		list.prev.next = null;
-		list.prev = null;
+		xxlist.prev.next = null;
+		xxlist.prev = null;
 		//sort as a standard doubly linked list
 		var tail:Circular(T) = null; var left:Circular(T) = null;
 		var right:Circular(T) = null; var nxt:Circular(T) = null;
 		var listSize = 1; var numMerges:Int, leftSize:Int, rightSize:Int;
 		do {
-			numMerges = 0; left = list; tail = list = null;
+			numMerges = 0; left = xxlist; tail = xxlist = null;
 			while(left!=null) {
 				numMerges++; right = left; leftSize = 0; rightSize = listSize;
 				//cut list
@@ -201,7 +205,7 @@ $(mixin global circular(block)
 					else                              { nxt=right; right=right.next; rightSize--; }
 
 					if(tail!=null) tail.next = nxt;
-					else           list = nxt;
+					else           xxlist = nxt;
 
 					nxt.prev = tail;
 					tail = nxt;
@@ -211,8 +215,8 @@ $(mixin global circular(block)
 			tail.next=null; listSize<<=1;
 		} while(numMerges>1);
 		//reform circular list
-		list.prev = tail;
-		tail.next = list;
+		xxlist.prev = tail;
+		tail.next = xxlist;
 	}
 	});
 

@@ -398,6 +398,12 @@ $(mixin global ListMixin(defs,Cons,T,I)
 	public var pushmod:Bool;
 	public var mcnt:Int;
 
+	flibmdel public inline function set_begin(i:I) {
+		_setbeg(i);
+		modified = true;
+		pushmod = true;
+	}
+
     flibmdel public inline function add(o:T) {
 		assert(o!=null && !has(o),"[ListMixin("+$str(T)+"] add -> o="+o);
 		
@@ -563,7 +569,7 @@ $(mixin global ListMixin(defs,Cons,T,I)
 
 //--------------------------------------------------------------------------------------------------
 
-$(mixin global InsertSort(i,list,less) {
+$(mixin global Insert(i,list,less) {
 	var pre = null;
 	Iter(j,list,{
 		if(less(i,j))
@@ -571,6 +577,41 @@ $(mixin global InsertSort(i,list,less) {
 		pre = cx_ite;
 	});
 	list.insert(pre,i);
+});
+
+$(mixin global Sort(L,NodeT, lt) {
+	var xxlist = L;
+	if(!xxlist.empty() && xxlist.begin().next!=null) {
+		//sort as a standard doubly linked list
+		var head:NodeT = null;
+		var tail:NodeT = null; var left:NodeT = null;
+		var right:NodeT = null; var nxt:NodeT = null;
+		var listSize = 1; var numMerges:Int, leftSize:Int, rightSize:Int;
+		do {
+			numMerges = 0; left = xxlist.begin(); tail = head = null;
+			while(left!=null) {
+				numMerges++; right = left; leftSize = 0; rightSize = listSize;
+				//cut list
+				while(right!=null && leftSize<listSize) { leftSize++; right = right.next; }
+				//merge lists
+				while(leftSize>0 || (rightSize>0 && right!=null)) {
+					if  (leftSize==0)                 { nxt=right; right=right.next; rightSize--; }
+					elif(rightSize==0 || right==null) { nxt=left;  left =left .next; leftSize --; }
+					elif(lt(left.elem(),right.elem())){ nxt=left;  left = left.next; leftSize --; }
+					else                              { nxt=right; right=right.next; rightSize--; }
+
+					if(tail!=null) tail.next = nxt;
+					else           head = nxt;
+
+					tail = nxt;
+				}
+				left=right;
+			}
+			tail.next=null; listSize<<=1;
+		} while(numMerges>1);
+
+		xxlist.set_begin(head);
+	}
 });
 
 //--------------------------------------------------------------------------------------------------
