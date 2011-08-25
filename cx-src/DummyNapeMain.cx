@@ -164,21 +164,10 @@ class Tracer {
 }
 
 class GInt {
-	MixCircular(GInt)
-	flibmdel public inline function free() {
-	}
-	flibmdel public inline function alloc() {
-	}
-
 	flibmdel public inline function rb_lt(x:GInt) return val < x.val
 
 	public var val:Int;
-	public static inline function get(?val=0) {
-		var ret = Get(GInt);
-		ret.val = val;
-		return ret;
-	}
-	public function new() {}
+	public function new(v:Int) val = v
 	@:$keep public inline function toString() return Std.string(val)
 }
 
@@ -186,12 +175,12 @@ class DummyNapeMain {
 	static public var debug:Debug;
 
 	static function main() {
-		var list:GInt = null;
+		var list:Circular(GInt) = null;
 
-	Circular(
-		list = push_before (list, GInt.get(10));
-		list = push_before (list, GInt.get(20));
-		list = push_after  (list, GInt.get(30));
+	circular(
+		list = push_before (GInt, list, new GInt(10));
+		list = push_before (GInt, list, new GInt(20));
+		list = push_after  (GInt, list, new GInt(30));
 
 		for_iter(i,list,trace(i));
 		list = sort(GInt,list,$(mixin lt(a,b) a.val<b.val) lt);
@@ -199,7 +188,7 @@ class DummyNapeMain {
 		rev_iter(i,list.prev,trace(i));
 
 		var set = new Set(GInt)();
-		for(i in 0...10) set.insert(GInt.get(i));
+		for(i in 0...10) set.insert(new GInt(i));
 		SetIter(i,set,trace(i));
 	)
 
