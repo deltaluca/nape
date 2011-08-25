@@ -259,8 +259,6 @@ class PR(PartitionVertex) extends Vec2 {
 
 class PR(Monotone) {
 
-	public static var debug:Debug = null;
-
 	public static function below(p:Vec2,q:Vec2) {
 		return p.y < q.y || (p.y==q.y && p.x>q.x);
 	}
@@ -331,14 +329,8 @@ class PR(Monotone) {
 	}
 	
 	public static function lss(a:Int,b:Int) return a<b
-	public static function partition(P:Array<Vec2>) {
-		if(debug==null) {
-			debug = new BitmapDebug(600,600,0);
-			flash.Lib.current.addChild(debug.display);
-		}else debug.clear();
-
+	public static function decompose(P:Array<Vec2>) {
 		var poly = new PR(PartitionPoly)(P);
-		render(poly.vertices,0xffffff);
 
 		var D:Array<Edge> = [];
 		for(i in 0...P.length) {
@@ -355,90 +347,49 @@ class PR(Monotone) {
 			var i = 0;
 			for(j in 0...P.length) { if(poly.vertices[j]==v) { i = j; break; } }
 
-			debug.drawCircle(v,2.5,0xffffff);
-			debug.flush();
 			switch(type(poly.vertices,P.length,i)) {
 				case tStart:
 					D[i].helper = i;
 					T.insert(D[i]);
 				case tEnd:
 					var e = D[(i-1+D.length)%D.length];
-					if(Type.enumEq(type(poly.vertices,P.length,e.helper),tMerge)) {
-						debug.drawLine(v,poly.vertices[e.helper],0xff0000);
-						debug.flush();
-
+					if(Type.enumEq(type(poly.vertices,P.length,e.helper),tMerge))
 						poly.insert_diagonal(v,poly.vertices[e.helper]);
-					}
 					T.remove(e);
 				case tSplit:
 					var e = T.lower_bound(D[i]);
-					{
-						debug.drawLine(v,poly.vertices[e.helper],0xff0000);
-						debug.flush();
-
-						poly.insert_diagonal(v,poly.vertices[e.helper]);
-					}
+					poly.insert_diagonal(v,poly.vertices[e.helper]);
 					e.helper = i;
 					T.insert(D[i]);
 					D[i].helper = i;
 				case tMerge:
 					var e = D[(i-1+D.length)%D.length];
-					if(Type.enumEq(type(poly.vertices,P.length,e.helper),tMerge)) {
-						debug.drawLine(v,poly.vertices[e.helper],0xff0000);
-						debug.flush();
-
+					if(Type.enumEq(type(poly.vertices,P.length,e.helper),tMerge))
 						poly.insert_diagonal(v,poly.vertices[e.helper]);
-					}
 					T.remove(e);
 					var e = T.lower_bound(D[i]);
-					if(Type.enumEq(type(poly.vertices,P.length,e.helper),tMerge)) {
-						debug.drawLine(v,poly.vertices[e.helper],0xff0000);
-						debug.flush();
-
+					if(Type.enumEq(type(poly.vertices,P.length,e.helper),tMerge))
 						poly.insert_diagonal(v,poly.vertices[e.helper]);
-					}
 					e.helper = i;
 				case tRegular:
 					var pre = poly.vertices[(i-1+P.length)%P.length];
 					var nxt = poly.vertices[(i+1)%P.length];
 					if(pre.y > v.y || (pre.y==v.y && nxt.y < v.y)) {
 						var e = D[(i-1+D.length)%D.length];
-						if(Type.enumEq(type(poly.vertices,P.length,e.helper),tMerge)) {
-							debug.drawLine(v,poly.vertices[e.helper],0xff0000);
-							debug.flush();
-
+						if(Type.enumEq(type(poly.vertices,P.length,e.helper),tMerge)) 
 							poly.insert_diagonal(v,poly.vertices[e.helper]);
-						}
 						T.remove(e);
 						T.insert(D[i]);
 						D[i].helper = i;
 					}else {
 						var e = T.lower_bound(D[i]);
-						if(Type.enumEq(type(poly.vertices,P.length,e.helper),tMerge)) {
-							debug.drawLine(v,poly.vertices[e.helper],0xff0000);
-							debug.flush();
-
+						if(Type.enumEq(type(poly.vertices,P.length,e.helper),tMerge))
 							poly.insert_diagonal(v,poly.vertices[e.helper]);
-						}
 						e.helper = i;
 					}
 			}
 		}
 
-		debug.flush();
-
 		return poly.partition();
 	}
-
-	public static function render(poly:Array<PR(PartitionVertex)>, col:Int) {
-		for(i in 0...poly.length) {
-			var j = (i+1)%poly.length;
-
-			var u = poly[i].add(new Vec2(Math.random()*5-2.5,Math.random()*5-2.5));
-			var v = poly[j].add(new Vec2(Math.random()*5-2.5,Math.random()*5-2.5));
-
-			debug.drawLine(u,v,col);
-		}
-	}
-
 }

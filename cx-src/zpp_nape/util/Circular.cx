@@ -1,0 +1,207 @@
+package zpp_nape.util;
+$(import);
+
+// circular (intrusive) doubly linked list.
+// unliked List.cx MixList, due to circular nature
+// there is no 'head' of the list or dummy list object
+// every element of the list IS a valid list.
+// including 'null' for an empty list which is why
+// the list is implemented purely via these mixins
+
+$(mixin global MixCircular(T)
+	MixPoolNoNext(T)
+	public var next:T;
+	public var prev:T;
+);
+
+$(mixin global Circular(block)
+	block
+
+	//------------------------------------------------------------------------------------
+
+	//insert obj before node, return object.
+	//NOTE: node must be mutable and pure!!
+	$(mixin push_before(node, O) {
+		var obj = O;
+		assert(obj!=null,"can't push null object");
+		assert(obj.prev==null && obj.next==null, "object already in a list");
+
+		if(node==null)
+			node = obj.prev = obj.next = obj;
+		else {
+			obj.next = node;
+			obj.prev = node.prev;
+			node.prev.next = obj;
+			node.prev = obj;
+		}
+
+		obj;
+	});
+
+	//insert obj after node, return object.
+	//NOTE: node must be mutable and pure!!
+	$(mixin push_after(node, O) {
+		var obj = O;
+		assert(obj!=null,"can't push null object");
+		assert(obj.prev==null && obj.next==null, "object already in a list");
+
+		if(node==null)
+			node = obj.prev = obj.next = obj;
+		else {
+			obj.prev = node;
+			obj.next = node.next;
+			node.next.prev = obj;
+			node.next = obj;
+		}
+
+		obj;
+	});
+
+	//------------------------------------------------------------------------------------
+
+	//pop element and return element which preceeded it
+	$(mixin pop_ret_before(node) {
+		assert(!empty(node), "can't pop from empty list derpiderp");
+		if(singular(node)) {
+			node.next = node.prev = null;
+			Free(T,node);
+			null;
+		}else {
+			var ret = node.prev;
+			node.prev.next = node.next;
+			node.next.prev = node.prev;
+			node.next = node.prev = null;
+			Free(T,node);
+			ret;
+		}
+	});
+
+	//pop element and return element which suceeded it
+	$(mixin pop_ret_after(node) {
+		assert(!empty(node), "can't pop from empty list herpaderp");
+		if(singular(node)) {
+			node.next = node.prev = null;
+			Free(T,node);
+			null;
+		}else {
+			var ret = node.next;
+			node.prev.next = node.next;
+			node.next.prev = node.prev;
+			node.next = node.prev = null;
+			Free(T,node);
+			ret;
+		}
+	});
+
+	$(mixin pop(node) {
+		assert(!empty(node), "can't pop from empty list herpaderp");
+		if(singular(node)) {
+			node.next = node.prev = null;
+			Free(T,node);
+		} else {
+			node.prev.next = node.next;
+			node.next.prev = node.prev;
+			node.next = node.prev = null;
+			Free(T,node);
+		}
+	});
+
+	$(mixin clear(node) {
+		while(!empty(node)) node = pop_ret_after(node)
+	});
+
+	//------------------------------------------------------------------------------------
+
+	$(mixin empty(node) (
+		#if NAPE_ASSERT
+			{ var ret = node==null; assert(!ret || (node.next==node.prev && node.next==null), "empty list isn't empty"); ret; }
+		#else
+			node==null
+		#end
+	));
+	$(mixin singular(node) (
+		#if NAPE_ASSERT
+			{ var ret = node.next==node.prev; assert(!ret || node.next==node, "singular list isn't circular?"); ret; }
+		#else
+			node.next==node.prev
+		#end
+	));
+
+	//------------------------------------------------------------------------------------
+
+	$(mixin private_iter(i,first,last,dir,closure) {
+		if(first!=null) {
+			var i = first;
+			do {
+				closure;
+				i = i.dir;
+			} while(i!=last);
+		}
+	});
+
+	$(mixin for_iter(i,first,last,closure) private_iter(i,first,last,next,closure));
+	$(mixin for_iter(i,list,closure) for_iter(i,list,list,closure));
+
+	$(mixin rev_iter(i,first,last,closure) private_iter(i,first,last,prev,closure));
+	$(mixin rev_iter(i,list,closure) rev_iter(i,list,list,closure));
+
+	$(mixin size(node) ({ var ret = 0; for_iter(i,node,ret++); ret; }));
+
+	//===================================================================================
+
+	$(mixin select(node,lt) ({
+		if(empty(node)) null;
+		else {
+			var ret = node;
+			var i = node.next;
+			while(i!=node) {
+				if(lt(i,ret)) { ret = i; }
+				i = i.next;
+			}
+			ret;
+		}
+	}));
+
+	//===================================================================================
+
+	//sort list using L as a pivot.
+	//returning the smallest element as given by 'lt'
+	$(mixin sort(T,L,lt) {
+	var list = L;
+	if(!empty(list) && !singular(list)) {
+		//break circular list temporarily
+		list.prev.next = null;
+		list.prev = null;
+		//sort as a standard doubly linked list
+		var tail:T = null; var left:T = null; var right:T = null; var nxt:T = null;
+		var listSize = 1; var numMerges:Int, leftSize:Int, rightSize:Int;
+		do {
+			numMerges = 0; left = list; tail = list = null;
+			while(left!=null) {
+				numMerges++; right = left; leftSize = 0; rightSize = listSize;
+				//cut list
+				while(right!=null && leftSize<listSize) { leftSize++; right = right.next; }
+				//merge lists
+				while(leftSize>0 || (rightSize>0 && right!=null)) {
+					if  (leftSize==0)                 { nxt=right; right=right.next; rightSize--; }
+					elif(rightSize==0 || right==null) { nxt=left;  left =left .next; leftSize --; }
+					elif(lt(left,right))              { nxt=left;  left = left.next; leftSize --; }
+					else                              { nxt=right; right=right.next; rightSize--; }
+
+					if(tail!=null) tail.next = nxt;
+					else           list = nxt;
+
+					nxt.prev = tail;
+					tail = nxt;
+				}
+				left=right;
+			}
+			tail.next=null; listSize<<=1;
+		} while(numMerges>1);
+		//reform circular list
+		list.prev = tail;
+		tail.next = list;
+	}
+	});
+
+);

@@ -1,0 +1,128 @@
+package zpp_nape.util;
+$(import);
+
+
+$(mixin global SetIter(i,set,closure) ${assert/2->
+	assert(set!=null,"Iterate  null set?");
+	if(!set.empty()) {
+		var it = set.parent; //root
+		while(it.prev!=null) it = it.prev;
+	
+		while(it!=null) {
+			var i = it.data;
+			closure;
+	
+			if(it.next!=null) {
+				it = it.next;
+				while(it.prev!=null) it = it.prev;
+			}else {
+				while(it.parent!=null && it==it.parent.next) it = it.parent;
+				it = it.parent;
+			}
+		}
+	}
+});
+
+$(mixin global Set(T)
+	genSet(T)
+	ZPP_Set_`T
+);
+
+$(expand genSet(T) class Set(T) {
+
+	MixPoolNoNext(Set(T))
+	flibmdel public inline function free() {
+		data = null;
+	}
+	flibmdel public inline function alloc() {}
+
+	public var data:T;
+
+	public var prev:Set(T);
+	public var next:Set(T);
+	public var parent:Set(T);
+	public var isred:Bool; //as opposed to black.
+
+	public function new() {}
+
+	//parent doubles as the 'root' of the tree for the dummy object.
+	//(Like MixList intrusive lists).
+
+	public function empty() return parent==null	
+
+	public inline function has(obj:T) {
+		var cur = parent; //root
+		while(cur!=null && cur.data!=obj) {
+			if(obj.rb_lt(cur.data))
+				 cur = cur.prev; //left
+			else cur = cur.next; //right
+		}
+		return cur!=null && cur.data==obj;
+	}
+
+	public inline function insert(obj:T) {
+		assert(!has(obj),"object already in set");
+
+		//ROTATE(x,left,right) = left rotation
+		//ROTATE(x,right,left) = right rotation
+		$(mixin ROTATE(x,L,R) {
+			var y = x.R;
+			x.R = y.L;
+			if(y.L!=null) y.L.parent = x;
+			y.parent = x.parent;
+			if(x.parent==null) parent = y; //root
+			elif(x==x.parent.L) x.parent.L = y;
+			else                x.parent.R = y;
+			y.L = x;
+			x.parent = y;
+		});
+
+		var x = Get(Set(T));
+		x.data = obj;
+
+		__insert(x);
+
+		//rebalancing tree and satisfaction of red-black properties
+		while(x!=parent/*root*/ && x.parent.isred) {
+			var g = x.parent.parent;
+			$(mixin IF(L,R) {
+				var y = g.R;
+				if(y!=null && y.isred) {
+					x.parent.isred = y.isred = false;
+					g.isred = true;
+					x = g;
+				}else {
+					if(x==x.parent.R) {
+						x = x.parent;
+						ROTATE(x,L,R);
+					}
+					x.parent.isred = false;
+					g = x.parent.parent;
+					g.isred = true;
+					ROTATE(g,R,L);
+				}
+			});
+			if(x.parent==g.prev) IF(prev,next) else IF(next,prev);
+		}
+		parent.isred = false; //root
+	}
+
+	inline function __insert(n:Set(T)) {
+		n.isred = true;
+
+		if(parent==null) parent = n; //roots
+		else {
+			var cur = parent; //root
+			while(true) {
+				if(n.data.rb_lt(cur.data)) {
+					if(cur.prev==null) { cur.prev = n; n.parent = cur; break; }
+					else cur = cur.prev;
+				}else {
+					if(cur.next==null) { cur.next = n; n.parent = cur; break; }
+					else cur = cur.next;
+				}
+			}
+		}
+		return n;
+	}
+});
