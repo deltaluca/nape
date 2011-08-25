@@ -5,19 +5,19 @@ $(import);
 $(mixin global SetIter(i,set,closure) ${assert/2->
 	assert(set!=null,"Iterate  null set?");
 	if(!set.empty()) {
-		var it = set.parent; //root
-		while(it.prev!=null) it = it.prev;
+		var set_ite = set.parent; //root
+		while(set_ite.prev!=null) set_ite = set_ite.prev;
 	
-		while(it!=null) {
-			var i = it.data;
+		while(set_ite!=null) {
+			var i = set_ite.data;
 			closure;
 	
-			if(it.next!=null) {
-				it = it.next;
-				while(it.prev!=null) it = it.prev;
+			if(set_ite.next!=null) {
+				set_ite = set_ite.next;
+				while(set_ite.prev!=null) set_ite = set_ite.prev;
 			}else {
-				while(it.parent!=null && it==it.parent.next) it = it.parent;
-				it = it.parent;
+				while(set_ite.parent!=null && set_ite==set_ite.parent.next) set_ite = set_ite.parent;
+				set_ite = set_ite.parent;
 			}
 		}
 	}
@@ -65,7 +65,18 @@ $(expand genSet(T) class Set(T) {
 		return cur!=null && cur.data==obj;
 	}
 
-	public function remove(obj:T) {
+	public inline function lower_bound(obj:T) {
+		var ret = null;
+		SetIter(elt, this, {
+			if(!lt(elt,obj)) {
+				ret = elt;
+				break;
+			}
+		});
+		return ret;
+	}
+
+	public inline function remove(obj:T) {
 		var cur = parent;
 		while(cur!=null && cur.data!=obj) {
 			if(obj.rb_lt(cur.data))
