@@ -564,7 +564,6 @@ $(mixin global ListMixin(defs,Cons,T,I)
         var it = iterator_at(ind);
         return if(it!=null) it.elem() else null;
     }
-
 );
 
 //--------------------------------------------------------------------------------------------------
@@ -582,13 +581,12 @@ $(mixin global Insert(i,list,less) {
 $(mixin global Sort(L,NodeT, lt) {
 	var xxlist = L;
 	if(!xxlist.empty() && xxlist.begin().next!=null) {
-		//sort as a standard doubly linked list
-		var head:NodeT = null;
+		var head:NodeT = xxlist.begin();
 		var tail:NodeT = null; var left:NodeT = null;
 		var right:NodeT = null; var nxt:NodeT = null;
 		var listSize = 1; var numMerges:Int, leftSize:Int, rightSize:Int;
 		do {
-			numMerges = 0; left = xxlist.begin(); tail = head = null;
+			numMerges = 0; left = head; tail = head = null;
 			while(left!=null) {
 				numMerges++; right = left; leftSize = 0; rightSize = listSize;
 				//cut list

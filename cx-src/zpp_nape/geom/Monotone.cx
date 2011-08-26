@@ -1,6 +1,210 @@
 package zpp_nape.geom;
 $(import);
 
+//got sick of typing this out too many times!
+$(mixin Vertex() PR(PartitionVertex));
+$(mixin Edge() Vertex);
+
+mix_circular(Vertex,
+class PR(PartitionPoly) {
+	public var vertices:Vertex;
+
+	public function new(P:Array<Vec2>) {
+		for(p in P) vertices = push_after(vertices,Vertex.get(p));
+	}
+	
+	flibmdel public inline function insert_diagonal(p:Vertex,q:Vertex) {
+		p.insert_diagonal(q);
+		q.insert_diagonal(p);
+	}
+})
+
+//vertex types
+$(mixin START   0);
+$(mixin SPLIT   1);
+$(mixin END     2);
+$(mixin MERGE   3);
+$(mixin REGULAR 4);
+
+class Vertex {
+	MixPool(Vertex)
+	flibmdel public inline function free () {
+		assert(diagonals.empty(),"diagonals non empty, free PartVertex");
+		cdiag = null;
+		helper = null;
+	}
+	flibmdel public inline function alloc() {}
+
+	public static inline function get(x:Vec2) {
+		var ret = Get(Vertex);
+		vec_set(ret.,x.);
+		return ret;
+	}
+
+	vec_new(public, $(->));
+
+	//used so we can use this in the Circulator mixins
+	public var prev:Vertex;
+
+	//used for PartitionPoly
+	public var diagonals:List(Vertex);
+	public var cdiag:Node(Vertex);
+
+	//used by Monotone
+	public var helper:Vertex;
+	public var type:Int;
+	public var edge_set:Set(Vertex);
+
+	//used by RBTree Set
+	//Note: this = Edge
+	public function rb_lt(q:Edge) {
+		vec_new(u); vec_new(v);
+		var flip:Bool;
+		$(mixin comp_x_at_y(vertex,edge) ({
+			//assume edge not horizontal
+			flip = edge.next.y > edge.y;
+			vec_sub(edge.next.,edge., u);
+			vec_sub(vertex.,edge.,v);
+			/*return*/ flip ? vec_cross(v,u) : vec_cross(u,v);
+		}));
+		$(mixin lrg_x_vertex_y(edge,vertex) ({
+			if(edge.y==edge.next.y) {
+				if(edge.x < edge.next.x)
+					 edge.x > vertex.x;
+				else edge.next.x > vertex.x;
+			}else
+				comp_x_at_y(vertex,edge) < 0;
+		}));
+
+		if  (this==q && next==q.next) return false;
+		elif(this==q.next) return  lrg_x_vertex_y(this,q);
+		elif(next==q)      return !lrg_x_vertex_y(q,this);
+		elif(this==q)      return  lrg_x_vertex_y(this,q.next);
+		elif(next==q.next) return  lrg_x_vertex_y(this,q);
+		//neither endpoint shared
+		elif(this.y==next.y) {
+			if(q.y==q.next.y) {
+				var pmax = if(x   <   next.x)   next else this;
+				var qmax = if(q.x < q.next.x) q.next else q;
+				return pmax.x > qmax.x;
+			}else
+				return comp_x_at_y(this,q) > 0;
+		}else {
+			var qlrgv = comp_x_at_y(q,this);
+			var  qlrg = qlrgv < 0;
+			var aqlrg = comp_x_at_y(q.next,this) < 0;
+			if  (qlrg==aqlrg) return qlrg;
+			elif(q.y==q.next.y)
+				 return qlrgv > 0;
+			else return comp_x_at_y(this,q) >= 0;
+		}
+	}
+
+	public function new() {
+		diagonals = new List(Vertex)();
+	}
+
+	flibmdel public inline function insert_diagonal(x:Vertex) {
+		diagonals.add(x);
+	}
+}
+
+class PR(Monotone) {
+
+	public static inline function below(p:Vertex,q:Vertex) {
+		return p.y<q.y || (p.y==q.y && p.x>q.x);
+	}
+
+	public static function decompose(P:Array<Vec2>) {
+	mix_circular(Vertex,
+		var poly = new PR(PartitionPoly)(P);
+
+		//generate a queue to sort vertices in yx order
+		//also calculate vertex types.
+		var queue = new List(Vertex)();
+		for_iter(p, poly.vertices, {
+			queue.add(p);
+
+			//calculate type
+			var b0 = below(p.prev,p);
+			var b1 = below(p.next,p);
+			vec_new(u); vec_sub(p.next.,p., u);
+			vec_new(v); vec_sub(p.prev.,p., v);
+			var cx = vec_cross(u,v) > 0;
+
+			p.type =
+				if  ( b0 &&  b1) cx ? START : SPLIT
+				elif(!b0 && !b1) cx ? END   : MERGE
+				else REGULAR;
+		});
+
+		//sorted set to hold interesting edges
+		var edges = new Set(Vertex)();
+trace("----");
+		//process away!
+		Sort(queue,Node(Vertex),!below);
+		while(!queue.empty()) {
+			var v = queue.pop_unsafe();
+
+			trace([v.x,v.y, "<-",v.prev.x,v.prev.y, "->",v.next.x,v.next.y]);
+			SetIter(i,edges,trace("edge: "+[i.x,i.y,"->",i.next.x,i.next.y," help:"+i.helper.x,i.helper.y]));
+
+			switch(v.type) {
+				case START:
+					v.helper = v;
+					v.edge_set = edges.insert(v);
+
+				case END:
+					var e = v.prev;
+					if(e.helper.type == MERGE)
+						poly.insert_diagonal(v,e.helper);
+					edges.remove_node(e.edge_set);
+
+				case SPLIT:
+					var e = edges.lower_bound(v);
+					poly.insert_diagonal(v,e.helper);
+					e.helper = v;
+
+					v.edge_set = edges.insert(v);
+					v.helper = v;
+
+				case MERGE:
+					var e = v.prev;
+					if(e.helper.type == MERGE)
+						poly.insert_diagonal(v,e.helper);
+					edges.remove_node(e.edge_set);
+
+					var e = edges.lower_bound(v);
+					if(e.helper.type == MERGE)
+						poly.insert_diagonal(v,e.helper);
+					e.helper = v;
+
+				case REGULAR:
+					var pre = v.prev;
+					var nxt = v.next;
+					if(pre.y > v.y || (pre.y==v.y && nxt.y < v.y)) {
+						if(pre.helper.type == MERGE)
+							poly.insert_diagonal(v,pre.helper);
+						edges.remove_node(pre.edge_set);
+						
+						v.edge_set = edges.insert(v);
+						v.helper = v;
+
+					}else {
+						var e = edges.lower_bound(v);
+						if(e.helper.type == MERGE)
+							poly.insert_diagonal(v,e.helper);
+						e.helper = v;
+					}
+			}
+		}
+	)}
+
+}
+
+
+#if false
+
 $(define class Queue(T,lt) {
 	public var first:Node(T);
 	public function new() {}
@@ -35,7 +239,8 @@ $(define class Queue(T,lt) {
 	public function empty() return first==null
 });
 
-$(define class Node(T) {
+$(define class Nxode(T) {
+
 	public var next:Node(T);
 
 	public var elt:T;
@@ -393,3 +598,4 @@ class PR(Monotone) {
 		return poly.partition();
 	}
 }
+#end

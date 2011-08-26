@@ -31,6 +31,25 @@ $(expand global genCircular(T) class ZPP_Circular_`T {
 });
 
 $(mixin global circular(T, block)
+	circular(T,
+		$(mixin elem(x) x.elt)
+		$(mixin getter(x) Circular(T).get(x))
+		$(mixin freer(x) Free(Circular(T),x))
+		$(mixin LISTT() Circular(T)),
+	block)
+);
+
+$(mixin global mix_circular(T, block)
+	circular(T,
+		$(mixin elem(x) x)
+		$(mixin getter(x) x)
+		$(mixin freer(x) {})
+		$(mixin LISTT() T),
+	block)
+);
+
+$(mixin global circular(T, defs, block)
+	defs
 	block
 
 	//------------------------------------------------------------------------------------
@@ -38,7 +57,7 @@ $(mixin global circular(T, block)
 	//insert obj before node, return object.
 	//NOTE: node must be mutable and pure!!
 	$(mixin push_before(node, O) {
-		var obj = Circular(T).get(O);
+		var obj = getter(O);
 
 		if(node==null)
 			node = obj.prev = obj.next = obj;
@@ -55,7 +74,7 @@ $(mixin global circular(T, block)
 	//insert obj after node, return object.
 	//NOTE: node must be mutable and pure!!
 	$(mixin push_after(node, O) {
-		var obj = Circular(T).get(O);
+		var obj = getter(O);
 
 		if(node==null)
 			node = obj.prev = obj.next = obj;
@@ -76,14 +95,14 @@ $(mixin global circular(T, block)
 		assert(!empty(node), "can't pop from empty list derpiderp");
 		if(singular(node)) {
 			node.next = node.prev = null;
-			Free(Circular(T),node);
+			freer(node);
 			null;
 		}else {
 			var ret = node.prev;
 			node.prev.next = node.next;
 			node.next.prev = node.prev;
 			node.next = node.prev = null;
-			Free(Cicular(T),node);
+			freer(node);
 			ret;
 		}
 	});
@@ -93,14 +112,14 @@ $(mixin global circular(T, block)
 		assert(!empty(node), "can't pop from empty list herpaderp");
 		if(singular(node)) {
 			node.next = node.prev = null;
-			Free(Circular(T),node);
+			freer(node);
 			null;
 		}else {
 			var ret = node.next;
 			node.prev.next = node.next;
 			node.next.prev = node.prev;
 			node.next = node.prev = null;
-			Free(Circular(T),node);
+			freer(node);
 			ret;
 		}
 	});
@@ -109,12 +128,12 @@ $(mixin global circular(T, block)
 		assert(!empty(node), "can't pop from empty list herpaderp");
 		if(singular(node)) {
 			node.next = node.prev = null;
-			Free(Circular(T),node);
+			freer(node);
 		} else {
 			node.prev.next = node.next;
 			node.next.prev = node.prev;
 			node.next = node.prev = null;
-			Free(Circular(T),node);
+			freer(node);
 		}
 	});
 
@@ -145,7 +164,7 @@ $(mixin global circular(T, block)
 		if(first!=null) {
 			var n = first;
 			do {
-				var i = n.elt;
+				var i = elem(n);
 				{
 					closure;
 				}
@@ -170,7 +189,7 @@ $(mixin global circular(T, block)
 			var ret = node;
 			var i = node.next;
 			while(i!=node) {
-				if(lt(i.elt,ret.elt)) { ret = i; }
+				if(lt(elem(i),elem(ret))) { ret = i; }
 				i = i.next;
 			}
 			ret;
@@ -188,8 +207,8 @@ $(mixin global circular(T, block)
 		xxlist.prev.next = null;
 		xxlist.prev = null;
 		//sort as a standard doubly linked list
-		var tail:Circular(T) = null; var left:Circular(T) = null;
-		var right:Circular(T) = null; var nxt:Circular(T) = null;
+		var tail:LISTT = null; var left:LISTT = null;
+		var right:LISTT = null; var nxt:LISTT = null;
 		var listSize = 1; var numMerges:Int, leftSize:Int, rightSize:Int;
 		do {
 			numMerges = 0; left = xxlist; tail = xxlist = null;
@@ -201,7 +220,7 @@ $(mixin global circular(T, block)
 				while(leftSize>0 || (rightSize>0 && right!=null)) {
 					if  (leftSize==0)                 { nxt=right; right=right.next; rightSize--; }
 					elif(rightSize==0 || right==null) { nxt=left;  left =left .next; leftSize --; }
-					elif(lt(left.elt,right.elt))      { nxt=left;  left = left.next; leftSize --; }
+					elif(lt(elem(left),elem(right)))      { nxt=left;  left = left.next; leftSize --; }
 					else                              { nxt=right; right=right.next; rightSize--; }
 
 					if(tail!=null) tail.next = nxt;
