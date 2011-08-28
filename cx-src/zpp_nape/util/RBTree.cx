@@ -77,13 +77,17 @@ $(expand genSet(T) class Set(T) {
 	}
 
 	public inline function remove(obj:T) {
-		var cur = parent;
-		while(cur!=null && cur.data!=obj) {
-			if(obj.rb_lt(cur.data))
-				 cur = cur.prev;
-			else cur = cur.next;
-		}
-		if(cur!=null && cur.data==obj) remove_node(cur);
+		assert(obj.rb_set!=null,"object not in a tree");
+		#if NAPE_ASSERT
+			var cur = parent;
+			while(cur!=null && cur.data!=obj) {
+				if(obj.rb_lt(cur.data))
+					 cur = cur.prev;
+				else cur = cur.next;
+			}
+			assert(cur!=null && cur.data==obj && obj.rb_set==cur, "object not in tree or mismatched");
+		#end
+		remove_node(obj.rb_set);
 	}
 
 	$(mixin set_link(cur,link,obj) { cur.link = obj; if(obj!=null) obj.parent = cur; });
@@ -96,12 +100,13 @@ $(expand genSet(T) class Set(T) {
 		if(obj!=null) obj.parent = par;
 	}); 
 
-	public function remove_node(cur:Set(T)) {
+	function remove_node(cur:Set(T)) {
 		//cur has two children so swap with it's successor
 		if(cur.next!=null && cur.prev!=null) {
 			var sm = cur.next;
 			while(sm.prev!=null) sm = sm.prev;
-			cur.data = sm.data;
+			swap(cur.data,sm.data);
+			swap(cur.data.rb_set,sm.data.rb_set);
 			cur = sm;
 		}
 
@@ -151,6 +156,7 @@ $(expand genSet(T) class Set(T) {
 		rep_node(cur,child);
 
 		cur.parent = cur.prev = cur.next = null;
+		cur.data.rb_set = null;
 		Free(Set(T),cur);
 	}
 
@@ -164,6 +170,7 @@ $(expand genSet(T) class Set(T) {
 			negred.colour = parent.colour = BLACK;
 			set_link(negred,R,trl);
 			swap(parent.data,nr.data);
+			swap(parent.data.rb_set,nr.data.rb_set);
 			set_link(nr,L,trr);
 			set_link(nr,R,parent.R);
 			set_link(parent,R,nr);
@@ -252,6 +259,6 @@ $(expand genSet(T) class Set(T) {
 			if(x.parent.colour==RED) __fix_dbl_red(x);
 		}
 
-		return x;
+		obj.rb_set = x;
 	}
 });
