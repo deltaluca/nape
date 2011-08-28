@@ -201,6 +201,8 @@ class Debug {
     public function drawFilledTriangle(p0:Vec2, p1:Vec2, p2:Vec2, colour:Int):Void {}
     public function drawFilledCircle(position:Vec2, radius:Float, colour:Int):Void {}
 
+	public function drawPolygon (poly:Array<Vec2>, colour:Int):Void {}
+
     #end
 }
 
@@ -371,6 +373,20 @@ class ShapeDebug extends Debug {
         g.endFill();
     }
 
+	public override function drawPolygon(poly:Array<Vec2>, colour:Int) {
+		DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
+		DEBUG(if(poly==null) throw "Error: Cannot draw null Vec2 list";)
+		DEBUG(
+			for(p in poly) Disposed(p,Vec2);
+		)
+
+		var g = pr(inner_zn).graphics;
+		g.lineStyle(0.1,colour&0xffffff,1.0);
+		var fst = poly[poly.length-1];
+		g.moveTo(fst.x,fst.y);
+		for(p in poly) g.lineTo(p.x,p.y);
+	}
+
     ///---------------------------------------------------------------------------------------------
 
     public override function draw(object:Dynamic) __draw(object)
@@ -520,6 +536,42 @@ class BitmapDebug extends Debug {
 	        pr(inner_zn).__fcircle(x,y,r, colour|0xff000000);
  		}
     }
+
+	public override function drawPolygon(poly:Array<Vec2>, colour:Int) {
+		DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
+		DEBUG(if(poly==null) throw "Error: Cannot draw null Vec2 list";)
+		DEBUG(
+			for(p in poly) Disposed(p,Vec2);
+		)
+
+		var col = colour|0xff000000;
+		var fst = poly[poly.length-1];
+		var px:Int,py:Int;
+		if(pr(inner).xnull) {
+			px = fastint(fst.x+0.5);
+			py = fastint(fst.y+0.5);
+		}else {
+			var v = pr(inner).xform.outer.transform(fst);
+			px = fastint(v.x+0.5);
+			py = fastint(v.y+0.5);
+			v.dispose();
+		}
+
+		for(p in poly) {
+			var cx:Int,cy:Int;
+			if(pr(inner).xnull) {
+				cx = fastint(p.x+0.5);
+				cy = fastint(p.y+0.5);
+			}else {
+				var v = pr(inner).xform.outer.transform(p);
+				cx = fastint(v.x+0.5);
+				cy = fastint(v.y+0.5);
+				v.dispose();
+			}
+			pr(inner_zn).__line(px,py,cx,cy,col);
+			px = cx; py = cy;
+		}
+	}
 
     ///---------------------------------------------------------------------------------------------
 

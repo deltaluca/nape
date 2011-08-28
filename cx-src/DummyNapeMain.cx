@@ -217,18 +217,32 @@ class DummyNapeMain {
 	}
 
 	static function main() {
-		var P = [];
-
 		var c = flash.Lib.current;
+
+		var P = [];
+		var debug = new BitmapDebug(600,600,0x333333);
+		debug.clear();
+		c.addChild(debug.display);
+
+		var col = [0xffff00,0xff0000,0xff00,0xff00ff,0xffff,0xff,0xff8000,0x808080];
+		var colv = 0;
+
 		c.stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function (_) {
 			P.push(new Vec2(c.mouseX,c.mouseY));
-			if(P.length>=3)
-				PR(Monotone).decompose(P);
+			debug.drawCircle(new Vec2(c.mouseX,c.mouseY),1,0xffffff);
+			debug.flush();
+			if(P.length>=3) {
+				debug.clear();
+				debug.drawPolygon(P,0xffffff);
+				var polys = PR(Monotone).decompose(P);
+				for(p in polys) debug.drawPolygon(p,col[(colv=(colv+1)%col.length)]);
+				debug.flush();
+			}
 		});
 	}
 
 
-	static function mainps() {
+	static function mainsp() {
         var c = flash.Lib.current;
         haxe.Log.setColor(0xffffff);
 

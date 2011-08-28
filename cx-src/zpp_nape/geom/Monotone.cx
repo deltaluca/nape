@@ -17,6 +17,33 @@ class PR(PartitionPoly) {
 		p.insert_diagonal(q);
 		q.insert_diagonal(p);
 	}
+
+	public function partition() {
+		for_iter(c, vertices, c.sort_diagonals());
+
+		var rets:Array<Array<Vec2>> = [];
+		make_polygon(vertices, rets);
+
+		return rets;
+	}
+
+	//can we make this iterative rather than recursive?
+	public function make_polygon(start:Vertex, rets:Array<Array<Vec2>>) {
+		var poly:Array<Vec2> = [];
+		var next = start;
+		do {
+			poly.push(Vec2.get(next.x,next.y));
+			if(!next.diagonals.empty()) {
+				var diag = next.diagonals.pop_unsafe();
+				if(diag==start)
+					break;
+				else
+					next = make_polygon(next,rets);
+			}else next = next.next;
+		}while(next!=start);
+		rets.push(poly);
+		return next;
+	}
 })
 
 //vertex types
@@ -30,7 +57,6 @@ class Vertex {
 	MixPool(Vertex)
 	flibmdel public inline function free () {
 		assert(diagonals.empty(),"diagonals non empty, free PartVertex");
-		cdiag = null;
 		helper = null;
 	}
 	flibmdel public inline function alloc() {}
@@ -48,7 +74,6 @@ class Vertex {
 
 	//used for PartitionPoly
 	public var diagonals:List(Vertex);
-	public var cdiag:Node(Vertex);
 
 	//used by Monotone
 	public var helper:Vertex;
@@ -107,6 +132,24 @@ class Vertex {
 	flibmdel public inline function insert_diagonal(x:Vertex) {
 		diagonals.add(x);
 	}
+	flibmdel public inline function sort_diagonals() {
+		vec_new(u); vec_new(v);
+		$(mixin orient(a,b,c) ({
+			vec_sub(a.,b.,u);
+			vec_sub(c.,b.,v);
+			var ret = vec_cross(u,v);
+			ret < 0 ? -1 : 1;
+		}));
+
+		var vorient = orient(prev,this,next);
+		Sort(diagonals,Node(Vertex),$(mixin lt(p,q) ({
+			var d1 = orient(prev,this,p);
+			var d2 = orient(prev,this,q);
+			if  (d1==d2) orient(p,this,q) == -1;
+			elif(d1==0)  d2 == vorient;
+			else         d1 != vorient;
+		})) lt);
+	}
 }
 
 class PR(Monotone) {
@@ -140,15 +183,10 @@ class PR(Monotone) {
 
 		//sorted set to hold interesting edges
 		var edges = new Set(Vertex)();
-trace("----");
 		//process away!
 		Sort(queue,Node(Vertex),!below);
 		while(!queue.empty()) {
 			var v = queue.pop_unsafe();
-
-			trace([v.x,v.y, "<-",v.prev.x,v.prev.y, "->",v.next.x,v.next.y]);
-			SetIter(i,edges,trace("edge: "+[i.x,i.y,"->",i.next.x,i.next.y," help:"+i.helper.x,i.helper.y]));
-
 			switch(v.type) {
 				case START:
 					v.helper = v;
@@ -198,6 +236,7 @@ trace("----");
 					}
 			}
 		}
+		return poly.partition();
 	)}
 
 }
