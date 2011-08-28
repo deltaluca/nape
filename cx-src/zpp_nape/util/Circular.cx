@@ -144,32 +144,36 @@ $(mixin global circular(T, defs, block)
 	//------------------------------------------------------------------------------------
 
 	$(mixin empty(node) (
-		#if NAPE_ASSERT
-			{ var ret = node==null; assert(!ret || (node.next==node.prev && node.next==null), "empty list isn't empty"); ret; }
-		#else
-			node==null
-		#end
+		node==null
 	));
 	$(mixin singular(node) (
-		#if NAPE_ASSERT
-			{ var ret = node.next==node.prev; assert(!ret || node.next==node, "singular list isn't circular?"); ret; }
-		#else
-			node.next==node.prev
-		#end
+		node!=null && node.next==node.prev
 	));
 
 	//------------------------------------------------------------------------------------
 
 	$(mixin private_iter(i,first,last,dir,closure) {
-		if(first!=null) {
-			var n = first;
+		var F = first;
+		var L = last;
+		if(F!=null) {
+			var n = F;
 			do {
 				var i = elem(n);
 				{
 					closure;
 				}
 				n = n.dir;
-			} while(n!=last);
+			} while(n!=L);
+		}
+	});
+
+	$(mixin erase(first,last) {
+		var F = first;
+		var L = last;
+		while(F!=L) {
+			var t = F;
+			F = F.next;
+			pop(t);
 		}
 	});
 

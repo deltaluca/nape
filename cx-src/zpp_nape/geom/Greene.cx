@@ -1,0 +1,412 @@
+package zpp_nape.geom;
+$(import);
+
+circular(Vec2,
+
+$(mixin Vertex() Circular(Vec2));
+$(mixin Edge() Vertex);
+$(mixin Polygon() Vertex);
+
+$(mixin CCW() false);
+$(mixin CW() true);
+
+class PR(Chain) {
+	public var front:Vertex;
+	public var back :Vertex;
+	public var cw:Bool;
+
+	public function new(front_back:Vertex, cw:Bool) {
+		initialise(front_back);
+		this.cw = cw;
+	}
+
+	public inline function initialise(front_back:Vertex) {
+		front = back = front_back;
+	}
+
+	public inline function push_back(back:Vertex) {
+		this.back = back;
+	}
+	public inline function push_front(front:Vertex) {
+		this.front = front;
+	}
+	public inline function pop_back() {
+		back = before_back();
+	}
+	public inline function pop_front() {
+		front = before_front();
+	}
+
+	public inline function before_back() {
+		return if(cw) back.prev else back.next;
+	}
+	public inline function after_back() {
+		return if(cw) back.next else back.prev;
+	}
+	public inline function before_front() {
+		return if(cw) front.next else front.prev;
+	}
+	public inline function after_front() {
+		return if(cw) front.prev else front.next;
+	}
+
+	public inline function set_direction(dir:Bool) {
+		cw = dir;
+	}
+
+	public inline function set(x:PR(Chain)) {
+		front = x.front;
+		back = x.back;
+		cw = x.cw;
+	}
+} 
+
+class PR(Greene) {
+	
+	public static inline function less_yx(a:Vertex,b:Vertex) {
+		return a.elt.y < b.elt.y || (a.elt.y==b.elt.y && a.elt.x<b.elt.x);
+	}
+
+	public static inline function left_turn(a:Vertex,b:Vertex,c:Vertex) {
+		vec_new(u); vec_sub(b.elt.,a.elt.,u);
+		vec_new(v); vec_sub(c.elt.,b.elt.,v);
+		return vec_cross(u,v) > 0;
+	}
+	public static inline function right_turn(a:Vertex,b:Vertex,c:Vertex) {
+		vec_new(u); vec_sub(b.elt.,a.elt.,u);
+		vec_new(v); vec_sub(c.elt.,b.elt.,v);
+		return vec_cross(u,v) < 0;
+	}
+
+	public static inline function is_adjacent_to(new_point,old_point) {
+		if  (new_point==old_point.next) return true;
+		elif(new_point==old_point.prev) return true;
+		else return false;
+	}
+
+	public static var cols = [0xff0000,0xffffff,0xff00,0xff,0xffff,0xff00ff,0xffff00,0xff8000,0x808080];
+	public static var ccol = 0;
+	$(mixin render(poly) {
+		if(poly.size()>=3) {
+			var fst = poly.at(0);
+			var colour = cols[(ccol = ((ccol+1)%cols.length))];
+/*			Iter2(u,v, poly, {
+				if(u!=fst && v!=fst)
+					DummyNapeMain.debug.drawFilledTriangle(u,v,fst,colour);
+			});*/
+			Iter2(u,v,poly, DummyNapeMain.debug.drawLine(u,v,colour));
+		}
+	});
+
+	public static inline function visible(polygon:Polygon, new_point_ref:Vertex, stack:PR(Chain), bottom:PR(Chain), top:PR(Chain)) {
+		if((bottom.cw && right_turn(stack.back, stack.before_back(), new_point_ref))
+		|| (!bottom.cw && left_turn(stack.back, stack.before_back(), new_point_ref))) {
+			var done = false;
+			var big = false;
+			var isvisible = false;
+			do {
+				var npoly = new List(Vec2)();
+
+				stack.pop_back();
+				if(bottom.cw) {
+					for_iter(i, bottom.front,stack.before_back(), npoly.add(i));
+					erase(bottom.before_front(),stack.back);
+					polygon = stack.back;
+				}else {
+					for_iter(i, stack.back,bottom.after_front(), npoly.add(i))
+					erase(bottom.back,bottom.front);
+					polygon = bottom.front;
+				}
+
+				//check degeneracy of npoly
+				if(true) {
+					//push npoly to results
+					render(npoly);
+				}
+
+				bottom.push_back(stack.back);
+				if(stack.back==stack.front) {
+					done = true;
+					if(less_yx(stack.front,bottom.front)) {
+						stack.push_front(bottom.front);
+						stack.cw = !stack.cw;
+						bottom.set(top);
+						top.initialise(stack.front);
+						top.cw = !top.cw;
+					}else {
+						stack.push_back(bottom.front);
+						bottom.push_back(bottom.front);
+					}
+				}else {//stack size >= 2 here
+					if(bottom.cw) big = right_turn(bottom.front,stack.back,stack.before_back());
+					else          big = left_turn (bottom.front,stack.back,stack.before_back());
+
+					if(bottom.cw) isvisible = !right_turn(stack.back,stack.before_back(),new_point_ref);
+					else          isvisible = !left_turn (stack.back,stack.before_back(),new_point_ref);
+				}
+			}while(!done && !big && !isvisible);
+			if(big) {
+				stack.push_back(bottom.front);
+				bottom.push_back(bottom.front);
+			}
+		}
+
+		return polygon;
+	}
+
+	public static inline function change_top_chain(polygon:Polygon, new_point_ref:Vertex, stack:PR(Chain),top:PR(Chain)) {
+		var next_point_ref = if(top.cw) new_point_ref.prev else new_point_ref.next;
+
+		if((!top.cw && !right_turn(top.front,new_point_ref,next_point_ref))
+		|| (top.cw && !left_turn(top.front,new_point_ref,next_point_ref)))
+			top.push_front(new_point_ref);
+		else {
+			var old_top_ref = stack.front;
+			stack.pop_front();
+
+			var done = false;
+			var big = false;
+			var small = false;
+
+			do {
+				var npoly = new List(Vec2)();
+				if(!top.cw) {
+					for_iter(v, stack.front,next_point_ref, npoly.add(v));
+					erase(old_top_ref, new_point_ref);
+					polygon = new_point_ref;
+				}else {
+					for_iter(v, new_point_ref, stack.before_front(), npoly.add(v));
+					erase(top.front,stack.front);
+					top.push_front(stack.front);
+					polygon = stack.front;
+				}
+
+				//check degeneracy
+				if(true) {
+					//send to output.
+					render(npoly);
+				}
+
+				if(stack.front==stack.back) {
+					done = true;
+					stack.push_front(new_point_ref);
+					top.initialise(new_point_ref);
+				}else {
+					if(!top.cw) big = !left_turn(stack.before_front(),stack.front,new_point_ref);
+					else        big = !right_turn(stack.before_front(),stack.front,new_point_ref);
+
+					if(!top.cw) small = left_turn(stack.front,new_point_ref,next_point_ref);
+					else        small = right_turn(stack.front,new_point_ref,next_point_ref);
+
+					if(!big && !small) {
+						old_top_ref = stack.front;
+						stack.pop_front();
+					}
+				}
+			}while(!done && !big && !small);
+			if(big) {
+				stack.push_front(new_point_ref);
+				top.initialise(new_point_ref);
+			}elif(small) {
+				top.push_back(stack.front);
+				top.push_front(new_point_ref);
+			}
+		}
+		return polygon;
+	}
+
+	public static inline function change_bottom_chain(polygon:Polygon, new_point_ref:Vertex, stack:PR(Chain), bottom:PR(Chain), top:PR(Chain)) {
+		var next_point_ref = if(bottom.cw) new_point_ref.prev else new_point_ref.next;
+
+		if((bottom.cw && !left_turn(bottom.front,new_point_ref,next_point_ref))
+		|| (!bottom.cw && !right_turn(bottom.front, new_point_ref, next_point_ref)))
+			bottom.push_front(new_point_ref);
+		else {
+			var done = false;
+			var small = false;
+			do {
+				var npoly = new List(Vec2)();
+				stack.pop_back();
+				if(bottom.cw) {
+					for_iter(v, new_point_ref, stack.before_back(), npoly.add(v));
+					erase(bottom.front,stack.back);
+					polygon = stack.back;
+				}else {
+					for_iter(v, stack.back,next_point_ref, npoly.add(v));
+					erase(bottom.back,new_point_ref);
+					polygon = new_point_ref;
+				}
+
+				//check degeneracy
+				if(true) {
+					//send to output
+					render(npoly);
+				}
+
+				bottom.initialise(stack.back);
+				if(stack.back==stack.front) {
+					done = true;
+					if(less_yx(stack.front,new_point_ref)) {
+						stack.push_front(new_point_ref);
+						stack.cw = !stack.cw;
+						bottom.set(top);
+						top.initialise(stack.front);
+						top.cw = !top.cw;
+					}else
+						stack.push_back(new_point_ref);
+				}else { //stack >= 2
+					if(bottom.cw) small = right_turn(stack.back,new_point_ref,next_point_ref);
+					else          small = left_turn(stack.back,new_point_ref,next_point_ref);
+				}
+			}while(!done && !small);
+			if(small) {
+				bottom.push_back(stack.back);
+				bottom.push_front(new_point_ref);
+			}
+		}
+		return polygon;
+	}
+
+	public static inline function stack_extend(polygon:Polygon, point_ref:Vertex, stack:PR(Chain), top:PR(Chain)) {
+		if((!stack.cw && right_turn(stack.before_front(), stack.front, point_ref))
+		|| ( stack.cw &&  left_turn(stack.before_front(), stack.front, point_ref))) {
+			stack.push_front(point_ref);
+			top.initialise(point_ref);
+		}else
+			polygon = change_top_chain(polygon, point_ref,stack,top);
+		return polygon;
+	}
+
+	public static inline function make_polygons_from_stack(polygon:Polygon, high_point_ref:Vertex, stack:PR(Chain), bottom:PR(Chain)) {
+		var next_point_ref = high_point_ref;
+		if(!bottom.cw) next_point_ref = next_point_ref.next;
+
+		stack.pop_back();
+		while(stack.front != stack.back) {
+			var npoly = new List(Vec2)();
+			if(bottom.cw) {
+				for_iter(v, high_point_ref, stack.before_back(), npoly.add(v));
+				erase(bottom.front,stack.back);
+				bottom.initialise(stack.back);
+				polygon = stack.back;
+			}else {
+				for_iter(v, stack.back, next_point_ref, npoly.add(v));
+				erase(bottom.back, high_point_ref);
+				bottom.push_back(stack.back);
+				polygon = stack.back;
+			}
+
+			//check degeneracy
+			if(true) {
+				//add to output
+				render(npoly);
+			}
+			stack.pop_back();
+		}
+
+		var npoly = new List(Vec2)();
+		for_iter(v, polygon, npoly.add(v));
+		if(true) {
+			render(npoly);
+		}
+	}
+
+	public static inline function find_smallest_yx(polygon:Polygon) {
+		var current = polygon.next;
+		//abuse monotonicity of polygon to shortern search.
+		if(less_yx(current,polygon)) {
+			do {
+				polygon = current;
+				current = current.next;
+			}while(less_yx(current,polygon));
+		}else {
+			current = polygon.prev;
+			do {
+				polygon = current;
+				current = current.prev;
+			}while(less_yx(current,polygon));
+		}
+		return polygon;
+	}
+
+	public static inline function second_point_is_next(v:Vertex) {
+		return less_yx(v.next,v.prev);
+	}
+
+	$(mixin next_vertex(ccw,cw) {
+		var ccw2 = ccw.next;
+		var cw2 = cw.prev;
+		if(ccw2 == cw2) {
+			cw = cw2;
+			ccw = ccw2;
+			/*return*/ cw;
+		}else {
+			if(less_yx(ccw2,cw2)) {
+				ccw = ccw2;
+				/*return*/ ccw;
+			}else {
+				cw = cw2;
+				/*return*/ cw;
+			}
+		}
+	});
+
+	public static function ga_convex_decomposition(polygon:Polygon) {
+		var point_ref = find_smallest_yx(polygon);
+		var circ = point_ref;
+
+		var ccw_chain_ref = point_ref;
+		var cw_chain_ref  = point_ref;
+
+		var stack  = new PR(Chain)(point_ref, CCW);
+		var bottom = new PR(Chain)(point_ref, CW);
+		var top    = new PR(Chain)(point_ref, CCW);
+
+		if(second_point_is_next(point_ref)) {
+			ccw_chain_ref = ccw_chain_ref.next;
+			stack.push_front(ccw_chain_ref);
+			stack.set_direction(CCW);
+			top.initialise(ccw_chain_ref);
+			top.set_direction(CCW);
+			bottom.set_direction(CW);
+		}else {
+			cw_chain_ref = cw_chain_ref.prev;
+			stack.push_front(cw_chain_ref);
+			stack.set_direction(CW);
+			top.initialise(cw_chain_ref);
+			top.set_direction(CW);
+			bottom.set_direction(CCW);
+		}
+
+		while(ccw_chain_ref != cw_chain_ref) {
+			point_ref = next_vertex(ccw_chain_ref,cw_chain_ref);
+
+			if(is_adjacent_to(point_ref,bottom.front))
+				polygon = visible(polygon, point_ref, stack, bottom, top);
+
+			if(ccw_chain_ref == cw_chain_ref) {
+				make_polygons_from_stack(polygon, point_ref,stack,bottom);
+				return;
+			}
+
+			if(is_adjacent_to(point_ref,stack.front)) {
+				polygon = stack_extend(polygon,point_ref,stack,top);
+			}elif(is_adjacent_to(point_ref,top.front)) {
+				polygon = change_top_chain(polygon,point_ref,stack,top);
+			}else {
+				polygon = change_bottom_chain(polygon,point_ref,stack,bottom,top);
+			}
+		}
+	}
+
+	public static function decompose(P:Array<Vec2>) {
+		var MPs = PR(Monotone).decompose(P);
+		for(MP in MPs) {
+			var poly:Polygon = null;
+			for(v in MP) poly = push_after(poly,v);
+			ga_convex_decomposition(poly);
+		}
+	}
+}
+
+)
