@@ -290,58 +290,52 @@ class PR(BitmapDebug) extends PR(Debug) {
 		}
         
         //sort vertices
-        $(mixin iswap(a,b) { a ^= b; b ^= a; a ^= b; });
-        if(p1y<p0y) { iswap(p0x,p1x); iswap(p0y,p1y); }
-        if(p2y<p0y) { iswap(p0x,p1x); iswap(p0y,p1y); iswap(p0x,p2x); iswap(p0y,p2y); }
-        if(!(p2y < p0y) && (p2y < p1y)) { iswap(p1x,p2x); iswap(p1y,p2y); }
-        
-        $(mixin scan(x0,y0,x1,y1, u0,v0,u1,v1) {
-            var rx0:Float = x0; var rx1:Float = u0;
-            var m0 = (x1-x0)/(y1-y0);
-            var m1 = (u1-u0)/(v1-v0);
+		if(p1y<p0y) { swap(p0x,p1x); swap(p0y,p1y); }
+		if(p2y<p0y) {
+			var t = p0x; var s = p1x; p0x = p2x; p1x = t; p2x = s;
+			var t = p0y; var s = p1y; p0y = p2y; p1y = t; p2y = s;
+		}elif(p2y<p1y) { swap(p1x,p2x); swap(p1y,p2y); }
 
-            if(y0<0) {
-                var dy = -y0;
-                rx0 += m0*dy;
-                rx1 += m1*dy;
-                y0 = u0 = 0;
-            }
-            
-            do {
-                var px0 = __round(rx0); if(px0<0) px0 = 0;
-                var px1 = __round(rx1); if(px1>=width) px1 = width-1;
-                
-                if(px0<=px1) {
-                    var ind = index(px0,y0);
-                    do setpix(ind++,col)
-                    while(++px0<=px1);
-                }
-                
-                y0++; v0++;
-                rx0 += m0;
-                rx1 += m1;
-            }while(v0<=v1 && y0<height && y0<=y1);
-            
-            x0 = __round(rx0);
-            u0 = __round(rx1);
-        });
-        
-        var ix = p0x;
-        var iy = p0y;
-        var ux = ix;
-        var uy = iy;
-        //direction
-        if((p0x-p2x)*(p1y-p2y) - (p0y-p2y)*(p1x-p2x) < 0) {
-            //left middle
-            if(p0y!=p1y) scan(ux,uy,p1x,p1y, ix,iy,p2x,p2y);
-            else { ux = p1x; uy = p1y; }
-            if(p1y!=p2y) scan(ux,uy,p2x,p2y, ix,iy,p2x,p2y);
-        }else {
-            //right middle
-            if(p0y!=p1y) scan(ix,iy,p2x,p2y, ux,uy,p1x,p1y);
-            else { ux = p1x; uy = p1y; }
-            if(p1y!=p2y) scan(ix,iy,p2x,p2y, ux,uy,p2x,p2y);
-        }
+		if(p0y!=p2y && !(p0x==p1x && p1x==p2x)) {
+
+			$(mixin scan(x0,x1,y) {
+				if(x0<0) x0 = 0; if(x1>=width) x1 = width-1;
+				for(x in x0...(x1+1)) setpixel(x,y,col);
+			});
+
+			$(mixin scan(midleft) {
+				var ml = (p2x-p0x)/(p2y-p0y);
+				if(p0y!=p1y) {
+					var mm = (p1x-p0x)/(p1y-p0y);
+
+					var fy = p0y; var sy = p1y;
+					if(fy<0) fy = 0; if(sy>=height) sy = height-1;
+					for(y in fy...sy) {
+						var dy = y-p0y;
+						var xm = __round(p0x+dy*mm);
+						var xl = __round(p0x+dy*ml);
+						if(midleft) scan(xm,xl,y);
+						else        scan(xl,xm,y);
+					}
+				}
+				if(p1y!=p2y) {
+					var mm = (p2x-p1x)/(p2y-p1y);
+
+					var fy = p1y; var sy = p2y;
+					if(fy<0) fy = 0; if(sy>=height) sy = height-1;
+					for(y in fy...(sy+1)) {
+						var xm = __round(p1x+(y-p1y)*mm);
+						var xl = __round(p0x+(y-p0y)*ml);
+						if(midleft) scan(xm,xl,y);
+						else        scan(xl,xm,y);
+					}
+				}
+			});
+	
+			if((p0x-p2x)*(p1y-p2y) - (p0y-p2y)*(p1x-p2x) < 0) //middle is to left
+				 scan(true);
+			else scan(false);
+		}
     }
 
     ///---------------------------------------------------------------------------------------------
