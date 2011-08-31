@@ -64,7 +64,10 @@ class PR(PartitionPoly) {
 				next = n;
 			}
 		}while(next!=start);
+
+		assert(PR(Monotone).isMonotone(poly), "output poly is not monotone :(");
 		rets.add(poly);
+
 		return next;
 	}
 })
@@ -197,18 +200,22 @@ class PR(Monotone) {
 		var ret = true;
 		//check monotonicity
 		var pre = min;
-		for_iter(v, min.next, max, {
-			if(v.y < pre.y) { ret = false; break; }
-			pre = v;
-		});
+		if(max!=min.next) {
+			for_iter(v, min.next, max, {
+				if(v.y < pre.y) { ret = false; break; }
+				pre = v;
+			});
+		}
 
 		if(!ret) return false;
 
-		pr = min;
-		rev_iter(v, min.prev, max, {
-			if(v.y < pre.y) { ret = false; break; }
-			pre = v;
-		});
+		pre = min;
+		if(max!=min.prev) {
+			rev_iter(v, min.prev, max, {
+				if(v.y < pre.y) { ret = false; break; }
+				pre = v;
+			});
+		}
 
 		return ret;
 	)}
