@@ -33,6 +33,12 @@ class PR(GeomPoly) {
 $(mixin global geom(block)
 	block
 
+	$(mixin clone(poly) {
+		var ret:Vertex = null;
+		for_iter(p,poly,ret = push_after(ret,Vertex.get(p.x,p.y)));
+		ret;
+	});
+
 	$(mixin assert_size_3(poly) {
 		mix_circular(Vertex,
 			#if NAPE_ASSERT if(size(poly)<3) throw "Error: Size of polygon less than 3 makes no sense: geom::area"; #end

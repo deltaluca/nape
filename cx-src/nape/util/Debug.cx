@@ -215,13 +215,17 @@ class Debug {
 			});
 
 			var gpoly = new GeomPoly(poly);
-			if(gpoly.isConvex()) {
-				render(gpoly);
+			if(!gpoly.isSimple()) {
+				drawPolygon(poly,colour);
 			}else {
-				//replace this with triangularisation would be better.
-				//but no such util exists yet.
-				var polys = gpoly.convex_decomposition();
-				for(p in polys) render(p);
+				if(gpoly.isConvex()) {
+					render(gpoly);
+				}else {
+					//replace this with triangularisation would be better.
+					//but no such util exists yet.
+					var polys = gpoly.convex_decomposition();
+					for(p in polys) render(p);
+				}
 			}
 		}
 	}

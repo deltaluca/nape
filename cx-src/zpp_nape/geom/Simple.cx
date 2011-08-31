@@ -1,0 +1,163 @@
+package zpp_nape.geom;
+$(import);
+
+$(mixin Vertex() PR(GeomVert));
+$(mixin Edge() Vertex);
+$(mixin Polygon() Vertex);
+
+$(mixin Event() PR(SimpleEvent));
+$(mixin Sweep() PR(SimpleSweep));
+
+class Event {
+	public var vertex:Vertex;
+	vec_new(public,$(->));
+
+	public var left:Bool; //as opposed to right.
+	public var other:Event; //corresponding Event for segment
+
+	//prev,next used in Sweepline to denote below/above segments.
+	MixPool(Event)
+	public var prev:Event;
+
+	public var rb_set:Set(Event);
+	public function rb_lt(q:Event) {
+		vec_new(u); vec_new(v);
+		var flip:Bool;
+		$(mixin comp_y_at_x(vertex,edge) ({
+			//assume edge not vertical
+			flip = edge.other.x > edge.x;
+			vec_sub(edge.other.,edge., u);
+			vec_sub(vertex.,edge.,v);
+			/*return*/ flip ? vec_cross(v,u) : vec_cross(u,v);
+		}));
+		$(mixin lrg_y_vertex_x(edge,vertex) ({
+			if(edge.x==edge.other.x) {
+				if(edge.y < edge.other.y)
+					 edge.y > vertex.y;
+				else edge.other.y > vertex.y;
+			}else
+				comp_y_at_x(vertex,edge) < 0;
+		}));
+
+		if  (vertex==q.vertex && other.vertex==q.other.vertex) return false;
+		elif(vertex==q.other.vertex)       return  lrg_y_vertex_x(this,q);
+		elif(other.vertex==q.vertex)       return !lrg_y_vertex_x(q,this);
+		elif(vertex==q.vertex)             return  lrg_y_vertex_x(this,q.other);
+		elif(other.vertex==q.other.vertex) return  lrg_y_vertex_x(this,q);
+		//neither endpoint shared
+		elif(this.x==other.x) {
+			if(q.x==q.other.x) {
+				var pmax = if(y   <   other.y)   other else this;
+				var qmax = if(q.y < q.other.y) q.other else q;
+				return pmax.y > qmax.y;
+			}else
+				return comp_y_at_x(this,q) > 0;
+		}else {
+			var qlrgv = comp_y_at_x(q,this);
+			var  qlrg = qlrgv < 0;
+			var aqlrg = comp_y_at_x(q.other,this) < 0;
+			if  (qlrg==aqlrg) return qlrg;
+			elif(q.x==q.other.x)
+				 return qlrgv > 0;
+			else return comp_y_at_x(this,q) >= 0;
+		}
+	}
+
+	flibmdel public inline function free() {
+		vertex = null;
+		other = null;
+	}
+	flibmdel public inline function alloc() {}
+
+	function new() {}
+	public static inline function get(v:Vertex) {
+		var ret = Get(Event);
+		ret.vertex = v;
+		vec_set(ret.,v.);
+		return ret;
+	}
+}
+
+class Sweep {
+	public var tree:Set(Event);
+	public function new() {
+		tree = new Set(Event)();
+	}
+
+	public inline function add(e:Event) {
+		tree.insert(e);
+		var nx = tree.successor(e);
+		var np = tree.predecessor(e);
+		if(nx!=null) { e.next = nx; nx.prev = e; }
+		if(np!=null) { e.prev = np; np.next = e; }
+		return e;
+	}
+	public inline function remove(e:Event) {
+		var nx = tree.successor(e);
+		var np = tree.predecessor(e);
+		if(nx!=null) nx.prev = e.prev;
+		if(np!=null) np.next = e.next;
+		tree.remove(e);
+	}
+
+	public inline function intersect(s1:Event,s2:Event) {
+		$(mixin isLeft(a,b,c) ((b.x-a.x)*(c.y-a.y) - (c.x-a.x)*(b.y-a.y)));
+
+		if(s1==null || s2==null) return false;
+		elif(s1.vertex==s2.vertex
+ 		  || s1.vertex==s2.other.vertex
+		  || s1.other.vertex==s2.vertex
+		  || s1.other.vertex==s2.other.vertex)
+			return false;
+		else {
+			var lsign = isLeft(s1,s1.other,s2);
+			var rsign = isLeft(s1,s1.other,s2.other);
+			if(lsign*rsign > 0) return false;
+			else {
+				lsign = isLeft(s2,s2.other,s1);
+				rsign = isLeft(s2,s2.other,s1.other);
+				if(lsign*rsign > 0) return false;
+				else return true;
+			}
+		}
+	}
+}
+
+class PR(Simple) {
+mix_circular(Vertex,
+
+	public static inline function less_xy(a:Event,b:Event) {
+		return a.x<b.x || (a.x==b.x && a.y<b.y);
+	}
+
+	public static function isSimple(poly:Polygon) {
+		var queue = new List(Event)();
+		for_iter(v,poly,{
+			var e1 = queue.add(Event.get(v));
+			var e2 = queue.add(Event.get(v.next));
+			e2.left = !(e1.left = less_xy(e1,e2));
+			e1.other = e2; e2.other = e1;
+		});
+		Sort(queue,Node(Event),less_xy);
+
+		var sweep = new Sweep();
+		while(!queue.empty()) {
+			var e = queue.pop_unsafe();
+			if(e.left) {
+				sweep.add(e);
+				if(sweep.intersect(e,e.next)
+				|| sweep.intersect(e,e.prev))
+					return false;
+			}else {
+				var s = e.other;
+				if(sweep.intersect(s.next,s.prev))
+					return false;
+				sweep.remove(s);
+				//recycle e and s!
+			}
+		}
+
+		return true;
+	}
+
+)}
