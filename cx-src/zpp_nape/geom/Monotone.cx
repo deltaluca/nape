@@ -249,7 +249,7 @@ class PR(Monotone) {
 
 				case END:
 					var e = v.prev;
-					DEBUG(if(e.helper==null) throw "FATAL ERROR (Monotone) : Polygon is not simple + CW, but was not caught sooner!";)
+					DEBUG(if(e.helper==null) throw "FATAL ERROR (Monotone 1) : Polygon is not simple + CW, but was not caught sooner!";)
 					if(e.helper.type == MERGE)
 						poly.insert_diagonal(v,e.helper);
 					edges.remove(e);
@@ -257,32 +257,36 @@ class PR(Monotone) {
 
 				case SPLIT:
 					var e = edges.lower_bound(v);
-					DEBUG(if(e==null || e.helper==null) throw "FATAL ERROR (Monotone) : Polygon is not simple + CW, but was not caught sooner!";)
-					poly.insert_diagonal(v,e.helper);
-					e.helper = v;
+					if(e!=null) {
+						DEBUG(if(e.helper==null) throw "FATAL ERROR (Monotone 2) : Polygon is not simple + CW, but was not caught sooner!";)
+						poly.insert_diagonal(v,e.helper);
+						e.helper = v;
+					}
 
 					edges.insert(v);
 					v.helper = v;
 
 				case MERGE:
 					var e = v.prev;
-					DEBUG(if(e.helper==null) throw "FATAL ERROR (Monotone) : Polygon is not simple + CW, but was not caught sooner!";)
+					DEBUG(if(e.helper==null) throw "FATAL ERROR (Monotone 3) : Polygon is not simple + CW, but was not caught sooner!";)
 					if(e.helper.type == MERGE)
 						poly.insert_diagonal(v,e.helper);
 					edges.remove(e);
 					DEBUG(e.helper = null;)
 
 					var e = edges.lower_bound(v);
-					DEBUG(if(e==null || e.helper==null) throw "FATAL ERROR (Monotone) : Polygon is not simple + CW, but was not caught sooner!";)
-					if(e.helper.type == MERGE)
-						poly.insert_diagonal(v,e.helper);
-					e.helper = v;
+					if(e!=null) {
+						DEBUG(if(e.helper==null) throw "FATAL ERROR (Monotone 4) : Polygon is not simple + CW, but was not caught sooner!";)
+						if(e.helper.type == MERGE)
+							poly.insert_diagonal(v,e.helper);
+						e.helper = v;
+					}
 
 				case REGULAR:
 					var pre = v.prev;
 					var nxt = v.next;
 					if(pre.y > v.y || (pre.y==v.y && nxt.y < v.y)) {
-						DEBUG(if(pre.helper==null) throw "FATAL ERROR (Monotone) : Polygon is not simple + CW, but was not caught sooner!";)
+						DEBUG(if(pre.helper==null) throw "FATAL ERROR (Monotone 5) : Polygon is not simple + CW, but was not caught sooner!";)
 						if(pre.helper.type == MERGE)
 							poly.insert_diagonal(v,pre.helper);
 						edges.remove(pre);
@@ -293,7 +297,7 @@ class PR(Monotone) {
 
 					}else {
 						var e = edges.lower_bound(v);
-						DEBUG(if(e==null || e.helper==null) throw "FATAL ERROR (Monotone) : Polygon is not simple + CW, but was not caught sooner!";)
+						DEBUG(if(e==null || e.helper==null) throw "FATAL ERROR (Monotone 6) : Polygon is not simple + CW, but was not caught sooner!";)
 						if(e.helper.type == MERGE)
 							poly.insert_diagonal(v,e.helper);
 						e.helper = v;

@@ -14,18 +14,22 @@ class Event {
 
 	public var left:Bool; //as opposed to right.
 	public var other:Event; //corresponding Event for segment
+	public var fst:Event; //always refers to first event for segment, whether left or right
 
 	//prev,next used in Sweepline to denote below/above segments.
 	MixPool(Event)
 	public var prev:Event;
 
 	public var rb_set:Set(Event);
-	public function rb_lt(q:Event) {
+	public function rb_lt(qs:Event) {
+		if(this!=fst) return fst.rb_lt(qs);
+		var q = qs.fst;
+
 		vec_new(u); vec_new(v);
 		var flip:Bool;
 		$(mixin comp_y_at_x(vertex,edge) ({
 			//assume edge not vertical
-			flip = edge.other.x > edge.x;
+			flip = edge.other.x < edge.x;
 			vec_sub(edge.other.,edge., u);
 			vec_sub(vertex.,edge.,v);
 			/*return*/ flip ? vec_cross(v,u) : vec_cross(u,v);
@@ -66,6 +70,7 @@ class Event {
 	flibmdel public inline function free() {
 		vertex = null;
 		other = null;
+		fst = null;
 	}
 	flibmdel public inline function alloc() {}
 
@@ -101,7 +106,7 @@ class Sweep {
 	}
 
 	public inline function intersect(s1:Event,s2:Event) {
-		$(mixin isLeft(a,b,c) ((b.x-a.x)*(c.y-a.y) - (c.x-a.x)*(b.y-a.y)));
+		$(mixin isLeft(a,b,c) (-((b.x-a.x)*(c.y-a.y) - (c.x-a.x)*(b.y-a.y))));
 
 		if(s1==null || s2==null) return false;
 		elif(s1.vertex==s2.vertex
@@ -137,6 +142,7 @@ mix_circular(Vertex,
 			var e2 = queue.add(Event.get(v.next));
 			e2.left = !(e1.left = less_xy(e1,e2));
 			e1.other = e2; e2.other = e1;
+			e1.fst = e1; e2.fst = e1;
 		});
 		Sort(queue,Node(Event),less_xy);
 
