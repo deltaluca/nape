@@ -225,13 +225,33 @@ class DummyNapeMain {
 		debug.clear();
 		c.addChild(debug.display);
 
+		var mdown = false;
 		c.stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function (_) {
+			mdown = true;
 			P.push(new Vec2(c.mouseX,c.mouseY));
-			debug.clear();
-			debug.drawFilledPolygon(P,0xffffff);
-			debug.drawPolygon(P,0xff0000);
-			debug.flush();
 		});
+
+		var tim = new haxe.Timer(0);
+		tim.run = function() {
+			if(mdown) {
+				var p = new Vec2(c.mouseX,c.mouseY);
+				if(p.sub(P[P.length-1]).length>6) P.push(p);
+			}
+
+			if(P.length>3) {
+				debug.clear();
+//				debug.drawFilledPolygon(P,0x808080);
+				debug.drawPolygon(P,0xff0000);
+				if((new GeomPoly(P)).isSimple() && new GeomPoly(P).isClockwise()) {
+					var polys = new GeomPoly(P).monotone_decomposition();
+					for(p in polys) debug.drawPolygon(p.toArray(),0xff00);
+/*
+					var polys = new GeomPoly(P).convex_decomposition();
+					for(p in polys) debug.drawPolygon(p.toArray(),0xffff00);*/
+				}
+				debug.flush();
+			}
+		};
 	}
 
 
