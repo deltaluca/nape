@@ -1,6 +1,17 @@
 package zpp_nape.geom;
 $(import);
 
+/**
+
+	Port of CGAL greene_approx_convex_partition_2 (www.cgal.org)
+
+	I couldn't source it's reference for this algorithm to appreciate/understand it, so a direct port
+	was necessary.
+
+	INSERT LICENCE DUMP D: .... at some point
+
+**/
+
 $(mixin Vertex() PR(GeomVert));
 $(mixin Polygon() Vertex);
 
@@ -19,41 +30,41 @@ class PR(Chain) {
 		this.cw = cw;
 	}
 
-	public inline function initialise(front_back:Vertex) {
+	flibmdel public inline function initialise(front_back:Vertex) {
 		front = back = front_back;
 	}
 
-	public inline function push_back(back:Vertex) {
+	flibmdel public inline function push_back(back:Vertex) {
 		this.back = back;
 	}
-	public inline function push_front(front:Vertex) {
+	flibmdel public inline function push_front(front:Vertex) {
 		this.front = front;
 	}
-	public inline function pop_back() {
+	flibmdel public inline function pop_back() {
 		back = before_back();
 	}
-	public inline function pop_front() {
+	flibmdel public inline function pop_front() {
 		front = before_front();
 	}
 
-	public inline function before_back() {
+	flibmdel public inline function before_back() {
 		return if(cw) back.prev else back.next;
 	}
-	public inline function after_back() {
+	flibmdel public inline function after_back() {
 		return if(cw) back.next else back.prev;
 	}
-	public inline function before_front() {
+	flibmdel public inline function before_front() {
 		return if(cw) front.next else front.prev;
 	}
-	public inline function after_front() {
+	flibmdel public inline function after_front() {
 		return if(cw) front.prev else front.next;
 	}
 
-	public inline function set_direction(dir:Bool) {
+	flibmdel public inline function set_direction(dir:Bool) {
 		cw = dir;
 	}
 
-	public inline function set(x:PR(Chain)) {
+	flibmdel public inline function set(x:PR(Chain)) {
 		front = x.front;
 		back = x.back;
 		cw = x.cw;
