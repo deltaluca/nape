@@ -224,23 +224,11 @@ class DummyNapeMain {
 		debug.clear();
 		c.addChild(debug.display);
 
-		var col = [0x404000,0x400000,0x4000,0x400040,0x4040,0x40];
-		var colv = 0;
-
 		c.stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function (_) {
 			P.push(new Vec2(c.mouseX,c.mouseY));
-			debug.drawCircle(new Vec2(c.mouseX,c.mouseY),1,0xffffff);
+			debug.clear();
+			debug.drawFilledPolygon(P,0xffffff);
 			debug.flush();
-			if(P.length>=3) {
-				debug.clear();
-/*				debug.drawPolygon(P,0x202020);
-				var polys = PR(Monotone).decompose(P);
-				for(p in polys) debug.drawPolygon(p,col[(colv=(colv+1)%col.length)]);*/
-
-				PR(Greene).decompose(P);
-
-				debug.flush();
-			}
 		});
 	}
 

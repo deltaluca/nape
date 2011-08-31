@@ -203,6 +203,30 @@ class Debug {
 
 	public function drawPolygon (poly:Array<Vec2>, colour:Int):Void {}
 
+	//this method is generally not as effecient as could be with the container casts to arrays etc!
+	public function drawFilledPolygon (poly:Array<Vec2>, colour:Int) {
+		DEBUG(if(poly==null) throw "Error: Cannot render null polygon";)
+		if(poly.length<3) drawPolygon(poly,colour);
+		else {
+			$(mixin render(gp) {
+				var p = gp.toArray(); //<-- evil
+				var col = Std.int(0xffffff*Math.random()*0.2+0.8*0xffffff);
+				for(i in 1...p.length-1)
+					drawFilledTriangle(p[0],p[i],p[i+1],col);
+			});
+
+			var gpoly = new GeomPoly(poly);
+			if(gpoly.isConvex()) {
+				render(gpoly);
+			}else {
+				//replace this with triangularisation would be better.
+				//but no such util exists yet.
+				var polys = gpoly.convex_decomposition();
+				for(p in polys) render(p);
+			}
+		}
+	}
+
     #end
 }
 

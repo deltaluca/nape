@@ -1,0 +1,101 @@
+package nape.geom;
+$(import);
+
+$(mixin Vertex() PR(GeomVert));
+
+Flags(Winding,
+	prop(UNDEFINED,0)
+	prop(CLOCKWISE,1)
+	prop(ANTICLOCKWISE,2)
+)
+
+WrapList(GeomPoly,List(PR(GeomPoly)),Node(PR(GeomPoly)),$(mixin closure(x) x.outer) $(mixin erusolc(x) x.pr(inner)))
+
+geom(
+
+class GeomPoly {
+	$(mixin verts() pr(inner).vertices);
+	public var pr(inner):PR(GeomPoly);
+
+	public inline function push_vertex(x:Vec2) {
+		mix_circular(Vertex,
+			verts = push_after(verts, Vertex.get(x.x,x.y));
+		)
+	}
+
+	public function new(vertices:Array<Vec2>=null) {
+		pr(inner) = new PR(GeomPoly)(this);
+		if(vertices!=null) {
+			mix_circular(Vertex,
+				for(v in vertices)
+					verts = push_after(verts, Vertex.get(v.x,v.y)); 
+			)
+		}
+	}
+	@:$keep public function toString() {
+		var ret = "GeomPoly[";
+		mix_circular(PR(GeomVert),{
+			for_iter(v, verts, {
+				if(v.prev!=verts) ret += ",";
+				ret += "{"+v.x+","+v.y+"}";
+			});
+		})
+		return ret+"]";
+	}
+
+	$(mixin size_lt_3() ({
+		verts == null || verts.next == null || verts.prev == verts.next;
+	}));
+
+	public function area() {
+		return if(size_lt_3) 0.0;
+		else area(verts);
+	}
+
+	public function winding() {
+		return if(size_lt_3)    Winding.UNDEFINED;
+		else if(clockwise(verts)) Winding.CLOCKWISE;
+		else                      Winding.ANTICLOCKWISE;
+	}
+
+	public function isConvex() {
+		return if(size_lt_3) false;
+		else convex(verts);
+	}
+
+	public function isDegenerate() {
+		return if(size_lt_3) true;
+		else area() < PR(Const).EPSILON;
+	}
+
+	public function convex_decomposition() {
+		var MPs = PR(Greene).decompose(verts);
+		var ret = new GeomPolyList();
+		Iter(MP, MPs, {
+			var x = new GeomPoly();
+			x.verts = MP;
+			ret.add(x);
+		});
+		return ret;
+	}
+	public function monotone_decomposition() {
+		var MPs = PR(Monotone).decompose(verts);
+		var ret = new GeomPolyList();
+		Iter(MP, MPs, {
+			var x = new GeomPoly();
+			x.verts = MP;
+			ret.add(x);
+		});
+		return ret;
+	}
+
+	public function toArray() {
+		var ret = new Array<Vec2>();
+		mix_circular(Vertex,
+			for_iter(p,verts,ret.push(Vec2.get(p.x,p.y)));
+		)
+		return ret;
+	}
+}
+
+)

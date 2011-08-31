@@ -9,8 +9,12 @@ mix_circular(Vertex,
 class PR(PartitionPoly) {
 	public var vertices:Vertex;
 
-	public function new(P:Array<Vec2>) {
-		for(p in P) vertices = push_after(vertices,Vertex.get(p));
+	public function new(P:PR(GeomVert)) {
+		var p = P;
+		do {
+			vertices = push_after(vertices,Vertex.get(p));
+			p = p.next;
+		}while(p!=P);
 	}
 	
 	flibmdel public inline function insert_diagonal(p:Vertex,q:Vertex) {
@@ -21,27 +25,34 @@ class PR(PartitionPoly) {
 	public function partition() {
 		for_iter(c, vertices, c.sort_diagonals());
 
-		var rets:Array<Array<Vec2>> = [];
+		var rets = new List(PR(GeomVert))();
 		make_polygon(vertices, rets);
 
 		return rets;
 	}
 
 	//can we make this iterative rather than recursive?
-	public function make_polygon(start:Vertex, rets:Array<Array<Vec2>>) {
-		var poly:Array<Vec2> = [];
+	//yes, but probably not worth it.
+	public function make_polygon(start:Vertex, rets:List(PR(GeomVert))) {
+		var poly:PR(GeomVert) = null;
 		var next = start;
 		do {
-			poly.push(Vec2.get(next.x,next.y));
+			mix_circular(PR(GeomVert),
+				poly = push_after(poly, PR(GeomVert).get(next.x,next.y));
+			)
 			if(!next.diagonals.empty()) {
 				var diag = next.diagonals.pop_unsafe();
 				if(diag==start)
 					break;
 				else
 					next = make_polygon(next,rets);
-			}else next = next.next;
+			}else {
+				var n = next.next;
+				Free(Vertex,next);
+				next = n;
+			}
 		}while(next!=start);
-		rets.push(poly);
+		rets.add(poly);
 		return next;
 	}
 })
@@ -58,10 +69,14 @@ class Vertex {
 	flibmdel public inline function free () {
 		assert(diagonals.empty(),"diagonals non empty, free PartVertex");
 		helper = null;
+		prev = null;
+		#if !(NAPE_RELEASE_BUILD)
+			vec_set(this.,0,0);
+		#end
 	}
 	flibmdel public inline function alloc() {}
 
-	public static inline function get(x:Vec2) {
+	public static inline function get(x:PR(GeomVert)) {
 		var ret = Get(Vertex);
 		vec_set(ret.,x.);
 		return ret;
@@ -158,7 +173,7 @@ class PR(Monotone) {
 		return p.y<q.y || (p.y==q.y && p.x>q.x);
 	}
 
-	public static function decompose(P:Array<Vec2>) {
+	public static function decompose(P:PR(GeomVert)) {
 	mix_circular(Vertex,
 		var poly = new PR(PartitionPoly)(P);
 
@@ -245,6 +260,7 @@ class PR(Monotone) {
 					}
 			}
 		}
+
 		return poly.partition();
 	)}
 
