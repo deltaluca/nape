@@ -73,11 +73,12 @@ class PR(PartitionPoly) {
 })
 
 //vertex types
-$(mixin START   0);
-$(mixin SPLIT   1);
-$(mixin END     2);
-$(mixin MERGE   3);
-$(mixin REGULAR 4);
+$(mixin START     0);
+$(mixin SPLIT     1);
+$(mixin END       2);
+$(mixin MERGE     3);
+$(mixin REGULAR   4);
+$(mixin COLLINEAR 5);
 
 class Vertex {
 	MixPool(Vertex)
@@ -230,17 +231,24 @@ class PR(Monotone) {
 		for_iter(p, poly.vertices, {
 			queue.add(p);
 
-			//calculate type
-			var b0 = below(p.prev,p);
-			var b1 = below(p.next,p);
-			vec_new(u); vec_sub(p.next.,p., u);
-			vec_new(v); vec_sub(p.prev.,p., v);
-			var cx = vec_cross(u,v) > 0;
-
-			p.type =
-				if  ( b0 &&  b1) cx ? START : SPLIT
-				elif(!b0 && !b1) cx ? END   : MERGE
-				else REGULAR;
+			if(p.next.x==p.x && p.next.y==p.y
+			&& p.prev.x==p.x && p.prev.y==p.y)
+				p.type = COLLINEAR;
+			else {
+				//calculate type
+				vec_new(u); vec_sub(p.next.,p., u);
+				vec_new(v); vec_sub(p.prev.,p., v);
+				var cx = vec_cross(u,v) > 0;
+	
+				p.type = 
+					if(below(p.prev,p)) {
+						if(below(p.next,p)) cx ? START : SPLIT
+						else REGULAR;
+					}else {
+						if(below(p,p.next)) cx ? END : MERGE;
+						else REGULAR;
+					}
+			}
 		});
 
 		//sorted set to hold interesting edges
@@ -309,6 +317,13 @@ class PR(Monotone) {
 							poly.insert_diagonal(v,e.helper);
 						e.helper = v;
 					}
+
+				case COLLINEAR:
+					var pre = v.prev;
+					if(edges.has(pre)) edges.remove(pre);
+
+					edges.insert(v);
+					v.helper = v;
 			}
 		}
 
