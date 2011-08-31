@@ -185,7 +185,35 @@ class PR(Monotone) {
 		return p.y<q.y || (p.y==q.y && p.x>q.x);
 	}
 
-	public static function decompose(P:PR(GeomVert)) {
+	public static function isMonotone(P:Polygon) {
+	mix_circular(Vertex,
+		//find min-max
+		var min = P; var max = P;
+		for_iter(v, P.next,P, {
+			if(v.y < min.y) min = v;
+			if(v.y > max.y) max = v;
+		});
+
+		var ret = true;
+		//check monotonicity
+		var pre = min;
+		for_iter(v, min.next, max, {
+			if(v.y < pre.y) { ret = false; break; }
+			pre = v;
+		});
+
+		if(!ret) return false;
+
+		pr = min;
+		rev_iter(v, min.prev, max, {
+			if(v.y < pre.y) { ret = false; break; }
+			pre = v;
+		});
+
+		return ret;
+	)}
+
+	public static function decompose(P:Polygon) {
 	mix_circular(Vertex,
 		var poly = new PR(PartitionPoly)(P);
 
