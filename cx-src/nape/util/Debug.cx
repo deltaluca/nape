@@ -379,9 +379,7 @@ class ShapeDebug extends Debug {
 	public override function drawPolygon(poly:Array<Vec2>, colour:Int) {
 		DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
 		DEBUG(if(poly==null) throw "Error: Cannot draw null Vec2 list";)
-		DEBUG(
-			for(p in poly) Disposed(p,Vec2);
-		)
+		DEBUG(for(p in poly) Disposed(p,Vec2);)
 
 		var g = pr(inner_zn).graphics;
 		g.lineStyle(0.1,colour&0xffffff,1.0);
@@ -391,7 +389,10 @@ class ShapeDebug extends Debug {
 	}
 
 	public override function drawFilledPolygon (poly:Array<Vec2>, colour:Int) {
+		DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
 		DEBUG(if(poly==null) throw "Error: Cannot draw null polygon!";)
+		DEBUG(for(p in poly) Disposed(p,Vec2);)
+
 		var g = pr(inner_zn).graphics;
 		g.beginFill(colour&0xffffff,1.0);
 		g.lineStyle(0,0,0);
@@ -553,9 +554,7 @@ class BitmapDebug extends Debug {
 	public override function drawPolygon(poly:Array<Vec2>, colour:Int) {
 		DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
 		DEBUG(if(poly==null) throw "Error: Cannot draw null Vec2 list";)
-		DEBUG(
-			for(p in poly) Disposed(p,Vec2);
-		)
+		DEBUG(for(p in poly) Disposed(p,Vec2);)
 
 		var col = colour|0xff000000;
 		var fst = poly[poly.length-1];
@@ -587,7 +586,10 @@ class BitmapDebug extends Debug {
 	}
 
 	public override function drawFilledPolygon(poly:Array<Vec2>, colour:Int) {
+		DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
 		DEBUG(if(poly==null) throw "Error: Cannot render null polygon";)
+		DEBUG(for(p in poly) Disposed(p,Vec2);)
+
 		if(poly.length<3) drawPolygon(poly,colour);
 		else {
 			$(mixin render(gp) {
@@ -598,6 +600,8 @@ class BitmapDebug extends Debug {
 
 			var gpoly = new GeomPoly(poly);
 			if(!gpoly.isSimple()) {
+				//later, should perform a 'simplification' of the complex polygon
+				//instead of aborting and rendering as a line loop.
 				drawPolygon(poly,colour);
 			}else {
 				if(gpoly.isConvex()) {
