@@ -412,12 +412,13 @@ class PR(Greene) {
 		Iter(MP,MPs,ga_convex_decomposition(MP,rets));
 
 		#if NAPE_ASSERT
-			var area = geom(signed_area(P));
+			//don't use signed_area as P may have been reversed in monotone decomposition if it were CCW
+			var area = geom(area(P));
 			var retarea = 0.0;
 			Iter(p,rets,retarea += geom(signed_area(p)));
 			
 			var darea = retarea-area;
-			assert(darea*darea < PR(Const).EPSILON, "Greene output has different area?!");
+			assert(darea*darea < PR(Const).EPSILON, "Greene output has different area?! area="+area+" retarea="+retarea);
 		#end
 
 		return rets;

@@ -23,9 +23,14 @@ class PR(PartitionPoly) {
 
 	public function new(P:PR(GeomVert)) {
 		var p = P;
+		var cw = geom(clockwise(P));
 		do {
-			if(!(p.prev.y == p.y && p.next.y==p.y))
-				vertices = push_after(vertices,Vertex.get(p));
+			if(!(p.prev.y == p.y && p.next.y==p.y)) {
+				vertices = if(cw)
+					push_after(vertices,Vertex.get(p));
+				else
+					push_before(vertices,Vertex.get(p));
+			}
 			p = p.next;
 		}while(p!=P);
 	}
@@ -328,10 +333,15 @@ class PR(Monotone) {
 
 		#if NAPE_ASSERT
 			var ret = poly.partition();
-			var area = geom(signed_area(P));
+			//don't use signed area since P may have been reversed if it was not clockwise at entry
+			var area = geom(area(P));
 
 			var retarea = 0.0;
-			Iter(p,ret,retarea += geom(signed_area(p)));
+			Iter(p,ret,{
+				var elm = geom(signed_area(p));
+				retarea += elm;
+				assert(elm>0,"Monotone output degenerate area or non-clockwise");
+			});
 
 			var darea = area-retarea;
 			assert(darea*darea < PR(Const).EPSILON, "Monotone output set has different area!?");

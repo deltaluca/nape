@@ -53,9 +53,13 @@ class GeomPoly {
 	}
 
 	public function winding() {
-		return if(size_lt_3)      Winding.UNDEFINED;
-		else if(clockwise(verts)) Winding.CLOCKWISE;
-		else                      Winding.ANTICLOCKWISE;
+		return if(size_lt_3) Winding.UNDEFINED
+		else {
+			var area = signed_area(verts);
+			if  (area >0) Winding.CLOCKWISE;
+			elif(area==0) Winding.UNDEFINED;
+			else          Winding.ANTICLOCKWISE;
+		}
 	}
 
 	public function isClockwise() return winding()==Winding.CLOCKWISE
@@ -66,7 +70,7 @@ class GeomPoly {
 	}
 
 	public function isMonotone() {
-		return if(size_lt_3) true;
+		return if(size_lt_3) true
 		else PR(Monotone).isMonotone(verts);
 	}
 
