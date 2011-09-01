@@ -24,7 +24,8 @@ class PR(PartitionPoly) {
 	public function new(P:PR(GeomVert)) {
 		var p = P;
 		do {
-			vertices = push_after(vertices,Vertex.get(p));
+			if(!(p.prev.y == p.y && p.next.y==p.y))
+				vertices = push_after(vertices,Vertex.get(p));
 			p = p.next;
 		}while(p!=P);
 	}
@@ -113,15 +114,24 @@ class Vertex {
 
 	//used by RBTree Set
 	//Note: this = Edge
+	//
+	//returns true if 'this' edge should be placed to the right graphically of 'q'
 	public function rb_lt(q:Edge) {
 		vec_new(u); vec_new(v);
 		var flip:Bool;
 		$(mixin comp_x_at_y(vertex,edge) ({
-			//assume edge not horizontal
-			flip = edge.next.y > edge.y;
-			vec_sub(edge.next.,edge., u);
-			vec_sub(vertex.,edge.,v);
-			/*return*/ flip ? vec_cross(v,u) : vec_cross(u,v);
+			var minx:Float, maxx:Float;
+			if(edge.x > edge.next.x) { minx = edge.next.x; maxx = edge.x; }
+			else                     { minx = edge.x; maxx = edge.next.x; }
+			if  (vertex.x > maxx)  1;
+			elif(vertex.x < minx) -1;
+			else {
+				//assume edge not horizontal
+				flip = edge.next.y > edge.y;
+				vec_sub(edge.next.,edge., u);
+				vec_sub(vertex.,edge.,v);
+				/*return*/ flip ? vec_cross(v,u) : vec_cross(u,v);
+			}
 		}));
 		$(mixin lrg_x_vertex_y(edge,vertex) ({
 			if(edge.y==edge.next.y) {
@@ -132,11 +142,11 @@ class Vertex {
 				comp_x_at_y(vertex,edge) < 0;
 		}));
 
-		if  (this==q && next==q.next) return false;
+		if  (this==q && next==q.next) { assert(false,"Same edge inserted to tree??"); return false; }
 		elif(this==q.next) return  lrg_x_vertex_y(this,q);
 		elif(next==q)      return !lrg_x_vertex_y(q,this);
-		elif(this==q)      return  lrg_x_vertex_y(this,q.next);
-		elif(next==q.next) return  lrg_x_vertex_y(this,q);
+		elif(this==q)      return  { assert(false,"This should never happen in a polygon(1)"); lrg_x_vertex_y(this,q.next); }
+		elif(next==q.next) return  { assert(false,"this should never happen in a polygon(2)"); lrg_x_vertex_y(this,q); }
 		//neither endpoint shared
 		elif(this.y==next.y) {
 			if(q.y==q.next.y) {
@@ -186,8 +196,9 @@ class Vertex {
 class PR(Monotone) {
 
 	public static inline function below(p:Vertex,q:Vertex) {
-		return p.y<q.y || (p.y==q.y && p.x>q.x);
+		return p.y<q.y || (p.y==q.y && p.x<q.x);
 	}
+	public static inline function above(p:Vertex,q:Vertex) return below(q,p)
 
 	public static function isMonotone(P:PR(GeomVert)) {
 	mix_circular(Vertex,
@@ -230,31 +241,25 @@ class PR(Monotone) {
 		var queue = new List(Vertex)();
 		for_iter(p, poly.vertices, {
 			queue.add(p);
+			//calculate type
+			vec_new(u); vec_sub(p.next.,p., u);
+			vec_new(v); vec_sub(p.prev.,p., v);
+			var cx = vec_cross(u,v) > 0;
 
-			if(p.next.x==p.x && p.next.y==p.y
-			&& p.prev.x==p.x && p.prev.y==p.y)
-				p.type = COLLINEAR;
-			else {
-				//calculate type
-				vec_new(u); vec_sub(p.next.,p., u);
-				vec_new(v); vec_sub(p.prev.,p., v);
-				var cx = vec_cross(u,v) > 0;
-	
-				p.type = 
-					if(below(p.prev,p)) {
-						if(below(p.next,p)) cx ? START : SPLIT
-						else REGULAR;
-					}else {
-						if(below(p,p.next)) cx ? END : MERGE;
-						else REGULAR;
-					}
-			}
+			p.type = 
+				if(below(p.prev,p)) {
+					if(below(p.next,p)) cx ? START : SPLIT
+					else REGULAR;
+				}else {
+					if(below(p,p.next)) cx ? END : MERGE;
+					else REGULAR;
+				}
 		});
 
 		//sorted set to hold interesting edges
 		var edges = new Set(Vertex)();
 		//process away!
-		Sort(queue,Node(Vertex),!below);
+		Sort(queue,Node(Vertex),above);
 		while(!queue.empty()) {
 			var v = queue.pop_unsafe();
 			switch(v.type) {
@@ -317,13 +322,6 @@ class PR(Monotone) {
 							poly.insert_diagonal(v,e.helper);
 						e.helper = v;
 					}
-
-				case COLLINEAR:
-					var pre = v.prev;
-					if(edges.has(pre)) edges.remove(pre);
-
-					edges.insert(v);
-					v.helper = v;
 			}
 		}
 

@@ -28,11 +28,18 @@ class Event {
 		vec_new(u); vec_new(v);
 		var flip:Bool;
 		$(mixin comp_y_at_x(vertex,edge) ({
-			//assume edge not vertical
-			flip = edge.other.x < edge.x;
-			vec_sub(edge.other.,edge., u);
-			vec_sub(vertex.,edge.,v);
-			/*return*/ flip ? vec_cross(v,u) : vec_cross(u,v);
+			var miny:Float, maxy:Float;
+			if(edge.y > edge.other.y) { miny = edge.other.y; maxy = edge.y; }
+			else                      { miny = edge.y; maxy = edge.other.y; }
+			if  (vertex.y > maxy) /*return*/ 1;
+			elif(vertex.y < miny) /*return*/-1;
+			else {
+				//assume edge not vertical
+				flip = edge.other.x < edge.x;
+				vec_sub(edge.other.,edge., u);
+				vec_sub(vertex.,edge.,v);
+				/*return*/ flip ? vec_cross(v,u) : vec_cross(u,v);
+			}
 		}));
 		$(mixin lrg_y_vertex_x(edge,vertex) ({
 			if(edge.x==edge.other.x) {
