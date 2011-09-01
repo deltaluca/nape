@@ -384,8 +384,19 @@ class ShapeDebug extends Debug {
 		var g = pr(inner_zn).graphics;
 		g.lineStyle(0.1,colour&0xffffff,1.0);
 		var fst = poly[poly.length-1];
-		g.moveTo(fst.x,fst.y);
-		for(p in poly) g.lineTo(p.x,p.y);
+		if(pr(inner).xnull) {
+			g.moveTo(fst.x,fst.y);
+			for(p in poly) g.lineTo(p.x,p.y);
+		}else {
+			var v = pr(inner).xform.outer.transform(fst);
+			g.moveTo(v.x,v.y);
+			v.dispose();
+			for(p in poly) {
+				var v = pr(inner).xform.outer.transform(p);
+				g.lineTo(v.x,v.y);
+				v.dispose();
+			}
+		}
 	}
 
 	public override function drawFilledPolygon (poly:Array<Vec2>, colour:Int) {
@@ -397,8 +408,19 @@ class ShapeDebug extends Debug {
 		g.beginFill(colour&0xffffff,1.0);
 		g.lineStyle(0,0,0);
 		var fst = poly[poly.length-1];
-		g.moveTo(fst.x,fst.y);
-		for(p in poly) g.lineTo(p.x,p.y);
+		if(pr(inner).xnull) {
+			g.moveTo(fst.x,fst.y);
+			for(p in poly) g.lineTo(p.x,p.y);
+		}else {
+			var v = pr(inner).xform.outer.transform(fst);
+			g.moveTo(v.x,v.y);
+			v.dispose();
+			for(p in poly) {
+				var v = pr(inner).xform.outer.transform(p);
+				g.lineTo(v.x,v.y);
+				v.dispose();
+			}
+		}
 		g.endFill();
 	}
     ///---------------------------------------------------------------------------------------------
