@@ -74,7 +74,7 @@ class PR(Chain) {
 class PR(Greene) {
 	
 	public static inline function less_yx(a:Vertex,b:Vertex) {
-		return a.y < b.y || (a.y==b.y && a.x<b.x);
+		return a.y<b.y || (a.y==b.y && a.x<b.x);
 	}
 
 	public static inline function left_turn(a:Vertex,b:Vertex,c:Vertex) {
@@ -94,17 +94,11 @@ class PR(Greene) {
 		else return false;
 	}
 
-	public static var cols = [0xff0000,0xffffff,0xff00,0xff,0xffff,0xff00ff,0xffff00,0xff8000,0x808080];
-	public static var ccol = 0;
-	$(mixin render(poly) {
-		var colour = cols[(ccol = ((ccol+1)%cols.length))];
-		var fst = Vec2.get(poly.x,poly.y);
-		for_iter(u,poly, {
-			var v = u.next;
-			if(u!=poly && v!=poly) {
-				DummyNapeMain.debug.drawFilledTriangle(Vec2.get(u.x,u.y),Vec2.get(v.x,v.y),fst,colour);
-			}
-		});
+	$(mixin check_polygon(poly) {
+		#if NAPE_ASSERT
+			if(!geom(convex(poly))) throw "Error ASSERTION: Green output not convex!";
+			if(!geom(clockwise(poly))) throw "Error ASSERTION: Green output not convex-clockwise!";
+		#end
 	});
 
 	public static inline function visible(polygon:Polygon, new_point_ref:Vertex, stack:PR(Chain), bottom:PR(Chain), top:PR(Chain), rets:List(Polygon)) {
@@ -128,8 +122,10 @@ class PR(Greene) {
 				}
 
 				//check degeneracy of npoly
-				if(!geom(degenerate(npoly)))
+				if(!geom(degenerate(npoly))) {
+					check_polygon(npoly);
 					rets.add(npoly);
+				}
 
 				bottom.push_back(stack.back);
 				if(stack.back==stack.front) {
@@ -189,8 +185,10 @@ class PR(Greene) {
 				}
 
 				//check degeneracy
-				if(!geom(degenerate(npoly)))
+				if(!geom(degenerate(npoly))) {
+					check_polygon(npoly);
 					rets.add(npoly);
+				}
 
 				if(stack.front==stack.back) {
 					done = true;
@@ -243,8 +241,10 @@ class PR(Greene) {
 				}
 
 				//check degeneracy
-				if(!geom(degenerate(npoly)))
+				if(!geom(degenerate(npoly))) {
+					check_polygon(npoly);
 					rets.add(npoly);
+				}
 
 				bottom.initialise(stack.back);
 				if(stack.back==stack.front) {
@@ -296,20 +296,24 @@ class PR(Greene) {
 				for_iter(v, stack.back, next_point_ref, npoly = push_after(npoly,Vertex.get(v.x,v.y)));
 				erase(bottom.back, high_point_ref);
 				bottom.push_back(stack.back);
-				polygon = stack.back;
+				polygon = high_point_ref;
 			}
 
 			//check degeneracy
-			if(!geom(degenerate(npoly)))
+			if(!geom(degenerate(npoly))) {
+				check_polygon(npoly);
 				rets.add(npoly);
+			}
 			
 			stack.pop_back();
 		}
 
 		var npoly:Polygon = null;
 		for_iter(v, polygon, npoly = push_after(npoly,Vertex.get(v.x,v.y)));
-		if(!geom(degenerate(npoly)))
+		if(!geom(degenerate(npoly))) {
+			check_polygon(npoly);
 			rets.add(npoly);
+		}
 	}
 
 	public static inline function find_smallest_yx(polygon:Polygon) {
@@ -322,10 +326,12 @@ class PR(Greene) {
 			}while(less_yx(current,polygon));
 		}else {
 			current = polygon.prev;
-			do {
-				polygon = current;
-				current = current.prev;
-			}while(less_yx(current,polygon));
+			if(less_yx(current,polygon)) {
+				do {
+					polygon = current;
+					current = current.prev;
+				}while(less_yx(current,polygon));
+			}
 		}
 		return polygon;
 	}
@@ -404,6 +410,16 @@ class PR(Greene) {
 		var MPs = PR(Monotone).decompose(P);
 		var rets = new List(Polygon)();
 		Iter(MP,MPs,ga_convex_decomposition(MP,rets));
+
+		#if NAPE_ASSERT
+			var area = geom(signed_area(P));
+			var retarea = 0.0;
+			Iter(p,rets,retarea += geom(signed_area(p)));
+			
+			var darea = retarea-area;
+			assert(darea*darea < PR(Const).EPSILON, "Greene output has different area?!");
+		#end
+
 		return rets;
 	}
 }
