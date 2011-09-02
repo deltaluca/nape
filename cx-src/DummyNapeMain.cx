@@ -224,12 +224,38 @@ class DummyNapeMain {
 
 		$(mixin v2(x,y) Vec2.get(x,y));
 
-//		P = [v2(50,50),v2(250,50),v2(250,250),v2(125,250),v2(125,200),v2(175,200),v2(175,100),v2(75,100),v2(75,200),v2(125,200),v2(125,225),v2(125,250),v2(50,250)];
-		P = [v2(50,50),v2(150,50),v2(125,75),v2(50,50),v2(100,100),v2(150,200),v2(150,150),v2(250,50),v2(150,100),v2(150,50),v2(250,50),v2(150,200)];
+//		P = [v2(0,0),v2(200,0),v2(200,200),v2(100,200),v2(100,175),v2(100,150),v2(150,150),v2(150,50),v2(50,50),v2(50,150),v2(100,150),v2(100,175),v2(100,200),v2(0,200)];		
+
+		P = [v2(0,0),v2(300,0),v2(300,100),v2(100,100),v2(100,200),v2(50,200),v2(50,300),v2(50,200),v2(100,200),
+			 v2(200,100),v2(300,100),
+			 v2(300,300),v2(150,300),v2(150,400),v2(-50,400)];
+//		P = [v2(0,0),v2(300,0),v2(300,200),v2(260,100),v2(225,150),v2(235,100),v2(235,100),v2(225,150),v2(260,100),v2(300,200),v2(300,300),v2(0,300)];
 
 		debug = new BitmapDebug(600,600,0x333333);
 		debug.clear();
+		debug.transform.tx = 100;
+		debug.transform.ty = 100;
 		c.addChild(debug.display);
+
+//		debug.drawFilledPolygon(P,0x808080);
+		$(mixin grey() {
+			var col = Std.int(0x60*Math.random())+0x60;
+			var col1 = Std.int(0x60*Math.random())+0x60;
+			var col2 = Std.int(0x60*Math.random())+0x60;
+			col | (col1<<16) | (col2<<8);
+		});
+		for(p in (new GeomPoly(P)).convex_decomposition()) debug.drawFilledPolygon(p.toArray(),grey);
+
+		debug.drawPolygon(P,0xff0000);
+		var index = 0;
+		for(p in P)
+			debug.drawFilledCircle(p,2,0xffff);
+		debug.flush();
+
+//		for(p in (new GeomPoly(P)).monotone_decomposition()) debug.drawPolygon(p.toArray(),0xffffff);
+//		debug.flush();
+		return;
+
 
 		var mdown = false;
 		c.stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function (_) {
@@ -247,8 +273,22 @@ class DummyNapeMain {
 
 			if(P.length>3) {
 				debug.clear();
-				debug.drawFilledPolygon(P,0x808080);
-				debug.drawPolygon(P,((new GeomPoly(P)).isSimple()) ? 0xff0000 : 0xffffff);
+
+		debug.drawFilledPolygon(P,0x808080);
+		$(mixin grey() {
+			var col = Std.int(0x60*Math.random())+0x60;
+			col | (col<<16) | (col<<8);
+		});
+//		for(p in (new GeomPoly(P)).convex_decomposition()) debug.drawFilledPolygon(p.toArray(),grey);
+
+		debug.drawPolygon(P,0xff0000);
+		var index = 0;
+		for(p in P)
+			debug.drawFilledCircle(p,2,0xffff);
+
+
+//				debug.drawFilledPolygon(P,0x808080);
+//				debug.drawPolygon(P,((new GeomPoly(P)).isSimple()) ? 0xff0000 : 0xffffff);
 //				for(i in P) debug.drawCircle(i,1.5,0xff8000);
 //				if((new GeomPoly(P)).isSimple()) {
 //					try {

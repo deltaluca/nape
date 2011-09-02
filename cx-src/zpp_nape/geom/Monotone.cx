@@ -25,7 +25,7 @@ class PR(PartitionPoly) {
 		var p = P;
 		var cw = geom(clockwise(P));
 		do {
-			if(!(p.prev.y == p.y && p.next.y==p.y)) {
+			if(!(p.prev.y == p.y && p.next.y==p.y) && !(p.prev.x==p.x && p.next.x==p.x)) {
 				vertices = if(cw)
 					push_after(vertices,Vertex.get(p));
 				else
@@ -126,18 +126,33 @@ class Vertex {
 		vec_new(u); vec_new(v);
 		var flip:Bool;
 		$(mixin comp_x_at_y(vertex,edge) ({
-			var minx:Float, maxx:Float;
-			if(edge.x > edge.next.x) { minx = edge.next.x; maxx = edge.x; }
-			else                     { minx = edge.x; maxx = edge.next.x; }
-			if  (vertex.x > maxx)  1;
-			elif(vertex.x < minx) -1;
-			else {
+			var ret:Float = 0;
+
+			var min:Vertex; var max:Vertex;
+			if(edge.x > edge.next.x) { min = edge.next; max = edge; }
+			else                     { min = edge; max = edge.next; }
+
+			if  (vertex.x > max.x) ret = 1;
+			elif(vertex.x < min.x) ret =-1;
+			elif(vertex.x == min.x) {
+				var lv = PR(Monotone).left_vertex(vertex);
+				var lm = PR(Monotone).left_vertex(min);
+				if(lm && !lv) ret = -1;
+			}elif(vertex.x == max.x) {
+				var lv = PR(Monotone).left_vertex(vertex);
+				var lm = PR(Monotone).left_vertex(max);
+				if(lv && !lm) ret = 1;
+			}
+			
+			if(ret==0) {
 				//assume edge not horizontal
 				flip = edge.next.y > edge.y;
 				vec_sub(edge.next.,edge., u);
 				vec_sub(vertex.,edge.,v);
-				/*return*/ flip ? vec_cross(v,u) : vec_cross(u,v);
+				ret = flip ? vec_cross(v,u) : vec_cross(u,v);
 			}
+
+			ret;
 		}));
 		$(mixin lrg_x_vertex_y(edge,vertex) ({
 			if(edge.y==edge.next.y) {
@@ -202,9 +217,41 @@ class Vertex {
 class PR(Monotone) {
 
 	public static inline function below(p:Vertex,q:Vertex) {
-		return p.y<q.y || (p.y==q.y && p.x<q.x);
+		if  (p.y<q.y) return true;
+		elif(p.y>q.y) return false;
+		else {
+			if  (p.x<q.x) return true;
+			elif(p.x>q.x) return false;
+			else {
+				var lp = left_vertex(p);
+				var lq = left_vertex(q);
+				if  (lq && !lp) return true;
+				elif(!lq && lp) return false;
+				else {
+					lp = down_vertex(p);
+					lq = down_vertex(q);
+					if  (lq && !lp) return false;
+					elif(!lq && lp) return true;
+					else return true; //give up!
+				}
+			}
+		}
 	}
 	public static inline function above(p:Vertex,q:Vertex) return below(q,p)
+
+	//down_vertex(p) if polygon exists down from p.
+	public static inline function down_vertex(v:Vertex) {
+		var pre = v.prev;
+		var nxt = v.next;
+		return pre.x > v.x || (pre.x==v.x && nxt.x < v.x);
+	}
+
+	//left_vertex(p) if polygon exists to the right of p.
+	public static inline function left_vertex(v:Vertex) {
+		var pre = v.prev;
+		var nxt = v.next;
+		return pre.y > v.y || (pre.y==v.y && nxt.y < v.y);
+	}
 
 	public static function isMonotone(P:PR(GeomVert)) {
 	mix_circular(Vertex,
@@ -268,6 +315,9 @@ class PR(Monotone) {
 		Sort(queue,Node(Vertex),above);
 		while(!queue.empty()) {
 			var v = queue.pop_unsafe();
+//			trace("--");
+//			trace([v.x,v.y,["start","split","end","merge","regular"][v.type]]);
+//			SetIter(e,edges,trace([e.x,e.y,["start","split","end","merge","regular"][e.type],e.helper.x,e.helper.y]));
 			switch(v.type) {
 				case START:
 					v.helper = v;
@@ -283,6 +333,7 @@ class PR(Monotone) {
 
 				case SPLIT:
 					var e = edges.lower_bound(v);
+//					trace(e==null ? "null" : Std.string([e.x,e.y]));
 					if(e!=null) {
 						DEBUG(if(e.helper==null) throw "FATAL ERROR (Monotone 2) : Polygon is not simple + CW, but was not caught sooner!";)
 						poly.insert_diagonal(v,e.helper);
@@ -301,6 +352,7 @@ class PR(Monotone) {
 					DEBUG(e.helper = null;)
 
 					var e = edges.lower_bound(v);
+//					trace(e==null ? "null" : Std.string([e.x,e.y]));
 					if(e!=null) {
 						DEBUG(if(e.helper==null) throw "FATAL ERROR (Monotone 4) : Polygon is not simple + CW, but was not caught sooner!";)
 						if(e.helper.type == MERGE)
@@ -310,8 +362,7 @@ class PR(Monotone) {
 
 				case REGULAR:
 					var pre = v.prev;
-					var nxt = v.next;
-					if(pre.y > v.y || (pre.y==v.y && nxt.y < v.y)) {
+					if(left_vertex(v)) {
 						DEBUG(if(pre.helper==null) throw "FATAL ERROR (Monotone 5) : Polygon is not simple + CW, but was not caught sooner!";)
 						if(pre.helper.type == MERGE)
 							poly.insert_diagonal(v,pre.helper);
@@ -323,6 +374,7 @@ class PR(Monotone) {
 
 					}else {
 						var e = edges.lower_bound(v);
+//						trace(e==null ? "null" : Std.string([e.x,e.y]));
 						DEBUG(if(e==null || e.helper==null) throw "FATAL ERROR (Monotone 6) : Polygon is not simple + CW, but was not caught sooner!";)
 						if(e.helper.type == MERGE)
 							poly.insert_diagonal(v,e.helper);
