@@ -67,25 +67,24 @@ $(expand genSet(T) class Set(T) {
 
 	public function empty() return parent==null	
 
-	public inline function has(obj:T) {
-		var cur = obj.rb_set;
-		while(cur!=null && cur!=parent) cur = cur.parent;
-		return cur!=null;
+	public inline function has(obj:T) return find(obj)!=null
+	public inline function find(obj:T) {
+		var cur = parent;
+		while(cur!=null && cur.data!=obj) {
+			if(lt(obj,cur.data)) cur = cur.prev;
+			else                 cur = cur.next;
+		}
+		return cur;
 	}
 
 	public inline function lower_bound(obj:T) {
 		return SetLowerBound(obj,this,lt);
 	}
 
-	inline function might_has(obj:T) {
-		#if NAPE_ASSERT
-			if(!has(obj)) throw "Assertion: not in tree :(";
-		#end
-	}
-
 	public inline function remove(obj:T) {
-		might_has(obj);
-		remove_node(obj.rb_set);
+		var node = find(obj);
+		assert(node!=null,"object not in tree");
+		remove_node(node);
 	}
 
 	$(mixin set_link(cur,link,obj) { cur.link = obj; if(obj!=null) obj.parent = cur; });
@@ -99,8 +98,8 @@ $(expand genSet(T) class Set(T) {
 	});
 	
 	public inline function successor(obj:T) {
-		might_has(obj);
-		var cur = obj.rb_set;
+		var cur = find(obj);
+		assert(cur!=null,"object not in tree :(");
 		if(cur.next!=null) {
 			cur = cur.next;
 			while(cur.prev!=null) cur = cur.prev;
@@ -112,8 +111,8 @@ $(expand genSet(T) class Set(T) {
 		return cur == null ? null : cur.data;
 	}
 	public inline function predecessor(obj:T) {
-		might_has(obj);
-		var cur = obj.rb_set;
+		var cur = find(obj);
+		assert(cur!=null,"object not in tree :(");
 		if(cur.prev!=null) {
 			cur = cur.prev;
 			while(cur.next!=null) cur = cur.next;
@@ -131,7 +130,6 @@ $(expand genSet(T) class Set(T) {
 			var sm = cur.next;
 			while(sm.prev!=null) sm = sm.prev;
 			swap(cur.data,sm.data);
-			swap(cur.data.rb_set,sm.data.rb_set);
 			cur = sm;
 		}
 
@@ -181,7 +179,6 @@ $(expand genSet(T) class Set(T) {
 		rep_node(cur,child);
 
 		cur.parent = cur.prev = cur.next = null;
-		cur.data.rb_set = null;
 		Free(Set(T),cur);
 	}
 
@@ -194,7 +191,6 @@ $(expand genSet(T) class Set(T) {
 		if(node.prev!=null) clear_node(node.prev);
 		if(node.next!=null) clear_node(node.next);
 		node.parent = node.prev = node.next = null;
-		node.data.rb_set = null;
 		Free(Set(T),node);
 	}
 
@@ -208,7 +204,6 @@ $(expand genSet(T) class Set(T) {
 			negred.colour = parent.colour = BLACK;
 			set_link(negred,R,trl);
 			swap(parent.data,nr.data);
-			swap(parent.data.rb_set,nr.data.rb_set);
 			set_link(nr,L,trr);
 			set_link(nr,R,parent.R);
 			set_link(parent,R,nr);
@@ -296,7 +291,5 @@ $(expand genSet(T) class Set(T) {
 			x.colour = RED;
 			if(x.parent.colour==RED) __fix_dbl_red(x);
 		}
-
-		obj.rb_set = x;
 	}
 });
