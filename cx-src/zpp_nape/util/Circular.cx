@@ -138,7 +138,14 @@ $(mixin global circular(T, defs, block)
 	});
 
 	$(mixin clear(node) {
-		while(!empty(node)) node = pop_ret_after(T,node)
+		while(!empty(node)) node = pop_ret_after(node)
+	});
+	$(mixin clear_with(node,cb) {
+		while(!empty(node)) {
+			var tmp = node;
+			node = pop_ret_after(node);
+			cb(tmp);
+		}
 	});
 
 	//------------------------------------------------------------------------------------
@@ -147,7 +154,7 @@ $(mixin global circular(T, defs, block)
 		node==null
 	));
 	$(mixin singular(node) (
-		node!=null && node.next==node.prev
+		node!=null && node.next==node
 	));
 
 	//------------------------------------------------------------------------------------

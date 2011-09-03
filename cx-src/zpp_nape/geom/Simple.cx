@@ -28,18 +28,11 @@ class Event {
 		vec_new(u); vec_new(v);
 		var flip:Bool;
 		$(mixin comp_y_at_x(vertex,edge) ({
-			var miny:Float, maxy:Float;
-			if(edge.y > edge.other.y) { miny = edge.other.y; maxy = edge.y; }
-			else                      { miny = edge.y; maxy = edge.other.y; }
-			if  (vertex.y > maxy) /*return*/ 1;
-			elif(vertex.y < miny) /*return*/-1;
-			else {
-				//assume edge not vertical
-				flip = edge.other.x < edge.x;
-				vec_sub(edge.other.,edge., u);
-				vec_sub(vertex.,edge.,v);
-				/*return*/ flip ? vec_cross(v,u) : vec_cross(u,v);
-			}
+			//assume edge not vertical
+			flip = edge.other.x < edge.x;
+			vec_sub(edge.other.,edge., u);
+			vec_sub(vertex.,edge.,v);
+			/*return*/ flip ? vec_cross(v,u) : vec_cross(u,v);
 		}));
 		$(mixin lrg_y_vertex_x(edge,vertex) ({
 			if(edge.x==edge.other.x) {
@@ -78,6 +71,7 @@ class Event {
 		vertex = null;
 		other = null;
 		fst = null;
+		prev = null;
 	}
 	flibmdel public inline function alloc() {}
 
@@ -93,7 +87,11 @@ class Event {
 class Sweep {
 	public var tree:Set(Event);
 	public function new() {
-		tree = new Set(Event)();
+		tree = Get(Set(Event));
+	}
+
+	public inline function clear() {
+		tree.clear();
 	}
 
 	public inline function add(e:Event) {
@@ -142,7 +140,10 @@ mix_circular(Vertex,
 		return a.x<b.x || (a.x==b.x && a.y<b.y);
 	}
 
+	public static var sweep:Sweep;
 	public static function isSimple(poly:Polygon) {
+		if(sweep==null) sweep = new Sweep();
+
 		var queue = new List(Event)();
 		for_iter(v,poly,{
 			var e1 = queue.add(Event.get(v));
@@ -153,24 +154,40 @@ mix_circular(Vertex,
 		});
 		Sort(queue,Node(Event),less_xy);
 
-		var sweep = new Sweep();
+		var ret = true;
+
 		while(!queue.empty()) {
 			var e = queue.pop_unsafe();
 			if(e.left) {
 				sweep.add(e);
 				if(sweep.intersect(e,e.next)
-				|| sweep.intersect(e,e.prev))
-					return false;
+				|| sweep.intersect(e,e.prev)) {
+					ret = false;
+					break;
+				}
 			}else {
 				var s = e.other;
-				if(sweep.intersect(s.next,s.prev))
-					return false;
+				if(sweep.intersect(s.next,s.prev)) {
+					ret = false;
+					break;
+				}
 				sweep.remove(s);
-				//recycle e and s!
+				//release to object pools
+				Free(Event,s);
+				Free(Event,e);
 			}
 		}
 
-		return true;
+		//release anything remaining by early exiting to object pools
+		while(!queue.empty()) {
+			var e = queue.pop_unsafe();
+			if(e.left) e.other.other = null;
+			else if(e.other!=null) Free(Event,e.other);
+			Free(Event,e);
+		}
+		sweep.clear();
+
+		return ret;
 	}
 
 )}

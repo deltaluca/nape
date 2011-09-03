@@ -89,7 +89,6 @@ $(mixin SPLIT     1);
 $(mixin END       2);
 $(mixin MERGE     3);
 $(mixin REGULAR   4);
-$(mixin COLLINEAR 5);
 
 class Vertex {
 	MixPool(Vertex)
@@ -97,9 +96,7 @@ class Vertex {
 		assert(diagonals.empty(),"diagonals non empty, free PartVertex");
 		helper = null;
 		prev = null;
-		#if !(NAPE_RELEASE_BUILD)
-			vec_set(this.,0,0);
-		#end
+		DEBUG(vec_set(this.,0,0);)
 	}
 	flibmdel public inline function alloc() {}
 
@@ -150,33 +147,11 @@ class Vertex {
 		vec_new(u); vec_new(v);
 		var flip:Bool;
 		$(mixin comp_x_at_y(vertex,edge) ({
-			var ret:Float = 0;
-
-			var min:Vertex; var max:Vertex;
-			if(edge.x > edge.next.x) { min = edge.next; max = edge; }
-			else                     { min = edge; max = edge.next; }
-
-			if  (vertex.x > max.x) ret = 1;
-			elif(vertex.x < min.x) ret =-1;
-			elif(vertex.x == min.x) {
-				var lv = PR(Monotone).left_vertex(vertex);
-				var lm = PR(Monotone).left_vertex(min);
-				if(lm && !lv) ret = -1;
-			}elif(vertex.x == max.x) {
-				var lv = PR(Monotone).left_vertex(vertex);
-				var lm = PR(Monotone).left_vertex(max);
-				if(lv && !lm) ret = 1;
-			}
-			
-			if(ret==0) {
-				//assume edge not horizontal
-				flip = edge.next.y > edge.y;
-				vec_sub(edge.next.,edge., u);
-				vec_sub(vertex.,edge.,v);
-				ret = flip ? vec_cross(v,u) : vec_cross(u,v);
-			}
-
-			ret;
+			//assume edge not horizontal
+			flip = edge.next.y > edge.y;
+			vec_sub(edge.next.,edge., u);
+			vec_sub(vertex.,edge.,v);
+			flip ? vec_cross(v,u) : vec_cross(u,v);
 		}));
 		$(mixin lrg_x_vertex_y(edge,vertex) ({
 			if(edge.y==edge.next.y) {
@@ -245,10 +220,8 @@ class PR(Monotone) {
 		var c = b.next;
 		vec_new(u); vec_sub(b.,a.,u);
 		vec_new(v); vec_sub(c.,b.,v);
-
-		vec_normalise(u);
-		vec_normalise(v);
-
+//		vec_normalise(u);
+//		vec_normalise(v);
 		var ret = PR(Vec2).get(-uy-vy,ux+vx);
 		vec_normalise(ret.);
 		if(vec_cross(u,v) < 0) vec_negate(ret.);
@@ -341,9 +314,6 @@ class PR(Monotone) {
 		Sort(queue,Node(Vertex),above);
 		while(!queue.empty()) {
 			var v = queue.pop_unsafe();
-//			trace("--");
-//			trace([v.x,v.y,["start","split","end","merge","regular"][v.type]]);
-//			SetIter(e,edges,trace([e.x,e.y,["start","split","end","merge","regular"][e.type],e.helper.x,e.helper.y]));
 			switch(v.type) {
 				case START:
 					v.helper = v;
@@ -358,9 +328,7 @@ class PR(Monotone) {
 					DEBUG(e.helper=null;)
 
 				case SPLIT:
-//					var e = edges.lower_bound(v);
 					var e = SetLowerBound(v,edges,Vertex.vert_lt);
-//					trace(e==null ? "null" : Std.string([e.x,e.y]));
 					if(e!=null) {
 						DEBUG(if(e.helper==null) throw "FATAL ERROR (Monotone 2) : Polygon is not simple + CW, but was not caught sooner!";)
 						poly.insert_diagonal(v,e.helper);
@@ -378,9 +346,7 @@ class PR(Monotone) {
 					edges.remove(e);
 					DEBUG(e.helper = null;)
 
-//					var e = edges.lower_bound(v);
 					var e = SetLowerBound(v,edges,Vertex.vert_lt);
-//					trace(e==null ? "null" : Std.string([e.x,e.y]));
 					if(e!=null) {
 						DEBUG(if(e.helper==null) throw "FATAL ERROR (Monotone 4) : Polygon is not simple + CW, but was not caught sooner!";)
 						if(e.helper.type == MERGE)
@@ -401,9 +367,7 @@ class PR(Monotone) {
 						v.helper = v;
 
 					}else {
-//						var e = edges.lower_bound(v);
 						var e = SetLowerBound(v,edges,Vertex.vert_lt);
-//						trace(e==null ? "null" : Std.string([e.x,e.y]));
 						DEBUG(if(e==null || e.helper==null) throw "FATAL ERROR (Monotone 6) : Polygon is not simple + CW, but was not caught sooner!";)
 						if(e.helper.type == MERGE)
 							poly.insert_diagonal(v,e.helper);

@@ -192,6 +192,19 @@ $(expand genSet(T) class Set(T) {
 		Free(Set(T),cur);
 	}
 
+	public inline function clear() {
+		if(parent!=null) clear_node(parent);
+		parent = null;
+		assert(next==null && prev==null && data==null,"wha?");
+	}
+	function clear_node(node:Set(T)) {
+		if(node.prev!=null) clear_node(node.prev);
+		if(node.next!=null) clear_node(node.next);
+		node.parent = node.prev = node.next = null;
+		node.data.rb_set = null;
+		Free(Set(T),node);
+	}
+
 	public inline function __fix_neg_red(negred:Set(T)) {
 		var parent = negred.parent;
 
