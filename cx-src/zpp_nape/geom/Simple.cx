@@ -8,11 +8,16 @@ $(mixin Polygon() Vertex);
 $(mixin Event() PR(SimpleEvent));
 $(mixin Sweep() PR(SimpleSweep));
 
+$(mixin LEFT  0);
+$(mixin RIGHT 1);
+$(mixin INT   2);
+
 class Event {
 	public var vertex:Vertex;
 	vec_new(public,$(->));
 
-	public var left:Bool; //as opposed to right.
+	public var type:Int; //as opposed to right.
+	//for INT, other/fst dual for the corresponding segments for the intersection.
 	public var other:Event; //corresponding Event for segment
 	public var fst:Event; //always refers to first event for segment, whether left or right
 
@@ -21,8 +26,8 @@ class Event {
 	public var prev:Event;
 
 	public var rb_set:Set(Event);
-	public function rb_lt(qs:Event) {
-		if(this!=fst) return fst.rb_lt(qs);
+	public static function edge_lt(ps:Event,qs:Event) {
+		var p = ps.fst;
 		var q = qs.fst;
 
 		vec_new(u); vec_new(v);
@@ -43,27 +48,27 @@ class Event {
 				comp_y_at_x(vertex,edge) < 0;
 		}));
 
-		if  (vertex==q.vertex && other.vertex==q.other.vertex) return false;
-		elif(vertex==q.other.vertex)       return  lrg_y_vertex_x(this,q);
-		elif(other.vertex==q.vertex)       return !lrg_y_vertex_x(q,this);
-		elif(vertex==q.vertex)             return  lrg_y_vertex_x(this,q.other);
-		elif(other.vertex==q.other.vertex) return  lrg_y_vertex_x(this,q);
+		if  (p.vertex==q.vertex && p.other.vertex==q.other.vertex) return false;
+		elif(p.vertex==q.other.vertex)       return  lrg_y_vertex_x(p,q);
+		elif(p.other.vertex==q.vertex)       return !lrg_y_vertex_x(q,p);
+		elif(p.vertex==q.vertex)             return  lrg_y_vertex_x(p,q.other);
+		elif(p.other.vertex==q.other.vertex) return  lrg_y_vertex_x(p,q);
 		//neither endpoint shared
-		elif(this.x==other.x) {
+		elif(p.x==p.other.x) {
 			if(q.x==q.other.x) {
-				var pmax = if(y   <   other.y)   other else this;
+				var pmax = if(p.y < p.other.y) p.other else p;
 				var qmax = if(q.y < q.other.y) q.other else q;
 				return pmax.y > qmax.y;
 			}else
-				return comp_y_at_x(this,q) > 0;
+				return comp_y_at_x(p,q) > 0;
 		}else {
-			var qlrgv = comp_y_at_x(q,this);
+			var qlrgv = comp_y_at_x(q,p);
 			var  qlrg = qlrgv < 0;
-			var aqlrg = comp_y_at_x(q.other,this) < 0;
+			var aqlrg = comp_y_at_x(q.other,p) < 0;
 			if  (qlrg==aqlrg) return qlrg;
 			elif(q.x==q.other.x)
 				 return qlrgv > 0;
-			else return comp_y_at_x(this,q) >= 0;
+			else return comp_y_at_x(p,q) >= 0;
 		}
 	}
 
@@ -88,6 +93,7 @@ class Sweep {
 	public var tree:Set(Event);
 	public function new() {
 		tree = Get(Set(Event));
+		tree.lt = Event.edge_lt;
 	}
 
 	public inline function clear() {
@@ -131,6 +137,32 @@ class Sweep {
 			}
 		}
 	}
+
+	public inline function intersection(s1:Event,s2:Event) {
+		vec_new(u); vec_sub(s1.other.,s1.,u);
+		vec_new(v); vec_sub(s2.other.,s2.,v);
+
+		var denom = vec_cross(u,v);
+		if(denom==0.0) return null;
+		else {
+			vec_new(c); vec_sub(s2.,s1.,c);
+			denom = 1/denom;
+
+			var t = vec_cross(c,v)*denom;
+			if(t<0 || t>1) return null;
+
+			var s = vec_cross(c,u)*denom;
+			if(s<0 || s>1) return null;
+
+			var vet = Vertex.get(0.5*(s1.x + t*ux + s2.x + s*vx),
+			                     0.5*(s1.y + t*uy + s2.y + s*vy));
+			var ret = Event.get(vet);
+			ret.type = INT;
+			ret.fst = s1;
+			ret.other = s2;
+			return ret;
+		}
+	}
 }
 
 class PR(Simple) {
@@ -141,6 +173,13 @@ mix_circular(Vertex,
 	}
 
 	public static var sweep:Sweep;
+
+	public static function decompose(poly:Polygon) {
+		if(sweep==null) sweep = new Sweep();
+
+//		var queue = new Set(Event,vertex_lt);
+	}
+
 	public static function isSimple(poly:Polygon) {
 		if(sweep==null) sweep = new Sweep();
 
@@ -148,7 +187,7 @@ mix_circular(Vertex,
 		for_iter(v,poly,{
 			var e1 = queue.add(Event.get(v));
 			var e2 = queue.add(Event.get(v.next));
-			e2.left = !(e1.left = less_xy(e1,e2));
+			e2.type = 1 - (e1.type = less_xy(e1,e2) ? LEFT : RIGHT);
 			e1.other = e2; e2.other = e1;
 			e1.fst = e1; e2.fst = e1;
 		});
@@ -158,7 +197,7 @@ mix_circular(Vertex,
 
 		while(!queue.empty()) {
 			var e = queue.pop_unsafe();
-			if(e.left) {
+			if(e.type==LEFT) {
 				sweep.add(e);
 				if(sweep.intersect(e,e.next)
 				|| sweep.intersect(e,e.prev)) {
@@ -181,7 +220,7 @@ mix_circular(Vertex,
 		//release anything remaining by early exiting to object pools
 		while(!queue.empty()) {
 			var e = queue.pop_unsafe();
-			if(e.left) e.other.other = null;
+			if(e.type==LEFT) e.other.other = null;
 			else if(e.other!=null) Free(Event,e.other);
 			Free(Event,e);
 		}

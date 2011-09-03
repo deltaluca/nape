@@ -135,15 +135,13 @@ class Vertex {
 			vec_new(v); vec_sub(v.,q.,v);
 			return (flip ? vec_cross(v,u) : vec_cross(u,v)) <= 0;
 		}
-
-		return q.rb_lt(v);
 	}
 
 	//used by RBTree Set
 	//Note: this = Edge
 	//
 	//returns true if 'this' edge should be placed to the right graphically of 'q'
-	public function rb_lt(q:Edge) {
+	public static function edge_lt(p:Edge,q:Edge) {
 		vec_new(u); vec_new(v);
 		var flip:Bool;
 		$(mixin comp_x_at_y(vertex,edge) ({
@@ -162,27 +160,27 @@ class Vertex {
 				comp_x_at_y(vertex,edge) < 0;
 		}));
 
-		if  (this==q && next==q.next) { assert(false,"Same edge inserted to tree??"); return false; }
-		elif(this==q.next) return  lrg_x_vertex_y(this,q);
-		elif(next==q)      return !lrg_x_vertex_y(q,this);
-		elif(this==q)      return  { assert(false,"This should never happen in a polygon(1)"); lrg_x_vertex_y(this,q.next); }
-		elif(next==q.next) return  { assert(false,"this should never happen in a polygon(2)"); lrg_x_vertex_y(this,q); }
+		if  (p==q && p.next==q.next) { assert(false,"Same edge inserted to tree??"); return false; }
+		elif(p==q.next) return  lrg_x_vertex_y(p,q);
+		elif(p.next==q)      return !lrg_x_vertex_y(q,p);
+		elif(p==q)      return  { assert(false,"This should never happen in a polygon(1)"); lrg_x_vertex_y(p,q.next); }
+		elif(p.next==q.next) return  { assert(false,"this should never happen in a polygon(2)"); lrg_x_vertex_y(p,q); }
 		//neither endpoint shared
-		elif(this.y==next.y) {
+		elif(p.y==p.next.y) {
 			if(q.y==q.next.y) {
-				var pmax = if(x   <   next.x)   next else this;
+				var pmax = if(p.x < p.next.x) p.next else p;
 				var qmax = if(q.x < q.next.x) q.next else q;
 				return pmax.x > qmax.x;
 			}else
-				return comp_x_at_y(this,q) > 0;
+				return comp_x_at_y(p,q) > 0;
 		}else {
-			var qlrgv = comp_x_at_y(q,this);
+			var qlrgv = comp_x_at_y(q,p);
 			var  qlrg = qlrgv < 0;
-			var aqlrg = comp_x_at_y(q.next,this) < 0;
+			var aqlrg = comp_x_at_y(q.next,p) < 0;
 			if  (qlrg==aqlrg) return qlrg;
 			elif(q.y==q.next.y)
 				 return qlrgv > 0;
-			else return comp_x_at_y(this,q) >= 0;
+			else return comp_x_at_y(p,q) >= 0;
 		}
 	}
 
@@ -309,7 +307,8 @@ class PR(Monotone) {
 		});
 
 		//sorted set to hold interesting edges
-		var edges = new Set(Vertex)();
+		var edges = Get(Set(Vertex));
+		edges.lt = Edge.edge_lt;
 		//process away!
 		Sort(queue,Node(Vertex),above);
 		while(!queue.empty()) {

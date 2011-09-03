@@ -47,6 +47,7 @@ $(expand genSet(T) class Set(T) {
 	}
 	flibmdel public inline function alloc() {}
 
+	public var lt:T->T->Bool;
 	public var data:T;
 
 	public var prev:Set(T);
@@ -73,15 +74,7 @@ $(expand genSet(T) class Set(T) {
 	}
 
 	public inline function lower_bound(obj:T) {
-		return SetLowerBound(obj,this,$(mixin lt(a,b) (a.rb_lt(b))) lt);
-/*		var ret = null;
-		SetIter(elt, this, {
-			if(!elt.rb_lt(obj)) {
-				ret = elt;
-				break;
-			}
-		});
-		return ret;*/
+		return SetLowerBound(obj,this,lt);
 	}
 
 	inline function might_has(obj:T) {
@@ -287,7 +280,7 @@ $(expand genSet(T) class Set(T) {
 		else {
 			var cur = parent; //root
 			while(true) {
-				if(x.data.rb_lt(cur.data)) {
+				if(lt(x.data,cur.data)) {
 					if(cur.prev==null) { cur.prev = x; x.parent = cur; break; }
 					else cur = cur.prev;
 				}else {
