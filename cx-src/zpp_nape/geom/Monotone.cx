@@ -25,7 +25,9 @@ class PR(PartitionPoly) {
 		var p = P;
 		var cw = geom(clockwise(P));
 		do {
-			if(!(p.prev.y == p.y && p.next.y==p.y) && !(p.prev.x==p.x && p.next.x==p.x)) {
+			vec_new(u); vec_sub(p.,p.prev.,u);
+			vec_new(v); vec_sub(p.next.,p.,v);
+			if(vec_cross(u,v)!=0.0 || vec_dot(u,v)<0) {
 				vertices = if(cw)
 					push_after(vertices,Vertex.get(p));
 				else
@@ -117,6 +119,26 @@ class Vertex {
 	public var helper:Vertex;
 	public var type:Int;
 	public var rb_set:Set(Vertex);
+
+	//is q to the left of v?
+	public static function vert_lt(q:Edge,v:Vertex) {
+		if(v==q || v==q.next) return true;
+
+		var min:Vertex; var max:Vertex;
+		if(q.x < q.next.x) { min = q; max = q.next; }
+		else               { min = q.next; max = q; }
+
+		if(min.y==max.y) return min.x <= v.x;
+		else {
+			//assume edge not horizontal
+			var flip = q.next.y > q.y;
+			vec_new(u); vec_sub(q.next.,q., u);
+			vec_new(v); vec_sub(v.,q.,v);
+			return (flip ? vec_cross(v,u) : vec_cross(u,v)) <= 0;
+		}
+
+		return q.rb_lt(v);
+	}
 
 	//used by RBTree Set
 	//Note: this = Edge
@@ -216,35 +238,37 @@ class Vertex {
 
 class PR(Monotone) {
 
+	public static inline function bisector(b:Vertex) {
+		var a = b.prev;
+		var c = b.next;
+		vec_new(u); vec_sub(b.,a.,u);
+		vec_new(v); vec_sub(c.,b.,v);
+
+		vec_normalise(u);
+		vec_normalise(v);
+
+		var ret = PR(Vec2).get(-uy-vy,ux+vx);
+		vec_normalise(ret.);
+		if(vec_cross(u,v) < 0) vec_negate(ret.);
+		return ret;
+	}
+
 	public static inline function below(p:Vertex,q:Vertex) {
 		if  (p.y<q.y) return true;
 		elif(p.y>q.y) return false;
 		else {
 			if  (p.x<q.x) return true;
 			elif(p.x>q.x) return false;
-			else {
-				var lp = left_vertex(p);
-				var lq = left_vertex(q);
-				if  (lq && !lp) return true;
-				elif(!lq && lp) return false;
-				else {
-					lp = down_vertex(p);
-					lq = down_vertex(q);
-					if  (lq && !lp) return false;
-					elif(!lq && lp) return true;
-					else return true; //give up!
-				}
+			else { 
+				var po = bisector(p); var qo = bisector(q);
+				vec_addeq(po.,p.); vec_addeq(qo.,q.);
+				var ret = po.x < qo.x || (po.x==qo.x && po.y<qo.y);
+				Free(PR(Vec2),po); Free(PR(Vec2),qo);
+				return ret;
 			}
 		}
 	}
 	public static inline function above(p:Vertex,q:Vertex) return below(q,p)
-
-	//down_vertex(p) if polygon exists down from p.
-	public static inline function down_vertex(v:Vertex) {
-		var pre = v.prev;
-		var nxt = v.next;
-		return pre.x > v.x || (pre.x==v.x && nxt.x < v.x);
-	}
 
 	//left_vertex(p) if polygon exists to the right of p.
 	public static inline function left_vertex(v:Vertex) {
@@ -332,7 +356,8 @@ class PR(Monotone) {
 					DEBUG(e.helper=null;)
 
 				case SPLIT:
-					var e = edges.lower_bound(v);
+//					var e = edges.lower_bound(v);
+					var e = SetLowerBound(v,edges,Vertex.vert_lt);
 //					trace(e==null ? "null" : Std.string([e.x,e.y]));
 					if(e!=null) {
 						DEBUG(if(e.helper==null) throw "FATAL ERROR (Monotone 2) : Polygon is not simple + CW, but was not caught sooner!";)
@@ -351,7 +376,8 @@ class PR(Monotone) {
 					edges.remove(e);
 					DEBUG(e.helper = null;)
 
-					var e = edges.lower_bound(v);
+//					var e = edges.lower_bound(v);
+					var e = SetLowerBound(v,edges,Vertex.vert_lt);
 //					trace(e==null ? "null" : Std.string([e.x,e.y]));
 					if(e!=null) {
 						DEBUG(if(e.helper==null) throw "FATAL ERROR (Monotone 4) : Polygon is not simple + CW, but was not caught sooner!";)
@@ -373,7 +399,8 @@ class PR(Monotone) {
 						v.helper = v;
 
 					}else {
-						var e = edges.lower_bound(v);
+//						var e = edges.lower_bound(v);
+						var e = SetLowerBound(v,edges,Vertex.vert_lt);
 //						trace(e==null ? "null" : Std.string([e.x,e.y]));
 						DEBUG(if(e==null || e.helper==null) throw "FATAL ERROR (Monotone 6) : Polygon is not simple + CW, but was not caught sooner!";)
 						if(e.helper.type == MERGE)

@@ -23,6 +23,17 @@ $(mixin global SetIter(i,set,closure) ${assert/2->
 	}
 });
 
+$(mixin global SetLowerBound(obj,set,closure) ${SetIter/3,assert/2->
+	var ret = null;
+	SetIter(elt,set,{
+		if(!closure(elt,obj)) {
+			ret = elt;
+			break;
+		}
+	});
+	ret;
+});
+
 $(mixin global Set(T)
 	genSet(T)
 	ZPP_Set_`T
@@ -62,14 +73,15 @@ $(expand genSet(T) class Set(T) {
 	}
 
 	public inline function lower_bound(obj:T) {
-		var ret = null;
+		return SetLowerBound(obj,this,$(mixin lt(a,b) (a.rb_lt(b))) lt);
+/*		var ret = null;
 		SetIter(elt, this, {
 			if(!elt.rb_lt(obj)) {
 				ret = elt;
 				break;
 			}
 		});
-		return ret;
+		return ret;*/
 	}
 
 	inline function might_has(obj:T) {
