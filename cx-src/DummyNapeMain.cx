@@ -226,10 +226,11 @@ class DummyNapeMain {
 
 //		P = [v2(0,0),v2(200,0),v2(200,200),v2(100,200),v2(110,175),v2(100,150),v2(150,150),v2(150,50),v2(50,50),v2(50,150),v2(100,150),v2(110,175),v2(100,200),v2(0,200)];	
 
-		P = [v2(0,0),v2(300,0),v2(300,100),v2(200,100),v2(100,200),v2(80,200),v2(50,300),v2(80,200),v2(100,200),
-			 v2(200,100),v2(300,100),
-			 v2(300,300),v2(150,300),v2(150,400),v2(-50,400)];
-//		P = [v2(0,0),v2(300,0),v2(300,200),v2(260,100),v2(225,150),v2(235,100),v2(225,150),v2(260,100),v2(300,200),v2(300,300),v2(0,300)];
+//		P = [v2(0,0),v2(300,0),v2(300,100),v2(200,100),v2(100,200),v2(80,200),v2(50,300),v2(80,200),v2(100,200),
+//			 v2(200,100),v2(300,100),
+//			 v2(300,300),v2(150,300),v2(150,400),v2(-50,400)];
+//		P = [v2(0,0),v2(300,0),v2(300,200),v2(260,100),v2(225,150),v2(235,100),v2(227,50),v2(225,150),v2(260,100),v2(300,200),v2(300,300),v2(0,300)];
+		P = [v2(0,0),v2(300,0),v2(300,300),v2(100,300),v2(100,200),v2(200,200),v2(200,100),v2(100,100),v2(100,200),v2(0,200)];
 
 		debug = new BitmapDebug(600,600,0x333333);
 		debug.clear();
@@ -282,23 +283,25 @@ class DummyNapeMain {
 		c.stage.addEventListener(flash.events.MouseEvent.MOUSE_UP, function(_) mdown = false);
 
 		var tim = new haxe.Timer(0);
+		var pl = P.length;
 		tim.run = function() {
 			if(mdown) {
 				var p = new Vec2(c.mouseX,c.mouseY);
 				if(p.sub(P[P.length-1]).length>6) P.push(p);
 			}
 
-			if(P.length>3) {
+			if(P.length>3 && P.length!=pl) {
+				pl = P.length;
 				debug.clear();
 
-		debug.drawFilledPolygon(P,0x808080);
-		$(mixin grey() {
-			var col = Std.int(0x60*Math.random())+0x60;
-			col | (col<<16) | (col<<8);
-		});
-//		for(p in (new GeomPoly(P)).convex_decomposition()) debug.drawFilledPolygon(p.toArray(),grey);
-
+		if((new GeomPoly(P)).isSimple()) {
+			for(p in (new GeomPoly(P)).monotone_decomposition()) {
+				var col = colour;
+				for(q in p.convex_decomposition()) debug.drawFilledPolygon(q.toArray(),scalec(col));
+			}
+		}
 		debug.drawPolygon(P,0xff0000);
+
 		var index = 0;
 		for(p in P)
 			debug.drawFilledCircle(p,2,0xffff);
