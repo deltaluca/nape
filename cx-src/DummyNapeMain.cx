@@ -234,7 +234,7 @@ class DummyNapeMain {
 
 		P = [v2(0,0),v2(500,0),v2(500,200),v2(400,200),v2(400,100),v2(300,100),v2(300,200),v2(200,200),v2(200,100),v2(100,100),v2(100,300),v2(200,300),v2(200,200),v2(300,200),v2(300,300),v2(400,300),v2(400,200),v2(500,200),v2(500,400),v2(0,400)];
 
-		debug = new BitmapDebug(600,600,0x333333);
+		debug = new ShapeDebug(600,600,0x333333);
 		debug.clear();
 		debug.transform.tx = 100;
 		debug.transform.ty = 100;
@@ -289,25 +289,28 @@ class DummyNapeMain {
 		tim.run = function() {
 			if(mdown) {
 				var p = new Vec2(c.mouseX,c.mouseY);
-				if(p.sub(P[P.length-1]).length>6) P.push(p);
+				if(p.sub(P[P.length-1]).length>20) P.push(p);
 			}
 
 			if(P.length>3 && P.length!=pl) {
 				pl = P.length;
 				debug.clear();
 
-		if((new GeomPoly(P)).isSimple()) {
+		debug.drawPolygon(P,0x505050);
+		for(p in P)
+			debug.drawFilledCircle(p,1,0xffff);
+//		if((new GeomPoly(P)).isSimple())
+			PR(Simple).decompose((new GeomPoly(P)).pr(inner).vertices);
+
+/*		if((new GeomPoly(P)).isSimple()) {
 			for(p in (new GeomPoly(P)).monotone_decomposition()) {
 				var col = colour;
 				for(q in p.convex_decomposition()) debug.drawFilledPolygon(q.toArray(),scalec(col));
 			}
 		}
 		debug.drawPolygon(P,0xff0000);
-
-		var index = 0;
-		for(p in P)
-			debug.drawFilledCircle(p,2,0xffff);
-
+*/
+/*
 
 //				debug.drawFilledPolygon(P,0x808080);
 //				debug.drawPolygon(P,((new GeomPoly(P)).isSimple()) ? 0xff0000 : 0xffffff);

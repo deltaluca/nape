@@ -23,6 +23,16 @@ $(mixin global SetIter(i,set,closure) ${assert/2->
 	}
 });
 
+$(mixin global SetFind(set,obj) (${assert/2,elif->
+	var cur = set.parent;
+	while(cur!=null) {
+		if  (set.lt(obj,cur.data)) cur = cur.prev;
+		elif(set.lt(cur.data,obj)) cur = cur.next;
+		else break;
+	}
+	cur;
+}));
+
 $(mixin global SetLowerBound(obj,set,closure) ${SetIter/3,assert/2->
 	var ret = null;
 	SetIter(elt,set,{
@@ -44,10 +54,13 @@ $(expand genSet(T) class Set(T) {
 	MixPoolNoNext(Set(T))
 	flibmdel public inline function free() {
 		data = null;
+		lt = null;
+		swapped = null;
 	}
 	flibmdel public inline function alloc() {}
 
 	public var lt:T->T->Bool;
+	public var swapped:T->T->Void;
 	public var data:T;
 
 	public var prev:Set(T);
@@ -65,6 +78,21 @@ $(expand genSet(T) class Set(T) {
 	//parent doubles as the 'root' of the tree for the dummy object.
 	//(Like MixList intrusive lists).
 
+	public function verify() {
+		SetIter(i,this,{
+			var prei = true;
+			SetIter(j,this,{
+				if(!prei) {
+					if(!lt(i,j) && lt(j,i)) return false;
+				}else if(i==j) prei = false;
+				else {
+					if(!lt(j,i) && lt(i,j)) return false;
+				}
+			});
+		});
+		return true;
+	}
+
 	public function empty() return parent==null	
 
 	public inline function has(obj:T) return find(obj)!=null
@@ -79,6 +107,22 @@ $(expand genSet(T) class Set(T) {
 
 	public inline function lower_bound(obj:T) {
 		return SetLowerBound(obj,this,lt);
+	}
+
+	public inline function first() {
+		assert(!empty(),"first in empty");
+		var cur = parent;
+		while(cur.prev!=null) cur = cur.prev;
+		return cur.data;
+	}
+
+	public inline function pop_front() {
+		assert(!empty(),"pop_front in empty");
+		var cur = parent;
+		while(cur.prev!=null) cur = cur.prev;
+		var ret = cur.data;
+		remove_node(cur);
+		return ret;
 	}
 
 	public inline function remove(obj:T) {
@@ -96,10 +140,9 @@ $(expand genSet(T) class Set(T) {
 		else                    par.next = obj;
 		if(obj!=null) obj.parent = par;
 	});
-	
-	public inline function successor(obj:T) {
-		var cur = find(obj);
-		assert(cur!=null,"object not in tree :(");
+
+	public inline function successor_node(cur:Set(T)) {
+		assert(cur!=null,"null node");
 		if(cur.next!=null) {
 			cur = cur.next;
 			while(cur.prev!=null) cur = cur.prev;
@@ -108,11 +151,10 @@ $(expand genSet(T) class Set(T) {
 			cur = cur.parent;
 			while(cur!=null && cur.prev!=pre) { pre = cur; cur = cur.parent; }
 		}
-		return cur == null ? null : cur.data;
+		return cur;
 	}
-	public inline function predecessor(obj:T) {
-		var cur = find(obj);
-		assert(cur!=null,"object not in tree :(");
+	public inline function predecessor_node(cur:Set(T)) {
+		assert(cur!=null,"null node");
 		if(cur.prev!=null) {
 			cur = cur.prev;
 			while(cur.next!=null) cur = cur.next;
@@ -121,15 +163,28 @@ $(expand genSet(T) class Set(T) {
 			cur = cur.parent;
 			while(cur!=null && cur.next!=pre) { pre = cur; cur = cur.parent; }
 		}
-		return cur == null ? null : cur.data;
+		return cur;
 	}
 
-	function remove_node(cur:Set(T)) {
+	public inline function successor(obj:T) {
+		assert(has(obj),"not in tree!");
+		var node = successor_node(find(obj));
+		return node==null ? null : node.data;
+	}
+	public inline function predecessor(obj:T) {
+		assert(has(obj),"not in tree!");
+		var node = predecessor_node(find(obj));
+		return node==null ? null : node.data;
+	}
+
+	public function remove_node(cur:Set(T)) {
+		assert(cur!=null,"null node");
 		//cur has two children so swap with it's successor
 		if(cur.next!=null && cur.prev!=null) {
 			var sm = cur.next;
 			while(sm.prev!=null) sm = sm.prev;
 			swap(cur.data,sm.data);
+			if(swapped!=null) swapped(cur.data,sm.data);
 			cur = sm;
 		}
 
@@ -204,6 +259,7 @@ $(expand genSet(T) class Set(T) {
 			negred.colour = parent.colour = BLACK;
 			set_link(negred,R,trl);
 			swap(parent.data,nr.data);
+			if(swapped!=null) swapped(parent.data,nr.data);
 			set_link(nr,L,trr);
 			set_link(nr,R,parent.R);
 			set_link(parent,R,nr);
@@ -291,5 +347,8 @@ $(expand genSet(T) class Set(T) {
 			x.colour = RED;
 			if(x.parent.colour==RED) __fix_dbl_red(x);
 		}
+
+		assert(x.data==obj,"...wtf?");
+		return x;
 	}
 });

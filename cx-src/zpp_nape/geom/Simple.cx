@@ -9,8 +9,8 @@ $(mixin Event() PR(SimpleEvent));
 $(mixin Sweep() PR(SimpleSweep));
 
 $(mixin LEFT  0);
-$(mixin RIGHT 1);
-$(mixin INT   2);
+$(mixin INT   1);
+$(mixin RIGHT 2);
 
 class Event {
 	public var vertex:Vertex;
@@ -25,6 +25,9 @@ class Event {
 	MixPool(Event)
 	public var prev:Event;
 
+	//node in tree for fast retreival
+	public var node:Set(Event);
+	
 	public static function edge_lt(ps:Event,qs:Event) {
 		var p = ps.fst;
 		var q = qs.fst;
@@ -67,7 +70,18 @@ class Event {
 			if  (qlrg==aqlrg) return qlrg;
 			elif(q.x==q.other.x)
 				 return qlrgv > 0;
-			else return comp_y_at_x(p,q) >= 0;
+			else {
+				var  plrg = comp_y_at_x(p,q) > 0;
+				var aplrg = comp_y_at_x(p.other,q) > 0;
+				if(plrg==aplrg) return plrg;
+
+				assert((new Sweep()).intersect(p,q),"oh...");
+//				return comp_y_at_x(p,q) >= 0;
+				//take into account sweep line position.
+				var py = (Sweep.sweepx - p.x)/(p.other.x-p.x)*(p.other.y-p.y) + p.y;
+				var qy = (Sweep.sweepx - q.x)/(q.other.x-q.x)*(q.other.y-q.y) + q.y;
+				return py > qy;
+			}
 		}
 	}
 
@@ -76,6 +90,7 @@ class Event {
 		other = null;
 		fst = null;
 		prev = null;
+		node = null;
 	}
 	flibmdel public inline function alloc() {}
 
@@ -86,13 +101,19 @@ class Event {
 		vec_set(ret.,v.);
 		return ret;
 	}
+
+	public static inline function swap_nodes(a:Event,b:Event) {
+		swap(a.node,b.node);
+	}
 }
 
 class Sweep {
+	public static var sweepx:Float; //this is terrible, but whatever for now!
 	public var tree:Set(Event);
 	public function new() {
 		tree = Get(Set(Event));
 		tree.lt = Event.edge_lt;
+		tree.swapped = Event.swap_nodes;
 	}
 
 	public inline function clear() {
@@ -100,19 +121,19 @@ class Sweep {
 	}
 
 	public inline function add(e:Event) {
-		tree.insert(e);
-		var nx = tree.successor(e);
-		var np = tree.predecessor(e);
-		if(nx!=null) { e.next = nx; nx.prev = e; }
-		if(np!=null) { e.prev = np; np.next = e; }
+		e.node = tree.insert(e);
+		var nx = tree.successor_node(e.node);
+		var np = tree.predecessor_node(e.node);
+		if(nx!=null) { e.next = nx.data; nx.data.prev = e; }
+		if(np!=null) { e.prev = np.data; np.data.next = e; }
 		return e;
 	}
 	public inline function remove(e:Event) {
-		var nx = tree.successor(e);
-		var np = tree.predecessor(e);
-		if(nx!=null) nx.prev = e.prev;
-		if(np!=null) np.next = e.next;
-		tree.remove(e);
+		var nx = tree.successor_node(e.node);
+		var np = tree.predecessor_node(e.node);
+		if(nx!=null) nx.data.prev = e.prev;
+		if(np!=null) np.data.next = e.next;
+		tree.remove_node(e.node);
 	}
 
 	public inline function intersect(s1:Event,s2:Event) {
@@ -137,7 +158,14 @@ class Sweep {
 		}
 	}
 
-	public inline function intersection(s1:Event,s2:Event) {
+	public function intersection(s1:Event,s2:Event) {
+		if(s1==null || s2==null) return null;
+		elif(s1.vertex==s2.vertex
+ 		  || s1.vertex==s2.other.vertex
+		  || s1.other.vertex==s2.vertex
+		  || s1.other.vertex==s2.other.vertex)
+			return null;
+
 		vec_new(u); vec_sub(s1.other.,s1.,u);
 		vec_new(v); vec_sub(s2.other.,s2.,v);
 
@@ -153,12 +181,20 @@ class Sweep {
 			var s = vec_cross(c,u)*denom;
 			if(s<0 || s>1) return null;
 
+			//should return s1,s2,s1.other,s2.other to
+			//include intersection segments on end points.
+			if(s==0||t==0||s==1||t==1) throw "corner case 1";
+
 			var vet = Vertex.get(0.5*(s1.x + t*ux + s2.x + s*vx),
 			                     0.5*(s1.y + t*uy + s2.y + s*vy));
 			var ret = Event.get(vet);
 			ret.type = INT;
 			ret.fst = s1;
 			ret.other = s2;
+
+			DummyNapeMain.debug.drawCircle(Vec2.get(vet.x,vet.y),2,0xff0000);
+			DummyNapeMain.debug.flush();
+
 			return ret;
 		}
 	}
@@ -168,25 +204,108 @@ class PR(Simple) {
 mix_circular(Vertex,
 
 	public static inline function less_xy(a:Event,b:Event) {
+		if  (a.x<b.x) return true;
+		elif(a.x>b.x) return false;
+		else {
+			if  (a.y<b.y) return true;
+			elif(a.y>b.y) return false;
+			else {
+				return a.type > b.type; //RIGHT -> INT -> LEFT
+			}
+		}
 		return a.x<b.x || (a.x==b.x && a.y<b.y);
 	}
 
 	public static var sweep:Sweep;
-
 	public static function decompose(poly:Polygon) {
 		if(sweep==null) sweep = new Sweep();
 
-//		var queue = new Set(Event,vertex_lt);
+		var queue = Get(Set(Event));
+		queue.lt = less_xy;
+		for_iter(v,poly,{
+			var e1 = Event.get(v);
+			var e2 = Event.get(v.next);
+			e1.type = less_xy(e1,e2) ? LEFT : RIGHT;
+			e2.type = e1.type == LEFT ? RIGHT : LEFT;
+
+			queue.insert(e1); queue.insert(e2);
+
+			e1.other = e2; e2.other = e1;
+			e1.fst = e1; e2.fst = e1;
+		});
+
+		while(!queue.empty()) {
+			var e = queue.pop_front();
+			Sweep.sweepx = e.x;
+
+			$(mixin do_intersect(high,low) {
+				var int = sweep.intersection(high,low);
+				if(int!=null) {
+					if(int.x > e.x) {
+						var ex = SetFind(queue,int);
+						if(ex==null) queue.insert(int);
+						else {
+							var x = ex.data;
+							if(x.fst!=int.fst || x.other!=int.other) {
+								throw "corner case 2";
+							}
+							Free(Event,int);
+						}
+					}else
+						Free(Event,int);
+				}
+			});
+
+			if(e.type==LEFT) {
+				sweep.add(e);
+				do_intersect(e.next,e);
+				do_intersect(e,e.prev);
+			}
+			elif(e.type==RIGHT) {
+				var s = e.other; var nxt = s.next; var pre = s.prev;
+				sweep.remove(s);
+				do_intersect(nxt,pre);
+			}
+			else {
+				var a = e.fst; var b = e.other;
+				assert(a.type==LEFT,"?");
+				assert(b.type==LEFT,"??");
+
+				assert((a.prev==b && b.next==a) || (b.prev==a && a.next==b),"no.!!!");
+				if(b.prev==a) swap(a,b);
+
+				//swap position
+				var an = a.node;
+				var bn = b.node;
+				assert(an!=null,"x?");
+				assert(bn!=null,"xx?");
+				var sa = a.next;
+				var sb = b.prev;
+				swap(an.data,bn.data);
+				swap(a.node,b.node);
+				b.next = a.next; a.next = b;
+				a.prev = b.prev; b.prev = a;
+				if(a.prev!=null) a.prev.next = a;
+				if(b.next!=null) b.next.prev = b;
+
+				do_intersect(sa,b);
+				do_intersect(a,sb);
+			}
+		}
+
+		assert(sweep.tree.empty(),"cleanup failure on decompose");
 	}
 
 	public static function isSimple(poly:Polygon) {
 		if(sweep==null) sweep = new Sweep();
+		Sweep.sweepx = 0;
 
 		var queue = new List(Event)();
 		for_iter(v,poly,{
 			var e1 = queue.add(Event.get(v));
 			var e2 = queue.add(Event.get(v.next));
-			e2.type = 1 - (e1.type = less_xy(e1,e2) ? LEFT : RIGHT);
+			e1.type = less_xy(e1,e2) ? LEFT : RIGHT;
+			e2.type = e1.type == LEFT ? RIGHT : LEFT;
 			e1.other = e2; e2.other = e1;
 			e1.fst = e1; e2.fst = e1;
 		});
