@@ -1,7 +1,269 @@
 package zpp_nape.geom;
 $(import);
 
-$(mixin Vertex() PR(GeomVert));
+$(mixin Vertex() PR(SimpleVert));
+class Vertex {
+	vec_new(public,$(->));
+	public var links:List(Vertex);
+
+	MixPool(Vertex)
+	flibmdel public inline function free() {}
+	flibmdel public inline function alloc() {}
+
+	function new() {
+		links = new List(Vertex)();
+	}
+	public static inline function get(pos:PR(GeomVert)) {
+		var ret = Get(Vertex);
+		vec_set(ret.,pos.);
+		return ret;
+	}
+}
+
+$(mixin Segment() PR(SimpleSeg));
+class Segment {
+	public var left :Vertex;
+	public var right:Vertex;
+
+	MixPool(Segment)
+	flibmdel public inline function free() {
+		left = right = null;
+		prev = null;
+		node = null;
+	}
+	flibmdel public inline function alloc() {}
+
+	//prev,next refer to positions in sweep line tree.
+	public var prev:Segment;
+
+	//node in sweep line tree
+	public var node:Set(Segment);
+
+	function new() {}
+	public static inline function get(left:Vertex,right:Vertex) {
+		var ret = Get(Segment);
+		ret.left  = left;
+		ret.right = right;
+		return ret;
+	}
+}
+
+$(mixin LEFT  0);
+$(mixin INT   1);
+$(mixin RIGHT 2);
+
+$(mixin Event() PR(SimpleEvent));
+class Event {
+	
+	//type == LEFT  => vertex = segment.left
+	//type == RIGHT => vertex = segment.right
+	//type == INT   => other<>null and vertex is segment+other intersection
+	public var type:Int;	
+
+	public var vertex:Vertex;
+	public var segment:Segment;
+	public var other  :Segment;
+
+	//node in tree when doing a decomposition.
+	public var node:Set(Event);
+	public static inline function swap_nodes(a:Event, b:Event) swap(a.node,b.node)
+	public static inline function less_xy(a:Event, b:Event) {
+		if  (a.vertex.x < b.vertex.x) return true;
+		elif(a.vertex.x > b.vertex.x) return false;
+		else {
+			if  (a.vertex.y < b.vertex.y) return true;
+			elif(a.vertex.y > b.vertex.y) return false;
+			else return a.type > b.type;
+		}
+	}
+
+	MixPool(Event)
+	flibmdel public inline function free() {
+		vertex = null;
+		segment = other = null;
+	}
+	flibmdel public inline function alloc() {}
+	function new() {}
+
+	public static inline function get(v:Vertex) {
+		var ret = Get(Event);
+		ret.vertex = v;
+		return ret;
+	}
+}
+
+$(mixin Sweep() PR(SimpleSweep));
+class Sweep {
+	public var sweepx:Float; //used in sorting segments which intersect
+	public var tree:Set(Segment);
+
+	public function new() {
+		tree = Get(Set(Segment));
+		tree.lt = edge_lt;
+		tree.swapped = swap_nodes;
+	}
+
+	public function swap_nodes(p:Segment,q:Segment) swap(p.node,q.node)
+	public function edge_lt(p:Segment,q:Segment) {
+		vec_new(u); vec_new(v);
+		var flip:Bool;
+		$(mixin comp_y_at_x(vertex,edge) ({
+			//assume edge not vertical
+			flip = edge.right.x < edge.left.x;
+			vec_sub(edge.right.,edge.left., u);
+			vec_sub(vertex.,edge.left.,v);
+			flip ? vec_cross(v,u) : vec_cross(u,v);
+		}));
+		$(mixin lrg_y_vertex_x(edge,vertex) ({
+			if(edge.left.x==edge.right.x) {
+				if(edge.left.y < edge.right.y)
+					 edge.left.y > vertex.y;
+				else edge.right.y > vertex.y;
+			}else
+				comp_y_at_x(vertex,edge) < 0;
+		}));
+
+		if(p.left==q.left && p.right==q.right) return false;
+		elif(p.left ==q.right) return  lrg_y_vertex_x(p,q.left);
+		elif(p.right==q.left ) return !lrg_y_vertex_x(q,p.left);
+		elif(p.left ==q.left ) return  lrg_y_vertex_x(p,q.right);
+		elif(p.right==q.right) return  lrg_y_vertex_x(p,q.left);
+
+		//neither end point shared.
+		if(p.left.x==p.right.x) {
+			if(q.left.x==q.right.x) {
+				var pmax = if(p.left.y < p.right.y) p.right else p.left;
+				var qmax = if(q.left.y < q.right.y) q.right else q.left;
+				return pmax.y > qmax.y;
+			}else
+				return comp_y_at_x(p.left,q) > 0.0;
+		}else {
+			var qlrgv = comp_y_at_x(q.left,p);
+			var  qlrg = qlrgv < 0.0;
+			var aqlrg = comp_y_at_x(q.right,p) < 0.0;
+			if  (qlrg==aqlrg)         return qlrg;
+			elif(q.left.x==q.right.x) return qlrgv > 0.0;
+			else {
+				var  plrg = comp_y_at_x(p.left,q) > 0.0;
+				var aplrg = comp_y_at_x(p.right,q) > 0.0;
+				if(plrg==aplrg) return plrg;
+
+				//take into account sweep position
+				var py = (sweepx - p.left.x)/(p.right.x-p.left.x)*(p.right.y-p.left.y) + p.left.y;
+				var qy = (sweepx - q.left.x)/(q.right.x-q.left.x)*(q.right.y-q.left.y) + q.left.y;
+				return py > qy;
+			}
+		}
+	}
+
+	public inline function clear() {
+		tree.clear();
+	}
+
+	public inline function add(e:Segment) {
+		e.node = tree.insert(e);
+		var nxt = tree.successor_node(e.node);
+		var pre = tree.predecessor_node(e.node);
+		if(nxt!=null) { e.next = nxt.data; nxt.data.prev = e; }
+		if(pre!=null) { e.prev = pre.data; pre.data.next = e; }
+		return e;
+	}
+	public inline function remove(e:Segment) {
+		var nxt = tree.successor_node(e.node);
+		var pre = tree.predecessor_node(e.node);
+		if(nxt!=null) nxt.data.prev = e.prev;
+		if(pre!=null) pre.data.next = e.next;
+		tree.remove_node(e.node);
+	}
+
+	public inline function intersect(p:Segment,q:Segment) {
+		$(mixin isLeft(a,b,c) ((c.x-a.x)*(b.y-a.y) - (b.x-a.x)*(c.y-a.y)));
+		if(p==null || q==null) return false;
+		elif(p.left==q.left
+		  || p.left==q.right
+		  || p.right==q.left
+		  || p.right==q.right) return false;
+		else {
+			var lsign = isLeft(p.left,p.right,q.left);
+			var rsign = isLeft(p.left,p.right,q.right);
+			if(lsign*rsign > 0) return false;
+			else {
+				lsign = isLeft(q.left,q.right,p.left);
+				rsign = isLeft(q.left,q.right,p.right);
+				if(lsign*rsign > 0) return false;
+				else return true;
+			}
+		}
+	}
+
+	public function intersection(p:Segment,q:Segment) {}
+}
+
+class PR(Simple) {
+	static var sweep:Sweep = new Sweep();
+
+	public static function isSimple(poly:PR(GeomVert)) {
+		var vertices = new List(Vertex)();
+		mix_circular(PR(GeomVert),for_iter(v,poly,{
+			vertices.add(Vertex.get(v));
+		}));
+
+		var queue = new List(Event)();
+		Iter2_fast(u,v,vertices,{
+			var e1 = queue.add(Event.get(u));
+			var e2 = queue.add(Event.get(v));
+			e1.segment = e2.segment = 
+				if(Event.less_xy(e1,e2)) {
+					e1.type = LEFT; e2.type = RIGHT;
+					Segment.get(u,v);
+				}else {
+					e1.type = RIGHT; e2.type = LEFT;
+					Segment.get(v,u);
+				}
+		});
+		Sort(queue,Node(Event),Event.less_xy);
+
+		var ret = true;
+		while(!queue.empty()) {
+			var e = queue.pop_unsafe();
+			var seg = e.segment;
+			if(e.type==LEFT) {
+				sweep.add(seg);
+				if(sweep.intersect(seg,seg.next)
+				|| sweep.intersect(seg,seg.prev)) {
+					ret = false;
+					break;
+				}
+			}elif(e.type==RIGHT) {
+				if(sweep.intersect(seg.prev,seg.next)) {
+					ret = false;
+					break;
+				}
+				sweep.remove(seg);
+				Free(Segment,seg);
+			}
+			Free(Event,e);
+		}
+
+		//release any unreleased objects
+		while(!queue.empty()) {
+			var e = queue.pop_unsafe();
+			if(e.type==RIGHT)
+				Free(Segment,e.segment);
+			Free(Event,e);
+		}
+		sweep.clear();
+
+		//release vertices
+		while(!vertices.empty()) Free(Vertex,vertices.pop_unsafe());
+
+		return ret;
+	}
+
+}
+
+
+/*$(mixin Vertex() PR(GeomVert));
 $(mixin Edge() Vertex);
 $(mixin Polygon() Vertex);
 
@@ -38,7 +300,7 @@ class Event {
 			flip = edge.other.x < edge.x;
 			vec_sub(edge.other.,edge., u);
 			vec_sub(vertex.,edge.,v);
-			/*return*/ flip ? vec_cross(v,u) : vec_cross(u,v);
+			return flip ? vec_cross(v,u) : vec_cross(u,v);
 		}));
 		$(mixin lrg_y_vertex_x(edge,vertex) ({
 			if(edge.x==edge.other.x) {
@@ -345,4 +607,4 @@ mix_circular(Vertex,
 		return ret;
 	}
 
-)}
+)}*/
