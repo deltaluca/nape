@@ -97,6 +97,7 @@ class Vertex {
 		helper = null;
 		prev = null;
 		DEBUG(vec_set(this.,0,0);)
+		node = null;
 	}
 	flibmdel public inline function alloc() {}
 
@@ -140,6 +141,8 @@ class Vertex {
 	//Note: this = Edge
 	//
 	//returns true if 'this' edge should be placed to the right graphically of 'q'
+	public var node:Set(Edge);
+	public static function edge_swap(p:Edge,q:Edge) swap(p.node,q.node)
 	public static function edge_lt(p:Edge,q:Edge) {
 		vec_new(u); vec_new(v);
 		var flip:Bool;
@@ -308,6 +311,7 @@ class PR(Monotone) {
 		//sorted set to hold interesting edges
 		var edges = Get(Set(Vertex));
 		edges.lt = Edge.edge_lt;
+		edges.swapped = Edge.edge_swap;
 		//process away!
 		Sort(queue,Node(Vertex),above);
 		while(!queue.empty()) {
@@ -315,14 +319,14 @@ class PR(Monotone) {
 			switch(v.type) {
 				case START:
 					v.helper = v;
-					edges.insert(v);
+					v.node = edges.insert(v);
 
 				case END:
 					var e = v.prev;
 					DEBUG(if(e.helper==null) throw "FATAL ERROR (Monotone 1) : Polygon is not simple + CW, but was not caught sooner!";)
 					if(e.helper.type == MERGE)
 						poly.insert_diagonal(v,e.helper);
-					edges.remove(e);
+					edges.remove_node(e.node);
 					DEBUG(e.helper=null;)
 
 				case SPLIT:
@@ -333,7 +337,7 @@ class PR(Monotone) {
 						e.helper = v;
 					}
 
-					edges.insert(v);
+					v.node = edges.insert(v);
 					v.helper = v;
 
 				case MERGE:
@@ -341,7 +345,7 @@ class PR(Monotone) {
 					DEBUG(if(e.helper==null) throw "FATAL ERROR (Monotone 3) : Polygon is not simple + CW, but was not caught sooner!";)
 					if(e.helper.type == MERGE)
 						poly.insert_diagonal(v,e.helper);
-					edges.remove(e);
+					edges.remove_node(e.node);
 					DEBUG(e.helper = null;)
 
 					var e = SetLowerBound(v,edges,Vertex.vert_lt);
@@ -358,10 +362,10 @@ class PR(Monotone) {
 						DEBUG(if(pre.helper==null) throw "FATAL ERROR (Monotone 5) : Polygon is not simple + CW, but was not caught sooner!";)
 						if(pre.helper.type == MERGE)
 							poly.insert_diagonal(v,pre.helper);
-						edges.remove(pre);
+						edges.remove_node(pre.node);
 						DEBUG(pre.helper=null;)
 						
-						edges.insert(v);
+						v.node = edges.insert(v);
 						v.helper = v;
 
 					}else {
