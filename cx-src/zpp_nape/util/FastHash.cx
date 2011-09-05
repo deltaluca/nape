@@ -22,6 +22,20 @@ $(define global class Hashable2(T) {
 	}
 });
 
+$(mixin global ClearHashWith(hash,cb) {
+	for(i in 0...hash.table.length) {
+		var n = hash.table[i];
+		if(n==null) continue;
+		while(n.hnext!=null) {
+			var t = n.hnext;
+			n.hnext = null;
+			cb(n);
+			n = t;
+		}
+		hash.table[i] = null;
+	}
+});
+
 $(define global class FastHash2(T) {
 	public var table:ARRAY(T);
 
@@ -34,18 +48,7 @@ $(define global class FastHash2(T) {
 		#end
 	}
 
-	public inline function clear() {
-		for(i in 0...table.length) {
-			var n = table[i];
-			if(n==null) continue;
-			while(n.hnext!=null) {
-				var t = n.hnext;
-				n.hnext = null;
-				n = t;
-			}
-			table[i] = null;
-		}
-	}
+	public inline function clear() ClearHashWith(this,$(mixin cb(x)))
 
 	public inline function get(id:Int,di:Int):T {
 		var n = table[hash(id,di)];
@@ -129,18 +132,7 @@ $(define global class FastHash(T) {
         #end
     }
 
- 	public inline function clear() {
-		for(i in 0...table.length) {
-			var n = table[i];
-			if(n==null) continue;
-			while(n.hnext!=null) {
-				var t = n.hnext;
-				n.hnext = null;
-				n = t;
-			}
-			table[i] = null;
-		}
-	}
+	public inline function clear() ClearHashWith(this,$(mixin cb(x)))
 
     public inline function get(id:Int):T {
         var n = table[hash(id)];
