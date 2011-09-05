@@ -13,9 +13,9 @@ class Vertex {
 	function new() {
 		links = new List(Vertex)();
 	}
-	public static inline function get(pos:PR(GeomVert)) {
+	public static inline function get(x:Float,y:Float) {
 		var ret = Get(Vertex);
-		vec_set(ret.,pos.);
+		vec_set(ret.,$(->));
 		return ret;
 	}
 }
@@ -61,8 +61,8 @@ class Event {
 	public var type:Int;	
 
 	public var vertex:Vertex;
-	public var segment:Segment;
-	public var other  :Segment;
+	public var segment :Segment;
+	public var segment2:Segment;
 
 	//node in tree when doing a decomposition.
 	public var node:Set(Event);
@@ -80,7 +80,7 @@ class Event {
 	MixPool(Event)
 	flibmdel public inline function free() {
 		vertex = null;
-		segment = other = null;
+		segment = segment2 = null;
 	}
 	flibmdel public inline function alloc() {}
 	function new() {}
@@ -196,16 +196,137 @@ class Sweep {
 		}
 	}
 
-	public function intersection(p:Segment,q:Segment) {}
+	public function intersection(p:Segment,q:Segment) {
+		if(p==null || q==null) return null;
+		elif(p.left ==q.left
+		  || p.left ==q.right
+		  || p.right==q.left
+		  || p.right==q.right) return null;
+		else {
+			vec_new(u); vec_sub(p.right.,p.left.,u);
+			vec_new(v); vec_sub(q.right.,q.left.,v);
+
+			var denom = vec_cross(u,v);
+			if(denom==0.0) return null;
+
+			denom = 1/denom;
+			vec_new(c); vec_sub(q.left.,p.left.,c);
+
+			var t = vec_cross(c,v)*denom;
+			if(t<0 || t>1) return null;
+			
+			var s = vec_cross(c,u)*denom;
+			if(s<0 || s>1) return null;
+			
+			if(s==0||s==1||t==0||t==1) throw "corner case 1";
+
+			var vet = Vertex.get(
+				0.5*(p.left.x + ux*t + q.left.x + vx*s),
+				0.5*(p.left.y + uy*t + q.left.y + vy*s)
+			); 
+			var ret = Event.get(vet);
+			ret.type = INT;
+			ret.segment  = p;
+			ret.segment2 = q;
+
+			DummyNapeMain.debug.drawCircle(Vec2.get(vet.x,vet.y),2,0xff0000);
+			DummyNapeMain.debug.flush();
+
+			return ret;
+		}
+	}
 }
 
 class PR(Simple) {
 	static var sweep:Sweep = new Sweep();
 
+	public static function decompose(poly:PR(GeomVert)) {
+		var vertices = new List(Vertex)();
+		mix_circular(PR(GeomVert),for_iter(v,poly,{
+			vertices.add(Vertex.get(v.x,v.y));
+		}));
+
+		var queue = Get(Set(Event));
+		queue.lt = Event.less_xy;
+		queue.swapped = Event.swap_nodes;
+		Iter2_fast(u,v,vertices,{
+			var e1 = Event.get(u);
+			var e2 = Event.get(v);
+			e1.segment = e2.segment = 
+				if(Event.less_xy(e1,e2)) {
+					e1.type = LEFT; e2.type = RIGHT;
+					Segment.get(u,v);
+				}else {
+					e1.type = RIGHT; e2.type = LEFT;
+					Segment.get(v,u);
+				}
+			queue.insert(e1);
+			queue.insert(e2);
+		});
+
+		while(!queue.empty()) {
+			var e = queue.pop_front();
+			sweep.sweepx = e.vertex.x;
+
+			$(mixin do_intersect(high,low) {
+				var int = sweep.intersection(high,low);
+				if(int!=null) {
+					if(int.vertex.x > sweep.sweepx) {
+						var ex = SetFind(queue,int);
+						if(ex==null) queue.insert(int);
+						else {
+							var x = ex.data;
+							if(x.segment!=int.segment || int.segment2!=x.segment2)
+								throw "corner case 2, not sure if this applies!";
+							Free(Vertex,int.vertex);
+							Free(Event,int);
+						}
+					}else { //this int.x check may be resolving corner case 2.
+						Free(Vertex,int.vertex);
+						Free(Event,int);
+					}
+				}
+			});
+
+			if(e.type==LEFT) {
+				var s = e.segment;
+				sweep.add(s);
+				do_intersect(s.next,s);
+				do_intersect(s,s.prev);
+			}else if(e.type==RIGHT) {
+				var s = e.segment;
+				var nxt = s.next;
+				var pre = s.prev;
+				sweep.remove(s);
+				do_intersect(nxt,pre);
+			}else {
+				var a = e.segment; var b = e.segment2;
+				assert((a.prev==b && b.next==a) || (b.prev==a && a.next==b),"no.!!!");
+				assert(b.next==a,"oh well");
+
+				//swap position in tree, a little messy
+				var an = a.node; var bn = b.node;
+				var sa = a.next; var sb = b.prev;
+				swap(an.data, bn.data);
+				swap(a.node, b.node);
+				b.next = a.next; a.next = b;
+				a.prev = b.prev; b.prev = a;
+				if(a.prev!=null) a.prev.next = a;
+				if(b.next!=null) b.next.prev = b;
+
+				do_intersect(sa,b);
+				do_intersect(a,sb);
+			}
+		}
+
+		assert(queue.empty(),"clean up fail");
+		Free(Set(Event),queue);	
+	}
+
 	public static function isSimple(poly:PR(GeomVert)) {
 		var vertices = new List(Vertex)();
 		mix_circular(PR(GeomVert),for_iter(v,poly,{
-			vertices.add(Vertex.get(v));
+			vertices.add(Vertex.get(v.x,v.y));
 		}));
 
 		var queue = new List(Event)();
