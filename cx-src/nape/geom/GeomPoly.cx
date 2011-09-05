@@ -84,6 +84,17 @@ class GeomPoly {
 		else area() < PR(Const).EPSILON;
 	}
 
+	public function simple_decomposition() {
+		var MPs = PR(Simple).decompose(verts);
+		var ret = new GeomPolyList();
+		Iter(MP, MPs, {
+			var x = new GeomPoly();
+			x.verts = MP;
+			ret.add(x);
+		});
+		return ret;
+	}
+
 	public function convex_decomposition() {
 		var MPs = PR(Greene).decompose(verts);
 		var ret = new GeomPolyList();

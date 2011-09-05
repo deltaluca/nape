@@ -6,12 +6,16 @@ class Vertex {
 	vec_new(public,$(->));
 	public var links:Set(Vertex);
 
+	static var nextId:Int = 0;
+	public var id:Int;
+
 	MixPool(Vertex)
 	public var prev:Vertex; //for Circular list.
 	flibmdel public inline function free() {}
 	flibmdel public inline function alloc() {}
 
 	function new() {
+		id = nextId++;
 		links = Get(Set(Vertex));
 		links.lt = less_xy;
 	}
@@ -103,6 +107,7 @@ class Event {
 	}
 }
 
+
 $(mixin Sweep() PR(SimpleSweep));
 class Sweep {
 	public var sweepx:Float; //used in sorting segments which intersect
@@ -188,13 +193,13 @@ class Sweep {
 	}
 
 	public inline function intersect(p:Segment,q:Segment) {
-		$(mixin isLeft(a,b,c) ((c.x-a.x)*(b.y-a.y) - (b.x-a.x)*(c.y-a.y)));
 		if(p==null || q==null) return false;
 		elif(p.left==q.left
 		  || p.left==q.right
 		  || p.right==q.left
 		  || p.right==q.right) return false;
 		else {
+			$(mixin isLeft(a,b,c) ((c.x-a.x)*(b.y-a.y) - (b.x-a.x)*(c.y-a.y)));
 			var lsign = isLeft(p.left,p.right,q.left);
 			var rsign = isLeft(p.left,p.right,q.right);
 			if(lsign*rsign > 0) return false;
@@ -253,18 +258,20 @@ class PR(Simple) {
 
 	public static function decompose(poly:PR(GeomVert)) {
 		var vertices:Vertex = null;
-		mix_circular(PR(GeomVert),for_iter(v,poly,{
-			mix_circular(Vertex,
-				vertices = push_after(vertices,Vertex.get(v.x,v.y))
-			);
-		}));
+		var vite:PR(GeomVert) = poly;
+		do { mix_circular(Vertex,
+			vertices = push_after(vertices,Vertex.get(vite.x,vite.y));
+			vite = vite.next;
+		)}while(vite!=poly);
 
 		var inthash = new FastHash2(Hashable2(Bool))();
 
 		var queue = Get(Set(Event));
 		queue.lt = Event.less_xy;
 		queue.swapped = Event.swap_nodes;
-		Iter2_fast(u,v,vertices,{
+		mix_circular(Vertex,for_iter(u,vertices,{
+			var v = u.next;
+
 			var e1 = Event.get(u);
 			var e2 = Event.get(v);
 			var seg:Segment; 
@@ -280,7 +287,7 @@ class PR(Simple) {
 			queue.insert(e2);
 			u.links.insert(v);
 			v.links.insert(u);
-		});
+		}));
 
 		while(!queue.empty()) {
 			var e = queue.pop_front();
@@ -364,22 +371,93 @@ class PR(Simple) {
 		ClearHashWith(inthash,$(mixin cb(x) Free(Hashable2(Bool),x)));
 
 		//construct decomposition. yaaay!
-
+		var rets = new List(PR(GeomVert))();
 		mix_circular(Vertex,
 			vertices = sort(vertices, Vertex.less_xy);	
 			while(!empty(vertices)) {
-				vertices = clip_polygon(vertices);
+				vertices = clip_polygon(vertices,rets);
 			}
 		)
+
+		return rets;
 	}
 
-	public static function clip_polygon(vertices:Vertex) {
-	mix_circular(Vertex,
+	public static function clip_polygon(vertices:Vertex, rets:List(PR(GeomVert))) {
 		var ret:PR(GeomVert) = null;
 		assert(vertices.links.size()==2,"damnit!");
-		vertices = pop_ret_after(vertices);
+
+		var cur = vertices;
+		var fst = cur;
+		//previous and next vertices
+		var pren = vertices.links.parent;
+		var nxtn = if(pren.prev==null) pren.next else pren.prev;
+		var pre = pren.data;
+		var nxt = nxtn.data;
+
+		$(mixin left_turn(a,b,c) ({
+			vec_new(u); vec_sub(b.,a.,u);
+			vec_new(v); vec_sub(c.,b.,v);
+			vec_cross(u,v);
+		}));
+
+		//want to walk clockwise
+		if(left_turn(pre,cur,nxt) < 0) nxt = pre;
+	
+		$(mixin popvertex(v) {
+			mix_circular(Vertex,
+				if(v==vertices) vertices = pop_ret_after(vertices);
+				else pop(v);
+			)
+		});
+
+		mix_circular(PR(GeomVert), ret = push_after(ret, PR(GeomVert).get(cur.x,cur.y)));
+
+		while(true) {
+			//walk to nxt.
+			cur.links.remove(nxt);
+			nxt.links.remove(cur);
+
+			if(nxt==fst) break;
+
+			mix_circular(PR(GeomVert), ret = push_after(ret, PR(GeomVert).get(nxt.x,nxt.y)));
+			assert(!nxt.links.empty(),".. no where left to go?");
+			
+			if(nxt.links.singular()) {
+				popvertex(nxt);
+				cur = nxt;
+				nxt = nxt.links.parent.data;
+			}else {
+				var min = null; var minl:Float = 0.0;
+				SetIter(p,nxt.links,{
+					if(min==null) {
+						min = p;
+						minl = left_turn(cur,nxt,p);
+					}else {
+						var nleft = left_turn(cur,nxt,p);
+						if(nleft > 0 && minl <= 0) {
+							min = p;
+							minl = nleft;
+						}else if(minl*nleft >= 0) {
+							var pleft = left_turn(p,nxt,min);
+							if(pleft>0) {
+								min = p;
+								minl = nleft;
+							}
+						}
+					}
+				});
+
+				cur = nxt;
+				nxt = min;
+			}
+		}
+
+		assert(fst.links.empty(),"hmm, shouldn't have any left");
+		popvertex(fst);
+
+		rets.add(ret);
 		return vertices;
-	)}
+	}
 
 	public static function isSimple(poly:PR(GeomVert)) {
 		var vertices = new List(Vertex)();
