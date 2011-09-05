@@ -7,6 +7,7 @@ class Vertex {
 	public var links:Set(Vertex);
 
 	MixPool(Vertex)
+	public var prev:Vertex; //for Circular list.
 	flibmdel public inline function free() {}
 	flibmdel public inline function alloc() {}
 
@@ -251,9 +252,11 @@ class PR(Simple) {
 	static var sweep:Sweep = new Sweep();
 
 	public static function decompose(poly:PR(GeomVert)) {
-		var vertices = new List(Vertex)();
+		var vertices:Vertex = null;
 		mix_circular(PR(GeomVert),for_iter(v,poly,{
-			vertices.add(Vertex.get(v.x,v.y));
+			mix_circular(Vertex,
+				vertices = push_after(vertices,Vertex.get(v.x,v.y))
+			);
 		}));
 
 		var inthash = new FastHash2(Hashable2(Bool))();
@@ -337,7 +340,9 @@ class PR(Simple) {
 				int.links.insert(b.left); int.links.insert(b.right);
 
 				a.left = int; b.left = int;
-				vertices.add(int);
+				mix_circular(Vertex,
+					vertices = push_after(vertices,int);
+				)
 
 				//swap position in tree, a little messy
 				var an = a.node; var bn = b.node;
@@ -356,9 +361,25 @@ class PR(Simple) {
 
 		assert(queue.empty(),"clean up fail");
 		Free(Set(Event),queue);	
-
 		ClearHashWith(inthash,$(mixin cb(x) Free(Hashable2(Bool),x)));
+
+		//construct decomposition. yaaay!
+
+		mix_circular(Vertex,
+			vertices = sort(vertices, Vertex.less_xy);	
+			while(!empty(vertices)) {
+				vertices = clip_polygon(vertices);
+			}
+		)
 	}
+
+	public static function clip_polygon(vertices:Vertex) {
+	mix_circular(Vertex,
+		var ret:PR(GeomVert) = null;
+		assert(vertices.links.size()==2,"damnit!");
+		vertices = pop_ret_after(vertices);
+		return vertices;
+	)}
 
 	public static function isSimple(poly:PR(GeomVert)) {
 		var vertices = new List(Vertex)();
