@@ -35,7 +35,7 @@ class Segment {
 	public var left :Vertex;
 	public var right:Vertex;
 
-	public var cleft:Vertex; //current 'real' left
+	public var vertices:Set(Vertex);
 
 	static var nextId = 0;
 	public var id:Int;
@@ -43,9 +43,9 @@ class Segment {
 	MixPool(Segment)
 	flibmdel public inline function free() {
 		left = right = null;
-		cleft = null;
 		prev = null;
 		node = null;
+		vertices.clear();
 	}
 	flibmdel public inline function alloc() {}
 
@@ -55,20 +55,26 @@ class Segment {
 	//node in sweep line tree
 	public var node:Set(Segment);
 
+	public inline function less_xy(a:Vertex,b:Vertex) {
+		return a.x < b.x || (a.x==b.x && a.y < b.y);
+	}
 	function new() {
 		id = nextId++;
+		vertices = Get(Set(Vertex));
+		vertices.lt = less_xy; 
 	}
 	public static inline function get(left:Vertex,right:Vertex) {
 		var ret = Get(Segment);
 		ret.left  = left;
-		ret.cleft = left;
 		ret.right = right;
+		ret.vertices.insert(left);
+		ret.vertices.insert(right);
 		return ret;
 	}
 }
 
-$(mixin LEFT  0);
-$(mixin INT   1);
+$(mixin INT   0);
+$(mixin LEFT  1);
 $(mixin RIGHT 2);
 
 $(mixin Event() PR(SimpleEvent));
@@ -203,6 +209,7 @@ class Sweep {
 		if(nxt!=null) nxt.data.prev = e.prev;
 		if(pre!=null) pre.data.next = e.next;
 		tree.remove_node(e.node);
+		e.node = null;
 	}
 
 	public inline function intersect(p:Segment,q:Segment) {
@@ -247,19 +254,29 @@ class Sweep {
 			var s = vec_cross(c,u)*denom;
 			if(s<0 || s>1) return null;
 			
-			if(s==0||s==1||t==0||t==1) throw "corner case 1";
+			var vet:Vertex;
+			if(s==0||s==1||t==0||t==1) {
+				var cases = s==0;
+				if(s==1 && cases) throw "corner case 1a";
+				else if(s==1) cases = true;
+				if(t==0 && cases) throw "corner case 1b";
+				else if(t==0) cases = true;
+				if(t==1 && cases) throw "corner case 1c";
+				
+				vet = if  (s==0) q.left
+					  elif(s==1) q.right
+					  elif(t==0) p.left
+					  else       p.right;
+			}else
+				vet = Vertex.get(
+					0.5*(p.left.x + ux*t + q.left.x + vx*s),
+					0.5*(p.left.y + uy*t + q.left.y + vy*s)
+				); 
 
-			var vet = Vertex.get(
-				0.5*(p.left.x + ux*t + q.left.x + vx*s),
-				0.5*(p.left.y + uy*t + q.left.y + vy*s)
-			); 
 			var ret = Event.get(vet);
 			ret.type = INT;
 			ret.segment  = p;
 			ret.segment2 = q;
-
-			DummyNapeMain.debug.drawCircle(Vec2.get(vet.x,vet.y),2,0xff0000);
-			DummyNapeMain.debug.flush();
 
 			return ret;
 		}
@@ -302,26 +319,36 @@ class PR(Simple) {
 			v.links.insert(u);
 		}));
 
+		var ints = Get(Set(Event));
+		ints.lt = Event.less_xy;
+
 		while(!queue.empty()) {
 			var e = queue.pop_front();
 			sweep.sweepx = e.vertex.x;
 
 			$(mixin do_intersect(high,low) {
-				var has = high!=null && low!=null && (high.id < low.id ? inthash.has(high.id,low.id) : inthash.has(low.id,high.id));
-				if(!has) {
+				if(high!=null && low!=null && !(high.id<low.id ? inthash.has(high.id,low.id) : inthash.has(low.id,high.id))) {
 					var int = sweep.intersection(high,low);
 					if(int!=null) {
 						if(int.vertex.x >= sweep.sweepx) {
 							var ex = SetFind(queue,int);
 							if(ex==null) {
-								queue.insert(int);
+								var vx = SetFind(ints,int);
+								if(vx!=null) {
+									int.vertex = vx.data.vertex;
+									vx.data = int;
+									queue.insert(int);
+								}else {
+									queue.insert(int);
+									ints.insert(int);
+								}
 								if(high.id<low.id)
 									 inthash.add(Hashable2(Bool).get(high.id,low.id,true));
 								else inthash.add(Hashable2(Bool).get(low.id,high.id,true));
 							}else {
 								var x = ex.data;
 								if(x.segment!=int.segment || int.segment2!=x.segment2)
-									throw "corner case 2, very rare!";
+									throw "corner case 2, this actually can happen?";
 								Free(Vertex,int.vertex);
 								Free(Event,int);
 							}
@@ -340,40 +367,57 @@ class PR(Simple) {
 				do_intersect(s,s.prev);
 			}else if(e.type==RIGHT) {
 				var s = e.segment;
-				var nxt = s.next;
-				var pre = s.prev;
-				sweep.remove(s);
-				do_intersect(nxt,pre);
+				if(s.node!=null) {
+					var nxt = s.next;
+					var pre = s.prev;
+					sweep.remove(s);
+					do_intersect(nxt,pre);
+				}
 			}else {
 				var int = e.vertex;
+				var pnull = int.prev==null;
+
 				var a = e.segment; var b = e.segment2;
 				assert((a.prev==b && b.next==a) || (b.prev==a && a.next==b),"no.!!!");
 				if(b.next!=a) swap(a,b);
 
-				//cut segments at intersection
-				a.cleft.links.remove(a.right); a.cleft.links.insert(int);
-				a.right.links.remove(a.cleft); a.right.links.insert(int);
-				b.cleft.links.remove(b.right); b.cleft.links.insert(int);
-				b.right.links.remove(b.cleft); b.right.links.insert(int);
+				var anew = SetFind(a.vertices,int)==null;
+				var bnew = SetFind(b.vertices,int)==null;
+				if(anew) {
+					var aint = a.vertices.insert(int);
+					var naleft  = int==a.left  ? int : a.vertices.predecessor_node(aint).data;
+					var naright = int==a.right ? int : a.vertices.successor_node  (aint).data;
+					//cut segment at intersection
+					naleft .links.remove(naright); if(int!=naleft ) naleft .links.insert(int);
+					naright.links.remove(naleft);  if(int!=naright) naright.links.insert(int);
+					if(int!=naleft ) int.links.insert(naleft);
+					if(int!=naright) int.links.insert(naright);
+				}
+				if(bnew) {
+					var bint = b.vertices.insert(int);
+					var nbleft  = int==b.left  ? int : b.vertices.predecessor_node(bint).data;
+					var nbright = int==b.right ? int : b.vertices.successor_node  (bint).data;
+					//cut segment at intersection
+					nbleft .links.remove(nbright); if(int!=nbleft ) nbleft .links.insert(int);
+					nbright.links.remove(nbleft);  if(int!=nbright) nbright.links.insert(int);
+					if(int!=nbleft ) int.links.insert(nbleft);
+					if(int!=nbright) int.links.insert(nbright);
+				}
 
-				int.links.insert(a.cleft); int.links.insert(a.right);
-				int.links.insert(b.cleft); int.links.insert(b.right);
+				mix_circular(Vertex,if(pnull) vertices = push_after(vertices,int));
 
-				a.cleft = int; b.cleft = int;
-				mix_circular(Vertex,
-					vertices = push_after(vertices,int);
-				)
-
-				//swap position in tree, a little messy
-				var an = a.node; var bn = b.node;
-				an.data = b; bn.data = a;
-				a.node = bn; b.node = an;
-
-				b.next = a.next; a.next = b;
-				a.prev = b.prev; b.prev = a;
-				if(a.prev!=null) a.prev.next = a;
-				if(b.next!=null) b.next.prev = b;
-
+				//swap edges
+				if(pnull) {
+					var an = a.node; var bn = b.node;
+					an.data = b; bn.data = a;
+					a.node = bn; b.node = an;
+	
+					b.next = a.next; a.next = b;
+					a.prev = b.prev; b.prev = a;
+					if(a.prev!=null) a.prev.next = a;
+					if(b.next!=null) b.next.prev = b;
+				}
+	
 				do_intersect(b.next,b);
 				do_intersect(a,a.prev);
 			}
@@ -460,12 +504,6 @@ class PR(Simple) {
 					}
 				});
 
-/*				var g = cast(DummyNapeMain.debug,ShapeDebug).pr(inner_zn).graphics;
-				g.lineStyle(0.1,0xff,1);
-				g.drawCircle(cur.x,cur.y,4);
-				g.moveTo(cur.x,cur.y);
-				g.curveTo(nxt.x,nxt.y,min.x,min.y);
-*/
 				cur = nxt;
 				nxt = min;
 			}

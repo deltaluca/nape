@@ -218,7 +218,6 @@ class DummyNapeMain {
 
 	static function main() {
 		var c = flash.Lib.current;
-		haxe.Log.setColor(0xffffff);
 
 		var P = [];
 
@@ -232,18 +231,14 @@ class DummyNapeMain {
 //		P = [v2(0,0),v2(300,0),v2(300,200),v2(260,100),v2(225,150),v2(235,100),v2(227,50),v2(225,150),v2(260,100),v2(300,200),v2(300,300),v2(0,300)];
 //		P = [v2(0,0),v2(300,0),v2(300,300),v2(100,300),v2(100,200),v2(200,200),v2(200,100),v2(100,100),v2(100,200),v2(0,200)];
 
-		P = [v2(0,0),v2(500,0),v2(500,200),v2(400,200),v2(400,100),v2(300,100),v2(300,200),v2(200,200),v2(200,100),v2(100,100),v2(100,300),v2(200,300),v2(200,200),v2(300,200),v2(300,300),v2(400,300),v2(400,200),v2(500,200),v2(500,400),v2(0,400)];
+//		P = [v2(0,0),v2(500,0),v2(500,200),v2(400,200),v2(400,100),v2(300,100),v2(300,200),v2(200,200),v2(200,100),v2(100,100),v2(100,300),v2(200,300),v2(200,200),v2(300,200),v2(300,300),v2(400,300),v2(400,200),v2(500,200),v2(500,400),v2(0,400)];
 
-		debug = new ShapeDebug(600,600,0xFFFFFF);
+		debug = new BitmapDebug(600,600,0xFFFFFF);
 		debug.clear();
 		debug.transform.tx = 100;
 		debug.transform.ty = 100;
 		c.addChild(debug.display);
 
-		debug.drawPolygon(P,0xff0000);
-		debug.flush();
-
-//		debug.drawFilledPolygon(P,0x808080);
 		$(mixin colour() {
 			var col = Std.int(0x80*Math.random())+0x60;
 			var col1 = Std.int(0x80*Math.random())+0x60;
@@ -258,7 +253,12 @@ class DummyNapeMain {
 			var b = Std.int(((col)&0xff)*fact);
 			(r<<16) | (g<<8) | (b);
 		});
+	
+		if(P.length>0) {
+		debug.drawPolygon(P,0xff0000);
+		debug.flush();
 
+//		debug.drawFilledPolygon(P,0x808080);
 //		for(p in (new GeomPoly(P)).convex_decomposition()) debug.drawFilledPolygon(p.toArray(),colour);
 		for(p in (new GeomPoly(P)).monotone_decomposition()) {
 			var col = colour;
@@ -270,6 +270,7 @@ class DummyNapeMain {
 		for(p in P)
 			debug.drawFilledCircle(p,2,0xffff);
 		debug.flush();
+		}
 
 //		for(p in (new GeomPoly(P)).monotone_decomposition()) debug.drawPolygon(p.toArray(),0xffffff);
 //		debug.flush();
@@ -277,6 +278,11 @@ class DummyNapeMain {
 		P = [];
 //P = [Vec2.get(208,317),Vec2.get(184,290),Vec2.get(155,247),Vec2.get(132,197),Vec2.get(134,148),Vec2.get(157,128),Vec2.get(179,114),Vec2.get(207,107),Vec2.get(238,107),Vec2.get(269,125),Vec2.get(281,149),Vec2.get(264,168),Vec2.get(235,159),Vec2.get(219,137),Vec2.get(204,107),Vec2.get(212,83),Vec2.get(250,58),Vec2.get(283,52),Vec2.get(312,52),Vec2.get(346,59),Vec2.get(395,76),Vec2.get(445,97),Vec2.get(474,123),Vec2.get(484,155),Vec2.get(491,196),Vec2.get(486,235),Vec2.get(474,266),Vec2.get(447,293),Vec2.get(414,308),Vec2.get(380,315),Vec2.get(348,313),Vec2.get(299,298),Vec2.get(253,277),Vec2.get(219,244),Vec2.get(194,218),Vec2.get(176,193),Vec2.get(166,162),Vec2.get(159,135),Vec2.get(158,109),Vec2.get(165,82),Vec2.get(184,56),Vec2.get(208,48)];
 //P=[Vec2.get(217,387),Vec2.get(210,362),Vec2.get(196,321),Vec2.get(194,295),Vec2.get(194,261),Vec2.get(195,232),Vec2.get(206,199),Vec2.get(220,175),Vec2.get(250,157),Vec2.get(285,157),Vec2.get(317,174),Vec2.get(333,195),Vec2.get(332,226),Vec2.get(326,255),Vec2.get(322,285),Vec2.get(329,322),Vec2.get(351,346),Vec2.get(385,349),Vec2.get(411,312),Vec2.get(412,283),Vec2.get(409,249),Vec2.get(400,216),Vec2.get(388,186),Vec2.get(372,149),Vec2.get(362,119),Vec2.get(379,96),Vec2.get(410,99),Vec2.get(420,122),Vec2.get(430,161),Vec2.get(435,189),Vec2.get(435,217),Vec2.get(435,246),Vec2.get(433,277),Vec2.get(444,306),Vec2.get(469,316),Vec2.get(488,287),Vec2.get(499,241),Vec2.get(501,209),Vec2.get(501,175),Vec2.get(494,150),Vec2.get(484,126),Vec2.get(477,92),Vec2.get(478,54),Vec2.get(503,72),Vec2.get(536,131),Vec2.get(560,183),Vec2.get(568,226),Vec2.get(566,270),Vec2.get(564,314),Vec2.get(564,345),Vec2.get(564,380),Vec2.get(566,416),Vec2.get(567,445),Vec2.get(567,477),Vec2.get(554,506),Vec2.get(516,517),Vec2.get(480,521),Vec2.get(451,528),Vec2.get(418,529),Vec2.get(384,529),Vec2.get(338,524),Vec2.get(301,517),Vec2.get(250,512),Vec2.get(220,513),Vec2.get(187,513),Vec2.get(161,508),Vec2.get(134,491),Vec2.get(102,466),Vec2.get(71,434),Vec2.get(62,403),Vec2.get(59,368),Vec2.get(60,327),Vec2.get(71,281),Vec2.get(82,243),Vec2.get(91,213),Vec2.get(102,188),Vec2.get(113,159),Vec2.get(118,129),Vec2.get(122,98),Vec2.get(128,67),Vec2.get(150,51),Vec2.get(175,55),Vec2.get(188,78),Vec2.get(187,112),Vec2.get(178,142),Vec2.get(162,183),Vec2.get(149,228),Vec2.get(137,272),Vec2.get(132,318),Vec2.get(132,366),Vec2.get(135,392),Vec2.get(143,417),Vec2.get(156,442),Vec2.get(184,453),Vec2.get(211,454),Vec2.get(236,440),Vec2.get(246,404),Vec2.get(248,365),Vec2.get(239,320),Vec2.get(228,287),Vec2.get(233,260),Vec2.get(252,242),Vec2.get(274,230),Vec2.get(307,239),Vec2.get(333,256),Vec2.get(350,276),Vec2.get(358,309),Vec2.get(356,342),Vec2.get(358,368),Vec2.get(372,405),Vec2.get(397,423),Vec2.get(423,420),Vec2.get(447,400),Vec2.get(448,374),Vec2.get(438,350),Vec2.get(424,323),Vec2.get(419,295),Vec2.get(416,267),Vec2.get(419,240),Vec2.get(431,217),Vec2.get(453,204)];
+
+//P = [v2(100,100),v2(300,100),v2(300,300),v2(200,100),v2(100,300)];
+//P = [v2(100,100),v2(300,100),v2(300,300),v2(200,100),v2(100,300),v2(250,150),v2(350,200),v2(284,225)];
+//P = [v2(100,100),v2(300,100),v2(300,300),v2(150,150),v2(250,150),v2(100,300)];
+
 		var mdown = false;
 		c.stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function (_) {
 			mdown = true;
@@ -289,17 +295,16 @@ class DummyNapeMain {
 		tim.run = function() {
 			if(mdown) {
 				var p = new Vec2(c.mouseX,c.mouseY);
-				if(p.sub(P[P.length-1]).length>25) P.push(p);
+				if(p.sub(P[P.length-1]).length>5) P.push(p);
 			}
 
 			if(P.length>=3 && P.length!=pl) {
 				pl = P.length;
 				debug.clear();
 
-		debug.drawPolygon(P,0x505050);
 //		if((new GeomPoly(P)).isSimple())
 //			PR(Simple).decompose((new GeomPoly(P)).pr(inner).vertices);
-try {
+//try {
 		var polys = (new GeomPoly(P)).simple_decomposition();
 		for(p in polys) {
 			var col = colour;
@@ -312,7 +317,7 @@ try {
 			}
 		}
 		debug.drawPolygon(P,0);
-					}catch(e:Dynamic) {
+/*					}catch(e:Dynamic) {
 						tim.stop();
 
 						var ret = Std.string(e);
@@ -329,7 +334,7 @@ try {
 
 						throw e;
 					}
-
+*/
 /*		if((new GeomPoly(P)).isSimple()) {
 			for(p in (new GeomPoly(P)).monotone_decomposition()) {
 				var col = colour;
