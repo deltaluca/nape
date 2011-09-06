@@ -243,6 +243,14 @@ class DummyNapeMain {
 		c.addChild(sdebug.display);
 		sdebug.display.alpha = 0.5;
 
+        var txt = new flash.text.TextField();
+        txt.defaultTextFormat = new flash.text.TextFormat("Courier New",null,0);
+        c.addChild(txt);
+        txt.width = 600;
+        txt.height = 600;
+        txt.selectable = false;
+		txt.multiline = true;
+
 		$(mixin colour() {
 			var col = Std.int(0x80*Math.random())+0x60;
 			var col1 = Std.int(0x80*Math.random())+0x60;
@@ -292,7 +300,7 @@ class DummyNapeMain {
 			mdown = true;
 			P.push(new Vec2(c.mouseX,c.mouseY));
 		});
-		c.stage.addEventListener(flash.events.MouseEvent.MOUSE_UP, function(_) mdown = false);
+		c.stage.addEventListener(flash.events.MouseEvent.MOUSE_UP, function(_) { mdown = false; P = []; });
 
 		var tim = new haxe.Timer(0);
 		var pl = P.length*0;
@@ -310,13 +318,7 @@ class DummyNapeMain {
 //			PR(Simple).decompose((new GeomPoly(P)).pr(inner).vertices);
 //try {
 		debug.drawFilledPolygon(P,0xff00);
-		debug.drawPolygon(P,0xff);
 		debug.flush();
-
-		var polys = (new GeomPoly(P)).simple_decomposition();
-		for(p in polys) {
-			if(!p.isSimple()) throw "nooo";
-		}
 
 //		sdebug.clear();
 //		sdebug.drawFilledPolygon(P,0xff0000);
@@ -376,6 +378,12 @@ class DummyNapeMain {
 					}*/
 //				}
 				debug.flush();
+
+			txt.text = "";
+			#if NAPE_POOL_STATS
+				txt.text += PR(POOL_STATS).dump()+"\n";
+			#end
+
 			}
 		};
 	}
