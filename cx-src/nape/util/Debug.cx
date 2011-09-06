@@ -622,9 +622,17 @@ class BitmapDebug extends Debug {
 
 			var gpoly = new GeomPoly(poly);
 			if(!gpoly.isSimple()) {
-				//later, should perform a 'simplification' of the complex polygon
-				//instead of aborting and rendering as a line loop.
-				drawPolygon(poly,colour);
+//				drawPolygon(poly,colour);
+				var polys:GeomPolyList = gpoly.simple_decomposition();
+				for(p in polys) {
+					if(p.isConvex())
+						render(p);
+					else {
+						//replace with triangulrisation
+						var qolys:GeomPolyList = p.convex_decomposition();
+						for(q in qolys) render(q);
+					}
+				}
 			}else {
 				if(gpoly.isConvex()) {
 					render(gpoly);

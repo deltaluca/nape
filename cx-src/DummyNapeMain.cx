@@ -239,6 +239,10 @@ class DummyNapeMain {
 		debug.transform.ty = 100;
 		c.addChild(debug.display);
 
+		var sdebug = new ShapeDebug(600,600,0xFFFFFF);
+		c.addChild(sdebug.display);
+		sdebug.display.alpha = 0.5;
+
 		$(mixin colour() {
 			var col = Std.int(0x80*Math.random())+0x60;
 			var col1 = Std.int(0x80*Math.random())+0x60;
@@ -305,18 +309,12 @@ class DummyNapeMain {
 //		if((new GeomPoly(P)).isSimple())
 //			PR(Simple).decompose((new GeomPoly(P)).pr(inner).vertices);
 //try {
-		var polys = (new GeomPoly(P)).simple_decomposition();
-		for(p in polys) {
-			var col = colour;
-			debug.drawFilledPolygon(p.toArray(),col);
-			var qpolys = p.monotone_decomposition();
-			for(q in qpolys) {
-				var spolys = q.convex_decomposition();
-				for(s in spolys)
-					debug.drawFilledPolygon(s.toArray(),scalec(col));
-			}
-		}
-		debug.drawPolygon(P,0);
+		debug.drawFilledPolygon(P,0xff00);
+		debug.drawPolygon(P,0xff);
+
+		sdebug.clear();
+		sdebug.drawFilledPolygon(P,0xff0000);
+		sdebug.drawPolygon(P,0xff00ff);
 /*					}catch(e:Dynamic) {
 						tim.stop();
 
