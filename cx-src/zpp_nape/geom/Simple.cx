@@ -224,9 +224,12 @@ class Sweep {
 			var rsign = isLeft(p.left,p.right,q.right);
 			if(lsign*rsign > 0) return false;
 			else {
-				lsign = isLeft(q.left,q.right,p.left);
-				rsign = isLeft(q.left,q.right,p.right);
-				if(lsign*rsign > 0) return false;
+				var lsign2 = isLeft(q.left,q.right,p.left);
+				var rsign2 = isLeft(q.left,q.right,p.right);
+				if(lsign2*rsign2 > 0) return false;
+				else if(lsign*rsign >= 0 && lsign2*rsign2 >= 0) {
+					return false;
+				}
 				else return true;
 			}
 		}
@@ -511,6 +514,8 @@ class PR(Simple) {
 
 		assert(fst.links.empty(),"hmm, shouldn't have any left");
 		popvertex(fst);
+
+//		assert(isSimple(ret),"simple output not simple");
 
 		rets.add(ret);
 		return vertices;
