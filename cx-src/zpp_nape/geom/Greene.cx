@@ -393,7 +393,7 @@ class PR(Greene) {
 
 			if(ccw_chain_ref == cw_chain_ref) {
 				make_polygons_from_stack(polygon, point_ref,stack,bottom, rets);
-				return;
+				break;
 			}
 
 			if(is_adjacent_to(point_ref,stack.front)) {
@@ -409,7 +409,9 @@ class PR(Greene) {
 	public static function decompose(P:Polygon) {
 		var MPs = PR(Monotone).decompose(P);
 		var rets = new List(Polygon)();
-		Iter(MP,MPs,ga_convex_decomposition(MP,rets));
+		ClearWith(MP,MPs,{
+			ga_convex_decomposition(MP,rets);
+		});
 
 		#if NAPE_ASSERT
 			//don't use signed_area as P may have been reversed in monotone decomposition if it were CCW
