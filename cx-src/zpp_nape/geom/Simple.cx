@@ -35,12 +35,15 @@ class Segment {
 	public var left :Vertex;
 	public var right:Vertex;
 
+	public var cleft:Vertex; //current 'real' left
+
 	static var nextId = 0;
 	public var id:Int;
 
 	MixPool(Segment)
 	flibmdel public inline function free() {
 		left = right = null;
+		cleft = null;
 		prev = null;
 		node = null;
 	}
@@ -58,6 +61,7 @@ class Segment {
 	public static inline function get(left:Vertex,right:Vertex) {
 		var ret = Get(Segment);
 		ret.left  = left;
+		ret.cleft = left;
 		ret.right = right;
 		return ret;
 	}
@@ -347,15 +351,15 @@ class PR(Simple) {
 				if(b.next!=a) swap(a,b);
 
 				//cut segments at intersection
-				a.left .links.remove(a.right); a.left .links.insert(int);
-				a.right.links.remove(a.left);  a.right.links.insert(int);
-				b.left .links.remove(b.right); b.left .links.insert(int);
-				b.right.links.remove(b.left);  b.right.links.insert(int);
+				a.cleft.links.remove(a.right); a.cleft.links.insert(int);
+				a.right.links.remove(a.cleft); a.right.links.insert(int);
+				b.cleft.links.remove(b.right); b.cleft.links.insert(int);
+				b.right.links.remove(b.cleft); b.right.links.insert(int);
 
-				int.links.insert(a.left); int.links.insert(a.right);
-				int.links.insert(b.left); int.links.insert(b.right);
+				int.links.insert(a.cleft); int.links.insert(a.right);
+				int.links.insert(b.cleft); int.links.insert(b.right);
 
-				a.left = int; b.left = int;
+				a.cleft = int; b.cleft = int;
 				mix_circular(Vertex,
 					vertices = push_after(vertices,int);
 				)

@@ -302,8 +302,14 @@ class DummyNapeMain {
 try {
 		var polys = (new GeomPoly(P)).simple_decomposition();
 		for(p in polys) {
-			debug.drawFilledPolygon(p.toArray(),colour);
+			var col = colour;
+			debug.drawFilledPolygon(p.toArray(),col);
 			var qpolys = p.monotone_decomposition();
+			for(q in qpolys) {
+				var spolys = q.convex_decomposition();
+				for(s in spolys)
+					debug.drawFilledPolygon(s.toArray(),scalec(col));
+			}
 		}
 		debug.drawPolygon(P,0);
 					}catch(e:Dynamic) {
