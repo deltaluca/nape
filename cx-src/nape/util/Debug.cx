@@ -619,9 +619,17 @@ class BitmapDebug extends Debug {
 		DEBUG(if(polygon==null) throw "Error: Cannot render null polygon";)
 
 		$(mixin render(gp) {
-			var p:Array<Vec2> = gp.toArray(); //<-- evil
-			for(i in 1...p.length-1)
-				drawFilledTriangle(p[0],p[i],p[i+1],colour);
+			//recycle possibly cloned, otherwise decomposition results as we go
+			var p0 = gp.shift();
+			var pre = gp.shift();
+			while(!gp.empty()) {
+				var cur = gp.shift();
+				drawFilledTriangle(p0,pre,cur,colour);
+				pre.dispose();
+				pre = cur;
+			}
+			pre.dispose();
+			p0.dispose();
 		});
 
 		var gpoly = new GeomPoly(polygon);
