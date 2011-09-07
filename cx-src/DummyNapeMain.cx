@@ -240,18 +240,10 @@ class DummyNapeMain {
 		c.stage.addEventListener(flash.events.MouseEvent.MOUSE_UP, function (_) {
 			if(gp!=null && gp.size()>3) {
 				var polys = gp.simple_decomposition();
-				var fluid = polys.length==1;
 				for(p in polys) {
 					var body = new Body();
 					var cons = p.convex_decomposition();
-					for(c in cons) {
-						var s = new Polygon(c);
-						s.body = body;
-						if(fluid) {
-							s.fluidEnabled = true;
-							s.fluidProperties.density = 2;
-						}
-					}
+					for(c in cons) body.shapes.add(new Polygon(c));
 					body.align();
 					body.space = space;
 				}
@@ -264,7 +256,7 @@ class DummyNapeMain {
 
 			if(gp!=null) {
 				var cur = Vec2.get(c.mouseX,c.mouseY);
-				if(cur.sub(pre).length>10) {
+				if(cur.sub(pre).length>5) {
 					gp.push(cur);
 					pre = cur;
 				}
@@ -276,6 +268,8 @@ class DummyNapeMain {
 			debug.flush();
 		}
 	}
+
+
 
 	static function mainsssss() {
 		var c = flash.Lib.current;
