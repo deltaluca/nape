@@ -87,6 +87,12 @@ class GeomPoly {
 		)
 	}
 
+	public function clear() {
+		mix_circular(Vertex,
+			clear_with(verts, $(mixin cb(x) Free(Vertex,x)));
+		)	
+	}
+
 	public function copy() {
 		var ret = new GeomPoly();
 		mix_circular(Vertex,
@@ -94,14 +100,10 @@ class GeomPoly {
 		)
 	}
 
-	public function new(vertices:Array<Vec2>=null) {
+	public function new(vertices:Dynamic=null) {
 		pr(inner) = new PR(GeomPoly)(this);
-		if(vertices!=null) {
-			mix_circular(Vertex,
-				for(v in vertices)
-					verts = push_after(verts, Vertex.get(v.x,v.y)); 
-			)
-		}
+		if(vertices!=null)
+			PolyIter(v,vertices,mix_circular(Vertex, verts = push_after(verts,Vertex.get(v.x,v.y))));
 	}
 	@:$keep public function toString() {
 		var ret = "GeomPoly[";

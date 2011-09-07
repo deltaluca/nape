@@ -1,0 +1,87 @@
+package zpp_nape.geom;
+$(import);
+
+//macro for iteration over a generic 'polygon' since this occurs in a few areas
+//
+// accept either:
+//  a Vec2List
+//  a GeomPoly
+//  a flash.Vector<Vec2> //flash9+
+// an Array<Vec2>
+
+$(mixin global PolyFirst(polygon) ({
+	if(Std.is(polygon,Array)) {
+		var lv:Array<Dynamic> = polygon;
+		DEBUG(if(lv.length==0) throw "Error: Array<Vec2> is empty";)
+		DEBUG(if(lv[0]==null) throw "Error: Array<Vec2> contains null objects";)
+		DEBUG(if(!Std.is(lv[0],Vec2)) throw "Error: Array<Vec2> contains non Vec2 objects";)
+		var ret:Vec2 = lv[0];
+		Diposed(ret,Vec2);
+		ret.copy();
+	}#if flash9 else if(Std.is(polygon,flash.Vector)) {
+		var lv:flash.Vector<Dynamic> = polygon;
+		DEBUG(if(lv.length==0) throw "Error: flash.Vector<Vec2> is empty";)
+		DEBUG(if(lv[0]==null) throw "Error: flash.Vector<Vec2> contains null objects";)
+		DEBUG(if(!Std.is(lv[0],Vec2)) throw "Error: flash.Vector<Vec2> contains non Vec2 objects";)
+		var ret:Vec2 = lv[0];
+		Disposed(ret,Vec2);
+		ret.copy();
+	}#end
+	else if(Std.is(polygon,Vec2List)) {
+		var lv:Vec2List = polygon;
+		DEBUG(if(lv.empty()) throw "Error: Vec2List is empty";)
+		var v = lv.at(0);
+		Disposed(v,Vec2);
+		v.copy();
+	}else if(Std.is(polygon,GeomPoly)) {
+		var lv:GeomPoly = polygon;
+		DEBUG(if(lv.empty()) throw "Error: GeomPoly is empty";)
+		var v = lv.pr(inner).vertices;
+		Vec2.get(v.x,v.y);
+	}DEBUG(else
+		throw "Error: Invalid type for polygon object, should be Array<Vec2>, Vec2List, GeomPoly or for flash9+ flash.Vector<Vec2>";
+	)
+}));
+
+$(mixin global PolyIter(x, polygon, block) {
+	if(Std.is(polygon,Array)) {
+		var lv:Array<Dynamic> = polygon;
+		for(x in lv) {
+			DEBUG(if(x==null) throw "Error: Array<Vec2> contains null objects";)
+			DEBUG(if(!Std.is(x,Vec2)) throw "Error: Array<Vec2> contains non Vec2 objects";)
+			Disposed(x,Vec2);
+
+			block;
+		}
+	}#if flash9 else if(Std.is(polygon,flash.Vector)) {
+		var lv:flash.Vector<Dynamic> = polygon;
+		for(x in lv) {
+			DEBUG(if(x==null) throw "Error: flash.Vector<Vec2> contains null objects";)
+			DEBUG(if(!Std.is(x,Vec2)) throw "Error: flash.Vector<Vec2> contains non Vec2 objects";)
+			Disposed(x,Vec2);
+
+			block;
+		}
+	}#end
+	else if(Std.is(polygon,Vec2List)) {
+		var lv:Vec2List = polygon;
+		for(x in lv) {
+			DEBUG(if(x==null) throw "Error: Vec2List contains null objects";)
+			Disposed(x,Vec2);
+			
+			block;
+		}	
+	}else if(Std.is(polygon,GeomPoly)) {
+		var lv:GeomPoly = polygon;
+		var verts:PR(GeomVert) = lv.pr(inner).vertices;
+		mix_circular(PR(GeomVert),
+			for_iter(v, verts, {
+				var x = Vec2.get(v.x,v.y);
+				block;	
+				x.dispose();
+			});
+		)
+	}DEBUG(else
+		throw "Error: Invalid type for polygon object, should be Array<Vec2>, Vec2List, GeomPoly or for flash9+ flash.Vector<Vec2>";
+	)
+});

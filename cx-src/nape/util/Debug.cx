@@ -201,10 +201,8 @@ class Debug {
     public function drawFilledTriangle(p0:Vec2, p1:Vec2, p2:Vec2, colour:Int):Void {}
     public function drawFilledCircle(position:Vec2, radius:Float, colour:Int):Void {}
 
-	public function drawPolygon (poly:Array<Vec2>, colour:Int):Void {}
-
-	//this method is generally not as effecient as could be with the container casts to arrays etc!
-	public function drawFilledPolygon (poly:Array<Vec2>, colour:Int):Void {}
+	public function drawPolygon (polygon:Dynamic, colour:Int):Void {}
+	public function drawFilledPolygon (polygon:Dynamic, colour:Int):Void {}
 
     #end
 }
@@ -376,52 +374,56 @@ class ShapeDebug extends Debug {
         g.endFill();
     }
 
-	public override function drawPolygon(poly:Array<Vec2>, colour:Int) {
+	public override function drawPolygon(polygon:Dynamic, colour:Int) {
 		DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
-		DEBUG(if(poly==null) throw "Error: Cannot draw null Vec2 list";)
-		DEBUG(for(p in poly) Disposed(p,Vec2);)
+		DEBUG(if(polygon==null) throw "Error: Cannot draw null polygon";)
 
 		var g = pr(inner_zn).graphics;
 		g.lineStyle(0.1,colour&0xffffff,1.0);
-		var fst = poly[poly.length-1];
+		var fst = PolyFirst(polygon);
 		if(pr(inner).xnull) {
-			g.moveTo(fst.x,fst.y);
-			for(p in poly) g.lineTo(p.x,p.y);
+			var fsttime = true;
+			PolyIter(p,polygon,{ if(fsttime) g.moveTo(p.x,p.y) else g.lineTo(p.x,p.y); fsttime = false; });
+			g.lineTo(fst.x,fst.y);
 		}else {
-			var v = pr(inner).xform.outer.transform(fst);
-			g.moveTo(v.x,v.y);
-			v.dispose();
-			for(p in poly) {
+			PolyIter(p,polygon, {
 				var v = pr(inner).xform.outer.transform(p);
-				g.lineTo(v.x,v.y);
+				if(fsttime) g.moveTo(v.x,v.y) else g.lineTo(v.x,v.y);
+				fsttime = false;
 				v.dispose();
-			}
+			});
+			var v = pr(inner).xform.outer.transform(fst);
+			g.lineTo(v.x,v.y);
+			v.dispose();
 		}
+		fst.dispose();
 	}
 
-	public override function drawFilledPolygon (poly:Array<Vec2>, colour:Int) {
+	public override function drawFilledPolygon (polygon:Dynamic, colour:Int) {
 		DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
-		DEBUG(if(poly==null) throw "Error: Cannot draw null polygon!";)
-		DEBUG(for(p in poly) Disposed(p,Vec2);)
+		DEBUG(if(polygon==null) throw "Error: Cannot draw null polygon!";)
 
 		var g = pr(inner_zn).graphics;
 		g.beginFill(colour&0xffffff,1.0);
 		g.lineStyle(0,0,0);
-		var fst = poly[poly.length-1];
+		var fst = PolyFirst(polygon);
 		if(pr(inner).xnull) {
-			g.moveTo(fst.x,fst.y);
-			for(p in poly) g.lineTo(p.x,p.y);
+			var fsttime = true;
+			PolyIter(p,polygon,{ if(fsttime) g.moveTo(p.x,p.y) else g.lineTo(p.x,p.y); fsttime = false; });
+			g.lineTo(fst.x,fst.y);
 		}else {
-			var v = pr(inner).xform.outer.transform(fst);
-			g.moveTo(v.x,v.y);
-			v.dispose();
-			for(p in poly) {
+			PolyIter(p,polygon, {
 				var v = pr(inner).xform.outer.transform(p);
-				g.lineTo(v.x,v.y);
+				if(fsttime) g.moveTo(v.x,v.y) else g.lineTo(v.x,v.y);
+				fsttime = false;
 				v.dispose();
-			}
+			});
+			var v = pr(inner).xform.outer.transform(fst);
+			g.lineTo(v.x,v.y);
+			v.dispose();
 		}
 		g.endFill();
+		fst.dispose();
 	}
     ///---------------------------------------------------------------------------------------------
 
@@ -573,25 +575,29 @@ class BitmapDebug extends Debug {
  		}
     }
 
-	public override function drawPolygon(poly:Array<Vec2>, colour:Int) {
+	public override function drawPolygon(polygon:Dynamic, colour:Int) {
 		DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
-		DEBUG(if(poly==null) throw "Error: Cannot draw null Vec2 list";)
-		DEBUG(for(p in poly) Disposed(p,Vec2);)
+		DEBUG(if(polygon==null) throw "Error: Cannot draw null Vec2 list";)
 
 		var col = colour|0xff000000;
-		var fst = poly[poly.length-1];
-		var px:Int,py:Int;
+		var fst = PolyFirst(polygon);
+		var fx:Int,fy:Int;
 		if(pr(inner).xnull) {
-			px = fastint(fst.x+0.5);
-			py = fastint(fst.y+0.5);
+			fx = fastint(fst.x+0.5);
+			fy = fastint(fst.y+0.5);
 		}else {
 			var v = pr(inner).xform.outer.transform(fst);
-			px = fastint(v.x+0.5);
-			py = fastint(v.y+0.5);
+			fx = fastint(v.x+0.5);
+			fy = fastint(v.y+0.5);
 			v.dispose();
 		}
+		fst.dispose();
 
-		for(p in poly) {
+		var fsttime = true;
+		var px = fx; var py = fy;
+		PolyIter(p,polygon,
+			if(fsttime) { fsttime = false; continue; }
+
 			var cx:Int,cy:Int;
 			if(pr(inner).xnull) {
 				cx = fastint(p.x+0.5);
@@ -605,43 +611,39 @@ class BitmapDebug extends Debug {
 			pr(inner_zn).__line(px,py,cx,cy,col);
 			px = cx; py = cy;
 		}
+		pr(inner_zn).__line(px,py,fx,fy,col);
 	}
 
-	public override function drawFilledPolygon(poly:Array<Vec2>, colour:Int) {
+	public override function drawFilledPolygon(polygon:Dynamic, colour:Int) {
 		DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
-		DEBUG(if(poly==null) throw "Error: Cannot render null polygon";)
-		DEBUG(for(p in poly) Disposed(p,Vec2);)
+		DEBUG(if(polygon==null) throw "Error: Cannot render null polygon";)
 
-		if(poly.length<3) drawPolygon(poly,colour);
-		else {
-			$(mixin render(gp) {
-				var p:Array<Vec2> = gp.toArray(); //<-- evil
-				for(i in 1...p.length-1)
-					drawFilledTriangle(p[0],p[i],p[i+1],colour);
-			});
+		$(mixin render(gp) {
+			var p:Array<Vec2> = gp.toArray(); //<-- evil
+			for(i in 1...p.length-1)
+				drawFilledTriangle(p[0],p[i],p[i+1],colour);
+		});
 
-			var gpoly = new GeomPoly(poly);
-			if(!gpoly.isSimple()) {
-//				drawPolygon(poly,colour);
-				var polys:GeomPolyList = gpoly.simple_decomposition();
-				for(p in polys) {
-					if(p.isConvex())
-						render(p);
-					else {
-						//replace with triangulrisation
-						var qolys:GeomPolyList = p.convex_decomposition();
-						for(q in qolys) render(q);
-					}
+		var gpoly = new GeomPoly(polygon);
+		if(!gpoly.isSimple()) {
+			var polys:GeomPolyList = gpoly.simple_decomposition();
+			for(p in polys) {
+				if(p.isConvex())
+					render(p);
+				else {
+					//replace with triangulrisation
+					var qolys:GeomPolyList = p.convex_decomposition();
+					for(q in qolys) render(q);
 				}
+			}
+		}else {
+			if(gpoly.isConvex()) {
+				render(gpoly);
 			}else {
-				if(gpoly.isConvex()) {
-					render(gpoly);
-				}else {
-					//replace this with triangularisation would be better.
-					//but no such util exists yet.
-					var polys:GeomPolyList = gpoly.convex_decomposition();
-					for(p in polys) render(p);
-				}
+				//replace this with triangularisation would be better.
+				//but no such util exists yet.
+				var polys:GeomPolyList = gpoly.convex_decomposition();
+				for(p in polys) render(p);
 			}
 		}
 	}

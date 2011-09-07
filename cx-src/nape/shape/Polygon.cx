@@ -86,41 +86,8 @@ class Polygon extends Shape {
 		pr(inner_zn).outer = this;
 		pr(inner_zn).outer_zn = this;
 		pr(inner) = pr(inner_zn);
-		
-		if(Std.is(localVerts,Array)) {
-			var lv:Array<Dynamic> = localVerts;
-			for(i in lv) {
-				DEBUG(
-					if(i==null) throw "Error: localVerts contains null references";
-					if(!Std.is(i,Vec2)) throw "Error: localVerts contains non Vec2 instances";
-				)
-				Disposed(i,Vec2);
-
-				this.localVerts.push(i.copy());
-			}
-		}#if flash9 else if(Std.is(localVerts,flash.Vector)) {
-			var lv:flash.Vector<Dynamic> = localVerts;
-			for(i in lv) {
-				DEBUG(
-					if(i==null) throw "Error: localVerts contains null references";
-					if(!Std.is(i,Vec2)) throw "Error: localVerts contains non Vec2 instances";
-				)
-				Disposed(i,Vec2);
-					
-				this.localVerts.push(i.copy());
-			}
-		}#end
-		else if(Std.is(localVerts,Vec2List)) {
-			var lv:Vec2List = localVerts;
-			for(i in lv) {
-				DEBUG(if(i==null) throw "Error: localVerts contains null references";)
-				Disposed(i,Vec2);
-
-				this.localVerts.push(i.copy());
-			}
-		}DEBUG(else
-			throw "Error: Invalid type for localVerts, should be Array<Vec2>, Vec2List or for flash9 flash.Vector<Vec2>";
-		)
+	
+		PolyIter(x, localVerts, this.localVerts.push(x.copy()));
 
 		if(material==null)
 			pr(inner).material = Get(PR(Material));
