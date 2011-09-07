@@ -20,6 +20,11 @@ class GeomPoly {
 	public inline function empty() return mix_circular(Vertex,empty(verts))
 	public inline function size () return mix_circular(Vertex,size(verts))
 
+	public inline function current() {
+		DEBUG(if(empty()) throw "Error: GeomPoly is empty";)
+		return verts.wrapper();
+	}
+
 	public inline function push(x:Vec2) {
 		DEBUG(if(x==null) throw "Error: Cannot push null vertex";)
 		Disposed(x,Vec2);
@@ -27,15 +32,15 @@ class GeomPoly {
 		mix_circular(Vertex,
 			verts = push_after(verts, Vertex.get(x.x,x.y));
 		)
+
+		return current();
 	}
-	public inline function pop():Vec2 {
+	public inline function pop() {
 		mix_circular(Vertex,
 			DEBUG(if(empty(verts)) throw "Error: Cannot pop from empty polygon";)
 			var retv = verts;
 			verts = pop_ret_before(verts);
-			var ret = Vec2.get(retv.x,retv.y);
 			Free(Vertex,retv);
-			return ret;
 		)
 	}
 
@@ -46,15 +51,15 @@ class GeomPoly {
 		mix_circular(Vertex,
 			verts = push_before(verts, Vertex.get(x.x,x.y));
 		)
+
+		return current();
 	}
 	public inline function shift() {
 		mix_circular(Vertex,
 			DEBUG(if(empty(verts)) throw "Error: Cannot shift from empty polygon";)
 			var retv = verts;
 			verts = pop_ret_after(verts);
-			var ret = Vec2.get(retv.x,retv.y);
 			Free(Vertex,retv);
-			return ret;
 		)
 	}
 

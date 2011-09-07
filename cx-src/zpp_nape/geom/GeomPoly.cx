@@ -10,8 +10,32 @@ class Vertex {
 	public var prev:Vertex;
 	public var next:Vertex;
 
-	flibmdel public inline function free () {}
+	public var wrap:Vec2;
+
+	flibmdel public inline function free () {
+		if(wrap!=null) {
+			wrap.dispose();
+			wrap = null;
+		}
+	}
 	flibmdel public inline function alloc() {}
+
+	public inline function wrapper() {
+		if(wrap==null) {
+			wrap = Vec2.get(x,y);
+			wrap.pr(inner).inuse = true;
+			wrap.pr(inner)._invalidate = modwrap;
+			wrap.pr(inner)._validate = getwrap;
+		}
+		return wrap;
+	}
+
+	public function modwrap(n:PR(Vec2)) {
+		vec_set(this.,n.);
+	}
+	public function getwrap() {
+		vec_set(wrap.pr(inner).,this.);
+	}
 
 	public static inline function get(x:Float,y:Float) {
 		var ret = Get(Vertex);
