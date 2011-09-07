@@ -9,14 +9,14 @@ $(import);
 //  a flash.Vector<Vec2> //flash9+
 // an Array<Vec2>
 
-$(mixin global PolyFirst(polygon) ({
+$(mixin global PolyFirst(polygon) (${DEBUG/1,Disposed/2,PR/1,pr/1->
 	if(Std.is(polygon,Array)) {
 		var lv:Array<Dynamic> = polygon;
 		DEBUG(if(lv.length==0) throw "Error: Array<Vec2> is empty";)
 		DEBUG(if(lv[0]==null) throw "Error: Array<Vec2> contains null objects";)
 		DEBUG(if(!Std.is(lv[0],Vec2)) throw "Error: Array<Vec2> contains non Vec2 objects";)
 		var ret:Vec2 = lv[0];
-		Diposed(ret,Vec2);
+		Disposed(ret,Vec2);
 		ret.copy();
 	}#if flash9 else if(Std.is(polygon,flash.Vector)) {
 		var lv:flash.Vector<Dynamic> = polygon;
@@ -43,44 +43,46 @@ $(mixin global PolyFirst(polygon) ({
 	)
 }));
 
-$(mixin global PolyIter(x, polygon, block) {
+$(mixin global PolyIter(val, polygon, block) ${DEBUG/1,Disposed/2,PR/1,pr/1->
 	if(Std.is(polygon,Array)) {
 		var lv:Array<Dynamic> = polygon;
-		for(x in lv) {
-			DEBUG(if(x==null) throw "Error: Array<Vec2> contains null objects";)
-			DEBUG(if(!Std.is(x,Vec2)) throw "Error: Array<Vec2> contains non Vec2 objects";)
-			Disposed(x,Vec2);
+		for(val in lv) {
+			DEBUG(if(val==null) throw "Error: Array<Vec2> contains null objects";)
+			DEBUG(if(!Std.is(val,Vec2)) throw "Error: Array<Vec2> contains non Vec2 objects";)
+			Disposed(val,Vec2);
 
 			block;
 		}
 	}#if flash9 else if(Std.is(polygon,flash.Vector)) {
 		var lv:flash.Vector<Dynamic> = polygon;
-		for(x in lv) {
-			DEBUG(if(x==null) throw "Error: flash.Vector<Vec2> contains null objects";)
-			DEBUG(if(!Std.is(x,Vec2)) throw "Error: flash.Vector<Vec2> contains non Vec2 objects";)
-			Disposed(x,Vec2);
+		for(val in lv) {
+			DEBUG(if(val==null) throw "Error: flash.Vector<Vec2> contains null objects";)
+			DEBUG(if(!Std.is(val,Vec2)) throw "Error: flash.Vector<Vec2> contains non Vec2 objects";)
+			Disposed(val,Vec2);
 
 			block;
 		}
 	}#end
 	else if(Std.is(polygon,Vec2List)) {
 		var lv:Vec2List = polygon;
-		for(x in lv) {
-			DEBUG(if(x==null) throw "Error: Vec2List contains null objects";)
-			Disposed(x,Vec2);
+		for(val in lv) {
+			DEBUG(if(val==null) throw "Error: Vec2List contains null objects";)
+			Disposed(val,Vec2);
 			
 			block;
 		}	
 	}else if(Std.is(polygon,GeomPoly)) {
 		var lv:GeomPoly = polygon;
 		var verts:PR(GeomVert) = lv.pr(inner).vertices;
-		mix_circular(PR(GeomVert),
-			for_iter(v, verts, {
-				var x = Vec2.get(v.x,v.y);
+		if(verts!=null) {
+			var vite = verts;
+			do {
+				var val = Vec2.get(vite.x,vite.y);
+				vite = vite.next;
 				block;	
-				x.dispose();
-			});
-		)
+				val.dispose();
+			}while(vite!=verts);
+		}
 	}DEBUG(else
 		throw "Error: Invalid type for polygon object, should be Array<Vec2>, Vec2List, GeomPoly or for flash9+ flash.Vector<Vec2>";
 	)

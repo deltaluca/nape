@@ -1,4 +1,4 @@
-SWFV = 10.3
+SWFV = 10
 
 local: pre_compile
 	mkdir -p bin

@@ -381,8 +381,8 @@ class ShapeDebug extends Debug {
 		var g = pr(inner_zn).graphics;
 		g.lineStyle(0.1,colour&0xffffff,1.0);
 		var fst = PolyFirst(polygon);
+		var fsttime = true;
 		if(pr(inner).xnull) {
-			var fsttime = true;
 			PolyIter(p,polygon,{ if(fsttime) g.moveTo(p.x,p.y) else g.lineTo(p.x,p.y); fsttime = false; });
 			g.lineTo(fst.x,fst.y);
 		}else {
@@ -407,8 +407,8 @@ class ShapeDebug extends Debug {
 		g.beginFill(colour&0xffffff,1.0);
 		g.lineStyle(0,0,0);
 		var fst = PolyFirst(polygon);
+		var fsttime = true;
 		if(pr(inner).xnull) {
-			var fsttime = true;
 			PolyIter(p,polygon,{ if(fsttime) g.moveTo(p.x,p.y) else g.lineTo(p.x,p.y); fsttime = false; });
 			g.lineTo(fst.x,fst.y);
 		}else {
@@ -595,7 +595,7 @@ class BitmapDebug extends Debug {
 
 		var fsttime = true;
 		var px = fx; var py = fy;
-		PolyIter(p,polygon,
+		PolyIter(p,polygon,{
 			if(fsttime) { fsttime = false; continue; }
 
 			var cx:Int,cy:Int;
@@ -610,7 +610,7 @@ class BitmapDebug extends Debug {
 			}
 			pr(inner_zn).__line(px,py,cx,cy,col);
 			px = cx; py = cy;
-		}
+		});
 		pr(inner_zn).__line(px,py,fx,fy,col);
 	}
 
@@ -645,9 +645,9 @@ class BitmapDebug extends Debug {
 				}
 			}
 		}else {
-			if(gpoly.isConvex()) {
+			if(gpoly.isConvex()) 
 				render(gpoly);
-			}else {
+			else {
 				//replace this with triangularisation would be better.
 				//but no such util exists yet.
 				var polys:GeomPolyList = gpoly.convex_decomposition();
