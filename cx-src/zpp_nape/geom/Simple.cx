@@ -10,11 +10,12 @@ class Vertex {
 	public var id:Int;
 
 	MixPool(Vertex)
-	public var prev:Vertex; //for Circular list.
+	public var node:Set(Vertex); //for vertices list in decomposition.
 	flibmdel public inline function free() {
 		links.clear();
 		Free(Set(Vertex),links);
 		links = null;
+		node = null;
 	}
 	flibmdel public inline function alloc() {
 		links = Get(Set(Vertex));
@@ -27,6 +28,7 @@ class Vertex {
 	public static inline function less_xy(p:Vertex,q:Vertex) {
 		return p.y < q.y || (p.y==q.y && p.x < q.x);
 	}
+	public static inline function swap_nodes(p:Vertex,q:Vertex) swap(p.node,q.node)
 
 	public static inline function get(x:Float,y:Float) {
 		var ret = Get(Vertex);
@@ -301,35 +303,50 @@ class PR(Simple) {
 	static var inthash = new FastHash2(Hashable2(Bool))();
 
 	public static function decompose(poly:PR(GeomVert)) {
-		var vertices:Vertex = null;
-		var vite:PR(GeomVert) = poly;
-		do { mix_circular(Vertex,
-			vertices = push_after(vertices,Vertex.get(vite.x,vite.y));
-			vite = vite.next;
-		)}while(vite!=poly);
-
+		var vertices = Get(Set(Vertex));
+		vertices.lt = Vertex.less_xy;
+		vertices.swapped = Vertex.swap_nodes;
+		
 		var queue = Get(Set(Event));
 		queue.lt = Event.less_xy;
 		queue.swapped = Event.swap_nodes;
-		mix_circular(Vertex,for_iter(u,vertices,{
-			var v = u.next;
 
-			var e1 = Event.get(u);
-			var e2 = Event.get(v);
-			var seg:Segment; 
+		$(mixin do_seg(pre,vert) {
+			var e1 = Event.get(pre);
+			var e2 = Event.get(vert);
+			var seg:Segment;
 			if(Event.less_xy(e1,e2)) {
 				e1.type = LEFT; e2.type = RIGHT;
-				seg = Segment.get(u,v);
+				seg = Segment.get(pre,vert);
 			}else {
 				e1.type = RIGHT; e2.type = LEFT;
-				seg = Segment.get(v,u);
+				seg = Segment.get(vert,pre);
 			}
 			e1.segment = e2.segment = seg;
 			queue.insert(e1);
 			queue.insert(e2);
-			u.links.insert(v);
-			v.links.insert(u);
-		}));
+			pre.links.insert(vert);
+			vert.links.insert(pre);
+		});
+
+		var fst:Vertex = null;
+		var pre:Vertex = null;
+		mix_circular(PR(GeomVert),
+			for_iter(v, poly, {
+				var vert = Vertex.get(v.x,v.y);
+				var vx = SetFind(vertices,vert);
+				if(vx!=null) {
+					Free(Vertex,vert);
+					vert = vx.data;
+				}else vert.node = vertices.insert(vert);
+
+				if(pre!=null) do_seg(pre,vert);
+
+				pre = vert;
+				if(fst==null) fst = vert;
+			});
+		)
+		do_seg(pre,fst);
 
 		var ints = Get(Set(Event));
 		ints.lt = Event.less_xy;
@@ -389,7 +406,7 @@ class PR(Simple) {
 				}
 			}else {
 				var int = e.vertex;
-				var pnull = int.prev==null;
+				var pnull = int.node == null;
 
 				var a = e.segment; var b = e.segment2;
 				assert((a.prev==b && b.next==a) || (b.prev==a && a.next==b),"no.!!!");
@@ -418,7 +435,7 @@ class PR(Simple) {
 					if(int!=nbright) int.links.insert(nbright);
 				}
 
-				mix_circular(Vertex,if(pnull) vertices = push_after(vertices,int));
+				if(pnull) int.node = vertices.insert(int);
 
 				//swap edges
 				if(pnull) {
@@ -450,24 +467,22 @@ class PR(Simple) {
 
 		//construct decomposition. yaaay!
 		var rets = new List(PR(GeomVert))();
-		mix_circular(Vertex,
-			vertices = sort(vertices, Vertex.less_xy);	
-			while(!empty(vertices)) {
-				vertices = clip_polygon(vertices,rets);
-			}
-		)
+		while(!vertices.empty())
+			clip_polygon(vertices,rets);
+
+		Free(Set(Vertex),vertices);
 
 		return rets;
 	}
 
-	public static function clip_polygon(vertices:Vertex, rets:List(PR(GeomVert))) {
+	public static function clip_polygon(vertices:Set(Vertex), rets:List(PR(GeomVert))) {
 		var ret:PR(GeomVert) = null;
-		assert(vertices.links.size()==2,"damnit!");
 
-		var cur = vertices;
+		var cur = vertices.first();
+		assert(cur.links.size()==2,"damnit!");
 		var fst = cur;
 		//previous and next vertices
-		var pren = vertices.links.parent;
+		var pren = cur.links.parent;
 		var nxtn = if(pren.prev==null) pren.next else pren.prev;
 		var pre = pren.data;
 		var nxt = nxtn.data;
@@ -482,11 +497,8 @@ class PR(Simple) {
 		if(left_turn(pre,cur,nxt) < 0) nxt = pre;
 	
 		$(mixin popvertex(v) {
-			mix_circular(Vertex,
-				if(v==vertices) vertices = pop_ret_after(v);
-				else pop(v);
-				Free(Vertex,v);
-			)
+			vertices.remove(v);
+			Free(Vertex,v);
 		});
 
 		mix_circular(PR(GeomVert), ret = push_after(ret, PR(GeomVert).get(cur.x,cur.y)));
@@ -541,7 +553,6 @@ class PR(Simple) {
 		assert(isSimple(ret),"simple output not simple");
 
 		rets.add(ret);
-		return vertices;
 	}
 
 	public static function isSimple(poly:PR(GeomVert)) {
