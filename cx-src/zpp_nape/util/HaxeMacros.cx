@@ -8,21 +8,8 @@ import neko.io.File;
 
 @:macro class ZPP_HaxeMacros {
     public static function dateTime() {
-        var date = Date.now().toString();
-
-		//lol haXe ! 
-		//errors if use Date::getDay etc... so this was the only way
-		//to format the date how i like!
-		var sx = date.split("-");
-		var year = Std.parseInt(sx[0])%100;
-		var month = Std.parseInt(sx[1]);
-		sx = sx[2].split(" ");
-		var day = Std.parseInt(sx[0]);
-		sx = sx[1].split(":");
-		var hours = Std.parseInt(sx[0]);
-		var minutes = Std.parseInt(sx[1]);
-		
-		var datestr = day+"/"+month+"/"+year+" "+hours+":"+minutes;
+        var date = Date.now();
+		var datestr = date.getDate()+"/"+(date.getMonth()+1)+"/"+(date.getFullYear()%100)+" "+date.getHours()+":"+date.getMinutes();
 
 		//get revision number from file
 		var revision = Std.parseInt(File.getContent("revision"));
