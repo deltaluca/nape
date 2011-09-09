@@ -4,6 +4,7 @@ package zpp_nape.util;
 import haxe.macro.Context;
 import haxe.macro.Expr;
 import neko.io.File;
+import neko.io.FileSystem;
 #end
 
 @:macro class ZPP_HaxeMacros {
@@ -12,9 +13,11 @@ import neko.io.File;
 		var datestr = date.getDate()+"/"+(date.getMonth()+1)+"/"+(date.getFullYear()%100)+" "+date.getHours()+":"+date.getMinutes();
 
 		//get revision number from file
-		var revision = Std.parseInt(File.getContent("revision"));
-
-		datestr = "\"r"+revision+"\" build "+datestr;
+		if(FileSystem.exists("revision")) {
+			var revision = Std.parseInt(File.getContent("revision"));
+			datestr = "\"r"+revision+"\" build "+datestr;
+		}else
+			datestr = "\"unknown revision\" build "+datestr;
 
         var pos = haxe.macro.Context.currentPos();
         return { expr : EConst(CString(datestr)), pos : pos };
