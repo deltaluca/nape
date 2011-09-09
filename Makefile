@@ -33,6 +33,8 @@ debug_swc: pre_compile
 
 release: pre_compile
 	mkdir -p bin/release
+# increment revision number
+	inc_revision
 #	cpp
 #	haxe -cp src -main DummyNapeMain -cpp cpp --no-inline -D HXCPP_M64 -D HXFCGI -D no_traces
 #	assert
