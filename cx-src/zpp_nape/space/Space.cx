@@ -284,14 +284,14 @@ class PR(Space) {
 	
 	//----------------------------------------------------------------------------------------------
 
-    flibmdel inline public function addListener(x:PR(Listener)) {
+    public function addListener(x:PR(Listener)) {
         x.space = this;
         if(x.type==Flag(ListenerType,BODY))
             x.body.addedToSpace();
         else if(x.type==Flag(ListenerType,CONSTRAINT))
             x.constraint.addedToSpace();
     }
-    flibmdel inline public function remListener(x:PR(Listener)) {
+    public function remListener(x:PR(Listener)) {
         x.space = null;
         if(x.type==Flag(ListenerType,BODY))
             x.body.removedFromSpace();
@@ -302,7 +302,7 @@ class PR(Space) {
     //----------------------------------------------------------------------------------------------
 
 	//called when Body has it's type changed.
-	flibmdel inline public function transmitType(p:PR(Body),new_type:Int) {
+	public function transmitType(p:PR(Body),new_type:Int) {
 		//wake object
 		wake(p);
 		
@@ -322,14 +322,14 @@ class PR(Space) {
 		p.component.sleeping = true; wake(p,true);
 	}
 	
-	flibmdel public inline function added_shape(s:PR(Shape)) {
+	public function added_shape(s:PR(Shape)) {
 		//wake the object
 		wake(s.body);
 		bphase.insert(s);
 
 		s.addedToSpace();
 	}
-	flibmdel public inline function removed_shape(s:PR(Shape), ?deleting=false) {
+	public function removed_shape(s:PR(Shape), ?deleting=false) {
 		var body = s.body;
 		
 		//if object is in the course of being deleted, don't want to wake it!
@@ -361,7 +361,7 @@ class PR(Space) {
 	
 	//----------------------------------------------------------------------------------------------
 	
-	public inline function addConstraint(con:PR(Constraint)) {
+	public function addConstraint(con:PR(Constraint)) {
 		con.space = this;
 		con.addedToSpace();
 		if(con.active) {
@@ -371,7 +371,7 @@ class PR(Space) {
 		}
 	}
 	
-	public inline function remConstraint(con:PR(Constraint)) {
+	public function remConstraint(con:PR(Constraint)) {
 		if(con.active) {
 			wake_constraint(con,true);
 			live_constraints.remove(con);
@@ -383,7 +383,7 @@ class PR(Space) {
 	//----------------------------------------------------------------------------------------------
 	
 	//flag = 0 if already added to bodies list, -1 if nothing has yet been done
-	public inline function addBody(body:PR(Body),?flag:Int=-1) {
+	public function addBody(body:PR(Body),?flag:Int=-1) {
 		body.space = this;
 
 		body.addedToSpace();
@@ -420,7 +420,7 @@ class PR(Space) {
 	//----------------------------------------------------------------------------------------------
 	
 	//flag = 0 if already removed from bodies list, -1 if nothing has yet been done
-	public inline function removeBody(body:PR(Body),?flag:Int=-1) {
+	public function removeBody(body:PR(Body),?flag:Int=-1) {
 		if(body.isStatic()) {
 			assert(statics.has(body)||bodies.has(body),"neither? stat="+statics.has(body));
 
@@ -460,47 +460,47 @@ class PR(Space) {
 	
 	//----------------------------------------------------------------------------------------------
 
-	public inline function shapesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)) {
+	flibmdel public inline function shapesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)) {
 		return bphase.shapesUnderPoint(x,y,filter);
 	}
-	public inline function bodiesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)) {
+	flibmdel public inline function bodiesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)) {
 		return bphase.bodiesUnderPoint(x,y,filter);
 	}
 	
-	public inline function shapesInAABB(aabb:AABB,strict:Bool,filter:PR(InteractionFilter)) {
+	flibmdel public inline function shapesInAABB(aabb:AABB,strict:Bool,filter:PR(InteractionFilter)) {
 		return bphase.shapesInAABB(aabb.pr(inner),strict,filter);
 	}
-	public inline function bodiesInAABB(aabb:AABB,strict:Bool,filter:PR(InteractionFilter)) {
+	flibmdel public inline function bodiesInAABB(aabb:AABB,strict:Bool,filter:PR(InteractionFilter)) {
    		return bphase.bodiesInAABB(aabb.pr(inner),strict,filter);
 	}
 	
-	public inline function shapesInCircle(pos:Vec2,rad:Float,filter:PR(InteractionFilter)) {
+	flibmdel public inline function shapesInCircle(pos:Vec2,rad:Float,filter:PR(InteractionFilter)) {
 		return bphase.shapesInCircle(pos.x,pos.y,rad,filter);
 	}
-	public inline function bodiesInCircle(pos:Vec2,rad:Float,filter:PR(InteractionFilter)) {
+	flibmdel public inline function bodiesInCircle(pos:Vec2,rad:Float,filter:PR(InteractionFilter)) {
    		return bphase.bodiesInCircle(pos.x,pos.y,rad,filter);
 	}
 
-	public inline function shapesInShape(shape:PR(Shape),filter:PR(InteractionFilter)) {
+	flibmdel public inline function shapesInShape(shape:PR(Shape),filter:PR(InteractionFilter)) {
 		return bphase.shapesInShape(shape,filter);
 	}
-	public inline function bodiesInShape(shape:PR(Shape),filter:PR(InteractionFilter)) {
+	flibmdel public inline function bodiesInShape(shape:PR(Shape),filter:PR(InteractionFilter)) {
 		return bphase.bodiesInShape(shape,filter);
 	}
 	
 	//----------------------------------------------------------------------------------------------
 	
-	public inline function rayCast(ray:Ray,inner:Bool,filter:InteractionFilter) {
+	flibmdel public inline function rayCast(ray:Ray,inner:Bool,filter:InteractionFilter) {
    		return bphase.rayCast(ray.pr(inner),inner,filter==null ? null : filter.pr(inner));
 	}
-	public inline function rayMultiCast(ray:Ray,inner:Bool,filter:InteractionFilter) {
+	flibmdel public inline function rayMultiCast(ray:Ray,inner:Bool,filter:InteractionFilter) {
    		return bphase.rayMultiCast(ray.pr(inner),inner,filter==null ? null : filter.pr(inner));
 	}
 	
 	//----------------------------------------------------------------------------------------------
 
     public var any_handler:Bool; //set to true in step if any callback object needs to call a handler
-    public inline function push_callback(i:PR(Listener),hasHandler:Bool) {
+    flibmdel public inline function push_callback(i:PR(Listener),hasHandler:Bool) {
         var cb = Get(PR(Callback));
         callbacks.push(cb);
         cb.listener = i;
@@ -675,7 +675,7 @@ class PR(Space) {
 
     //----------------------------------------------------------------------------------------------
 	
-	flibmdel public inline function wakeIsland(i:PR(Island)) {
+	public function wakeIsland(i:PR(Island)) {
 		assert(i.sleep,"this island is not sleeping but referenced? wtf");
 		
 		while(!i.comps.empty()) {
@@ -781,7 +781,7 @@ class PR(Space) {
 		}else return true;
 	}
 	
-	flibmdel public inline function wake_constraint(con:PR(Constraint),?fst=false) {
+	public function wake_constraint(con:PR(Constraint),?fst=false) {
 		assert(con.space==this,"constraint woken, but not actually IN the space!");
 		if(con.active) {
 			assert(con.component!=null,"constraint woken but no component exists?");
@@ -892,7 +892,7 @@ class PR(Space) {
 	
 	//----------------------------------------------------------------------------------------------
 	
-	flibmdel public inline function static_validation(body:PR(Body)) {
+	public function static_validation(body:PR(Body)) {
 		//validate body properties needed here as they are not 'allowed' to change
 		//(material can be changed, but due to static nature, mass/inertia remain infinite)
 		body.validate_aabb(); //validates worldVerts/worldCOM of shapes and their AABB
@@ -1169,7 +1169,7 @@ class PR(Space) {
 	//----------------------------------------------------------------------------------------------
 	
 
-	public inline function narrowPhase(s1:PR(Shape),s2:PR(Shape), stat:Bool, ?in_arb:PR(Arbiter)=null) {
+	flibmdel public inline function narrowPhase(s1:PR(Shape),s2:PR(Shape), stat:Bool, ?in_arb:PR(Arbiter)=null) {
 		var ret:PR(Arbiter) = null;
 
         var b1 = s1.body;

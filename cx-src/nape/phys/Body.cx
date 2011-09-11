@@ -126,7 +126,7 @@ class Body {
 		this.type = type == null ? BodyType.DYNAMIC : type;
 	}
 	
-	keep public inline function copy() {
+	keep public function copy() {
 		DEBUG(if(pr(inner).world) throw "Error: Space::world cannot be copied";)
 		
 		return pr(inner).copy();
@@ -377,19 +377,19 @@ class Body {
 
     //----------------------------------------------------------------------------------------------
 	
-	keep public inline function localToWorld(v:Vec2) return relativeToWorld(localToRelative(v))
-	keep public inline function worldToLocal(v:Vec2) return relativeToLocal(worldToRelative(v))
-	keep public inline function relativeToWorld(v:Vec2) {
+	keep public function localToWorld(v:Vec2) return relativeToWorld(localToRelative(v))
+	keep public function worldToLocal(v:Vec2) return relativeToLocal(worldToRelative(v))
+	keep public function relativeToWorld(v:Vec2) {
 		Disposed(v,Vec2);
 		DEBUG(if(v==null) throw "Error: Cannot transform null Vec2";)
 		return Vec2.get(v.x+pr(inner).posx,v.y+pr(inner).posy);
 	}
-	keep public inline function worldToRelative(v:Vec2) {
+	keep public function worldToRelative(v:Vec2) {
 		Disposed(v,Vec2);
 		DEBUG(if(v==null) throw "Error: Cannot transform null Vec2";)
 		return Vec2.get(v.x-pr(inner).posx,v.y-pr(inner).posy);
 	}
-	keep public inline function localToRelative(v:Vec2) {
+	keep public function localToRelative(v:Vec2) {
 		Disposed(v,Vec2);
 		DEBUG(if(v==null) throw "Error: Cannot transform null Vec2";)
 		pr(inner).validate_axis();
@@ -397,7 +397,7 @@ class Body {
 		vec_rotate(v.,pr(inner).axis,temp);
 		return Vec2.get(tempx,tempy);
 	}
-	keep public inline function relativeToLocal(v:Vec2) {
+	keep public function relativeToLocal(v:Vec2) {
 		Disposed(v,Vec2);
 		DEBUG(if(v==null) throw "Error: Cannot transform null Vec2";)
 		pr(inner).validate_axis();
