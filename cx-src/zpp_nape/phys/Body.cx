@@ -69,11 +69,11 @@ class PR(Body) {
 		}
 	}
 	
-	flibmdel public inline function wake() {
+	public function wake() {
 		return if(space!=null) space.wake(this) else false;
 	}
 	
-	flibmdel public inline function refreshArbiters() {
+	public function refreshArbiters() {
 		Iter(arb, arbiters, arb.invalidated = true);
 	}
 	
@@ -507,7 +507,7 @@ class PR(Body) {
 
     public var cbType:PR(CbType);
 
-    flibmdel public inline function setCbType(cbType:PR(CbType)) {
+    public function setCbType(cbType:PR(CbType)) {
         if(this.cbType != cbType) {
 			if(space!=null) {
 	            if(this.cbType!=null) this.cbType.remBody(this);
@@ -522,7 +522,7 @@ class PR(Body) {
 
     //----------------------------------------------------------------------------------------------
 
-	flibmdel public inline function clear() {
+	public function clear() {
 		DEBUG(if(space!=null) throw "Error: Cannot clear a Body if it is currently being used by a Space!";)
 		DEBUG(if(!constraints.empty()) throw "Error: Cannot clear a Body if it is currently being used by a constraint!";)
 		
@@ -659,7 +659,7 @@ class PR(Body) {
 	
 	//----------------------------------------------------------------------------------------------
 	
-	flibmdel public inline function addedToSpace() {
+	public function addedToSpace() {
 		assert(component==null,"already has a component?");
 
 		component = Get(PR(Component));
@@ -670,7 +670,7 @@ class PR(Body) {
 		cbType.addBody(this);
 	}
 
-	flibmdel public inline function removedFromSpace() {
+	public function removedFromSpace() {
 		while(!arbiters.empty()) {
 			var arb = arbiters.pop_unsafe();
 			arb.lazyRetire(space,this);

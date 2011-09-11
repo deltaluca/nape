@@ -12,7 +12,7 @@ local: pre_compile
 	debugfp bin/nape.swf
 
 cpp: pre_compile
-	haxe -cp src -lib nme --remap flash:nme -main DummyNapeMain -cpp cpp --no-inline -D no_traces
+	haxe -cp src -lib nme --remap flash:nme -main DummyNapeMain -cpp cpp -D no_traces -D NAPE_RELEASE_BUILD --no-inline
 	./cpp/DummyNapeMain
 
 pre_compile:
