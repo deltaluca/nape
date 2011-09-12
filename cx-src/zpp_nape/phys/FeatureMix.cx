@@ -6,21 +6,6 @@ $(mixin global FeatureMix(T,t)
 	public var pr(inner):PR(T);
 	
 	//----------------------------------------------------------------------------------------------
-
-    property(shared,Bool,pr(inner).shared,{
-		if(this.shared!=shared) {
-			if(this.shared && !pr(inner).shapes.empty()) {
-				while(pr(inner).shapes.begin().next!=null) {
-					var s = pr(inner).shapes.pop_unsafe();
-					s.t = pr(inner).copy();
-					s.t.shapes.add(s);
-				}
-			}
-			pr(inner).shared = shared;
-		}
-	})
-	
-	//----------------------------------------------------------------------------------------------
 	
     property(shapes,ShapeList,{
 		if(pr(inner).wrap_shapes==null) pr(inner).wrap_shapes = PR(ShapeList).get(pr(inner).shapes, true);
@@ -52,13 +37,10 @@ $(mixin global PRFeatureMix(T,t)
 
 	public var shapes:List(PR(Shape)); public var wrap_shapes:ShapeList;
 	
-	public var shared:Bool;
-	
 	//----------------------------------------------------------------------------------------------
 	
 	flibmdel public inline function feature_cons() {
 		shapes = new List(PR(Shape))();
-		shared = false;
 	}
 	
 	//----------------------------------------------------------------------------------------------
