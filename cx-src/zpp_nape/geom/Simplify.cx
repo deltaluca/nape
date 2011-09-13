@@ -1,0 +1,128 @@
+package zpp_nape.geom;
+$(import);
+
+$(mixin Vertex() PR(SimplifyV));
+
+class Vertex {
+	vec_new(public,$(->));
+
+	MixPool(Vertex)
+	public var prev:Vertex;
+
+	public var flag:Bool;
+
+	flibmdel public inline function free () {}
+	flibmdel public inline function alloc() {}
+
+	public function new() {}
+	public static inline function get(v:PR(GeomVert)) {
+		var ret = Get(Vertex);
+		vec_set(ret.,v.);
+		ret.flag = false;
+		return ret;
+	}
+}
+
+$(mixin Pair() PR(SimplifyP));
+class Pair {
+	MixPool(Pair)
+
+	public var min:Vertex;
+	public var max:Vertex;
+
+	public function new() {}
+	flibmdel public inline function free () { min = max = null; }
+	flibmdel public inline function alloc () {}
+
+	public static inline function get(min:Vertex,max:Vertex) {
+		var ret = Get(Pair);
+		ret.min = min;
+		ret.max = max;
+		return ret;
+	}
+}
+
+class PR(Simplify) {
+
+	public static inline function less(a:Vertex,b:Vertex) {
+		return (b.x-a.x) + (b.y-a.y) >= 0.0;
+	}
+
+	public static inline function distance(v:Vertex, a:Vertex,b:Vertex) {
+		vec_new(n); vec_sub(b.,a.,n);
+		vec_new(c); vec_sub(v.,a.,c);
+
+		var t = vec_dot(c,n)/vec_dot(n,n);
+		if  (t<=0) return vec_lsq(c);
+		elif(t>=1) return vec_dsq(v.,b.);
+		else {
+			vec_subeq(c, n,t);
+			return vec_lsq(c);
+		}
+	}
+
+	public static function simplify(P:PR(GeomVert),epsilon:Float) {
+		var ret:Vertex = null;
+		var min:Vertex = null; var max:Vertex = null;
+
+		epsilon *= epsilon;
+
+		//find min/max vertices
+		var cur:PR(GeomVert) = P;
+		do {
+		mix_circular(Vertex,
+			ret = push_after(ret, Vertex.get(cur));
+			if(min==null) { min = ret; max = ret; }
+			else {
+				if(less(ret,min)) min = ret;
+				if(less(max,ret)) max = ret;
+			}
+		)
+			cur = cur.next;
+		}while(cur!=P);
+
+		//flag min/max for inclusion
+		min.flag = max.flag = true;
+
+		//recursively add vertices.
+		var stack = new List(Pair)();
+		stack.add(Pair.get(min,max));
+		stack.add(Pair.get(max,min));
+		while(!stack.empty()) {
+			var cur = stack.pop_unsafe();
+			var min = cur.min; var max = cur.max;
+			Free(Pair,cur);
+
+			var dmax = epsilon;
+			var dv:Vertex = null;
+			var ite = min.next;
+			while(ite!=max) {
+				var dist = distance(ite, min,max);
+				if(dist>dmax) {
+					dmax = dist;
+					dv = ite;
+				}		
+				ite = ite.next;
+			}
+
+			if(dv!=null) {
+				dv.flag = true;
+				stack.add(Pair.get(min,dv));
+				stack.add(Pair.get(dv,max));
+			}
+		}
+
+		//build out-poly
+		var retp:PR(GeomVert) = null;
+		while(ret!=null) {
+			mix_circular(PR(GeomVert),
+				if(ret.flag) retp = push_after(retp,PR(GeomVert).get(ret.x,ret.y));
+			)
+			mixpool_circular(Vertex,
+				ret = pop_ret_after(ret);
+			)
+		}
+
+		return retp;
+	}
+}
