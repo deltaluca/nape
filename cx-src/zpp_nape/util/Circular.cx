@@ -48,6 +48,15 @@ $(mixin global mix_circular(T, block)
 	block)
 );
 
+$(mixin global mixpool_circular(T, block)
+	circular(T,
+		$(mixin elem(x) x)
+		$(mixin getter(x) x)
+		$(mixin freer(x) Free(T,x))
+		$(mixin LISTT() T),
+	block)
+);
+
 $(mixin global circular(T, defs, block)
 	defs
 	block
@@ -98,12 +107,12 @@ $(mixin global circular(T, defs, block)
 			freer(node);
 			null;
 		}else {
-			var ret = node.prev;
+			var retnodes = node.prev;
 			node.prev.next = node.next;
 			node.next.prev = node.prev;
 			node.next = node.prev = null;
 			freer(node);
-			ret;
+			retnodes;
 		}
 	});
 
@@ -115,12 +124,12 @@ $(mixin global circular(T, defs, block)
 			freer(node);
 			null;
 		}else {
-			var ret = node.next;
+			var retnodes = node.next;
 			node.prev.next = node.next;
 			node.next.prev = node.prev;
 			node.next = node.prev = null;
 			freer(node);
-			ret;
+			retnodes;
 		}
 	});
 

@@ -237,7 +237,7 @@ class DummyNapeMain {
 		});
 		c.stage.addEventListener(flash.events.MouseEvent.MOUSE_UP, function (_) {
 			if(gp!=null && gp.size()>3) {
-				var polys = gp.simple_decomposition();
+				var polys = gp.simplify(5).simple_decomposition();
 				for(p in polys) {
 					var body = new Body();
 					var cons = p.convex_decomposition();
@@ -269,7 +269,10 @@ class DummyNapeMain {
 					gp.push(cur);
 					pre = cur;
 				}
-				debug.drawFilledPolygon(gp,0x505050);
+				debug.drawPolygon(gp,0x505050);
+
+				var gp2 = gp.simplify(10);
+				debug.drawPolygon(gp2,0x808080);
 			}
 
 			space.step(1/60,20,10);

@@ -103,6 +103,7 @@ class GeomPoly {
 		mix_circular(Vertex,
 			for_iter(v, verts, ret.verts = push_after(ret.verts, Vertex.get(v.x,v.y)));
 		)
+		return ret;
 	}
 
 	public function new(vertices:Dynamic=null) {
@@ -160,6 +161,17 @@ class GeomPoly {
 	public function isDegenerate() {
 		return if(size_lt_3) true;
 		else area() < PR(Const).EPSILON;
+	}
+
+	public function simplify(epsilon:Float) {
+		DEBUG(if(epsilon<=0.0) throw "Error: Epsilon should be > 0 for simplifying a GeomPoly";)
+		if(size_lt_3) return copy();
+		else {
+			var x = PR(Simplify).simplify(verts,epsilon);
+			var ret = new GeomPoly();
+			ret.verts = x;
+			return ret;
+		}
 	}
 
 	public function simple_decomposition() {
