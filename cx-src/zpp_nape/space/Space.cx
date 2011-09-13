@@ -556,9 +556,7 @@ class PR(Space) {
         #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
 		iterateVel(inelastic,false);
         #if NAPE_TIMES Debug.VEL += flash.Lib.getTimer()-pt; #end
-		
-		updatePos(deltaTime);
-		
+
 		$(mixin doit(list) {
 			Iter(cur,list,{
 				vec_set(cur.pre_pos,cur.pos);
@@ -567,7 +565,9 @@ class PR(Space) {
 		});
 		doit(kinematics);
 		doit(live);
-		
+	
+		updatePos(deltaTime);
+				
         #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
 		iteratePos(positionIterations);
         #if NAPE_TIMES Debug.POS += flash.Lib.getTimer()-pt; #end
@@ -1005,29 +1005,15 @@ class PR(Space) {
 	//----------------------------------------------------------------------------------------------
 	
 	public function updatePos(dt:Float) {
-		Iter(cur,live,{
-			if(cur.velx!=0 || cur.vely!=0) {
+		$(mixin doit(list) {
+			Iter(cur,list,{
 				vec_addeq(cur.pos,cur.vel,dt);
-				cur.invalidate_pos();
-			}
-			if(cur.angvel!=0) {
-				cur.rot += cur.angvel*dt;
-				cur.invalidate_rot();
-				cur.quick_validate_axis();
-			}
+				if(cur.angvel!=0)
+					cur.delta_rot(cur.angvel*dt);
+			});
 		});
-		
-		Iter(cur,kinematics,{
-			if(cur.velx!=0 || cur.vely!=0) {
-				vec_addeq(cur.pos, cur.vel, dt);
-				cur.invalidate_pos();
-			}
-			if(cur.angvel!=0) {
-				cur.rot += cur.angvel*dt;
-				cur.invalidate_rot();
-				cur.quick_validate_axis();
-			}
-		});
+		doit(live);
+		doit(kinematics);
 	}
 
 	//----------------------------------------------------------------------------------------------
