@@ -220,6 +220,7 @@ class DummyNapeMain {
 		var space = new Space(new Vec2(0,600));
 
 		var debug = new BitmapDebug(600,600,0x333333);
+		debug.drawShapeAngleIndicators = false;
 		c.addChild(debug.display);
 
 		var border = new Body(BodyType.STATIC);
@@ -237,7 +238,7 @@ class DummyNapeMain {
 		});
 		c.stage.addEventListener(flash.events.MouseEvent.MOUSE_UP, function (_) {
 			if(gp!=null && gp.size()>3) {
-				var polys = gp.simplify(5).simple_decomposition();
+				var polys = gp.simplify(3).simple_decomposition();
 				for(p in polys) {
 					var body = new Body();
 					var cons = p.convex_decomposition();
@@ -270,9 +271,19 @@ class DummyNapeMain {
 					pre = cur;
 				}
 				debug.drawPolygon(gp,0x505050);
+				var v = gp.current();
+				do {
+					debug.drawFilledCircle(gp.current(),0.5,0xffff);
+					gp.skip_forward(1);
+				} while(gp.current() != v);
 
-				var gp2 = gp.simplify(10);
+				var gp2 = gp.simplify(3);
 				debug.drawPolygon(gp2,0x808080);
+				var v = gp2.current();
+				do {
+					debug.drawFilledCircle(gp2.current(),0.5,0xff0000);
+					gp2.skip_forward(1);
+				} while(gp2.current() != v);
 			}
 
 			space.step(1/60,20,10);
