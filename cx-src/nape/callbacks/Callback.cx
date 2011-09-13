@@ -22,43 +22,15 @@ class Callback {
     ///---------------------------------------------------------------------------------------------
 
     property(arbiter,Arbiter,{
-        DEBUG(
-            if(pr(inner).event!=Flag(CbEvent,BEGIN)
-            && pr(inner).event!=Flag(CbEvent,ONGOING)
-            && pr(inner).event!=Flag(CbEvent,END))
-                throw "Error: Callback object is not of the right type for 'arbiter' to be valid";
-        )
-        pr(inner).arbiter.wrapper();
+		pr(inner).arbiter == null ? null : pr(inner).arbiter.wrapper();
     })
 
     property(body,Body,{
-        DEBUG(
-            if(pr(inner).event!=Flag(CbEvent,WAKE)
-            && pr(inner).event!=Flag(CbEvent,SLEEP))
-                throw "Error: Callback object is not of the right type for 'body' to be valid";
-            if(!pr(inner).swefBody)
-                throw "Error: Callback object is for a constraint, not a body";
-        )
-        pr(inner).body.outer;
+        pr(inner).body == null ? null : pr(inner).body.outer;
     })
 
     property(constraint,Constraint,{
-        DEBUG(
-            if(pr(inner).event!=Flag(CbEvent,WAKE)
-            && pr(inner).event!=Flag(CbEvent,SLEEP)
-            && pr(inner).event!=Flag(CbEvent,BREAK))
-                throw "Error: Callback object is not of the right type for 'constraint' to be valid";
-            if(pr(inner).event!=Flag(CbEvent,BREAK) && pr(inner).swefBody)
-                throw "Error: Callback object is for a body, not a constraint";
-        )
-        pr(inner).constraint.outer;
-    })
-
-    property(hasBody,Bool, {
-        pr(inner).swefBody;
-    })
-    property(hasConstraint,Bool,{
-        !pr(inner).swefBody;
+        pr(inner).constraint == null ? null : pr(inner).constraint.outer;
     })
 
     ///---------------------------------------------------------------------------------------------
@@ -79,7 +51,7 @@ class Callback {
         var ret = "Cb:";
         ret += ["BEGIN","ONGOING","END","WAKE","SLEEP","BREAK"][pr(inner).event];
         if(pr(inner).event==Flag(CbEvent,WAKE) || pr(inner).event==Flag(CbEvent,SLEEP))
-            ret += ":"+(hasBody ? body.toString() : constraint.toString());
+            ret += ":"+(body!=null ? body.toString() : constraint.toString());
         ret += " : listener: "+listener;
         return ret;
     }
