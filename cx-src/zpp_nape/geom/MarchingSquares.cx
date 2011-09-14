@@ -19,6 +19,12 @@ class PR(MarchingSquares) {
 				var x1 = if(x==xn-1) bx1 else x0+cell.x;
 
 				var p = marchSquare(iso,x0,y0,x1,y1,quality);
+				if(p==null) continue;
+
+				var poly = new GeomPoly();
+				poly.pr(inner).vertices = p;
+				DummyNapeMain.debug.drawFilledPolygon(poly,0x606060);
+				DummyNapeMain.debug.drawPolygon(poly,0x999999);
 			}
 		}
 	}
@@ -61,22 +67,24 @@ class PR(MarchingSquares) {
 		var t = if(dv*dv<PR(Const).EPSILON) 0.5 else v0/dv;
 		return x0 + t*(x1-x0);
 	}
-	public static function xlerp(x0:Float,x1:Float,y:Float,v0:Float,v1:Float,iso:Float->Float->Float,quality:Int) {
+	public static inline function xlerp(x0:Float,x1:Float,y:Float,v0:Float,v1:Float,iso:Float->Float->Float,quality:Int) {
 		var xm = lerp(x0,x1,v0,v1);
-		if(quality==0) return xm;
-		else {
+		while(quality--!=0) {
 			var vm = iso(xm,y);
-			if(v0*vm<0) return xlerp(x0,xm,y,v0,vm,iso,quality-1);
-			else        return xlerp(xm,x1,y,vm,v1,iso,quality-1);
+			if(v0*vm<0) { x1 = xm; v1 = vm; }
+			else        { x0 = xm; v0 = vm; }
+			xm = lerp(x0,x1,v0,v1);
 		}
+		return xm;
 	}
 	public static function ylerp(y0:Float,y1:Float,x:Float,v0:Float,v1:Float,iso:Float->Float->Float,quality:Int) {
 		var ym = lerp(y0,y1,v0,v1);
-		if(quality==0) return ym;
-		else {
+		while(quality--!=0) {
 			var vm = iso(x,ym);
-			if(v0*vm<0) return ylerp(y0,ym,x,v0,vm,iso,quality-1);
-			else        return ylerp(ym,y1,x,vm,v1,iso,quality-1);
+			if(v0*vm<0) { y1 = ym; v1 = vm; }
+			else        { y0 = ym; v0 = vm; }
+			ym = lerp(y0,y1,v0,v1);
 		}
+		return ym;
 	}
 }
