@@ -1,0 +1,82 @@
+package zpp_nape.geom;
+$(import);
+
+$(mixin Vertex() PR(GeomVert));
+
+class PR(MarchingSquares) {
+
+	public static function run(iso:Float->Float->Float,bx0:Float,by0:Float,bx1:Float,by1:Float,cell:Vec2,quality:Int) {
+		var xp = (bx1-bx0)/cell.x; var xn:Int = fastint(xp);
+		var yp = (by1-by0)/cell.y; var yn:Int = fastint(yp);
+		if(xp!=xn) xn++;
+		if(yp!=yn) yn++;
+
+		for(y in 0...yn) {
+			var y0 = by0 + cell.y*y;
+			var y1 = if(y==yn-1) by1 else y0+cell.y;
+			for(x in 0...xn) {
+				var x0 = bx0 + cell.x*x;
+				var x1 = if(x==xn-1) bx1 else x0+cell.x;
+
+				var p = marchSquare(iso,x0,y0,x1,y1,quality);
+			}
+		}
+	}
+
+	public static var look_march = [0x00,0xE0,0x38,0xD8,0x0E,0xEE,0x36,0xD6,0x83,0x63,0xBB,0x5B,0x8D,0x6D,0xB5,0x55];
+	public static inline function marchSquare(iso:Float->Float->Float, x0:Float,y0:Float,x1:Float,y1:Float, quality:Int) {
+		var key = 0;
+		var v0 = iso(x0,y0); if(v0<0) key |= 8;
+		var v1 = iso(x1,y0); if(v1<0) key |= 4;
+		var v2 = iso(x1,y1); if(v2<0) key |= 2;
+		var v3 = iso(x0,y1); if(v3<0) key |= 1;
+
+		var poly:Vertex = null;
+		var val = look_march[key];
+		if(val!=0) {
+		mix_circular(Vertex,
+			for(i in 0...8) {
+				if((val&(1<<i))!=0) {
+					var p = 
+						if  (i==0) Vertex.get(x0,y0)
+						elif(i==2) Vertex.get(x1,y0)
+						elif(i==4) Vertex.get(x1,y1)
+						elif(i==6) Vertex.get(x0,y1)
+
+						elif(i==1) Vertex.get(xlerp(x0,x1,y0,v0,v1,iso,quality),y0)
+						elif(i==5) Vertex.get(xlerp(x0,x1,y1,v3,v2,iso,quality),y1)
+
+						elif(i==3) Vertex.get(x1,ylerp(y0,y1,x1,v1,v2,iso,quality))
+						else       Vertex.get(x0,ylerp(y0,y1,x0,v0,v3,iso,quality));
+					poly = push_after(poly,p);
+				}
+			}
+		)}
+
+		return poly;
+	}
+
+	public static inline function lerp(x0:Float,x1:Float,v0:Float,v1:Float) {
+		var dv = v0-v1;
+		var t = if(dv*dv<PR(Const).EPSILON) 0.5 else v0/dv;
+		return x0 + t*(x1-x0);
+	}
+	public static function xlerp(x0:Float,x1:Float,y:Float,v0:Float,v1:Float,iso:Float->Float->Float,quality:Int) {
+		var xm = lerp(x0,x1,v0,v1);
+		if(quality==0) return xm;
+		else {
+			var vm = iso(xm,y);
+			if(v0*vm<0) return xlerp(x0,xm,y,v0,vm,iso,quality-1);
+			else        return xlerp(xm,x1,y,vm,v1,iso,quality-1);
+		}
+	}
+	public static function ylerp(y0:Float,y1:Float,x:Float,v0:Float,v1:Float,iso:Float->Float->Float,quality:Int) {
+		var ym = lerp(y0,y1,v0,v1);
+		if(quality==0) return ym;
+		else {
+			var vm = iso(x,ym);
+			if(v0*vm<0) return ylerp(y0,ym,x,v0,vm,iso,quality-1);
+			else        return ylerp(ym,y1,x,vm,v1,iso,quality-1);
+		}
+	}
+}
