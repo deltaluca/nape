@@ -213,7 +213,7 @@ class DummyNapeMain {
 		},1000);
 	}
 
-	static function main() {
+	static function mainiaer() {
 		var c = flash.Lib.current;
 		haxe.Log.setColor(0xffffff);
 
@@ -229,13 +229,13 @@ class DummyNapeMain {
 		MarchingSquares.run(f, new AABB(0,0,600,600), new Vec2(10,10), 10);
 	}
 
-	static function maisran() {
+	static function main() {
 		var c = flash.Lib.current;
 		haxe.Log.setColor(0xffffff);
 
 		var space = new Space(new Vec2(0,600));
 
-		var debug = new BitmapDebug(600,600,0x333333);
+		debug = new BitmapDebug(600,600,0x333333);
 		debug.drawShapeAngleIndicators = false;
 		c.addChild(debug.display);
 
@@ -253,7 +253,7 @@ class DummyNapeMain {
 			gp.push(pre = Vec2.get(c.mouseX,c.mouseY));
 		});
 		c.stage.addEventListener(flash.events.MouseEvent.MOUSE_UP, function (_) {
-			if(gp!=null && gp.size()>3) {
+/*			if(gp!=null && gp.size()>3) {
 				var polys = gp.simplify(3).simple_decomposition();
 				for(p in polys) {
 					var body = new Body();
@@ -266,7 +266,7 @@ class DummyNapeMain {
 					body.space = space;
 					p.clear();
 				}
-			}
+			}*/
 			gp = null;
 		});
 
@@ -286,8 +286,11 @@ class DummyNapeMain {
 					gp.push(cur);
 					pre = cur;
 				}
+		
+				MarchingSquares.run(function(x,y) return gp.contains(Vec2.get(x,y)) ? -1.0 : 1.0, new AABB(0,0,600,600), new Vec2(5,:), 2);	
+
 				debug.drawPolygon(gp,0x505050);
-				var v = gp.current();
+			/*	var v = gp.current();
 				do {
 					debug.drawFilledCircle(gp.current(),0.5,0xffff);
 					gp.skip_forward(1);
@@ -299,7 +302,7 @@ class DummyNapeMain {
 				do {
 					debug.drawFilledCircle(gp2.current(),0.5,0xff0000);
 					gp2.skip_forward(1);
-				} while(gp2.current() != v);
+				} while(gp2.current() != v);*/
 			}
 
 			space.step(1/60,20,10);
