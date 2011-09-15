@@ -63,22 +63,26 @@ $(mixin global geom(block)
 		var y = Yy;
 		var ret = false;
 
-		for_iter(p,poly,{
-			var q = p.prev;
-			if ((p.y < y && q.y>=y
-			 ||  q.y < y && p.y>=y)
-			 && (p.x<=x || q.x<=x)) {
-				if(p.x+(y-p.y)/(q.y-p.y)*(q.x-p.x) < x)
-					ret = !ret;
-			}
-		});
+		mix_circular(Vertex,
+			for_iter(p,poly,{
+				var q = p.prev;
+				if ((p.y < y && q.y>=y
+				 ||  q.y < y && p.y>=y)
+				 && (p.x<=x || q.x<=x)) {
+					if(p.x+(y-p.y)/(q.y-p.y)*(q.x-p.x) < x)
+						ret = !ret;
+				}
+			});
+		)
 
 		ret;
 	}));
 
 	$(mixin clone(poly) {
 		var ret:Vertex = null;
-		for_iter(p,poly,ret = push_after(ret,Vertex.get(p.x,p.y)));
+		mix_circular(Vertex,
+			for_iter(p,poly,ret = push_after(ret,Vertex.get(p.x,p.y)));
+		)
 		ret;
 	});
 
