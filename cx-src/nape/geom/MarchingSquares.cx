@@ -3,7 +3,7 @@ $(import);
 
 class MarchingSquares {
 
-	static public function run(iso:Float->Float->Float, bounds:AABB, cellsize:Vec2, quality:Int=2, subgrid:Vec2=null) {
+	static public function run(iso:Float->Float->Float, bounds:AABB, cellsize:Vec2, quality:Int=2, subgrid:Vec2=null, combine:Bool=true) {
 		DEBUG(if(iso==null) throw "Error: MarchingSquares requires an iso function to define the iso-surface";)
 		DEBUG(if(bounds==null) throw "Error: MarchingSquares requires an AABB to define the bounds of the surface extraction";)
 		Disposed(cellsize,Vec2);
@@ -14,9 +14,10 @@ class MarchingSquares {
 			if(subgrid!=null && (subgrid.x<=0 || subgrid.y<=0))
 				throw "Error: MarchingSquares cannot operate with non-positive subgrid dimensions";
 		)
-		
+	
+		var ret = new GeomPolyList();	
 		if(subgrid==null) {
-			PR(MarchingSquares).run(iso,bounds.x,bounds.y,bounds.max.x,bounds.max.y,cellsize,quality);
+			PR(MarchingSquares).run(iso,bounds.x,bounds.y,bounds.max.x,bounds.max.y,cellsize,quality,combine,ret);
 		} else {
 			var xp = bounds.width/subgrid.x;  var xn:Int = fastint(xp);
 			var yp = bounds.height/subgrid.y; var yn:Int = fastint(yp);
@@ -29,10 +30,11 @@ class MarchingSquares {
 				for(y in 0...yn) {
 					var y0 = bounds.y + subgrid.y*y;
 					var y1 = if(y==yn-1) bounds.max.y else y0 + subgrid.y;
-					PR(MarchingSquares).run(iso, x0,y0,x1,y1, cellsize, quality);
+					PR(MarchingSquares).run(iso, x0,y0,x1,y1, cellsize, quality, combine,ret);
 				}
 			}
 		}
+		return ret;
 	}
 
 }

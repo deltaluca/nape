@@ -2,10 +2,32 @@ package zpp_nape.geom;
 $(import);
 
 $(mixin Vertex() PR(GeomVert));
+$(mixin Polygon() Vertex);
+
+$(mixin VPair() PR(MarchPair));
+
+class VPair {
+	//saddle points may generate 2 polygons.
+	// p1 will always combine left
+	// p2 will always combine right
+	public var p1:Polygon; public var key1:Int;
+	public var p2:Polygon; public var key2:Int;
+
+	MixPool(VPair)
+	flibmdel public inline function free() {
+		//temporary
+		p1 = p2 = null;
+		//---------
+		assert(p1==null && p2==null, "free VPair (march) non-null polys");
+	}
+	flibmdel public inline function alloc() {}
+
+	public function new() {}
+}
 
 class PR(MarchingSquares) {
 
-	public static function run(iso:Float->Float->Float,bx0:Float,by0:Float,bx1:Float,by1:Float,cell:Vec2,quality:Int) {
+	public static function run(iso:Float->Float->Float,bx0:Float,by0:Float,bx1:Float,by1:Float,cell:Vec2,quality:Int,combine:Bool,ret:GeomPolyList) {
 		var xp = (bx1-bx0)/cell.x; var xn:Int = fastint(xp);
 		var yp = (by1-by0)/cell.y; var yn:Int = fastint(yp);
 		if(xp!=xn) xn++;
@@ -18,52 +40,60 @@ class PR(MarchingSquares) {
 				var x0 = bx0 + cell.x*x;
 				var x1 = if(x==xn-1) bx1 else x0+cell.x;
 
-				var p1:Vertex = null; var p2:Vertex = null;
-				marchSquare(iso,x0,y0,x1,y1,quality, p1,p2);
-				if(p1==null) continue;
+				var pp = marchSquare(iso,x0,y0,x1,y1,quality);
+				if(pp==null) continue;
 
-				var poly = new GeomPoly();
-				poly.pr(inner).vertices = p1;
-				DummyNapeMain.debug.drawFilledPolygon(poly,0x606060);
-				DummyNapeMain.debug.drawPolygon(poly,0x999999);
-
-				if(p2!=null) {
-					poly.pr(inner).vertices = p2;
-					DummyNapeMain.debug.drawFilledPolygon(poly,0x606060);
-					DummyNapeMain.debug.drawPolygon(poly,0x999999);
+				if(combine) {
+				}else {
+					var p = new GeomPoly();
+					p.pr(inner).vertices = pp.p1;
+					ret.add(p);
+					if(pp.p2!=null) {
+						p = new GeomPoly();
+						p.pr(inner).vertices = pp.p2;
+						ret.add(p);
+					}
 				}
 			}
 		}
 	}
 
+	public static inline function combLeft(key:Int) return (key&(1<<7))!=0
+	public static inline function combUp  (key:Int) return (key&(1<<1))!=0
+
 	public static var look_march = [0x00,0xE0,0x38,0xD8,0x0E,-1,0x36,0xD6,0x83,0x63,-1,0x5B,0x8D,0x6D,0xB5,0x55];
-	$(mixin marchSquare(iso,x0,y0,x1,y1,quality, p1,p2) {
+	public static inline function marchSquare(iso:Float->Float->Float,x0:Float,y0:Float,x1:Float,y1:Float,quality:Int) {
 		var key = 0;
 		var v0 = iso(x0,y0); if(v0<0) key |= 8;
 		var v1 = iso(x1,y0); if(v1<0) key |= 4;
 		var v2 = iso(x1,y1); if(v2<0) key |= 2;
 		var v3 = iso(x0,y1); if(v3<0) key |= 1;
 
-		if(key!=10 && key!=5) {
-			var val = look_march[key];
-			if(val!=0) poly(val,p1);
-		}else {
-			var mid = iso(0.5*(x0+x1),0.5*(y0+y1)) < 0;
-			if(key==10) {
-				if(mid)
-					poly(0xBB,p1);
-				else {
-					poly(0x83,p1);
-					poly(0x38,p2);
-				}
+		if(key==0) return null;
+		else {
+			var ret = Get(VPair);
+			if(key!=10 && key!=5) {
+				var val = look_march[key];
+				if(val!=0) ret.key1 = poly(val,ret.p1);
 			}else {
-				if(mid)
-					poly(0xEE,p1);
-				else {
-					poly(0xE0,p1);
-					poly(0x0E,p2);
+				var mid = iso(0.5*(x0+x1),0.5*(y0+y1)) < 0;
+				if(key==10) {
+					if(mid)
+						ret.key1 = poly(0xBB,ret.p1);
+					else {
+						ret.key1 = poly(0x83,ret.p1);
+						ret.key2 = poly(0x38,ret.p2);
+					}
+				}else {
+					if(mid)
+						ret.key1 = poly(0xEE,ret.p1);
+					else {
+						ret.key1 = poly(0xE0,ret.p1);
+						ret.key2 = poly(0x0E,ret.p2);
+					}
 				}
 			}
+			return ret;
 		}
 
 		$(mixin poly(val,out) {
@@ -85,8 +115,9 @@ class PR(MarchingSquares) {
 					}
 				}
 			)
+			val;
 		});
-	});
+	}
 
 	public static inline function lerp(x0:Float,x1:Float,v0:Float,v1:Float) {
 		var dv = v0-v1;
