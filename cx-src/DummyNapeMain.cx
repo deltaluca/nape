@@ -223,7 +223,11 @@ class DummyNapeMain {
 		var f = function(x:Float,y:Float):Float {
 			var dx = x-300;
 			var dy = y-300;
-			return dx*dx+dy*dy-300*300*Math.cos((dx*dx+dy)*7e-4)*Math.sin((dy*dx)*5e-4);
+//			return dx*dx+dy*dy-300*300*Math.cos((dx*dx+dy)*7e-4)*Math.sin((dy*dx)*5e-4);
+			var del = dx*dx+dy*dy;
+			if(del < 100*100) del = 100*100 - del;
+                        else              del -= 250*250;
+			return del;
 		}
 
 		var space = new Space(new Vec2(0,400));
@@ -235,13 +239,15 @@ class DummyNapeMain {
 		border.shapes.add(new Polygon(Polygon.rect(0,600,600,40)));
 		border.space = space;
 
-		var polys = MarchingSquares.run(f, new AABB(0,0,600,600), new Vec2(15,15), 10, true);
+//		var polys = MarchingSquares.run(f, new AABB(0,0,600,600), new Vec2(5,5), 10, true);
+		var polys = MarchingSquares.run(f, new AABB(0,0,600,600), new Vec2(25,25), 10, false);
 		for(p in polys) {
 			var b = new Body();
 			b.shapes.add(new Polygon(p));
 			b.align();
 			b.space = space;
 		}
+		debug.draw(space);
 		debug.flush();
 
 		var mcon = new PivotJoint(space.world,space.world,new Vec2(), new Vec2());
@@ -266,7 +272,7 @@ class DummyNapeMain {
 			mcon.active = false;
 		});
 
-/*		(new haxe.Timer(0)).run = function() {
+		(new haxe.Timer(0)).run = function() {
 			debug.clear();
 
 			mcon.anchor2.setxy(c.mouseX,c.mouseY);
@@ -274,7 +280,7 @@ class DummyNapeMain {
 
 			debug.draw(space);
 			debug.flush();
-		}*/
+		}
 	}
 
 	static function maiaergn() {

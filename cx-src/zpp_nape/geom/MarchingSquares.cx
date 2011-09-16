@@ -83,6 +83,16 @@ class PR(MarchingSquares) {
 		}
 
 		if(!combine) return;
+
+		for(y in 0...yn) {
+			for(x in 0...xn) {
+				var p = map.get(x,y);
+				if(p==null) continue;
+				draw(p.p1,0xff);
+				if(p.p2!=null)
+					draw(p.p2,0xff);
+			}
+		}
 	}
 
 	// given a polygon from an original VPair with it's key
@@ -177,19 +187,100 @@ class PR(MarchingSquares) {
 		return if((key&1)==0) poly.prev else poly;
 	}
 
-	public static function combLR(a:VPair,b:VPair) {
+	// NOTE TO SELF: need to remove horizontally collinear vertices too
+     // this should still work fine with the configurations stuff.
+     // 
+/*	public static function combLR(a:VPair,b:VPair) {
+		//set up pointers for merge
 		var ap:Polygon = linkright(a.pr,a.keyr);
           var bp:Polygon = linkleft (b.p1,b.key1);
 
-          DummyNapeMain.debug.drawCircle(Vec2.get(ap.x,ap.y),2,0xff0000);
-          DummyNapeMain.debug.drawCircle(Vec2.get(bp.x,bp.y),1,0xff);
+		// we now have ap==bp (implicit) and ap.next == bp.prev (implicit)
+          // so we simply need to splice them together here.
+          // and we remove the trivially duplicate vertices now. (chose to remove b's)
+          // 
+          // ap.next      -> bp.next      {} ap      <- bp.next.prev
+          // ap.next.prev -> bp.prev.prev {} ap.next <- bp.prev.prev.next
+
+          var ap2 = ap.next;
+
+          ap.next = bp.next;
+          bp.next.prev = ap;
+ 
+          ap2.prev = bp.prev.prev;
+          bp.prev.prev.next = ap2;
+
+          Free(Vertex,bp.prev);
+          Free(Vertex,bp);
+
+          //reassign VPair's for next merge, make sure we have the same local configuration!
+		if  (b.p1==bp) { if(b.pr==b.p1) b.pr = ap; b.p1 = ap; }
+	}*/
+
+	public static function combLR(a:VPair,b:VPair) {
+		//set up pointers for merge
+		var ap:Polygon = linkright(a.pr,a.keyr);
+		var bp:Polygon = linkleft (b.p1,b.key1);
+
+		// we now have ap==bp and ap.next == bp.prev (implicitly; not by reference)
+		// we now merge, discarding bp and bp.prev (trivial duplicates)
+		// as well as discarding ap if (a.keyr&0x04 != 0)
+		//              and ap.next if (a.keyr&0x10 != 0)
+		// so as to discard collinear horizontal vertices along scan-line.
+
+		var ap2 = ap.next;
+		var bp2 = bp.prev;
+
+		// merge on top.
+		if((a.keyr&0x04)!=0) {
+			//in this case we must fix VPair pointer p1 (and possibly pr) on b
+			if(b.pr==b.p1) b.pr = ap.prev;
+			b.p1 = ap.prev;
+			//discard both ap and bp
+			ap.prev.next = bp.next;
+			bp.next.prev = ap.prev;
+			Free(Vertex,ap);
+		}else {
+			//discard only bp
+			ap.next = bp.next;
+			bp.next.prev = ap;
+		}
+		Free(Vertex,bp);
+	
+		// merge on bottom.
+		if((a.keyr&0x10)!=0) {
+			//discard both ap2 and bp2
+			ap2.next.prev = bp2.prev;
+			bp2.prev.next = ap2.next;
+			Free(Vertex,ap2);
+		}else {
+			//discard only bp2
+			ap2.prev = bp2.prev;
+			bp2.prev.next = ap2;
+		}
+		Free(Vertex,bp2);
 	}
 
-	public static inline function combLeft (key:Int) return (key&(1<<7))!=0
-	public static inline function combRight(key:Int) return (key&(1<<3))!=0
-	public static inline function combUp   (key:Int) return (key&(1<<1))!=0
-	public static inline function combDown (key:Int) return (key&(1<<5))!=0
+	public static function draw(p:Polygon,col:Int) {
+		var gp = new GeomPoly();
+		gp.pr(inner).vertices = p;
+		DummyNapeMain.debug.drawFilledPolygon(gp,col);
+		DummyNapeMain.debug.drawPolygon(gp,(col&0xfefefe)>>1);
+		mix_circular(Vertex,
+			for_iter(v,p, DummyNapeMain.debug.drawCircle(Vec2.get(v.x,v.y),1,0xff0000));
+		)
+		DummyNapeMain.debug.flush();
+	}
 
+	public static inline function combLeft (key:Int) return (key&0xC1)!=0
+	public static inline function combRight(key:Int) return (key&0x1C)!=0
+	public static inline function combUp   (key:Int) return (key&0x07)!=0
+	public static inline function combDown (key:Int) return (key&0x70)!=0
+
+	// generate polygon for a single cell.
+     // we do 'NOT' remove degenerate edges for duplicated vertices
+     // as we rely on the strict configurations to simplify the rest of the algorithms.
+     //
 	public static var look_march = [-1,0xE0,0x38,0xD8,0x0E,-1,0x36,0xD6,0x83,0x63,-1,0x5B,0x8D,0x6D,0xB5,0x55];
 	public static inline function marchSquare(iso:Float->Float->Float,x0:Float,y0:Float,x1:Float,y1:Float,quality:Int) {
 		var key = 0;
