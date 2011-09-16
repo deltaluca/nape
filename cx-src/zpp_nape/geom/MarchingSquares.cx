@@ -84,7 +84,7 @@ class PR(MarchingSquares) {
 
 		if(!combine) return;
 
-		for(y in 0...yn) {
+/*		for(y in 0...yn) {
 			for(x in 0...xn) {
 				var p = map.get(x,y);
 				if(p==null) continue;
@@ -92,7 +92,7 @@ class PR(MarchingSquares) {
 				if(p.p2!=null)
 					draw(p.p2,0xff);
 			}
-		}
+		}*/
 	}
 
 	// given a polygon from an original VPair with it's key
@@ -187,36 +187,6 @@ class PR(MarchingSquares) {
 		return if((key&1)==0) poly.prev else poly;
 	}
 
-	// NOTE TO SELF: need to remove horizontally collinear vertices too
-     // this should still work fine with the configurations stuff.
-     // 
-/*	public static function combLR(a:VPair,b:VPair) {
-		//set up pointers for merge
-		var ap:Polygon = linkright(a.pr,a.keyr);
-          var bp:Polygon = linkleft (b.p1,b.key1);
-
-		// we now have ap==bp (implicit) and ap.next == bp.prev (implicit)
-          // so we simply need to splice them together here.
-          // and we remove the trivially duplicate vertices now. (chose to remove b's)
-          // 
-          // ap.next      -> bp.next      {} ap      <- bp.next.prev
-          // ap.next.prev -> bp.prev.prev {} ap.next <- bp.prev.prev.next
-
-          var ap2 = ap.next;
-
-          ap.next = bp.next;
-          bp.next.prev = ap;
- 
-          ap2.prev = bp.prev.prev;
-          bp.prev.prev.next = ap2;
-
-          Free(Vertex,bp.prev);
-          Free(Vertex,bp);
-
-          //reassign VPair's for next merge, make sure we have the same local configuration!
-		if  (b.p1==bp) { if(b.pr==b.p1) b.pr = ap; b.p1 = ap; }
-	}*/
-
 	public static function combLR(a:VPair,b:VPair) {
 		//set up pointers for merge
 		var ap:Polygon = linkright(a.pr,a.keyr);
@@ -259,6 +229,9 @@ class PR(MarchingSquares) {
 			bp2.prev.next = ap2;
 		}
 		Free(Vertex,bp2);
+
+		// re-assign id
+		b.id1 = a.idr;
 	}
 
 	public static function draw(p:Polygon,col:Int) {
