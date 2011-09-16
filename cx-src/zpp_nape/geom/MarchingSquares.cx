@@ -13,12 +13,20 @@ class VPair {
 	public var p1:Polygon; public var key1:Int;
 	public var p2:Polygon; public var key2:Int;
 
+	// pr = p2 if p2!=null else p1
+	public var pr:Polygon; public var keyr:Int;
+
+	//to compare polygons with since Polygon is a pointer to some vertex, not the whole polygon.
+	public var id1:Int;
+	public var id2:Int;
+	public var idr:Int;
+
 	MixPool(VPair)
 	flibmdel public inline function free() {
 		//temporary
-		p1 = p2 = null;
+		p1 = p2 = pr = null;
 		//---------
-		assert(p1==null && p2==null, "free VPair (march) non-null polys");
+		assert(p1==null && p2==null && pr==null, "free VPair (march) non-null polys");
 	}
 	flibmdel public inline function alloc() {}
 
@@ -27,23 +35,40 @@ class VPair {
 
 class PR(MarchingSquares) {
 
+	public static var nextId:Int;
 	public static function run(iso:Float->Float->Float,bx0:Float,by0:Float,bx1:Float,by1:Float,cell:Vec2,quality:Int,combine:Bool,ret:GeomPolyList) {
+		nextId = 0;
+
 		var xp = (bx1-bx0)/cell.x; var xn:Int = fastint(xp);
 		var yp = (by1-by0)/cell.y; var yn:Int = fastint(yp);
 		if(xp!=xn) xn++;
 		if(yp!=yn) yn++;
 
+		var map:Array2<VPair> = null;
+		if(combine) map = new Array2<VPair>(xn,yn);
+
 		for(y in 0...yn) {
 			var y0 = by0 + cell.y*y;
 			var y1 = if(y==yn-1) by1 else y0+cell.y;
+
+			var pre:VPair = null;
 			for(x in 0...xn) {
 				var x0 = bx0 + cell.x*x;
 				var x1 = if(x==xn-1) bx1 else x0+cell.x;
 
 				var pp = marchSquare(iso,x0,y0,x1,y1,quality);
-				if(pp==null) continue;
+				if(pp==null) { pre = null; continue; }
 
 				if(combine) {
+					map.set(x,y, pp);
+					assert((pre!=null)==combLeft(pp.key1), "left exists =/= can combine");
+					if(pre!=null) {
+						assert(combRight(pre.keyr), "left poly cannot comb right?");
+						combLR(pre,pp);
+					}
+
+					if(combRight(pp.keyr)) pre = pp;
+					else pre = null;
 				}else {
 					var p = new GeomPoly();
 					p.pr(inner).vertices = pp.p1;
@@ -56,12 +81,116 @@ class PR(MarchingSquares) {
 				}
 			}
 		}
+
+		if(!combine) return;
 	}
 
-	public static inline function combLeft(key:Int) return (key&(1<<7))!=0
-	public static inline function combUp  (key:Int) return (key&(1<<1))!=0
+	// given a polygon from an original VPair with it's key
+	// return vertex for start of merge in a combLR.
+	// values determined via analysis of all cases.
+	//
+	// possible configurations for a combRight'able VPair poly:
+	// ( p = current pointer, t = target pointer)
+	//
+	//   p                       p                   p
+	//   o---o t               . o-o t               o---o t
+	//   |-#-| key = 01010101  . .`o key = 00001110  o---o key = 10001101
+	//   o---o                 . . .                 . . .
+	//
+	//     p                                         
+	//   . o-o t               . . . key = 00111000  . . . key = 10011000
+	//   . | | key = 00110110  . .,o pt              o---o pt
+	//   . o-o                 . o-o                 o---o
+	//
+	//   p                       p                     p
+	//   o-o . key = 10111011  . o-o t               . o-o t
+	//   o #`o t               o`#-o key = 11101110  o-#-| key = 11010110
+	//   .`o-o                 o-o`.                 o---o
+	//
+	//   p                     p                     p
+	//   o---o t               o---o t               o-o . key = 01011011
+	//   o-#-| key = 10110101  |-#-o key = 01101101  |-#`o t
+	//   .`o-o                 o-o`,                 o---o
+	//
+	// pointer either needs to be skipped forward 0,1 or 2 times.
+	//
+	// 1 time: 01010101  0 times: 00111000  2 times: 10111011
+	//         10110101           10011000           01011011
+	//         01101101                ^^^                ^^^
+	//         10001101
+	//         00001110
+	//         11101110
+	//         00110110
+	//         11010110
+	//              ^^^
+	// first 3 bits are enough to classify the number of skips needed.
+	//
+	public static inline function linkright(poly:Polygon,key:Int) {
+		var kind = key&7;
+		if  (kind==0) return poly;
+		elif(kind==3) return poly.next.next;
+		else          return poly.next;
+	}
 
-	public static var look_march = [0x00,0xE0,0x38,0xD8,0x0E,-1,0x36,0xD6,0x83,0x63,-1,0x5B,0x8D,0x6D,0xB5,0x55];
+	// given a polygon from an original VPair with it's key
+	// return vertex from start of merge in a combLR.
+	// values determined via analysis of all cases.
+	//
+	// possible configurations for a combLeft'able VPair poly:
+	// ( p = current pointer, t = target pointer)
+	//
+	//  pt                    pt                    pt
+	//   o---o                 o-o .                 o---o
+	//   |-#-| key = 01010101  o`. . key = 10000011  o---o key = 10001101
+	//   o---o                 . . .                 . . .
+	//
+	//  pt                                         
+	//   o-o .                  . . . key = 00111000  . . . key = 10011000
+	//   | | . key = 01100011 t o,. .               t o---o p
+	//   o-o .                  o-o .                 o---o
+	//                            p
+	//  pt                       p                      p
+	//   o-o . key = 10111011  . o-o                  . o-o
+	//   o #`o               t o`#-o key = 11101110 t o-#-| key = 11010110
+	//   .`o-o                 o-o`.                  o---o
+	//
+	//  pt                    pt                    pt
+	//   o---o                 o---o                 o-o . key = 01011011
+	//   o-#-| key = 10110101  |-#-o key = 01101101  |-#`o
+	//   .`o-o                 o-o`,                 o---o
+	//
+     // pointer either needs to be skipped backwards once or not at all.
+     //
+     // 0 times: 01010101  1 times: 00111000
+     //          01100011           11101110
+     //          10111011           11010110
+     //          10111011           10011000
+     //          10110101                  ^
+     //          10000011
+     //          01101101
+     //          10001101
+     //          01011011
+     //                 ^
+     // first bit is enough to classify number of skips needed
+     //
+	public static inline function linkleft(poly:Polygon,key:Int) {
+		return if((key&1)==0) poly.prev else poly;
+	}
+
+	public static function combLR(a:VPair,b:VPair) {
+		var ap:Polygon = linkright(a.pr,a.keyr);
+          var bp:Polygon = linkleft (b.p1,b.key1);
+
+          DummyNapeMain.debug.drawCircle(Vec2.get(ap.x,ap.y),2,0xff0000);
+          DummyNapeMain.debug.drawCircle(Vec2.get(bp.x,bp.y),1,0xff);
+	}
+
+	public static inline function combLeft (key:Int) return (key&(1<<7))!=0
+	public static inline function combRight(key:Int) return (key&(1<<3))!=0
+	public static inline function combUp   (key:Int) return (key&(1<<1))!=0
+	public static inline function combDown (key:Int) return (key&(1<<5))!=0
+
+	public static var look_march = [-1,0xE0,0x38,0xD8,0x0E,-1,0x36,0xD6,0x83,0x63,-1,0x5B,0x8D,0x6D,0xB5,0x55];
 	public static inline function marchSquare(iso:Float->Float->Float,x0:Float,y0:Float,x1:Float,y1:Float,quality:Int) {
 		var key = 0;
 		var v0 = iso(x0,y0); if(v0<0) key |= 8;
@@ -74,25 +203,35 @@ class PR(MarchingSquares) {
 			var ret = Get(VPair);
 			if(key!=10 && key!=5) {
 				var val = look_march[key];
-				if(val!=0) ret.key1 = poly(val,ret.p1);
+				poly(val,1);
+				setright(1);
 			}else {
 				var mid = iso(0.5*(x0+x1),0.5*(y0+y1)) < 0;
 				if(key==10) {
-					if(mid)
-						ret.key1 = poly(0xBB,ret.p1);
-					else {
-						ret.key1 = poly(0x83,ret.p1);
-						ret.key2 = poly(0x38,ret.p2);
+					if(mid) {
+						poly(0xBB,1);
+						setright(1);
+					} else {
+						poly(0x83,1);
+						poly(0x38,2);
+						setright(2);
 					}
 				}else {
-					if(mid)
-						ret.key1 = poly(0xEE,ret.p1);
-					else {
-						ret.key1 = poly(0xE0,ret.p1);
-						ret.key2 = poly(0x0E,ret.p2);
+					if(mid) {
+						poly(0xEE,1);
+						setright(1);
+					} else {
+						poly(0xE0,1);
+						poly(0x0E,2);
+						setright(2);
 					}
 				}
 			}
+			$(mixin setright(n) {
+				ret.pr = ret.p`n;
+				ret.keyr = ret.key`n;
+				ret.idr = ret.id`n;
+			});
 			return ret;
 		}
 
@@ -111,11 +250,13 @@ class PR(MarchingSquares) {
 	
 							elif(i==3) Vertex.get(x1,ylerp(y0,y1,x1,v1,v2,iso,quality))
 							else       Vertex.get(x0,ylerp(y0,y1,x0,v0,v3,iso,quality));
-						out = push_after(out,p);
+						ret.p`out = push_after(ret.p`out,p);
 					}
 				}
+				ret.p`out = ret.p`out.next;
 			)
-			val;
+			ret.key`out = val;
+			ret.id`out = nextId++;
 		});
 	}
 
