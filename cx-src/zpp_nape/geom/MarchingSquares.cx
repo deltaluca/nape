@@ -112,7 +112,7 @@ class PR(MarchingSquares) {
 
 		if(!combine) return;
 
-		for(y in 0...yn) {
+		for(y in 1...yn) {
 			for(x in 0...xn) {
 				var b = map.get(x,y);
 				if(b==null) continue;
@@ -127,6 +127,10 @@ class PR(MarchingSquares) {
 				//determine up/down ids on a,b
 				var ad = if(a.p2!=null && a.key2==0x38) a.id2 else a.id1;
 				var bu = if(b.p2!=null && b.key2==0x0e) b.id2 else b.id1;
+
+				var adp = if(ad==a.id2) a.key2 else a.key1;
+				var bup = if(bu==b.id2) b.key2 else b.key1;
+				if(!combDown(adp)) continue;
 	
 				if(ad.id==bu.id) continue;
 
