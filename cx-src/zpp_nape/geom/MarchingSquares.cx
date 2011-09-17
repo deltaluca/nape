@@ -6,18 +6,29 @@ $(mixin Polygon() Vertex);
 
 $(mixin VPair() PR(MarchPair));
 
-$(mixin ID() PR(MarchID));
+$(mixin Span() PR(MarchSpan));
 
-class ID {
+class Span {
 	static var nextId = 0;
 	public var id:Int;
 
 	//easier to determine along a scan line like this.
 	public var freed:Bool;
 
-	MixPool(ID)
-	flibmdel public inline function free() { freed = true; }
-	flibmdel public inline function alloc() { freed = false; }
+	//disjoint set forest to make sure we only output unique poly
+	DSF(Mixin(Span));
+	public var out:Bool;
+
+	MixPool(Span)
+	flibmdel public inline function free() {
+		freed = true;
+	}
+	flibmdel public inline function alloc() {
+		freed = false;
+		out = false;
+		parent = this;
+		rank = 0;
+	}
 
 	public function new() id = nextId++
 }
@@ -37,9 +48,9 @@ class VPair {
 	public var pd:Polygon;
 
 	//to compare polygons with since Polygon is a pointer to some vertex, not the whole polygon.
-	public var id1:ID;
-	public var id2:ID;
-	public var idr:ID;
+	public var span1:Span;
+	public var span2:Span;
+	public var spanr:Span;
 	
 	MixPool(VPair)
 	flibmdel public inline function free() {
@@ -48,9 +59,9 @@ class VPair {
 		//---------
 		assert(p1==null && p2==null && pr==null, "free VPair (march) non-null polys");
 
-		if(!id1.freed) Free(ID,id1);
-		if(id2!=null && !id2.freed) Free(ID,id2);
-		id1 = id2 = idr = null;
+		if(!span1.freed) Free(Span,span1);
+		if(span2!=null && !span2.freed) Free(Span,span2);
+		span1 = span2 = spanr = null;
 	}
 	flibmdel public inline function alloc() {}
 
@@ -89,7 +100,7 @@ class PR(MarchingSquares) {
 					pp.pd = linkdown(pd,pd==pp.p2 ? pp.key2 : pp.key1);
 
 					map.set(x,y, pp);
-					assert((pre!=null)==combLeft(pp.key1), "left exists =/= can combine");
+					assert((pre!=null)==combLeft(pp.key1) || x==0, "left exists =/= can combine ");
 					if(pre!=null) {
 						assert(combRight(pre.keyr), "left poly cannot comb right?");
 						combLR(pre,pp);
@@ -124,8 +135,8 @@ class PR(MarchingSquares) {
 				assert(a!=null,"combine up, but no poly?");
 
 				//determine up/down ids on a,b
-				var ad = if(a.p2!=null && a.key2==0x38) a.id2 else a.id1;
-				var bu = if(b.p2!=null && b.key2==0x0e) b.id2 else b.id1;
+				var ad = if(a.p2!=null && a.key2==0x38) a.span2 else a.span1;
+				var bu = if(b.p2!=null && b.key2==0x0e) b.span2 else b.span1;
 
 				//cannot combine up as either scan line already combined
 				//or it would introduce a hole if not.
@@ -135,25 +146,41 @@ class PR(MarchingSquares) {
 			}
 		}
 
-		var keyh = new IntHash<Bool>();
 		for(y in 0...yn) {
 			for(x in 0...xn) {
 				var p = map.get(x,y);
 				if(p==null) continue;
 
-				if(!keyh.exists(p.id1.id)) {
-					keyh.set(p.id1.id,true);
+				var root = DSF(find(p.span1));
+				if(!root.out) {
+					root.out = true;
 					var pp = new GeomPoly();
 					pp.pr(inner).vertices = p.p1;
 					ret.add(pp);
 				}
 
-				if(p.p2 != null && !keyh.exists(p.id2.id)) {
-					keyh.set(p.id2.id,true);
+				if(p.p2!=null) {
+					root = DSF(find(p.span2));
+					if(!root.out) {
+						root.out = true;
+						var pp = new GeomPoly();
+						pp.pr(inner).vertices = p.p2;
+						ret.add(pp);
+					}
+				}
+/*				if(!keyh.exists(p.span1.id)) {
+					keyh.set(p.span1.id,true);
+					var pp = new GeomPoly();
+					pp.pr(inner).vertices = p.p1;
+					ret.add(pp);
+				}
+
+				if(p.p2 != null && !keyh.exists(p.span2.id)) {
+					keyh.set(p.span2.id,true);
 					var pp = new GeomPoly();
 					pp.pr(inner).vertices = p.p2;
 					ret.add(pp);
-				}
+				}*/
 			}
 		}
 	}
@@ -345,11 +372,11 @@ class PR(MarchingSquares) {
 		Free(Vertex,bp2);
 
 		// re-assign id
-		// we assign the entire scan line the same ID object.
+		// we assign the entire scan line the same Span object.
 		// which is essential in UD merge.
-		if(b.idr==b.id1) b.idr = a.idr;
-		//free old b.id1!
-		b.id1 = a.idr;
+		if(b.spanr==b.span1) b.spanr = a.spanr;
+		//free old b.span1!
+		b.span1 = a.spanr;
 	}
 
 	public static function combUD(a:VPair,b:VPair) {
@@ -383,9 +410,11 @@ class PR(MarchingSquares) {
 		// we do this via setting the internal id.
 		// as the entire scan line shares the same Id object.
 		// this sets the id for the entire scan line! (essential to avoid holes!)
-		var aid = if(ad==a.p1) a.id1 else a.id2;
-		if(bu==b.p1) b.id1.id = aid.id;
-		else         b.id2.id = aid.id;
+		var aid = if(ad==a.p1) a.span1 else a.span2;
+		var bid = if(bu==b.p1) b.span1 else b.span2;
+		bid.id = aid.id;
+
+		DSF(union(aid,bid));
 	}
 
 	public static function draw(p:Polygon,col:Int) {
@@ -393,9 +422,9 @@ class PR(MarchingSquares) {
 		gp.pr(inner).vertices = p;
 		DummyNapeMain.debug.drawFilledPolygon(gp,col);
 		DummyNapeMain.debug.drawPolygon(gp,(col&0xfefefe)>>1);
-		mix_circular(Vertex,
-			for_iter(v,p, DummyNapeMain.debug.drawCircle(Vec2.get(v.x,v.y),1,0xff0000));
-		)
+//		mix_circular(Vertex,
+//			for_iter(v,p, DummyNapeMain.debug.drawCircle(Vec2.get(v.x,v.y),1,0xff0000));
+//		)
 		DummyNapeMain.debug.flush();
 	}
 
@@ -448,7 +477,7 @@ class PR(MarchingSquares) {
 			$(mixin setright(n) {
 				ret.pr = ret.p`n;
 				ret.keyr = ret.key`n;
-				ret.idr = ret.id`n;
+				ret.spanr = ret.span`n;
 			});
 			return ret;
 		}
@@ -474,7 +503,7 @@ class PR(MarchingSquares) {
 				ret.p`out = ret.p`out.next;
 			)
 			ret.key`out = val;
-			ret.id`out = Get(ID);
+			ret.span`out = Get(Span);
 		});
 	}
 
