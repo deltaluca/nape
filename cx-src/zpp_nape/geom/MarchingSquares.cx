@@ -117,28 +117,43 @@ class PR(MarchingSquares) {
 				var b = map.get(x,y);
 				if(b==null) continue;
 
-				draw(b.p1,0xff);
-				if(b.p2!=null)
-					draw(b.p2,0xff);
+				var bkey = if(b.p2!=null && b.key2==0x0e) b.key2 else b.key1;
+				if(!combUp(bkey)) continue;
 
 				var a = map.get(x,y-1);
-				if(a==null) continue;
+				assert(a!=null,"combine up, but no poly?");
 
 				//determine up/down ids on a,b
 				var ad = if(a.p2!=null && a.key2==0x38) a.id2 else a.id1;
 				var bu = if(b.p2!=null && b.key2==0x0e) b.id2 else b.id1;
 
-				var adp = if(ad==a.id2) a.key2 else a.key1;
-				var bup = if(bu==b.id2) b.key2 else b.key1;
-				if(!combDown(adp)) continue;
-	
+				//cannot combine up as either scan line already combined
+				//or it would introduce a hole if not.
 				if(ad.id==bu.id) continue;
 
 				combUD(a,b);
+			}
+		}
 
-				draw(b.p1,0xff);
-				if(b.p2!=null)
-					draw(b.p2,0xff);
+		var keyh = new IntHash<Bool>();
+		for(y in 0...yn) {
+			for(x in 0...xn) {
+				var p = map.get(x,y);
+				if(p==null) continue;
+
+				if(!keyh.exists(p.id1.id)) {
+					keyh.set(p.id1.id,true);
+					var pp = new GeomPoly();
+					pp.pr(inner).vertices = p.p1;
+					ret.add(pp);
+				}
+
+				if(p.p2 != null && !keyh.exists(p.id2.id)) {
+					keyh.set(p.id2.id,true);
+					var pp = new GeomPoly();
+					pp.pr(inner).vertices = p.p2;
+					ret.add(pp);
+				}
 			}
 		}
 	}

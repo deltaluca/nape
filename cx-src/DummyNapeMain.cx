@@ -215,19 +215,21 @@ class DummyNapeMain {
 
 	static function main() {
 		var c = flash.Lib.current;
-//		haxe.Log.setColor(0xffffff);
+		haxe.Log.setColor(0xffffff);
 
-		debug = new ShapeDebug(600,600,0x333333);
+		debug = new BitmapDebug(600,600,0x333333);
+		debug.drawShapeAngleIndicators = false;
 		c.addChild(debug.display);
 
 		var f = function(x:Float,y:Float):Float {
 			var dx = x-300;
 			var dy = y-300;
 //			return dx*dx+dy*dy-200*200;
-/*			var del = dx*dx+dy*dy;
+			var del = dx*dx+dy*dy;
 			del = (150-Math.sqrt(del));
-			return del*del - 50*50;*/
-			return dx*dx+dy*dy-300*300*Math.cos((dx*dx+dy)*7e-4)*Math.sin((dy*dx)*5e-4);
+			del = del*del - 50*50;
+			return del;
+//			return del - dx*dx+dy*dy-300*300*Math.cos((dx*dx+dy)*7e-4)*Math.sin((dy*dx)*5e-4);
 		}
 
 		var space = new Space(new Vec2(0,400));
@@ -240,12 +242,17 @@ class DummyNapeMain {
 		border.space = space;
 
 		var polys = MarchingSquares.run(f, new AABB(0,0,600,600), new Vec2(10,10), 10, true);
-		var polys = MarchingSquares.run(f, new AABB(0,0,600,600), new Vec2(10,10), 10, false);
+//		var polys = MarchingSquares.run(f, new AABB(0,0,600,600), new Vec2(10,0), 10, false);
 		for(p in polys) {
-			var b = new Body();
-			b.shapes.add(new Polygon(p));
-			b.align();
-			b.space = space;
+			var q = p.simplify(2.5);
+			if(!q.isDegenerate()) {
+				var qs = q.convex_decomposition();
+				var b = new Body();
+				for(q in qs)
+					b.shapes.add(new Polygon(q));
+				b.align();
+				b.space = space;
+			}
 		}
 		debug.draw(space);
 		debug.flush();
