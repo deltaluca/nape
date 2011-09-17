@@ -9,9 +9,6 @@ $(mixin VPair() PR(MarchPair));
 $(mixin Span() PR(MarchSpan));
 
 class Span {
-	static var nextId = 0;
-	public var id:Int;
-
 	//easier to determine along a scan line like this.
 	public var freed:Bool;
 
@@ -30,7 +27,7 @@ class Span {
 		rank = 0;
 	}
 
-	public function new() id = nextId++
+	public function new() {} 
 }
 
 class VPair {
@@ -134,13 +131,13 @@ class PR(MarchingSquares) {
 				var a = map.get(x,y-1);
 				assert(a!=null,"combine up, but no poly?");
 
-				//determine up/down ids on a,b
+				//determine up/down spans on a,b
 				var ad = if(a.p2!=null && a.key2==0x38) a.span2 else a.span1;
 				var bu = if(b.p2!=null && b.key2==0x0e) b.span2 else b.span1;
 
 				//cannot combine up as either scan line already combined
 				//or it would introduce a hole if not.
-				if(ad.id==bu.id) continue;
+				if(DSF(find(ad)==find(bu))) continue;
 
 				combUD(a,b);
 			}
@@ -168,19 +165,6 @@ class PR(MarchingSquares) {
 						ret.add(pp);
 					}
 				}
-/*				if(!keyh.exists(p.span1.id)) {
-					keyh.set(p.span1.id,true);
-					var pp = new GeomPoly();
-					pp.pr(inner).vertices = p.p1;
-					ret.add(pp);
-				}
-
-				if(p.p2 != null && !keyh.exists(p.span2.id)) {
-					keyh.set(p.span2.id,true);
-					var pp = new GeomPoly();
-					pp.pr(inner).vertices = p.p2;
-					ret.add(pp);
-				}*/
 			}
 		}
 	}
@@ -288,7 +272,7 @@ class PR(MarchingSquares) {
 	//   o---o                . . . key = 00111000 . . . key = 10011000 
 	//   |-#-| key = 01010101 . .,o p              o---o p
 	// t o---o                . o-o              t o---o
-    //                          t        
+	//                          t        
 	//   p                                           p
 	//   o-o .                . . . key = 11100000 . o-o
 	//   | | . key = 01100011 o,. .                . | | key = 00110110
@@ -371,7 +355,7 @@ class PR(MarchingSquares) {
 		}
 		Free(Vertex,bp2);
 
-		// re-assign id
+		// re-assign space
 		// we assign the entire scan line the same Span object.
 		// which is essential in UD merge.
 		if(b.spanr==b.span1) b.spanr = a.spanr;
@@ -406,14 +390,9 @@ class PR(MarchingSquares) {
 		ap2.prev.next = bp2;
 		Free(Vertex,ap2);
 
-		// re-assign id (don't care abuot right poly ref. anymore)
-		// we do this via setting the internal id.
-		// as the entire scan line shares the same Id object.
-		// this sets the id for the entire scan line! (essential to avoid holes!)
+		//unify scan polygons
 		var aid = if(ad==a.p1) a.span1 else a.span2;
 		var bid = if(bu==b.p1) b.span1 else b.span2;
-		bid.id = aid.id;
-
 		DSF(union(aid,bid));
 	}
 
@@ -434,9 +413,9 @@ class PR(MarchingSquares) {
 	public static inline function combDown (key:Int) return (key&0x70)!=0
 
 	// generate polygon for a single cell.
-     // we do 'NOT' remove degenerate edges for duplicated vertices
-     // as we rely on the strict configurations to simplify the rest of the algorithms.
-     //
+	// we do 'NOT' remove degenerate edges for duplicated vertices
+	// as we rely on the strict configurations to simplify the rest of the algorithms.
+	//
 	public static var look_march = [-1,0xE0,0x38,0xD8,0x0E,-1,0x36,0xD6,0x83,0x63,-1,0x5B,0x8D,0x6D,0xB5,0x55];
 	public static inline function marchSquare(iso:Float->Float->Float,x0:Float,y0:Float,x1:Float,y1:Float,quality:Int) {
 		var key = 0;
