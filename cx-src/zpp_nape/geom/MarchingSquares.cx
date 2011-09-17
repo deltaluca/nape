@@ -127,7 +127,7 @@ class PR(MarchingSquares) {
 				//determine up/down ids on a,b
 				var ad = if(a.p2!=null && a.key2==0x38) a.id2 else a.id1;
 				var bu = if(b.p2!=null && b.key2==0x0e) b.id2 else b.id1;
-				
+	
 				if(ad.id==bu.id) continue;
 
 				combUD(a,b);
@@ -344,18 +344,12 @@ class PR(MarchingSquares) {
 
 		//skip back from ap to end of merge
 		//skip forward from bp to end of merge
-		//
 		//since we removed collinear horizontals, this is trivial
 		var ap2 = ap.prev;
 		var bp2 = bp.next;
 
 		// we now have ap==bp && ap2 == bp2 (implicitly; not by reference)
 		// we now merge, disacrding bp and bp2 (trivial duplicates)
-
-		DummyNapeMain.debug.drawCircle(Vec2.get(ap.x,ap.y),6,0xff0000);
-		DummyNapeMain.debug.drawCircle(Vec2.get(bp.x,bp.y),5,0xffff);
-		DummyNapeMain.debug.drawCircle(Vec2.get(ap2.x,ap2.y),4,0xff0000);
-		DummyNapeMain.debug.drawCircle(Vec2.get(bp2.x,bp2.y),3,0xffff);
 		// merge on left.
 		bp.next = ap.next;
 		ap.next.prev = bp;
@@ -370,9 +364,9 @@ class PR(MarchingSquares) {
 		// we do this via setting the internal id.
 		// as the entire scan line shares the same Id object.
 		// this sets the id for the entire scan line! (essential to avoid holes!)
-		var bid = if(bu==b.p1) b.id1 else b.id2;
-		if(ad==a.p1) a.id1.id = bid.id;
-		else         a.id2.id = bid.id;
+		var aid = if(ad==a.p1) a.id1 else a.id2;
+		if(bu==b.p1) b.id1.id = aid.id;
+		else         b.id2.id = aid.id;
 	}
 
 	public static function draw(p:Polygon,col:Int) {
