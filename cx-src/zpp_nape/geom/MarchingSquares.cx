@@ -6,6 +6,22 @@ $(mixin Polygon() Vertex);
 
 $(mixin VPair() PR(MarchPair));
 
+$(mixin ID() PR(MarchID));
+
+class ID {
+	static var nextId = 0;
+	public var id:Int;
+
+	//easier to determine along a scan line like this.
+	public var freed:Bool;
+
+	MixPool(ID)
+	flibmdel public inline function free() { freed = true; }
+	flibmdel public inline function alloc() { freed = false; }
+
+	public function new() id = nextId++
+}
+
 class VPair {
 	//saddle points may generate 2 polygons.
 	// p1 will always combine left
@@ -13,20 +29,28 @@ class VPair {
 	public var p1:Polygon; public var key1:Int;
 	public var p2:Polygon; public var key2:Int;
 
+	// right polygon (might not be combRight'able)
 	// pr = p2 if p2!=null else p1
 	public var pr:Polygon; public var keyr:Int;
 
-	//to compare polygons with since Polygon is a pointer to some vertex, not the whole polygon.
-	public var id1:Int;
-	public var id2:Int;
-	public var idr:Int;
+	// pointer to downlink (as connections get destroyed in LR comb)
+	public var pd:Polygon;
 
+	//to compare polygons with since Polygon is a pointer to some vertex, not the whole polygon.
+	public var id1:ID;
+	public var id2:ID;
+	public var idr:ID;
+	
 	MixPool(VPair)
 	flibmdel public inline function free() {
 		//temporary
-		p1 = p2 = pr = null;
+		p1 = p2 = pr = pd = null;
 		//---------
 		assert(p1==null && p2==null && pr==null, "free VPair (march) non-null polys");
+
+		if(!id1.freed) Free(ID,id1);
+		if(id2!=null && !id2.freed) Free(ID,id2);
+		id1 = id2 = idr = null;
 	}
 	flibmdel public inline function alloc() {}
 
@@ -35,9 +59,7 @@ class VPair {
 
 class PR(MarchingSquares) {
 
-	public static var nextId:Int;
 	public static function run(iso:Float->Float->Float,bx0:Float,by0:Float,bx1:Float,by1:Float,cell:Vec2,quality:Int,combine:Bool,ret:GeomPolyList) {
-		nextId = 0;
 
 		var xp = (bx1-bx0)/cell.x; var xn:Int = fastint(xp);
 		var yp = (by1-by0)/cell.y; var yn:Int = fastint(yp);
@@ -60,6 +82,12 @@ class PR(MarchingSquares) {
 				if(pp==null) { pre = null; continue; }
 
 				if(combine) {
+					//determine which poly is down
+					//and store down link prematurely
+					//since links are destroyed in LR comb
+					var pd = if(pp.p2!=null && pp.key2!=14) pp.p2 else pp.p1;
+					pp.pd = linkdown(pd,pd==pp.p2 ? pp.key2 : pp.key1);
+
 					map.set(x,y, pp);
 					assert((pre!=null)==combLeft(pp.key1), "left exists =/= can combine");
 					if(pre!=null) {
@@ -84,18 +112,34 @@ class PR(MarchingSquares) {
 
 		if(!combine) return;
 
-/*		for(y in 0...yn) {
+		for(y in 0...yn) {
 			for(x in 0...xn) {
-				var p = map.get(x,y);
-				if(p==null) continue;
-				draw(p.p1,0xff);
-				if(p.p2!=null)
-					draw(p.p2,0xff);
+				var b = map.get(x,y);
+				if(b==null) continue;
+
+				draw(b.p1,0xff);
+				if(b.p2!=null)
+					draw(b.p2,0xff);
+
+				var a = map.get(x,y-1);
+				if(a==null) continue;
+
+				//determine up/down ids on a,b
+				var ad = if(a.p2!=null && a.key2==0x38) a.id2 else a.id1;
+				var bu = if(b.p2!=null && b.key2==0x0e) b.id2 else b.id1;
+				
+				if(ad.id==bu.id) continue;
+
+				combUD(a,b);
+
+				draw(b.p1,0xff);
+				if(b.p2!=null)
+					draw(b.p2,0xff);
 			}
-		}*/
+		}
 	}
 
-	// given a polygon from an original VPair with it's key
+	// given a polygon from a VPair with it's key
 	// return vertex for start of merge in a combLR.
 	// values determined via analysis of all cases.
 	//
@@ -142,7 +186,7 @@ class PR(MarchingSquares) {
 		else          return poly.next;
 	}
 
-	// given a polygon from an original VPair with it's key
+	// given a polygon from a VPair with it's key
 	// return vertex from start of merge in a combLR.
 	// values determined via analysis of all cases.
 	//
@@ -169,24 +213,72 @@ class PR(MarchingSquares) {
 	//   o-#-| key = 10110101  |-#-o key = 01101101  |-#`o
 	//   .`o-o                 o-o`,                 o---o
 	//
-     // pointer either needs to be skipped backwards once or not at all.
-     //
-     // 0 times: 01010101  1 times: 00111000
-     //          01100011           11101110
-     //          10111011           11010110
-     //          10111011           10011000
-     //          10110101                  ^
-     //          10000011
-     //          01101101
-     //          10001101
-     //          01011011
-     //                 ^
-     // first bit is enough to classify number of skips needed
-     //
+	// pointer either needs to be skipped backwards once or not at all.
+	//
+	// 0 times: 01010101  1 times: 00111000
+	//          01100011           11101110
+	//          10111011           11010110
+	//          10111011           10011000
+	//          10110101                  ^
+	//          10000011
+	//          01101101
+	//          10001101
+	//          01011011
+	//                 ^
+	// first bit is enough to classify number of skips needed
+	//
 	public static inline function linkleft(poly:Polygon,key:Int) {
 		return if((key&1)==0) poly.prev else poly;
 	}
 
+	// given a polygon from a VPair with it's key
+	// return vertex from start of merge in combUD.
+	// values determined via analysis of all cases.
+	//
+	// possible configurations for a combDown'able VPair poly:
+	// ( p = current point, t = target point)
+	//
+	//   p                    
+	//   o---o                . . . key = 00111000 . . . key = 10011000 
+	//   |-#-| key = 01010101 . .,o p              o---o p
+	// t o---o                . o-o              t o---o
+    //                          t        
+	//   p                                           p
+	//   o-o .                . . . key = 11100000 . o-o
+	//   | | . key = 01100011 o,. .                . | | key = 00110110
+	// t o-o .              t o-o .                . o-o
+	//                          p                    t
+	//   p                      p
+	//   o-o . key = 10111011 . o-o                  p
+	//   o #`o                o`#-o key = 11101110 . o-o
+	//   .`o-o                o-o`.                o`#-| key = 11010110
+	//     t                  t                  t o---o
+	//   p                    p
+	//   o---o                o---o                p
+	//   o-#-| key = 10110101 |-#-o key = 01101101 o-o . key = 01011011
+	//   .`o-o              t o-o`.                |-#`o
+	//     t                                     t o---o
+	//
+	// pointer either needs to be skipped backwards once or twice.
+	//
+	// 1 time: 01010101  2 times: 10011000
+	//         00111000           11100000
+	//         01100011           10111011
+	//         00110110           11101110
+	//         01101101           11010110
+	//         01011011           10110101
+	//         ^                  ^
+	// last bit is enough to classify number of skips needed
+	//
+	public static inline function linkdown(poly:Polygon,key:Int) {
+		return if((key&0x80)==0) poly.prev else poly.prev.prev;
+	}
+
+	// given a polygon from a VPair with it's key
+	// return vertex from start of merge in combUD.
+	// trivially, this is simply the start vertex.
+	public static inline function linkup(poly:Polygon,key:Int) return poly
+	                  
 	public static function combLR(a:VPair,b:VPair) {
 		//set up pointers for merge
 		var ap:Polygon = linkright(a.pr,a.keyr);
@@ -196,14 +288,15 @@ class PR(MarchingSquares) {
 		// we now merge, discarding bp and bp.prev (trivial duplicates)
 		// as well as discarding ap if (a.keyr&0x04 != 0)
 		//              and ap.next if (a.keyr&0x10 != 0)
-		// so as to discard collinear horizontal vertices along scan-line.
+		// so as to discard collinear horizontal vertices along scan line
+		// (simplifies combUD)
 
 		var ap2 = ap.next;
 		var bp2 = bp.prev;
 
 		// merge on top.
 		if((a.keyr&0x04)!=0) {
-			//in this case we must fix VPair pointer p1 (and possibly pr) on b
+			//in this case we must fix VPair pointer p1 (and possible pr) on b
 			if(b.pr==b.p1) b.pr = ap.prev;
 			b.p1 = ap.prev;
 			//discard both ap and bp
@@ -211,14 +304,16 @@ class PR(MarchingSquares) {
 			bp.next.prev = ap.prev;
 			Free(Vertex,ap);
 		}else {
-			//discard only bp
+			//discard bp only
 			ap.next = bp.next;
 			bp.next.prev = ap;
 		}
 		Free(Vertex,bp);
-	
+
 		// merge on bottom.
 		if((a.keyr&0x10)!=0) {
+			//in this case we must fix VPair pointer pd on b
+			b.pd = ap2.next;
 			//discard both ap2 and bp2
 			ap2.next.prev = bp2.prev;
 			bp2.prev.next = ap2.next;
@@ -231,7 +326,53 @@ class PR(MarchingSquares) {
 		Free(Vertex,bp2);
 
 		// re-assign id
+		// we assign the entire scan line the same ID object.
+		// which is essential in UD merge.
+		if(b.idr==b.id1) b.idr = a.idr;
+		//free old b.id1!
 		b.id1 = a.idr;
+	}
+
+	public static function combUD(a:VPair,b:VPair) {
+		//determine up/down polys on a,b
+		var ad = if(a.p2!=null && a.key2==0x38) a.p2 else a.p1;
+		var bu = if(b.p2!=null && b.key2==0x0e) b.p2 else b.p1;
+
+		//set up pointers for merge
+		var ap:Polygon = a.pd; //already been calced as LR comb destroys links required
+		var bp:Polygon = linkup(bu,bu==b.p2 ? b.key2 : b.key1);
+
+		//skip back from ap to end of merge
+		//skip forward from bp to end of merge
+		//
+		//since we removed collinear horizontals, this is trivial
+		var ap2 = ap.prev;
+		var bp2 = bp.next;
+
+		// we now have ap==bp && ap2 == bp2 (implicitly; not by reference)
+		// we now merge, disacrding bp and bp2 (trivial duplicates)
+
+		DummyNapeMain.debug.drawCircle(Vec2.get(ap.x,ap.y),6,0xff0000);
+		DummyNapeMain.debug.drawCircle(Vec2.get(bp.x,bp.y),5,0xffff);
+		DummyNapeMain.debug.drawCircle(Vec2.get(ap2.x,ap2.y),4,0xff0000);
+		DummyNapeMain.debug.drawCircle(Vec2.get(bp2.x,bp2.y),3,0xffff);
+		// merge on left.
+		bp.next = ap.next;
+		ap.next.prev = bp;
+		Free(Vertex,ap);
+
+		// merge on right.
+		bp2.prev = ap2.prev;
+		ap2.prev.next = bp2;
+		Free(Vertex,ap2);
+
+		// re-assign id (don't care abuot right poly ref. anymore)
+		// we do this via setting the internal id.
+		// as the entire scan line shares the same Id object.
+		// this sets the id for the entire scan line! (essential to avoid holes!)
+		var bid = if(bu==b.p1) b.id1 else b.id2;
+		if(ad==a.p1) a.id1.id = bid.id;
+		else         a.id2.id = bid.id;
 	}
 
 	public static function draw(p:Polygon,col:Int) {
@@ -320,7 +461,7 @@ class PR(MarchingSquares) {
 				ret.p`out = ret.p`out.next;
 			)
 			ret.key`out = val;
-			ret.id`out = nextId++;
+			ret.id`out = Get(ID);
 		});
 	}
 
