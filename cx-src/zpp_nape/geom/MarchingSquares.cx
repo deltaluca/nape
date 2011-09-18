@@ -5,7 +5,6 @@ $(mixin Vertex() PR(GeomVert));
 $(mixin Polygon() Vertex);
 
 $(mixin VPair() PR(MarchPair));
-
 $(mixin Span() PR(MarchSpan));
 
 class Span {
@@ -76,6 +75,18 @@ class PR(MarchingSquares) {
 		var map:Array2<VPair> = null;
 		if(combine) map = new Array2<VPair>(xn,yn);
 
+		//so as to make sure each logical vertex is computed only once
+		//and avoid any possible corner cases with a logical vertex marked
+		//somtimes inside, sometimes outside etc.
+		var isos:Array2<Float> = new Array2<Float>(xn+1,yn+1);
+		for(y in 0...yn+1) {
+			var yc = if(y<=yn) by0 + cell.y*y else by1;
+			for(x in 0...xn+1) {
+				var xc = if(x<=xn) bx0 + cell.x*x else bx1;
+				isos.set(x,y,iso(xc,yc));
+			}
+		}
+
 		for(y in 0...yn) {
 			var y0 = by0 + cell.y*y;
 			var y1 = if(y==yn-1) by1 else y0+cell.y;
@@ -85,7 +96,7 @@ class PR(MarchingSquares) {
 				var x0 = bx0 + cell.x*x;
 				var x1 = if(x==xn-1) bx1 else x0+cell.x;
 
-				var pp = marchSquare(iso,x0,y0,x1,y1,quality);
+				var pp = marchSquare(iso,isos,x0,y0,x1,y1,x,y,quality);
 				if(pp==null) { pre = null; continue; }
 
 				if(combine) {
@@ -405,12 +416,17 @@ class PR(MarchingSquares) {
 	// as we rely on the strict configurations to simplify the rest of the algorithms.
 	//
 	public static var look_march = [-1,0xE0,0x38,0xD8,0x0E,-1,0x36,0xD6,0x83,0x63,-1,0x5B,0x8D,0x6D,0xB5,0x55];
-	public static inline function marchSquare(iso:Float->Float->Float,x0:Float,y0:Float,x1:Float,y1:Float,quality:Int) {
+	public static inline function marchSquare(
+		iso:Float->Float->Float,isos:Array2<Float>,
+		x0:Float,y0:Float,x1:Float,y1:Float,
+		xn:Int, yn:Int,
+		quality:Int)
+	{
 		var key = 0;
-		var v0 = iso(x0,y0); if(v0<0) key |= 8;
-		var v1 = iso(x1,y0); if(v1<0) key |= 4;
-		var v2 = iso(x1,y1); if(v2<0) key |= 2;
-		var v3 = iso(x0,y1); if(v3<0) key |= 1;
+		var v0 = isos.get(xn,  yn);   if(v0<0) key |= 8;
+		var v1 = isos.get(xn+1,yn);   if(v1<0) key |= 4;
+		var v2 = isos.get(xn+1,yn+1); if(v2<0) key |= 2;
+		var v3 = isos.get(xn,  yn+1); if(v3<0) key |= 1;
 
 		if(key==0) return null;
 		else {
