@@ -10,6 +10,7 @@ class Vertex {
 	public var prev:Vertex;
 
 	public var flag:Bool;
+	public var forced:Bool; //to feed GeomVert value
 
 	flibmdel public inline function free () {}
 	flibmdel public inline function alloc() {}
@@ -44,8 +45,11 @@ class Pair {
 
 class PR(Simplify) {
 
+	public static inline function lessval(a:Vertex,b:Vertex) {
+		return (a.x-b.x) + (a.y-b.y);
+	}
 	public static inline function less(a:Vertex,b:Vertex) {
-		return (b.x-a.x) + (b.y-a.y) >= 0.0;
+		return lessval(a,b) < 0.0;
 	}
 
 	public static inline function distance(v:Vertex, a:Vertex,b:Vertex) {
@@ -66,12 +70,27 @@ class PR(Simplify) {
 		var min:Vertex = null; var max:Vertex = null;
 
 		epsilon *= epsilon;
+		var stack = new List(Pair)();
 
 		//find min/max vertices
+		//previously forced vert.
+		var pre:Vertex = null;
+		var fst:Vertex = null;
+
 		var cur:PR(GeomVert) = P;
 		do {
 		mix_circular(Vertex,
-			ret = push_after(ret, Vertex.get(cur));
+			var v = Vertex.get(cur);
+			v.forced = cur.forced;
+			if(v.forced) {
+				v.flag = true;
+				if(pre!=null)
+					stack.add(Pair.get(pre,v));
+				else fst = v;
+				pre = v;
+			}
+
+			ret = push_after(ret, v);
 			if(min==null) { min = ret; max = ret; }
 			else {
 				if(less(ret,min)) min = ret;
@@ -81,13 +100,29 @@ class PR(Simplify) {
 			cur = cur.next;
 		}while(cur!=P);
 
-		//flag min/max for inclusion
-		min.flag = max.flag = true;
+		if(stack.empty()) {
+			//flag min/max for inclusion
+			if(fst==null) {
+				min.flag = max.flag = true;
+				stack.add(Pair.get(min,max));
+				stack.add(Pair.get(max,min));
+			}else {
+				var d1 = lessval(min,fst); if(d1<0) d1 = -d1;
+				var d2 = lessval(max,fst); if(d2<0) d2 = -d2;
+				if(d1>d2) {
+					min.flag = fst.flag = true;
+					stack.add(Pair.get(min,fst));
+					stack.add(Pair.get(fst,min));
+				}else {
+					max.flag = fst.flag = true;
+					stack.add(Pair.get(max,fst));
+					stack.add(Pair.get(fst,max));
+				}
+			}
+		}else
+			stack.add(Pair.get(pre,fst));
 
 		//recursively add vertices.
-		var stack = new List(Pair)();
-		stack.add(Pair.get(min,max));
-		stack.add(Pair.get(max,min));
 		while(!stack.empty()) {
 			var cur = stack.pop_unsafe();
 			var min = cur.min; var max = cur.max;
@@ -116,7 +151,10 @@ class PR(Simplify) {
 		var retp:PR(GeomVert) = null;
 		while(ret!=null) {
 			mix_circular(PR(GeomVert),
-				if(ret.flag) retp = push_after(retp,PR(GeomVert).get(ret.x,ret.y));
+				if(ret.flag) {
+					retp = push_after(retp,PR(GeomVert).get(ret.x,ret.y));
+					retp.forced = ret.forced;
+				}
 			)
 			mixpool_circular(Vertex,
 				ret = pop_ret_after(ret);

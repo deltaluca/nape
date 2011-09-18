@@ -100,7 +100,12 @@ class PR(MarchingSquares) {
 				var x0 = bx0 + cell.x*x;
 				var x1 = if(x==xn-1) bx1 else x0+cell.x;
 
-				var pp = marchSquare(iso,isos,ints,x0,y0,x1,y1,x,y,quality);
+				var fstx = x==0 || !combine;
+				var fsty = y==0 || !combine;
+				var sndx = x==xn || !combine;
+				var sndy = y==yn || !combine;
+
+				var pp = marchSquare(iso,isos,ints,x0,y0,x1,y1,x,y,fstx,fsty,sndx,sndy,quality);
 				if(pp==null) { pre = null; continue; }
 
 				if(combine) {
@@ -425,7 +430,7 @@ class PR(MarchingSquares) {
 	public static inline function marchSquare(
 		iso:Float->Float->Float,isos:Array2<Float>,ints:Array2<Vertex>,
 		x0:Float,y0:Float,x1:Float,y1:Float,
-		xn:Int, yn:Int,
+		xn:Int, yn:Int, fstx:Bool, fsty:Bool, sndx:Bool, sndy:Bool,
 		quality:Int)
 	{
 		var key = 0;
@@ -474,37 +479,37 @@ class PR(MarchingSquares) {
 			mix_circular(Vertex,
 				for(i in 0...8) {
 					if((val&(1<<i))!=0) {
-						var p = 
-							if  (i==0) Vertex.get(x0,y0)
-							elif(i==2) Vertex.get(x1,y0)
-							elif(i==4) Vertex.get(x1,y1)
-							elif(i==6) Vertex.get(x0,y1)
-	
-							elif(i==1) {
-								var p = ints.get(xn,yn<<1);
-								if(p==null) { p = Vertex.get(xlerp(x0,x1,y0,v0,v1,iso,quality),y0); ints.set(xn,yn<<1,p); }
-								else p = Vertex.get(p.x,p.y);
-								p;
-							}
-							elif(i==5) {
-								var p = ints.get(xn,(yn<<1)+2);
-								if(p==null) { p = Vertex.get(xlerp(x0,x1,y1,v3,v2,iso,quality),y1); ints.set(xn,(yn<<1)+2,p); }
-								else p = Vertex.get(p.x,p.y);
-								p;
-							}
-	
-							elif(i==3) {
-								var p = ints.get(xn+1,(yn<<1)+1);
-								if(p==null) { p = Vertex.get(x1,ylerp(y0,y1,x1,v1,v2,iso,quality)); ints.set(xn+1,(yn<<1)+1,p); }
-								else p = Vertex.get(p.x,p.y);
-								p;
-							}
-							else {
-								var p = ints.get(xn,(yn<<1)+1);
-								if(p==null) { p = Vertex.get(x0,ylerp(y0,y1,x0,v0,v3,iso,quality)); ints.set(xn,(yn<<1)+1,p); }
-								else p = Vertex.get(p.x,p.y);
-								p;
-							};
+						var p:Vertex = null; 
+						if  (i==0) { p = Vertex.get(x0,y0); if(fstx || fsty) p.forced = true; }
+						elif(i==2) { p = Vertex.get(x1,y0); if(sndx || fsty) p.forced = true; }
+						elif(i==4) { p = Vertex.get(x1,y1); if(sndx || sndy) p.forced = true; }
+						elif(i==6) { p = Vertex.get(x0,y1); if(fstx || sndy) p.forced = true; }
+
+						elif(i==1) {
+							p = ints.get(xn,yn<<1);
+							if(p==null) { p = Vertex.get(xlerp(x0,x1,y0,v0,v1,iso,quality),y0); ints.set(xn,yn<<1,p); }
+							else p = Vertex.get(p.x,p.y);
+							if(fsty) p.forced = true;
+						}
+						elif(i==5) {
+							p = ints.get(xn,(yn<<1)+2);
+							if(p==null) { p = Vertex.get(xlerp(x0,x1,y1,v3,v2,iso,quality),y1); ints.set(xn,(yn<<1)+2,p); }
+							else p = Vertex.get(p.x,p.y);
+							if(sndy) p.forced = true;
+						}
+
+						elif(i==3) {
+							p = ints.get(xn+1,(yn<<1)+1);
+							if(p==null) { p = Vertex.get(x1,ylerp(y0,y1,x1,v1,v2,iso,quality)); ints.set(xn+1,(yn<<1)+1,p); }
+							else p = Vertex.get(p.x,p.y);
+							if(sndx) p.forced = true;
+						}
+						else {
+							p = ints.get(xn,(yn<<1)+1);
+							if(p==null) { p = Vertex.get(x0,ylerp(y0,y1,x0,v0,v3,iso,quality)); ints.set(xn,(yn<<1)+1,p); }
+							else p = Vertex.get(p.x,p.y);
+							if(fstx) p.forced = true;
+						};
 						ret.p`out = push_after(ret.p`out,p);
 					}
 				}
