@@ -87,6 +87,10 @@ class PR(MarchingSquares) {
 			}
 		}
 
+		//store interpolated vertices
+		//and we can avoid recomputing them all the time.
+		var ints:Array2<Vertex> = new Array2<Vertex>(xn+1,(yn<<1)+1);
+
 		for(y in 0...yn) {
 			var y0 = by0 + cell.y*y;
 			var y1 = if(y==yn-1) by1 else y0+cell.y;
@@ -96,7 +100,7 @@ class PR(MarchingSquares) {
 				var x0 = bx0 + cell.x*x;
 				var x1 = if(x==xn-1) bx1 else x0+cell.x;
 
-				var pp = marchSquare(iso,isos,x0,y0,x1,y1,x,y,quality);
+				var pp = marchSquare(iso,isos,ints,x0,y0,x1,y1,x,y,quality);
 				if(pp==null) { pre = null; continue; }
 
 				if(combine) {
@@ -419,7 +423,7 @@ class PR(MarchingSquares) {
 	//
 	public static var look_march = [-1,0xE0,0x38,0xD8,0x0E,-1,0x36,0xD6,0x83,0x63,-1,0x5B,0x8D,0x6D,0xB5,0x55];
 	public static inline function marchSquare(
-		iso:Float->Float->Float,isos:Array2<Float>,
+		iso:Float->Float->Float,isos:Array2<Float>,ints:Array2<Vertex>,
 		x0:Float,y0:Float,x1:Float,y1:Float,
 		xn:Int, yn:Int,
 		quality:Int)
@@ -476,11 +480,31 @@ class PR(MarchingSquares) {
 							elif(i==4) Vertex.get(x1,y1)
 							elif(i==6) Vertex.get(x0,y1)
 	
-							elif(i==1) Vertex.get(xlerp(x0,x1,y0,v0,v1,iso,quality),y0)
-							elif(i==5) Vertex.get(xlerp(x0,x1,y1,v3,v2,iso,quality),y1)
+							elif(i==1) {
+								var p = ints.get(xn,yn<<1);
+								if(p==null) { p = Vertex.get(xlerp(x0,x1,y0,v0,v1,iso,quality),y0); ints.set(xn,yn<<1,p); }
+								else p = Vertex.get(p.x,p.y);
+								p;
+							}
+							elif(i==5) {
+								var p = ints.get(xn,(yn<<1)+2);
+								if(p==null) { p = Vertex.get(xlerp(x0,x1,y1,v3,v2,iso,quality),y1); ints.set(xn,(yn<<1)+2,p); }
+								else p = Vertex.get(p.x,p.y);
+								p;
+							}
 	
-							elif(i==3) Vertex.get(x1,ylerp(y0,y1,x1,v1,v2,iso,quality))
-							else       Vertex.get(x0,ylerp(y0,y1,x0,v0,v3,iso,quality));
+							elif(i==3) {
+								var p = ints.get(xn+1,(yn<<1)+1);
+								if(p==null) { p = Vertex.get(x1,ylerp(y0,y1,x1,v1,v2,iso,quality)); ints.set(xn+1,(yn<<1)+1,p); }
+								else p = Vertex.get(p.x,p.y);
+								p;
+							}
+							else {
+								var p = ints.get(xn,(yn<<1)+1);
+								if(p==null) { p = Vertex.get(x0,ylerp(y0,y1,x0,v0,v3,iso,quality)); ints.set(xn,(yn<<1)+1,p); }
+								else p = Vertex.get(p.x,p.y);
+								p;
+							};
 						ret.p`out = push_after(ret.p`out,p);
 					}
 				}
