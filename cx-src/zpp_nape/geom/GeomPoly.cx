@@ -67,6 +67,7 @@ class PR(GeomVertexIterator) {
 	public var ptr:Vertex;
 	public var start:Vertex;
 	public var first:Bool;
+	public var forward:Bool;
 
 	public var outer:GeomVertexIterator;
 	MixPool(PR(GeomVertexIterator))
@@ -83,10 +84,11 @@ class PR(GeomVertexIterator) {
 		internal = false;
 	}
 
-	public static inline function get(poly:PR(GeomVert)) {
+	public static inline function get(poly:PR(GeomVert),forward:Bool) {
 		var ret = Get(PR(GeomVertexIterator));
 		ret.outer.pr(inner) = ret;
 		ret.ptr = poly;
+		ret.forward = forward;
 		ret.start = poly;
 		ret.first = poly!=null;
 		return ret.outer;
