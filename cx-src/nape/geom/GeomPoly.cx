@@ -13,12 +13,35 @@ WrapList(GeomPoly,List(PR(GeomPoly)),Node(PR(GeomPoly)),$(mixin closure(x) x.out
 
 geom(
 
+class GeomVertexIterator {
+	public var pr(inner):PR(GeomVertexIterator);
+
+	function new() {
+		DEBUG(if(!PR(GeomVertexIterator).internal) throw "Error: Cannot instantiate GeomVertexIterator";)
+	}
+
+	public inline function hasNext() {
+		DEBUG(if(pr(inner)==null) throw "Error: Iterator has been disposed";)
+		var ret = pr(inner).ptr != pr(inner).start || pr(inner).first;
+		if(!ret) 
+			Free(PR(GeomVertexIterator),pr(inner));
+	}
+	public inline function next() {
+		DEBUG(if(pr(inner)==null) throw "Error: Iterator has been disposed";)
+		var ret = pr(inner).ptr.wrapper();
+		pr(inner).ptr = pr(inner).ptr.next;
+		return ret;
+	}
+}
+
 class GeomPoly {
 	$(mixin verts() pr(inner).vertices);
 	public var pr(inner):PR(GeomPoly);
 
 	public inline function empty() return mix_circular(Vertex,empty(verts))
 	public inline function size () return mix_circular(Vertex,size(verts))
+
+	public inline function iterator() return PR(GeomVertexIterator).get(verts)
 
 	public inline function current() {
 		DEBUG(if(empty()) throw "Error: GeomPoly is empty";)
