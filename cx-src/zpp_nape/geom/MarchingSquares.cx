@@ -206,10 +206,19 @@ class PR(MarchingSquares) {
 		do {
 			var pre = v.prev;
 			if(pre.x==v.x && pre.y==v.y) {
-				var del = if(pre.forced) v else pre;
-				if(del==poly)
+				if(!pre.forced) {
+					if(singular(poly)) {
+						clear(poly);
+						return;
+					}
 					poly = poly.prev;
-				pop(del);
+					pop(pre);
+				}else {
+					pre = v.next;
+					pop(v);
+					v = pre;
+					continue;
+				}
 			}
 			v = v.next;
 		} while(v!=poly);
