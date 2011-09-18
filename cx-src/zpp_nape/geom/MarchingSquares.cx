@@ -145,6 +145,7 @@ class PR(MarchingSquares) {
 				//cannot combine up as either scan line already combined
 				//or it would introduce a hole if not.
 				if(DSF(find(ad)==find(bu))) continue;
+				DSF(union(ad,bu));
 
 				combUD(a,b);
 			}
@@ -392,11 +393,6 @@ class PR(MarchingSquares) {
 		bp2.prev = ap2.prev;
 		ap2.prev.next = bp2;
 		Free(Vertex,ap2);
-
-		//unify scan polygons
-		var aid = if(ad==a.p1) a.span1 else a.span2;
-		var bid = if(bu==b.p1) b.span1 else b.span2;
-		DSF(union(aid,bid));
 	}
 
 	public static inline function combLeft (key:Int) return (key&0xC1)!=0
