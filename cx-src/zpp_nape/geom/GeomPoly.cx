@@ -55,6 +55,35 @@ class PR(GeomPoly) {
 	}
 }
 
+class PR(GeomVertexIterator) {
+	public var ptr:Vertex;
+	public var start:Vertex;
+	public var first:Bool;
+
+	public var outer:GeomVertexIterator;
+	MixPool(PR(GeomVertexIterator))
+	flibmdel public inline function free() {
+		outer.pr(inner) = null;
+		ptr = start = null;
+	}
+
+	public static var internal = false;
+	function new() {
+		internal = true;
+		outer = new GeomVertexIterator();
+		internal = false;
+	}
+
+	public static inline function get(poly:PR(GeomVert)) {
+		var ret = Get(PR(GeomVertexIterator));
+		ret.outer.pr(inner) = ret;
+		ret.ptr = poly;
+		ret.start = poly;
+		ret.first = poly!=null;
+		return ret;
+	}
+}
+
 $(mixin global geom(block)
 	block
 
