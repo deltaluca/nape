@@ -394,15 +394,17 @@ class PR(MarchingSquares) {
 		var bp2 = bp.next;
 
 		// we now have ap==bp && ap2 == bp2 (implicitly; not by reference)
-		// we now merge, disacrding bp and bp2 (trivial duplicates)
+		// we now merge, disacrding ap and ap2 (trivial duplicates)
 		// merge on left.
 		bp.next = ap.next;
 		ap.next.prev = bp;
 		Free(Vertex,ap);
 
 		// merge on right.
+		// it's possible that a.p1 needs to be reassigned here!
 		bp2.prev = ap2.prev;
 		ap2.prev.next = bp2;
+		if(ap2==a.p1) a.p1 = bp2;
 		Free(Vertex,ap2);
 	}
 
