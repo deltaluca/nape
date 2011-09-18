@@ -56,12 +56,16 @@ class PR(Simplify) {
 		vec_new(n); vec_sub(b.,a.,n);
 		vec_new(c); vec_sub(v.,a.,c);
 
-		var t = vec_dot(c,n)/vec_dot(n,n);
-		if  (t<=0) return vec_lsq(c);
-		elif(t>=1) return vec_dsq(v.,b.);
+		var den = vec_dot(n,n);
+		if(den==0.0) return vec_lsq(c);
 		else {
-			vec_subeq(c, n,t);
-			return vec_lsq(c);
+			var t = vec_dot(c,n)/vec_dot(n,n);
+			if  (t<=0) return vec_lsq(c);
+			elif(t>=1) return vec_dsq(v.,b.);
+			else {
+				vec_subeq(c, n,t);
+				return vec_lsq(c);
+			}
 		}
 	}
 

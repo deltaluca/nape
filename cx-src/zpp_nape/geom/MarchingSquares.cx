@@ -102,8 +102,8 @@ class PR(MarchingSquares) {
 
 				var fstx = x==0 || !combine;
 				var fsty = y==0 || !combine;
-				var sndx = x==xn || !combine;
-				var sndy = y==yn || !combine;
+				var sndx = x==xn-1 || !combine;
+				var sndy = y==yn-1 || !combine;
 
 				var pp = marchSquare(iso,isos,ints,x0,y0,x1,y1,x,y,fstx,fsty,sndx,sndy,quality);
 				if(pp==null) { pre = null; continue; }
@@ -148,12 +148,13 @@ class PR(MarchingSquares) {
 		if(!combine) return;
 
 		for(y in 1...yn) {
+			var pre:Span = null;
 			for(x in 0...xn) {
 				var b = map.get(x,y);
-				if(b==null) continue;
+				if(b==null) { pre = null; continue; }
 
 				var bkey = if(b.p2!=null && b.key2==0x0e) b.key2 else b.key1;
-				if(!combUp(bkey)) continue;
+				if(!combUp(bkey)) { pre = null; continue; }
 
 				var a = map.get(x,y-1);
 				assert(a!=null,"combine up, but no poly?");
@@ -164,10 +165,18 @@ class PR(MarchingSquares) {
 
 				//cannot combine up as either scan line already combined
 				//or it would introduce a hole if not.
-				if(DSF(find(ad)==find(bu))) continue;
-				DSF(union(ad,bu));
-
-				combUD(a,b);
+				if(DSF(find(ad)==find(bu))) {
+					if(pre!=bu) {
+						//set vertices for forced inclusion
+						//in simplifications.
+						combUD_virtual(a,b);
+					}
+				}else {
+					DSF(union(ad,bu));
+					combUD(a,b);
+				}
+				var key = if(bu==b.span2) b.key2 else b.key1;
+				pre = if((key&4)!=0) bu else null;
 			}
 		}
 
@@ -415,6 +424,19 @@ class PR(MarchingSquares) {
 		ap2.prev.next = bp2;
 		if(ap2==a.p1) a.p1 = bp2;
 		Free(Vertex,ap2);
+	}
+
+	public static inline function combUD_virtual(a:VPair,b:VPair) {
+		var ad = if(a.p2!=null && a.key2==0x38) a.p2 else a.p1;
+		var bu = if(b.p2!=null && b.key2==0x0e) b.p2 else b.p1;
+
+		var ap:Polygon = a.pd; //already been calced as LR comb destroys links required
+		var bp:Polygon = linkup(bu,bu==b.p2 ? b.key2 : b.key1);
+
+		var ap2 = ap.prev;
+		var bp2 = bp.next;
+
+		ap.forced = bp.forced = ap2.forced = bp2.forced = true;
 	}
 
 	public static inline function combLeft (key:Int) return (key&0xC1)!=0

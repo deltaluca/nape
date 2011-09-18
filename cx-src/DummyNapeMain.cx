@@ -242,10 +242,19 @@ class DummyNapeMain {
 		border.shapes.add(new Polygon(Polygon.rect(0,600,600,40)));
 		border.space = space;
 
-		var polys = MarchingSquares.run(f, new AABB(0,0,600,600), new Vec2(50,50), 10, false);
+		var polys = MarchingSquares.run(f, new AABB(0,0,600,600), new Vec2(20,20), 10, true);
 //		var polys = MarchingSquares.run(f, new AABB(0,0,600,600), new Vec2(30,30), 4, true);
 		for(p in polys) {
-			var q = p.simplify(10000);
+			debug.drawFilledPolygon(p.simplify(30),0xff0000);
+			debug.drawPolygon(p.simplify(30),0xff);
+			debug.drawPolygon(p,0xff00);
+			mix_circular(PR(GeomVert),
+			for_iter(v,p.pr(inner).vertices,{
+				if(v.forced) debug.drawCircle(Vec2.get(v.x,v.y),2,0);
+			}));
+			continue;
+				
+			var q = p.simplify(1);
 			if(!q.isDegenerate()) {
 				var qs = q.convex_decomposition();
 				var b = new Body();
@@ -280,6 +289,8 @@ class DummyNapeMain {
 		c.stage.addEventListener(flash.events.MouseEvent.MOUSE_UP, function (_) {
 			mcon.active = false;
 		});
+
+		return;
 
 		(new haxe.Timer(0)).run = function() {
 			debug.clear();
