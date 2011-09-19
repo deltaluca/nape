@@ -228,9 +228,9 @@ class DummyNapeMain {
 			var del = dx*dx+dy*dy;
 			del = (150-Math.sqrt(del));
 //			del = del*del - 50*50;
-			del = Math.sin(0.4*(del-50));
-//			return del;
-			return  10000 + del*0.5 - dx*dx+dy*dy-300*300*Math.cos((dx*dx+dy)*7e-4)*Math.sin((dy*dx)*5e-4);
+			del = Math.sin(0.2*(del-50));
+			return del;
+//			return  10000 + del*0.5 - dx*dx+dy*dy-300*300*Math.cos((dx*dx+dy)*7e-4)*Math.sin((dy*dx)*5e-4);
 		}
 
 		var space = new Space(new Vec2(0,400));
@@ -245,21 +245,16 @@ class DummyNapeMain {
 //		var polys = MarchingSquares.run(f, new AABB(0,0,600,600), new Vec2(5,5), 10, true);
 		var polys = MarchingSquares.run(f, new AABB(0,0,600,600), new Vec2(10,10), 4, new Vec2(100,100), true);
 		for(p in polys) {
-			debug.drawPolygon(p,0xff0000);
-			var q = p.simplify(1);
-			debug.drawPolygon(q,0xff);
-			if(!q.isDegenerate()) {
-				var qs = p.convex_decomposition();
-				var b = new Body();
-				for(q in qs) {
-					var s = q.simplify(1);
-					if(!s.isDegenerate())
-						b.shapes.add(new Polygon(s));
-				}
-				if(!b.shapes.empty()) {
-					b.align();
-					b.space = space;
-				}
+			var qs = p.convex_decomposition();
+			var b = new Body();
+			for(q in qs) {
+				var s = q.simplify(1);
+				if(!s.isDegenerate())
+					b.shapes.add(new Polygon(s));
+			}
+			if(!b.shapes.empty()) {
+				b.align();
+				b.space = space;
 			}
 		}
 
