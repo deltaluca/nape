@@ -215,11 +215,108 @@ class DummyNapeMain {
 
 	static function main() {
 		var c = flash.Lib.current;
+//		haxe.Log.setColor(0xffffff);
+
+		debug = new ShapeDebug(600,600,0x333333);
+		debug.drawShapeAngleIndicators = false;
+		c.addChild(debug.display);
+
+		var f = function(x:Float,y:Float):Float {
+			var dx = x-300;
+			var dy = y-300;
+//			return dx*dx+dy*dy-200*200;
+			var del = dx*dx+dy*dy;
+			del = (150-Math.sqrt(del));
+//			del = del*del - 50*50;
+			del = Math.sin(0.2*(del-50));
+			return  10000 + del*0.5 - dx*dx+dy*dy-300*300*Math.cos((dx*dx+dy)*7e-4)*Math.sin((dy*dx)*5e-4);
+		}
+
+		var space = new Space(new Vec2(0,400));
+
+		var border = new Body(BodyType.STATIC);
+		border.shapes.add(new Polygon(Polygon.rect(0,0,-40,600)));
+		border.shapes.add(new Polygon(Polygon.rect(600,0,40,600)));
+		border.shapes.add(new Polygon(Polygon.rect(0,0,600,-40)));
+		border.shapes.add(new Polygon(Polygon.rect(0,600,600,40)));
+		border.space = space;
+
+//		var polys = MarchingSquares.run(f, new AABB(0,0,600,600), new Vec2(5,5), 10, true);
+		var polys = MarchingSquares.run(f, new AABB(0,0,600,600), new Vec2(20,20), 2, true);
+		for(p in polys) {
+			var qs = p.simplify(1).convex_decomposition();
+			var b = new Body();
+			for(q in qs) {
+				var s = q;
+				if(!s.isDegenerate()) {
+					b.shapes.add(new Polygon(s));
+				}
+			}
+			if(!b.shapes.empty()) {
+				b.align();
+				b.space = space;
+			}
+		}
+
+		debug.draw(space);
+		debug.flush();
+
+		var mcon = new PivotJoint(space.world,space.world,new Vec2(), new Vec2());
+		mcon.stiff = false;
+		mcon.maxForce = 100000;
+		mcon.active = false;
+		mcon.space = space;
+
+		c.stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function (_) {
+			var pv = Vec2.get(c.mouseX,c.mouseY);
+			var bods = space.bodiesUnderPoint(pv);
+			for(b in bods) {
+				if(!b.isDynamic()) continue;
+
+				mcon.body1 = b;
+				mcon.anchor1 = b.worldToLocal(pv);
+				mcon.active = true;
+				break;
+			}
+		});
+		c.stage.addEventListener(flash.events.MouseEvent.MOUSE_UP, function (_) {
+			mcon.active = false;
+		});
+
+	    var txt = new flash.text.TextField();
+	    txt.defaultTextFormat = new flash.text.TextFormat("Courier New",null,0);
+	    txt.width = txt.height = 600;
+	    txt.selectable = false;
+		txt.multiline = true;
+	    c.addChild(txt);
+
+		(new haxe.Timer(0)).run = function() {
+			debug.clear();
+
+			mcon.anchor2.setxy(c.mouseX,c.mouseY);
+			space.step(1/120,6,3);
+			space.step(1/120,6,3);
+
+			debug.draw(space);
+			debug.flush();
+
+			txt.text = "";
+			#if NAPE_POOL_STATS
+				txt.text += PR(POOL_STATS).dump();
+			#end
+			#if NAPE_TIMES
+				txt.text += Debug.TIMES(space);
+			#end
+		}
+	}
+
+	static function maiaergn() {
+		var c = flash.Lib.current;
 		haxe.Log.setColor(0xffffff);
 
 		var space = new Space(new Vec2(0,600));
 
-		var debug = new BitmapDebug(600,600,0x333333);
+		debug = new BitmapDebug(600,600,0x333333);
 		debug.drawShapeAngleIndicators = false;
 		c.addChild(debug.display);
 
@@ -237,7 +334,7 @@ class DummyNapeMain {
 			gp.push(pre = Vec2.get(c.mouseX,c.mouseY));
 		});
 		c.stage.addEventListener(flash.events.MouseEvent.MOUSE_UP, function (_) {
-			if(gp!=null && gp.size()>3) {
+/*			if(gp!=null && gp.size()>3) {
 				var polys = gp.simplify(3).simple_decomposition();
 				for(p in polys) {
 					var body = new Body();
@@ -250,8 +347,8 @@ class DummyNapeMain {
 					body.space = space;
 					p.clear();
 				}
-			}
-			gp = null;
+			}*/
+		//	gp = null;
 		});
 
 	        var txt = new flash.text.TextField();
@@ -270,8 +367,11 @@ class DummyNapeMain {
 					gp.push(cur);
 					pre = cur;
 				}
-				debug.drawPolygon(gp,0x505050);
-				var v = gp.current();
+		
+				MarchingSquares.run(function(x,y) return gp.contains(Vec2.get(x,y)) ? -1.0 : 1.0, new AABB(0,0,600,600), new Vec2(10,10), 2);	
+
+				debug.drawPolygon(gp,0xff0000);
+			/*	var v = gp.current();
 				do {
 					debug.drawFilledCircle(gp.current(),0.5,0xffff);
 					gp.skip_forward(1);
@@ -283,7 +383,7 @@ class DummyNapeMain {
 				do {
 					debug.drawFilledCircle(gp2.current(),0.5,0xff0000);
 					gp2.skip_forward(1);
-				} while(gp2.current() != v);
+				} while(gp2.current() != v);*/
 			}
 
 			space.step(1/60,20,10);
@@ -302,7 +402,7 @@ class DummyNapeMain {
 
 
 
-	static function mainset() {
+	static function mainss() {
 		var c = flash.Lib.current;
 
 		var P = [];

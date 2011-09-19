@@ -3,17 +3,18 @@ $(import);
 
 /**
 
-	Port of CGAL greene_approx_convex_partition_2 (www.cgal.org)
+	Partial port of CGAL greene_approx_convex_partition_2 (www.cgal.org)
 
 	I couldn't source it's reference for this algorithm to appreciate/understand it, so a direct port
-	was necessary.
+	was necessary. Modified since to use the monotone PartitionPoly so we can mark shared edges in
+	output with their vertices 'forced' to be included in any successive simplification.
 
 	INSERT LICENCE DUMP D: .... at some point
 
 **/
 
-$(mixin Vertex() PR(GeomVert));
-$(mixin Polygon() Vertex);
+$(mixin Vertex() PR(PartitionVertex));
+$(mixin Polygon() PR(GeomVert));
 
 mix_circular(Vertex,
 
@@ -101,30 +102,27 @@ class PR(Greene) {
 		#end
 	});
 
-	public static inline function visible(polygon:Polygon, new_point_ref:Vertex, stack:PR(Chain), bottom:PR(Chain), top:PR(Chain), rets:List(Polygon)) {
+	public static inline function diagonal(poly:PR(PartitionPoly), a:Vertex,b:Vertex) {
+		if(a!=b && !is_adjacent_to(a,b))
+			poly.insert_diagonal(a.link,b.link);
+	}
+
+	public static inline function visible(polygon:PR(PartitionPoly), new_point_ref:Vertex, stack:PR(Chain), bottom:PR(Chain), top:PR(Chain)) {
 		if((bottom.cw && right_turn(stack.back, stack.before_back(), new_point_ref))
 		|| (!bottom.cw && left_turn(stack.back, stack.before_back(), new_point_ref))) {
 			var done = false;
 			var big = false;
 			var isvisible = false;
 			do {
-				var npoly:Polygon = null;
-
 				stack.pop_back();
 				if(bottom.cw) {
-					for_iter(i, bottom.front,stack.before_back(), npoly = push_after(npoly,Vertex.get(i.x,i.y)));
+					diagonal(polygon,bottom.front,stack.before_back().prev);
 					erase(bottom.before_front(),stack.back);
-					polygon = stack.back;
+					polygon.vertices = stack.back;
 				}else {
-					for_iter(i, stack.back,bottom.after_front(), npoly = push_after(npoly,Vertex.get(i.x,i.y)));
+					diagonal(polygon,stack.back,bottom.after_front().prev);
 					erase(bottom.back,bottom.front);
-					polygon = bottom.front;
-				}
-
-				//check degeneracy of npoly
-				if(!geom(degenerate(npoly))) {
-					check_polygon(npoly);
-					rets.add(npoly);
+					polygon.vertices = bottom.front;
 				}
 
 				bottom.push_back(stack.back);
@@ -153,11 +151,9 @@ class PR(Greene) {
 				bottom.push_back(bottom.front);
 			}
 		}
-
-		return polygon;
 	}
 
-	public static inline function change_top_chain(polygon:Polygon, new_point_ref:Vertex, stack:PR(Chain),top:PR(Chain), rets:List(Polygon)) {
+	public static inline function change_top_chain(polygon:PR(PartitionPoly), new_point_ref:Vertex, stack:PR(Chain),top:PR(Chain)) {
 		var next_point_ref = if(top.cw) new_point_ref.prev else new_point_ref.next;
 
 		if((!top.cw && !right_turn(top.front,new_point_ref,next_point_ref))
@@ -172,22 +168,15 @@ class PR(Greene) {
 			var small = false;
 
 			do {
-				var npoly:Polygon = null;
 				if(!top.cw) {
-					for_iter(v, stack.front,next_point_ref, npoly = push_after(npoly,Vertex.get(v.x,v.y)));
+					diagonal(polygon,stack.front,next_point_ref.prev);
 					erase(old_top_ref, new_point_ref);
-					polygon = new_point_ref;
+					polygon.vertices = new_point_ref;
 				}else {
-					for_iter(v, new_point_ref, stack.before_front(), npoly = push_after(npoly,Vertex.get(v.x,v.y)));
+					diagonal(polygon,new_point_ref,stack.before_front().prev);
 					erase(top.front,stack.front);
 					top.push_front(stack.front);
-					polygon = stack.front;
-				}
-
-				//check degeneracy
-				if(!geom(degenerate(npoly))) {
-					check_polygon(npoly);
-					rets.add(npoly);
+					polygon.vertices = stack.front;
 				}
 
 				if(stack.front==stack.back) {
@@ -215,10 +204,9 @@ class PR(Greene) {
 				top.push_front(new_point_ref);
 			}
 		}
-		return polygon;
 	}
 
-	public static inline function change_bottom_chain(polygon:Polygon, new_point_ref:Vertex, stack:PR(Chain), bottom:PR(Chain), top:PR(Chain), rets:List(Polygon)) {
+	public static inline function change_bottom_chain(polygon:PR(PartitionPoly), new_point_ref:Vertex, stack:PR(Chain), bottom:PR(Chain), top:PR(Chain)) {
 		var next_point_ref = if(bottom.cw) new_point_ref.prev else new_point_ref.next;
 
 		if((bottom.cw && !left_turn(bottom.front,new_point_ref,next_point_ref))
@@ -228,22 +216,15 @@ class PR(Greene) {
 			var done = false;
 			var small = false;
 			do {
-				var npoly:Polygon = null;
 				stack.pop_back();
 				if(bottom.cw) {
-					for_iter(v, new_point_ref, stack.before_back(), npoly = push_after(npoly,Vertex.get(v.x,v.y)));
+					diagonal(polygon,new_point_ref,stack.before_back().prev);
 					erase(bottom.front,stack.back);
-					polygon = stack.back;
+					polygon.vertices = stack.back;
 				}else {
-					for_iter(v, stack.back,next_point_ref, npoly = push_after(npoly,Vertex.get(v.x,v.y)));
+					diagonal(polygon,stack.back,next_point_ref.prev);
 					erase(bottom.back,new_point_ref);
-					polygon = new_point_ref;
-				}
-
-				//check degeneracy
-				if(!geom(degenerate(npoly))) {
-					check_polygon(npoly);
-					rets.add(npoly);
+					polygon.vertices = new_point_ref;
 				}
 
 				bottom.initialise(stack.back);
@@ -267,73 +248,57 @@ class PR(Greene) {
 				bottom.push_front(new_point_ref);
 			}
 		}
-		return polygon;
 	}
 
-	public static inline function stack_extend(polygon:Polygon, point_ref:Vertex, stack:PR(Chain), top:PR(Chain), rets:List(Polygon)) {
+	public static inline function stack_extend(polygon:PR(PartitionPoly), point_ref:Vertex, stack:PR(Chain), top:PR(Chain)) {
 		if((!stack.cw && right_turn(stack.before_front(), stack.front, point_ref))
 		|| ( stack.cw &&  left_turn(stack.before_front(), stack.front, point_ref))) {
 			stack.push_front(point_ref);
 			top.initialise(point_ref);
 		}else
-			polygon = change_top_chain(polygon, point_ref,stack,top,rets);
-		return polygon;
+			change_top_chain(polygon, point_ref,stack,top);
 	}
 
-	public static inline function make_polygons_from_stack(polygon:Polygon, high_point_ref:Vertex, stack:PR(Chain), bottom:PR(Chain), rets:List(Polygon)) {
+	public static inline function make_polygons_from_stack(polygon:PR(PartitionPoly), high_point_ref:Vertex, stack:PR(Chain), bottom:PR(Chain)) {
 		var next_point_ref = high_point_ref;
 		if(!bottom.cw) next_point_ref = next_point_ref.next;
 
 		stack.pop_back();
 		while(stack.front != stack.back) {
-			var npoly:Polygon = null;
 			if(bottom.cw) {
-				for_iter(v, high_point_ref, stack.before_back(), npoly = push_after(npoly,Vertex.get(v.x,v.y)));
+				diagonal(polygon,high_point_ref,stack.before_back().prev);
 				erase(bottom.front,stack.back);
 				bottom.initialise(stack.back);
-				polygon = stack.back;
+				polygon.vertices = stack.back;
 			}else {
-				for_iter(v, stack.back, next_point_ref, npoly = push_after(npoly,Vertex.get(v.x,v.y)));
+				diagonal(polygon,stack.back,next_point_ref.prev);
 				erase(bottom.back, high_point_ref);
 				bottom.push_back(stack.back);
-				polygon = high_point_ref;
+				polygon.vertices = high_point_ref;
 			}
 
-			//check degeneracy
-			if(!geom(degenerate(npoly))) {
-				check_polygon(npoly);
-				rets.add(npoly);
-			}
-			
 			stack.pop_back();
-		}
-
-		var npoly:Polygon = null;
-		for_iter(v, polygon, npoly = push_after(npoly,Vertex.get(v.x,v.y)));
-		if(!geom(degenerate(npoly))) {
-			check_polygon(npoly);
-			rets.add(npoly);
 		}
 	}
 
-	public static inline function find_smallest_yx(polygon:Polygon) {
-		var current = polygon.next;
+	public static inline function find_smallest_yx(polygon:PR(PartitionPoly)) {
+		var current = polygon.vertices.next;
 		//abuse monotonicity of polygon to shortern search.
-		if(less_yx(current,polygon)) {
+		if(less_yx(current,polygon.vertices)) {
 			do {
-				polygon = current;
+				polygon.vertices = current;
 				current = current.next;
-			}while(less_yx(current,polygon));
+			}while(less_yx(current,polygon.vertices));
 		}else {
-			current = polygon.prev;
-			if(less_yx(current,polygon)) {
+			current = polygon.vertices.prev;
+			if(less_yx(current,polygon.vertices)) {
 				do {
-					polygon = current;
+					polygon.vertices = current;
 					current = current.prev;
-				}while(less_yx(current,polygon));
+				}while(less_yx(current,polygon.vertices));
 			}
 		}
-		return polygon;
+		return polygon.vertices;
 	}
 
 	public static inline function second_point_is_next(v:Vertex) {
@@ -358,7 +323,7 @@ class PR(Greene) {
 		}
 	});
 
-	public static function ga_convex_decomposition(polygon:Polygon, rets:List(Polygon)) {
+	public static function ga_convex_decomposition(polygon:PR(PartitionPoly)) {
 		var point_ref = find_smallest_yx(polygon);
 		var circ = point_ref;
 
@@ -389,20 +354,19 @@ class PR(Greene) {
 			point_ref = next_vertex(ccw_chain_ref,cw_chain_ref);
 
 			if(is_adjacent_to(point_ref,bottom.front))
-				polygon = visible(polygon, point_ref, stack, bottom, top, rets);
+				visible(polygon, point_ref, stack, bottom, top);
 
 			if(ccw_chain_ref == cw_chain_ref) {
-				make_polygons_from_stack(polygon, point_ref,stack,bottom, rets);
+				make_polygons_from_stack(polygon, point_ref,stack,bottom);
 				break;
 			}
 
-			if(is_adjacent_to(point_ref,stack.front)) {
-				polygon = stack_extend(polygon,point_ref,stack,top, rets);
-			}elif(is_adjacent_to(point_ref,top.front)) {
-				polygon = change_top_chain(polygon,point_ref,stack,top, rets);
-			}else {
-				polygon = change_bottom_chain(polygon,point_ref,stack,bottom,top, rets);
-			}
+			if(is_adjacent_to(point_ref,stack.front))
+				stack_extend(polygon,point_ref,stack,top);
+			elif(is_adjacent_to(point_ref,top.front))
+				change_top_chain(polygon,point_ref,stack,top);
+			else
+				change_bottom_chain(polygon,point_ref,stack,bottom,top);
 		}
 	}
 
@@ -410,7 +374,13 @@ class PR(Greene) {
 		var MPs = PR(Monotone).decompose(P);
 		var rets = new List(Polygon)();
 		ClearWith(MP,MPs,{
-			ga_convex_decomposition(MP,rets);
+			var opoly = new PR(PartitionPoly)(MP);
+			var poly = opoly.linked();
+
+			ga_convex_decomposition(poly);
+
+			DummyNapeMain.debug.flush();
+			opoly.partition_to(rets);
 		});
 
 		#if NAPE_ASSERT
