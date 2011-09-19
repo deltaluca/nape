@@ -242,26 +242,19 @@ class DummyNapeMain {
 		border.shapes.add(new Polygon(Polygon.rect(0,600,600,40)));
 		border.space = space;
 
-		$(mixin ddraw(s) {
-			debug.drawPolygon(s,0xff0000);
-			var cur = s.pr(inner).vertices;
-			var last = cur;
-			do {
-				if(cur.forced) debug.drawCircle(cur.wrapper(),2,0);
-				cur = cur.next;
-			}while(cur!=last);
-		});
-
 //		var polys = MarchingSquares.run(f, new AABB(0,0,600,600), new Vec2(5,5), 10, true);
 		var polys = MarchingSquares.run(f, new AABB(0,0,600,600), new Vec2(10,10), 4, new Vec2(100,100), true);
 		for(p in polys) {
+			debug.drawPolygon(p,0xff);
 			var w = p.convex_decomposition();
-			for(ww in w) ddraw(ww);
-			continue;
+			for(s in w) debug.drawPolygon(s,0xff00);
+			debug.drawPolygon(p,0xff);
+			var w = p.convex_decomposition();
+
 			var qs = p.convex_decomposition();
 			var b = new Body();
 			for(q in qs) {
-				var s = q.simplify(1);
+				var s = q.simplify(2);
 				if(!s.isDegenerate()) {
 					b.shapes.add(new Polygon(s));
 				}
@@ -402,7 +395,7 @@ class DummyNapeMain {
 
 
 
-	static function mainset() {
+	static function mainss() {
 		var c = flash.Lib.current;
 
 		var P = [];

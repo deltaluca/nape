@@ -1,0 +1,221 @@
+package zpp_nape.geom;
+$(import);
+
+/**
+
+	Based on CGAL PartitionPoly from CGAL y_monotone_partition_2
+	(www.cgal.org)
+
+	Used originally only by Monotone decomposition.
+	As the resident inclusions would perhaps suggest.
+
+	Now also used for convex decompositions.
+
+**/
+
+$(mixin Vertex() PR(PartitionVertex));
+$(mixin Edge() Vertex);
+
+mix_circular(Vertex,
+class PR(PartitionPoly) {
+	public var vertices:Vertex;
+
+	public function new(P:PR(GeomVert)) {
+		var p = P;
+		var cw = geom(clockwise(P));
+		do {
+			vec_new(u); vec_sub(p.,p.prev.,u);
+			vec_new(v); vec_sub(p.next.,p.,v);
+			if(vec_cross(u,v)!=0.0 || vec_dot(u,v)<0) {
+				vertices = if(cw)
+					push_after(vertices,Vertex.get(p));
+				else
+					push_before(vertices,Vertex.get(p));
+				//propogation away
+				vertices.forced = p.forced;
+			}
+			p = p.next;
+		}while(p!=P);
+	}
+	
+	flibmdel public inline function insert_diagonal(p:Vertex,q:Vertex) {
+		p.insert_diagonal(q);
+		q.insert_diagonal(p);
+		//add forced property for simpliciation
+		//for propagation to out GeomVert's
+		p.forced = q.forced = true;
+	}
+
+	public function partition() {
+		for_iter(c, vertices, c.sort_diagonals());
+
+		var rets = new List(PR(GeomVert))();
+		make_polygon(vertices, rets);
+
+		return rets;
+	}
+
+	//can we make this iterative rather than recursive?
+	//yes, but probably not worth it.
+	public function make_polygon(start:Vertex, rets:List(PR(GeomVert))) {
+		var poly:PR(GeomVert) = null;
+		var next = start;
+		do {
+			mix_circular(PR(GeomVert),
+				poly = push_after(poly, PR(GeomVert).get(next.x,next.y));
+				poly.forced = next.forced;
+			)
+			if(!next.diagonals.empty()) {
+				var diag = next.diagonals.pop_unsafe();
+				if(diag==start)
+					break;
+				else
+					next = make_polygon(next,rets);
+			}else {
+				var n = next.next;
+				Free(Vertex,next);
+				next = n;
+			}
+		}while(next!=start);
+
+		assert(PR(Monotone).isMonotone(poly), "output poly is not monotone :(");
+		assert(geom(clockwise(poly)),"out poly is not convex-monotone :(");
+		rets.add(poly);
+
+		return next;
+	}
+})
+
+class Vertex {
+	MixPool(Vertex)
+	flibmdel public inline function free () {
+		assert(diagonals.empty(),"diagonals non empty, free PartVertex");
+		helper = null;
+		prev = null;
+		DEBUG(vec_set(this.,0,0);)
+		node = null;
+		forced = false;
+	}
+	flibmdel public inline function alloc() {}
+
+	public static inline function get(x:PR(GeomVert)) {
+		var ret = Get(Vertex);
+		vec_set(ret.,x.);
+		return ret;
+	}
+
+	vec_new(public, $(->));
+
+	//used so we can use this in the Circulator mixins
+	public var prev:Vertex;
+
+	//used for PartitionPoly
+	public var diagonals:List(Vertex);
+
+	//used for propogation of field to out GeomVerts
+	public var forced:Bool;
+
+	public function new() {
+		diagonals = new List(Vertex)();
+	}
+
+	flibmdel public inline function insert_diagonal(x:Vertex) {
+		diagonals.add(x);
+	}
+	flibmdel public inline function sort_diagonals() {
+		vec_new(u); vec_new(v);
+		$(mixin orient(a,b,c) ({
+			vec_sub(a.,b.,u);
+			vec_sub(c.,b.,v);
+			var ret = vec_cross(u,v);
+			ret < 0 ? -1 : 1;
+		}));
+
+		var vorient = orient(prev,this,next);
+		Sort(diagonals,Node(Vertex),$(mixin lt(p,q) ({
+			var d1 = orient(prev,this,p);
+			var d2 = orient(prev,this,q);
+			if  (d1==d2) orient(p,this,q) == -1;
+			elif(d1==0)  d2 == vorient;
+			else         d1 != vorient;
+		})) lt);
+	}
+
+	//-------------------------------------------------------------
+	//=============================================================
+	// used by Monotone decompositions.
+
+	public var helper:Vertex;
+	public var type:Int;
+
+	//is q to the left of v?
+	public static function vert_lt(q:Edge,v:Vertex) {
+		if(v==q || v==q.next) return true;
+
+		var min:Vertex; var max:Vertex;
+		if(q.x < q.next.x) { min = q; max = q.next; }
+		else               { min = q.next; max = q; }
+
+		if(min.y==max.y) return min.x <= v.x;
+		else {
+			//assume edge not horizontal
+			var flip = q.next.y > q.y;
+			vec_new(u); vec_sub(q.next.,q., u);
+			vec_new(v); vec_sub(v.,q.,v);
+			return (flip ? vec_cross(v,u) : vec_cross(u,v)) <= 0;
+		}
+	}
+
+	//used by RBTree Set
+	//Note: this = Edge
+	//
+	//returns true if 'this' edge should be placed to the right graphically of 'q'
+	public var node:Set(Edge);
+	public static function edge_swap(p:Edge,q:Edge) swap(p.node,q.node)
+	public static function edge_lt(p:Edge,q:Edge) {
+		vec_new(u); vec_new(v);
+		var flip:Bool;
+		$(mixin comp_x_at_y(vertex,edge) ({
+			//assume edge not horizontal
+			flip = edge.next.y > edge.y;
+			vec_sub(edge.next.,edge., u);
+			vec_sub(vertex.,edge.,v);
+			flip ? vec_cross(v,u) : vec_cross(u,v);
+		}));
+		$(mixin lrg_x_vertex_y(edge,vertex) ({
+			if(edge.y==edge.next.y) {
+				if(edge.x < edge.next.x)
+					 edge.x > vertex.x;
+				else edge.next.x > vertex.x;
+			}else
+				comp_x_at_y(vertex,edge) < 0;
+		}));
+
+		if  (p==q && p.next==q.next) { assert(false,"Same edge inserted to tree??"); return false; }
+		elif(p==q.next) return  lrg_x_vertex_y(p,q);
+		elif(p.next==q) return !lrg_x_vertex_y(q,p);
+		elif(p==q)      return  { assert(false,"This should never happen in a polygon(1)"); lrg_x_vertex_y(p,q.next); }
+		elif(p.next==q.next) return  { assert(false,"this should never happen in a polygon(2)"); lrg_x_vertex_y(p,q); }
+		//neither endpoint shared
+		elif(p.y==p.next.y) {
+			if(q.y==q.next.y) {
+				var pmax = if(p.x < p.next.x) p.next else p;
+				var qmax = if(q.x < q.next.x) q.next else q;
+				return pmax.x > qmax.x;
+			}else
+				return comp_x_at_y(p,q) > 0;
+		}else {
+			var qlrgv = comp_x_at_y(q,p);
+			var  qlrg = qlrgv < 0;
+			var aqlrg = comp_x_at_y(q.next,p) < 0;
+			if  (qlrg==aqlrg) return qlrg;
+			elif(q.y==q.next.y)
+				 return qlrgv > 0;
+			else return comp_x_at_y(p,q) >= 0;
+		}
+	}
+
+
+}
+
+
