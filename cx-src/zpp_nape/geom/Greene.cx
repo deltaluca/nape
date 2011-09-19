@@ -12,8 +12,8 @@ $(import);
 
 **/
 
-$(mixin Vertex() PR(GeomVert));
-$(mixin Polygon() Vertex);
+$(mixin Vertex() PR(PartitionVertex));
+$(mixin Polygon() PR(GeomVert));
 
 mix_circular(Vertex,
 
@@ -101,7 +101,7 @@ class PR(Greene) {
 		#end
 	});
 
-	public static inline function visible(polygon:Polygon, new_point_ref:Vertex, stack:PR(Chain), bottom:PR(Chain), top:PR(Chain), rets:List(Polygon)) {
+	public static inline function visible(polygon:PR(PartitionVertex), new_point_ref:Vertex, stack:PR(Chain), bottom:PR(Chain), top:PR(Chain), rets:List(Polygon)) {
 		if((bottom.cw && right_turn(stack.back, stack.before_back(), new_point_ref))
 		|| (!bottom.cw && left_turn(stack.back, stack.before_back(), new_point_ref))) {
 			var done = false;
@@ -113,7 +113,7 @@ class PR(Greene) {
 				stack.pop_back();
 				if(bottom.cw) {
 					for_iter(i, bottom.front,stack.before_back(), {
-						npoly = push_after(npoly,Vertex.get(i.x,i.y));
+						npoly = push_after(npoly,PR(GeomVert).get(i.x,i.y));
 						//propagate forced property for simplification
 						npoly.forced = i.forced;
 					});
@@ -121,7 +121,7 @@ class PR(Greene) {
 					polygon = stack.back;
 				}else {
 					for_iter(i, stack.back,bottom.after_front(), {
-						npoly = push_after(npoly,Vertex.get(i.x,i.y));
+						npoly = push_after(npoly,PR(GeomVert).get(i.x,i.y));
 						//propagate forced property for simplification
 						npoly.forced = i.forced;
 					});
@@ -165,7 +165,7 @@ class PR(Greene) {
 		return polygon;
 	}
 
-	public static inline function change_top_chain(polygon:Polygon, new_point_ref:Vertex, stack:PR(Chain),top:PR(Chain), rets:List(Polygon)) {
+	public static inline function change_top_chain(polygon:PR(PartitionVertex), new_point_ref:Vertex, stack:PR(Chain),top:PR(Chain), rets:List(Polygon)) {
 		var next_point_ref = if(top.cw) new_point_ref.prev else new_point_ref.next;
 
 		if((!top.cw && !right_turn(top.front,new_point_ref,next_point_ref))
@@ -183,7 +183,7 @@ class PR(Greene) {
 				var npoly:Polygon = null;
 				if(!top.cw) {
 					for_iter(v, stack.front,next_point_ref, {
-						npoly = push_after(npoly,Vertex.get(v.x,v.y));
+						npoly = push_after(npoly,PR(GeomVert).get(v.x,v.y));
 						//propagate forced property for simplification
 						npoly.forced = v.forced;
 					});
@@ -191,7 +191,7 @@ class PR(Greene) {
 					polygon = new_point_ref;
 				}else {
 					for_iter(v, new_point_ref, stack.before_front(), {
-						npoly = push_after(npoly,Vertex.get(v.x,v.y));
+						npoly = push_after(npoly,PR(GeomVert).get(v.x,v.y));
 						//propagate forced property for simplification
 						npoly.forced = v.forced;
 					});
@@ -234,7 +234,7 @@ class PR(Greene) {
 		return polygon;
 	}
 
-	public static inline function change_bottom_chain(polygon:Polygon, new_point_ref:Vertex, stack:PR(Chain), bottom:PR(Chain), top:PR(Chain), rets:List(Polygon)) {
+	public static inline function change_bottom_chain(polygon:PR(PartitionVertex), new_point_ref:Vertex, stack:PR(Chain), bottom:PR(Chain), top:PR(Chain), rets:List(Polygon)) {
 		var next_point_ref = if(bottom.cw) new_point_ref.prev else new_point_ref.next;
 
 		if((bottom.cw && !left_turn(bottom.front,new_point_ref,next_point_ref))
@@ -248,7 +248,7 @@ class PR(Greene) {
 				stack.pop_back();
 				if(bottom.cw) {
 					for_iter(v, new_point_ref, stack.before_back(), {
-						npoly = push_after(npoly,Vertex.get(v.x,v.y));
+						npoly = push_after(npoly,PR(GeomVert).get(v.x,v.y));
 						//propagate forced property for simplification
 						npoly.forced = v.forced;
 					});
@@ -256,7 +256,7 @@ class PR(Greene) {
 					polygon = stack.back;
 				}else {
 					for_iter(v, stack.back,next_point_ref, {
-						npoly = push_after(npoly,Vertex.get(v.x,v.y));
+						npoly = push_after(npoly,PR(GeomVert).get(v.x,v.y));
 						//propagate forced property for simplification
 						npoly.forced = v.forced;
 					});
@@ -294,7 +294,7 @@ class PR(Greene) {
 		return polygon;
 	}
 
-	public static inline function stack_extend(polygon:Polygon, point_ref:Vertex, stack:PR(Chain), top:PR(Chain), rets:List(Polygon)) {
+	public static inline function stack_extend(polygon:PR(PartitionVertex), point_ref:Vertex, stack:PR(Chain), top:PR(Chain), rets:List(Polygon)) {
 		if((!stack.cw && right_turn(stack.before_front(), stack.front, point_ref))
 		|| ( stack.cw &&  left_turn(stack.before_front(), stack.front, point_ref))) {
 			stack.push_front(point_ref);
@@ -304,7 +304,7 @@ class PR(Greene) {
 		return polygon;
 	}
 
-	public static inline function make_polygons_from_stack(polygon:Polygon, high_point_ref:Vertex, stack:PR(Chain), bottom:PR(Chain), rets:List(Polygon)) {
+	public static inline function make_polygons_from_stack(polygon:PR(PartitionVertex), high_point_ref:Vertex, stack:PR(Chain), bottom:PR(Chain), rets:List(Polygon)) {
 		var next_point_ref = high_point_ref;
 		if(!bottom.cw) next_point_ref = next_point_ref.next;
 
@@ -313,7 +313,7 @@ class PR(Greene) {
 			var npoly:Polygon = null;
 			if(bottom.cw) {
 				for_iter(v, high_point_ref, stack.before_back(), {
-					npoly = push_after(npoly,Vertex.get(v.x,v.y));
+					npoly = push_after(npoly,PR(GeomVert).get(v.x,v.y));
 					//propagate forced property for simplification
 					npoly.forced = v.forced;
 				});
@@ -323,7 +323,7 @@ class PR(Greene) {
 				polygon = stack.back;
 			}else {
 				for_iter(v, stack.back, next_point_ref, {
-					npoly = push_after(npoly,Vertex.get(v.x,v.y));
+					npoly = push_after(npoly,PR(GeomVert).get(v.x,v.y));
 					//propagate forced property for simplification
 					npoly.forced = v.forced;
 				});
@@ -344,7 +344,7 @@ class PR(Greene) {
 
 		var npoly:Polygon = null;
 		for_iter(v, polygon, {
-			npoly = push_after(npoly,Vertex.get(v.x,v.y));
+			npoly = push_after(npoly,PR(GeomVert).get(v.x,v.y));
 			//propagate forced property for simplification
 			npoly.forced = v.forced;
 		});
@@ -355,7 +355,7 @@ class PR(Greene) {
 		}
 	}
 
-	public static inline function find_smallest_yx(polygon:Polygon) {
+	public static inline function find_smallest_yx(polygon:PR(PartitionVertex)) {
 		var current = polygon.next;
 		//abuse monotonicity of polygon to shortern search.
 		if(less_yx(current,polygon)) {
@@ -397,7 +397,7 @@ class PR(Greene) {
 		}
 	});
 
-	public static function ga_convex_decomposition(polygon:Polygon, rets:List(Polygon)) {
+	public static function ga_convex_decomposition(polygon:PR(PartitionVertex), rets:List(Polygon)) {
 		var point_ref = find_smallest_yx(polygon);
 		var circ = point_ref;
 
@@ -449,7 +449,7 @@ class PR(Greene) {
 		var MPs = PR(Monotone).decompose(P);
 		var rets = new List(Polygon)();
 		ClearWith(MP,MPs,{
-			ga_convex_decomposition(MP,rets);
+			ga_convex_decomposition((new PR(PartitionPoly)(MP)).vertices,rets);
 		});
 
 		#if NAPE_ASSERT
