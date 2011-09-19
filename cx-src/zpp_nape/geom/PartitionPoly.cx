@@ -20,7 +20,18 @@ mix_circular(Vertex,
 class PR(PartitionPoly) {
 	public var vertices:Vertex;
 
-	public function new(P:PR(GeomVert)) {
+	//used by convex decomposition
+	public function linked() {
+		var ret = new PR(PartitionPoly)();
+		for_iter(v, vertices, {
+			ret.vertices = push_after(ret.vertices, v.linked());
+		});
+		return ret;
+	}
+
+	public function new(P:PR(GeomVert)=null) {
+		if(P==null) return;
+
 		var p = P;
 		var cw = geom(clockwise(P));
 		do {
@@ -28,30 +39,33 @@ class PR(PartitionPoly) {
 			vec_new(v); vec_sub(p.next.,p.,v);
 			if(vec_cross(u,v)!=0.0 || vec_dot(u,v)<0) {
 				vertices = if(cw)
-					push_after(vertices,Vertex.get(p));
+					push_after(vertices,Vertex.get(p.x,p.y));
 				else
-					push_before(vertices,Vertex.get(p));
+					push_before(vertices,Vertex.get(p.x,p.y));
 				//propogation away
 				vertices.forced = p.forced;
 			}
 			p = p.next;
 		}while(p!=P);
 	}
-	
+
 	flibmdel public inline function insert_diagonal(p:Vertex,q:Vertex) {
 		p.insert_diagonal(q);
 		q.insert_diagonal(p);
 		//add forced property for simpliciation
 		//for propagation to out GeomVert's
 		p.forced = q.forced = true;
+		DummyNapeMain.debug.drawLine(Vec2.get(p.x,p.y),Vec2.get(q.x,q.y),0xff0000);
 	}
 
-	public function partition() {
+	public function partition_to(rets:List(PR(GeomVert))) {
 		for_iter(c, vertices, c.sort_diagonals());
-
-		var rets = new List(PR(GeomVert))();
 		make_polygon(vertices, rets);
+	}
 
+	flibmdel public inline function partition() {
+		var rets = new List(PR(GeomVert))();
+		partition_to(rets);
 		return rets;
 	}
 
@@ -98,9 +112,16 @@ class Vertex {
 	}
 	flibmdel public inline function alloc() {}
 
-	public static inline function get(x:PR(GeomVert)) {
+	//used by convex decomposition
+	flibmdel public inline function linked() {
+		var ret = Vertex.get(x,y);
+		ret.link = this;
+		return ret;
+	}
+	
+	public static inline function get(x:Float,y:Float) {
 		var ret = Get(Vertex);
-		vec_set(ret.,x.);
+		vec_set(ret.,$(->));
 		return ret;
 	}
 
@@ -120,6 +141,7 @@ class Vertex {
 	}
 
 	flibmdel public inline function insert_diagonal(x:Vertex) {
+		assert(!diagonals.has(x),"diagonal already exists");
 		diagonals.add(x);
 	}
 	flibmdel public inline function sort_diagonals() {
@@ -140,6 +162,12 @@ class Vertex {
 			else         d1 != vorient;
 		})) lt);
 	}
+
+	//-------------------------------------------------------------
+	//=============================================================
+	// used by Convex decompositions.
+
+	public var link:Vertex;
 
 	//-------------------------------------------------------------
 	//=============================================================
