@@ -242,9 +242,9 @@ class DummyNapeMain {
 		border.space = space;
 
 //		var polys = MarchingSquares.run(f, new AABB(0,0,600,600), new Vec2(5,5), 10, true);
-		var polys = MarchingSquares.run(f, new AABB(0,0,600,600), new Vec2(10,10), 4, true);
+		var polys = MarchingSquares.run(f, new AABB(0,0,600,600), new Vec2(20,20), 2, true);
 		for(p in polys) {
-			var qs = p.simplify(0.5).convex_decomposition();
+			var qs = p.simplify(1).convex_decomposition();
 			var b = new Body();
 			for(q in qs) {
 				var s = q;
@@ -283,6 +283,13 @@ class DummyNapeMain {
 			mcon.active = false;
 		});
 
+	    var txt = new flash.text.TextField();
+	    txt.defaultTextFormat = new flash.text.TextFormat("Courier New",null,0);
+	    txt.width = txt.height = 600;
+	    txt.selectable = false;
+		txt.multiline = true;
+	    c.addChild(txt);
+
 		(new haxe.Timer(0)).run = function() {
 			debug.clear();
 
@@ -292,6 +299,14 @@ class DummyNapeMain {
 
 			debug.draw(space);
 			debug.flush();
+
+			txt.text = "";
+			#if NAPE_POOL_STATS
+				txt.text += PR(POOL_STATS).dump();
+			#end
+			#if NAPE_TIMES
+				txt.text += Debug.TIMES(space);
+			#end
 		}
 	}
 

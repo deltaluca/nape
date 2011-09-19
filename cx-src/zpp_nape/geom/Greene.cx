@@ -3,10 +3,11 @@ $(import);
 
 /**
 
-	Port of CGAL greene_approx_convex_partition_2 (www.cgal.org)
+	Partial port of CGAL greene_approx_convex_partition_2 (www.cgal.org)
 
 	I couldn't source it's reference for this algorithm to appreciate/understand it, so a direct port
-	was necessary.
+	was necessary. Modified since to use the monotone PartitionPoly so we can mark shared edges in
+	output with their vertices 'forced' to be included in any successive simplification.
 
 	INSERT LICENCE DUMP D: .... at some point
 
@@ -383,14 +384,13 @@ class PR(Greene) {
 		});
 
 		#if NAPE_ASSERT
-		/*
 			//don't use signed_area as P may have been reversed in monotone decomposition if it were CCW
 			var area = geom(area(P));
 			var retarea = 0.0;
 			Iter(p,rets,retarea += geom(signed_area(p)));
 			
 			var darea = retarea-area;
-			assert(darea*darea < PR(Const).EPSILON, "Greene output has different area?! area="+area+" retarea="+retarea);*/
+			assert(darea*darea < PR(Const).EPSILON, "Greene output has different area?! area="+area+" retarea="+retarea);
 		#end
 
 		return rets;
