@@ -34,6 +34,8 @@ class PR(PartitionPoly) {
 					push_after(vertices,Vertex.get(p));
 				else
 					push_before(vertices,Vertex.get(p));
+				//propogation away
+				vertices.forced = p.forced;
 			}
 			p = p.next;
 		}while(p!=P);
@@ -42,6 +44,9 @@ class PR(PartitionPoly) {
 	flibmdel public inline function insert_diagonal(p:Vertex,q:Vertex) {
 		p.insert_diagonal(q);
 		q.insert_diagonal(p);
+		//add forced property for simpliciation
+		//for propagation to out GeomVert's
+		p.forced = q.forced = true;
 	}
 
 	public function partition() {
@@ -61,6 +66,7 @@ class PR(PartitionPoly) {
 		do {
 			mix_circular(PR(GeomVert),
 				poly = push_after(poly, PR(GeomVert).get(next.x,next.y));
+				poly.forced = next.forced;
 			)
 			if(!next.diagonals.empty()) {
 				var diag = next.diagonals.pop_unsafe();
@@ -98,6 +104,7 @@ class Vertex {
 		prev = null;
 		DEBUG(vec_set(this.,0,0);)
 		node = null;
+		forced = false;
 	}
 	flibmdel public inline function alloc() {}
 
@@ -114,6 +121,9 @@ class Vertex {
 
 	//used for PartitionPoly
 	public var diagonals:List(Vertex);
+
+	//used for propogation of field to out GeomVerts
+	public var forced:Bool;
 
 	//used by Monotone
 	public var helper:Vertex;

@@ -112,11 +112,19 @@ class PR(Greene) {
 
 				stack.pop_back();
 				if(bottom.cw) {
-					for_iter(i, bottom.front,stack.before_back(), npoly = push_after(npoly,Vertex.get(i.x,i.y)));
+					for_iter(i, bottom.front,stack.before_back(), {
+						npoly = push_after(npoly,Vertex.get(i.x,i.y));
+						//propagate forced property for simplification
+						npoly.forced = i.forced;
+					});
 					erase(bottom.before_front(),stack.back);
 					polygon = stack.back;
 				}else {
-					for_iter(i, stack.back,bottom.after_front(), npoly = push_after(npoly,Vertex.get(i.x,i.y)));
+					for_iter(i, stack.back,bottom.after_front(), {
+						npoly = push_after(npoly,Vertex.get(i.x,i.y));
+						//propagate forced property for simplification
+						npoly.forced = i.forced;
+					});
 					erase(bottom.back,bottom.front);
 					polygon = bottom.front;
 				}
@@ -174,11 +182,19 @@ class PR(Greene) {
 			do {
 				var npoly:Polygon = null;
 				if(!top.cw) {
-					for_iter(v, stack.front,next_point_ref, npoly = push_after(npoly,Vertex.get(v.x,v.y)));
+					for_iter(v, stack.front,next_point_ref, {
+						npoly = push_after(npoly,Vertex.get(v.x,v.y));
+						//propagate forced property for simplification
+						npoly.forced = v.forced;
+					});
 					erase(old_top_ref, new_point_ref);
 					polygon = new_point_ref;
 				}else {
-					for_iter(v, new_point_ref, stack.before_front(), npoly = push_after(npoly,Vertex.get(v.x,v.y)));
+					for_iter(v, new_point_ref, stack.before_front(), {
+						npoly = push_after(npoly,Vertex.get(v.x,v.y));
+						//propagate forced property for simplification
+						npoly.forced = v.forced;
+					});
 					erase(top.front,stack.front);
 					top.push_front(stack.front);
 					polygon = stack.front;
@@ -231,11 +247,19 @@ class PR(Greene) {
 				var npoly:Polygon = null;
 				stack.pop_back();
 				if(bottom.cw) {
-					for_iter(v, new_point_ref, stack.before_back(), npoly = push_after(npoly,Vertex.get(v.x,v.y)));
+					for_iter(v, new_point_ref, stack.before_back(), {
+						npoly = push_after(npoly,Vertex.get(v.x,v.y));
+						//propagate forced property for simplification
+						npoly.forced = v.forced;
+					});
 					erase(bottom.front,stack.back);
 					polygon = stack.back;
 				}else {
-					for_iter(v, stack.back,next_point_ref, npoly = push_after(npoly,Vertex.get(v.x,v.y)));
+					for_iter(v, stack.back,next_point_ref, {
+						npoly = push_after(npoly,Vertex.get(v.x,v.y));
+						//propagate forced property for simplification
+						npoly.forced = v.forced;
+					});
 					erase(bottom.back,new_point_ref);
 					polygon = new_point_ref;
 				}
@@ -288,12 +312,20 @@ class PR(Greene) {
 		while(stack.front != stack.back) {
 			var npoly:Polygon = null;
 			if(bottom.cw) {
-				for_iter(v, high_point_ref, stack.before_back(), npoly = push_after(npoly,Vertex.get(v.x,v.y)));
+				for_iter(v, high_point_ref, stack.before_back(), {
+					npoly = push_after(npoly,Vertex.get(v.x,v.y));
+					//propagate forced property for simplification
+					npoly.forced = v.forced;
+				});
 				erase(bottom.front,stack.back);
 				bottom.initialise(stack.back);
 				polygon = stack.back;
 			}else {
-				for_iter(v, stack.back, next_point_ref, npoly = push_after(npoly,Vertex.get(v.x,v.y)));
+				for_iter(v, stack.back, next_point_ref, {
+					npoly = push_after(npoly,Vertex.get(v.x,v.y));
+					//propagate forced property for simplification
+					npoly.forced = v.forced;
+				});
 				erase(bottom.back, high_point_ref);
 				bottom.push_back(stack.back);
 				polygon = high_point_ref;
@@ -309,7 +341,11 @@ class PR(Greene) {
 		}
 
 		var npoly:Polygon = null;
-		for_iter(v, polygon, npoly = push_after(npoly,Vertex.get(v.x,v.y)));
+		for_iter(v, polygon, {
+			npoly = push_after(npoly,Vertex.get(v.x,v.y));
+			//propagate forced property for simplification
+			npoly.forced = v.forced;
+		});
 		if(!geom(degenerate(npoly))) {
 			check_polygon(npoly);
 			rets.add(npoly);
