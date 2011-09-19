@@ -3,6 +3,9 @@ $(import);
 
 $(mixin Vertex() PR(SimpleVert));
 class Vertex {
+	//forced property to propagate to GeomVert
+	public var forced:Bool;
+
 	vec_new(public,$(->));
 	public var links:Set(Vertex);
 
@@ -16,6 +19,7 @@ class Vertex {
 		Free(Set(Vertex),links);
 		links = null;
 		node = null;
+		forced = false;
 	}
 	flibmdel public inline function alloc() {
 		links = Get(Set(Vertex));
@@ -445,6 +449,8 @@ class PR(Simple) {
 				}
 
 				if(pnull) int.node = vertices.insert(int);
+				//mark intersection as a forced vertex for simplifications.
+				int.forced = true;
 
 				//swap edges
 				if(pnull) {
@@ -511,6 +517,8 @@ class PR(Simple) {
 		});
 
 		mix_circular(PR(GeomVert), ret = push_after(ret, PR(GeomVert).get(cur.x,cur.y)));
+		//propagate forced property to GeomVert.
+		ret.forced = cur.forced;
 
 		while(true) {
 			//walk to nxt.
@@ -523,6 +531,9 @@ class PR(Simple) {
 			}
 
 			mix_circular(PR(GeomVert), ret = push_after(ret, PR(GeomVert).get(nxt.x,nxt.y)));
+			//propagate forced property to GeomVert
+			ret.forced = nxt.forced;
+
 			assert(!nxt.links.empty(),".. no where left to go?");
 			
 			if(nxt.links.singular()) {
@@ -558,9 +569,11 @@ class PR(Simple) {
 
 		assert(fst.links.empty(),"hmm, shouldn't have any left");
 		popvertex(fst);
-
-// isSimple is now powerful enough for this task.
-//		assert(isSimple(ret),"simple output not simple");
+		
+		//do not assert that isSimple is true
+		//as the output from simple decomosition
+		//are only guaranteed to be 'weakly' simple
+		//and isSimple checks for strict simplicity
 
 		rets.add(ret);
 	}
