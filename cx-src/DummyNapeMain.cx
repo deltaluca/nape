@@ -171,18 +171,19 @@ static function main() {
         Perlin3D.init_noise();
 
         var z = 0.0;
-        z = 1/30*0;
-        var iso = function(x:Float,y:Float) return Perlin3D.noise(x/40,y/30,z);
+        var bnd = 0.0;
+        var iso = function(x:Float,y:Float) return Perlin3D.noise(x/40,y/30,z)-bnd;
 
-        /*var */debug = new BitmapDebug(400,300,0xffffff);
+        /*var */debug = new ShapeDebug(400,300,0xffffff);
         root.addChild(debug.display);
 
         var bounds  = new AABB(0,0,400,300);
-        var cells   = new Vec2(5,5);
+        var cells   = new Vec2(10,10);
         var quality = 2;
 
         (new haxe.Timer(17)).run = function () {
             z += 1/30;
+            bnd = Math.sin(z)*0.5;
             debug.clear();
             var polys = MarchingSquares.run(iso, bounds, cells, quality, true);
             for(p in polys) {
@@ -190,7 +191,8 @@ static function main() {
 //                var p2 = p.simplify(1);
 //              if(!p.isDegenerate()) {
 //                debug.drawPolygon(p,
-                    var qs = p.convex_decomposition();
+                debug.drawPolygon(p,0xff0000);
+                    var qs = p.monotone_decomposition();
                      for(q in qs) debug.drawFilledPolygon(q,colour(q));
 //              }
                 debug.drawPolygon(p,0);

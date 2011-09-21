@@ -112,6 +112,7 @@ $(mixin global circular(T, defs, block)
 			node.next.prev = node.prev;
 			node.next = node.prev = null;
 			freer(node);
+			node = null;
 			retnodes;
 		}
 	});
@@ -122,13 +123,14 @@ $(mixin global circular(T, defs, block)
 		if(singular(node)) {
 			node.next = node.prev = null;
 			freer(node);
-			null;
+			node = null;
 		}else {
 			var retnodes = node.next;
 			node.prev.next = node.next;
 			node.next.prev = node.prev;
 			node.next = node.prev = null;
 			freer(node);
+			node = null;
 			retnodes;
 		}
 	});
@@ -138,6 +140,7 @@ $(mixin global circular(T, defs, block)
 		if(singular(node)) {
 			node.next = node.prev = null;
 			freer(node);
+			node = null;
 		} else {
 			node.prev.next = node.next;
 			node.next.prev = node.prev;
