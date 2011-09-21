@@ -33,14 +33,14 @@ class Span {
 
 class VPair {
 	//saddle points may generate 2 polygons.
-	// p1 will always combine left
+	// p1 may not always combine left (dangerous degenerate removals)
 	// p2 will always combine right
-	public var p1:Polygon; public var key1:Int;
-	public var p2:Polygon; public var key2:Int;
+	public var p1:Polygon; public var key1:Int; public var okey1:Int;
+	public var p2:Polygon; public var key2:Int; public var okey2:Int;
 
 	// right polygon (might not be combRight'able)
 	// pr = p2 if p2!=null else p1
-	public var pr:Polygon; public var keyr:Int;
+	public var pr:Polygon; public var keyr:Int; public var okeyr:Int;
 
 	// pointer to downlink (as connections get destroyed in LR comb)
 	public var pd:Polygon;
@@ -80,9 +80,9 @@ class PR(MarchingSquares) {
 		//somtimes inside, sometimes outside etc.
 		var isos:Array2<Float> = new Array2<Float>(xn+1,yn+1);
 		for(y in 0...yn+1) {
-			var yc = if(y<=yn) by0 + cell.y*y else by1;
+			var yc = if(y==0) by0 else if(y<=yn) by0 + cell.y*y else by1;
 			for(x in 0...xn+1) {
-				var xc = if(x<=xn) bx0 + cell.x*x else bx1;
+				var xc = if(x==0) bx0 else if(x<=xn) bx0 + cell.x*x else bx1;
 				isos.set(x,y,iso(xc,yc));
 			}
 		}
@@ -91,14 +91,18 @@ class PR(MarchingSquares) {
 		//and we can avoid recomputing them all the time.
 		var ints:Array2<Vertex> = new Array2<Vertex>(xn+1,(yn<<1)+1);
 
+		var py = by0;
 		for(y in 0...yn) {
-			var y0 = by0 + cell.y*y;
-			var y1 = if(y==yn-1) by1 else y0+cell.y;
+			var y0 = py;
+			var y1 = if(y==yn-1) by1 else by0+cell.y*(y+1);
+			py = y1;
 
+			var px = bx0;
 			var pre:VPair = null;
 			for(x in 0...xn) {
-				var x0 = bx0 + cell.x*x;
-				var x1 = if(x==xn-1) bx1 else x0+cell.x;
+				var x0 = px;
+				var x1 = if(x==xn-1) bx1 else bx0+cell.x*(x+1);
+				px = x1;
 
 				var fstx = x==0 || !combine;
 				var fsty = y==0 || !combine;
@@ -112,12 +116,13 @@ class PR(MarchingSquares) {
 					//determine which poly is down
 					//and store down link prematurely
 					//since links are destroyed in LR comb
-					var pd = if(pp.p2!=null && pp.key2!=14) pp.p2 else pp.p1;
-					pp.pd = linkdown(pd,pd==pp.p2 ? pp.key2 : pp.key1);
+					var pd = if(pp.p2!=null && pp.okey2!=14) pp.p2 else pp.p1;
+					pp.pd = linkdown(pd,pd==pp.p2 ? pp.okey2 : pp.okey1);
 
 					map.set(x,y, pp);
-					assert((pre!=null)==combLeft(pp.key1) || x==0, "left exists =/= can combine ");
-					if(pre!=null) {
+					//no longer a valid assertion due to removal of dangerously degenerate polys
+					//assert((pre!=null)==combLeft(pp.key1) || x==0, "left exists =/= can combine "+x+","+y);
+					if(pre!=null && combLeft(pp.key1)) {
 						assert(combRight(pre.keyr), "left poly cannot comb right?");
 						combLR(pre,pp);
 						pp.span1 = pre.spanr;
@@ -147,15 +152,20 @@ class PR(MarchingSquares) {
 				var b = map.get(x,y);
 				if(b==null) { pre = null; continue; }
 
-				var bkey = if(b.p2!=null && b.key2==0x0e) b.key2 else b.key1;
+				var bkey = if(b.p2!=null && b.okey2==0x0e) b.okey2 else b.okey1;
 				if(!combUp(bkey)) { pre = null; continue; }
 
 				var a = map.get(x,y-1);
-				assert(a!=null,"combine up, but no poly?");
+				//no longer a valid assertion due to removal of dangeriously degenerate polys.
+				//assert(a!=null,"combine up, but no poly?");
+				if(a==null) { pre = null; continue; }
+
+				var akey = if(a.p2!=null && a.okey2==0x38) a.okey2 else a.okey1;
+				if(!combDown(akey)) { pre = null; continue; }
 
 				//determine up/down spans on a,b
-				var ad = if(a.p2!=null && a.key2==0x38) a.span2 else a.span1;
-				var bu = if(b.p2!=null && b.key2==0x0e) b.span2 else b.span1;
+				var ad = if(a.p2!=null && a.okey2==0x38) a.span2 else a.span1;
+				var bu = if(b.p2!=null && b.okey2==0x0e) b.span2 else b.span1;
 
 				//cannot combine up as either scan line already combined
 				//or it would introduce a hole if not.
@@ -169,7 +179,7 @@ class PR(MarchingSquares) {
 					DSF(union(ad,bu));
 					combUD(a,b);
 				}
-				var key = if(bu==b.span2) b.key2 else b.key1;
+				var key = if(bu==b.span2) b.okey2 else b.okey1;
 				pre = if((key&4)!=0) bu else null;
 			}
 		}
@@ -205,36 +215,29 @@ class PR(MarchingSquares) {
 		var v = poly;
 		do {
 			var pre = v.prev;
-			if(pre.x==v.x && pre.y==v.y) {
-				if(singular(poly)) {
-					clear(poly);
-					return;
-				}
-				//if one of the vertices
-				//is not marked as 'forced'
-				//we should choose the other.
-				if(!pre.forced) {
-					if(pre==poly) poly = poly.prev;
-					pop(pre);
-				}else {
-					pre = v.next;
-					if(v==poly) poly = poly.prev;
-					pop(v);
-					v = pre;
-					continue;
-				}
+			if(pre == v) {
+				pop(v);
+				return;
 			}
-			v = v.next;
-		} while(v!=poly);
+			
+			if(pre.x==v.x && pre.y==v.y) {
+				var force = v.forced || pre.forced;
+				if(pre==poly) poly = poly.prev;
+				pop(pre);
+				v.forced = true;
+			}
 
-		//remove trivially redundant polys
-		if(v.next==v || v.next.next == v)
-			clear(v);	
-		else {
-			var gp = new GeomPoly();
-			gp.pr(inner).vertices = v;
-			ret.add(gp);
+			v = v.next;
+		}while(v!=poly);
+
+		if(geom(degenerate(poly))) {
+			clear(poly);
+			return;
 		}
+
+		var gp = new GeomPoly();
+		gp.pr(inner).vertices = poly;
+		ret.add(gp);
 	)}
 
 	// given a polygon from a VPair with it's key
@@ -379,8 +382,8 @@ class PR(MarchingSquares) {
 	                  
 	public static inline function combLR(a:VPair,b:VPair) {
 		//set up pointers for merge
-		var ap:Polygon = linkright(a.pr,a.keyr);
-		var bp:Polygon = linkleft (b.p1,b.key1);
+		var ap:Polygon = linkright(a.pr,a.okeyr);
+		var bp:Polygon = linkleft (b.p1,b.okey1);
 
 		// we now have ap==bp and ap.next == bp.prev (implicitly; not by reference)
 		// we now merge, discarding bp and bp.prev (trivial duplicates)
@@ -431,7 +434,7 @@ class PR(MarchingSquares) {
 
 		//set up pointers for merge
 		var ap:Polygon = a.pd; //already been calced as LR comb destroys links required
-		var bp:Polygon = linkup(bu,bu==b.p2 ? b.key2 : b.key1);
+		var bp:Polygon = linkup(bu,bu==b.p2 ? b.okey2 : b.okey1);
 
 		//skip back from ap to end of merge
 		//skip forward from bp to end of merge
@@ -467,10 +470,33 @@ class PR(MarchingSquares) {
 		ap.forced = bp.forced = ap2.forced = bp2.forced = true;
 	}
 
-	public static inline function combLeft (key:Int) return (key&0xC1)!=0
-	public static inline function combRight(key:Int) return (key&0x1C)!=0
-	public static inline function combUp   (key:Int) return (key&0x07)!=0
-	public static inline function combDown (key:Int) return (key&0x70)!=0
+	// can combLeft if mid-left exists, or both left-vertices exist
+	// similarly for others.
+	public static inline function combLeft (key:Int) {
+		var flag = (key&1)|((key&0xC0)>>5);
+		return comb(flag);
+	}
+	public static inline function combRight(key:Int) {
+		var flag = (key&0x1C)>>2;
+		return comb(flag);	
+	}
+	public static inline function combUp(key:Int) {
+		var flag = (key&0x07);
+		return comb(flag);	
+	}
+	public static inline function combDown(key:Int) {
+		var flag = (key&0x70)>>4;
+		return comb(flag);
+	}
+
+	public static inline function comb(flag:Int) {
+		var cnt = 0;
+		if((flag&1)!=0) cnt++;
+		if((flag&2)!=0) cnt++;
+		if((flag&4)!=0) cnt++;
+		return cnt>=2;
+		//return flag==5 || ((flag&2)!=0);	
+	}
 
 	// generate polygon for a single cell.
 	// we do 'NOT' remove degenerate edges for duplicated vertices
@@ -495,31 +521,57 @@ class PR(MarchingSquares) {
 			if(key!=10 && key!=5) {
 				var val = look_march[key];
 				poly(val,1);
-				setright(1);
+				if(val==0) ret = null;
+				else setright(1);
 			}else {
 				var mid = iso(0.5*(x0+x1),0.5*(y0+y1)) < 0;
 				if(key==10) {
 					if(mid) {
-						poly(0xBB,1);
-						setright(1);
+						var val = 0xBB;
+						poly(val,1);
+						if(val==0) ret = null;
+						else setright(1);
 					} else {
-						poly(0x83,1);
-						poly(0x38,2);
-						setright(2);
+						var val = 0x83;
+						poly(val,1);
+						if(val!=0) {
+							var val = 0x38;
+							poly(val,2);
+							if(val==0) setright(1);
+							else setright(2);
+						}else {
+							var val = 0x38;
+							poly(val,1);
+							if(val==0) ret = null;
+							else setright(1);
+						}
 					}
 				}else {
 					if(mid) {
-						poly(0xEE,1);
-						setright(1);
+						var val = 0xEE;
+						poly(val,1);
+						if(val==0) ret = null;
+						else setright(1);
 					} else {
-						poly(0xE0,1);
-						poly(0x0E,2);
-						setright(2);
+						var val = 0xE0;
+						poly(val,1);
+						if(val!=0) {
+							var val = 0x0E;
+							poly(val,2);
+							if(val==0) setright(1);
+							else setright(2);
+						}else {
+							var val = 0x0E;
+							poly(val,1);
+							if(val==0) ret = null;
+							else setright(1);
+						}
 					}
 				}
 			}
 			$(mixin setright(n) {
 				ret.pr = ret.p`n;
+				ret.okeyr = ret.okey`n;
 				ret.keyr = ret.key`n;
 			});
 			return ret;
@@ -527,6 +579,7 @@ class PR(MarchingSquares) {
 
 		$(mixin poly(val,out) {
 			mix_circular(Vertex,
+				ret.okey`out = val;
 				for(i in 0...8) {
 					if((val&(1<<i))!=0) {
 						var p:Vertex = null; 
@@ -540,25 +593,52 @@ class PR(MarchingSquares) {
 							if(p==null) { p = Vertex.get(xlerp(x0,x1,y0,v0,v1,iso,quality),y0); ints.set(xn,yn<<1,p); }
 							else p = Vertex.get(p.x,p.y);
 							if(fsty) p.forced = true;
+
+							//check degeneracy
+							if(p.x==x0 || p.x==x1) {
+								if((p.x==x0 && (val&1)!=0)
+								|| (p.x==x1 && (val&4)!=0))
+									val ^= 0x02;
+							}
 						}
 						elif(i==5) {
 							p = ints.get(xn,(yn<<1)+2);
 							if(p==null) { p = Vertex.get(xlerp(x0,x1,y1,v3,v2,iso,quality),y1); ints.set(xn,(yn<<1)+2,p); }
 							else p = Vertex.get(p.x,p.y);
 							if(sndy) p.forced = true;
-						}
 
+							//check degeneracy
+							if(p.x==x0 || p.x==x1) {
+								if((p.x==x0 && (val&0x40)!=0)
+								|| (p.x==x1 && (val&0x10)!=0))
+									val ^= 0x20;
+							}
+						}
 						elif(i==3) {
 							p = ints.get(xn+1,(yn<<1)+1);
 							if(p==null) { p = Vertex.get(x1,ylerp(y0,y1,x1,v1,v2,iso,quality)); ints.set(xn+1,(yn<<1)+1,p); }
 							else p = Vertex.get(p.x,p.y);
 							if(sndx) p.forced = true;
+
+							//check degeneracy
+							if(p.y==y0 || p.y==y1) {
+								if((p.y==y0 && (val&4)!=0)
+								|| (p.y==y1 && (val&0x10)!=0))
+									val ^= 0x08;
+							}
 						}
 						else {
 							p = ints.get(xn,(yn<<1)+1);
 							if(p==null) { p = Vertex.get(x0,ylerp(y0,y1,x0,v0,v3,iso,quality)); ints.set(xn,(yn<<1)+1,p); }
 							else p = Vertex.get(p.x,p.y);
 							if(fstx) p.forced = true;
+
+							//check degeneracy
+							if(p.y==y0 || p.y==y1) {
+								if((p.y==y0 && (val&1)!=0)
+								|| (p.y==y1 && (val&0x40)!=0))
+									val ^= 0x80;
+							}
 						};
 						ret.p`out = push_after(ret.p`out,p);
 					}
@@ -566,18 +646,35 @@ class PR(MarchingSquares) {
 				ret.p`out = ret.p`out.next;
 			)
 			ret.key`out = val;
+
+			//check for fully degenerate polys.
+			if(val==0x01 || val==0x04 || val==0x10 || val==0x40
+			|| val==0x03 || val==0x0c || val==0x30 || val==0xc0
+			|| val==0x81 || val==0x06 || val==0x18 || val==0x60
+			|| val==0x05 || val==0x14 || val==0x50 || val==0x41
+			|| val==0x11 || val==0x44) {
+				val = 0x00;
+				ret.key`out = 0;
+				ret.p`out = null;
+			}
 		});
 	}
 
 	public static inline function lerp(x0:Float,x1:Float,v0:Float,v1:Float) {
-		var dv = v0-v1;
-		var t = if(dv*dv<PR(Const).EPSILON) 0.5 else v0/dv;
-		return x0 + t*(x1-x0);
+		if  (v0==0) return x0;
+		elif(v1==0) return x1;
+		else {
+			var dv = v0-v1;
+			var t = if(dv*dv<PR(Const).EPSILON) 0.5 else v0/dv;
+			if(t<0) t = 0; elif(t>1) t = 1;
+			return x0 + t*(x1-x0);
+		}
 	}
 	public static inline function xlerp(x0:Float,x1:Float,y:Float,v0:Float,v1:Float,iso:Float->Float->Float,quality:Int) {
 		var xm = lerp(x0,x1,v0,v1);
-		while(quality--!=0) {
+		while(quality--!=0 && x0<xm && xm<x1) {
 			var vm = iso(xm,y);
+			if(vm==0) break;
 			if(v0*vm<0) { x1 = xm; v1 = vm; }
 			else        { x0 = xm; v0 = vm; }
 			xm = lerp(x0,x1,v0,v1);
@@ -586,8 +683,9 @@ class PR(MarchingSquares) {
 	}
 	public static function ylerp(y0:Float,y1:Float,x:Float,v0:Float,v1:Float,iso:Float->Float->Float,quality:Int) {
 		var ym = lerp(y0,y1,v0,v1);
-		while(quality--!=0) {
+		while(quality--!=0 && y0<ym && ym<y1) {
 			var vm = iso(x,ym);
+			if(vm==0) break;
 			if(v0*vm<0) { y1 = ym; v1 = vm; }
 			else        { y0 = ym; v0 = vm; }
 			ym = lerp(y0,y1,v0,v1);
