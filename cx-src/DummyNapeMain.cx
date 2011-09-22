@@ -178,22 +178,23 @@ static function main() {
         root.addChild(debug.display);
 
         var bounds  = new AABB(0,0,400,300);
-        var cells   = new Vec2(10,10);
+        var cells   = new Vec2(5,5);
+        var grid    = new Vec2(100,100);
         var quality = 2;
 
         (new haxe.Timer(17)).run = function () {
             z += 1/30;
-            bnd = Math.sin(z)*0.5;
+            bnd = Math.sin(z*0.3)*0.35;
             debug.clear();
-            var polys = MarchingSquares.run(iso, bounds, cells, quality, true);
+            var polys = MarchingSquares.run(iso, bounds, cells, quality, grid);
             for(p in polys) {
 //                debug.drawFilledPolygon(p,colour(p));
 //                var p2 = p.simplify(1);
-//              if(!p.isDegenerate()) {
+//              if(!p2.isDegenerate()) {
 //                debug.drawPolygon(p,
                 debug.drawPolygon(p,0xff0000);
-                    var qs = p.monotone_decomposition();
-                     for(q in qs) debug.drawFilledPolygon(q,colour(q));
+                    var qs = p.convex_decomposition();
+                     for(q in qs) debug.drawFilledPolygon(q.simplify(4),colour(q));
 //              }
                 debug.drawPolygon(p,0);
             }
@@ -204,7 +205,7 @@ static function main() {
 
     static inline function colour(p:GeomPoly) {
         //hue
-        var h = p.area()/1000*360; while(h>360) h -= 360;
+        var h = p.area()/3000*360; while(h>360) h -= 360;
         var f = (h%60)/60;
 
         var r:Float, g:Float, b:Float;
