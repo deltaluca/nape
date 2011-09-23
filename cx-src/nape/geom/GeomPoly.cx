@@ -259,5 +259,43 @@ class GeomPoly {
 			}
 		#end
 	}
+
+	public function bounds() {
+		DEBUG(if(empty()) throw "Error: empty GeomPoly has no defineable bounds";)
+		vec_new(min, PR(Const).FMAX, PR(Const).FMAX);
+		vec_new(max,-PR(Const).FMAX,-PR(Const).FMAX);
+		for_iter(v, verts, {
+			if(v.x < minx) minx = v.x;
+			if(v.y < miny) miny = v.y;
+			if(v.x > maxx) maxx = v.x;
+			if(v.y > maxy) maxy = v.y;
+		});
+		return new AABB(minx,miny,maxx-minx,maxy-miny);
+	}
+
+	public function top() {
+		DEBUG(if(empty()) throw "Error: empty GeomPoly has no defineable topmost vertex";)
+		var min = verts;
+		Iter(v, verts.next, verts, if(v.y<min.y) min = v);
+		return min.wrapper();
+	}
+	public function bottom() {
+		DEBUG(if(empty()) throw "Error: empty GeomPoly has no defineable bottommost vertex";)
+		var max = verts;
+		Iter(v, verts.next, verts, if(v.y>max.y) max = v);
+		return max.wrapper();
+	}
+	public function left() {
+		DEBUG(if(empty()) throw "Error: empty GeomPoly has no defineable leftmost vertex";)
+		var min = verts;
+		Iter(v, verts.next, verts, if(v.x<min.x) min = v);
+		return min.wrapper();
+	}
+	public function right() {
+		DEBUG(if(empty()) throw "Error: empty GeomPoly has no defineable rightmmost vertex";)
+		var max = verts;
+		Iter(v, verts.next, verts, if(v.x>max.x) max = v);
+		return max.wrapper();
+	}
 }
 )
