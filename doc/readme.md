@@ -19,6 +19,7 @@ Everything from index page, to 404 is described in the .xml as follows below.
 Wherever free inclusion of tags is shown, the following tags are defined for content:
 
 +	code
+
 ```xml
 <code [inline="true"]> <!-- plain-text code --></code>
 ```
