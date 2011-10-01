@@ -1,13 +1,19 @@
 #!/bin/bash
 
-FILES=`find . -type f -name "*."$1`
+function count() {
 
-COUNT=0
+	FILES=`find . -type f -name "*."$1`
+	COUNT=0
 
-for file in $FILES
-do
-    line=`wc -l $file | grep -o '^[ \\t]*[0-9][0-9]*'`
-    COUNT=$((COUNT+line))
-done
+	for file in $FILES
+	do
+	    line=`wc -l $file | grep -o '^[ \\t]*[0-9][0-9]*'`
+	    COUNT=$((COUNT+line))
+	done
 
-echo $COUNT
+	echo $1" source = "$COUNT" lines"
+
+}
+
+count cx
+count hx
