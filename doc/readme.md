@@ -68,8 +68,8 @@ With the description appearing as the first thing on the page before tables of e
 		<detail>
 			<description>
 				<!-- Description to appear at method info -->
-				[<throws> <!-- Error condition --> </throws>]*
 			</description>
+			[<throws> <!-- Error condition --> </throws>]*
 		</detail>
 	</constructor>]
 
@@ -81,8 +81,8 @@ With the description appearing as the first thing on the page before tables of e
 		<detail>
 			<description>
 				<!-- Description to appear at method info -->
-				[<throws> <!-- Error condition --> </throws>]*
 			</description>
+			[<throws> <!-- Error condition --> </throws>]*
 		</detail>
 	</method>]*
 
@@ -96,13 +96,62 @@ With the description appearing as the first thing on the page before tables of e
 		<detail>
 			<description>
 				<!-- Description to appear at property info -->
-				[<get> <!-- Error condition on getter --> </get>]*
-				[<set> <!-- Error condition on setter --> </set>]*
 			</description>
+			[<get> <!-- Error condition on getter --> </get>]*
+			[<set> <!-- Error condition on setter --> </set>]*
 		</detail>
 	</property>]*
 
 	<!-- Also; to add space between properties in relevant table -->
 	[<property [static="true"]/>]*
 </class>
+```
+
+# Example page
+
+the package is normally just "" to denote an example to be placed at the index of the documentation, but can be set to a specific package to be listed on that packages page instead if it is a very specific example rather than a 'this is what nape can do' example or something :P
+
+The name 'swf' for the xml tag is a bit of a misnomer since no actual .swf needs be included.
+
+```xml
+<swf name="title" package="full.package.name">
+	<short>
+		<!-- Short description for listings -->
+	</short>
+	<long>
+		<!-- Contents of example including .swf and code segments -->
+	</long>
+</swf>
+```
+
+# Tutorial page
+
+As above in relation to package.
+
+No tutorials yet exist for new nape as of writing this.
+
+```xml
+<tutorial name="title" package="full.package.name">
+	<short>
+		<!-- Short description for listings -->
+	</short>
+	<long>
+		<!-- Contents of tutorial -->
+	</long>
+</tutorial>
+```
+
+# Documentation page
+
+For descriptive documentation. No such documentation exists as of writing for new nape yet.
+
+```xml
+<doc name="title" package="full.package.name">
+	<short>
+		<!-- Short description for listings -->
+	</short>
+	<long>
+		<!-- Contents of documentation page -->
+	</long>
+</doc>
 ```
