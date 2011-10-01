@@ -77,12 +77,13 @@ With current classes available being:
 ```
 
 Where type is:
-    * class - for a class link, with href=class-name and anchor allowed
-    * package - for a package link, with href=package-name and anchor allowed
-    * outside - for a link to an outside page not in the docs with href=target
-    * relative - for a link to an anchor in current page with anchor required
-    * swf - for a link to a demo page with href=demo-name and anchor allowed
-    * tutorial - for a tutorial page with href=tutorial-name and anchor allowed
+
+     * class - for a class link, with href=class-name and anchor allowed
+     * package - for a package link, with href=package-name and anchor allowed
+     * outside - for a link to an outside page not in the docs with href=target
+     * relative - for a link to an anchor in current page with anchor required
+     * swf - for a link to a demo page with href=demo-name and anchor allowed
+     * tutorial - for a tutorial page with href=tutorial-name and anchor allowed
 
 +	code
 
