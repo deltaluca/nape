@@ -14,9 +14,17 @@ The generator is written with caxe and compiles to both neko and the current tar
 
 Probably the best way to see how the .xml is formatted if you are contributing to the documentation is to the view the existing .xml though this might be slightly dangerous as deprecated elements may/do exist in the .xml which are now ignored :P So I list them here also.
 
-Everything from index page, to 404 is described in the .xml as follows:
+Everything from index page, to 404 is described in the .xml as follows below.
 
-# 404 Page
+Wherever free inclusion of tags is shown, the following tags are defined for content:
+
++	code
+```xml
+<code [inline="true"]> <!-- plain-text code --></code>
+```
+Normally, non-inlined multiline code would be wrapped in a `<![CDATA[...]]>` block to keep whitespace and newlines
+
+## 404 Page
 
 ```xml
 <e404>
@@ -24,7 +32,7 @@ Everything from index page, to 404 is described in the .xml as follows:
 </e404>
 ```
 
-# Index page
+## Index page
 
 ```xml
 <index>
@@ -34,7 +42,7 @@ Everything from index page, to 404 is described in the .xml as follows:
 
 With the description appearing as the first thing on the page before tables of examples, tutorials, documentation and API pages.
 
-# API package page
+## API package page
 
 ```xml
 <package name="full.package.name">
@@ -48,7 +56,7 @@ With the description appearing as the first thing on the page before tables of e
 </package>
 ```
 
-# API class page
+## API class page
 
 ```xml
 <class package="full.package.name" name="classname" [super="superclass"]>
@@ -107,7 +115,7 @@ With the description appearing as the first thing on the page before tables of e
 </class>
 ```
 
-# Example page
+## Example page
 
 the package is normally just "" to denote an example to be placed at the index of the documentation, but can be set to a specific package to be listed on that packages page instead if it is a very specific example rather than a 'this is what nape can do' example or something :P
 
@@ -124,7 +132,7 @@ The name 'swf' for the xml tag is a bit of a misnomer since no actual .swf needs
 </swf>
 ```
 
-# Tutorial page
+## Tutorial page
 
 As above in relation to package.
 
@@ -141,7 +149,7 @@ No tutorials yet exist for new nape as of writing this.
 </tutorial>
 ```
 
-# Documentation page
+## Documentation page
 
 For descriptive documentation. No such documentation exists as of writing for new nape yet.
 
