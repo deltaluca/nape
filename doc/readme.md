@@ -61,7 +61,7 @@ With the description appearing as the first thing on the page before tables of e
 	</description>
 
 	[<constructor>
-		[<arg name="..." type="..." [const="true"] [optional="true" default="value"]/>]*
+		[<arg name="..." type="..." [const="true"] [optional="true" [default="value"]]/>]*
 		<description>
 			<!-- Description to appear in method listings -->
 		</description>
@@ -72,5 +72,37 @@ With the description appearing as the first thing on the page before tables of e
 			</description>
 		</detail>
 	</constructor>]
+
+	[<method name="..." [static="true"] [return="Type"] [const="true"]>
+		[<arg name="..." type="..." [const="true"] [optional="true" [default="value"]]/>]*
+		<description>
+			<!-- Description to appear in method listings -->
+		</description>
+		<detail>
+			<description>
+				<!-- Description to appear at method info -->
+				[<throws> <!-- Error condition --> </throws>]*
+			</description>
+		</detail>
+	</method>]*
+
+	<!-- Also; to add space between methods in relevant table -->
+	[<method [static="true"]/>]*
+
+	[<property name="..." type="..." [static="true"] [readonly="true"] [value="intial value"]>
+		<description>
+			<!-- Description to appear in property listings -->
+		</description>
+		<detail>
+			<description>
+				<!-- Description to appear at property info -->
+				[<get> <!-- Error condition on getter --> </get>]*
+				[<set> <!-- Error condition on setter --> </set>]*
+			</description>
+		</detail>
+	</property>]*
+
+	<!-- Also; to add space between properties in relevant table -->
+	[<property [static="true"]/>]*
 </class>
 ```
