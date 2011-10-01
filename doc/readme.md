@@ -23,3 +23,54 @@ Everything from index page, to 404 is described in the .xml as follows:
 	<!-- description -->
 </e404>
 ```
+
+# Index page
+
+```xml
+<index>
+	<!-- description -->
+</index>
+```
+
+With the description appearing as the first thing on the page before tables of examples, tutorials, documentation and API pages.
+
+# API package page
+
+```xml
+<package name="full.package.name">
+	<short>
+		<!-- Description to appear in parent package list/index -->
+	</short>
+
+	<description>
+		<!-- Description to appear on actual package page before sub-package + class listings -->
+	</description>
+</package>
+```
+
+# API class page
+
+```xml
+<class package="full.package.name" name="classname" [super="superclass"]>
+	<file> haXe file for imports </file>
+	<short>
+		<!-- Description to appear in class listing of package page -->
+	</short>
+	<description>
+		<!-- Descrpitiong to appear at top of actual class page before listings -->
+	</description>
+
+	[<constructor>
+		[<arg name="..." type="..." [const="true"] [optional="true" default="value"]/>]*
+		<description>
+			<!-- Description to appear in method listings -->
+		</description>
+		<detail>
+			<description>
+				<!-- Description to appear at method info -->
+				[<throws> <!-- Error condition --> </throws>]*
+			</description>
+		</detail>
+	</constructor>]
+</class>
+```
