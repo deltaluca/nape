@@ -61,7 +61,7 @@ With current classes available being:
 +	pure html
 
 ```xml
-<html> <!-- plain HTML, probably in a CDATA tag> </html>
+<html> <!-- plain HTML, probably in a CDATA tag--> </html>
 ```
 
 +	anchor
@@ -69,6 +69,20 @@ With current classes available being:
 ```xml
 <anch name="..."/>
 ```
+
++	link
+
+```xml
+<link type="..." href="..." anchor="..."/>
+```
+
+Where type is:
+    * class - for a class link, with href=class-name and anchor allowed
+    * package - for a package link, with href=package-name and anchor allowed
+    * outside - for a link to an outside page not in the docs with href=target
+    * relative - for a link to an anchor in current page with anchor required
+    * swf - for a link to a demo page with href=demo-name and anchor allowed
+    * tutorial - for a tutorial page with href=tutorial-name and anchor allowed
 
 +	code
 
@@ -93,6 +107,14 @@ Normally, non-inlined multiline code would be wrapped in a `<![CDATA[...]]>` blo
 With current .css classes being:
 
     * link - to put border around image as a link 
+
++	indentation
+
+```xml
+<indent>
+	<!-- moar tags -->
+</indent>
+```
 
 ## 404 Page
 
@@ -185,9 +207,9 @@ With the description appearing as the first thing on the page before tables of e
 </class>
 ```
 
-## Example page
+## Demo page.
 
-the package is normally just "" to denote an example to be placed at the index of the documentation, but can be set to a specific package to be listed on that packages page instead if it is a very specific example rather than a 'this is what nape can do' example or something :P
+the package is normally just "" to denote a demo to be placed at the index of the documentation, but can be set to a specific package to be listed on that packages page instead if it is a very specific demo rather than a 'this is what nape can do' demo or something :P
 
 The name 'swf' for the xml tag is a bit of a misnomer since no actual .swf needs be included.
 
