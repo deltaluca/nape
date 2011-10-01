@@ -2,7 +2,7 @@
 
 # Where to download
 
-Only source code is available here on github. To download pre-built nape you should visit my homepage, with new versions currently being uploaded by version to http://deltaluca.me.uk/napenew
+Only source code is available here on github. To download pre-built nape you should visit my homepage, with new versions currently being uploaded by version to http://deltaluca.me.uk/napenew with newest version and documentation at http://deltaluca.me.uk/docnew
 
 It may be the case that (possibly non) stable releases will be made here on github first which you can access via traversing to the file, and swapping /blob/ in the path to /raw/ instead.
 
