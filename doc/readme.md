@@ -16,6 +16,16 @@ Probably the best way to see how the .xml is formatted if you are contributing t
 
 Everything from index page, to 404 is described in the .xml as follows below.
 
+### Type names
+
+Type names are always given without package name, when a generic is required with angle brackets, square brackets are used instead in the xml like:
+
+```xml
+Array[Vec2]
+```
+
+### Description tags
+
 Wherever free inclusion of tags is shown, the following tags are defined for content:
 
 +	text
