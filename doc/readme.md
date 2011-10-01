@@ -18,12 +18,81 @@ Everything from index page, to 404 is described in the .xml as follows below.
 
 Wherever free inclusion of tags is shown, the following tags are defined for content:
 
++	text
+
+```xml
+<text [class=".css class"]> <!-- plain-text --> </text>
+```
+With current classes available being:
+
+    * bold
+    * italic
+    * small1
+    * header1
+    * header2
+    * header3
+    * header4
+    * header5 
+
++   line break
+
+```xml
+<br/>
+```
+
++	bullet point
+
+```xml
+<bullet/>
+```
+
++	tab
+
+```xml
+<tab/>
+```
+
++	horizontal rule
+
+```xml
+<hr/>
+```
+
++	pure html
+
+```xml
+<html> <!-- plain HTML, probably in a CDATA tag> </html>
+```
+
++	anchor
+
+```xml
+<anch name="..."/>
+```
+
 +	code
 
 ```xml
-<code [inline="true"]> <!-- plain-text code --></code>
+<code [inline="true"]> <!-- plain-text code --> </code>
+<code [inline="true"] file="relative-path"/>
 ```
 Normally, non-inlined multiline code would be wrapped in a `<![CDATA[...]]>` block to keep whitespace and newlines
+
++	swf
+
+```xml
+<swf [centre="true"] width="..." height="..." file="relative-path"/>
+```
+
++	image
+
+```xml
+<img [inline="true"] width="..." height="..." [class=".css class"] file="relative-path"/>
+```
+
+With current .css classes being:
+
+    * link - to put border around image as a link 
 
 ## 404 Page
 
