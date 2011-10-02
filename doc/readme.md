@@ -281,6 +281,8 @@ For descriptive documentation. No such documentation exists as of writing for ne
 
 ## Contributors page
 
+```xml
 <contrib>
 	<!-- Content -->
 </contrib>
+```
