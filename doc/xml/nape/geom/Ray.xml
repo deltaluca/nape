@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<data>
+	
+<class package="nape.geom" name="RayResultList" super="List[RayResult]">
+	<file>Ray.hx</file>
+	<description>Instance of List&lt;T&gt; for RayResult types</description>
+	<short>List of RayResults</short>
+	
+	<constructor>
+		<description>Construct new RayResultList</description>
+		<detail><description>Construct new RayResultList</description></detail>
+	</constructor>
+</class>
+
+<class package="nape.geom" name="RayResultIterator" super="ListIterator[RayResult]">
+	<file>Ray.hx</file>
+	<description>Instance of ListIterator&lt;T&gt; for RayResult types</description>
+	<short>Iterator to list of RayResults</short>
+</class>
+
+<class package="nape.geom" name="RayResult">
+	<file>Ray.hx</file>
+	<description>
+		<text>Struct for results of ray casting operations.</text>
+	</description>
+	<short>Ray cast results</short>
+	
+	<property name="distance" type="Float">
+		<description>Distance along ray of intersection</description>
+		<detail>
+			<description>The distance along ray for intersection point correlating to this RayResult object, to get actual intersection use ray.at(distance)</description>
+		</detail>
+	</property>
+	
+	<property name="normal" type="Vec2">
+		<description>Surface normal at intersection</description>
+		<detail>
+			<description>The surface normal of the intersection point, this will always be pointing against the direction of the ray.</description>
+		</detail>
+	</property>
+	
+	<property name="inner" type="Bool">
+		<description>Inner intersection flag</description>
+		<detail>
+			<description>If true, this ray result intersection corresponds to an internal intersection of the shape.</description>
+		</detail>
+	</property>
+	
+	<property name="shape" type="Shape">
+		<description>Intersected shape</description>
+		<detail>
+			<description>The intersected shape for this ray result intersection</description>
+		</detail>
+	</property>
+</class>
+
+<!-- ------------------------------------------------------------------------------------------- -->
+
+<class package="nape.geom" name="Ray">
+	<file>Ray.hx</file>
+	<description>
+		<text>2D Ray/Line-segment class.</text>
+	</description>
+	<short>
+		2D Ray/Line-segment class.
+	</short>
+	
+	<property name="origin" type="Vec2">
+		<description>ray origin</description>
+		<detail>
+			<description>
+				Start point of ray.
+			</description>
+		</detail>
+	</property>
+	<property name="direction" type="Vec2">
+		<description>ray direction</description>
+		<detail>
+			<description>
+				Ray direction.
+			</description>
+		</detail>
+	</property>
+	<property name="maxDistance" type="Float">
+		<description>maximum distance along ray for ray casts</description>
+		<detail>
+			<description>
+				maximum distance along ray to be allowed in ray cast intersections.
+			</description>
+		</detail>
+	</property>
+	
+	<constructor>
+		<arg name="origin" type="Vec2"/>
+		<arg name="direction" type="Vec2"/>
+		<description>
+			Construct a new ray.
+		</description>
+		<detail>
+			<description>
+				Construct a new ray from origin and direction.
+			</description>
+		</detail>
+	</constructor>
+	
+	<method name="fromSegment" static="true" return="Ray">
+		<arg name="start" type="Vec2" const="true" />
+		<arg name="end" type="Vec2" const="true" />
+		<description>
+			Construct ray from line segment.
+		</description>
+		<detail>
+			<description>
+				Construct a ray given a line segment start and end point. maxDistance will be set also.
+			</description>
+		</detail>
+	</method>
+	
+	<method name="copy" inline="true" return="Ray" const="true">
+		<description> Produce a copy of this ray. </description>
+		<detail>
+			<description>
+				<text>Produce a copy of this ray. </text>
+			</description>
+		</detail>
+	</method>
+	
+	<method name="at" return="Vec2" const="true">
+		<arg name="distance" type="Float"/>
+		<description>Return position along ray</description>
+		<detail>
+			<description>
+				<text>Return the position at given distance along ray</text>
+			</description>
+		</detail>
+	</method>
+</class>
+	
+</data>

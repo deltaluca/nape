@@ -1,0 +1,364 @@
+import neko.io.File;
+import Types;
+
+class Parse {
+	public static function parse(path:String, lib:XLib) {
+		var f = File.getContent(path);
+		var xml = Xml.parse(f).firstElement();
+		
+		for (child in xml.elements()) {
+			switch(child.nodeName) {
+				case "class":   parseClass  (child, lib);
+				case "example": parseExample(child, lib);
+				case "tutorial":parseExample(child, lib, true);
+				case "doc":     parseExample(child, lib, false,false,true);
+				case "swf":     parseExample(child, lib, false,true);
+				case "package": parsePackage(child, lib);
+				case "index":   lib.index = parseDescription(child);
+				case "contrib":   lib.contrib = parseDescription(child);
+				case "e404":    lib.e404 = parseDescription(child);
+				default: ptrace("parse::" + child.nodeName + " not recognised");
+			}
+		}
+	}
+	
+	//- - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	
+	private static function xdatum(x:Xml) {
+		var ret = "";
+		if (x == null) return ret;
+		for (child in x) 
+			ret += child.nodeValue;
+		return ret;
+	}
+	private static inline function xbool(x:String) {
+		return x == "true";
+	}
+	
+	//- - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	
+	private static function parseDescription(desc:Xml) {
+		var ret = new XDescription();
+		if (desc == null) return ret;
+		if (desc.elements() == null) return ret;
+		if (!desc.elements().hasNext()) {
+			var txt = new XText();
+			txt.html = xdatum(desc);
+			ret.desc.push(txt);
+			return ret;
+		}
+		
+		for (child in desc.elements()) {
+			switch(child.nodeName) {
+				case "anch": 
+					var anc = new XAnch();
+					for(attr in child.attributes()) {
+						var value = child.get(attr);
+						switch(attr) {
+							case "name": anc.name = value;
+						}
+					}
+					ret.desc.push(anc);
+				case "br": ret.desc.push(new XBr());
+				case "bullet": ret.desc.push(new XBullet());
+				case "tab": ret.desc.push(new XTab());
+				case "hr": ret.desc.push(new XHr());
+				case "html": ret.desc.push(new XHTML(xdatum(child)));
+				case "indent":
+					var ide = new XIndent();
+					ide.html = parseDescription(child);
+					ret.desc.push(ide);
+				case "text":
+					var txt = new XText();
+					for (attr in child.attributes()) {
+						var value = child.get(attr);
+						switch(attr) {
+							case "class": txt.size = value;
+						}
+					}
+					txt.html = xdatum(child);
+					ret.desc.push(txt);
+				case "code":
+					var txt = new XCode();
+					for(attr in child.attributes()) {
+						var value = child.get(attr);
+						switch(attr) {
+							case "file": txt.fref = value;
+							case "inline": txt.inlin = xbool(value);
+						}
+					}
+					if (txt.fref != null && txt.fref.length==0) {
+						var f = xdatum(child);
+						var i = 0;
+						while (i < f.length) {
+							if (f.charAt(i) == '\n') {
+								f = f.substr(0, i) + '<br>' + f.substr(i + 1);
+								i += 3;
+							}else i++;
+						}
+						txt.incode = f;
+					}
+					ret.desc.push(txt);
+				case "throw":
+					ret.desc.push(new XTHROW());
+				case "link":
+					var lin = new XLink();
+					for (attr in child.attributes()) {
+						var value = child.get(attr);
+						switch(attr) {
+							case "type":   lin.targ   = value;
+							case "href":   lin.href   = value;
+							case "anchor": lin.anchor = value;
+						}
+					}
+					lin.name = parseDescription(child);
+					ret.desc.push(lin);
+				case "swf":
+					var swf = new XSwf();
+					for (attr in child.attributes()) {
+						var value = child.get(attr);
+						switch(attr) {
+							case "centre": swf.centre = xbool(value);
+							case "file": swf.swf = value;
+							case "width": swf.width = value;
+							case "height": swf.height = value;
+						}
+					}
+					ret.desc.push(swf);
+				case "img":
+					var img = new XImg();
+					for (attr in child.attributes()) {
+						var value = child.get(attr);
+						switch(attr) {
+							case "inline": img.inlin = xbool(value);
+							case "file": img.img = value;
+							case "width": img.width = value;
+							case "height": img.height = value;
+							case "class": img.cls = value;
+						}
+					}
+					ret.desc.push(img);
+				default: ptrace("parseDescription::" + child.nodeName + " not recognised");
+			}
+		}
+		
+		return ret;
+	}
+	
+	//- - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	
+	private static function parsePackage(pck:Xml, lib:XLib) {
+		var ret = new XPackage();
+		for (attr in pck.attributes()) {
+			var value = pck.get(attr);
+			switch(attr) {
+				case "name": ret.name = value;
+				case "parent": ret._parent = value;
+				default: ptrace("parsePackage::" +attr +" not recognised");
+			}
+		}
+		for (child in pck.elements()) {
+			switch(child.nodeName) {
+				case "description":  ret.long  = parseDescription(child);
+				case "short": ret.short = parseDescription(child);
+				default: ptrace("parsePackage::" + child.nodeName +" not recognised");
+			}
+		}
+		lib.all_packages.push(ret);
+	}
+	
+	//- - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	
+	private static function parseExample(ex:Xml, lib:XLib, ?tut:Bool=false,?swf:Bool=false,?doc:Bool=false) {
+		var ret = new XExample();
+		for (attr in ex.attributes()) {
+			var value = ex.get(attr);
+			switch(attr) {
+				case "name": ret.name = value;
+				case "package": ret._pckg = value;
+				default: ptrace("parseExample::" + attr + " not recognised");
+			}
+		}
+		if (tut || swf || doc) {
+			for (child in ex.elements()) {
+				switch(child.nodeName) {
+					case "long": ret.desc = parseDescription(child);
+					case "short": ret.short = parseDescription(child);
+					default: ptrace("parseSwf/Tut::" + child.nodeName + " not recognised");
+				}
+			}
+		}else
+			ret.desc = parseDescription(ex);
+			
+		if (swf) lib.swfs.push(ret);
+		else if (tut) lib.tutorials.push(ret);
+		else if (doc) lib.docs.push(ret);
+		else     lib.examples.push(ret);
+	}
+	
+	private static function parseClsExample(ex:Xml) {
+		var ret = new XExample();
+		for (attr in ex.attributes()) {
+			var value = ex.get(attr);
+			switch(attr) {
+				case "name": ret.name = value;
+				default: ptrace("parseExample::" + attr + " not recognised");
+			}
+		}
+		ret.desc = parseDescription(ex);
+		return ret;
+	}
+	
+	//- - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	
+	private static function parseClass(cls:Xml, lib:XLib) {
+		var ret = new XClass();
+		for (attr in cls.attributes()) {
+			var value = cls.get(attr);
+			switch(attr) {
+				case "package": ret._pckg      = value;
+				case "name":    ret._name      = value;
+				case "super":   ret._supertype = value;
+				default: ptrace("parseClass::" + attr + " not recognised");
+			}
+		}
+		
+		for (child in cls.elements()) {
+			switch(child.nodeName) {
+				case "description":        ret.long   = parseDescription(child);
+				case "short":       ret.short  = parseDescription(child);
+				case "using":       ret._usings.push(xdatum(child));
+				case "implements":  ret._imples.push(xdatum(child));
+				case "seealso":     ret.seealso.push(parseDescription(child));
+				case "file":        ret.xfile = parseDescription(child);
+				case "example":     ret.examples.push(parseClsExample(child));
+				case "property": 
+					var prop = new XProperty();
+					var cons = false;
+					for (attr in child.attributes()) {
+						var value = child.get(attr);
+						switch(attr) {
+							case "name":     prop.name         = value;
+							case "type":     prop._type        = value;
+							case "static":   prop.is_static    = xbool(value);
+							case "inline":   /*prop.is_inline    = xbool(value);*/
+							case "value":    prop.static_value = value;
+							case "readonly": prop.readonly     = xbool(value);
+							case "const":    cons              = xbool(value);
+							default: ptrace("parseProperty::" + attr + " not recognised");
+						}
+					}
+					for (child in child.elements()) {
+						switch(child.nodeName) {
+							case "description":  prop.short  = parseDescription(child);
+							case "detail": prop.detail = parsePropDetail(child);
+							default: ptrace("parseProperty::" + child.nodeName + " not recognised");
+						}
+					}
+					if ((prop.is_static && prop.is_inline) || cons) ret.constants .push(prop);
+					else                                            ret.properties.push(prop);
+				case "constructor":
+					var cons = new XConstructor();
+					for (child in child.elements()) {
+						switch(child.nodeName) {
+							case "arg":     cons.args.push(parseArgument(child));
+							case "description":   cons.short = parseDescription(child);
+							case "detail":  cons.detail      = parseMethDetail(child);
+							default: ptrace("parseConstructor::" + child.nodeName + " not recognised");
+						}
+					}
+					cons.name = "new";
+					ret.constructor = cons;
+				case "method":
+					var meth = new XMethod();
+					for (attr in child.attributes()) {
+						var value = child.get(attr);
+						switch(attr) {
+							case "const":    meth.const = true;
+							case "name":     meth.name        = value;
+							case "return":   meth._return     = value;
+							case "static":   meth.is_static   = xbool(value);
+							case "inline":   /*meth.is_inline   = xbool(value);*/
+							case "abstract": meth.is_abstract = xbool(value);
+							default: ptrace("parseMethod::" + attr + " not recognised");
+						}
+					}
+					for (child in child.elements()) {
+						switch(child.nodeName) {
+							case "arg":      meth.args.push(parseArgument(child));
+							case "description":    meth.short = parseDescription(child);
+							case "detail":   meth.detail      = parseMethDetail(child);
+							default: ptrace("parseMethod::" + child.nodeName + " not recognised");
+						}
+					}
+					if      (meth.is_abstract) ret.abstracts.push(meth);
+					else if (meth.is_static)   ret.statics.push(meth);
+					else                       ret.methods.push(meth);
+				default:
+					ptrace("parseClass::" + child.nodeName + " not recognised");
+			}
+		}
+		
+		lib.all_classes.push(ret);
+	}
+	
+	//- - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	
+	private static function parseArgument(arg:Xml) {
+		var ret = new XArg();
+		for (attr in arg.attributes()) {
+			var value = arg.get(attr);
+			switch(attr) {
+				case "name":     ret.name          = value;
+				case "type":     ret._type         = value;
+				case "optional": ret.optional      = xbool(value);
+				case "default":  ret.default_value = value;
+				case "const":    ret.const = true;
+				default:
+					ptrace("parseArgument::" + attr + " not recognised");
+			}
+		}
+		return ret;
+	}
+
+	//- - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	
+	private static function parsePropDetail(det:Xml) {
+		var ret = new XPropDetail();
+		for (child in det.elements()) {
+			var type = child.nodeName;
+			switch(type) {
+				case "description":        ret.long = parseDescription(child);
+				case "seealso":     ret.seealso.push(parseDescription(child));
+				case "example":     ret._examples.push(xdatum(child));
+				case "get": ret.gets.push(parseDescription(child));
+				case "set": ret.sets.push(parseDescription(child));
+				default:
+					ptrace("parsePropDetail::" + type + " not recognised");
+			}
+		}
+		return ret;
+	}
+	
+	private static function parseMethDetail(det:Xml) {
+		var ret = new XMethDetail();
+		for (child in det.elements()) {
+			var type = child.nodeName;
+			switch(type) {
+				case "description":    ret.long = parseDescription(child);
+				case "return":  ret.return_desc = parseDescription(child);
+				case "seealso": ret.seealso.push(parseDescription(child));
+				case "example": ret._examples.push(xdatum(child));
+				case "param":   ret.params.push(parseDescription(child));
+				case "throws":  ret.throws.push(parseDescription(child));
+				default:
+					ptrace("parseMethDetail::" + type + " not recognised");
+			}
+		}
+		return ret;
+	}
+	
+	private static inline function ptrace(s:String) {
+		neko.Lib.print("ERROR!!\n   "+s + "\n\n");
+	}
+}

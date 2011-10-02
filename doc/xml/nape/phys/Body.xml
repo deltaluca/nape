@@ -1,0 +1,600 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<data>
+
+<class package="nape.phys" name="MassMode">
+	<file>Body.hx</file>
+	<short>Body mass modes</short>
+	<description>Mass modes signify how mass is calculated for a Body</description>
+	
+	<property static="true" name="DEFAULT" type="MassMode" readonly="true">
+		<description>Default mass mode</description>
+		<detail><description>Signifies the mass should be calculated based on materials/rigid body shapes</description></detail>
+	</property>
+	<property static="true" name="FIXED" type="MassMode" readonly="true">
+		<description>Fixed, user defined mass mode</description>
+		<detail><description>Signifies that the mass shall be fixed, and can be set explicitly by the user.</description>
+		<seealso><link type="class" href="Body" anchor="mass">Body::mass</link> </seealso>
+		</detail>
+	</property>
+</class>
+
+<class package="nape.phys" name="GravMassMode">
+	<file>Body.hx</file>
+	<short>Body gravitational mass modes</short>
+	<description>GravMass modes signify how the graviational mass is calculated for a Body</description>
+	
+	<property static="true" name="DEFAULT" type="GravMassMode" readonly="true">
+		<description>Default mass mode</description>
+		<detail><description>Signifies the gravitational mass should be equal to the real mass. Note, that this then also depends on the normal mass mode.</description></detail>
+	</property>
+	<property static="true" name="FIXED" type="GravMassMode" readonly="true">
+		<description>Fixed, user defined gravitational mass mode</description>
+		<detail><description>Signifies that the gravitational mass shall be fixed, and can be set explicitly by the user.</description>
+		<seealso><link type="class" href="Body" anchor="gravMass">Body::gravMass</link> </seealso>
+		</detail>
+	</property>
+	<property static="true" name="SCALED" type="GravMassMode" readonly="true">
+		<description>Scaled gravitational mass mode</description>
+		<detail><description>Signifies that the gravitational mass should be proportionate based on user defined proportion to the normal mass. Note, that this then also depends on the normal mass mode.</description>
+		<seealso><link type="class" href="body" anchor="gravMassScale">Body::gravMassScale</link> </seealso>
+		</detail>
+	</property>
+</class>
+
+<class package="nape.phys" name="BodyType">
+	<file>Body.hx</file>
+	<short>Body type identifiers</short>
+	<description>Identifiers for Body types</description>
+	
+	<property static="true" name="STATIC" type="BodyType" readonly="true">
+		<description>Static Body kind</description>
+		<detail><description>Designates this is a static body, whilst contained in a space as a static body, you may not modify the body in anyway except for to change its shape's filters and materials as various optimisations are put in place which depend on this contract.</description></detail>
+	</property>
+	<property static="true" name="DYNAMIC" type="BodyType" readonly="true">
+		<description>Dynamic Body kind</description>
+		<detail><description>Designates this is a fully simulated rigid body, you are free to do whatever you like with it.</description></detail>
+	</property>
+	
+	<property static="true" name="KINEMATIC" type="BodyType" readonly="true">
+		<description>Kinematic Body kind </description>
+		<detail><description>Designates this a kinematic rigid body, you are free to do whatever you like with it. A kinematic object is moved via direct modification of it's position and rotation, it's velocity which is used in dynamic calculations is updated to reflect the true velocity, aswell as adding the offset supplied by the now 'kinematic' velocity field to perform such feats as conveyor belts.</description></detail>
+	</property>
+</class>
+
+<class package="nape.phys" name="InertiaMode">
+	<file>Body.hx</file>
+	<short>Body inertia modes</short>
+	<description>Inertia modes signify how moment of inertia is calculated for a Body</description>
+	
+	<property static="true" name="DEFAULT" type="InertiaMode" readonly="true">
+		<description>Default inertia mode</description>
+		<detail><description>Signifies the moment of inertia should be calculated based on materials/rigid body shapes</description></detail>
+	</property>
+	<property static="true" name="FIXED" type="InertiaMode"  readonly="true">
+		<description>Fixed, user defined inerta mode</description>
+		<detail><description>Signifies that the moment of inertia shall be fixed, and can be set explicitly by the user.</description>
+		<seealso><link type="class" href="PhysObj" anchor="mass">Body::inertia</link> </seealso>
+		</detail>
+	</property>
+</class>
+
+<!-- ------------------------------------------------------------------------------------------- -->
+	
+<class package="nape.phys" name="BodyList" super="List[Body]">
+	<file>Body.hx</file>
+	<description>Instance of List&lt;T&gt; for Body types</description>
+	<short>List of Bodys</short>
+	
+	<constructor>
+		<description>Construct new BodyList</description>
+		<detail><description>Construct new BodyList</description></detail>
+	</constructor>
+</class>
+
+<class package="nape.phys" name="BodyIterator" super="ListIterator[Body]">
+	<file>Body.hx</file>
+	<description>Instance of ListIterator&lt;T&gt; for Body types</description>
+	<short>Iterator to list of Bodys</short>
+</class>
+
+<!-- ------------------------------------------------------------------------------------------- -->
+
+<class package="nape.phys" name="Body">
+	<file>Body.hx</file>
+	<short>Rigid body</short>
+	<description>Rigid body composed of Shapes</description>
+	
+	<constructor>
+		<arg name="type" type="BodyType" optional="true" default="BodyType.DYNAMIC"/>
+		<arg name="position" type="Vec2" optional="true" default="(0,0)"/>
+		<description>Construct new Rigid Body</description>
+		<detail>
+			<description>Construct new Rigid Body</description>
+		</detail>
+	</constructor>
+	
+	<property name="id" type="Int" readonly="true">
+		<description>Unique identifier for physics object</description>
+		<detail><description>Unique per-PhysObj instance identifier</description></detail>
+	</property>
+	
+	<property name="type" type="BodyType">
+		<description>Rigid body type</description>
+		<detail>
+			<description><text>Rigid body type, you are free to modify this at will though there are performance penalties for conversion from/to BodyType.STATIC for most Space types, which are not great but worth mentioning (Consider if BodyType.KINEMATIC is good enough in such cases to replace BodyType.STATIC).</text><br/><br/><text>In conversion from kinematic/static to dynamic, the apparent velocity of the object will be conserved including the kinematic velocity offset in the case of kinematic.</text><br/>
+			<text>In conversion to kinematic, the kinematic velocity will be set to 0.</text></description>
+		</detail>
+	</property>
+	
+	<property/>
+	<property name="shapes" type="ShapeList" readonly="true">
+		<description>List of Body's shapes</description>
+		<detail>
+			<description><text>List of shapes associated with the Body, shapes can only exist once in any shape list, so attempts to add a shape may sometimes fail (Already in list), and adding a shape to a Body's list will remove it from whatever Body it was in previously.</text><br/><br/><text>Note this field is readonly, but the list is still mutable!</text><br/><br/>
+			<text class="bold">Immutable if:</text><br/><indent><throw/><code inline="true"> isStatic() &amp;&amp; space!=null</code><br/><text>Whether implicit or explicit operations are performed on this list, an error will be thrown.</text></indent> </description>
+		</detail>
+	</property>
+	<property name="cbType" type="CbType" value="CbType.DEFAULT">
+		<description>Body callback type id</description>
+		<detail>
+			<description>Body callback type id for callback event listeners</description>
+		</detail>
+	</property>
+	
+	
+	<property/>
+	<property name="space" type="Maybe[Space]">
+		<description>Space to which Body belongs</description>
+		<detail>
+			<description>Space object to which this Body belongs. This value can also be set and is equivalent to removing the body from it's present space, and adding it to the new one.</description>
+		</detail>
+	</property>
+	
+	<property name="bounds" type="AABB" readonly="true">
+		<description>Body global bounds</description>
+		<detail>
+			<description><text>Immutable AABB representing the global limits of the Body.</text></description>
+			<get><code inline="true">shapes.empty()</code> </get>
+		</detail>
+	</property>
+
+	<property name="arbiters" type="ArbiterList" readonly="true">
+		<description>Immutable list of arbiters</description>
+		<detail>
+			<description>Reference to the immutable list of arbiters belonging to the respective Shapes of this Body. This includes arbiters that have been put to sleep.</description>
+		</detail>
+	</property>
+	
+	<property name="isSleeping" type="Bool" readonly="true">
+		<description>Whether body is asleep</description>
+		<detail>
+			<description>If true then this body has been put to sleep.</description>
+		</detail>
+	</property>
+	
+	<property/>
+	
+	<property/>
+	<property name="position" type="Vec2">
+		<description>Body position</description>
+		<detail>
+			<description><text>Vec2 of the Body's origin in world coordinates.</text><br/><text>Setting the position of a body is equivalent to simply teleporting the body; you should only use this when necessary or appropriate; for instance moving a kinematic body by position is not the way to go about things as there will be no velocity information with which collisions etc will be correctly performed.</text><br/><br/>
+			<text class="bold">Immutable if:</text><br/><indent><throw/><code inline="true"> isStatic() &amp;&amp; space!=null</code></indent> </description>
+			<set>Vec2 immutable</set>
+		</detail>
+	</property>
+	
+	<property name="velocity" type="Vec2">
+		<description>Body linear velocity</description>
+		<detail>
+			<description><text>Vec2 for the Body's linear velocity in world coordinates.</text><br/><br/>
+			<text>For kinematic bodies, this is the correct way to move the body around.</text><br/><br/><text>For static rigid bodies, this field is irrelevant, except that should you change the body into a dynamic one, it would retain the velocity.</text></description>
+		</detail>
+	</property>
+	
+	<property name="force" type="Vec2">
+		<description>Body linear force accumulator</description>
+		<detail>
+			<description><text>Vec2 for the Body's linear force accumulator in world coordinates.</text></description>
+		</detail>
+	</property>
+	
+	<property name="rotation" type="Float">
+		<description>Rigid body rotation</description>
+		<detail>
+			<description><text>Rotation of rigid body about it's origin in clockwise radians, there is no finite range for this value. Setting this value is equivalent to (rotationally speaking) teleporting the body and should only be used if appropriate and necessary.</text></description>
+			<set><code inline="true">isStatic() &amp;&amp; space!=null</code> </set>
+		</detail>
+	</property>
+	<property name="angularVel" type="Float">
+		<description>Rigid body angular velocity</description>
+		<detail>
+			<description><text>Rigid body's angular velocity. For kinematic bodies, this is the correct way unless you explicitly want to teleport, to rotate the body</text></description>
+		</detail>
+	</property>
+	<property name="torque" type="Float">
+		<description>Body torque accumulator</description>
+		<detail>
+			<description><text>Body torque accumulator</text></description>
+		</detail>
+	</property>
+	
+	<property/>
+	<property name="kinematicVel" type="Vec2">
+		<description> Additional velocity. </description>
+		<detail>
+			<description><text>The kinematic velocity is a velocity added to the normal body velocity each frame before physics computations take place, and afters removed so that it does not directly effect the motion of the body, but does effect the way in which constraints and contact calculations are performed.</text><br/><br/><text>The best use of this is for giving a simple velocity field to a fluid for instance</text><br/><br/><text>Note that this property is only used for dynamic and kinematic objects, and will be ignored for static objects.</text></description>
+		</detail>
+	</property>
+	 <property name="kinAngVel" type="Float">
+		 <description> Addition angular velocity. </description>
+		 <detail>
+			 <description>The same as the kinematicVel field, but for angular velocity.</description>
+		 </detail>
+	 </property>
+	 
+	 <property name="surfaceVel" type="Vec2">
+		 <description> Additional contact surface velocity. </description>
+		 <detail>
+			 <description><text>The surface velocity is an additional velocity used for dynamic and kinematic objects which only effects contact calculations; there is no angular version of this as the surface velocity is applied in the coordinate frame of the contact point, so that the x-value of the surface velocity effects the tangentenial velocity seen by the contact points regardless of orientation of the contact, and the y-value effects the normal velocity seen by the contact point.</text><br/><br/><text>This is best used for such things as conveyor belts, and for such things as trampolines or pinball style bouncers etc.</text></description>
+		 </detail>
+	 </property>
+	
+	<property/>
+	<property name="allowMovement" type="Bool" value="true">
+		<description>Body behaves as a kinematic body for linear movement</description>
+		<detail>
+			<description>This field only has effect on dynamic bodies, when set to true the body will behave like a kinematic body with respect to normal x,y movement. You will still be able to move it either via changing position, or it's velocity but to all extents it will have infinite mass.</description>
+		</detail>
+	</property>
+	<property name="allowRotation" type="Bool" value="true">
+		<description>Body behaves as a kinematic body for angular movement</description>
+		<detail>
+			<description>This field only has effect on dynamic bodies, when set to true the body will behave like a kinematic body with respect to rotational movement. You will still be able to rotate it either via changing rotation, or it's angular velocity but to all extents it will have infinite inertia.</description>
+		</detail>
+	</property>
+	 
+	<property/>
+	<property name="massMode" type="MassMode" value="MassMode.DEFAULT">
+		<description>Mass mode of Body</description>
+		<detail>
+			<description>Mass mode for Body</description>
+			<seealso><link type="class" href="MassMode">MassMode</link></seealso>
+		</detail>
+	</property>
+	<property name="mass" type="Float">
+		<description>Mass of Body</description>
+		<detail>
+			<description><text>Mass of body</text><br/><text>Setting this field will implicitly set </text><code inline="true">massMode = MassMode.FIXED</code> </description>
+			<set><code inline="true">mass &lt;= 0</code> </set>
+			<get><code inline="true">shapes.empty() &amp;&amp; massMode==MassMode.DEFAULT</code> </get>
+		</detail>
+	</property>
+	
+	<property/>
+	<property name="gravMassMode" type="GravMassMode" value="GravMassMode.DEFAULT">
+		<description>GravMass mode of Body</description>
+		<detail>
+			<description>GravMass mode for Body</description>
+			<seealso><link type="class" href="GravMassMode">GravMassMode</link></seealso>
+		</detail>
+	</property>
+	<property name="gravMass" type="Float">
+		<description>Gravitational mass of Body</description>
+		<detail>
+			<description><text>Gravitational mass of Body; that is the mass that the object will be assumed to have for the purposes of gravity, whether it reflect the real mass or not; you can for instance do a helium balloon by simply setting the gravitational mass to be slightly negative.</text><br/><text>Setting this field will implicitly set </text><code inline="true">gravMassMode = GravMassMode.FIXED</code> </description>
+			<get><code inline="true">shapes.empty() &amp;&amp; massMode == MassMode.DEFAULT &amp;&amp; gravMassMode != GravMassMode.FIXED</code> </get>
+		</detail>
+	</property>
+	<property name="gravMassScale" type="Float">
+		<description>Ratio of gravMass to mass</description>
+		<detail>
+			<description><text>The ratio of gravMass to mass.</text><br/><text>Setting this field will implicitly set </text><code inline="true">gravMassMode = GravMassMode.SCALED</code> </description>
+			<get><code inline="true">shapes.empty() &amp;&amp; massMode == MassMode.DEFAULT &amp;&amp; gravMassMode!=MassMode.SCALED</code> </get>
+		</detail>
+	</property>
+	
+	<property/>
+	
+	<property name="InertiaMode" type="InertiaMode" value="InertiaMode.DEFAULT">
+		<description>Inertia mode of Body</description>
+		<detail>
+			<description>Inertia mode of Body</description>
+			<seealso><link type="class" href="InertiaMode">InertiaMode</link></seealso>
+		</detail>
+	</property>
+	<property name="inertia" type="Float">
+		<description>Moment of inertia of Body</description>
+		<detail>
+			<description><text>Momment of inertia of Body</text><br/><text>Setting this field will implicitly set </text><code inline="true">inertiaMode = InertiaMode.FIXED</code> </description>
+			<set><code inline="true">inertia &lt;= 0</code> </set>
+			<get><code inline="true">inertiaMode == InertiaMode.DEFAULT &amp;&amp; shapes.empty()</code> </get>
+		</detail>
+	</property>
+	
+	<property/>
+	<property name="localCOM" type="Vec2" readonly="true">
+		<description>Immutable local centre of mass</description>
+		<detail>
+			<description>Immutable Vec2 corresponding to the centre of mass of the rigid body in it's local coordinates</description>
+			<get>shapes.empty()</get>
+		</detail>
+	</property>
+	<property name="worldCOM" type="Vec2" readonly="true">
+		<description>Immutable global centre of mass</description>
+		<detail>
+			<description>Immutable Vec2 corresponding to the centre of mass of the rigid body in global/world coordinates</description>
+			<get>shapes.empty()</get>
+		</detail>
+	</property>
+	
+	<method name="isStatic" return="Bool" const="true">
+		<description>Whether Body is static</description>
+		<detail><description>Whether Body is static</description></detail>
+	</method>
+	<method name="isKinematic" return="Bool" const="true">
+		<description>Whether Body is kinematic</description>
+		<detail><description>Whether Body is kinematic</description></detail>
+	</method>
+	<method name="isDynamic" return="Bool" const="true">
+		<description>Whether Body is dynamic</description>
+		<detail><description>Whether Body is dynamic</description></detail>
+	</method>
+	
+	<method/>
+	<method name="setShapeMaterials">
+		<arg name="material" type="Material"/>
+		<description>Set material for every shape</description>
+		<detail>
+			<description>If material is not set for sharing, a copy of the given material will be assigned to each shape.</description>
+		</detail>
+	</method>
+	<method name="setShapeFilters">
+		<arg name="filter" type="InteractionFilter"/>
+		<description>Set filter for every shape</description>
+		<detail>
+			<description>If filter is not set for sharing, a copy of the given filter will be assigned to each shape.</description>
+		</detail>
+	</method>
+	<method name="setShapeFluidProperties">
+		<arg name="fluidProperties" type="FluidProperties"/>
+		<description>Set fluidProperties for every shape</description>
+		<detail>
+			<description>If properties is not set for sharing, a copy of the given fluidProperties will be assigned to each shape.</description>
+		</detail>
+	</method>
+	
+	<method/>
+	<method name="translateShapes">
+		<arg name="displacement" type="Vec2" const="true"/>
+		<description>translate each shape</description>
+		<detail>
+			<description>Simply maps over Shape::translate for each shape</description>
+			<seealso><link type="class" href="Shape" anchor="translate">Shape::translate</link> </seealso>
+		</detail>
+	</method>
+	<method name="rotateShapes">
+		<arg name="angle" type="Float"/>
+		<description>rotate each shape</description>
+		<detail>
+			<description>Simply maps over Shape::rotate for each shape</description>
+			<seealso><link type="class" href="Shape" anchor="rotate">Shape::rotate</link> </seealso>
+		</detail>
+	</method>
+	<method name="scaleShapes">
+		<arg name="scalex" type="Float"/>
+		<arg name="scaley" type="Float"/>
+		<description>scale each shape</description>
+		<detail>
+			<description>Simply maps over Shape::scale for each shape</description>
+			<seealso><link type="class" href="Shape" anchor="scale">Shape::scale</link> </seealso>
+		</detail>
+	</method>
+	<method name="transformShapes">
+		<arg name="matrix" type="Mat23" const="true"/>
+		<description>transform each shape</description>
+		<detail>
+			<description>Simply maps over Shape::transform for each shape</description>
+			<seealso><link type="class" href="Shape" anchor="transform">Shape::transform</link> </seealso>
+		</detail>
+	</method>
+	
+	<method name="align">
+		<description>align centre of mass of body</description>
+		<detail>
+			<description>Applies same translation to each shape resulting in the local centre of mass being at the origin, aswell as translating the body itself so that each shape's global state is unchanged.</description>
+			<throws>shapes.empty()</throws>
+		</detail>
+	</method>
+	
+	<method name="copy" return="Body" const="true">
+		<description> Produce deep* copy of Body</description>
+		<detail>
+			Produces a copy of the body, calling Shape::copy for each shape (therefore if shape mateirals are shared etc this may not be a compeltely deep copy).
+		</detail>
+	</method>
+	
+	<method/>
+	<method name="localToGlobal" return="Vec2" const="true">
+		<arg name="v" type="Vec2" const="true"/>
+		<description>Transform from local to global</description>
+		<detail>
+			<description>Transform given Vec2, returning it's equivalent global coordinates</description>
+		</detail>
+	</method>
+	<method name="localToRelative" return="Vec2" const="true">
+		<arg name="v" type="Vec2" const="true"/>
+		<description>Transform from local to relative</description>
+		<detail>
+			<description>Transform given Vec2, returning it's equivalent relative global/world coordinates</description>
+		</detail>
+	</method>
+	<method name="relativeToGlobal" return="Vec2" const="true">
+		<arg name="v" type="Vec2" const="true"/>
+		<description>Transform from relative to global</description>
+		<detail>
+			<description>Transform given Vec2, returning it's equivalent global/world coordinates</description>
+		</detail>
+	</method>
+	<method name="globalToLocal" return="Vec2" const="true">
+		<arg name="v" type="Vec2" const="true"/>
+		<description>Transform from global to local</description>
+		<detail>
+			<description>Transform given Vec2, returning it's equivalent local coordinates</description>
+		</detail>
+	</method>
+	<method name="globalToRelative" return="Vec2" const="true">
+		<arg name="v" type="Vec2" const="true"/>
+		<description>Transform from global to relative</description>
+		<detail>
+			<description>Transform given Vec2, returning it's equivalent relative global/world coordinates</description>
+		</detail>
+	</method>
+	<method name="relativeToLocal" return="Vec2" const="true">
+		<arg name="v" type="Vec2" const="true"/>
+		<description>Transform from relative to local</description>
+		<detail>
+			<description>Transform given Vec2, returning it's equivalent local coordinates</description>
+		</detail>
+	</method>
+	
+	<method/>
+	<method name="applyLocalForce" const="true">
+		<arg name="force" type="Vec2" const="true"/>
+		<arg name="pos" type="Vec2" const="true" optional="true" default="(0,0)" />
+		<description>Apply force at local position</description>
+		<detail>
+			<description><text>Apply force at local position, note that it is only the position that is in local coordiantes here, the force is taken to be in global/world coordinates</text><br/><br/><text>If position is omitted then this is equivalent to applyRelativeForce</text></description>
+		</detail>
+	</method>
+	
+	<method name="applyRelativeForce" const="true">
+		<arg name="force" type="Vec2" const="true"/>
+		<arg name="pos" type="Vec2" const="true" optional="true" default="(0,0)" />
+		<description>Apply force at relative position</description>
+		<detail>
+			<description><text>Apply force at relative position, note that it is only the position that is in relative coordiantes here, the force is taken to be in global/world coordinates</text><br/><br/><text>If position is omitted then this is equivalent to applyLocalForce</text></description>
+		</detail>
+	</method>
+	
+	<method name="applyGlobalForce" const="true">
+		<arg name="force" type="Vec2" const="true"/>
+		<arg name="pos" type="Vec2" const="true"/>
+		<description>Apply force at global position</description>
+		<detail>
+			<description><text>Apply force at global position</text></description>
+		</detail>
+	</method>
+	
+	<method/>
+	<method name="applyLocalImpulse" const="true">
+		<arg name="impulse" type="Vec2" const="true"/>
+		<arg name="pos" type="Vec2" const="true" optional="true" default="(0,0)" />
+		<description>Apply impulse at local position</description>
+		<detail>
+			<description><text>Apply impulse at local position, note that it is only the position that is in local coordiantes here, the impulse is taken to be in global/world coordinates</text><br/><br/><text>If position is omitted then this is equivalent to applyRelativeImpulse</text></description>
+		</detail>
+	</method>
+	
+	<method name="applyRelativeImpulse" const="true">
+		<arg name="impulse" type="Vec2" const="true"/>
+		<arg name="pos" type="Vec2" const="true" optional="true" default="(0,0)" />
+		<description>Apply impulse at relative position</description>
+		<detail>
+			<description><text>Apply impulse at relative position, note that it is only the position that is in relative coordiantes here, the impulse is taken to be in global/world coordinates</text><br/><br/><text>If position is omitted then this is equivalent to applyLocalImpulse</text></description>
+		</detail>
+	</method>
+	
+	<method name="applyGlobalImpulse" const="true">
+		<arg name="impulse" type="Vec2" const="true"/>
+		<arg name="pos" type="Vec2" const="true"/>
+		<description>Apply impulse at global position</description>
+		<detail>
+			<description><text>Apply impulse at global position</text></description>
+		</detail>
+	</method>
+	
+	<method/>
+	
+	<method name="normalImpulse" const="true" return="Vec3">
+		<arg name="body" type="Body" optional="true" default="null"/>
+		<arg name="freshOnly" type="Bool" optional="true" default="false"/>
+		<description> normal impulses on body </description>
+		<detail>
+			<description><text>When body is null, returns the sum of all normal impulses from contacts on this body, otherwise returns normal impulses only between the two bodies.</text><br/><br/><text>If freshOnly is true, then only new contacts are considered</text></description>
+		</detail>
+	</method>
+	
+	<method name="tangentImpulse" const="true" return="Vec3">
+		<arg name="body" type="Body" optional="true" default="null"/>
+		<arg name="freshOnly" type="Bool" optional="true" default="false"/>
+		<description> tangent impulses on body </description>
+		<detail>
+			<description><text>When body is null, returns the sum of all tangent impulses from contacts on this body, otherwise returns tangent impulses only between the two bodies.</text><br/><br/><text>If freshOnly is true, then only new contacts are considered</text></description>
+		</detail>
+	</method>
+	
+	<method name="rollingImpulse" const="true" return="Float">
+		<arg name="body" type="Body" optional="true" default="null"/>
+		<arg name="freshOnly" type="Bool" optional="true" default="false"/>
+		<description> rolling impulses on body </description>
+		<detail>
+			<description><text>When body is null, returns the sum of all rolling impulses from contacts on this body, otherwise returns rolling impulses only between the two bodies.</text><br/><br/><text>If freshOnly is true, then only new contacts are considered</text></description>
+		</detail>
+	</method>
+	
+	<method name="totalContactsImpulse" const="true" return="Vec3">
+		<arg name="body" type="Body" optional="true" default="null"/>
+		<arg name="freshOnly" type="Bool" optional="true" default="false"/>
+		<description> contact impulses on body </description>
+		<detail>
+			<description><text>When body is null, returns the sum of all contact impulses from contacts on this body, otherwise returns contact impulses only between the two bodies.</text><br/><br/><text>If freshOnly is true, then only new contacts are considered</text></description>
+		</detail>
+	</method>
+	
+	<method/>
+	
+	<method name="buoyancyImpulse" const="true" return="Vec3">
+		<arg name="body" type="Body" optional="true" default="null"/>
+		<description> buoyancy impulses on body </description>
+		<detail>
+			<description>When body is null, returns the sum of all buoyancy impulses from fluid arbiters on this body, otherwise returns buoyancy impulses only between the two bodies</description>
+		</detail>
+	</method>
+	
+	<method name="dragImpulse" const="true" return="Vec3">
+		<arg name="body" type="Body" optional="true" default="null"/>
+		<description> drag impulses on body </description>
+		<detail>
+			<description>When body is null, returns the sum of all drag impulses from fluid arbiters on this body, otherwise returns drag impulses only between the two bodies</description>
+		</detail>
+	</method>
+	
+	<method name="totalFluidImpulse" const="true" return="Vec3">
+		<arg name="body" type="Body" optional="true" default="null"/>
+		<description> fluid impulses on body </description>
+		<detail>
+			<description>When body is null, returns the sum of all fluid impulses from fluid arbiters on this body, otherwise returns fluid impulses only between the two bodies</description>
+		</detail>
+	</method>
+	
+	<method/>
+	
+	<method name="constraintsImpulse" const="true" return="Vec3">
+		<description> constraint impulses on body </description>
+		<detail>
+			<description>Returns the sum of all constraint impulses acting on the body</description>
+		</detail>
+	</method>
+	
+	<method/>
+	
+	<method name="totalImpulse" const="true" return="Vec3">
+		<description> total impulses on body </description>
+		<detail>
+			<description>If body is null, returns the sum of all constraint, contact and fluid impulses acting on the body, otherwise for contact and fluid impulses considers only those between the two bodies.</description>
+		</detail>
+	</method>
+</class>
+
+</data>

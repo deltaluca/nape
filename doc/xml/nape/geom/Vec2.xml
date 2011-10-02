@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<data>
+	
+<class package="nape.geom" name="Vec2List" super="List[Vec2]">
+	<file>Vec2.hx</file>
+	<description>Instance of List&lt;T&gt; for Vec2 types</description>
+	<short>List of Bodys</short>
+	
+	<constructor>
+		<description>Construct new Vec2List</description>
+		<detail><description>Construct new Vec2List</description></detail>
+	</constructor>
+</class>
+
+<class package="nape.geom" name="Vec2Iterator" super="ListIterator[Vec2]">
+	<file>Vec2.hx</file>
+	<description>Instance of ListIterator&lt;T&gt; for Vec2 types</description>
+	<short>Iterator to list of Vec2s</short>
+</class>
+
+<!-- ------------------------------------------------------------------------------------------- -->
+
+<class package="nape.geom" name="Vec2">
+	<file>Vec2.hx</file>
+	<description>
+		<text>2D Vector class.</text>
+		<br/><br/>
+		<text class="small1">Note: In many cases a Vec2 will be returned from a function internal to nape and will be marked internally as an 'immutable' Vec2. This is documented in those cases; trying to modify (mutate) such a Vec2 will result in an error.</text><br/>
+		<br/>
+		<text class="small1">Trying to use a disposed Vec2 will also result in an error, the pool works in a FILO order so as to make catching the use of a disposed Vec2 bug easier</text>
+	</description>
+	<short>
+		2D Vector class.
+	</short>
+	
+	<property name="x" type="Float">
+		<description>x value</description>
+		<detail>
+			<description>
+				x coordinate of vector.
+			</description>
+			<set>Vec2 is immutable</set>
+		</detail>
+	</property>
+	<property name="y" type="Float">
+		<description>y value</description>
+		<detail>
+			<description>
+				y coordinate of vector.
+			</description>
+			<set>Vec2 is immutable</set>
+		</detail>
+	</property>
+	<property name="length" type="Float">
+		<description>length</description>
+		<detail>
+			<description>
+				length of vector.
+			</description>
+			<set>Vec2 is immutable</set>
+		</detail>
+	</property>
+	<property name="angle" type="Float">
+		<description>angle</description>
+		<detail>
+			<description>
+				angle of vector as measured counterclockwise from +x axis in radians.
+			</description>
+			<set>Vec2 is immutable</set>
+		</detail>
+	</property>
+	
+	<constructor>
+		<arg name="x" type="Float" optional="true" default="0"/>
+		<arg name="y" type="Float" optional="true" default="0"/>
+		<description>
+			Construct a new vector. Use of 'get' is preferred.
+		</description>
+		<detail>
+			<description>
+				Construct a new vector from given cartesian values. Using the static get method is preferred as it will make use of any released Vec2's in the object pool whereas the constructor will allocate a new Vec2 from the heap whether there is anything in the object pool or not.
+			</description>
+		</detail>
+	</constructor>
+
+	<method name="get" static="true" return="Vec2">
+		<arg name="x" type="Float" optional="true" default="0"/>
+		<arg name="y" type="Float" optional="true" default="0"/>
+		<description>
+			Allocate a vector from the object pool; or failing that, construct a new one.
+		</description>
+		<detail>
+			<description>
+				Allocates a vector with given cartesian values from the object pool. If the object pool is empty then a new vector will be constructed instead. Use of this method is preferable to using the constructor.
+			</description>
+		</detail>
+	</method>
+
+	<method name="dispose">
+		<description>
+			Release vector to the object pool.
+		</description>
+		<detail>
+			<description> Releases the vector to the object pool leaving it available for re-use by the static 'get' method and nape internals. when disposing a Vec2 you should treat it the same as if you were wanting it to be collected by the garbage collector and have no remaining references to it; this isn't necessary but if you accidentaly use a released Vec2 and it is not caught (by debug mode errors) then incorrect behaviour may result</description>
+		</detail>
+	</method>
+	
+	<method name="fromPoint" static="true" inline="true" return="Vec2">
+		<arg name="point" type="flash.geom.Point" const="true" />
+		<description>
+			(flash9+) Constructor vector from Point.
+		</description>
+		<detail>
+			<description>
+				Only available for flash9+ targets; construct Vec2 from Point object.
+			</description>
+		</detail>
+	</method>
+	
+	<method name="fromPolar" static="true" inline="true" return="Vec2">
+		<arg name="length" type="Float"/>
+		<arg name="angle" type="Float"/>
+		<description>
+			Construct Vec2 from polar coordinates.
+		</description>
+		<detail>
+			<description>
+				Construct new vector from polar coordinates.
+			</description>
+		</detail>
+	</method>
+	
+	<method name="lsq" inline="true" return="Float" const="true">
+		<description> Squared length of vector.</description>
+		<detail>
+			<description>
+				Computes squared length of vector.
+			</description>
+		</detail>
+	</method>
+	<method/>
+	<method name="set" inline="true" return="Vec2">
+		<arg name="p" type="Vec2" const="true" />
+		<description> Set values from vector </description>
+		<detail>
+			<description>
+				Copies values from given vector to this, returning the this vector.
+			</description>
+			<throws>Vec2 is immutable</throws>
+		</detail>
+	</method>
+	<method name="setxy" inline="true" return="Vec2">
+		<arg name="x" type="Float"/>
+		<arg name="y" type="Float"/>
+		<description> Set values from coordinate pair</description>
+		<detail>
+			<description>
+				Assigns values of this vector from arguments, returning the this vector.
+			</description>
+			<throws>Vec2 is immutable</throws>
+		</detail>
+	</method>
+	<method name="copy" inline="true" return="Vec2" const="true">
+		<description> Produce a copy of this vector. </description>
+		<detail>
+			<description>
+				<text>Produce a copy of this vector. </text><br/><text class="small1"> (Note: the copy of an immutable vector will now be mutable).</text>
+			</description>
+		</detail>
+	</method>
+	<method/>
+	<method name="dot" inline="true" return="Float" const="true">
+		<arg name="a" type="Vec2" const="true"/>
+		<description> Compute dot product. </description>
+		<detail>
+			<description>
+				Computes dot product of the this vector and the given argument.
+			</description>
+		</detail>
+	</method>
+	<method name="cross" inline="true" return="Float" const="true">
+		<arg name="a" type="Vec2" const="true"/>
+		<description> Compute cross product. </description>
+		<detail>
+			<description>
+				Computes the cross product between the this vector and given argument.
+				Strictly speaking the cross product is not defined on 2D vectors; this is defined
+				as the perp-dot product chosen to be the z-coordinate in the 3D cross product between the equivalent 3D vectors, or equivalently the determinant of the direct product. This satifies all the normal rules of the cross product that apply.
+			</description>
+		</detail>
+	</method>
+	<method/>
+	<method name="add" inline="true" return="Vec2" const="true">
+		<arg name="a" type="Vec2" const="true" />
+		<description> Add vectors together</description>
+		<detail>
+			<description>
+				Adds the given vector to this returning the result.
+			</description>
+		</detail>
+	</method>
+	<method name="sub" inline="true" return="Vec2" const="true">
+		<arg name="a" type="Vec2" const="true" />
+		<description> Subtract vectors together</description>
+		<detail>
+			<description>
+				Subtracts the given vector to this returning the result.
+			</description>
+		</detail>
+	</method>
+	<method name="mul" inline="true" return="Vec2" const="true">
+		<arg name="s" type="Float"/>
+		<description> Multiply vector by scalar </description>
+		<detail>
+			<description>
+				Multiplies the vector by given scalar returning the result.
+			</description>
+		</detail>
+	</method>
+	<method name="addeq" inline="true" return="Vec2">
+		<arg name="a" type="Vec2" const="true"/>
+		<description> Add vector accumulatively </description>
+		<detail>
+			<description>
+				Adds the given vector to this, modifying the this vector and returning the this vector.
+				Equivalent to this.set(this.add(a))
+			</description>
+			<throws>Vec2 is immutable</throws>
+		</detail>
+	</method>
+	<method name="subeq" inline="true" return="Vec2">
+		<arg name="a" type="Vec2" const="true" />
+		<description> Subtract vector accumulatively </description>
+		<detail>
+			<description>
+				Subtracts the given vector from this, modifying the this vector and returning the this vector.
+				Equivalent to this.set(this.sub(a))
+			</description>
+			<throws>Vec2 is immutable</throws>
+		</detail>
+	</method>
+	<method name="muleq" inline="true" return="Vec2">
+		<arg name="s" type="Float"/>
+		<description> Multiply vector by scalar </description>
+		<detail>
+			<description>
+				Multiplies the vector by given scalar modifying the this vector and returning the this vector.
+				Equivalent to this.set(this.mul(s))
+			</description>
+			<throws>Vec2 is immutable</throws>
+		</detail>
+	</method>
+</class>
+	
+</data>

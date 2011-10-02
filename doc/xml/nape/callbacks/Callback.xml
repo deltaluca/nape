@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<data>
+
+<class package="nape.callbacks" name="CallbackQueue">
+	<file>CallbackQueue.hx</file>
+	<short>Callback queue</short>
+	<description> Queue containing deferred space callback objects </description>
+
+	<property name="size" type="Int" readonly="true">
+		<description> Number of callbacks in queue </description>
+		<detail>
+			<description> Number of callback objects currently enqueued </description>
+		</detail>
+	</property>
+
+	<method name="empty" return="Bool" const="true">
+		<description> Whether queue is empty </description>
+		<detail>
+			<description> True if callback queue is empty </description>
+		</detail>
+	</method>
+	<method name="pop" return="Callback">
+		<description> Pop callback form queue </description>
+		<detail>
+			<description> Pop callback from the front of the queue </description>
+			<throws> <code inline="true">empty()</code></throws>
+		</detail>
+	</method>
+	<method name="clear">
+		<description> Clear the queue </description>
+		<detail>
+			<description> Clear all callbacks from the queue </description>
+		</detail>
+	</method>
+</class>
+
+<class package="nape.callbacks" name="CbEvent">
+	<file>Callback.hx</file>
+	<short>Callback types</short>
+	<description>
+		<text>Callback type flags</text>
+	</description>
+
+	<property static="true" name="BEGIN" type="CbEvent" readonly="true">
+		<description> (NOT IMPLEMENTED YET) Handle interacting start event </description>
+		<detail>
+			<description>(NOT IMPLEMENTED YET) Callback event corresponding to when two shapes/bodies begin interacting</description>
+		</detail>
+	</property>
+	<property static="true" name="ONGOING" type="CbEvent" readonly="true">
+		<description> (NOT IMPLEMENTED YET) Handle ongoing interaction event </description>
+		<detail>
+			<description>(NOT IMPLEMENTED YET) Callback event corresponding to two shapes/bodies with an ongoing interaction</description>
+		</detail>
+	</property>
+	<property static="true" name="END" type="CbEvent" readonly="true">
+		<description> (NOT IMPLEMENTED YET) Handle interacting end event </description>
+		<detail>
+			<description>(NOT IMPLEMENTED YET) Callback event corresponding to when two shapes/bodies stop interacting</description>
+		</detail>
+	</property>
+
+	<property/>
+
+	<property static="true" name="WAKE" type="CbEvent" readonly="true">
+		<description> Body/Constraint wake event </description>
+		<detail>
+			<description> Callback event corresponding to a body or constraint being woken </description>
+		</detail>
+	</property>
+	<property static="true" name="SLEEP" type="CbEvent" readonly="true">
+		<description> Body/Constraint sleep event </description>
+		<detail>
+			<description> Callback event corresponding to a body or constraint being put to sleep </description>
+		</detail>
+	</property>
+
+	<property/>
+
+	<property static="true" name="BREAK" type="CbEvent" readonly="true">
+		<description> Constraint break event </description>
+		<detail>
+			<description> Callback event corresponding to a constraint being broken </description>
+		</detail>
+	</property>
+</class>
+
+<class package="nape.callbacks" name="Callback">
+	<file>Callback.hx</file>
+	<short>Callback object for deferred callback handlers</short>
+	<description>
+		<text>Callback object for any callback handler which has not been assigned a function callback to be called instead.</text>
+		<br/><br/>
+		<text>Callback objects are automaticaly recycled, so you should not hold any lingering references to them when you've finished with it; this includes anything like calling space.step() whilst working on a callback object... though such code would be 'very' suspect</text>
+	</description>
+
+	<property name="event" type="CbEvent" readonly="true">
+		<description> Event type </description>
+		<detail>
+			<description> Type of event this callback relates to </description>
+		</detail>
+	</property>
+
+	<property/>
+
+	<property name="arbiter" type="Maybe[Arbiter]" readonly="true">
+		<description> Arbiter for event </description>
+		<detail>
+			<description> Arbiter between related types. No callback using this is yet implemented. This value is null if the event type is not a BEGIN,ONGOING or END type. </description>
+		</detail>
+	</property>
+	<property name="body" type="Maybe[Body]" readonly="true">
+		<description> Body for event </description>
+		<detail>
+			<description> Body relating to event if applicable. This value is null unless the event is a WAKE or SLEEP type, and might still be null in this case if the callback is for a constraint instead. </description>
+		</detail>
+	</property>
+	<property name="constraint" type="Maybe[Constraint]" readonly="true">
+		<description> Constraint for event </description>
+		<detail>
+			<description> Constraint relating to event if applicable. This value is null unless the event is a WAKE, SLEEP or BREAK type, and might still be null in this case if the callback is for a body instead. </description>
+		</detail>
+	</property>
+
+	<property/>
+
+	<property name="listener" type="Listener" readonly="true">
+		<description> Related listener </description>
+		<detail>
+			<description> The related listener object generating this callback </description>
+		</detail>
+	</property>
+
+</class>
+
+</data>

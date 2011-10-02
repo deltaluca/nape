@@ -1,0 +1,81 @@
+package;
+$(import);
+
+import cpp.FileSystem;
+import cpp.io.Path;
+import cpp.Lib;
+import cpp.io.File;
+import cpp.io.FileInput;
+import haxe.io.Bytes;
+import haxe.xml.Fast;
+
+class Main 
+{	
+	static function recurse(dir:String, lib:XLib) {
+		dir = new Path(dir).toString();
+		trace(dir);
+		for (f in FileSystem.readDirectory(dir)) {
+			var fp = dir + f;
+			if (FileSystem.kind(fp) == kfile) {
+				var cp = fp.indexOf('.');
+				if (cp != -1 && fp.substr(cp + 1) == "xml") {
+					Lib.print("xml: "+fp+"\n");
+					Parse.parse(fp, lib);
+				}else Lib.print("???: " + fp + "  " + cp + "\n");
+			}else if (FileSystem.kind(fp) == kdir) {
+				fp += "/";
+				recurse(fp, lib);
+			}
+		}
+	}
+	
+	static function main() 
+	{
+		try {
+			var lib = new XLib();
+			
+			recurse("xml/", lib);
+			
+			Proc.process(lib);
+			//Debug.print(lib);
+			
+			if (!FileSystem.exists(Gen.froot + "/pckg")) FileSystem.createDirectory(Gen.froot + "/pckg");
+			if (!FileSystem.exists(Gen.froot + "/tut")) FileSystem.createDirectory(Gen.froot + "/tut");
+			if (!FileSystem.exists(Gen.froot + "/swf")) FileSystem.createDirectory(Gen.froot + "/swf");
+			if (!FileSystem.exists(Gen.froot + "/ex")) FileSystem.createDirectory(Gen.froot + "/ex");
+			if (!FileSystem.exists(Gen.froot + "/docs")) FileSystem.createDirectory(Gen.froot + "/docs");
+			
+			Write.writeIndex(lib);
+			Write.write404(lib);
+			Write.writeContrib(lib);
+			
+			for (doc in lib.docs) {
+				Lib.println("doc >> " + doc.name);
+				Write.writeDoc(doc);
+			}
+			
+			for (tut in lib.tutorials) {
+				Lib.println("tutorial >> " + tut.name);
+				Write.writeTutorial(tut);
+			}
+			
+			for (swf in lib.swfs) {
+				Lib.println("demo >> " + swf.name);
+				Write.writeSwf(swf);
+			}
+			
+			for (pck in lib.all_packages) {
+				Lib.println("package >> "+pck.fullname);
+				Write.writePackage(pck);
+			}
+				
+			for (cls in lib.all_classes) {
+				Lib.println("class >> " + cls.getName());
+				Write.writeClass(cls);
+			}
+			
+		}catch (e:Dynamic) {
+			Lib.print(e);
+		}
+	}
+}

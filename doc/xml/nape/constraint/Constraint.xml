@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<data>
+
+<class package="nape.constraint" name="ConstraintList" super="List[Constraint]">
+	<file>Constraint.hx</file>
+	<description>Instance of List&lt;T&gt; for Constraint types</description>
+	<short>List of Constraints</short>
+	
+	<constructor>
+		<description>Construct new ConstraintList</description>
+		<detail><description>Construct new ConstraintList</description></detail>
+	</constructor>
+</class>
+
+<class package="nape.constraint" name="ConstraintIterator" super="ListIterator[Constraint]">
+	<file>Constraint.hx</file>
+	<description>Instance of ListIterator&lt;T&gt; for Constraint types</description>
+	<short>Iterator to list of Constraints</short>
+</class>
+
+<!-- ------------------------------------------------------------------------------------------- -->
+
+<class package="nape.constraint" name="Constraint">
+	<file>Constraint.hx</file>
+	<short>Constraintt</short>
+	<description>Base type for all nape constraints/joints</description>
+	
+	<property name="space" type="Maybe[Space]">
+		<description>Space to which constraint is assigned</description>
+		<detail>
+			<description>Space object to which this Constraint belongs. This value can also be set and is equivalent to removing the constraint from it's present space, and adding it to the new one.</description>
+		</detail>
+	</property>
+	<property name="cbType" type="CbType" value="CbType.DEFAULT">
+		<description>Constraint callback type id</description>
+		<detail>
+			<description>Constraint callback type id for callback event listeners</description>
+		</detail>
+	</property>
+	
+	<property name="userData" type="Dynamic">
+		<description>User data</description>
+		<detail>
+			<description>User data field to store whatever you like</description>
+		</detail>
+	</property>
+	
+	<property name="active" type="Bool">
+		<description>Whether constraint is active</description>
+		<detail>
+			<description>Defaulting to true, you can disable a constraint by setting this to false at any time so that the constraint is ignored without having to remove it from the space.</description>
+		</detail>
+	</property>
+	
+	<property name="ignore" type="Bool">
+		<description>Ignore body interactions</description>
+		<detail>
+			<description>When true, and even if the constraint is deactivated, the respective bodies belonging to the constraint will not be allowed to interact in any way.</description>
+		</detail>
+	</property>
+	
+	<property/>
+	
+	<property name="stiff" type="Bool">
+		<description>Whether constraint is stiff.</description>
+		<detail>
+			<description><text>When true, the positional errors of the constraint will be solved as best as possible to make the constraint stiff without effecting the velocity of the bodies (Therefore having a constraint break due to excessive force does not make any sense if the constraint is stiff as it would not take into account implicit positional error resolvement).</text><br/><br/><text>If false, then the constraint becomes soft and the positional error resolvement is dealt with by the frequency and damping coeffecients which allow the constraint to become spring-like with positional errors dealt with implicitly</text></description>
+		</detail>
+	</property>
+	
+	<property name="frequency" type="Float" value="10">
+		<description>The frequency of the spring-like oscillations</description>
+		<detail>
+			<description><text>Frequency value controls the strength of a soft constraint with respect to solving positional errors, under ideal circumstances a non-damped soft constraint should exhibit oscillatory behaviour with the given frequency.</text></description>
+			<set><code inline="true">frequency&lt;=0</code></set>
+		</detail>
+	</property>
+	
+	<property name="damping" type="Float" value="0.5">
+		<description>The damping of the spring-like oscillations</description>
+		<detail>
+			<description><text>The damping of the soft constraint with respect to solving positional errors. A value of 0 corresponds to no damping, a value of 1 corresponds to critical damping, though any positive value is allowed.</text></description>
+			<set><code inline="true">damping&lt;0</code> </set>
+		</detail>
+	</property>
+	
+	<property/>
+	
+	<property name="maxForce" type="Float" value="Math.POSITIVE_INFINITY">
+		<description>The maximum force constraint is allowed to use</description>
+		<detail>
+			<description><text>This value limits the force a constraint is allowed to use when doing velocity adjustments, note that for stiff constraints the constraint does not solve positional errors through the use of force and so this value does not make much sense.</text></description>
+		</detail>
+	</property>
+	
+	<property name="maxError" type="Float" value="Math.POSITIVE_INFINITY">
+		<description>The maximum error a soft constraint will try to solve per second.</description>
+		<detail>
+			<description><text>For soft constraints only, the maximum positional error that will attempt to be solved will be limited to this value. This value is still of use for stiff constraints, but only in conjunction with breakUnderError property.</text></description>
+		</detail>
+	</property>
+	
+	<property name="breakUnderForce" type="Bool" value="false">
+		<description>Control breaking of constraint due to excessive force</description>
+		<detail>
+			<description><text>When true, the constraint will be allowed to break; destroying the constraint and removing it from the space if the force required to solve the constraint exceeds maxForce. Like with maxForce this does not make much sense in conjunction with stiff constraints which do not use force to solve positional errors.</text></description>
+		</detail>
+	</property>
+	
+	<property name="breakUnderError" type="Bool" value="false">
+		<description>Control breaking of constraint due to excessive positional error</description>
+		<detail>
+			<description><text>When true, the constraint will be allowed to break; destroying the constraint and removing it from the space if the positional error exceeds maxError.</text></description>
+		</detail>
+	</property>
+	
+	<method name="impulse" const="true" return="MatMN">
+		<description>Return constraint space impulse</description>
+		<detail>
+			<description><text>Returns the constraint space impulse from the previous time step in which constraint was used</text></description>
+		</detail>
+	</method>
+	
+	<method name="bodyImpulse" const="true" return="Vec3">
+		<description>Return impulse applied to given body</description>
+		<arg name="body" type="Body" const="true"/>
+		<detail>
+			<description>Returns the impulse applied to the given body by constraint in previous time step</description>
+			<throws>body is null, or not related to constraint</throws>
+		</detail>
+	</method>
+</class>
+
+</data>

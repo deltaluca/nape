@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<data>
+
+<class package="nape.geom" name="MarchingSquares">
+	<file>MarchingSquares.hx</file>
+	<short>Marching Squares surface extraction</short>
+	<description>Marching Squares surface extraction.</description>
+
+	<method name="run" static="true" return="GeomPolyList">
+		<arg name="iso" type="Float->Float->Float"/>
+		<arg name="bounds" type="AABB" const="true"/>
+		<arg name="cellsize" type="Vec2" const="true"/>
+		<arg name="quality" type="Int" optional="true" default="2"/>
+		<arg name="subgrid" type="Vec2" optional="true" default="null"/>
+		<arg name="combine" type="Bool" optional="true" default="true"/>
+		
+		<description> Execute marching squares routine </description>
+		<detail>
+			<throws><code inline="true">cellsize.x&lt;=0 || cellsize.y&lt;=0</code></throws>
+			<throws><code inline="true">subgrid!=null && (subgrid.x&lt;=0 || subgrid.y&lt;=0</code></throws>
+			<throws><code inline="true">quality &lt;0</code></throws>
+
+			<description>
+				<text> Given the iso-surface function, we generate polygons defining the region of space bounded by the bounds AABB such that iso(x,y) &lt;= 0. </text><br/>
+				<text>The cellsize Vec2 determines the granularity of the sampling grid from which the initial polygons are generated using 'quality' number of iterations when interpolating across cell boundaries to find more accurate vertex positions.</text>
+				<img file="../../../exgif/lerp2.gif"/><br/>
+				<text>When combine is true (default). These polygons are then merged together to create the largest possible weakly-simple polygons representing the surface retaining cuts in the polygon to accomodate any holes.</text><br/>
+				<br/>
+				<text>These combined polygons are guaranteed to work under monotone and convex decompositions directly and do not need a simple decomposition performed (In fact, this may not generally function given the non-complete robustness of the simple decomposition; but it is not necessary anyways).</text>
+				<img file="../../../exgif/march.jpg"/>
+				<br/>
+				<text>The optional subgrid Vec2 provides a means of first dividing the bounds AABB into larger grid cells on which the marching squares is performed individually as though multiple calls were made.</text>
+				<img file="../../../exgif/march2.jpg"/>
+				<br/><br/>
+				<text>This algorithm is fast, and should be 100% robust.</text><br/>
+				<br/>
+				<text>Ignoring the subgrid option; the number of calls made to the iso-function is minimal, and the entire algorithm runs in O(N+K) time for N number of cells in the grid and K number of vertices in the output polygons (as a final pass is made to remove any redundant vertices before sending to the output list)</text>
+			</description>
+		</detail>
+	</method>
+</class>
+
+</data>

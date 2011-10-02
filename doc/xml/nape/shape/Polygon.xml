@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<data>
+	
+<class package="nape.shape" name="ValidationResult">
+	<file>Polygon.hx</file>
+	<short>Polygon validation result</short>
+	<description><text>Result types for Polygon validation routine.</text><br/><br/><text>These are listed in order of precedence, meaning that if a polygon is both concave 'and' self intersecting, then the result will be ValidationResult.CONCAVE, this is because each check on the validity of the polygon is more expensive than the last and so is ordered to be as fast as possible in determining validity.</text></description>
+	
+	<property static="true" name="VALID" type="ValidationResult" readonly="true">
+		<description>Valid</description>
+		<detail><description>Polygon is valid.</description></detail>
+	</property>
+	<property static="true"/>
+	<property static="true" name="DEGENERATE" type="ValidationResult" readonly="true">
+		<description>Degenerate polygon</description>
+		<detail><description>Polygon is degenerate; either it does not have enough vertices, or it has a very near zero area.</description></detail>
+	</property>
+	<property static="true" name="DEGENERATE_EDGES" type="ValidationResult" readonly="true">
+		<description>Degenerate edges</description>
+		<detail><description>Polygon has one or more edge with a near zero length.</description></detail>
+	</property>
+	<property static="true" name="CONCAVE" type="ValidationResult" readonly="true">
+		<description>Concave polygon</description>
+		<detail><description>Polygon is not convex.</description></detail>
+	</property>
+	<property static="true" name="SELF_INTERSECTING" type="ValidationResult" readonly="true">
+		<description>Self intersecting polygon</description>
+		<detail><description>Polygon is self-intersecting.</description></detail>
+	</property>
+</class>
+
+<!-- ------------------------------------------------------------------------------------------- -->
+	
+<class package="nape.shape" name="Polygon" super="Shape">
+	<file>Polygon.hx</file>
+	<short>Polygon shape type</short>
+	<description>
+		<text>Convex, simple polygon. Winding is not important.</text><br/><br/><text>You will be given errors should you try to simulate an invalid polygon (through a call to space.step() when space contains a rigid body with an invalid polygon). </text>
+	</description>
+	
+	<property name="localVerts" type="Vec2List" readonly="true">
+		<description>Mutable vertex list</description>
+		<detail>
+			<description>Vertex list for polygon in local coordinates</description>
+		</detail>
+	</property>
+	<property name="worldVerts" type="Vec2List" readonly="true">
+		<description>Immutable vertex list</description>
+		<detail>
+			<description>Immutable vertex list for polygon in world coordinates. Will give errors when Polygon is not within a rigid Body.</description>
+		</detail>
+	</property>
+	<property name="edges" type="EdgeList" readonly="true">
+		<description>Immutable edge list</description>
+		<detail>
+			<description>Immutable list of edge data. Edge at index 'n' corresponding to vertices 'n' and 'n+1' with wrap-around.</description>
+		</detail>
+	</property>
+	
+	<method name="validity" return="ValidationResult" const="true">
+		<description>Whether polygon is valid for simulation</description>
+		<detail>
+			<description>If you're unsure of the validity of a polygon which would give errors on an attempt to simulate, this method can be used to check for validity and what is wrong if it is not valid.</description>
+		</detail>
+	</method>
+	
+	<constructor>
+		<arg name="localVerts" type="CompatiblePolygon"/>
+		<arg name="material" type="Material" optional="true"/>
+		<arg name="material" type="Material" optional="true"/>
+		<arg name="filter" type="InteractionFilter" optional="true"/>
+		<description> Construct a new Polygon </description>
+		<detail>
+			<description><text>Construct Polygon with given local vertices, the Vec2 values will be copied on instantiation so that the same list of Vec2s can be used without explicit copying.</text><br/><br/>
+			<bullet/><text>material defaults to new Material()</text><br/>
+			<bullet/><text>filter defaults to new InteractionFilter()</text></description>
+			<throws>localVerts contains null entries</throws>
+		</detail>
+	</constructor>
+	
+	<method static="true" name="copy" return="Polygon">
+		<arg name="polygon" type="Polygon" const="true"/>
+		<description>Deep* copy of polygon</description>
+		<detail>
+			<seealso><link type="class" href="Shape" anchor="copy">Shape::copy</link> </seealso>
+			<throws><code inline="true">polygon==null</code> </throws>
+		</detail>
+	</method>
+	
+	<method static="true"/>
+	
+	<method static="true" name="rect" return="Array[Vec2]">
+		<arg name="x" type="Float"/>
+		<arg name="y" type="Float"/>
+		<arg name="width" type="Float"/>
+		<arg name="height" type="Float"/>
+		<description>Vertex list for rectangle</description>
+		<detail>
+			<description>Vertex list for rectangle.</description>
+		</detail>
+	</method>
+	
+	<method static="true" name="box" return="Array[Vec2]">
+		<arg name="width" type="Float"/>
+		<arg name="height" type="Float"/>
+		<description>Vertex list for aligned box</description>
+		<detail>
+			<description>Vertex list for a box aligned at the origin</description>
+		</detail>
+	</method>
+	
+	<method static="true" name="regular" return="Array[Vec2]">
+		<arg name="width" type="Float"/>
+		<arg name="height" type="Float"/>
+		<arg name="edgeCount" type="Int"/>
+		<arg name="angleOffset" type="Float" optional="true" default="0.0"/>
+		<description>Vertex list for regular aligned polygon</description>
+		<detail>
+			<description>Vertex list for a regular polygon aligned at the origin with vertices starting from an angle of angleOffset.</description>
+		</detail>
+	</method>
+</class>
+
+</data>

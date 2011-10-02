@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<data>
+
+<!-- ------------------------------------------------------------------------------------------- -->
+
+<class package="nape.callbacks" name="ListenerList" super="List[Listener]">
+	<file>Listener.hx</file>
+	<description>Instance of List&lt;T&gt; for Listener types</description>
+	<short>List of Listeners</short>
+	
+	<constructor>
+		<description>Construct new ListenerList</description>
+		<detail><description>Construct new ListenerList</description></detail>
+	</constructor>
+</class>
+
+<class package="nape.callbacks" name="ListenerIterator" super="ListIterator[Listener]">
+	<file>Listener.hx</file>
+	<description>Instance of ListIterator&lt;T&gt; for Listener types</description>
+	<short>Iterator to list of Listeners</short>
+</class>
+
+<!-- ------------------------------------------------------------------------------------------- -->
+
+<class package="nape.callbacks" name="ImmFlag">
+	<file>Listener.hx</file>
+	<short>Return values for immediate listeners</short>
+	<description>(This type is not yet used). Return values for PRE_BEGIN, PRE_SOLVE immediate callback types</description>
+
+	<property static="true" name="ACCEPT" type="ImmFlag" readonly="true">
+		<description> Accept interaction </description>
+		<detail>
+			<description> Accept interaction for this, and all subsequent steps until end of interaction </description>
+		</detail>
+	</property>
+	<property static="true" name="IGNORE" type="ImmFlag" readonly="true">
+		<description> Ignore interaction </description>
+		<detail>
+			<description> Ignore interaction for this, and all subsequent steps until end of interaction </description>
+		</detail>
+	</property>
+
+	<property static="true" name="ACCEPT_ONCE" type="ImmFlag" readonly="true">
+		<description> Accept interaction once</description>
+		<detail>
+			<description> Accept interaction for this step, ask again next step. </description>
+		</detail>
+	</property>
+	<property static="true" name="IGNORE_ONCE" type="ImmFlag" readonly="true">
+		<description> Ignore interaction once</description>
+		<detail>
+			<description> Ignore interaction for this step, ask again next step. </description>
+		</detail>
+	</property>
+</class>
+
+<class package="nape.callbacks" name="ListenerType">
+	<file>Listener.hx</file>
+	<short>Listener type</short>
+	<description>Listener type</description>
+
+	<property static="true" name="BODY" type="ListenerType" readonly="true">
+		<description>Body listener type</description>
+		<detail>
+			<description>Listener type for Body callbacks</description>
+		</detail>
+	</property>
+	<property static="true" name="CONSTRAINT" type="ListenerType" readonly="true">
+		<description>Constraint listener type</description>
+		<detail>
+			<description>Listener type for Constraint callbacks</description>
+		</detail>
+	</property>
+	<property static="true" name="INTERACTION" type="ListenerType" readonly="true">
+		<description>Interaction listener type</description>
+		<detail>
+			<description>Listener type for Interaction callbacks</description>
+		</detail>
+	</property>
+	<property static="true" name="IMM" type="ListenerType" readonly="true">
+		<description>Immediate interaction listener type</description>
+		<detail>
+			<description>Listener type for Immediate interaction callbacks</description>
+		</detail>
+	</property>
+</class>
+
+<!-- ------------------------------------------------------------------------------------------- -->
+
+<class package="nape.callbacks" name="Listener">
+	<file>Listener.hx</file>
+	<short>Super type for listener objects</short>
+	<description>super type for all listener objects</description>
+
+	<property name="type" type="ListenerType" readonly="true">
+		<description>Listener object type</description>
+		<detail>
+			<description>Type of listener</description>
+		</detail>
+	</property>
+	<property name="event" type="CbType">
+		<description>Listener event kind</description>
+		<detail>
+			<description>Listener event type</description>
+			<set>Invalid CbEvent for listener type</set>
+		</detail>
+	</property>
+
+	<property name="space" type="Space">
+		<description>Space listener's assigned to</description>
+		<detail>
+			<description>Space listener is assigned to, can set this to assign to the space</description>
+		</detail>
+	</property>
+</class>
+
+<class package="nape.callbacks" name="BodyListener" super="Listener">
+	<file>Listener.hx</file>
+	<short>Body event listener</short>
+	<description>Listener type for Body events. Allowed types are CbEvent.WAKE/SLEEP</description>
+
+	<property name="cbType" type="CbType">
+		<description> CbType for Body's handled by listener </description>
+		<detail>
+			<description> CbType matching the Body's listener is intended for</description>
+		</detail>
+	</property>
+
+	<property name="handler" type="Body->Void">
+		<description> Function handler for listener </description>
+		<detail>
+			<description> Function handler for this listener. If null then a Callback object will be generated in the same Space instead. </description>
+		</detail>
+	</property>
+
+	<constructor>
+		<arg name="event" type="CbEvent"/>
+		<arg name="cbType" type="CbType"/>
+		<arg name="handler" type="Body->Void" default="null"/>
+		<description>construct new BodyListener</description>
+		<detail>
+			<description>Construct new BodyListener</description>
+		</detail>
+	</constructor>
+</class>
+
+<class package="nape.callbacks" name="ConstraintListener" super="Listener">
+	<file>Listener.hx</file>
+	<short>Constraint event listener</short>
+	<description>Listener type for Constraint events. Allowed types are CbEvent.WAKE/SLEEP/BREAK</description>
+
+	<property name="cbType" type="CbType">
+		<description> CbType for Constraint's handled by listener </description>
+		<detail>
+			<description> CbType matching the Constraint's listener is intended for</description>
+		</detail>
+	</property>
+
+	<property name="handler" type="Constraint->Void">
+		<description> Function handler for listener </description>
+		<detail>
+			<description> Function handler for this listener. If null then a Callback object will be generated in the same Space instead. </description>
+		</detail>
+	</property>
+
+
+	<constructor>
+		<arg name="event" type="CbEvent"/>
+		<arg name="cbType" type="CbType"/>
+		<arg name="handler" type="Constraint->Void" default="null"/>
+		<description>construct new ConstraintListener</description>
+		<detail>
+			<description>Construct new ConstraintListener</description>
+		</detail>
+	</constructor>
+</class>
+
+<class package="nape.callbacks" name="InteractionListener" super="Listener">
+	<file>Listener.hx</file>
+	<short>Interaction event listener</short>
+	<description>(Type does not yet exist) Listener type for Interaction events. Allowed types are CbEvent.BEGIN/ONGOING/END</description>
+</class>
+
+<class package="nape.callbacks" name="ImmListener" super="Listener">
+	<file>Listener.hx</file>
+	<short>Immediate interaction event listener</short>
+	<description>(Type does not yet exist) Listener type for immediate interaction events. Allowed types are CbEvent.PRE_BEGIN/PRE_ONGOING</description>
+</class>
+
+</data>

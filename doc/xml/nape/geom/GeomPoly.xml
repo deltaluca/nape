@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<data>
+
+<class package="nape.geom" name="GeomPolyList" super="List[GeomPoly]">
+	<file>GeomPoly.hx</file>
+	<description>Instance of List&lt;T&gt; for GeomPoly</description>
+	<short>List of GeomPoly's</short>
+	
+	<constructor>
+		<description>Construct new GeomPolyList</description>
+		<detail><description>Construct new GeomPolyList</description></detail>
+	</constructor>
+</class>
+
+<class package="nape.geom" name="GeomPolyIterator" super="ListIterator[GeomPoly]">
+	<file>GeomPoly.hx</file>
+	<description>Instance of ListIterator&lt;T&gt; for GeomPoly's</description>
+	<short>Iterator to list of GeomPoly's</short>
+</class>
+
+<class package="nape.geom" name="GeomVertexIterator" super="ListIterator[Vec2]">
+	<file>GeomPoly.hx</file>
+	<description>Instance of ListIterator&lt;T&gt; for GeomPoly vertices</description>
+	<short>Iterator to vertex list of GeomPoly's</short>
+</class>
+
+<!-- ------------------------------------------------------------------------------------------- -->
+
+
+<class package="nape.geom" name="Winding">
+	<file>GeomPoly.hx</file>
+	<short>Polygon winding identifiers</short>
+	<description>Polygon winding results</description>
+
+	<property static="true" name="UNDEFINED" type="Winding" readonly="true">
+		<description>Undefined polygon winding</description>
+		<detail>
+			<description>Fairly rare to come by unless the polygon has less than 3 vertices. Denotes an undefined winding meaning that neither has more prominance</description>
+		</detail>
+	</property>
+	<property static="true" name="CLOCKWISE" type="Winding" readonly="true">
+		<description>Clockwise polygon winding</description>
+		<detail>
+			<description>Polygon is wound clockwise</description>
+		</detail>
+	</property>
+	<property static="true" name="ANTICLOCKWISE" type="Winding" readonly="true">
+		<description>Anti-clockwise polygon winding</description>
+		<detail>
+			<description>Polygon is wound anti-clockwise</description>
+		</detail>
+	</property>
+</class>
+
+<class package="nape.geom" name="GeomPoly">
+	<file>GeomPoly.hx</file>
+	<short>Geometric polygon utilities</short>
+	<description>Polygon class wrapping an internal circular linked list of vertices together with various geometric utilities</description>
+
+	<constructor>
+		<arg name="vertices" type="CompatiblePolygon" const="true" optional="true" default="null"/>
+		<description>Construct new GeomPoly</description>
+		<detail>
+			<description>Construt new GeomPoly with optional list of vertices</description>
+		</detail>
+	</constructor>
+
+	<method name="empty" return="Bool" const="true">
+		<description>Polygon is empty</description>
+		<detail>
+			<description>True if polygon contains no vertices</description>
+		</detail>
+	</method>
+
+	<method name="size" return="Int" const="true">
+		<description>Vertex count of the polygon</description>
+		<detail>
+			<description>Number of vertices in polygon</description>
+		</detail>
+	</method>
+
+	<method/>
+	<method name="current" return="Vec2" const="true">
+		<description>Access current vertex</description>
+		<detail>
+			<description>Returns Vec2 of current vertex</description>
+		</detail>
+	</method>
+	<method name="skip_forward">
+		<arg name="times" type="Int"/>
+		<description>Move forward in polygon</description>
+		<detail>
+			<description>Move vertex pointer forwards</description>
+		</detail>
+	</method>
+	<method name="skip_backwards">
+		<arg name="times" type="Int"/>
+		<description>Move backward in polygon</description>
+		<detail>
+			<description>Move vertex pointer backwards</description>
+		</detail>
+	</method>
+
+	<method/>
+	<method name="push" return="Vec2">
+		<arg name="x" type="Vec2" const="true"/>
+		<description>Push vertex to polygon</description>
+		<detail>
+			<description>Inserts a vertex after the current vertex, advancing vertex pointer to the newly inserted vertex returning current()</description>
+		</detail>
+	</method>
+	<method name="unshift" return="Vec2">
+		<arg name="x" type="Vec2" const="true"/>
+		<description>Unshift vertex to polygon</description>
+		<detail>
+			<description>Inserts a vertex before the current vertex, regressing vertex pointer to the newly inserted vertex returning current()</description>
+		</detail>
+	</method>
+	<method name="pop">
+		<description>Pop vertex from polygon</description>
+		<detail>
+			<description>Remove current vertex, regressing vertex pointer</description>
+			<throws>empty()</throws>
+		</detail>
+	</method>
+	<method name="shift">
+		<description>Shift vertex from polygon</description>
+		<detail>
+			<description>Remove current vertex, advancing vertex pointer</description>
+			<throws>empty()</throws>
+		</detail>
+	</method>
+
+	<method/>
+
+	<method name="erase">
+		<arg name="count" type="Int"/>
+		<description>Erase vertices from polygon</description>
+		<detail>
+			<description>Erase 'count' vertices (allowing negatives) from the polygon starting at current vertex. When count is positive this is equivalent to repeated application of the pop method. In both cases should the polygon become empty at any point or at entry then the method returns without error.</description>
+		</detail>
+	</method>
+	<method name="clear">
+		<description>Clear polygon</description>
+		<detail>
+			<description>Clear all vertices from the polygon</description>
+		</detail>
+	</method>
+
+	<method/>
+	<method name="copy" const="true" return="GeomPoly">
+		<description>Copy GeomPoly</description>
+		<detail>
+			<description>Copy GeomPoly</description>
+		</detail>
+	</method>
+
+	<method/>
+
+	<method name="iterator" const="true" return="GeomVertexIterator">
+		<description>Default iterator for vertices</description>
+		<detail>
+			<description> Returns an iterator over the vertices of this GeomPoly starting from current(). The iteration is done using internal pointers, not with current() and skip_forward/backwards and after iteration the state of the polygon will remain the same </description>
+		</detail>
+	</method>
+	<method name="forward_iterator" const="true" return="GeomVertexIterator">
+		<description>Forward iterator for vertices</description>
+		<detail>
+			<description> Returns an iterator over the vertices of this GeomPoly starting from current() and moving forwards through the vertices. The iteration is done using internal pointers, not with current() and skip_forward/backwards and after iteration the state of the polygon will remain the same </description>
+		</detail>
+	</method>
+	<method name="backwards_iterator" const="true" return="GeomVertexIterator">
+		<description>Backwards iterator for vertices</description>
+		<detail>
+			<description> Returns an iterator over the vertices of this GeomPoly starting from current() and moving backwards through the vertices. The iteration is done using internal pointers, not with current() and skip_forward/backwards and after iteration the state of the polygon will remain the same </description>
+		</detail>
+	</method>
+
+	<method/>
+
+	<method name="contains" const="true" return="Bool">
+		<arg name="point" type="Vec2" const="true"/>
+		<description>Point in polygon test</description>
+		<detail>
+			<description>Return true if the given point is contained within the polygon using the usual even-odd test when the polygon is self-intersecting</description>
+		</detail>
+	</method> 
+
+	<method/>
+	<method name="area" const="true" return="Float">
+		<description>Unsigned area of polygon</description>
+		<detail>
+			<description><text>Compute the area of the polygon. Assumes that the polygon is not self-intersecting or else the area will be underestimated.</text><br/><br/>
+				<text>The runtime of this algorithm is O(n)</text>
+			</description>
+		</detail>
+	</method>
+	<method name="winding" const="true" return="Winding">
+		<description>Polygon winding</description>
+		<detail>
+			<description><text>Compute the winding of the polygon. Assumes that the polygon is not self-intersecting or else the polygon winding is not always definable. In the case that the polygon is self-intersecting then the return value will corresponding to which winding is more prominent. for instance 3 right loops 1 left loop => clockwise</text><br/><br/>
+				<text>The runtime of this algorithm is O(n)</text>
+			</description>
+		</detail>
+	</method>
+	<method name="isClockwise" const="true" return="Bool">
+		<description>Polygon winding convex</description>
+		<detail>
+			<description>Returns true if; as determined by the winding() routine that this polygon is convex wound</description>
+		</detail>
+	</method>
+
+	<method/>
+	<method name="isConvex" const="true" return="Bool">
+		<description>Convex polygon test</description>
+		<detail>
+			<description><text>Returns true if the polygon is convex. Assumes that the polygon is not self-intersecting or else a combination of isSimple() &amp;&amp; isConvex() would be required for a full test.</text><br/><br/>
+				<text>The runtime of this algorithm is O(n)</text>
+			</description>
+		</detail>
+	</method>
+	<method name="isMonotone" const="true" return="Bool">
+		<description>Monotone polygon test</description>
+		<detail>
+			<description><text>Returns true if the polygon is y-monotone. Assumes that the polygon is not self-intersecting or else a combination of isSimple() &amp;&amp; isMonotone() would be required for a full test.</text><br/><br/>
+				<text>The runtime of this algorithm is O(n)</text>
+			</description>
+		</detail>
+	</method>
+	<method name="isSimple" const="true" return="Bool">
+		<description>Simple polygon test</description>
+		<detail>
+			<description><text>Returns true if the polygon is simple (has no self-intersections).</text><br/><br/>
+				<text>The average runtime of this algorithm is O(n.log(n))</text>
+			</description>
+		</detail>
+	</method>
+
+	<method/>
+	<method name="simplify" const="true" return="GeomPoly">
+		<arg name="epsilon" type="Float"/>
+		<description>Simplify polygon</description>
+		<detail>
+			<description><text>Simplify polygon using an implementation of the Ramer-Douglas-Peucker algorithm. The output polygon is formed via a subset of the input vertices such that any vertex not included in the output polygon is at most 'epsilon' pixels away from the output polygon. Works on both simple and non simple polygons</text><br/><br/>
+				<text>Many of the geometric algorithms will internally mark vertices such that the simplification routine will guarantee to keep them in the output polygon. This happens in cases where a polygon is partitioned and we do not want the simplification routine to insert gaps isnide the polygon, and for cases like marching squares where cuts may be necessary and we do not wish them to open up when the polygons are simplified.
+				</text><br/>
+				<br/>
+				<text>The average runtime of this algorithm is O(n.log(n)). Note that this is not a stable algorithm in the sense that adding a new vertex to the polygon may drasticaly change the result of it's simplification</text>
+			</description>
+			<throws><code inline="true">epsilon &lt;=0.0</code></throws>
+		</detail>
+	</method>
+
+	<method/>
+	<method name="simple_decomposition" const="true" return="GeomPolyList">
+		<description>Perform simple decomposition</description>
+		<detail>
+			<description><text>Perform a simple decomposition of the input self-intersecting polygon. The output polygons follow the usual even-odd test for inclusion in a complex polygon. Algorithm based on the Bentley-Ottmann algorithm to find intersections of a set of line segments.</text><br/><br/><text>This algorithm is 'fairly' robust but does not deal with all corner cases and can break so beware!</text><br/><br/><text>Also note that strictly speaking, the output of this algorithm is not in general a set of simple polygons, but instead a set of weakly-simple polygons. These polygons are 'not' guaranteed to pass the isSimple() test, but as long as the algorithm does not fail, the output polygons are guaranteed to be suitable for use in the convex and monotone decompositions</text><br/>
+			<br/>
+			<text>The runtime of this algorithm is O((n+k)log(n)) for k self-intersections</text>
+			</description>
+		</detail>
+	</method>
+	<method name="monotone_decomposition" const="true" return="GeomPolyList">
+		<description>Perform monotone decomposition</description>
+		<detail>
+			<description><text>Perform a y-monotone decomposition of the input polygon which is assumed to be a simple polygon. This algorithm is a robust and improved port of CGAL's y-monotone partitioning algorithm itself based on the following article: Mark de Berg, Marc van Kreveld, Mark Overmars, and Otfried Schwarzkopf. Computational Geometry: Algorithms and Applications. Springer-Verlag, Berlin, 1997. </text><br/><br/><text>The runtime of this algorithm is O(n.log(n))</text></description>
+		</detail>
+	</method>
+	<method name="convex_decomposition" const="true" return="GeomPolyList">
+		<description>Perform a convex decomposition</description>
+		<detail>
+			<description><text>Perform a convex decomposition of the input polygon which is assumed to be a simple polygon. This is a direct port of CGAL's green_approx_convex_partition algorithm itself based upon: Daniel H. Greene. The decomposition of polygons into convex parts. In Franco P. Preparata, editor, Computational Geometry, volume 1 of Adv. Comput. Res., pages 235-259. JAI Press, Greenwich, Conn., 1983.</text><br/><br/><text>This is a robust algorithm which guarantees no more than 4x the optimal number of convex partitions. It's runtime is O(n.log(n))</text>
+			</description>
+		</detail>
+	</method>
+</class>
+
+</data>

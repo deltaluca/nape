@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<data>
+
+<class package="nape.shape" name="Shape">
+	<file>Shape.hx</file>
+	<description>Super class for all Shape types</description>
+	<short>Shape super class.</short>
+	
+	<property name="type" type="ShapeType" readonly="true">
+		<description>Type of Shape</description>
+		<detail><description>Type of Shape</description></detail>
+	</property>
+	
+	<property name="id" type="Int" readonly="true">
+		<description>Unique identifier for shape</description>
+		<detail><description>Unique per-Shape instance identifier</description></detail>
+	</property>
+	
+	<property/>
+	<property name="body" type="Maybe[Body]" readonly="true">
+		<description>Body to which Shape belongs</description>
+		<detail><description>Body to which Shape belongs</description></detail>
+	</property>
+	<property name="circle" type="Maybe[Circle]" readonly="true">
+		<description>Reference to inner Circle type</description>
+		<detail><description>Use this in preference to a casting operation.</description></detail>
+	</property>
+	<property name="polygon" type="Maybe[Polygon]" readonly="true">
+		<description>Reference to inner Polygon type</description>
+		<detail><description>Use this in preference to a casting operation.</description></detail>
+	</property>
+	
+	<property/>
+	<property name="material" type="Material">
+		<description>Material for Shape</description>
+		<detail>
+			<description>The Material object to use for this Shape</description>
+			<set>!material.shared &amp;&amp; !material.shapes.empty()</set>
+		</detail>
+	</property>
+	<property name="filter" type="InteractionFilter">
+		<description>InteractionFilter for Shape</description>
+		<detail>
+			<description>The InteractionFilter for this Shape (*DOC ENTRY NOT DONE YET)</description>
+			<set>!filter.shared &amp;&amp; !filter.shapes.empty()</set>
+		</detail>
+	</property>
+	<property name="fluidProperties" type="FluidProperties">
+		<description>Fluid properties for Shape</description>
+		<detail>
+			<description>The fluid properties for the shape.</description>
+			<set>!fluidPropertoes.shared &amp;&amp; !fluidProperties.shapes.empty()</set>
+			<seealso><link type="relative" anchor="fluidEnabled">fluidEnabled</link> </seealso>
+		</detail>
+	</property>
+	<property name="fluidEnabled" type="Bool" value="false">
+		<description>Shape can interact as a fluid</description>
+		<detail>
+			<description><text>If true, and filtering allows it then this shape will interact as a fluid object interacting with buoyancy instead of collision.</text><br/><br/><text>There are further restrictions placed on fluid interaction, see InteractionFilter.</text></description>
+			<seealso><link type="class" href="InteractionFilter">InteractionFilter</link> </seealso>
+		</detail>
+	</property>
+	<property name="cbType" type="CbType" value="CbType.DEFAULT">
+		<description>Shape callback type id</description>
+		<detail>
+			<description>Shape callback type id for callback event listeners</description>
+		</detail>
+	</property>
+	
+	<property/>
+	<property name="localCOM" type="Vec2">
+		<description>local centre of mass</description>
+		<detail>
+			<description><text>The local centre of mass of the Shape</text><br/><text class="small1">Setting this property is copy-by-value, not copy-by-reference and equivalent to this.localCOM.set(p)</text> </description>
+		</detail>
+	</property>
+	<property name="worldCOM" type="Vec2" readonly="true">
+		<description>Immutable world/global centre of mass</description>
+		<detail>
+			<description><text>The immutable global centre of mass of the Shape</text><br/><text>Any attempt to access this property directly or indirectly whilst the Shape is not part of a rigid body will result in an error.</text></description>
+			
+			<get>Shape does not belong to a Body</get>
+		</detail>
+	</property>
+	<property name="bounds" type="AABB" readonly="true">
+		<description>Immutable global bounds of shape</description>
+		<detail>
+			<description><text>Immutable AABB representing the global limits of the shape</text><br/><text>Any attempt to access this property directly or indirectly whilst the Shape is not part of a rigid body will result in an error.</text></description>
+			
+			<get>Shape does not belong to a Body</get>
+		</detail>
+	</property>
+	
+	<property/>
+	<property name="area" type="Float" readonly="true">
+		<description>Area of the shape</description>
+		<detail>
+			<description><text>The area, in px^2 of this shape</text></description>
+		</detail>
+	</property>
+	<property name="inertia" type="Float" readonly="true">
+		<description>Mass invariant moment of inertia of the shape</description>
+		<detail>
+			<description><text>The mass invariant moment of inertia of the shape, units are px^2</text></description>
+		</detail>
+	</property>
+	<property name="angDrag" type="Float" readonly="true">
+		<description>angular drag coeffecient for shape in fluid.</description>
+		<detail>
+			<description><text>Unitless value used as an approximation of what anuglar drag this shape should experiance in fluid, used both (will be in future, not yet) for air drag and liquid drag</text></description>
+		</detail>
+	</property>
+	
+	<method static="true" name="copy" return="Shape">
+		<arg name="shape" type="Shape" const="true"/>
+		<description>Produce a deep* copy of the Shape</description>
+		<detail>
+			<description>Produces a nearly deep copy of the Shape. If the shape's material/filter/fluidProperties are set for sharing, then these will be shared rather than copied. </description>
+			<throws><code inline="true">shape==null</code> </throws>
+		</detail>
+	</method>
+	<method/>
+	<method name="isCircle" return="Bool" const="true" inline="true">
+		<description>Whether Shape is a Circle</description>
+		<detail><description>Returns true if Shape is a Circle</description></detail>
+	</method>
+	<method name="isPolygon" return="Bool" const="true" inline="true">
+		<description>Whether Shape is a Polygon</description>
+		<detail><description>Returns true if Shape is a Polygon</description></detail>
+	</method>
+	<method/>
+	<method name="translate">
+		<arg name="displacement" type="Vec2" const="true"/>
+		<description>Perform local displacement of Shape</description>
+		<detail>
+			<description>Translates shape in local-coordinates by displacement</description>
+		</detail>
+	</method>
+	<method name="scale">
+		<arg name="scalex" type="Float"/>
+		<arg name="scaley" type="Float" />
+		<description>Perform local scaling of Shape</description>
+		<detail>
+			<description><text>Performs a scaling in local-coordinates of shape</text></description>
+			<throws>isCircle() &amp;&amp; |scalex| != |scaley|</throws>
+		</detail>
+	</method>
+	<method name="rotate">
+		<arg name="angle" type="Float"/>
+		<description>Perform local rotation of Shape</description>
+		<detail>
+			<description>Rotates shape in local coordinates anti-clockwise by angle radians</description>
+		</detail>
+	</method>
+	<method name="transform">
+		<arg name="matrix" type="Mat23" const="true"/>
+		<description>Perform local transformation of Shape</description>
+		<detail>
+			<description><text>Transforms shape by given matrix in local coordinates</text></description>
+			<throws> isCircle() &amp;&amp; !matrix.equiorthogonal()</throws>
+		</detail>
+	</method>
+</class>
+
+<!-- ------------------------------------------------------------------------------------------- -->
+
+<class package="nape.shape" name="ShapeType">
+	<file>Shape.hx</file>
+	<description>Identifiers for Shape types</description>
+	<short>Shape type identifiers</short>
+	
+	<property static="true" readonly="true" name="CIRCLE" type="ShapeType">
+		<description>Circle shape id</description>
+		<detail><description>Circle shape id</description></detail>
+	</property>
+	<property static="true" readonly="true" name="POLYGON" type="ShapeType">
+		<description>Polygon shape id</description>
+		<detail><description>Polygon shape id</description></detail>
+	</property>
+</class>
+
+<!-- ------------------------------------------------------------------------------------------- -->
+
+<class package="nape.shape" name="ShapeList" super="List[Shape]">
+	<file>Shape.hx</file>
+	<description>Instance of List&lt;T&gt; for Shape types</description>
+	<short>List of Shapes</short>
+	
+	<constructor>
+		<description>Construct new ShapeList</description>
+		<detail><description>Construct new ShapeList</description></detail>
+	</constructor>
+</class>
+
+<class package="nape.shape" name="ShapeIterator" super="ListIterator[Shape]">
+	<file>Shape.hx</file>
+	<description>Instance of ListIterator&lt;T&gt; for Shape types</description>
+	<short>Iterator to list of Shapes</short>
+</class>
+
+</data>
