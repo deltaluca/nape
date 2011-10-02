@@ -260,6 +260,7 @@ class GeomPoly {
 		#end
 	}
 
+mix_circular(Vertex,
 	public function bounds() {
 		DEBUG(if(empty()) throw "Error: empty GeomPoly has no defineable bounds";)
 		vec_new(min, PR(Const).FMAX, PR(Const).FMAX);
@@ -276,26 +277,27 @@ class GeomPoly {
 	public function top() {
 		DEBUG(if(empty()) throw "Error: empty GeomPoly has no defineable topmost vertex";)
 		var min = verts;
-		Iter(v, verts.next, verts, if(v.y<min.y) min = v);
+		for_iter(v, verts.next, verts, if(v.y<min.y) min = v);
 		return min.wrapper();
 	}
 	public function bottom() {
 		DEBUG(if(empty()) throw "Error: empty GeomPoly has no defineable bottommost vertex";)
 		var max = verts;
-		Iter(v, verts.next, verts, if(v.y>max.y) max = v);
+		for_iter(v, verts.next, verts, if(v.y>max.y) max = v);
 		return max.wrapper();
 	}
 	public function left() {
 		DEBUG(if(empty()) throw "Error: empty GeomPoly has no defineable leftmost vertex";)
 		var min = verts;
-		Iter(v, verts.next, verts, if(v.x<min.x) min = v);
+		for_iter(v, verts.next, verts, if(v.x<min.x) min = v);
 		return min.wrapper();
 	}
 	public function right() {
 		DEBUG(if(empty()) throw "Error: empty GeomPoly has no defineable rightmmost vertex";)
 		var max = verts;
-		Iter(v, verts.next, verts, if(v.x>max.x) max = v);
+		for_iter(v, verts.next, verts, if(v.x>max.x) max = v);
 		return max.wrapper();
 	}
+)
 }
 )
