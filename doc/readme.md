@@ -83,7 +83,7 @@ With current classes available being:
 +	link
 
 ```xml
-<link type="..." href="..." anchor="..."/>
+<link type="..." href="..." anchor="..."> <!-- moar tags--> </link>
 ```
 
 Where type is:
