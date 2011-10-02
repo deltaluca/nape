@@ -28,17 +28,36 @@ class Main
 			}
 		}
 	}
+
+	public static function cdir(dir:String) {
+		if(!FileSystem.exists(dir)) {
+			try {
+				FileSystem.createDirectory(dir);
+			}catch(e:Dynamic) {
+				var e1 = dir.lastIndexOf("/");
+				var e2 = dir.lastIndexOf("\\");
+				if(e1==-1 && e2==-1) throw "Error creating directory '"+dir+"'";
+				var par = dir.substr(0,e1>e2?e1:e2);
+				try {
+					cdir(par);
+					FileSystem.createDirectory(dir);
+				}catch(e:String) {
+					throw "Error creating directory '"+dir+"'";
+				}
+			}
+		}
+	}
 	
 	static function main() 
 	{
 //		try {
 			var lib = new XLib();
 			
-			if (!FileSystem.exists(Gen.froot + "/pckg")) FileSystem.createDirectory(Gen.froot + "/pckg");
-			if (!FileSystem.exists(Gen.froot + "/tut")) FileSystem.createDirectory(Gen.froot + "/tut");
-			if (!FileSystem.exists(Gen.froot + "/swf")) FileSystem.createDirectory(Gen.froot + "/swf");
-			if (!FileSystem.exists(Gen.froot + "/ex")) FileSystem.createDirectory(Gen.froot + "/ex");
-			if (!FileSystem.exists(Gen.froot + "/docs")) FileSystem.createDirectory(Gen.froot + "/docs");
+			if (!FileSystem.exists(Gen.froot + "/pckg")) cdir(Gen.froot + "/pckg");
+			if (!FileSystem.exists(Gen.froot + "/tut")) cdir(Gen.froot + "/tut");
+			if (!FileSystem.exists(Gen.froot + "/swf")) cdir(Gen.froot + "/swf");
+			if (!FileSystem.exists(Gen.froot + "/ex")) cdir(Gen.froot + "/ex");
+			if (!FileSystem.exists(Gen.froot + "/docs")) cdir(Gen.froot + "/docs");
 				
 			var args = neko.Sys.args();
 			if(args.length!=0) {

@@ -7,6 +7,7 @@ import neko.FileSystem;
 
 import Types;
 import Gen;
+import Main;
 
 class Write {
 	
@@ -261,7 +262,7 @@ class Write {
 		var data = genPackage(pck);
 		
 		var par = if (pck.parent == null) Gen.froot else Gen.PACKAGE_LOC(pck.parent, Gen.froot);
-		if (!FileSystem.exists(par)) FileSystem.createDirectory(par);
+		if (!FileSystem.exists(par)) Main.cdir(par);
 		
 		var file = File.write(Gen.PACKAGE_LOC(pck,Gen.froot) + ".html", false);
 		var bytes = Bytes.ofString(data);
@@ -1103,7 +1104,7 @@ class Write {
 		var data = genClass(cls);
 		
 		var par = Gen.PACKAGE_LOC(cls.pckg, Gen.froot);
-		if (!FileSystem.exists(par)) FileSystem.createDirectory(par);
+		if (!FileSystem.exists(par)) Main.cdir(par);
 		
 		var file = File.write(Gen.CLASS_LOC(cls,Gen.froot) + ".html", false);
 		var bytes = Bytes.ofString(data);
@@ -1146,6 +1147,7 @@ class Write {
 	
 	public static function writeTutorial(tut:XExample) {
 		var data = genTutorial(tut);
+
 		var file = File.write(Gen.TUT_LOC(tut, Gen.froot) + ".html", false);
 		var bytes = Bytes.ofString(data);
 		file.writeBytes(bytes, 0, data.length);
