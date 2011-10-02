@@ -247,6 +247,36 @@ class Proc {
 	}
 	
 	//- - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+	public static function temp_package(name:String) {
+		var ret = new XPackage();
+		var ind = name.lastIndexOf(".");
+		if(ind==-1) {
+			ret.name = name;
+			ret._parent = "";
+			return ret;
+		}
+
+		ret.name = name.substr(ind+1);
+		ret._parent = name.substr(0,ind);
+		ret.fullname = name;
+		ret.pdepth = name.split(".").length;
+
+		pck_map.set(name, ret);
+
+		if(ret._parent.length>0) {
+			for(pck in pck_map) {
+				if(pck.fullname == ret._parent) {
+					ret.parent = pck;
+					break;
+				}
+			}
+			if(ret.parent==null)
+				ret.parent = temp_package(ret._parent);
+		}
+
+		return ret;
+	}
 	
 	static var pck_map:Hash<XPackage>;
 	public static function process(lib:XLib) {
@@ -272,6 +302,10 @@ class Proc {
 						break;
 					}
 				}
+				if(pck.parent==null) {
+					neko.Lib.println("Warning: no pckage '"+pck._parent+"' found for package '"+pck.fullname+"'");
+					pck.parent = temp_package(pck._parent);
+				}
 			}
 		}
 		
@@ -281,6 +315,9 @@ class Proc {
 			if ((cls.pckg = pck_map.get(cls._pckg)) != null) {
 				cls.pckg.classes.push(cls);
 				cls.pdepth = cls.pckg.pdepth + 1;
+			}else {
+				neko.Lib.println("Warning: no package '"+cls._pckg+"' found for class '"+cls._name+"'");
+				cls.pckg = temp_package(cls._pckg);
 			}
 				
 			cls_map.set(cls._name, cls);

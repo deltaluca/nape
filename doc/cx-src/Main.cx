@@ -31,23 +31,51 @@ class Main
 	
 	static function main() 
 	{
-		try {
+//		try {
 			var lib = new XLib();
-			
-			recurse("xml/", lib);
-			
-			Proc.process(lib);
-			//Debug.print(lib);
 			
 			if (!FileSystem.exists(Gen.froot + "/pckg")) FileSystem.createDirectory(Gen.froot + "/pckg");
 			if (!FileSystem.exists(Gen.froot + "/tut")) FileSystem.createDirectory(Gen.froot + "/tut");
 			if (!FileSystem.exists(Gen.froot + "/swf")) FileSystem.createDirectory(Gen.froot + "/swf");
 			if (!FileSystem.exists(Gen.froot + "/ex")) FileSystem.createDirectory(Gen.froot + "/ex");
 			if (!FileSystem.exists(Gen.froot + "/docs")) FileSystem.createDirectory(Gen.froot + "/docs");
+				
+			var args = neko.Sys.args();
+			if(args.length!=0) {
+				for(a in args) {
+					var fargs = a.split(",");
+					for(f in fargs) {
+						if(!FileSystem.exists(f)) {
+							Lib.println("File :: "+f+" does not exist");
+							continue;
+						}
+						if(FileSystem.kind(f) != kfile) {
+							Lib.println("File :: "+f+" is not a file");
+							continue;
+						}
+						Parse.parse(f, lib);	
+					}
+				}
+			} else
+				recurse("xml/", lib);
 			
-			Write.writeIndex(lib);
-			Write.write404(lib);
-			Write.writeContrib(lib);
+			Proc.process(lib);
+			//Debug.print(lib);
+	
+			if(lib.index!=null)	{
+				Lib.println("index");
+				Write.writeIndex(lib);
+			}
+
+			if(lib.e404!=null) {
+				Lib.println("404");
+				Write.write404(lib);
+			}
+
+			if(lib.contrib!=null) {
+				Lib.println("contrib");
+				Write.writeContrib(lib);
+			}
 			
 			for (doc in lib.docs) {
 				Lib.println("doc >> " + doc.name);
@@ -74,8 +102,8 @@ class Main
 				Write.writeClass(cls);
 			}
 			
-		}catch (e:Dynamic) {
-			Lib.print(e);
-		}
+//		}catch (e:Dynamic) {
+//			Lib.print(e);
+//		}
 	}
 }
