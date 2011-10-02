@@ -1,9 +1,24 @@
 def:
-	@echo "Please specify run, or build"
-	@echo "For run, optional FILES=file_list can be given for pick-and-choose generation"
+	@echo "--------------------"
+	@echo ">> To compile doc. generator use 'build' target"
+	@echo ">> To run generator for all xml files in xml/ folder use 'run' target"
+	@echo ">> To run generator for specific files, use 'run' target with FILES=file1,file2...filen"
+	@echo ">> To clean generated docs, use 'clean_run' target"
+	@echo ">> To clean everywthing, use 'clean' target"
 
 run:
 	./bin/docs $(FILES)
+
+clean: clean_run
+	rm -rf bin
+	rm -rf src
+	rm -rf cpp
+
+.PHONY: clean_run
+
+clean_run:
+	find doc -type f -name "*.html" -print0 | xargs -0 rm -rf
+	find doc -depth -type d -empty -exec rmdir {} \;
 
 build:
 	caxe -o src cx-src -tc 2 --times
