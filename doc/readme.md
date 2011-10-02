@@ -163,6 +163,9 @@ With the description appearing as the first thing on the page before tables of e
 
 ```xml
 <class package="full.package.name" name="classname" [super="superclass"]>
+	[<implements> <!-- not used --> </implements>]
+	[<seealso> <!-- see also content --></seealso>]*
+
 	<file> haXe file for imports </file>
 	<short>
 		<!-- Description to appear in class listing of package page -->
@@ -170,6 +173,11 @@ With the description appearing as the first thing on the page before tables of e
 	<description>
 		<!-- Descrpitiong to appear at top of actual class page before listings -->
 	</description>
+
+	<!-- should use in combination with anchors for relative links -->
+	[<example>
+		<!-- Content of example -->
+	</example>]*
 
 	[<constructor>
 		[<arg name="..." type="..." [const="true"] [optional="true" [default="value"]]/>]*
@@ -194,6 +202,8 @@ With the description appearing as the first thing on the page before tables of e
 				<!-- Description to appear at method info -->
 			</description>
 			[<throws> <!-- Error condition --> </throws>]*
+			[<seealso> <!-- See-also content --> </seealso>]*
+			[<example> <!-- Specific example content --> </example>]*
 		</detail>
 	</method>]*
 
@@ -210,6 +220,8 @@ With the description appearing as the first thing on the page before tables of e
 			</description>
 			[<get> <!-- Error condition on getter --> </get>]*
 			[<set> <!-- Error condition on setter --> </set>]*
+			[<seealso> <!-- See-also content --></seealso>]*
+			[<example> <!-- Specific example content --> </example>]*
 		</detail>
 	</property>]*
 
@@ -266,3 +278,9 @@ For descriptive documentation. No such documentation exists as of writing for ne
 	</long>
 </doc>
 ```
+
+## Contributors page
+
+<contrib>
+	<!-- Content -->
+</contrib>
