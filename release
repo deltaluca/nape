@@ -1,0 +1,138 @@
+#!/bin/bash
+
+WORKING=".version.cur"
+
+if [ ! -e $WORKING ]
+then
+	cp version $WORKING
+fi
+
+function read {
+	MAJOR=`sed -n '1p' $WORKING`
+	MINOR=`sed -n '2p' $WORKING`
+	REVISION=`sed -n '3p' $WORKING`
+	DATETIME=`sed -n '4p' $WORKING`
+}
+read
+
+function write {
+	echo $MAJOR > $WORKING
+	echo $MINOR >> $WORKING
+	echo $REVISION >> $WORKING
+	echo $DATETIME >> $WORKING
+}
+
+function cver {
+	CVERSION="$MAJOR.$MINOR"
+	if [ "$REVISION" != 0 ]
+	then
+		CVERSION="$CVERSION \"r$REVISION\" $DATETIME"
+	fi
+}
+
+if [ "$1" = 'reset' ]
+then
+	cp version $WORKING
+	read
+
+	cver
+	echo " >> now at $CVERSION"
+elif [ "$1" = 'incminor' ]
+then
+	MINOR=$((MINOR+1))
+	REVISION=0
+	DATETIME=""
+	write
+
+	cver
+	echo " >> now at $CVERSION"
+elif [ "$1" = 'inc' ]
+then
+	MAJOR=$((MAJOR+1))
+	MINOR=1
+	REVISION=0
+	DATETIME=""
+	write
+
+	cver
+	echo " >> now at $CVERSION"
+
+	exit
+elif [ "$1" = 'make' ]
+then
+	oldREVISION=$REVISION
+	oldDATETIME=$DATETIME
+
+	REVISION=$((REVISION+1))
+	DATETIME=`date +"%d/%m/%y %H:%M"`
+	write
+
+	make release
+	if [ "$?" == "0" ]
+	then
+		cver
+		echo " >> now at $CVERSION"
+		cp $WORKING version
+
+		#doc page number.
+		INDEX="doc/xml/index.xml"
+		TMP=".tmp.index"
+		
+		CVERSION=`echo $CVERSION | sed "s/\//\\\\\\\\\\\//g"`
+		CVERSION="Milestone $CVERSION"
+
+		echo $CVERSION
+		sed "s/<!--CVERSION-->.*<!--CVERSION-->/<!--CVERSION-->$CVERSION<!--CVERSION-->/" $INDEX > $TMP
+		cp $TMP $INDEX
+		rm $TMP
+
+		#rebuild docs fully (to have proper links)
+		cd doc
+		make build
+		make run
+		cd ../
+
+		#ftp shiz
+		ftp -n -v deltaluca.me.uk << EOT
+user luca $PASS
+prompt
+cd public_html/docnew/
+lcd doc/doc/
+put index.html
+
+cd ../napenew/
+mkdir m$MAJOR.$MINOR
+cd m$MAJOR.$MINOR
+mkdir r$REVISION
+cd r$REVISION
+lcd ../../bin/release
+mput *
+
+exit
+EOT
+
+	else
+		echo " >> FAILED COMPILATION"
+
+		REVISION=$oldREVISION
+		DATETIME=$oldDATETIME
+		write
+	
+		rm -rf bin/release
+	fi
+
+	exit
+elif [ "$1" = 'version' ]
+then
+	cver
+	echo $CVERSION
+	exit
+else
+	echo "Script for working with public releases of nape for development"
+	echo " >> 'version' to query current public version"
+	echo " >> 'incminor' to increment minor version (reset revision to 1)"
+	echo " >> 'inc' to increment major version (reset minor to 1)"
+	echo " >> 'make' to run 'make release' aswell as incrementing revision and performing ftp work"
+	echo " >> 'reset' to undo staged changes"
+	exit
+fi
