@@ -8,16 +8,13 @@ import neko.FileSystem;
 #end
 
 @:macro class ZPP_HaxeMacros {
-    public static function dateTime() {
-        var date = Date.now();
-		var datestr = date.getDate()+"/"+(date.getMonth()+1)+"/"+(date.getFullYear()%100)+" "+date.getHours()+":"+date.getMinutes();
-
-		//get revision number from file
-		if(FileSystem.exists("revision")) {
-			var revision = Std.parseInt(File.getContent("revision"));
-			datestr = "\"r"+revision+"\" build "+datestr;
+    public static function cversion() {
+		var datestr:String;
+		if(FileSystem.exists(".version.cur")) {
+			var strs = File.getContent(".version.cur").split("\n");
+			datestr = "Milestone "+strs[0]+"."+strs[1]+" \"r"+strs[2]+"\" "+strs[3];
 		}else
-			datestr = "\"unknown revision\" build "+datestr;
+			datestr = "\"unknown version\"";
 
         var pos = haxe.macro.Context.currentPos();
         return { expr : EConst(CString(datestr)), pos : pos };
