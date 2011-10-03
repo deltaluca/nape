@@ -70,6 +70,8 @@ then
 	make release
 	if [ "$?" == "0" ]
 	then
+		make tar
+
 		cver
 		echo " >> now at $CVERSION"
 		cp $WORKING version
@@ -79,10 +81,42 @@ then
 		TMP=".tmp.index"
 		
 		CVERSION=`echo $CVERSION | sed "s/\//\\\\\\\\\\\//g"`
-		CVERSION="Milestone $CVERSION"
+		CVERSION="<text class=\"small1 italic\">Milestone $CVERSION<\/text>"
 
 		echo $CVERSION
 		sed "s/<!--CVERSION-->.*<!--CVERSION-->/<!--CVERSION-->$CVERSION<!--CVERSION-->/" $INDEX > $TMP
+		cp $TMP $INDEX
+		rm $TMP
+
+		#download links
+		DIR="http:\/\/deltaluca.me.uk\/napenew\/m$MAJOR.$MINOR\/r$REVISION"
+		OUT="<link type=\"outside\" href=\"$DIR\/assert_nape.swc\">assert<\/link><text> <\/text><link type=\"outside\" href=\"$DIR\/debug_nape.swc\">debug<\/link><text> <\/text><link type=\"outside\" href=\"$DIR\/release_nape.swc\">release<\/link><br\/>"
+		sed "s/<!--FP10-->.*<!--FP10-->/<!--FP10-->$OUT<!--FP10-->/" $INDEX > $TMP
+		cp $TMP $INDEX
+		rm $TMP
+
+		OUT="<link type=\"outside\" href=\"$DIR\/assert_nape9.swc\">assert<\/link><text> <\/text><link type=\"outside\" href=\"$DIR\/debug_nape9.swc\">debug<\/link><text> <\/text><link type=\"outside\" href=\"$DIR\/release_nape9.swc\">release<\/link><br\/>"
+		sed "s/<!--FP9-->.*<!--FP9-->/<!--FP9-->$OUT<!--FP9-->/" $INDEX > $TMP
+		cp $TMP $INDEX
+		rm $TMP
+
+		OUT="<link type=\"outside\" href=\"$DIR\/haxe_assert_nape.swf\">assert<\/link><text> <\/text><link type=\"outside\" href=\"$DIR\/haxe_debug_nape.swf\">debug<\/link><text> <\/text><link type=\"outside\" href=\"$DIR\/haxe_release_nape.swf\">release<\/link><br\/>"
+		sed "s/<!--hFP10-->.*<!--hFP10-->/<!--hFP10-->$OUT<!--hFP10-->/" $INDEX > $TMP
+		cp $TMP $INDEX
+		rm $TMP
+
+		OUT="<link type=\"outside\" href=\"$DIR\/haxe_assert_nape9.swf\">assert<\/link><text> <\/text><link type=\"outside\" href=\"$DIR\/haxe_debug_nape9.swf\">debug<\/link><text> <\/text><link type=\"outside\" href=\"$DIR\/haxe_release_nape9.swf\">release<\/link><br\/>"
+		sed "s/<!--hFP9-->.*<!--hFP9-->/<!--hFP9-->$OUT<!--hFP9-->/" $INDEX > $TMP
+		cp $TMP $INDEX
+		rm $TMP
+
+		OUT="<link type=\"outside\" href=\"$DIR\/hx-src.tar.gz\">.tar.gz<\/link><text> <\/text><link type=\"outside\" href=\"$DIR\/hx-src.zip\">.zip<\/link><br\/>"
+		sed "s/<!--haxe-->.*<!--haxe-->/<!--haxe-->$OUT<!--haxe-->/" $INDEX > $TMP
+		cp $TMP $INDEX
+		rm $TMP
+
+		OUT="<link type=\"outside\" href=\"$DIR\/nape.tar.gz\">.tar.gz<\/link><text> <\/text><link type=\"outside\" href=\"$DIR\/nape.zip\">.zip<\/link><br\/>"
+		sed "s/<!--caxe-->.*<!--caxe-->/<!--caxe-->$OUT<!--caxe-->/" $INDEX > $TMP
 		cp $TMP $INDEX
 		rm $TMP
 
