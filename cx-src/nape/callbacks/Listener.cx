@@ -40,6 +40,8 @@ class Listener {
                 pr(inner).body.swapEvent(xevent);
             else if(pr(inner).type == Flag(ListenerType,CONSTRAINT))
                 pr(inner).constraint.swapEvent(xevent);
+			else if(pr(inner).type == Flag(ListenerType,INTERACTION))
+				pr(inner).interaction.swapEvent(xevent);
         }
     })
 
@@ -71,6 +73,9 @@ class Listener {
         }else if(pr(inner).type == Flag(ListenerType,CONSTRAINT)) {
             var con = pr(inner).constraint;
             return "ConstraintListener{"+event+"::"+con.outer_zn.cbType+"}";
+		}else if(pr(inner).type == Flag(ListenerType,INTERACTION)) {
+			var con = pr(inner).interaction;
+			return "InteractionListener{"+event+"::"+con.outer_zn.cbType1+":"+con.outer_zn.cbType2+"}";
         }else return "???";
     }
 }
@@ -146,4 +151,51 @@ class ConstraintListener extends Listener {
 
         this.cbType = cbType;
     }
+}
+
+///_________________________________________________________________________________________________
+///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+
+class InteractionListener extends Listener {
+	public var pr(inner_zn):PR(InteractionListener);
+
+	property(cbType1,CbType,pr(inner_zn).cb1.wrapper(),{
+		DEBUG(if(cbType1==null) throw "Error: Cannot assign null CbType to Listener";)
+
+		var con = pr(inner_zn);
+		if(con.cb1==null || con.cb1!=cbType1.pr(inner))
+			con.swapCbType(1, cbType1.pr(inner));
+	})
+	property(cbType2,CbType,pr(inner_zn).cb2.wrapper(),{
+		DEBUG(if(cbType2==null) throw "Error: Cannot assign null CbType to Listener";)
+
+		var con = pr(inner_zn);
+		if(con.cb2==null || con.cb2!=cbType2.pr(inner))
+			con.swapCbType(2, cbType2.pr(inner));
+	})
+
+    property(handler,Arbiter->Void,pr(inner_zn).handler,pr(inner_zn).handler = handler)
+
+    ///---------------------------------------------------------------------------------------------
+
+	public function new(event:CbEvent, cbType1:CbType, cbType2:CbType, ?handler:Arbiter->Void=null) {
+		PR(Listener).internal = true; super(); PR(Listener).internal = false;
+
+		var xevent = -1;
+		if     (event==CbEvent.BEGIN)   xevent = Flag(CbEvent,BEGIN);
+		else if(event==CbEvent.ONGOING) xevent = Flag(CbEvent,ONGOING);
+		else if(event==CbEvent.END)     xevent = Flag(CbEvent,END);
+		DEBUG(else throw "Error: CbEvent '"+event.toString()+"' is not a valid event type for InteractionListener";)
+		
+		DEBUG(if(cbType1==null) throw "Error: InteractionListener cbType1 cannot be null";)
+		DEBUG(if(cbType2==null) throw "Error: InteractionListener cbType2 cannot be null";)
+
+		pr(inner_zn) = new PR(InteractionListener)(xevent,handler);
+		pr(inner) = pr(inner_zn);
+		pr(inner).outer = this;
+		pr(inner_zn).outer_zn = this;
+
+		this.cbType1 = cbType1;
+		this.cbType2 = cbType2;
+	}
 }

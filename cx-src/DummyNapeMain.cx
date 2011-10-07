@@ -222,11 +222,43 @@ class Tracer {
 	}
 }
 
+class DummyNapeMain {
+	static function main() {
+		var root = flash.Lib.current;
+		var space = new Space();
+		var debug = new BitmapDebug(600,600,0x333333);
+		root.addChild(debug.display);
+
+		var b1 = new Body();
+		var b2 = new Body();
+
+		b1.shapes.add(new Circle(50));
+		b2.shapes.add(new Circle(50));
+
+		b1.space = space;
+		b2.space = space;
+
+		var begin = new InteractionListener(CbEvent.BEGIN, b1.cbType, b2.cbType, function (x:Arbiter) {
+			trace("BEGIN "+b1.cbType+":"+b2.cbType);
+		});
+		begin.space = space;
+
+		(new haxe.Timer(0)).run = function() {
+			debug.clear();
+
+			space.step(1/60,10,10);
+			debug.draw(space);
+
+			debug.flush();
+		}
+	}
+}
+
 import flash.Lib;
 import flash.utils.ByteArray;
 import flash.Memory;
 
-class DummyNapeMain {
+class DummyNapeMaixdsn {
 public static var debug:Debug;
 static function main() {
         var root = Lib.current;
