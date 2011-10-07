@@ -35,7 +35,8 @@ class DummyNapeMain {
         var grid    = new Vec2(100,100);
         var quality = 2;
 
-        (new haxe.Timer(17)).run = function () {
+		var tim = new haxe.Timer(17);
+        tim.run = function () {
             z += 1/30;
             bnd = Math.sin(z*0.3)*0.35;
             debug.clear();
@@ -47,6 +48,36 @@ class DummyNapeMain {
             }
             debug.flush();
         }
+
+		root.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function(_) {
+			tim.stop();
+			var space = new Space(new Vec2(0,400));
+
+			var border = new Body(BodyType.STATIC);
+			border.shapes.add(new Polygon(Polygon.rect(0,0,-20,300)));
+			border.shapes.add(new Polygon(Polygon.rect(400,0,20,300)));
+			border.shapes.add(new Polygon(Polygon.rect(0,0,400,-20)));
+			border.shapes.add(new Polygon(Polygon.rect(0,300,400,20)));
+			border.space = space;
+
+            var polys = MarchingSquares.run(iso, bounds, cells, quality, grid);
+            for(p in polys) {
+				var body = new Body();
+                var qs = p.convex_decomposition();
+                for(q in qs) {
+					body.shapes.add(new Polygon(q));
+				}
+				body.align();
+				body.space = space;
+			}
+
+			(new haxe.Timer(17)).run = function() {
+				debug.clear();
+				space.step(1/60,10,5);
+				debug.draw(space);
+				debug.flush();
+			}
+		});
     }
 
     static inline function colour(p:GeomPoly) {
