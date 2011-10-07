@@ -944,32 +944,37 @@ class PR(ColArbiter) extends PR(Arbiter) {
 			var dl = vec_lsq(d);
 			var r = radius - PR(Config).OVERLAP;
 			if(dl < r*r) {
-				dl = PR(Math).sqrt(dl);
-				vec_diveq(d,dl);
-				
-				vec_new(p,
-					0.5*(r1x+r2x),
-					0.5*(r1y+r2y)
-				);
-				
-				var pen = dl-r;
-				
-				vec_sub(p,b1.pos,r1);
-				vec_sub(p,b2.pos,r2);
-				
-				var rn1 = vec_cross(r1,d);
-                var rn2 = vec_cross(r2,d);
-
-                var K = b2.smass + rn2*rn2*b2.sinertia + b1.smass + rn1*rn1*b1.sinertia;
-                if(K!=0) {
-                    var jn = -c1.biasCoef*pen/K;
-                    vec_new(J); vec_mul(d, jn, J);
-
-                    vec_subeq(b1.pos, J, b1.imass);
-                    b1.delta_rot(-rn1*b1.iinertia*jn);
-                    vec_addeq(b2.pos, J, b2.imass);
-                    b2.delta_rot(rn2*b2.iinertia*jn);
-                }
+				if(dl<PR(Const).EPSILON*PR(Const).EPSILON) {
+					if(b1.smass!=0.0) b1.posx += PR(Const).EPSILON*10;
+					else              b2.posx += PR(Const).EPSILON*10;
+				}else {
+					dl = PR(Math).sqrt(dl);
+					vec_diveq(d,dl);
+					
+					vec_new(p,
+						0.5*(r1x+r2x),
+						0.5*(r1y+r2y)
+					);
+					
+					var pen = dl-r;
+					
+					vec_sub(p,b1.pos,r1);
+					vec_sub(p,b2.pos,r2);
+					
+					var rn1 = vec_cross(r1,d);
+	                var rn2 = vec_cross(r2,d);
+	
+	                var K = b2.smass + rn2*rn2*b2.sinertia + b1.smass + rn1*rn1*b1.sinertia;
+	                if(K!=0) {
+	                    var jn = -c1.biasCoef*pen/K;
+	                    vec_new(J); vec_mul(d, jn, J);
+	
+	                    vec_subeq(b1.pos, J, b1.imass);
+	                    b1.delta_rot(-rn1*b1.iinertia*jn);
+	                    vec_addeq(b2.pos, J, b2.imass);
+	                    b2.delta_rot(rn2*b2.iinertia*jn);
+	                }
+				}
 			}
 		}else {
 			vec_new(gnorm);
