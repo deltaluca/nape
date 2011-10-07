@@ -90,6 +90,8 @@ class PR(Collide) {
 		vec_new(p); vec_sub(p2,p1,p);
 		var distSqr = vec_lsq(p);
 		if(distSqr > minDist*minDist) null;
+		else if(distSqr<PR(Const).EPSILON*PR(Const).EPSILON)
+			arb.injectContact(p1`x,p1`y,1,0,-minDist,hash);
 		else {
 			var invDist = PR(Math).invsqrt(distSqr);
 			var dist = if(invDist<PR(Const).EPSILON) PR(Const).FMAX else 1.0 / invDist;
