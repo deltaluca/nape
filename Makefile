@@ -26,6 +26,13 @@ ASSERT_FLAGS  = $(SWC_FLAGS) -D NAPE_NO_INLINE -D NAPE_ASSERT
 DEBUG_FLAGS   = $(SWC_FLAGS)
 RELEASE_FLAGS = $(SWC_FLAGS) -D NAPE_RELEASE_BUILD
 
+unit_swf: pre_compile
+	mkdir -p bin/release
+	haxe -swf bin/release/assert_nape.swc -swf-version $(SWFV) $(ASSERT_FLAGS)
+	flib bin/release/assert_nape.swc
+	unzip bin/release/assert_nape.swc -x catalog.xml
+	mv library.swf bin/release/haxe_assert_nape.swf
+
 release: pre_compile
 	mkdir -p bin/release
 #	cpp
