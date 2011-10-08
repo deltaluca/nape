@@ -68,23 +68,33 @@ then
 	write
 
 	make release
-	if [ "$?" = "0" ]
+	success=$?
+	if [ "$success" = "0" ]
 	then
 		#check demoes all compile
 		cd demo
 		./testrun
-	if [ "$?" != "0" ]
-	then
+		success=$?
 		cd ../
-		echo " >> FAILED AUTO-TESTS"
+	fi
+
+	if [ "$success" = "0" ]
+	then
+		#check unit tests pass
+		cd unit
+		./testrun
+		success=$?
+		cd ../
+	fi
+
+	if [ "$success" != "0" ]
+	then
+		echo " >> FAILURE"
 
 		REVISION=$oldREVISION
 		DATETIME=$oldDATETIME
 		write
 	else
-
-		cd ../
-
 		make tar
 
 		cver
@@ -162,15 +172,6 @@ put nape.zip
 
 exit
 EOT
-		fi
-	else
-		echo " >> FAILED COMPILATION"
-
-		REVISION=$oldREVISION
-		DATETIME=$oldDATETIME
-		write
-	
-		rm -rf bin/release
 	fi
 
 	exit

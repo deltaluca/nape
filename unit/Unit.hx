@@ -9,7 +9,7 @@ class Unit {
 		r.add(new UAABB());
 
 		r.add(new UCircle());
-		r.run();
+		neko.Sys.exit(r.run()?0:1);
 	}
 }
 
