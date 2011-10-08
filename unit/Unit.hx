@@ -7,6 +7,8 @@ class Unit {
 		var r = new haxe.unit.TestRunner();
 		r.add(new UVec2());
 		r.add(new UAABB());
+
+		r.add(new UCircle());
 		r.run();
 	}
 }
