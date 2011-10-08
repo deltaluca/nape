@@ -1,5 +1,9 @@
 def:
-	$(MAKE) --directory=../ unit_lib
+	$(MAKE) --directory=../ pre_compile
 	mkdir -p bin
-	haxe -swf-lib ../bin/release/haxe_assert_nape.swf -cp . -main Unit -swf bin/unit.swf -swf-version 11 -swf-header 600:600:60:ffffff -debug
-	debugfp bin/unit.swf
+#	haxe -cp . -cp ../src -main Unit -cpp bin -debug -D IGNORE_DUMMY
+#	bin/Unit
+	haxe -cp . -cp ../src -main Unit -neko bin/unit.n -debug -D IGNORE_DUMMY
+	neko bin/unit.n
+#	haxe -cp . -cp ../src -main Unit -swf bin/unit.swf -swf-version 11 -swf-header 600:600:60:ffffff -debug
+#	fp bin/unit.swf
