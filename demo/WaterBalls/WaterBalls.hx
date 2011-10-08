@@ -16,13 +16,18 @@ import nape.geom.AABB;
 
 import nape.util.BitmapDebug;
 
-class WaterBalls {
+import FixedStep;
+class WaterBalls extends FixedStep {
 	static function main() {
-		var root = flash.Lib.current;
+		new WaterBalls();
+	}
+
+	function new() {
+		super(1/60);
 
 		var debug = new BitmapDebug(800,400,0x333333);
 		debug.drawShapeAngleIndicators = false;
-		root.addChild(debug.display);
+		addChild(debug.display);
 
 		var space = new Space(new Vec2(0,400));
 
@@ -40,7 +45,7 @@ class WaterBalls {
 			sin *= sin;
 			return (400-y) - sin*100*(1+x/800);
 		}
-		var ramp_polys = MarchingSquares.run(ramp_iso,new AABB(0,0,800,400),new Vec2(10,10),2,new Vec2(100,100));
+		var ramp_polys = MarchingSquares.run(ramp_iso,new AABB(0,0,800,400),new Vec2(15,15),3,new Vec2(100,100));
 		var ramp = new Body(BodyType.STATIC);
 		for(poly in ramp_polys) {
 			var polys = poly.convex_decomposition();
@@ -69,7 +74,7 @@ class WaterBalls {
 		///aaaaand lots of circles with some out-of-this-world rolling friction
 		for(i in 0...500) {
 			var ball = new Body();
-			ball.shapes.add(new Circle(4));
+			ball.shapes.add(new Circle(5));
 			ball.space = space;
 			ball.position.setxy(Math.random()*800,Math.random()*200);
 			var mat = ball.shapes.at(0).material;
@@ -86,7 +91,7 @@ class WaterBalls {
 		hand.frequency = 4;
 		hand.maxForce = 60000;
 
-		root.stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function(_) {
+		stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function(_) {
 			var mouse = new Vec2(root.mouseX,root.mouseY);
 			var bodies = space.bodiesUnderPoint(mouse);
 
@@ -104,18 +109,17 @@ class WaterBalls {
 			hand.active = true;
 		});
 
-		root.stage.addEventListener(flash.events.MouseEvent.MOUSE_UP, function(_) {
+		stage.addEventListener(flash.events.MouseEvent.MOUSE_UP, function(_) {
 			hand.active = false;
 		});
 
-		//main loop.
-		(new haxe.Timer(Std.int(1/40))).run = function() {
+		run(function(dt) {
 			hand.anchor1.setxy(root.mouseX,root.mouseY);
-			space.step(1/40, 6,6);
+			space.step(dt, 6,6);
 
 			debug.clear();
 			debug.draw(space);
 			debug.flush();
-		}
+		});
 	}
 }
