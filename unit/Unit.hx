@@ -7,6 +7,7 @@ class Unit {
 		r.add(new UAABB());
 
 		r.add(new UCircle());
+		r.add(new UPolygon());
 	#if cpp
 		cpp.Sys.exit(r.run()?0:1);
 	#else
