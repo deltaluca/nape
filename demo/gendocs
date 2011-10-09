@@ -1,0 +1,29 @@
+#!/bin/bash
+
+dirs=`find -type d -wholename "\./*"`
+
+rm -rf ../doc-gen/xml/demo
+rm -rf ../doc-gen/doc/swf
+
+for d in $dirs
+do
+	if [ -e "$d/Makefile" ] || [ -e "$d/makefile" ]
+	then
+		echo " >> building demo $d"
+		name=`echo ${d:2}`
+
+		cd $d
+		cur=`pwd`
+		make build
+
+		cd ../../doc-gen/xml/
+		mkdir -p demo
+		cp $cur/$name.xml demo/
+
+		mkdir -p ../doc/swf
+		cd ../doc/swf/
+		cp $cur/$name.swf .
+		cd $cur/../
+	fi
+done
+
