@@ -67,11 +67,23 @@ then
 	DATETIME=`date +"%d/%m/%y %H:%M"`
 	write
 
+	echo ""
+	echo "------------------------------------------------------------------------------"
+	echo " >> Compiling libraries (exec 'make release') "
+	echo "------------------------------------------------------------------------------"
+	echo ""
+
 	make release
 	success=$?
 	if [ "$success" = "0" ]
 	then
 		#check demoes all compile
+		echo ""
+		echo "------------------------------------------------------------------------------"
+		echo " >> Checking demoes all compile (exec './demo/testrun') "
+		echo "------------------------------------------------------------------------------"
+		echo ""
+
 		cd demo
 		./testrun
 		success=$?
@@ -81,6 +93,12 @@ then
 	if [ "$success" = "0" ]
 	then
 		#check unit tests pass
+		echo ""
+		echo "------------------------------------------------------------------------------"
+		echo " >> Checking unit tests still pass (exec './unit/testrun')"
+		echo "------------------------------------------------------------------------------"
+		echo ""
+
 		cd unit
 		./testrun
 		success=$?
@@ -89,6 +107,7 @@ then
 
 	if [ "$success" != "0" ]
 	then
+		echo ""
 		echo " >> FAILURE"
 
 		REVISION=$oldREVISION
@@ -98,7 +117,11 @@ then
 		make tar
 
 		cver
+		echo ""
+		echo "------------------------------------------------------------------------------"
 		echo " >> now at $CVERSION"
+		echo "------------------------------------------------------------------------------"
+		echo ""
 		cp $WORKING version
 
 		#doc page number.
@@ -108,7 +131,6 @@ then
 		CVERSION=`echo $CVERSION | sed "s/\//\\\\\\\\\\\//g"`
 		CVERSION="<text class=\"small1 italic\">Milestone $CVERSION<\/text>"
 
-		echo $CVERSION
 		sed "s/<!--CVERSION-->.*<!--CVERSION-->/<!--CVERSION-->$CVERSION<!--CVERSION-->/" $INDEX > $TMP
 		cp $TMP $INDEX
 		rm $TMP
@@ -146,17 +168,33 @@ then
 		rm $TMP
 
 		#copy over demo docs stuff
+		echo ""
+		echo "------------------------------------------------------------------------------"
+		echo " >> copying demo doc shiz (exec './demo/gendocs')"
+		echo "------------------------------------------------------------------------------"
+		echo ""
 		cd demo
 		./gendocs
 		cd ../
 
 		#rebuild docs fully (to have proper links)
+		echo ""
+		echo "------------------------------------------------------------------------------"
+		echo " >> rebuilding docs for changes to demoes and index"
+		echo "         (exec './doc-gen/make build && ./doc-gen/make run')"
+		echo "------------------------------------------------------------------------------"
+		echo ""
 		cd doc-gen
 		make build
 		make run
 		cd ../
 
 		#ftp shiz
+		echo ""
+		echo "------------------------------------------------------------------------------"
+		echo " >> starting ftp transfers to deltaluca.me.uk"
+		echo "------------------------------------------------------------------------------"
+		echo ""
 		ftp -n -v deltaluca.me.uk << EOT
 user luca $PASS
 prompt
