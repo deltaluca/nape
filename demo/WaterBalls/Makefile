@@ -1,4 +1,4 @@
-NAPELIB = $(NAPE)/haxe_debug_nape.swf
+NAPELIB = $(NAPE)/haxe_release_nape.swf
 
 run: build
 	fp WaterBalls.swf 

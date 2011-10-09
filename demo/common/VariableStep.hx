@@ -2,20 +2,17 @@ package;
 
 import flash.Lib;
 
-class FixedStep extends flash.display.Sprite {
+class VariableStep extends flash.display.Sprite {
 	var fps:Float;
-	var ideal:Float;
 
 	var pt:Int;
-	static inline var timeout:Int = 100;
 
 	var txt:flash.text.TextField;
 
-	public function new(ideal:Float,?fps_colour=0xffffff) {
+	public function new(?fps_colour=0xffffff) {
 		super();
 		Lib.current.addChild(this);
 
-		this.ideal = 1000*ideal;
 		fps = -1.0;
 
 		txt = new flash.text.TextField();
@@ -29,18 +26,14 @@ class FixedStep extends flash.display.Sprite {
 			var ct = Lib.getTimer();
 			var dt = ct - pt;
 			if(dt==0) return;
-			if(dt>timeout) dt = timeout;
 
 			if(fps==-1.0) fps = 1000/dt;
 			else fps = fps*0.95 + 0.05*1000/dt;
 			txt.text = "fps: "+Std.string(fps).substr(0,5);
 
-			var steps = Math.round(dt/ideal);
-			for(i in 0...steps)
-				main(ideal/1000);
+			main(dt/1000);
 
-			var delta = dt - Std.int(steps*ideal);
-			pt = ct - delta;
+			pt = ct;
 		}
 	}
 
