@@ -225,60 +225,35 @@ class Tracer {
 
 class DummyNapeMain {
 	static function main() {
-		var debug = new BitmapDebug(400,300,0xffffff);
+		var debug = new BitmapDebug(800,600,0xffffff);
 		flash.Lib.current.addChild(debug.display);
 
-		var space = new Space(new Vec2(0,400));
+		var space = new Space(new Vec2(400,-400));
+		var b1:Body = new Body(BodyType.STATIC, new Vec2(350, 500));
+		b1.shapes.add(new Polygon(Polygon.rect( 0, 0, 100, 100), Material.steel(), new InteractionFilter(0x010, ~0x000)));
+		b1.align();
+		b1.space = space;
+					
+		var b2:Body = new Body(BodyType.DYNAMIC, new Vec2(390, 400));
+		b2.shapes.add(new Polygon(Polygon.rect( 0, 0, 20, 100), Material.steel(), new InteractionFilter(0x100, ~0x010)));
+		b2.align();
+		b2.space = space;
+		
+		var pivot:PivotJoint = new PivotJoint(b1, b2, b1.worldToLocal(new Vec2(400, 500)), b2.worldToLocal(new Vec2(400, 500)));
+//		pivot.ignore = true; // no effect
+		pivot.space = space;
 
-		var ground = new Body(BodyType.STATIC);
-		ground.shapes.add(new Polygon(Polygon.rect(0,0,-20,300)));
-		ground.shapes.add(new Polygon(Polygon.rect(400,0,20,300)));
-		ground.shapes.add(new Polygon(Polygon.rect(0,300,400,20)));
-		ground.shapes.add(new Polygon(Polygon.rect(0,0,400,-20)));
-		ground.space = space;
-
-		var pre = null;
-		for(i in 0...10) {
-			var box = new Body();
-			box.shapes.add(new Polygon(Polygon.box(20,4)));
-			box.position.setxy(50+20*i,250);
-			box.space = space;
-			if(pre!=null) {
-				var piv = new PivotJoint(pre,box,new Vec2(10,0),new Vec2(-10,0));
-				var ang = new AngleJoint(pre,box,0,0);
-				piv.space = space;
-				ang.space = space;
-				ang.stiff = false;
-				ang.frequency = 100;
-				ang.damping = 100;
-			}
-			pre = box;
-		}
-
-		var mcon = new PivotJoint(space.world,space.world,new Vec2(), new Vec2());
-		mcon.stiff = false;
-		mcon.active = false;
-		mcon.space = space;
-
-		flash.Lib.current.stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function(_) {
-			var mp = Vec2.get(flash.Lib.current.mouseX,flash.Lib.current.mouseY);
-			var bods = space.bodiesUnderPoint(mp);
-			for(b in bods) {
-				if(!b.isDynamic()) continue;
-				mcon.body2 = b;
-				mcon.anchor2 = b.worldToLocal(mp);
-				mcon.active = true;
-			}
-		});
-		flash.Lib.current.stage.addEventListener(flash.events.MouseEvent.MOUSE_UP, function(_) {
-			mcon.active = false;
-		});
+		var	angleJoint = new AngleJoint(b1, b2,0,0);
+//		angleJoint.maxForce = 100; // it should not work at all with this value
+//		angleJoint.maxError = Math.PI / 100; // no effect, the error is much greater
+		angleJoint.space = space;
 
 		(new haxe.Timer(0)).run = function() {
+			angleJoint.jointMin = angleJoint.jointMax = (-120+240/800*flash.Lib.current.mouseX)/180*Math.PI;
+			trace([angleJoint.jointMin,b2.rotation-b1.rotation]);
+
+			space.step(1/60,10,10);
 			debug.clear();
-			mcon.anchor1.setxy(flash.Lib.current.mouseX,flash.Lib.current.mouseY);
-			space.step(1/120,20,10);
-			space.step(1/120,20,10);
 			debug.draw(space);
 			debug.flush();
 		}
