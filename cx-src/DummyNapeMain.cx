@@ -230,17 +230,17 @@ class DummyNapeMain {
 
 		var space = new Space(new Vec2(400,-400));
 		var b1:Body = new Body(BodyType.STATIC, new Vec2(350, 500));
-		b1.shapes.add(new Polygon(Polygon.rect( 0, 0, 100, 100), Material.steel(), new InteractionFilter(0x010, ~0x000)));
+		b1.shapes.add(new Polygon(Polygon.rect( 0, 0, 100, 100), Material.steel()));
 		b1.align();
 		b1.space = space;
 					
 		var b2:Body = new Body(BodyType.DYNAMIC, new Vec2(390, 400));
-		b2.shapes.add(new Polygon(Polygon.rect( 0, 0, 20, 100), Material.steel(), new InteractionFilter(0x100, ~0x010)));
+		b2.shapes.add(new Polygon(Polygon.rect( 0, 0, 20, 100), Material.steel()));
 		b2.align();
 		b2.space = space;
 		
 		var pivot:PivotJoint = new PivotJoint(b1, b2, b1.worldToLocal(new Vec2(400, 500)), b2.worldToLocal(new Vec2(400, 500)));
-//		pivot.ignore = true; // no effect
+		pivot.ignore = true; // no effect
 		pivot.space = space;
 
 		var	angleJoint = new AngleJoint(b1, b2,0,0);
@@ -250,7 +250,6 @@ class DummyNapeMain {
 
 		(new haxe.Timer(0)).run = function() {
 			angleJoint.jointMin = angleJoint.jointMax = (-120+240/800*flash.Lib.current.mouseX)/180*Math.PI;
-			trace([angleJoint.jointMin,b2.rotation-b1.rotation]);
 
 			space.step(1/60,10,10);
 			debug.clear();
