@@ -227,13 +227,25 @@ class PR(Body) {
     flibmdel public inline function delta_rot(dr:Float) {
         rot += dr;
         //stay defensive; if dr is even remotely big; recalculate axis exactly.
-        if(dr*dr>0.01) quick_validate_axis();
+        if(dr*dr>0.0001) quick_validate_axis();
         else {
-            //otherwise use a dirty approximation!
-            var dx = axisy*dr;
-            axisy = axisy - axisx*dr;
-            axisx = axisx + dx;
-            //don't even bother to normalise it! not needed in testing
+			//approximation of axis rotation
+			//p, dr provide small angle approximations
+			//whilst m provides an approximation to 1/|axis| after
+			//the small angle rotation approximation to approximate
+			//the normalisation and hugely reduce errors over many calls.
+			//
+			//in testing, even with dr = 0.01 (the threshold) occuring
+			//100 times, the error in axisx and axisy is limited to 0.00002
+			//(remembering that each space.step, a true sine/cosine is performed
+			// so this accumulation of error (which is very well limited)
+			// occurs only within a step)
+			var d2 = dr*dr;
+			var p = 1-0.5*d2;
+			var m = 1-d2*d2/8;
+			var nx = (p*axisx+dr*axisy)*m;
+			axisy = (p*axisy-dr*axisx)*m;
+			axisx = nx;
         }
     }
 	

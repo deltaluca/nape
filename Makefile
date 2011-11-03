@@ -7,7 +7,6 @@ local: pre_compile
 	     		 -D NAPE_ASSERT --no-inline -debug	
 #	     -D NAPE_RELEASE_BUILD 
 #	     -D NAPE_POOL_STATS
-#		 -D NAPE_TIMES \
 #	firefox bin/index.html
 	debugfp bin/nape.swf
 
@@ -26,12 +25,7 @@ ASSERT_FLAGS  = $(SWC_FLAGS) -D NAPE_NO_INLINE -D NAPE_ASSERT
 DEBUG_FLAGS   = $(SWC_FLAGS)
 RELEASE_FLAGS = $(SWC_FLAGS) -D NAPE_RELEASE_BUILD
 
-debug_swc: pre_compile
-	mkdir -p bin
-	haxe -swf bin/debug_swc.swc -swf-version 10.3 -D NAPE_RELEASE_BUILD -D NAPE_TIMES -D NAPE_POOL_STATS $(SWC_FLAGS)
-	flib bin/debug_swc.swc
-
-unit_lib: pre_compile
+unit_swf: pre_compile
 	mkdir -p bin/release
 	haxe -swf bin/release/assert_nape.swc -swf-version $(SWFV) $(ASSERT_FLAGS)
 	flib bin/release/assert_nape.swc
