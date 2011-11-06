@@ -36,13 +36,14 @@ class Contact {
 		DEBUG(if(!active) throw "Error: Contact not currently in use";)
 		var colarb = pr(inner).arbiter.colarb;
 		var cin = pr(inner).inner;
+		var jnAcc = cin.jnAcc + pr(inner).pjnAcc;
 		if(body==null)
-			return new Vec3(vec_imul(colarb.n, cin.jnAcc));
+			return new Vec3(vec_imul(colarb.n, jnAcc));
 		else {
 			DEBUG(if(body!=colarb.b1.outer && body!=colarb.b2.outer) throw "Error: Contact does not relate to the given body";)
 			if(body==colarb.b1.outer)
-				 return new Vec3(vec_imul(colarb.n, -cin.jnAcc), -vec_cross(cin.r1,colarb.n)*cin.jnAcc);
-			else return new Vec3(vec_imul(colarb.n,  cin.jnAcc),  vec_cross(cin.r2,colarb.n)*cin.jnAcc);
+				 return new Vec3(vec_imul(colarb.n, -jnAcc), -vec_cross(cin.r1,colarb.n)*jnAcc);
+			else return new Vec3(vec_imul(colarb.n,  jnAcc),  vec_cross(cin.r2,colarb.n)*jnAcc);
 		}
 	}
 	
@@ -50,25 +51,27 @@ class Contact {
 		DEBUG(if(!active) throw "Error: Contact not currently in use";)
 		var colarb = pr(inner).arbiter.colarb;
 		var cin = pr(inner).inner;
+		var jtAcc = cin.jtAcc + pr(inner).pjtAcc;
 		if(body==null)
-			return new Vec3(-colarb.ny*cin.jtAcc, colarb.nx*cin.jtAcc);
+			return new Vec3(-colarb.ny*jtAcc, colarb.nx*jtAcc);
 		else {
 			DEBUG(if(body!=colarb.b1.outer && body!=colarb.b2.outer) throw "Error: Contact does not relate to the given body";)
 			if(body==colarb.b1.outer)
-				 return new Vec3( colarb.ny*cin.jtAcc, -colarb.nx*cin.jtAcc, -vec_dot(cin.r1,colarb.n)*cin.jtAcc);
-			else return new Vec3(-colarb.ny*cin.jtAcc,  colarb.nx*cin.jtAcc,  vec_dot(cin.r2,colarb.n)*cin.jtAcc);
+				 return new Vec3( colarb.ny*jtAcc, -colarb.nx*jtAcc, -vec_dot(cin.r1,colarb.n)*jtAcc);
+			else return new Vec3(-colarb.ny*jtAcc,  colarb.nx*jtAcc,  vec_dot(cin.r2,colarb.n)*jtAcc);
 		}
 	}
 	
 	keep public function rollingImpulse(body:Body=null) {
 		DEBUG(if(!active) throw "Error: Contact not currently in use";)
 		var colarb = pr(inner).arbiter.colarb;
+		var jrAcc = pr(inner).arbiter.colarb.jrAcc + pr(inner).arbiter.colarb.pjrAcc;
 		if(body==null)
-			return pr(inner).arbiter.colarb.jrAcc;
+			return jrAcc;
 		else {
 			DEBUG(if(body!=colarb.b1.outer && body!=colarb.b2.outer) throw "Error: Contact does not relate to the given body";)
-			if(body==colarb.b1.outer) return -pr(inner).arbiter.colarb.jrAcc;
-			else                      return  pr(inner).arbiter.colarb.jrAcc;
+			if(body==colarb.b1.outer) return -jrAcc;
+			else                      return  jrAcc;
 		}
 	}
 	
@@ -77,17 +80,22 @@ class Contact {
 		
 		var colarb = pr(inner).arbiter.colarb;
 		var cin = pr(inner).inner;
+
+		var jnAcc = cin.jnAcc + pr(inner).pjnAcc;
+		var jtAcc = cin.jtAcc + pr(inner).pjtAcc;
+		var jrAcc = colarb.jrAcc + colarb.pjrAcc;
+
 		if(body==null) {
-			return new Vec3(colarb.nx*cin.jnAcc - colarb.ny*cin.jtAcc,
-							colarb.ny*cin.jnAcc + colarb.nx*cin.jtAcc,
-							colarb.jrAcc);
+			return new Vec3(colarb.nx*jnAcc - colarb.ny*jtAcc,
+							colarb.ny*jnAcc + colarb.nx*jtAcc,
+							jrAcc);
 		}else {
 			DEBUG(if(body!=colarb.b1.outer && body!=colarb.b2.outer) throw "Error: Contact does not relate to the given body";)
-			vec_new(j, colarb.nx*cin.jnAcc - colarb.ny*cin.jtAcc,
-			           colarb.ny*cin.jnAcc + colarb.nx*cin.jtAcc);
+			vec_new(j, colarb.nx*jnAcc - colarb.ny*jtAcc,
+			           colarb.ny*jnAcc + colarb.nx*jtAcc);
 			if(body==colarb.b1.outer)
-				 return new Vec3(-jx,-jy,-vec_cross(cin.r1,j));
-			else return new Vec3( jx, jy, vec_cross(cin.r2,j));
+				 return new Vec3(-jx,-jy,-vec_cross(cin.r1,j)-jrAcc);
+			else return new Vec3( jx, jy, vec_cross(cin.r2,j)+jrAcc);
 		}
 	}
 	

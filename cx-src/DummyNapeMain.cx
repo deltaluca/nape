@@ -225,6 +225,31 @@ class Tracer {
 
 class DummyNapeMain {
 	static function main() {
+		var space = new Space(new Vec2(0,300));
+		var ground = new Body(BodyType.STATIC);
+		ground.shapes.add(new Polygon(Polygon.rect(0,590,800,100), Material.wood()));
+		ground.align();
+		ground.space = space;
+
+		var body = new Body(BodyType.DYNAMIC, new Vec2(100,100));
+		body.shapes.add(new Circle(20,null,Material.wood()));
+		body.align();
+		body.space = space;
+
+		var cur = flash.Lib.current;
+		var debug = new ShapeDebug(cur.stage.stageWidth,cur.stage.stageHeight);
+		cur.addChild(debug.display);
+
+		(new haxe.Timer(0)).run = function() {
+			space.step(1/35);
+			debug.clear();
+			debug.draw(space);
+
+			trace(body.normalImpulse(ground,true));
+		}
+
+		return;
+
 		var vs = [Vec2.get(-200,200),Vec2.get(-200,-200),Vec2.get(200,-200),Vec2.get(200,200)];
 		var gp = new GeomPoly();
 		for(v in vs) gp.push(Vec2.fromPoint(new flash.geom.Point(v.x,v.y)));

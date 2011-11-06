@@ -47,6 +47,9 @@ class PR(Contact) {
 	
 	public var elasticity:Float; //only used to expose to API for interest sake.
 	
+	//elastic value used for accurate impulse calculations
+	public var pjnAcc:Float; public var pjtAcc:Float;
+
 	//----------------------------------------------------------------------------------------------
 	
 	public function new() {
@@ -55,7 +58,9 @@ class PR(Contact) {
 	flibmdel public inline function free() {
 		arbiter = null;
 	}
-	flibmdel public inline function alloc() {}
+	flibmdel public inline function alloc() {
+		pjnAcc = pjtAcc = 0.0;
+	}
 	
 	MixPoolNoNext(PR(Contact))
 	MixListMixin(PR(Contact))

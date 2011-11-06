@@ -529,6 +529,8 @@ class PR(ColArbiter) extends PR(Arbiter) {
 	
 	public var rMass:Float; //rolling mass
 	public var jrAcc:Float; //accumulated rolling impulse
+	//used for proper impulse calculations
+	public var pjrAcc:Float;
 
     var rn1a:Float; var rt1a:Float;
     var rn1b:Float; var rt1b:Float;
@@ -573,7 +575,10 @@ class PR(ColArbiter) extends PR(Arbiter) {
 		type = PR(Arbiter).COL;
 		colarb = this;
 	}
-	flibmdel public inline function alloc() { assert(pair==null,"AABBNode exists on col arbiter going out of pool?"); }
+	flibmdel public inline function alloc() {
+		pjrAcc = 0.0;
+		assert(pair==null,"AABBNode exists on col arbiter going out of pool?"); 
+	}
 	flibmdel public inline function free() { assert(pair==null,"AABBNode exists on col arbiter going into pool?"); }
 	
     public var stat:Bool; //one of the bodies is non-dynamic (different arbiter list)
@@ -817,6 +822,12 @@ class PR(ColArbiter) extends PR(Arbiter) {
 			
 		b2.angvel += jrAcc*b2.iinertia;
         b1.angvel -= jrAcc*b1.iinertia;
+
+		oc1.pjnAcc = c1.jnAcc; oc1.pjtAcc = c1.jtAcc;
+		if(hc2) {
+			oc2.pjnAcc = c2.jnAcc; oc2.pjtAcc = c2.jtAcc;
+		}
+		pjrAcc = jrAcc;
     }
 
 	///---------------------------------------------------------------------------------------------
