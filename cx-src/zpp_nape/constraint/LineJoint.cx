@@ -71,7 +71,7 @@ class PR(LineJoint) extends PR(Constraint) {
 	
 	flibmdel public inline function bodyImpulse(b:PR(Body)) {
 		if(stepped) {
-			vec_new(j, scale*nrelx*jAccy - nrely*jAccx, nrelx*jAccx + scale*nrely*jAccy);
+			vec_new(j, scale*nrelx*(pjAccy+jAccy) - nrely*(pjAccx+jAccx), nrelx*(pjAccx+jAccx) + scale*nrely*(pjAccy+jAccy));
 			if(b==b1) return new Vec3(-jx,-jy,(scale*cx1*jy - dot1*jx));
 			else      return new Vec3( jx, jy,(scale*cx1*jy - dot1*jx));
 		}else return new Vec3(0,0,0);
@@ -106,7 +106,7 @@ class PR(LineJoint) extends PR(Constraint) {
 	}
 	
 	mat2_new(public,kMass);
-	vec_new(public,jAcc);
+	vec_new(public,jAcc); vec_new(public,pjAcc);
 	public var jMax:Float;
 	
 	public var gamma:Float;
@@ -159,7 +159,7 @@ class PR(LineJoint) extends PR(Constraint) {
 	}
 
     public override function clearcache() {
-        vec_set(jAcc,0,0);
+        vec_set(jAcc,0,0); vec_set(pjAcc,0,0);
         pre_dt = -1.0;
     }
 	
@@ -203,6 +203,7 @@ class PR(LineJoint) extends PR(Constraint) {
 
     public override function warmStart() {
         Imp(a1rel,a2rel,nrel, jAcc,false);
+		vec_set(pjAcc,jAcc);
     }
 	
 	public override function applyImpulseVel() {

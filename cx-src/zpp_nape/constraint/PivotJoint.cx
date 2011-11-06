@@ -43,8 +43,8 @@ class PR(PivotJoint) extends PR(Constraint) {
 	
 	flibmdel public inline function bodyImpulse(b:PR(Body)) {
 		if(stepped) {
-			if(b==b1) return new Vec3(-jAccx,-jAccy,-vec_cross(a1rel,jAcc));
-			else      return new Vec3( jAccx, jAccy, vec_cross(a2rel,jAcc));
+			if(b==b1) return new Vec3(-jAccx-pjAccx,-jAccy-pjAccy,-vec_cross(a1rel,jAcc)-vec_cross(a1rel,pjAcc));
+			else      return new Vec3( jAccx+pjAccx, jAccy+pjAccy, vec_cross(a2rel,jAcc)+vec_cross(a2rel,pjAcc));
 		}else return new Vec3(0,0,0);
 	}
 	
@@ -68,7 +68,7 @@ class PR(PivotJoint) extends PR(Constraint) {
 	public var b2:PR(Body); anchor_new(a2);
 	
 	mat2_new(public,kMass);
-	vec_new(public,jAcc);
+	vec_new(public,jAcc); vec_new(public,pjAcc);
 	public var jMax:Float;
 	
 	public var gamma:Float;
@@ -116,7 +116,7 @@ class PR(PivotJoint) extends PR(Constraint) {
 	}
 
     public override function clearcache() {
-        vec_set(jAcc,0,0);
+        vec_set(jAcc,0,0); vec_set(pjAcc,0,0);
         pre_dt = -1.0;
     }
 
@@ -160,6 +160,7 @@ class PR(PivotJoint) extends PR(Constraint) {
 
     public override function warmStart() {
 		Imp(a1rel,a2rel,jAcc,false);
+		vec_set(pjAcc,jAcc);
     }
 	
 	public override function applyImpulseVel() {

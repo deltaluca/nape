@@ -74,8 +74,9 @@ class PR(DistanceJoint) extends PR(Constraint) {
 	
 	flibmdel public inline function bodyImpulse(b:PR(Body)) {
 		if(stepped) {
-			if(b==b1) return new Vec3(-jAcc*nx,-jAcc*ny,-cx1*jAcc);
-			else      return new Vec3( jAcc*nx, jAcc*ny, cx2*jAcc);
+			var jcc = jAcc + pjAcc;
+			if(b==b1) return new Vec3(-jcc*nx,-jcc*ny,-cx1*jcc);
+			else      return new Vec3( jcc*nx, jcc*ny, cx2*jcc);
 		}else return new Vec3(0,0,0);
 	}
 
@@ -99,7 +100,7 @@ class PR(DistanceJoint) extends PR(Constraint) {
 	public var b2:PR(Body); anchor_new(a2);
 	
 	public var kMass:Float;
-	public var jAcc:Float;
+	public var jAcc:Float; public var pjAcc:Float;
 	public var jMax:Float;
 	
 	public var gamma:Float;
@@ -150,7 +151,7 @@ class PR(DistanceJoint) extends PR(Constraint) {
 	}
 
     public override function clearcache() {
-        jAcc = 0;
+        jAcc = 0; pjAcc = 0;
         pre_dt = -1.0;
     }
 	
@@ -193,6 +194,7 @@ class PR(DistanceJoint) extends PR(Constraint) {
     public override function warmStart() {
         if(!slack)
             Imp(a1rel,a2rel,n,cx1,cx2,jAcc,false);
+		pjAcc = jAcc;
     }
 
 	

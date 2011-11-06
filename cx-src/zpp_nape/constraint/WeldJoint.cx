@@ -47,8 +47,10 @@ class PR(WeldJoint) extends PR(Constraint) {
 	
 	flibmdel public inline function bodyImpulse(b:PR(Body)) {
 		if(stepped) {
-			if(b==b1) return new Vec3(-jAccx,-jAccy,-(vec_cross(a1rel,jAcc)+jAccz));
-			else      return new Vec3( jAccx, jAccy,  vec_cross(a2rel,jAcc)+jAccz );
+			vec3_new(jcc);
+			vec3_add(jAcc,pjAcc,jcc);
+			if(b==b1) return new Vec3(-jccx,-jccy,-(vec_cross(a1rel,jcc)+jccz));
+			else      return new Vec3( jccx, jccy,  vec_cross(a2rel,jcc)+jccz );
 		}else return new Vec3(0,0,0);
 	}
 	
@@ -73,7 +75,7 @@ class PR(WeldJoint) extends PR(Constraint) {
 	public var phase:Float;
 	
 	mat3_new(public,kMass);
-	vec3_new(public,jAcc);
+	vec3_new(public,jAcc); vec3_new(public,pjAcc);
 	public var jMax:Float;
 	
 	public var gamma:Float;
@@ -123,7 +125,7 @@ class PR(WeldJoint) extends PR(Constraint) {
 	}
 	
     public override function clearcache() {
-        vec3_set(jAcc,0,0,0);
+        vec3_set(jAcc,0,0,0); vec3_set(pjAcc,0,0,0);
         pre_dt = -1.0;
     }
 
@@ -166,6 +168,7 @@ class PR(WeldJoint) extends PR(Constraint) {
 
     public override function warmStart() {
         Imp(a1rel,a2rel,jAcc,false);
+		vec3_set(pjAcc,jAcc);
     }
 	
 	public override function applyImpulseVel() {

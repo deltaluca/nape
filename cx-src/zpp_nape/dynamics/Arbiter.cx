@@ -199,7 +199,11 @@ class PR(SensorArbiter) extends PR(Arbiter) {
 class PR(FluidArbiter) extends PR(Arbiter) {
 	public var outer_zn:FluidArbiter;
 	MixPool(PR(FluidArbiter))
-	flibmdel public inline function alloc() { assert(pair==null,"AABBNode pair exists on arb going out of pool? (fluid)"); }
+	flibmdel public inline function alloc() {
+		assert(pair==null,"AABBNode pair exists on arb going out of pool? (fluid)"); 
+		vec_set(pdamp,0,0);
+		padamp = 0;
+	}
 	flibmdel public inline function free() { assert(pair==null,"AABBNode pair exists on arb going into pool? (fluid)"); }
 
     ///---------------------------------------------------------------------------------------------
@@ -234,6 +238,10 @@ class PR(FluidArbiter) extends PR(Arbiter) {
 
     ///used only for API
     vec_new(public,buoy); //cached buoyancy impulse
+
+	//used for proper impulse calculations (drag only, buoy applied only once)
+	vec_new(public,pdamp);
+	public var padamp:Float;
 
     ///---------------------------------------------------------------------------------------------
 	
@@ -449,6 +457,9 @@ class PR(FluidArbiter) extends PR(Arbiter) {
 			
 		b1.angvel -= adamp*b1.iinertia;
         b2.angvel += adamp*b2.iinertia;
+
+		vec_set(pdamp,damp);
+		padamp = adamp;
     }
 	
 	flibmdel public inline function applyImpulseVel() {

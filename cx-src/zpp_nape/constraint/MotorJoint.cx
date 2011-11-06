@@ -24,8 +24,8 @@ class PR(MotorJoint) extends PR(Constraint) {
 	
 	flibmdel public inline function bodyImpulse(b:PR(Body)) {
 		if(stepped) {
-			if(b==b1) return new Vec3(0,0,-jAcc);
-			else      return new Vec3(0,0,ratio*jAcc);
+			if(b==b1) return new Vec3(0,0,-(pjAcc+jAcc));
+			else      return new Vec3(0,0,ratio*(pjAcc+jAcc));
 		}else return new Vec3(0,0,0);
 	}
 	
@@ -49,7 +49,7 @@ class PR(MotorJoint) extends PR(Constraint) {
 	public var b2:PR(Body);
 	
 	public var kMass:Float;
-	public var jAcc:Float;
+	public var jAcc:Float; public var pjAcc:Float;
 	public var jMax:Float;
 
 	public var stepped:Bool;
@@ -93,7 +93,7 @@ class PR(MotorJoint) extends PR(Constraint) {
 	}
 
     public override function clearcache() {
-        jAcc = 0;
+        jAcc = 0; pjAcc = 0.0;
         pre_dt = -1.0;
     }
 	
@@ -118,6 +118,7 @@ class PR(MotorJoint) extends PR(Constraint) {
 
     public override function warmStart() {
         Imp(jAcc);
+		pjAcc = jAcc;
     }
 	
 	public override function applyImpulseVel() {
