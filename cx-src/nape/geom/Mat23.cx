@@ -103,36 +103,44 @@ class Mat23 {
 		);
 	}
 	
-	keep public inline function transform(p:Vec2,?no_translation:Bool=false):Vec2 {
+	keep public inline function transform(p:Vec2,?no_translation:Bool=false,?weak:Bool=false):Vec2 {
 		Disposed(p,Vec2);
-		if(no_translation)
-			return Vec2.get(
+		var ret = if(no_translation)
+			Vec2.get(
 				p.x*a + p.y*b,
-				p.x*c + p.y*d
+				p.x*c + p.y*d,
+				weak
 			);
 		else
-			return Vec2.get(
+			Vec2.get(
 				p.x*a + p.y*b + tx,
-				p.x*c + p.y*d + ty
+				p.x*c + p.y*d + ty,
+				weak
 			);
+		WEAK(p);
+		return ret;
 	}
 
-	keep public function inverse_transform(p:Vec2,?no_translation:Bool=false):Vec2 {
+	keep public function inverse_transform(p:Vec2,?no_translation:Bool=false,?weak:Bool=false):Vec2 {
 		var det = determinant;
 		DEBUG(if(det*det<PR(Const).EPSILON)
 			throw "Error: Matrix is singular and cannot be inverted in course of inverse transformation";
 		)
 		det = 1.0/det;
-		if(no_translation)
-			return Vec2.get(
+		var ret = if(no_translation)
+			Vec2.get(
 				(p.x*d - p.y*b)*det,
-				(p.y*a - p.x*c)*det
+				(p.y*a - p.x*c)*det,
+				weak
 			);
 		else
-			return Vec2.get(
+			Vec2.get(
 				(p.x*d - p.y*b + b*ty - d*tx)*det,
-				(p.y*a - p.x*c + c*tx - a*ty)*det
+				(p.y*a - p.x*c + c*tx - a*ty)*det,
+				weak
 			);
+		WEAK(p);
+		return ret;
 	}
 	
 	//----------------------------------------------------------------------------------------------

@@ -27,7 +27,9 @@
 		<br/><br/>
 		<text class="small1">Note: In many cases a Vec2 will be returned from a function internal to nape and will be marked internally as an 'immutable' Vec2. This is documented in those cases; trying to modify (mutate) such a Vec2 will result in an error.</text><br/>
 		<br/>
-		<text class="small1">Trying to use a disposed Vec2 will also result in an error, the pool works in a FILO order so as to make catching the use of a disposed Vec2 bug easier</text>
+		<text class="small1">Trying to use a disposed Vec2 will also result in an error, the pool works in a FILO order so as to make catching the use of a disposed Vec2 bug easier</text><br/>
+		<br/>
+		<text class="small1">Weak Vec2's are so-named because when given to any nape function, they will be automaticaly disposed of afterwards (Makes re-using Vec2's very easy, but be careful :P)</text>
 	</description>
 	<short>
 		2D Vector class.
@@ -86,12 +88,25 @@
 	<method name="get" static="true" return="Vec2">
 		<arg name="x" type="Float" optional="true" default="0"/>
 		<arg name="y" type="Float" optional="true" default="0"/>
+		<arg name="weak" type="Bool" optional="true" default="false"/>
 		<description>
 			Allocate a vector from the object pool; or failing that, construct a new one.
 		</description>
 		<detail>
 			<description>
 				Allocates a vector with given cartesian values from the object pool. If the object pool is empty then a new vector will be constructed instead. Use of this method is preferable to using the constructor.
+			</description>
+		</detail>
+	</method>
+	<method name="weak" static="true" return="Vec2">
+		<arg name="x" type="Float" optional="true" default="0"/>
+		<arg name="y" type="Float" optional="true" default="0"/>
+		<description>
+			Allocate a 'weak' vector from the object pool; or failing that, construct a new one.
+		</description>
+		<detail>
+			<description>
+				Allocates a 'weak' vector with given cartesian values from the object pool. If the object pool is empty then a new vector will be constructed instead. Use of this method is preferable to using the constructor.
 			</description>
 		</detail>
 	</method>
@@ -107,6 +122,7 @@
 	
 	<method name="fromPoint" static="true" inline="true" return="Vec2">
 		<arg name="point" type="flash.geom.Point" const="true" />
+		<arg name="weak" type="Bool" optional="true" default="false"/>
 		<description>
 			(flash9+) Constructor vector from Point.
 		</description>
@@ -120,6 +136,7 @@
 	<method name="fromPolar" static="true" inline="true" return="Vec2">
 		<arg name="length" type="Float"/>
 		<arg name="angle" type="Float"/>
+		<arg name="weak" type="Bool" optional="true" default="false"/>
 		<description>
 			Construct Vec2 from polar coordinates.
 		</description>
@@ -161,6 +178,7 @@
 		</detail>
 	</method>
 	<method name="copy" inline="true" return="Vec2" const="true">
+		<arg name="weak" type="Bool" optional="true" default="false"/>
 		<description> Produce a copy of this vector. </description>
 		<detail>
 			<description>
@@ -192,6 +210,7 @@
 	<method/>
 	<method name="add" inline="true" return="Vec2" const="true">
 		<arg name="a" type="Vec2" const="true" />
+		<arg name="weak" type="Bool" optional="true" default="false"/>
 		<description> Add vectors together</description>
 		<detail>
 			<description>
@@ -201,6 +220,7 @@
 	</method>
 	<method name="sub" inline="true" return="Vec2" const="true">
 		<arg name="a" type="Vec2" const="true" />
+		<arg name="weak" type="Bool" optional="true" default="false"/>
 		<description> Subtract vectors together</description>
 		<detail>
 			<description>
@@ -210,6 +230,7 @@
 	</method>
 	<method name="mul" inline="true" return="Vec2" const="true">
 		<arg name="s" type="Float"/>
+		<arg name="weak" type="Bool" optional="true" default="false"/>
 		<description> Multiply vector by scalar </description>
 		<detail>
 			<description>

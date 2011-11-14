@@ -61,7 +61,7 @@ class GeomPoly {
 		mix_circular(Vertex,
 			verts = push_after(verts, Vertex.get(x.x,x.y));
 		)
-
+		WEAK(x);
 		return current();
 	}
 	public inline function pop() {
@@ -80,7 +80,7 @@ class GeomPoly {
 		mix_circular(Vertex,
 			verts = push_before(verts, Vertex.get(x.x,x.y));
 		)
-
+		WEAK(x);
 		return current();
 	}
 	public inline function shift() {
@@ -173,8 +173,9 @@ class GeomPoly {
 	public function contains(point:Vec2) {
 		DEBUG(if(point==null) throw "Error: GeomPoly::contains point cannot be null";)
 		Disposed(point,Vec2);
-
-		return contains(verts, point.x,point.y);
+		var ret = contains(verts, point.x,point.y);
+		WEAK(point);
+		return ret;
 	}
 
 	public function isClockwise() return winding()==Winding.CLOCKWISE

@@ -11,18 +11,15 @@ class Vec2 {
 
 	PublicMixPool(Vec2)
 
-	$(mixin WEAK(x) if(x.pr(inner).weak) x.dispose());
+	$(mixin global WEAK(x) if(x.pr(inner).weak) x.dispose());
 
-	public static inline function weak(?x:Float=0,?y:Float=0) {
-		var ret = get(x,y);
-		ret.pr(inner).weak = true;
-		return ret;
-	}
-	public static inline function get(?x:Float=0,?y:Float=0) {
+	public static inline function weak(?x:Float=0,?y:Float=0) return get(x,y,true)
+	public static inline function get(?x:Float=0,?y:Float=0,?weak:Bool=false) {
 		DEBUG(if(isNaN(x) || isNaN(y)) throw "Error: Vec2 components cannot be NaN";)
 		var ret = PublicGet(Vec2);
 		if(ret.pr(inner)==null) ret.pr(inner) = PR(Vec2).get(x,y);
 		else ret.setxy(x,y);
+		if(weak) ret.pr(inner).weak = true;
 		return ret;
 	}
 	public inline function dispose() {
@@ -43,7 +40,7 @@ class Vec2 {
 	}
 	keep public inline function copy(?weak:Bool=false) {
 		Disposed(this,Vec2);
-		return if(weak) Vec2.weak(x,y) else Vec2.get(x,y);
+		return Vec2.get(x,y,weak); 
 	}
 
 	//----------------------------------------------------------------------------------------------
@@ -55,7 +52,7 @@ class Vec2 {
 				if(isNaN(point.x) || isNaN(point.y))
 					throw "Error: Error: Vec2 components cannot be NaN";
 			)
-			return if(weak) Vec2.weak(point.x,point.y) else Vec2.get(point.x,point.y);
+			return Vec2.get(point.x,point.y,weak);
 		}
 	#end
 	
@@ -64,9 +61,7 @@ class Vec2 {
 			if(isNaN(length)) throw "Error: Vec2::length cannot be NaN";
 			if(isNaN(angle))  throw "Error: Vec2::angle cannot be NaN";
 		)
-		var ret = Vec2.get(length*Math.cos(angle),length*Math.sin(angle));
-		ret.pr(inner).weak = weak;
-		return ret;
+		return Vec2.get(length*Math.cos(angle),length*Math.sin(angle),weak);
 	}
 	
 	//----------------------------------------------------------------------------------------------
@@ -170,29 +165,29 @@ class Vec2 {
 	
 	//----------------------------------------------------------------------------------------------
 	
-	keep public inline function add  (a:Vec2) {
+	keep public inline function add  (a:Vec2, ?weak:Bool=false) {
 		Disposed(this,Vec2);
 		Disposed(a,Vec2);
 
 		DEBUG(if(a==null) throw "Error: Cannot add null vectors";)
-		var ret = Vec2.get(vec_iadd($(->),a.));
+		var ret = Vec2.get(vec_iadd($(->),a.),weak);
 		WEAK(a);
 		return ret;
 	}
-	keep public inline function sub  (a:Vec2) {
+	keep public inline function sub  (a:Vec2, ?weak:Bool=false) {
 		Disposed(this,Vec2);
 		Disposed(a,Vec2);
 
 		DEBUG(if(a==null) throw "Error: Cannot subtract null vectors";)
-		var ret = Vec2.get(vec_isub($(->),a.));
+		var ret = Vec2.get(vec_isub($(->),a.),weak);
 		WEAK(a);
 		return ret;
 	}
-	keep public inline function mul (s:Float) {
+	keep public inline function mul (s:Float, ?weak:Bool=false) {
 		Disposed(this,Vec2);
 
 		DEBUG(if(isNaN(s)) throw "Error: Cannot multiply with NaN";)
-		return Vec2.get(vec_imul($(->),s));
+		return Vec2.get(vec_imul($(->),s),weak);
 	}
 	keep public inline function addeq(a:Vec2) {
 		Disposed(this,Vec2);
