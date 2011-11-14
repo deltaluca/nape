@@ -882,7 +882,7 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 
 	//==============================================================
 
-	public override function shapesInShape(shp:PR(Shape), filter:PR(InteractionFilter)) {
+	public override function shapesInShape(shp:PR(Shape)) {
 		sync_broadphase();
 		validateShape(shp);
 
@@ -891,7 +891,7 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 		
 		$(mixin dotree(tree) {
 			IterAABB(tree,ab, $(mixin block(shape) {
-				if(filter==null || shape.filter.shouldCollide(filter)) {
+				if(shp.filter==null || shape.filter.shouldCollide(shp.filter)) {
 					if(PR(Collide).testCollide_safe(shape,shp))
 						ret.push(shape.outer);
 				}
@@ -902,7 +902,7 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 		return ret;
 	}
 
-	public override function bodiesInShape(shp:PR(Shape), filter:PR(InteractionFilter)) {
+	public override function bodiesInShape(shp:PR(Shape)) {
 		sync_broadphase();
 		validateShape(shp);
 
@@ -913,7 +913,7 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 			IterAABB(tree,ab, $(mixin block(shape) {
 				var body = shape.body.outer;
 				if(!ret.has(body)) {
-					if(filter==null || shape.filter.shouldCollide(filter)) {
+					if(shp.filter==null || shape.filter.shouldCollide(shp.filter)) {
 						if(PR(Collide).testCollide_safe(shape,shp))
 							ret.push(body);
 					}
