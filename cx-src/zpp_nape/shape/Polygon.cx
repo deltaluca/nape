@@ -71,7 +71,7 @@ class PR(Polygon) extends PR(Shape) {
 			};
 		}
 		wrap_lverts.pr(inner).subber = function(x:Vec2) {
-			var ite:PR(Vec2) = null;
+/*			var ite:PR(Vec2) = null;
 			var ite2:Node(PR(Edge)) = null;
 			Iter(i, me.lverts, {
 				if(i==x.pr(inner)) cx_break;
@@ -97,7 +97,8 @@ class PR(Polygon) extends PR(Shape) {
 					Free(PR(Edge),rem);
 					me.edgeCnt--;
 				}
-			}
+			}*/
+			me.cleanup_lvert(x.pr(inner));
 		};
 		
 		wrap_lverts.pr(inner)._invalidate = function(_) {
@@ -252,6 +253,7 @@ class PR(Polygon) extends PR(Shape) {
 		///dependancy checked
 		if(inv(lverts)) {
 			inv(lverts) = false;
+			splice_collinear();
 			if(lverts.size()>2) {
 				validate_area_inertia();
 				if(area<0) {
@@ -261,6 +263,71 @@ class PR(Polygon) extends PR(Shape) {
 			}
 		}
 	}
+
+	//before local vertex is removed, peform necessary cleanup.
+	public function cleanup_lvert(x:PR(Vec2)) {
+		var ite:PR(Vec2) = null;
+		var ite2:Node(PR(Edge)) = null;
+		Iter(i, lverts, {
+			if(i==x) cx_break;
+			else {
+				ite = ite == null ? gverts.begin() : ite.next;
+				ite2 = ite2==null ? edges.begin() : ite2.next;
+			}
+		});
+		var rem = (ite==null ? gverts.front() : ite.next.elem());
+		gverts.erase(ite);
+		Free(PR(Vec2),rem);
+		
+		if(lverts.begin() != null) {
+			if(lverts.begin().next==null) {
+				Free(PR(Edge),edges.front());
+				edges.pop();
+				Free(PR(Edge),edges.front());
+				edges.pop();
+				edgeCnt-=2;
+			}else {
+				var rem = (ite2==null ? edges.front() : ite2.next.elem());
+				edges.erase(ite2);
+				Free(PR(Edge),rem);
+				edgeCnt--;
+			}
+		}
+	}
+
+	//remove any collinear and thus dangerously redundant vertices.
+	public function splice_collinear() {
+		var pre = lverts.begin();
+		var cur = pre.next;
+
+		var cnt = lverts.size();
+		while(cnt>2) {
+			var nxt = if(cur.next==null) lverts.begin() else cur.next;
+
+			var u = pre.elem();	var v = cur.elem();	var w = nxt.elem();
+			vec_new(a); vec_sub(u.,v.,a);
+			vec_new(b); vec_sub(w.,v.,b);
+			var collinear = PR(Math).sqr(vec_cross(a,b))<PR(Const).EPSILON;
+
+			if(collinear) {
+				cnt--;
+				cleanup_lvert(cur.elem());
+				if(cur==lverts.begin()) {
+				 	 lverts.pop();
+					 break;
+				} else {
+					cur = lverts.erase(pre);
+					if(cur==null) cur = lverts.begin();
+				}
+			}else {
+				pre = cur;
+				cur = nxt;
+			}
+
+			if(cur==lverts.begin()) break;
+		}
+	}
+
 	public function reverse_vertices() {
 		lverts.reverse();
 		gverts.reverse();

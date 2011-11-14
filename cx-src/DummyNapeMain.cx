@@ -225,37 +225,53 @@ class Tracer {
 
 class DummyNapeMain {
 	static function main() {
-		var debug = new BitmapDebug(800,600,0xffffff);
+		var debug = new BitmapDebug(800,800,0xffffff);
 		flash.Lib.current.addChild(debug.display);
+		debug.drawCollisionArbiters = true;
 
-		var space = new Space(new Vec2(400,-400));
-		var b1:Body = new Body(BodyType.STATIC, new Vec2(350, 500));
-		b1.shapes.add(new Polygon(Polygon.rect( 0, 0, 100, 100), Material.steel()));
-		b1.align();
-		b1.space = space;
+		var space = new Space(new Vec2(0,100),Broadphase.SWEEP_AND_PRUNE);
 					
-		var b2:Body = new Body(BodyType.DYNAMIC, new Vec2(390, 400));
-		b2.shapes.add(new Polygon(Polygon.rect( 0, 0, 20, 100), Material.steel()));
-		b2.align();
+		var b2:Body = new Body(BodyType.DYNAMIC, new Vec2(150, 560));
+		b2.shapes.add(new Circle(10));
 		b2.space = space;
+	
+		var arrayPhysics = [new Vec2(40, 560),
+					new Vec2(120, 560),
+								new Vec2(120, 600),
+											new Vec2(240, 600),
+														new Vec2(240, 640),
+																	new Vec2(80, 640),
+																				new Vec2(80, 600),
+																							new Vec2(40, 600)];
 		
-		var pivot:PivotJoint = new PivotJoint(b1, b2, b1.worldToLocal(new Vec2(400, 500)), b2.worldToLocal(new Vec2(400, 500)));
-		pivot.ignore = true; // no effect
-		pivot.space = space;
-
-		var	angleJoint = new AngleJoint(b1, b2,0,0);
-//		angleJoint.maxForce = 100; // it should not work at all with this value
-//		angleJoint.maxError = Math.PI / 100; // no effect, the error is much greater
-		angleJoint.space = space;
+		var b = new Body(BodyType.STATIC);
+		setShapeFromConcave(arrayPhysics, b);
+		b.space = space;
 
 		(new haxe.Timer(0)).run = function() {
-			angleJoint.jointMin = angleJoint.jointMax = (-120+240/800*flash.Lib.current.mouseX)/180*Math.PI;
-
 			space.step(1/60,10,10);
 			debug.clear();
 			debug.draw(space);
 			debug.flush();
 		}
+	}
+
+	static function setShapeFromConcave(arrayVec2:Array<Vec2>, body:Body)
+	{
+//		var gp:GeomPoly = new GeomPoly(arrayVec2);
+//		var polys:GeomPolyList = gp.simple_decomposition();
+//		for(iPol in 0...polys.length) {
+//			var poly:GeomPoly = polys.at(iPol);
+//			var isSimple = poly.isSimple();
+//			if (isSimple) {
+				var poly = new GeomPoly(arrayVec2);
+				var cons:GeomPolyList = poly.convex_decomposition();
+				for(iVecs in 0...cons.length) {
+					var vecs = cons.at(iVecs);
+					body.shapes.add(new Polygon(vecs, Material.wood()));
+				}
+//			}
+//		}
 	}
 }
 
