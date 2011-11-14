@@ -11,11 +11,18 @@ class Vec2 {
 
 	PublicMixPool(Vec2)
 
+	$(mixin WEAK(x) if(x.pr(inner).weak) x.dispose());
+
+	public static inline function weak(?x:Float=0,?y:Float=0) {
+		var ret = get(x,y);
+		ret.pr(inner).weak = true;
+		return ret;
+	}
 	public static inline function get(?x:Float=0,?y:Float=0) {
 		DEBUG(if(isNaN(x) || isNaN(y)) throw "Error: Vec2 components cannot be NaN";)
 		var ret = PublicGet(Vec2);
-		ret.pr(inner) = PR(Vec2).get(x,y);
-		ret.pr(inner).outer = ret;
+		if(ret.pr(inner)==null) ret.pr(inner) = PR(Vec2).get(x,y);
+		else ret.setxy(x,y);
 		return ret;
 	}
 	public inline function dispose() {
@@ -34,31 +41,32 @@ class Vec2 {
 		pr(inner) = PR(Vec2).get(x,y);
 		pr(inner).outer = this;
 	}
-	keep public inline function copy() {
+	keep public inline function copy(?weak:Bool=false) {
 		Disposed(this,Vec2);
-
-		return Vec2.get(x,y);
+		return if(weak) Vec2.weak(x,y) else Vec2.get(x,y);
 	}
 
 	//----------------------------------------------------------------------------------------------
 	
 	#if flash9
-		keep public static function fromPoint(point:flash.geom.Point) {
+		keep public static function fromPoint(point:flash.geom.Point, ?weak:Bool=false) {
 			DEBUG(
 				if(point==null) throw "Error: Cannot create Vec2 from null Point object";
 				if(isNaN(point.x) || isNaN(point.y))
 					throw "Error: Error: Vec2 components cannot be NaN";
 			)
-			return Vec2.get(point.x,point.y);
+			return if(weak) Vec2.weak(point.x,point.y) else Vec2.get(point.x,point.y);
 		}
 	#end
 	
-	keep public static function fromPolar(length:Float,angle:Float) {
+	keep public static function fromPolar(length:Float,angle:Float, ?weak:Bool=false) {
 		DEBUG(
 			if(isNaN(length)) throw "Error: Vec2::length cannot be NaN";
 			if(isNaN(angle))  throw "Error: Vec2::angle cannot be NaN";
 		)
-		return Vec2.get(length*Math.cos(angle),length*Math.sin(angle));
+		var ret = Vec2.get(length*Math.cos(angle),length*Math.sin(angle));
+		ret.pr(inner).weak = weak;
+		return ret;
 	}
 	
 	//----------------------------------------------------------------------------------------------
@@ -123,7 +131,9 @@ class Vec2 {
 		
 			if(p==null) throw "Error: Cannot assign null Vec2";
 		)
-		return setxy(p.x,p.y);
+		var ret = setxy(p.x,p.y);
+		WEAK(p);
+		return ret;
 	}
 	public function setxy(x:Float,y:Float) {
 		Disposed(this,Vec2);
@@ -165,14 +175,18 @@ class Vec2 {
 		Disposed(a,Vec2);
 
 		DEBUG(if(a==null) throw "Error: Cannot add null vectors";)
-		return Vec2.get(vec_iadd($(->),a.));
+		var ret = Vec2.get(vec_iadd($(->),a.));
+		WEAK(a);
+		return ret;
 	}
 	keep public inline function sub  (a:Vec2) {
 		Disposed(this,Vec2);
 		Disposed(a,Vec2);
 
 		DEBUG(if(a==null) throw "Error: Cannot subtract null vectors";)
-		return Vec2.get(vec_isub($(->),a.));
+		var ret = Vec2.get(vec_isub($(->),a.));
+		WEAK(a);
+		return ret;
 	}
 	keep public inline function mul (s:Float) {
 		Disposed(this,Vec2);
@@ -188,7 +202,9 @@ class Vec2 {
 			if(pr(inner).immutable) throw "Error: Vec2 is immutable";
 			if(a==null) throw "Error: Cannot add null vectors";
 		)
-		return setxy(vec_iadd($(->),a.));
+		var ret = setxy(vec_iadd($(->),a.));
+		WEAK(a);
+		return ret;
 	}
 	keep public inline function subeq(a:Vec2) {
 		Disposed(this,Vec2);
@@ -198,7 +214,9 @@ class Vec2 {
 			if(pr(inner).immutable) throw "Error: Vec2 is immutable";
 			if(a==null) throw "Error: Cannot subtract null vectors";
 		)
-		return setxy(vec_isub($(->),a.));
+		var ret = setxy(vec_isub($(->),a.));
+		WEAK(a);	
+		return ret;
 	}
 	keep public inline function muleq(s:Float) {
 		Disposed(this,Vec2);
@@ -214,14 +232,18 @@ class Vec2 {
 		Disposed(a,Vec2);
 
 		DEBUG(if(a==null) throw "Error: Cannot take dot product with null vector";)
-		return vec_dot($(->),a.);
+		var ret = vec_dot($(->),a.);
+		WEAK(a);
+		return ret;
 	}
 	keep public inline function cross(a:Vec2) {
 		Disposed(this,Vec2);
 		Disposed(a,Vec2);
 
 		DEBUG(if(a==null) throw "Error: Cannot take cross product with null vector";)
-		return vec_cross($(->),a.);
+		var ret = vec_cross($(->),a.);
+		WEAK(a);
+		return ret;
 	}
 	
 	//----------------------------------------------------------------------------------------------

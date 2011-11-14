@@ -5,14 +5,14 @@ local: pre_compile
 	haxe -cp src -main DummyNapeMain -swf bin/nape.swf -swf-version $(SWFV) --times \
 	     -swf-header 800:800:60:ffffff --dead-code-elimination \
 		 -D NAPE_TIMES \
-	     		 -D NAPE_ASSERT --no-inline -debug	
+	     		 -D NAPE_ASSERT --no-inline -debug	 \
+	     -D NAPE_POOL_STATS
 #	     -D NAPE_RELEASE_BUILD \
-#	     -D NAPE_POOL_STATS
 #	firefox bin/index.html
 	debugfp bin/nape.swf
 
 cpp: pre_compile
-	haxe -cp src -lib nme --remap flash:nme -main DummyNapeMain -cpp cpp -D no_traces -D NAPE_RELEASE_BUILD
+	haxe -cp src -lib nme --remap flash:nme -main DummyNapeMain -cpp cpp -D NAPE_POOL_STATS
 	./cpp/DummyNapeMain
 
 pre_compile:
