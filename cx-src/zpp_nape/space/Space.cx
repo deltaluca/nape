@@ -460,32 +460,55 @@ class PR(Space) {
 	
 	//----------------------------------------------------------------------------------------------
 
-	flibmdel public inline function shapesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)) {
+	flibmdel public inline function shapesUnderPoint(x:Float,y:Float,?filter:PR(InteractionFilter)) {
 		return bphase.shapesUnderPoint(x,y,filter);
 	}
-	flibmdel public inline function bodiesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)) {
+	flibmdel public inline function bodiesUnderPoint(x:Float,y:Float,?filter:PR(InteractionFilter)) {
 		return bphase.bodiesUnderPoint(x,y,filter);
 	}
 	
-	flibmdel public inline function shapesInAABB(aabb:AABB,strict:Bool,filter:PR(InteractionFilter)) {
+	flibmdel public inline function shapesInAABB(aabb:AABB,?strict:Bool=true,?filter:PR(InteractionFilter)) {
 		return bphase.shapesInAABB(aabb.pr(inner),strict,filter);
 	}
-	flibmdel public inline function bodiesInAABB(aabb:AABB,strict:Bool,filter:PR(InteractionFilter)) {
+	flibmdel public inline function bodiesInAABB(aabb:AABB,?strict:Bool=true,?filter:PR(InteractionFilter)) {
    		return bphase.bodiesInAABB(aabb.pr(inner),strict,filter);
 	}
 	
-	flibmdel public inline function shapesInCircle(pos:Vec2,rad:Float,filter:PR(InteractionFilter)) {
+	flibmdel public inline function shapesInCircle(pos:Vec2,rad:Float,?filter:PR(InteractionFilter)) {
 		return bphase.shapesInCircle(pos.x,pos.y,rad,filter);
 	}
-	flibmdel public inline function bodiesInCircle(pos:Vec2,rad:Float,filter:PR(InteractionFilter)) {
+	flibmdel public inline function bodiesInCircle(pos:Vec2,rad:Float,?filter:PR(InteractionFilter)) {
    		return bphase.bodiesInCircle(pos.x,pos.y,rad,filter);
 	}
 
-	flibmdel public inline function shapesInShape(shape:PR(Shape),filter:PR(InteractionFilter)) {
-		return bphase.shapesInShape(shape,filter);
+	flibmdel public inline function shapesInShape(shape:PR(Shape)) {
+		return bphase.shapesInShape(shape);
 	}
-	flibmdel public inline function bodiesInShape(shape:PR(Shape),filter:PR(InteractionFilter)) {
-		return bphase.bodiesInShape(shape,filter);
+	flibmdel public inline function bodiesInShape(shape:PR(Shape)) {
+		return bphase.bodiesInShape(shape);
+	}
+
+	flibmdel public inline function shapesInBody(body:PR(Body),?filter:PR(InteractionFilter)) {
+		var ret = null;
+		for(shape in body) {
+			var pfilt = shape.filter;
+			var cur = shapesInShape(shape);
+			if(ret==null) ret = cur;
+			else ret.merge(cur);
+			shape.filter = pfilt;
+		}
+		return if(ret==null) new ShapeList() else ret;
+	}
+	flibmdel public inline function bodiesInBody(body:PR(Body),?filter:PR(InteractionFilter)) {
+		var ret = null;
+		for(shape in body) {
+			var pfilt = shape.filter;
+			var cur = bodiesInShape(shape);
+			if(ret==null) ret = cur;
+			else ret.merge(cur);
+			shape.filter = pfilt;
+		}
+		return if(ret==null) new BodyList() else ret;
 	}
 	
 	//----------------------------------------------------------------------------------------------
