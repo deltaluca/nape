@@ -14,8 +14,6 @@ class RayResult {
 		this.distance = distance;
 		this.inner = inner;
 		this.shape = shape;
-
-		WEAK(normal);
 	}
 	
 	@:$keep public function toString() {
@@ -36,7 +34,6 @@ class Ray {
 		Disposed(origin,Vec2);
         DEBUG(if(origin==null) throw "Error: Ray::origin cannot be null";)
 		pr(inner).origin.set(origin);
-		WEAK(origin);
     })
 
     property(direction,Vec2,pr(inner).direction,{
@@ -47,7 +44,6 @@ class Ray {
 		)
 		pr(inner).direction.set(direction);
 		pr(inner).invalidate_dir();
-		WEAK(direction);
     })
 	
     property(maxDistance,Float,pr(inner).maxdist,{
@@ -81,8 +77,6 @@ class Ray {
 		this.origin = origin;
 		this.direction = direction;
 		pr(inner).maxdist = PR(Const).POSINF;
-		WEAK(origin);
-		WEAK(direction);
 	}
 	
 	public static function fromSegment(start:Vec2,end:Vec2) {
@@ -92,9 +86,8 @@ class Ray {
 			if(start==null) throw "Error: Ray::fromSegment::start is null";
 			if(end  ==null) throw "Error: Ray::fromSegment::end is null";
 		)
-		var dir = end.sub(start);
+		var dir = end.sub(start,true);
 		var ret = new Ray(start,dir);
-		dir.dispose();
 		ret.maxDistance = Math.sqrt(vec_dsq(start.,end.));
 		WEAK(start);
 		WEAK(end);
