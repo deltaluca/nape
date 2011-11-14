@@ -225,53 +225,24 @@ class Tracer {
 
 class DummyNapeMain {
 	static function main() {
-		var debug = new BitmapDebug(800,800,0xffffff);
-		flash.Lib.current.addChild(debug.display);
-		debug.drawCollisionArbiters = true;
+		var space = new Space(new Vec2(0,20));
 
-		var space = new Space(new Vec2(0,100),Broadphase.SWEEP_AND_PRUNE);
-					
-		var b2:Body = new Body(BodyType.DYNAMIC, new Vec2(150, 560));
-		b2.shapes.add(new Circle(10));
-		b2.space = space;
-	
-		var arrayPhysics = [new Vec2(40, 560),
-					new Vec2(120, 560),
-								new Vec2(120, 600),
-											new Vec2(240, 600),
-														new Vec2(240, 640),
-																	new Vec2(80, 640),
-																				new Vec2(80, 600),
-																							new Vec2(40, 600)];
-		
-		var b = new Body(BodyType.STATIC);
-		setShapeFromConcave(arrayPhysics, b);
+		var b = new Body(BodyType.DYNAMIC);
+		var s:Shape = new Polygon(Polygon.box(100,100),Material.wood());
+		s.translate(Vec2.get(50,0));
+		s.body = b;
+		s = new Polygon(Polygon.box(100,100), Material.wood());
+//		trace(s.localCOM);
+		s.translate(Vec2.get(-50,0));
+//		trace(s.localCOM);
+//		trace(s.polygon.localVerts);
+		s.body = b;
+//		b.align(); //not needed
+
 		b.space = space;
-
-		(new haxe.Timer(0)).run = function() {
-			space.step(1/60,10,10);
-			debug.clear();
-			debug.draw(space);
-			debug.flush();
-		}
-	}
-
-	static function setShapeFromConcave(arrayVec2:Array<Vec2>, body:Body)
-	{
-//		var gp:GeomPoly = new GeomPoly(arrayVec2);
-//		var polys:GeomPolyList = gp.simple_decomposition();
-//		for(iPol in 0...polys.length) {
-//			var poly:GeomPoly = polys.at(iPol);
-//			var isSimple = poly.isSimple();
-//			if (isSimple) {
-				var poly = new GeomPoly(arrayVec2);
-				var cons:GeomPolyList = poly.convex_decomposition();
-				for(iVecs in 0...cons.length) {
-					var vecs = cons.at(iVecs);
-					body.shapes.add(new Polygon(vecs, Material.wood()));
-				}
-//			}
-//		}
+		space.step(1/60,10,10);
+		trace("--");
+		trace(b.shapes.at(0).localCOM);
 	}
 }
 
