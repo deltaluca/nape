@@ -18,6 +18,7 @@ class Space {
 		Disposed(gravity,Vec2);
 		DEBUG(if(gravity==null) throw "Error: Space::gravity cannot be null";)
         this.gravity.set(gravity);
+		WEAK(gravity);
     })
 
 	property(broadphase,Broadphase,{
@@ -94,6 +95,7 @@ class Space {
 		Disposed(gravity,Vec2);
 		pr(inner) = new PR(Space)(gravity==null?null:gravity.pr(inner),broadphase);
 		pr(inner).outer = this;
+		if(gravity!=null) WEAK(gravity);
 	}
 	
 	//----------------------------------------------------------------------------------------------
@@ -101,12 +103,16 @@ class Space {
 	keep public function shapesUnderPoint(point:Vec2,?filter:InteractionFilter=null) {
 		Disposed(point,Vec2);
 		DEBUG(if(point==null) throw "Error: Cannot evaluate shapes under a null point :)";)
-		return pr(inner).shapesUnderPoint(point.x,point.y,filter==null?null:filter.pr(inner));
+		var ret = pr(inner).shapesUnderPoint(point.x,point.y,filter==null?null:filter.pr(inner));
+		WEAK(point);
+		return ret;
 	}
 	keep public function bodiesUnderPoint(point:Vec2,?filter:InteractionFilter=null) {
 		Disposed(point,Vec2);
 		DEBUG(if(point==null) throw "Error: Cannot evaluate objects under a null point :)";)
-		return pr(inner).bodiesUnderPoint(point.x,point.y,filter==null?null:filter.pr(inner));
+		var ret = pr(inner).bodiesUnderPoint(point.x,point.y,filter==null?null:filter.pr(inner));
+		WEAK(point);
+		return ret;
 	}
 
 	keep public function shapesInAABB(aabb:AABB,?strict:Bool=true,?filter:InteractionFilter=null) {
@@ -131,7 +137,9 @@ class Space {
 			if(isNaN(radius))  throw "Error: Circle radius cannot be NaN";
 			if(radius<=0)      throw "Error: Circle radius must be strictly positive";
 		)
-		return pr(inner).shapesInCircle(position,radius,filter==null?null:filter.pr(inner));
+		var ret = pr(inner).shapesInCircle(position,radius,filter==null?null:filter.pr(inner));
+		WEAK(position);
+		return ret;
 	}
 	keep public function bodiesInCircle(position:Vec2,radius:Float,?filter:InteractionFilter=null) {
 		Disposed(position,Vec2);
@@ -140,7 +148,9 @@ class Space {
 			if(isNaN(radius))  throw "Error: Circle radius cannot be NaN";
 			if(radius<=0)      throw "Error: Circle radius must be strictly positive";
 		)
-		return pr(inner).bodiesInCircle(position,radius,filter==null?null:filter.pr(inner));
+		var ret = pr(inner).bodiesInCircle(position,radius,filter==null?null:filter.pr(inner));
+		WEAK(position);
+		return ret;
 	}
 
 	keep public function shapesInShape(shape:Shape) {
