@@ -4,7 +4,7 @@ package;
 
 $(import);
 
-#if cpp
+#if (cpp||neko)
 class DummyNapeMain {
 	static function main() {
 		var w = 400;
@@ -225,15 +225,42 @@ class Tracer {
 
 class DummyNapeMain {
 	static function main() {
+		var stage = flash.Lib.current.stage;
+		var w = stage.stageWidth;
+		var h = stage.stageHeight;
 
-		var verts = Polygon.box(200,300);
-		verts[1].pr(inner).weak = true;
-		trace(verts);
-		var p = new Polygon(verts);
-		trace(verts);
-		trace(p.localVerts);
+		var debug = new BitmapDebug(w,h,0x333333);
+		debug.drawShapeAngleIndicators = false;
+		flash.Lib.current.addChild(debug.display);
 
-		trace(PR(POOL_STATS).dump());
+		var space = new Space(Vec2.weak(0,400));
+
+		var ground = new Body(BodyType.STATIC);
+		ground.shapes.add(new Polygon(Polygon.rect(0,0,-40,h, true)));
+		ground.shapes.add(new Polygon(Polygon.rect(w,0,40,h, true)));
+		ground.shapes.add(new Polygon(Polygon.rect(0,h,w,40, true)));
+		ground.space = space;
+
+		var row = 50;
+		var size = (w-10*2)/row;
+		for(i in 0...1000) {
+			var x = i%row;
+			var y = Std.int((i-x)/row);
+
+			var box = new Body(BodyType.DYNAMIC, Vec2.weak(10+size*x, 10+size*y));
+			box.shapes.add(new Polygon(Polygon.box(size*0.9,size*0.9)));
+			box.space = space;
+			box.rotation = Math.random();
+		}
+
+		(new haxe.Timer(0)).run = function() {
+			debug.clear();
+
+			space.step(1/60,6,2);
+
+			debug.draw(space);
+			debug.flush();
+		}
 	}
 }
 
