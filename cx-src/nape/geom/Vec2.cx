@@ -11,7 +11,8 @@ class Vec2 {
 
 	PublicMixPool(Vec2)
 
-	$(mixin global WEAK(x) if(x.pr(inner).weak) x.dispose());
+	$(mixin global isWEAK(x) (x.pr(inner).weak));
+	$(mixin global WEAK(x) ({ if(isWEAK(x)) { x.dispose(); true; } else false; }));
 
 	public static inline function weak(?x:Float=0,?y:Float=0) return get(x,y,true)
 	public static inline function get(?x:Float=0,?y:Float=0,?weak:Bool=false) {
