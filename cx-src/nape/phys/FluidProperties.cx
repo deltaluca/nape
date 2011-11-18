@@ -40,6 +40,22 @@ class FluidProperties {
 	prop(viscosity)
 	
 	//----------------------------------------------------------------------------------------------
+
+	property(gravity,Vec2,pr(inner).wrap_gravity,{
+		if(gravity==null) {
+			if(pr(inner).wrap_gravity!=null) {
+				pr(inner).wrap_gravity.pr(inner).inuse = false;
+				pr(inner).wrap_gravity.dispose();
+				pr(inner).wrap_gravity = null;
+			}
+		}else {
+			Disposed(gravity,Vec2);
+			if(pr(inner).wrap_gravity==null) pr(inner).getgravity();
+			this.gravity.set(gravity);
+		}
+	})
+
+	//----------------------------------------------------------------------------------------------
 	
 	@:$keep public function toString() {
         return "{ density: "+density

@@ -301,26 +301,32 @@ class PR(FluidArbiter) extends PR(Arbiter) {
 
 		vec_sub(centroid,b1.pos,r1);
 		vec_sub(centroid,b2.pos,r2);
-		
+	
 		//----------------------
 		//buoyancy
 		
+		vec_new(g1); if(ws1.fluidEnabled && ws1.fluidProperties.wrap_gravity!=null) vec_set(g1, ws1.fluidProperties.gravity) else vec_set(g1, s.gravity);
+		vec_new(g2); if(ws2.fluidEnabled && ws2.fluidProperties.wrap_gravity!=null) vec_set(g2, ws2.fluidProperties.gravity) else vec_set(g2, s.gravity);
+
 		vec_new(buoy,0,0);
 		if(ws1.fluidEnabled && ws2.fluidEnabled) {
 			var mass1 = overlap*ws1.fluidProperties.density;
 			var mass2 = overlap*ws2.fluidProperties.density;
-			if     (mass1>mass2) vec_subeq(buoy, s.gravity, mass1+mass2);
-			else if(mass1<mass2) vec_addeq(buoy, s.gravity, mass1+mass2);
-			else if(vec_dot(ws1.worldCOM,s.gravity)>vec_dot(ws2.worldCOM,s.gravity))
-				vec_subeq(buoy, s.gravity, mass1+mass2);
-			else
-				vec_addeq(buoy, s.gravity, mass1+mass2);
+			if     (mass1>mass2) vec_subeq(buoy, g1, mass1+mass2);
+			else if(mass1<mass2) vec_addeq(buoy, g2, mass1+mass2);
+			else {
+				vec_new(g); vec_add(g1,g2,g); vec_muleq(g,0.5);
+				if(vec_dot(ws1.worldCOM,g)>vec_dot(ws2.worldCOM,g))
+					vec_subeq(buoy, g, mass1+mass2);
+				else
+					vec_addeq(buoy, g, mass1+mass2);
+			}
 		}else if(ws1.fluidEnabled) {
 			var mass = overlap*ws1.fluidProperties.density;
-			vec_subeq(buoy, s.gravity, mass);
+			vec_subeq(buoy, g1, mass);
 		}else if(ws2.fluidEnabled) {
 			var mass = overlap*ws2.fluidProperties.density;
-			vec_addeq(buoy, s.gravity, mass);
+			vec_addeq(buoy, g2, mass);
 		}
 		vec_muleq(buoy, dt);
 		vec_set(this.buoy,buoy);

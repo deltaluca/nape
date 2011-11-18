@@ -3,8 +3,8 @@ SWFV = 10
 local: pre_compile
 	mkdir -p bin
 	haxe -cp src -main DummyNapeMain -swf bin/nape.swf -swf-version $(SWFV) --times \
-	     -swf-header 600:400:60:ffffff --dead-code-elimination \
-	     -D NAPE_RELEASE_BUILD 
+	     -swf-header 800:600:60:ffffff --dead-code-elimination \
+	     -D NAPE_RELEASE_BUILD
 #		 -D NAPE_TIMES \
 #	     -D NAPE_POOL_STATS
 #	     		 -D NAPE_ASSERT --no-inline -debug	 \
@@ -12,7 +12,7 @@ local: pre_compile
 	fp bin/nape.swf
 
 cpp: pre_compile
-	haxe -cp src -lib nme --remap flash:nme -main DummyNapeMain -cpp cpp -D NAPE_POOL_STATS
+	haxe -cp src -lib nme --remap flash:nme -main DummyNapeMain -cpp cpp -D NAPE_RELEASE_BUILD
 	./cpp/DummyNapeMain
 
 pre_compile:
