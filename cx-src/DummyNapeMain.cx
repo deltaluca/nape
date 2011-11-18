@@ -7,8 +7,8 @@ $(import);
 #if cpp
 class DummyNapeMain {
 	static function main() {
-		var w = 400;
-		var h = 300;
+		var w = 800;
+		var h = 600;
 		var fps = 60;
 		var bgColor = 0x333333;
 		var flags =
@@ -22,7 +22,73 @@ class DummyNapeMain {
 	}
 
 	function new() {
-        var root = nme.Lib.current;
+		var debug = new ShapeDebug(800,600);
+		debug.drawShapeAngleIndicators = false;
+		flash.Lib.current.addChild(debug.display);
+
+		var space = new Space(Vec2.weak(0,400));
+
+		var water = new Body(BodyType.STATIC);
+		var w1 = new Polygon(Polygon.rect(0,0,800,300));   w1.body = water;
+		var w2 = new Polygon(Polygon.rect(0,300,800,300)); w2.body = water;
+		w1.fluidEnabled = w2.fluidEnabled = true;
+		w1.fluidProperties.density = w2.fluidProperties.density = 4;
+		w1.fluidProperties.viscosity = w2.fluidProperties.viscosity = 5;
+		w1.fluidProperties.gravity = Vec2.weak(0,-400);
+
+		water.align();
+		water.kinAngVel = 2;
+
+		water.space = space;
+	
+		var walls = new Body(BodyType.STATIC);
+		walls.shapes.add(new Polygon(Polygon.rect(0,0,-40,600)));
+		walls.shapes.add(new Polygon(Polygon.rect(800,0,40,600)));
+		walls.shapes.add(new Polygon(Polygon.rect(0,0,800,-40)));
+		walls.shapes.add(new Polygon(Polygon.rect(0,600,800,40)));
+		walls.space = space;
+
+		for(i in 0...1400) {
+			var b = new Body();
+			b.position.setxy(Math.random()*800,Math.random()*600);
+			b.shapes.add(new Polygon(Polygon.regular(Math.random()*12+6,Math.random()*12+6,Std.int(Math.random()*1+3))));
+			b.space = space;
+		}
+
+		var mcon = new PivotJoint(space.world,space.world,Vec2.weak(),Vec2.weak());
+		mcon.stiff = false;
+		mcon.space = space;
+		mcon.active = false;
+		mcon.space = space;
+
+		flash.Lib.current.stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function (_) {
+			var mx = flash.Lib.current.mouseX;	
+			var my = flash.Lib.current.mouseY;
+			var bods = space.bodiesInCircle(Vec2.weak(mx,my), 5);
+			for(b in bods) {
+				if(b.isDynamic()) {
+					mcon.body2 = b;
+					mcon.anchor2 = b.worldToLocal(Vec2.weak(mx,my),true);
+					mcon.active = true;
+				}
+			}
+		});
+
+		flash.Lib.current.stage.addEventListener(flash.events.MouseEvent.MOUSE_UP, function (_) {
+			mcon.active = false;
+		});
+		
+		(new haxe.Timer(0)).run = function() {
+			debug.clear();
+			mcon.anchor1.setxy(flash.Lib.current.mouseX,flash.Lib.current.mouseY);
+			space.step(1/60,6,2);
+			debug.draw(space);
+			debug.flush();
+		}
+
+
+
+/*        var root = nme.Lib.current;
         Perlin3D.init_noise();
 
         var z = 0.0;
@@ -79,7 +145,7 @@ class DummyNapeMain {
 				debug.draw(space);
 				debug.flush();
 			}
-		});
+		});*/
     }
 
     static inline function colour(p:GeomPoly) {
@@ -225,15 +291,87 @@ class Tracer {
 
 class DummyNapeMain {
 	static function main() {
+		var debug = new BitmapDebug(800,600,0x333333);
+		debug.drawShapeAngleIndicators = false;
+		debug.drawConstraints = false;
+		flash.Lib.current.addChild(debug.display);
 
-		var verts = Polygon.box(200,300);
-		verts[1].pr(inner).weak = true;
-		trace(verts);
-		var p = new Polygon(verts);
-		trace(verts);
-		trace(p.localVerts);
+		var space = new Space(Vec2.weak(0,400));
 
-		trace(PR(POOL_STATS).dump());
+		var water = new Body(BodyType.STATIC);
+		var w1 = new Polygon(Polygon.rect(0,0,800,300));   w1.body = water;
+		var w2 = new Polygon(Polygon.rect(0,300,800,300)); w2.body = water;
+		w1.fluidEnabled = w2.fluidEnabled = true;
+		w1.fluidProperties.density = w2.fluidProperties.density = 4;
+		w1.fluidProperties.viscosity = w2.fluidProperties.viscosity = 5;
+		w1.fluidProperties.gravity = Vec2.weak(0,-400);
+		w1.fluidProperties.gravity = null;
+
+		water.align();
+		water.kinAngVel = 2;
+
+		water.space = space;
+	
+		var walls = new Body(BodyType.STATIC);
+		walls.shapes.add(new Polygon(Polygon.rect(0,0,-40,600)));
+		walls.shapes.add(new Polygon(Polygon.rect(800,0,40,600)));
+		walls.shapes.add(new Polygon(Polygon.rect(0,0,800,-40)));
+		walls.shapes.add(new Polygon(Polygon.rect(0,600,800,40)));
+		walls.space = space;
+
+		var b = new Body(BodyType.DYNAMIC, Vec2.weak(400,300));
+		b.shapes.add(new Circle(25));
+		b.space = space;
+
+		for(i in 0...60) {
+			var pre:Body = null;
+			var x = Math.random()*600+100;
+			var y = Math.random()*400+100;
+			for(j in 0...10) {
+				var b = new Body();
+				b.position.setxy(x+10*j,y);
+				b.shapes.add(new Polygon(Polygon.regular(9,9,4)));
+				b.space = space;
+
+				if(pre!=null) {
+					var con = new PivotJoint(pre,b,Vec2.weak(4.5,0),Vec2.weak(-4.5,0));
+					con.space = space;
+				}
+				pre = b;
+			}
+		}
+
+		var mcon = new PivotJoint(space.world,space.world,Vec2.weak(),Vec2.weak());
+		mcon.stiff = false;
+		mcon.frequency = 100;
+		mcon.space = space;
+		mcon.active = false;
+		mcon.space = space;
+
+		flash.Lib.current.stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function (_) {
+			var mx = flash.Lib.current.mouseX;	
+			var my = flash.Lib.current.mouseY;
+			var bods = space.bodiesInCircle(Vec2.weak(mx,my), 5);
+			for(b in bods) {
+				if(b.isDynamic()) {
+					mcon.body2 = b;
+					mcon.anchor2 = b.worldToLocal(Vec2.weak(mx,my),true);
+					mcon.active = true;
+				}
+			}
+		});
+
+		flash.Lib.current.stage.addEventListener(flash.events.MouseEvent.MOUSE_UP, function (_) {
+			mcon.active = false;
+		});
+		
+		(new haxe.Timer(0)).run = function() {
+			debug.clear();
+			mcon.anchor1.setxy(flash.Lib.current.mouseX,flash.Lib.current.mouseY);
+			space.step(1/60,10,10);
+			debug.draw(space);
+			debug.flush();
+		}
 	}
 }
 
