@@ -28,9 +28,9 @@ class Geom {
 			rev = true;
 			swap(shape1,shape2);
 		}
-		
-		shape1.pr(inner).validate_worldCOM();
-		shape2.pr(inner).validate_worldCOM();
+	
+		PR(Geom).validateShape(shape1.pr(inner));
+		PR(Geom).validateShape(shape2.pr(inner));	
 			
 		var ret = PR(Distance).distance(
 			out1.pr(inner), out2.pr(inner),
@@ -44,5 +44,17 @@ class Geom {
 		}
 		
 		return ret;
+	}
+
+	keep public static function intersect(shape1:Shape,shape2:Shape) {
+		DEBUG(if(shape1.body==null || shape2.body==null)
+			throw "Error: Shape must be part of a Body to calculate intersection";
+		)
+
+		PR(Geom).validateShape(shape1.pr(inner));
+		PR(Geom).validateShape(shape2.pr(inner));
+
+		return shape1.pr(inner).aabb.intersect(shape2.pr(inner).aabb)
+		    && PR(Collide).testCollide_safe(shape1.pr(inner),shape2.pr(inner));
 	}
 }
