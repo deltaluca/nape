@@ -298,20 +298,22 @@ class DummyNapeMain {
 
 		var space = new Space();
 
-		var b = new Body(BodyType.DYNAMIC, Vec2.weak(200,300));
+		var b = new Body(BodyType.DYNAMIC, Vec2.weak(400,300));
 		b.shapes.add(new Circle(50));
 		b.space = space;
 
 		var b = new Body(BodyType.DYNAMIC, Vec2.weak(400,300));
-		b.shapes.add(new Circle(25));
+		b.shapes.add(new Polygon(Polygon.regular(50,50,4)));
 		b.space = space;
 
-		var b = new Body(BodyType.DYNAMIC, Vec2.weak(600,300));
+/*-		var b = new Body(BodyType.DYNAMIC, Vec2.weak(400,300));
 		b.shapes.add(new Circle(10));
-		b.space = space;
+		b.space = space;*/
 
 		var mcon = new PivotJoint(space.world,space.world,Vec2.weak(),Vec2.weak());
 		mcon.active = false;
+		mcon.stiff = false;
+		mcon.maxForce = 0;
 		mcon.space = space;
 
 		for(b in space.bodies) b.shapes.at(0).filter.collisionMask = 0;
@@ -323,9 +325,8 @@ class DummyNapeMain {
 			for(b in bods) {
 				if(b.isDynamic()) {
 					mcon.body2 = b;
-					mcon.anchor2 = b.worldToLocal(Vec2.weak(mx,my),true);
+//					mcon.anchor2 = b.worldToLocal(Vec2.weak(mx,my),true);
 					mcon.active = true;
-					break; // <-- source of error without it
 				}
 			}
 		});
@@ -334,9 +335,11 @@ class DummyNapeMain {
 			mcon.active = false;
 		});
 		
-		(new haxe.Timer(0)).run = function() {
+		var x = Vec2.get();
+		var y = Vec2.get();
+
+		(new haxe.Timer(500)).run = function() {
 			debug.clear();
-			mcon.anchor1.setxy(flash.Lib.current.mouseX,flash.Lib.current.mouseY);
 			space.step(1/60,10,10);
 			debug.draw(space);
 
@@ -348,6 +351,9 @@ class DummyNapeMain {
 					}
 					if(Geom.contains(b.shapes.at(0),mcon.body2.shapes.at(0))) {
 						debug.drawLine(b.worldCOM,mcon.body2.worldCOM,0xff00);
+					}
+					if(Geom.distance(b.shapes.at(0),mcon.body2.shapes.at(0),x,y)>=0) {
+						debug.drawLine(x,y,0xff00ff);
 					}
 				}
 			}
