@@ -57,4 +57,16 @@ class Geom {
 		return shape1.pr(inner).aabb.intersect(shape2.pr(inner).aabb)
 		    && PR(Collide).testCollide_safe(shape1.pr(inner),shape2.pr(inner));
 	}
+
+	keep public static function contains(shape1:Shape,shape2:Shape) {
+		DEBUG(if(shape1.body==null || shape2.body==null)
+			throw "Error: Shape must be part of a Body to calculate containment";
+		)
+
+		PR(Geom).validateShape(shape1.pr(inner));
+		PR(Geom).validateShape(shape2.pr(inner));
+
+		return shape1.pr(inner).aabb.contains(shape2.pr(inner).aabb)
+		    && PR(Collide).containTest(shape1.pr(inner),shape2.pr(inner));
+	}
 }
