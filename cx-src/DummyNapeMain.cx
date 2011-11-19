@@ -296,57 +296,25 @@ class DummyNapeMain {
 		debug.drawConstraints = false;
 		flash.Lib.current.addChild(debug.display);
 
-		var space = new Space(Vec2.weak(0,400));
+		var space = new Space();
 
-		var water = new Body(BodyType.STATIC);
-		var w1 = new Polygon(Polygon.rect(0,0,800,300));   w1.body = water;
-		var w2 = new Polygon(Polygon.rect(0,300,800,300)); w2.body = water;
-		w1.fluidEnabled = w2.fluidEnabled = true;
-		w1.fluidProperties.density = w2.fluidProperties.density = 4;
-		w1.fluidProperties.viscosity = w2.fluidProperties.viscosity = 5;
-		w1.fluidProperties.gravity = Vec2.weak(0,-400);
-		w1.fluidProperties.gravity = null;
-
-		water.align();
-		water.kinAngVel = 2;
-
-		water.space = space;
-	
-		var walls = new Body(BodyType.STATIC);
-		walls.shapes.add(new Polygon(Polygon.rect(0,0,-40,600)));
-		walls.shapes.add(new Polygon(Polygon.rect(800,0,40,600)));
-		walls.shapes.add(new Polygon(Polygon.rect(0,0,800,-40)));
-		walls.shapes.add(new Polygon(Polygon.rect(0,600,800,40)));
-		walls.space = space;
+		var b = new Body(BodyType.DYNAMIC, Vec2.weak(200,300));
+		b.shapes.add(new Circle(50));
+		b.space = space;
 
 		var b = new Body(BodyType.DYNAMIC, Vec2.weak(400,300));
 		b.shapes.add(new Circle(25));
 		b.space = space;
 
-		for(i in 0...60) {
-			var pre:Body = null;
-			var x = Math.random()*600+100;
-			var y = Math.random()*400+100;
-			for(j in 0...10) {
-				var b = new Body();
-				b.position.setxy(x+10*j,y);
-				b.shapes.add(new Polygon(Polygon.regular(9,9,4)));
-				b.space = space;
-
-				if(pre!=null) {
-					var con = new PivotJoint(pre,b,Vec2.weak(4.5,0),Vec2.weak(-4.5,0));
-					con.space = space;
-				}
-				pre = b;
-			}
-		}
+		var b = new Body(BodyType.DYNAMIC, Vec2.weak(600,300));
+		b.shapes.add(new Circle(10));
+		b.space = space;
 
 		var mcon = new PivotJoint(space.world,space.world,Vec2.weak(),Vec2.weak());
-		mcon.stiff = false;
-		mcon.frequency = 100;
-		mcon.space = space;
 		mcon.active = false;
 		mcon.space = space;
+
+		for(b in space.bodies) b.shapes.at(0).filter.collisionMask = 0;
 
 		flash.Lib.current.stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function (_) {
 			var mx = flash.Lib.current.mouseX;	
@@ -357,6 +325,7 @@ class DummyNapeMain {
 					mcon.body2 = b;
 					mcon.anchor2 = b.worldToLocal(Vec2.weak(mx,my),true);
 					mcon.active = true;
+					break; // <-- source of error without it
 				}
 			}
 		});
@@ -370,6 +339,19 @@ class DummyNapeMain {
 			mcon.anchor1.setxy(flash.Lib.current.mouseX,flash.Lib.current.mouseY);
 			space.step(1/60,10,10);
 			debug.draw(space);
+
+			if(mcon.active) {
+				for(b in space.dynamics) {
+					if(b==mcon.body2) continue;
+					if(Geom.intersects(b.shapes.at(0),mcon.body2.shapes.at(0))) {
+						debug.drawLine(b.worldCOM,mcon.body2.worldCOM,0xff0000);
+					}
+					if(Geom.contains(b.shapes.at(0),mcon.body2.shapes.at(0))) {
+						debug.drawLine(b.worldCOM,mcon.body2.worldCOM,0xff00);
+					}
+				}
+			}
+
 			debug.flush();
 		}
 	}
