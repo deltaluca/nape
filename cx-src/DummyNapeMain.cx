@@ -356,11 +356,12 @@ class DummyNapeMain {
 		shape.graphics.beginFill(0x999999);
 		shape.graphics.drawRect(0,300,800,500);
 		bd.draw(shape);
+		cur.addChild(new flash.display.Bitmap(bd));
 
 		var erase = new flash.display.BitmapData(64,64,true,0xffffffff);
 		shape.graphics.clear();
 		shape.graphics.beginFill(0xff0000);
-		shape.graphics.drawCircle(32,32,32);
+		shape.graphics.drawCircle(32,32,28);
 		erase.draw(shape);
 		erase.copyChannel(erase,erase.rect,new flash.geom.Point(), flash.display.BitmapDataChannel.BLUE, flash.display.BitmapDataChannel.ALPHA);
 
@@ -368,41 +369,16 @@ class DummyNapeMain {
 		debug.drawShapeAngleIndicators = true;
 		cur.addChild(debug.display);
 
-		function v(x,y) return Vec2.get(x,y);
-		var pss = new GeomPoly([v(0,598.125),v(0,298.125),v(135,298.125),v(174.375,315),v(140.625,360),v(135,365.625),v(106.875,405),v(135,433.125),v(795.625,585),v(765,598.125)]);
-
-		debug.drawPolygon(pss,0xff);
-		for(p in pss) debug.drawCircle(p,4,0xff00ff);
-		debug.flush();
-
-		haxe.Log.clear();
-		pss.convex_decomposition();
-
-		return;
-
 		function lookup(x:Float,y:Float):Float {
-			return bd.getPixel32(Std.int(x),Std.int(y))==0 ? 1 : -1;
+			return 0x80 - (bd.getPixel32(Std.int(x),Std.int(y)) >>> 24);
 		}
 
 		function invalidate2() {
 			debug.clear();
-			var polys = MarchingSquares.run(lookup, new AABB(0,0,800,600), new Vec2(45,45));
+			var polys = MarchingSquares.run(lookup, new AABB(0,0,800,600), new Vec2(25,25));
 			for(p in polys) {
-				var qs:GeomPolyList = new GeomPolyList();
-				qs = p.monotone_decomposition();
-				for(q in qs) {
-				try {
-					 var ts = q.convex_decomposition();
-				}catch(e:Dynamic) {
-					var ret = "[";
-					for(v in q) {
-						if(ret!="[") ret += ",";
-						ret += "v("+v.x+","+v.y+")";
-					}
-					throw ret+"]";
-				}
-				}
-				qs = p.convex_decomposition();
+				debug.drawPolygon(p,0x808080);
+				var qs = p.convex_decomposition();
 				for(q in qs)
 					debug.drawPolygon(q,0xff0000);
 			}
