@@ -28,13 +28,15 @@ class PR(Collide) {
 
 	flibstaticdel(containTest)
 	public static force_inline function containTest(s1:PR(Shape),s2:PR(Shape)) {
-		return if(s1.isCircle()) {
-			if(s2.isCircle()) circle2circle_contain(s1.circle,s2.circle);
-			else              circle2poly_contain  (s1.circle,s2.polygon);
-		}else {
-			if(s2.isCircle()) poly2circle_contain(s1.polygon,s2.circle);
-			else              poly2poly_contain  (s1.polygon,s2.polygon);
-		};
+		if(s1.aabb.contains(s2.aabb)) {
+			return if(s1.isCircle()) {
+				if(s2.isCircle()) circle2circle_contain(s1.circle,s2.circle);
+				else              circle2poly_contain  (s1.circle,s2.polygon);
+			}else {
+				if(s2.isCircle()) poly2circle_contain(s1.polygon,s2.circle);
+				else              poly2poly_contain  (s1.polygon,s2.polygon);
+			};
+		}else return false;
 	}
 
 	//----------------------------------------------------------------------------------------------
