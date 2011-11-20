@@ -22,7 +22,65 @@ class DummyNapeMain {
 	}
 
 	function new() {
-		var debug = new ShapeDebug(800,600);
+		var cur = flash.Lib.current;
+
+		var bd = new flash.display.BitmapData(800,600,true,0x0);
+		var shape = new flash.display.Shape();
+		shape.graphics.beginFill(0x999999);
+		shape.graphics.drawRect(0,300,800,500);
+		bd.draw(shape);
+
+		var erase = new flash.display.BitmapData(64,64,true,0xffffffff);
+		shape.graphics.clear();
+		shape.graphics.beginFill(0xff0000);
+		shape.graphics.drawCircle(32,32,32);
+		erase.draw(shape);
+		erase.copyChannel(erase,erase.rect,new flash.geom.Point(), flash.display.BitmapDataChannel.BLUE, flash.display.BitmapDataChannel.ALPHA);
+
+		var debug = new ShapeDebug(800,600,0x0);
+		debug.drawShapeAngleIndicators = true;
+		cur.addChild(debug.display);
+
+		function lookup(x:Float,y:Float):Float {
+			return bd.getPixel32(Std.int(x),Std.int(y))==0 ? 1 : -1;
+		}
+
+		function invalidate2() {
+			debug.clear();
+			var polys = MarchingSquares.run(lookup, new AABB(0,0,800,600), new Vec2(15,15));
+			for(p in polys) {
+				var qs:GeomPolyList = new GeomPolyList();
+				try {
+					 qs = p.convex_decomposition();
+				}catch(e:Dynamic) {
+					var ret = "[";
+					for(v in p) {
+						if(ret!="[") ret += ",";
+						ret += "v("+v.x+","+v.y+")";
+					}
+					trace(ret+"]");
+				}
+				for(q in qs)
+					debug.drawPolygon(q,0xff0000);
+			}
+			debug.flush();
+		}
+		invalidate2();
+
+		cur.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function(_) {
+			bd.copyPixels(bd,new flash.geom.Rectangle(cur.mouseX-32,cur.mouseY-32,64,64), new flash.geom.Point(cur.mouseX-32,cur.mouseY-32), erase, new flash.geom.Point(), false);
+			invalidate2();
+		});
+
+		cur.addEventListener(flash.events.MouseEvent.MOUSE_MOVE, function(e) {
+			if(!e.buttonDown) return;
+
+			bd.copyPixels(bd,new flash.geom.Rectangle(cur.mouseX-32,cur.mouseY-32,64,64), new flash.geom.Point(cur.mouseX-32,cur.mouseY-32), erase, new flash.geom.Point(), false);
+			invalidate2();
+		});
+
+
+/*		var debug = new ShapeDebug(800,600);
 		debug.drawShapeAngleIndicators = false;
 		flash.Lib.current.addChild(debug.display);
 
@@ -86,7 +144,7 @@ class DummyNapeMain {
 			debug.flush();
 		}
 
-
+*/
 
 /*        var root = nme.Lib.current;
         Perlin3D.init_noise();
@@ -290,6 +348,84 @@ class Tracer {
 }
 
 class DummyNapeMain {
+	static function main() {
+		var cur = flash.Lib.current;
+
+		var bd = new flash.display.BitmapData(800,600,true,0x0);
+		var shape = new flash.display.Shape();
+		shape.graphics.beginFill(0x999999);
+		shape.graphics.drawRect(0,300,800,500);
+		bd.draw(shape);
+
+		var erase = new flash.display.BitmapData(64,64,true,0xffffffff);
+		shape.graphics.clear();
+		shape.graphics.beginFill(0xff0000);
+		shape.graphics.drawCircle(32,32,32);
+		erase.draw(shape);
+		erase.copyChannel(erase,erase.rect,new flash.geom.Point(), flash.display.BitmapDataChannel.BLUE, flash.display.BitmapDataChannel.ALPHA);
+
+		var debug = new ShapeDebug(800,600);
+		debug.drawShapeAngleIndicators = true;
+		cur.addChild(debug.display);
+
+		function v(x,y) return Vec2.get(x,y);
+		var pss = new GeomPoly([v(0,598.125),v(0,298.125),v(135,298.125),v(174.375,315),v(140.625,360),v(135,365.625),v(106.875,405),v(135,433.125),v(795.625,585),v(765,598.125)]);
+
+		debug.drawPolygon(pss,0xff);
+		for(p in pss) debug.drawCircle(p,4,0xff00ff);
+		debug.flush();
+
+		haxe.Log.clear();
+		pss.convex_decomposition();
+
+		return;
+
+		function lookup(x:Float,y:Float):Float {
+			return bd.getPixel32(Std.int(x),Std.int(y))==0 ? 1 : -1;
+		}
+
+		function invalidate2() {
+			debug.clear();
+			var polys = MarchingSquares.run(lookup, new AABB(0,0,800,600), new Vec2(45,45));
+			for(p in polys) {
+				var qs:GeomPolyList = new GeomPolyList();
+				qs = p.monotone_decomposition();
+				for(q in qs) {
+				try {
+					 var ts = q.convex_decomposition();
+				}catch(e:Dynamic) {
+					var ret = "[";
+					for(v in q) {
+						if(ret!="[") ret += ",";
+						ret += "v("+v.x+","+v.y+")";
+					}
+					throw ret+"]";
+				}
+				}
+				qs = p.convex_decomposition();
+				for(q in qs)
+					debug.drawPolygon(q,0xff0000);
+			}
+			debug.flush();
+		}
+		invalidate2();
+
+		cur.stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function(_) {
+			bd.copyPixels(bd,new flash.geom.Rectangle(cur.mouseX-32,cur.mouseY-32,64,64), new flash.geom.Point(cur.mouseX-32,cur.mouseY-32), erase, new flash.geom.Point(), false);
+			invalidate2();
+		});
+
+		cur.stage.addEventListener(flash.events.MouseEvent.MOUSE_MOVE, function(e) {
+			if(!e.buttonDown) return;
+
+			bd.copyPixels(bd,new flash.geom.Rectangle(cur.mouseX-32,cur.mouseY-32,64,64), new flash.geom.Point(cur.mouseX-32,cur.mouseY-32), erase, new flash.geom.Point(), false);
+			invalidate2();
+		});
+
+	}
+}
+
+class DummyNapeMains {
 	static function main() {
 		var debug = new BitmapDebug(800,600,0x333333);
 		debug.drawShapeAngleIndicators = false;

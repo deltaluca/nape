@@ -29,6 +29,14 @@ class PR(PartitionPoly) {
 		return ret;
 	}
 
+	public function debug() {
+		trace("poly:");
+		for_iter(v, vertices, {
+			trace("  vertex: "+v.x+","+v.y);
+			Iter(q, v.diagonals, trace("   -- "+q.x+","+q.y));
+		});
+	}
+
 	public function new(P:PR(GeomVert)=null) {
 		if(P==null) return;
 
@@ -78,23 +86,27 @@ class PR(PartitionPoly) {
 				poly = push_after(poly, PR(GeomVert).get(next.x,next.y));
 				poly.forced = next.forced;
 			)
+			trace("next = "+next.x+","+next.y);
 			if(!next.diagonals.empty()) {
 				var diag = next.diagonals.pop_unsafe();
+				trace("   diag = "+diag.x+","+diag.y);
 				if(diag==start)
 					break;
 				else
 					next = make_polygon(next,rets);
 			}else {
 				var n = next.next;
-				Free(Vertex,next);
+//				Free(Vertex,next);
 				next = n;
 			}
 		}while(next!=start);
 
 		assert(PR(Monotone).isMonotone(poly), "output poly is not monotone :(");
 		assert(geom(clockwise(poly)),"out poly is not convex-monotone :(");
-		rets.add(poly);
 
+		if(geom(signed_area(poly))!=0)
+			rets.add(poly);
+		trace("   retu = "+next.x+","+next.y);
 		return next;
 	}
 })
@@ -105,11 +117,12 @@ class Vertex {
 		assert(diagonals.empty(),"diagonals non empty, free PartVertex");
 		helper = null;
 		prev = null;
-		DEBUG(vec_set(this.,0,0);)
 		node = null;
+	}
+	flibmdel public inline function alloc() {
+		DEBUG(vec_set(this.,0,0));
 		forced = false;
 	}
-	flibmdel public inline function alloc() {}
 
 	//used by convex decomposition
 	flibmdel public inline function linked() {
@@ -131,6 +144,7 @@ class Vertex {
 
 	//used for PartitionPoly
 	public var diagonals:List(Vertex);
+	public var icnt:Int; //reference counting
 
 	//used for propogation of field to out GeomVerts
 	public var forced:Bool;
@@ -142,6 +156,8 @@ class Vertex {
 	flibmdel public inline function insert_diagonal(x:Vertex) {
 		assert(!diagonals.has(x),"diagonal already exists");
 		diagonals.add(x);
+		//each diagonal inserted means vertex is referenced twice more
+		icnt += 2;
 	}
 	flibmdel public inline function sort_diagonals() {
 		vec_new(u); vec_new(v);
