@@ -152,7 +152,7 @@ class Space {
 		return ret;
 	}
 
-	keep public function shapesInShape(shape:Shape,containment:Bool=false) {
+	keep public function shapesInShape(shape:Shape,containment:Bool=false,?filter:InteractionFilter) {
 		DEBUG(
 			if(shape==null) throw "Error: Cannot evaluate shapes in a null shapes :)";
 			if(shape.body==null) throw "Error: Query shape needs to be inside a Body to be well defined :)";
@@ -162,9 +162,9 @@ class Space {
 					throw "Error: Polygon query shape is invalid : "+res.toString();
 			}
 		)
-		return pr(inner).shapesInShape(shape.pr(inner),containment);
+		return pr(inner).shapesInShape(shape.pr(inner),containment,filter == null ? null : filter.pr(inner));
 	}
-	keep public function bodiesInShape(shape:Shape,containment:Bool=false) {
+	keep public function bodiesInShape(shape:Shape,containment:Bool=false,?filter:InteractionFilter) {
 		DEBUG(
 			if(shape==null) throw "Error: Cannot evaluate bodies in a null shapes :)";
 			if(shape.body==null) throw "Error: Query shape needs to be inside a Body to be well defined :)";
@@ -174,19 +174,16 @@ class Space {
 					throw "Error: Polygon query shape is invalid : "+res.toString();
 			}
 		)
-		return pr(inner).bodiesInShape(shape.pr(inner),containment);
+		return pr(inner).bodiesInShape(shape.pr(inner),containment,filter == null ? null : filter.pr(inner));
 	}
 
 	keep public function shapesInBody(body:Body,?filter:InteractionFilter) {
 		DEBUG(if(body==null) throw "Error: Cannot evaluate shapes in null body";)
 		var ret = null;
 		for(shape in body.shapes) {
-			var pfilt = shape.pr(inner).filter;
-			if(filter!=null) shape.pr(inner).filter = filter.pr(inner);
-			var cur = shapesInShape(shape);
+			var cur = shapesInShape(shape,false,filter);
 			if(ret==null) ret = cur;
 			else ret.merge(cur);
-			shape.pr(inner).filter = pfilt;
 		}
 		return if(ret==null) new ShapeList() else ret;
 	}
@@ -194,12 +191,9 @@ class Space {
 		DEBUG(if(body==null) throw "Error: Cannot evaluate shapes in null body";)
 		var ret = null;
 		for(shape in body.shapes) {
-			var pfilt = shape.pr(inner).filter;
-			if(filter!=null) shape.pr(inner).filter = filter.pr(inner);
-			var cur = bodiesInShape(shape);
+			var cur = bodiesInShape(shape,false,filter);
 			if(ret==null) ret = cur;
 			else ret.merge(cur);
-			shape.pr(inner).filter = pfilt;
 		}
 		return if(ret==null) new BodyList() else ret;
 	}

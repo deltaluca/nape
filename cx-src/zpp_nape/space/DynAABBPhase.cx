@@ -919,7 +919,7 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 
 	//==============================================================
 
-	public override function shapesInShape(shp:PR(Shape), containment:Bool) {
+	public override function shapesInShape(shp:PR(Shape), containment:Bool, filter:PR(InteractionFilter)) {
 		sync_broadphase();
 		validateShape(shp);
 
@@ -928,7 +928,7 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 		
 		$(mixin dotree(tree) {
 			IterAABB(tree,ab, $(mixin block(shape) {
-				if(shp.filter==null || shape.filter.shouldCollide(shp.filter)) {
+				if(filter==null || shape.filter.shouldCollide(filter)) {
 					if(containment) {
 						if(PR(Collide).containTest(shp,shape))
 							ret.push(shape.outer);
@@ -942,7 +942,7 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 		return ret;
 	}
 
-	public override function bodiesInShape(shp:PR(Shape), containment:Bool) {
+	public override function bodiesInShape(shp:PR(Shape), containment:Bool, filter:PR(InteractionFilter)) {
 		sync_broadphase();
 		validateShape(shp);
 
@@ -953,7 +953,7 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 			IterAABB(tree,ab, $(mixin block(shape) {
 				var body = shape.body.outer;
 				if(!ret.has(body)) {
-					if(shp.filter==null || shape.filter.shouldCollide(shp.filter)) {
+					if(filter==null || shape.filter.shouldCollide(filter)) {
 						if(containment) {
 							if(PR(Collide).containTest(shp,shape))
 								ret.push(body);
@@ -962,7 +962,7 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 					}
 				}else if(containment) {
 					//check all contained
-					if((shp.filter==null || shape.filter.shouldCollide(shp.filter)) && !PR(Collide).containTest(shp,shape))
+					if((filter==null || shape.filter.shouldCollide(filter)) && !PR(Collide).containTest(shp,shape))
 						ret.remove(body);
 				}
 			}) block)

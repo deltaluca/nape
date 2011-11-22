@@ -332,7 +332,7 @@ class PR(SweepPhase) extends PR(Broadphase) {
 
 	//==============================================================================================
 
-	public override function shapesInShape(shape:PR(Shape),containment:Bool) {
+	public override function shapesInShape(shape:PR(Shape),containment:Bool,filter:PR(InteractionFilter)) {
 		sync_broadphase();
 		validateShape(shape);
 
@@ -343,7 +343,7 @@ class PR(SweepPhase) extends PR(Broadphase) {
 		while(a!=null && a.aabb.minx<=ab.maxx) {
 			if(a.aabb.intersect(ab)) {
 				var shape2 = a.shape;
-				if(shape.filter==null || shape2.filter.shouldCollide(shape.filter)) {
+				if(filter==null || shape2.filter.shouldCollide(filter)) {
 					if(containment) {
 						if(PR(Collide).containTest(shape,shape2))
 							ret.push(shape2.outer);
@@ -355,7 +355,7 @@ class PR(SweepPhase) extends PR(Broadphase) {
 		}
 		return ret;
 	}
-	public override function bodiesInShape(shape:PR(Shape),containment:Bool) {
+	public override function bodiesInShape(shape:PR(Shape),containment:Bool,filter:PR(InteractionFilter)) {
 		sync_broadphase();
 		validateShape(shape);
 
@@ -368,7 +368,7 @@ class PR(SweepPhase) extends PR(Broadphase) {
 				var shape2 = a.shape;
 				var body = shape2.body.outer;
 				if(!ret.has(body)) {
-					if(shape.filter==null || shape2.filter.shouldCollide(shape.filter)) {
+					if(filter==null || shape2.filter.shouldCollide(filter)) {
 						if(containment) {
 							if(PR(Collide).containTest(shape,shape2))
 								ret.push(body);
@@ -377,7 +377,7 @@ class PR(SweepPhase) extends PR(Broadphase) {
 					}
 				}else if(containment) {
 					//ensure all shapes contained
-					if(shape.filter==null && shape2.filter.shouldCollide(shape.filter) && !PR(Collide).containTest(shape,shape2))
+					if(filter==null && shape2.filter.shouldCollide(filter) && !PR(Collide).containTest(shape,shape2))
 						ret.remove(body);
 				}
 			}
