@@ -712,6 +712,14 @@ class Body {
 	}
 	
 	//----------------------------------------------------------------------------------------------
+
+	keep public function contains(point:Vec2) {
+		Disposed(point,Vec2);
+		DEBUG(if(point==null) throw "Error: Cannot check containment of null point";)
+		return Exists(s, pr(inner).shapes, s.outer.contains(point));
+	}
+
+	//----------------------------------------------------------------------------------------------
 	
 	@:$keep public function toString() {
 		return (pr(inner).world?"(space::world":("("+(isDynamic()?"dynamic":isStatic()?"static":"kinematic")))+")#"+id;

@@ -15,13 +15,16 @@ class PR(Collide) {
 	}
 	
 	//----------------------------------------------------------------------------------------------
+
+	flibstaticdel(shapeContains)
+	public static inline function shapeContains(s:PR(Shape),p:PR(Vec2)) {
+		return if(s.isCircle()) circleContains(s.circle,p);
+			   else             polyContains(s.polygon,p);
+	}
 	
 	flibstaticdel(bodyContains)
 	public static inline function bodyContains(b:PR(Body),p:PR(Vec2)) {
-		return Exists(s,b.shapes,
-			if(s.isCircle()) circleContains(s.circle,p)
-			else             polyContains(s.polygon,p)
-		);
+		return Exists(s,b.shapes,shapeContains(s,p));
 	}
 	
 	//----------------------------------------------------------------------------------------------

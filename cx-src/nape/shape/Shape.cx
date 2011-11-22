@@ -179,6 +179,17 @@ class Shape {
 	}
 	
 	//----------------------------------------------------------------------------------------------
+
+	keep public function contains(point:Vec2) {
+		Disposed(point,Vec2);
+		DEBUG(if(point==null) throw "Cannot check null point for containment";)
+		DEBUG(if(body==null) throw "Error: Shape is not well defined without a Body";)	
+
+		PR(Geom).validateShape(pr(inner));
+		return PR(Collide).shapeContains(pr(inner),point.pr(inner));
+	}
+
+	//----------------------------------------------------------------------------------------------
 	
 	keep public static function copy(shape:Shape) {
 		DEBUG(if(shape==null)
