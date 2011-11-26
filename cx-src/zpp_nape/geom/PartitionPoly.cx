@@ -29,24 +29,31 @@ class PR(PartitionPoly) {
 		return ret;
 	}
 
+	inline function eq(a:PR(GeomVert),b:PR(GeomVert)) return vec_dsq(a.,b.)<PR(Const).EPSILON
 	public function new(P:PR(GeomVert)=null) {
 		if(P==null) return;
-
 		var p = P;
 		var cw = geom(clockwise(P));
 		do {
-			vec_new(u); vec_sub(p.,p.prev.,u);
-			vec_new(v); vec_sub(p.next.,p.,v);
-			if(vec_cross(u,v)!=0.0 || vec_dot(u,v)<0) {
-				vertices = if(cw)
-					push_after(vertices,Vertex.get(p.x,p.y));
-				else
-					push_before(vertices,Vertex.get(p.x,p.y));
-				//propogation away
-				vertices.forced = p.forced;
+			if(eq(p,p.next)) {
+			}else {
+				var pre = p.prev;
+				while(eq(pre,p) && pre!=p) pre = pre.prev;
+				if(pre==p) break;
+
+				vec_new(u); vec_sub(p.,pre.,u);
+				vec_new(v); vec_sub(p.next.,p.,v);
+				if(vec_cross(u,v)!=0.0) {
+					vertices = if(cw)
+						 push_after (vertices,Vertex.get(p.x,p.y));
+					else push_before(vertices,Vertex.get(p.x,p.y));
+					//propogation away
+					vertices.forced = p.forced;
+				}
 			}
 			p = p.next;
 		}while(p!=P);
+		DEBUG(if(size(vertices)<3) throw "Error: Degenerate poly cannot be decomposed";)
 	}
 
 	flibmdel public inline function insert_diagonal(p:Vertex,q:Vertex) {
