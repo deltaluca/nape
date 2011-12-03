@@ -264,6 +264,13 @@ class GeomPoly {
 	}
 
 mix_circular(Vertex,
+	public function transform(matrix:Mat23) {
+		DEBUG(if(matrix==null) throw "Error: Cannot transform by null matrix";)
+		for_iter(v, verts, {
+			mat_transform_hom(matrix.,v.);
+		});
+	}
+
 	public function bounds() {
 		DEBUG(if(empty()) throw "Error: empty GeomPoly has no defineable bounds";)
 		vec_new(min, PR(Const).FMAX, PR(Const).FMAX);
