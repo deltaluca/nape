@@ -435,7 +435,11 @@ class PR(Body) {
 		
 		flibmdel public inline function validate_graphic() {
 			if(hasgraphic) {
-				graphic.rotation = (rot + grotdelta)*180/Math.PI;
+				//flash graphics API certainly (I cannot speak for NME)
+				//does not like very large values for rotations, so mudulo operation
+				//is necessary to avoid lengthy simulations causes objects to simply
+				//stop rotating visually.
+				graphic.rotation = ((rot + grotdelta)*180/Math.PI)%360.0;
 				
 				validate_axis();
 				vec_new(d); vec_rotate(gdelta, axis, d);
