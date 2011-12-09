@@ -13,7 +13,9 @@ class FluidProperties {
 	}
 	
 	keep public inline function copy() {
-		return new FluidProperties(density,viscosity);
+		var ret = new FluidProperties(density,viscosity);
+		ret.userData = userData;
+		return ret;
 	}
 	
 	//----------------------------------------------------------------------------------------------
@@ -37,6 +39,22 @@ class FluidProperties {
 	prop(density)
 	prop(viscosity)
 	
+	//----------------------------------------------------------------------------------------------
+
+	property(gravity,Vec2,pr(inner).wrap_gravity,{
+		if(gravity==null) {
+			if(pr(inner).wrap_gravity!=null) {
+				pr(inner).wrap_gravity.pr(inner).inuse = false;
+				pr(inner).wrap_gravity.dispose();
+				pr(inner).wrap_gravity = null;
+			}
+		}else {
+			Disposed(gravity,Vec2);
+			if(pr(inner).wrap_gravity==null) pr(inner).getgravity();
+			this.gravity.set(gravity);
+		}
+	})
+
 	//----------------------------------------------------------------------------------------------
 	
 	@:$keep public function toString() {

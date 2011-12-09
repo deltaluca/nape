@@ -4,7 +4,9 @@
 <class package="nape.geom" name="Mat23">
 	<file>Mat23.hx</file>
 	<description>
-		<text>2D Matrix class.</text>	
+		<text>2D Matrix class.</text><br/>
+		<code><![CDATA[[ a b tx ]
+[ c d ty ]]]></code><br/><text>NOTE: in flash, a flash.geom.Matrix has 'b' and 'c' swapped in position because Adobe are silly and inconsistent, so for conversions between them you should use the nape methods to keep things clear and avoid mistakes</text>
 	</description>
 	<short>
 		2D Matrix class.
@@ -98,7 +100,13 @@
 			<description> Construct a scaling matrix corresponding to a scaling of (sx,sy). If second argument is ommitted, then an equal scaling is used of (sx,sx) </description>
 		</detail>
 	</method>
-	
+
+	<method name="toMatrix" inline="true" const="true" return="flash.geom.Matrix">
+		<description> (flash9+) Construct flash matrix from Mat23 </description>
+		<detail>
+			<description> For flash9+ targets, construct flash matrix from this matrix </description>
+		</detail>
+	</method>	
 	<method name="copy" inline="true" const="true" return="Mat23">
 		<description> Produce a copy of this matrix. </description>
 		<detail>
@@ -152,13 +160,25 @@
 	</method>
 	<method name="transform" inline="true" const="true" return="Vec2">
 		<arg name="p" type="Vec2" const="true"/>
+		<arg name="no_translation" type="Bool" optional="true" default="false"/>
+		<arg name="weak" type="Bool" optional="true" default="false"/>
 		<description> Transform vector </description>
 		<detail>
-			<description> Returns the vector resultant by transforming the given vector by this matrix as a post multiplication this*p.</description>
+			<description> Returns the possibly weak vector resultant by transforming the given vector by this matrix as a post multiplication this*p.</description>
 		</detail>
 	</method>
 	<method/>
-	
+	<method name="inverse_transform" inline="true" const="true" return="Vec2">
+		<arg name="p" type="Vec2" const="true"/>
+		<arg name="no_translation" type="Bool" optional="true" default="false"/>
+		<arg name="weak" type="Bool" optional="true" default="false"/>
+		<description> Transform vector by inverse </description>
+		<detail>
+			<description> Returns the possibly weak vector resultant by transforming the given vector by this matrix's inverse as a post multiplication this*inv(p).</description>
+		</detail>
+	</method>
+	<method/>
+		
 	<method name="orthogonalise" inline="true" return="Mat23">
 		<description> Make matrix orthogonal </description>
 		<detail>

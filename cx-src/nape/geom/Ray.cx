@@ -63,9 +63,9 @@ class Ray {
 		return ret;
 	}
 	
-	public function at(distance:Float) {
+	public function at(distance:Float,?weak:Bool=false) {
 		pr(inner).validate_dir();
-		return Vec2.get(origin.x+distance*pr(inner).dirx,origin.y+distance*pr(inner).diry);
+		return Vec2.get(origin.x+distance*pr(inner).dirx,origin.y+distance*pr(inner).diry,weak);
 	}
 	
 	//----------------------------------------------------------------------------
@@ -86,10 +86,11 @@ class Ray {
 			if(start==null) throw "Error: Ray::fromSegment::start is null";
 			if(end  ==null) throw "Error: Ray::fromSegment::end is null";
 		)
-		var dir = end.sub(start);
+		var dir = end.sub(start,true);
 		var ret = new Ray(start,dir);
-		dir.dispose();
 		ret.maxDistance = Math.sqrt(vec_dsq(start.,end.));
+		WEAK(start);
+		WEAK(end);
 		return ret;
 	}
 }

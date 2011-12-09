@@ -43,6 +43,51 @@ $(mixin global PolyFirst(polygon) (${DEBUG/1,Disposed/2,PR/1,pr/1->
 	)
 }));
 
+//assume polygon is well formed.
+$(mixin global PolyWeak(polygon) ${DEBUG/1,isWEAK/1,WEAK/1,PR/1,pr/1->
+	if(Std.is(polygon,Array)) {
+		var lv:Array<Vec2> = polygon;
+		var i = 0;
+		while(i<lv.length) {
+			var cur = lv[i];
+			if(WEAK(cur)) {
+				lv.splice(i,1);
+				continue;
+			}
+			i++;
+		}
+	}#if flash9 else if(Std.is(polygon,flash.Vector)) {
+		var lv:flash.Vector<Vec2> = polygon;
+		if(!lv.fixed) {
+		var i:UInt = 0;
+		while(i<lv.length) {
+			var cur = lv[i];
+			if(WEAK(cur)) {
+				lv.splice(i,1);
+				continue;
+			}
+			i++;
+		}
+		}
+	}#end
+	else if(Std.is(polygon,Vec2List)) {
+		var lv:Vec2List = polygon;
+		var ins = lv.pr(inner).inner;
+		var pre = null;
+		var cur = ins.begin();
+		while(cur!=null) {
+			var x = cur.elem();
+			if(isWEAK(x.outer)) {
+				cur = ins.erase(pre);
+				WEAK(x.outer);
+			}else {
+				pre = cur;
+				cur = cur.next;
+			}
+		}
+	}
+});
+
 $(mixin global PolyIter(val, polygon, block) ${DEBUG/1,Disposed/2,PR/1,pr/1->
 	if(Std.is(polygon,Array)) {
 		var lv:Array<Dynamic> = polygon;

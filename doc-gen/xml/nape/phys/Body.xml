@@ -140,6 +140,12 @@
 			<description>Body callback type id for callback event listeners</description>
 		</detail>
 	</property>
+	<property name="userData" type="Dynamic">
+		<description>user defined data </description>
+		<detail>
+			<description>user defined data</description>
+		</detail>
+	</property>
 	
 	
 	<property/>
@@ -151,9 +157,9 @@
 	</property>
 	
 	<property name="bounds" type="AABB" readonly="true">
-		<description>Body global bounds</description>
+		<description>Body world bounds</description>
 		<detail>
-			<description><text>Immutable AABB representing the global limits of the Body.</text></description>
+			<description><text>Immutable AABB representing the world limits of the Body.</text></description>
 			<get><code inline="true">shapes.empty()</code> </get>
 		</detail>
 	</property>
@@ -327,9 +333,9 @@
 		</detail>
 	</property>
 	<property name="worldCOM" type="Vec2" readonly="true">
-		<description>Immutable global centre of mass</description>
+		<description>Immutable world centre of mass</description>
 		<detail>
-			<description>Immutable Vec2 corresponding to the centre of mass of the rigid body in global/world coordinates</description>
+			<description>Immutable Vec2 corresponding to the centre of mass of the rigid body in world/world coordinates</description>
 			<get>shapes.empty()</get>
 		</detail>
 	</property>
@@ -408,7 +414,7 @@
 	<method name="align">
 		<description>align centre of mass of body</description>
 		<detail>
-			<description>Applies same translation to each shape resulting in the local centre of mass being at the origin, aswell as translating the body itself so that each shape's global state is unchanged.</description>
+			<description>Applies same translation to each shape resulting in the local centre of mass being at the origin, aswell as translating the body itself so that each shape's world state is unchanged.</description>
 			<throws>shapes.empty()</throws>
 		</detail>
 	</method>
@@ -421,43 +427,49 @@
 	</method>
 	
 	<method/>
-	<method name="localToGlobal" return="Vec2" const="true">
+	<method name="localToWorld" return="Vec2" const="true">
 		<arg name="v" type="Vec2" const="true"/>
-		<description>Transform from local to global</description>
+		<arg name="weak" type="Bool" optional="true" default="false"/>
+		<description>Transform from local to world</description>
 		<detail>
-			<description>Transform given Vec2, returning it's equivalent global coordinates</description>
+			<description>Transform given Vec2, returning it's equivalent world coordinates</description>
 		</detail>
 	</method>
 	<method name="localToRelative" return="Vec2" const="true">
 		<arg name="v" type="Vec2" const="true"/>
+		<arg name="weak" type="Bool" optional="true" default="false"/>
 		<description>Transform from local to relative</description>
 		<detail>
-			<description>Transform given Vec2, returning it's equivalent relative global/world coordinates</description>
+			<description>Transform given Vec2, returning it's equivalent relative world/world coordinates</description>
 		</detail>
 	</method>
-	<method name="relativeToGlobal" return="Vec2" const="true">
+	<method name="relativeToWorld" return="Vec2" const="true">
 		<arg name="v" type="Vec2" const="true"/>
-		<description>Transform from relative to global</description>
+		<arg name="weak" type="Bool" optional="true" default="false"/>
+		<description>Transform from relative to world</description>
 		<detail>
-			<description>Transform given Vec2, returning it's equivalent global/world coordinates</description>
+			<description>Transform given Vec2, returning it's equivalent world/world coordinates</description>
 		</detail>
 	</method>
-	<method name="globalToLocal" return="Vec2" const="true">
+	<method name="worldToLocal" return="Vec2" const="true">
 		<arg name="v" type="Vec2" const="true"/>
-		<description>Transform from global to local</description>
+		<arg name="weak" type="Bool" optional="true" default="false"/>
+		<description>Transform from world to local</description>
 		<detail>
 			<description>Transform given Vec2, returning it's equivalent local coordinates</description>
 		</detail>
 	</method>
-	<method name="globalToRelative" return="Vec2" const="true">
+	<method name="worldToRelative" return="Vec2" const="true">
 		<arg name="v" type="Vec2" const="true"/>
-		<description>Transform from global to relative</description>
+		<arg name="weak" type="Bool" optional="true" default="false"/>
+		<description>Transform from world to relative</description>
 		<detail>
-			<description>Transform given Vec2, returning it's equivalent relative global/world coordinates</description>
+			<description>Transform given Vec2, returning it's equivalent relative world/world coordinates</description>
 		</detail>
 	</method>
 	<method name="relativeToLocal" return="Vec2" const="true">
 		<arg name="v" type="Vec2" const="true"/>
+		<arg name="weak" type="Bool" optional="true" default="false"/>
 		<description>Transform from relative to local</description>
 		<detail>
 			<description>Transform given Vec2, returning it's equivalent local coordinates</description>
@@ -470,7 +482,7 @@
 		<arg name="pos" type="Vec2" const="true" optional="true" default="(0,0)" />
 		<description>Apply force at local position</description>
 		<detail>
-			<description><text>Apply force at local position, note that it is only the position that is in local coordiantes here, the force is taken to be in global/world coordinates</text><br/><br/><text>If position is omitted then this is equivalent to applyRelativeForce</text></description>
+			<description><text>Apply force at local position, note that it is only the position that is in local coordiantes here, the force is taken to be in world/world coordinates</text><br/><br/><text>If position is omitted then this is equivalent to applyRelativeForce</text></description>
 		</detail>
 	</method>
 	
@@ -479,16 +491,16 @@
 		<arg name="pos" type="Vec2" const="true" optional="true" default="(0,0)" />
 		<description>Apply force at relative position</description>
 		<detail>
-			<description><text>Apply force at relative position, note that it is only the position that is in relative coordiantes here, the force is taken to be in global/world coordinates</text><br/><br/><text>If position is omitted then this is equivalent to applyLocalForce</text></description>
+			<description><text>Apply force at relative position, note that it is only the position that is in relative coordiantes here, the force is taken to be in world/world coordinates</text><br/><br/><text>If position is omitted then this is equivalent to applyLocalForce</text></description>
 		</detail>
 	</method>
 	
-	<method name="applyGlobalForce" const="true">
+	<method name="applyWorldForce" const="true">
 		<arg name="force" type="Vec2" const="true"/>
 		<arg name="pos" type="Vec2" const="true"/>
-		<description>Apply force at global position</description>
+		<description>Apply force at world position</description>
 		<detail>
-			<description><text>Apply force at global position</text></description>
+			<description><text>Apply force at world position</text></description>
 		</detail>
 	</method>
 	
@@ -498,7 +510,7 @@
 		<arg name="pos" type="Vec2" const="true" optional="true" default="(0,0)" />
 		<description>Apply impulse at local position</description>
 		<detail>
-			<description><text>Apply impulse at local position, note that it is only the position that is in local coordiantes here, the impulse is taken to be in global/world coordinates</text><br/><br/><text>If position is omitted then this is equivalent to applyRelativeImpulse</text></description>
+			<description><text>Apply impulse at local position, note that it is only the position that is in local coordiantes here, the impulse is taken to be in world/world coordinates</text><br/><br/><text>If position is omitted then this is equivalent to applyRelativeImpulse</text></description>
 		</detail>
 	</method>
 	
@@ -507,33 +519,35 @@
 		<arg name="pos" type="Vec2" const="true" optional="true" default="(0,0)" />
 		<description>Apply impulse at relative position</description>
 		<detail>
-			<description><text>Apply impulse at relative position, note that it is only the position that is in relative coordiantes here, the impulse is taken to be in global/world coordinates</text><br/><br/><text>If position is omitted then this is equivalent to applyLocalImpulse</text></description>
+			<description><text>Apply impulse at relative position, note that it is only the position that is in relative coordiantes here, the impulse is taken to be in world/world coordinates</text><br/><br/><text>If position is omitted then this is equivalent to applyLocalImpulse</text></description>
 		</detail>
 	</method>
 	
-	<method name="applyGlobalImpulse" const="true">
+	<method name="applyWorldImpulse" const="true">
 		<arg name="impulse" type="Vec2" const="true"/>
 		<arg name="pos" type="Vec2" const="true"/>
-		<description>Apply impulse at global position</description>
+		<description>Apply impulse at world position</description>
 		<detail>
-			<description><text>Apply impulse at global position</text></description>
+			<description><text>Apply impulse at world position</text></description>
 		</detail>
 	</method>
 	
 	<method/>
 	
-	<method name="normalImpulse" const="true" return="Vec3">
+	<method name="normalImpulse" const="true" return="Vec2">
 		<arg name="body" type="Body" optional="true" default="null"/>
 		<arg name="freshOnly" type="Bool" optional="true" default="false"/>
+		<arg name="weak" type="Bool" optional="true" default="false"/>
 		<description> normal impulses on body </description>
 		<detail>
 			<description><text>When body is null, returns the sum of all normal impulses from contacts on this body, otherwise returns normal impulses only between the two bodies.</text><br/><br/><text>If freshOnly is true, then only new contacts are considered</text></description>
 		</detail>
 	</method>
 	
-	<method name="tangentImpulse" const="true" return="Vec3">
+	<method name="tangentImpulse" const="true" return="Vec2">
 		<arg name="body" type="Body" optional="true" default="null"/>
 		<arg name="freshOnly" type="Bool" optional="true" default="false"/>
+		<arg name="weak" type="Bool" optional="true" default="false"/>
 		<description> tangent impulses on body </description>
 		<detail>
 			<description><text>When body is null, returns the sum of all tangent impulses from contacts on this body, otherwise returns tangent impulses only between the two bodies.</text><br/><br/><text>If freshOnly is true, then only new contacts are considered</text></description>
@@ -599,6 +613,15 @@
 		<description> total impulses on body </description>
 		<detail>
 			<description>If body is null, returns the sum of all constraint, contact and fluid impulses acting on the body, otherwise for contact and fluid impulses considers only those between the two bodies.</description>
+		</detail>
+	</method>
+
+	<method/>
+	<method name="contains" return="Bool" const="true">
+		<arg name="point" type="Vec2" const="true"/>
+		<description>Test point containment</description>
+		<detail>
+			<description><text>Test point containment.</text></description>
 		</detail>
 	</method>
 </class>

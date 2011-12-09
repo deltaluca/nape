@@ -172,18 +172,22 @@
 	<method/>
 	<method name="shapesInAABB" return="ShapeList" const="true">
 		<arg name="aabb" type="AABB" const="true"/>
+		<arg name="containment" type="Bool" optional="true" default="false"/>
+		<arg name="strict" type="Bool" optional="true" default="true"/>
 		<arg name="filter" type="InteractionFilter" optional="true" const="true"/>
 		<description>Find all shapes within an AABB</description>
 		<detail>
-			<description><text>Returns a list of all shapes within the given bounding box.</text><br/><text>If the filter argument is non-null, then only shape who's interactionFilter agrees to "collide" will be considered</text></description>
+			<description><text>Returns a list of all shapes within the given bounding box.</text><br/><text>If the filter argument is non-null, then only shape who's interactionFilter agrees to "collide" will be considered</text><br/><br/><text>When strict is false, the shape AABB is considered instead of the shape itself so that a faster query is performed, but erroneous shapes may be considered</text><br/><br/><text>If containment is true, then only shapes entirely contained in the given AABB will be included</text></description>
 		</detail>
 	</method>
 	<method name="bodiesInAABB" return="BodyList" const="true">
 		<arg name="aabb" type="AABB" const="true"/>
+		<arg name="containment" type="Bool" optional="true" default="false"/>
+		<arg name="strict" type="Bool" optional="true" default="true"/>
 		<arg name="filter" type="InteractionFilter" optional="true" const="true"/>
 		<description>Find all bodies within an AABB</description>
 		<detail>
-			<description><text>Returns a list of all bodies with a shape within the given AABB.</text><br/><text>If the filter argument is non-null, then only Bodies with a shape within the AABB for which the shape's interactionFilter agrees to "collide" will be considered</text></description>
+			<description><text>Returns a list of all bodies with a shape within the given AABB.</text><br/><text>If the filter argument is non-null, then only Bodies with a shape within the AABB for which the shape's interactionFilter agrees to "collide" will be considered</text><br/><br/><text>When strict is false, the AABB of the shapes is considered instead of the shapes themselves so that a faster query is performed, but erroneous bodies may be considered</text><br/><br/><text>If containment is true, then only bodies entirely contained in the given AABB will be included</text></description>
 		</detail>
 	</method>
 	
@@ -191,39 +195,65 @@
 	<method name="shapesInCircle" return="ShapeList" const="true">
 		<arg name="position" type="Vec2" const="true"/>
 		<arg name="radius" type="Float"/>
+		<arg name="containment" type="Bool" optional="true" default="false"/>
 		<arg name="filter" type="InteractionFilter" optional="true" const="true"/>
 		<description>Find all shapes within a circle</description>
 		<detail>
-			<description><text>Returns a list of all shapes within the given circle.</text><br/><text>If the filter argument is non-null, then only shape who's interactionFilter agrees to "collide" will be considered</text></description>
+			<description><text>Returns a list of all shapes within the given circle.</text><br/><text>If the filter argument is non-null, then only shape who's interactionFilter agrees to "collide" will be considered</text><br/><br/><text>If containment is true, then only shapes entirely contained in the given circle will be included</text></description>
 		</detail>
 	</method>
 	<method name="bodiesInCircle" return="BodyList" const="true">
 		<arg name="position" type="Vec2" const="true"/>
 		<arg name="radius" type="Float"/>
+		<arg name="containment" type="Bool" optional="true" default="false"/>
 		<arg name="filter" type="InteractionFilter" optional="true" const="true"/>
 		<description>Find all bodies within an circle</description>
 		<detail>
-			<description><text>Returns a list of all bodies with a shape within the given circle.</text><br/><text>If the filter argument is non-null, then only Bodies with a shape within the circle for which the shape's interactionFilter agrees to "collide" will be considered</text></description>
+			<description><text>Returns a list of all bodies with a shape within the given circle.</text><br/><text>If the filter argument is non-null, then only Bodies with a shape within the circle for which the shape's interactionFilter agrees to "collide" will be considered</text><br/><br/><text>If containment is true then only bodies entirely contained in the given circle will be included</text></description>
 		</detail>
 	</method>
 	
 	<method/>
 	<method name="shapesInShape" return="ShapeList" const="true">
 		<arg name="shape" type="Shape" const="true"/>
+		<arg name="containment" type="Bool" optional="true" default="false"/>
 		<arg name="filter" type="InteractionFilter" optional="true" const="true"/>
 		<description>Find all shapes within another Shape</description>
 		<detail>
-			<description><text>Returns a list of all shapes within the given shape. The given shape must belong to a Body to be well defined though this Body need not be inside of any Space.</text><br/><text>If the filter argument is non-null, then only shape who's interactionFilter agrees to "collide" will be considered</text></description>
+			<description><text>Returns a list of all shapes within the given shape. The given shape must belong to a Body to be well defined though this Body need not be inside of any Space.</text><br/><text>If the filter is non-null then only shapes that gree to "collide" will be considered</text><br/><br/><text>If containment is true, then only shapes entirely contained in the given shape will be included</text></description>
 			<throws><code inline="true">shape.body==null</code> </throws>
 		</detail>
 	</method>
 	<method name="bodiesInShape" return="BodyList" const="true">
 		<arg name="shape" type="Shape" const="true"/>
+		<arg name="containment" type="Bool" optional="true" default="false"/>
 		<arg name="filter" type="InteractionFilter" optional="true" const="true"/>
 		<description>Find all bodies within a shape</description>
 		<detail>
-			<description><text>Returns a list of all bodies with a shape within the given shape. The given shape must belong to a Body to be well defined though this Body need not be inside of any Space.</text><br/><text>If the filter argument is non-null, then only Bodies with a shape within the given shape for which the shape's interactionFilter agrees to "collide" will be considered</text></description>
+			<description><text>Returns a list of all bodies with a shape within the given shape. The given shape must belong to a Body to be well defined though this Body need not be inside of any Space.</text><br/><text>If the filter is non-null then only bodies who's shapes agree to "collide" will be considered</text><br/><br/><text>If containment is true, then only bodies entirely contained in the given shape will be included</text></description>
 			<throws><code inline="true">shape.body==null</code> </throws>
+		</detail>
+	</method>
+
+	<method name="shapesInBody" return="ShapeList" const="true">
+		<arg name="body" type="Body" const="true"/>
+		<description>Find all shapes within a Body</description>
+		<detail>
+			<description>
+				<text>Returns a list of all shapes intersecting with a shape of the given Body. The input body need not belong to any Space.</text>
+				<br/><text>If the filter is non-null, then only shapes who agree to "collide" will be considered</text><br/><br/><text>There is no easy way of performing a containment test in a compound Body.</text>
+			</description>
+		</detail>
+	</method>
+	<method name="bodiesInBody" return="BodyList" const="true">
+		<arg name="body" type="Body" const="true"/>
+		<arg name="filter" type="InteractionFilter" optional="true" const="true"/>
+		<description>Find all bodies within a Body</description>
+		<detail>
+			<description>
+				<text>Returns a list of all bodies with shapes intersecting the shapes of the given Body. The input body need not belong to any Space.</text>
+				<br/><text>If the filter is non-null, then only shapes who agree to "collide" will be considered</text><br/><br/><text>There is no easy way of performing a containment test in a compound Body.</text>
+			</description>
 		</detail>
 	</method>
 	

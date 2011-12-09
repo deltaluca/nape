@@ -201,7 +201,7 @@ class PR(SweepPhase) extends PR(Broadphase) {
 
 	//==============================================================================================
 
-	public override function shapesInAABB(aabb:PR(AABB),strict:Bool,filter:PR(InteractionFilter)) {
+	public override function shapesInAABB(aabb:PR(AABB),strict:Bool,containment:Bool,filter:PR(InteractionFilter)) {
 		sync_broadphase();
 		updateAABBShape(aabb);
 
@@ -213,20 +213,25 @@ class PR(SweepPhase) extends PR(Broadphase) {
 			var shape = a.shape;
 			if(filter==null || shape.filter.shouldCollide(filter)) {
 				if(strict) {
-					if(ab.contains(a.aabb))
-						ret.push(shape.outer);
-					else if(a.aabb.intersect(ab)) {
-						if(PR(Collide).testCollide_safe(shape,aabbShape.pr(inner)))
+					if(containment) {
+						if(PR(Collide).containTest(aabbShape.pr(inner),shape))
 							ret.push(shape.outer);
+					}else {
+						if(ab.contains(a.aabb))
+							ret.push(shape.outer);
+						else if(a.aabb.intersect(ab)) {
+							if(PR(Collide).testCollide_safe(shape,aabbShape.pr(inner)))
+								ret.push(shape.outer);
+						}
 					}
-				}else if(a.aabb.intersect(ab))
+				}else if(containment ? ab.contains(a.aabb) : a.aabb.intersect(ab))
 					ret.push(shape.outer);
 			}
 			a = a.next;
 		}
 		return ret;
 	}
-	public override function bodiesInAABB(aabb:PR(AABB),strict:Bool,filter:PR(InteractionFilter)) {
+	public override function bodiesInAABB(aabb:PR(AABB),strict:Bool,containment:Bool,filter:PR(InteractionFilter)) {
 		sync_broadphase();
 		updateAABBShape(aabb);
 
@@ -240,14 +245,28 @@ class PR(SweepPhase) extends PR(Broadphase) {
 			if(!ret.has(body)) {
 				if(filter==null || shape.filter.shouldCollide(filter)) {
 					if(strict) {
-						if(ab.contains(a.aabb))
-							ret.push(body);
-						else if(a.aabb.intersect(ab)) {
-							if(PR(Collide).testCollide_safe(shape,aabbShape.pr(inner)))
+						if(containment) {
+							if(PR(Collide).containTest(aabbShape.pr(inner),shape))
 								ret.push(body);
+						}else {
+							if(ab.contains(a.aabb))
+								ret.push(body);
+							else if(a.aabb.intersect(ab)) {
+								if(PR(Collide).testCollide_safe(shape,aabbShape.pr(inner)))
+									ret.push(body);
+							}
 						}
-					}else if(a.aabb.intersect(ab))
+					}else if(containment ? ab.contains(a.aabb) : a.aabb.intersect(ab))
 						ret.push(body);
+				}
+			}else if(containment) {
+				//check ALL shapes included.
+				if(filter==null || shape.filter.shouldCollide(filter)) {
+					if(strict) {
+						if(!PR(Collide).containTest(aabbShape.pr(inner),shape))
+							ret.remove(body);
+					}else if(!ab.contains(a.aabb))
+						ret.remove(body);
 				}
 			}
 			a = a.next;
@@ -257,7 +276,7 @@ class PR(SweepPhase) extends PR(Broadphase) {
 
 	//==============================================================================================
 
-	public override function shapesInCircle(x:Float,y:Float,r:Float,filter:PR(InteractionFilter)) {
+	public override function shapesInCircle(x:Float,y:Float,r:Float,containment:Bool,filter:PR(InteractionFilter)) {
 		sync_broadphase();
 		updateCircShape(x,y,r);
 
@@ -269,7 +288,10 @@ class PR(SweepPhase) extends PR(Broadphase) {
 			if(a.aabb.intersect(ab)) {
 				var shape = a.shape;
 				if(filter==null || shape.filter.shouldCollide(filter)) {
-					if(PR(Collide).testCollide_safe(shape,circShape.pr(inner)))
+					if(containment) {
+						if(PR(Collide).containTest(circShape.pr(inner),shape))
+							ret.push(shape.outer);
+					}else if(PR(Collide).testCollide_safe(shape,circShape.pr(inner)))
 						ret.push(shape.outer);
 				}
 			}
@@ -277,7 +299,7 @@ class PR(SweepPhase) extends PR(Broadphase) {
 		}
 		return ret;
 	}
-	public override function bodiesInCircle(x:Float,y:Float,r:Float,filter:PR(InteractionFilter)) {
+	public override function bodiesInCircle(x:Float,y:Float,r:Float,containment:Bool,filter:PR(InteractionFilter)) {
 		sync_broadphase();
 		updateCircShape(x,y,r);
 
@@ -291,9 +313,16 @@ class PR(SweepPhase) extends PR(Broadphase) {
 				var body = shape.body.outer;
 				if(!ret.has(body)) {
 					if(filter==null || shape.filter.shouldCollide(filter)) {
-						if(PR(Collide).testCollide_safe(shape,circShape.pr(inner)))
+						if(containment) {
+							if(PR(Collide).containTest(circShape.pr(inner),shape))
+								ret.push(body);
+						}else if(PR(Collide).testCollide_safe(shape,circShape.pr(inner)))
 							ret.push(body);
 					}
+				}else if(containment) {
+					//ensure all shapes included
+					if((shape.filter==null || shape.filter.shouldCollide(filter)) && !PR(Collide).containTest(circShape.pr(inner),shape))
+						ret.remove(body);
 				}
 			}
 			a = a.next;
@@ -303,7 +332,7 @@ class PR(SweepPhase) extends PR(Broadphase) {
 
 	//==============================================================================================
 
-	public override function shapesInShape(shape:PR(Shape),filter:PR(InteractionFilter)) {
+	public override function shapesInShape(shape:PR(Shape),containment:Bool,filter:PR(InteractionFilter)) {
 		sync_broadphase();
 		validateShape(shape);
 
@@ -315,7 +344,10 @@ class PR(SweepPhase) extends PR(Broadphase) {
 			if(a.aabb.intersect(ab)) {
 				var shape2 = a.shape;
 				if(filter==null || shape2.filter.shouldCollide(filter)) {
-					if(PR(Collide).testCollide_safe(shape2,shape))
+					if(containment) {
+						if(PR(Collide).containTest(shape,shape2))
+							ret.push(shape2.outer);
+					}else if(PR(Collide).testCollide_safe(shape2,shape))
 						ret.push(shape2.outer);
 				}
 			}
@@ -323,7 +355,7 @@ class PR(SweepPhase) extends PR(Broadphase) {
 		}
 		return ret;
 	}
-	public override function bodiesInShape(shape:PR(Shape),filter:PR(InteractionFilter)) {
+	public override function bodiesInShape(shape:PR(Shape),containment:Bool,filter:PR(InteractionFilter)) {
 		sync_broadphase();
 		validateShape(shape);
 
@@ -337,9 +369,16 @@ class PR(SweepPhase) extends PR(Broadphase) {
 				var body = shape2.body.outer;
 				if(!ret.has(body)) {
 					if(filter==null || shape2.filter.shouldCollide(filter)) {
-						if(PR(Collide).testCollide_safe(shape2,shape))
+						if(containment) {
+							if(PR(Collide).containTest(shape,shape2))
+								ret.push(body);
+						}else if(PR(Collide).testCollide_safe(shape2,shape))
 							ret.push(body);
 					}
+				}else if(containment) {
+					//ensure all shapes contained
+					if(filter==null && shape2.filter.shouldCollide(filter) && !PR(Collide).containTest(shape,shape2))
+						ret.remove(body);
 				}
 			}
 			a = a.next;

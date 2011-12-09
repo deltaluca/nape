@@ -62,13 +62,12 @@ class PR(Space) {
 		wrap_gravity.pr(inner).inuse = true;
 		wrap_gravity.pr(inner)._invalidate = function(x:PR(Vec2)) {
 			vec_set(me.gravity,x.);
-
 			Iter(b, me.bodies, {
 				me.wake(b);
 			});
 		}
 		wrap_gravity.pr(inner)._validate = function() {
-			vec_set(me.wrap_gravity.pr(inner).,me.gravity)
+			vec_set(me.wrap_gravity.pr(inner).,me.gravity);
 		}
 	}
 	
@@ -467,25 +466,25 @@ class PR(Space) {
 		return bphase.bodiesUnderPoint(x,y,filter);
 	}
 	
-	flibmdel public inline function shapesInAABB(aabb:AABB,strict:Bool,filter:PR(InteractionFilter)) {
-		return bphase.shapesInAABB(aabb.pr(inner),strict,filter);
+	flibmdel public inline function shapesInAABB(aabb:AABB,strict:Bool,cont:Bool,filter:PR(InteractionFilter)) {
+		return bphase.shapesInAABB(aabb.pr(inner),strict,cont,filter);
 	}
-	flibmdel public inline function bodiesInAABB(aabb:AABB,strict:Bool,filter:PR(InteractionFilter)) {
-   		return bphase.bodiesInAABB(aabb.pr(inner),strict,filter);
+	flibmdel public inline function bodiesInAABB(aabb:AABB,strict:Bool,cont:Bool,filter:PR(InteractionFilter)) {
+   		return bphase.bodiesInAABB(aabb.pr(inner),strict,cont,filter);
 	}
 	
-	flibmdel public inline function shapesInCircle(pos:Vec2,rad:Float,filter:PR(InteractionFilter)) {
-		return bphase.shapesInCircle(pos.x,pos.y,rad,filter);
+	flibmdel public inline function shapesInCircle(pos:Vec2,rad:Float,cont:Bool,filter:PR(InteractionFilter)) {
+		return bphase.shapesInCircle(pos.x,pos.y,rad,cont,filter);
 	}
-	flibmdel public inline function bodiesInCircle(pos:Vec2,rad:Float,filter:PR(InteractionFilter)) {
-   		return bphase.bodiesInCircle(pos.x,pos.y,rad,filter);
+	flibmdel public inline function bodiesInCircle(pos:Vec2,rad:Float,cont:Bool,filter:PR(InteractionFilter)) {
+   		return bphase.bodiesInCircle(pos.x,pos.y,rad,cont,filter);
 	}
 
-	flibmdel public inline function shapesInShape(shape:PR(Shape),filter:PR(InteractionFilter)) {
-		return bphase.shapesInShape(shape,filter);
+	flibmdel public inline function shapesInShape(shape:PR(Shape),cont:Bool,filter:PR(InteractionFilter)) {
+		return bphase.shapesInShape(shape,cont,filter);
 	}
-	flibmdel public inline function bodiesInShape(shape:PR(Shape),filter:PR(InteractionFilter)) {
-		return bphase.bodiesInShape(shape,filter);
+	flibmdel public inline function bodiesInShape(shape:PR(Shape),cont:Bool,filter:PR(InteractionFilter)) {
+		return bphase.bodiesInShape(shape,cont,filter);
 	}
 	
 	//----------------------------------------------------------------------------------------------
@@ -1157,7 +1156,6 @@ class PR(Space) {
 		var b2 = s2.body;
 
         assert(!(b1.isStatic() && b2.isStatic()), "both objects static?");
-
         //check if constraints exists such that this should be ignored
         if(!Exists(con, b1.constraints, con.ignore && con.pair_exists(b1.id,b2.id))) {
 

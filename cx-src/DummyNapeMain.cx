@@ -4,11 +4,11 @@ package;
 
 $(import);
 
-#if cpp
+#if (cpp||neko)
 class DummyNapeMain {
 	static function main() {
-		var w = 400;
-		var h = 300;
+		var w = 800;
+		var h = 600;
 		var fps = 60;
 		var bgColor = 0x333333;
 		var flags =
@@ -22,7 +22,131 @@ class DummyNapeMain {
 	}
 
 	function new() {
-        var root = nme.Lib.current;
+		var cur = flash.Lib.current;
+
+		var bd = new flash.display.BitmapData(800,600,true,0x0);
+		var shape = new flash.display.Shape();
+		shape.graphics.beginFill(0x999999);
+		shape.graphics.drawRect(0,300,800,500);
+		bd.draw(shape);
+
+		var erase = new flash.display.BitmapData(64,64,true,0xffffffff);
+		shape.graphics.clear();
+		shape.graphics.beginFill(0xff0000);
+		shape.graphics.drawCircle(32,32,32);
+		erase.draw(shape);
+		erase.copyChannel(erase,erase.rect,new flash.geom.Point(), flash.display.BitmapDataChannel.BLUE, flash.display.BitmapDataChannel.ALPHA);
+
+		var debug = new ShapeDebug(800,600,0x0);
+		debug.drawShapeAngleIndicators = true;
+		cur.addChild(debug.display);
+
+		function lookup(x:Float,y:Float):Float {
+			return bd.getPixel32(Std.int(x),Std.int(y))==0 ? 1 : -1;
+		}
+
+		function invalidate2() {
+			debug.clear();
+			var polys = MarchingSquares.run(lookup, new AABB(0,0,800,600), new Vec2(15,15));
+			for(p in polys) {
+				var qs:GeomPolyList = new GeomPolyList();
+				try {
+					 qs = p.convex_decomposition();
+				}catch(e:Dynamic) {
+					var ret = "[";
+					for(v in p) {
+						if(ret!="[") ret += ",";
+						ret += "v("+v.x+","+v.y+")";
+					}
+					trace(ret+"]");
+				}
+				for(q in qs)
+					debug.drawPolygon(q,0xff0000);
+			}
+			debug.flush();
+		}
+		invalidate2();
+
+		cur.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function(_) {
+			bd.copyPixels(bd,new flash.geom.Rectangle(cur.mouseX-32,cur.mouseY-32,64,64), new flash.geom.Point(cur.mouseX-32,cur.mouseY-32), erase, new flash.geom.Point(), false);
+			invalidate2();
+		});
+
+		cur.addEventListener(flash.events.MouseEvent.MOUSE_MOVE, function(e) {
+			if(!e.buttonDown) return;
+
+			bd.copyPixels(bd,new flash.geom.Rectangle(cur.mouseX-32,cur.mouseY-32,64,64), new flash.geom.Point(cur.mouseX-32,cur.mouseY-32), erase, new flash.geom.Point(), false);
+			invalidate2();
+		});
+
+
+/*		var debug = new ShapeDebug(800,600);
+		debug.drawShapeAngleIndicators = false;
+		flash.Lib.current.addChild(debug.display);
+
+		var space = new Space(Vec2.weak(0,400));
+
+		var water = new Body(BodyType.STATIC);
+		var w1 = new Polygon(Polygon.rect(0,0,800,300));   w1.body = water;
+		var w2 = new Polygon(Polygon.rect(0,300,800,300)); w2.body = water;
+		w1.fluidEnabled = w2.fluidEnabled = true;
+		w1.fluidProperties.density = w2.fluidProperties.density = 4;
+		w1.fluidProperties.viscosity = w2.fluidProperties.viscosity = 5;
+		w1.fluidProperties.gravity = Vec2.weak(0,-400);
+
+		water.align();
+		water.kinAngVel = 2;
+
+		water.space = space;
+	
+		var walls = new Body(BodyType.STATIC);
+		walls.shapes.add(new Polygon(Polygon.rect(0,0,-40,600)));
+		walls.shapes.add(new Polygon(Polygon.rect(800,0,40,600)));
+		walls.shapes.add(new Polygon(Polygon.rect(0,0,800,-40)));
+		walls.shapes.add(new Polygon(Polygon.rect(0,600,800,40)));
+		walls.space = space;
+
+		for(i in 0...1400) {
+			var b = new Body();
+			b.position.setxy(Math.random()*800,Math.random()*600);
+			b.shapes.add(new Polygon(Polygon.regular(Math.random()*12+6,Math.random()*12+6,Std.int(Math.random()*1+3))));
+			b.space = space;
+		}
+
+		var mcon = new PivotJoint(space.world,space.world,Vec2.weak(),Vec2.weak());
+		mcon.stiff = false;
+		mcon.space = space;
+		mcon.active = false;
+		mcon.space = space;
+
+		flash.Lib.current.stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function (_) {
+			var mx = flash.Lib.current.mouseX;	
+			var my = flash.Lib.current.mouseY;
+			var bods = space.bodiesInCircle(Vec2.weak(mx,my), 5);
+			for(b in bods) {
+				if(b.isDynamic()) {
+					mcon.body2 = b;
+					mcon.anchor2 = b.worldToLocal(Vec2.weak(mx,my),true);
+					mcon.active = true;
+				}
+			}
+		});
+
+		flash.Lib.current.stage.addEventListener(flash.events.MouseEvent.MOUSE_UP, function (_) {
+			mcon.active = false;
+		});
+		
+		(new haxe.Timer(0)).run = function() {
+			debug.clear();
+			mcon.anchor1.setxy(flash.Lib.current.mouseX,flash.Lib.current.mouseY);
+			space.step(1/60,6,2);
+			debug.draw(space);
+			debug.flush();
+		}
+
+*/
+
+/*        var root = nme.Lib.current;
         Perlin3D.init_noise();
 
         var z = 0.0;
@@ -79,7 +203,7 @@ class DummyNapeMain {
 				debug.draw(space);
 				debug.flush();
 			}
-		});
+		});*/
     }
 
     static inline function colour(p:GeomPoly) {
@@ -457,41 +581,108 @@ class XxDummyNapeMain {
 		debug.drawShapeAngleIndicators = false;
 		c.addChild(debug.display);
 
-		trace(gp);
-		trace(gp.winding());
-		trace(gp.isClockwise());
+		var body = new Body();
+		body.shapes.add(new Polygon(Polygon.rect(100,100,100,100,true)));
+		
+		var spr = new flash.display.Sprite();
+		spr.graphics.beginFill(0xff0000,1);
+		spr.graphics.drawRect(100,100,100,100);
+		spr.graphics.endFill();
 
-		return;
+/*		var d = body.localCOM.copy();
+		body.translateShapes(d.mul(-1));
+		body.position.addeq(d);
+		spr.x -= d.x;
+		spr.y -= d.y;*/
+		
+		var m = Mat23.rotation(Math.PI/2);
+		trace(m.toString());
+		m.concat(Mat23.translation(100,100));
+		trace(m.toString());
+		var m2 = new flash.geom.Matrix();
+		m2.rotate(Math.PI/2);
+		var m3 = new flash.geom.Matrix();
+		m3.translate(100,100);
+		trace([m2.a,m2.b,m2.c,m2.d,m2.tx,m2.ty]);
+		m2.concat(m3);
+		trace([m2.a,m2.b,m2.c,m2.d,m2.tx,m2.ty]);
 
-		var debug = new BitmapDebug(800,600,0xffffff);
+		spr.rotation = 90;
+		var m2 = spr.transform.matrix;
+		trace([m2.a,m2.b,m2.c,m2.d,m2.tx,m2.ty]);
+
+	}
+}
+
+class DummyNapeMains {
+	static function main() {
+		var debug = new BitmapDebug(800,600,0x333333);
+		debug.drawShapeAngleIndicators = false;
+		debug.drawConstraints = false;
 		flash.Lib.current.addChild(debug.display);
 
-		var space = new Space(new Vec2(400,-400));
-		var b1:Body = new Body(BodyType.STATIC, new Vec2(350, 500));
-		b1.shapes.add(new Polygon(Polygon.rect( 0, 0, 100, 100), Material.steel()));
-		b1.align();
-		b1.space = space;
-					
-		var b2:Body = new Body(BodyType.DYNAMIC, new Vec2(390, 400));
-		b2.shapes.add(new Polygon(Polygon.rect( 0, 0, 20, 100), Material.steel()));
-		b2.align();
-		b2.space = space;
-		
-		var pivot:PivotJoint = new PivotJoint(b1, b2, b1.worldToLocal(new Vec2(400, 500)), b2.worldToLocal(new Vec2(400, 500)));
-		pivot.ignore = true; // no effect
-		pivot.space = space;
+		var space = new Space();
 
-		var	angleJoint = new AngleJoint(b1, b2,0,0);
-//		angleJoint.maxForce = 100; // it should not work at all with this value
-//		angleJoint.maxError = Math.PI / 100; // no effect, the error is much greater
-		angleJoint.space = space;
+		var b = new Body(BodyType.DYNAMIC, Vec2.weak(400,300));
+		b.shapes.add(new Circle(50));
+		b.space = space;
+
+		var b = new Body(BodyType.DYNAMIC, Vec2.weak(400,300));
+		b.shapes.add(new Polygon(Polygon.regular(50,50,4)));
+		b.space = space;
+
+/*-		var b = new Body(BodyType.DYNAMIC, Vec2.weak(400,300));
+		b.shapes.add(new Circle(10));
+		b.space = space;*/
+
+		var mcon = new PivotJoint(space.world,space.world,Vec2.weak(),Vec2.weak());
+		mcon.active = false;
+		mcon.stiff = false;
+		mcon.maxForce = 0;
+		mcon.space = space;
+
+		for(b in space.bodies) b.shapes.at(0).filter.collisionMask = 0;
+
+		flash.Lib.current.stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function (_) {
+			var mx = flash.Lib.current.mouseX;	
+			var my = flash.Lib.current.mouseY;
+			var bods = space.bodiesInCircle(Vec2.weak(mx,my), 5);
+			for(b in bods) {
+				if(b.isDynamic()) {
+					mcon.body2 = b;
+//					mcon.anchor2 = b.worldToLocal(Vec2.weak(mx,my),true);
+					mcon.active = true;
+				}
+			}
+		});
+
+		flash.Lib.current.stage.addEventListener(flash.events.MouseEvent.MOUSE_UP, function (_) {
+			mcon.active = false;
+		});
+		
+		var x = Vec2.get();
+		var y = Vec2.get();
 
 		(new haxe.Timer(0)).run = function() {
-			angleJoint.jointMin = angleJoint.jointMax = (-120+240/800*flash.Lib.current.mouseX)/180*Math.PI;
-
-			space.step(1/60,10,10);
 			debug.clear();
+			space.step(1/60,10,10);
 			debug.draw(space);
+
+			if(mcon.active) {
+				for(b in space.dynamics) {
+					if(b==mcon.body2) continue;
+					if(Geom.intersects(b.shapes.at(0),mcon.body2.shapes.at(0))) {
+						debug.drawLine(b.worldCOM,mcon.body2.worldCOM,0xff0000);
+					}
+					if(Geom.contains(b.shapes.at(0),mcon.body2.shapes.at(0))) {
+						debug.drawLine(b.worldCOM,mcon.body2.worldCOM,0xff00);
+					}
+					if(Geom.distance(b.shapes.at(0),mcon.body2.shapes.at(0),x,y)>=0) {
+						debug.drawLine(x,y,0xff00ff);
+					}
+				}
+			}
+
 			debug.flush();
 		}
 	}

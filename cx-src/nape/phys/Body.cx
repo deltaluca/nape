@@ -124,12 +124,14 @@ class Body {
 		}
 		else vec_set(pr(inner).pos,0,0);
 		this.type = type == null ? BodyType.DYNAMIC : type;
+		if(position!=null) WEAK(position);
 	}
 	
 	keep public function copy() {
 		DEBUG(if(pr(inner).world) throw "Error: Space::world cannot be copied";)
-		
-		return pr(inner).copy();
+		var ret = pr(inner).copy();
+		ret.userData = userData;
+		return ret;
 	}
 	
 	//----------------------------------------------------------------------------------------------
@@ -377,33 +379,39 @@ class Body {
 
     //----------------------------------------------------------------------------------------------
 	
-	keep public function localToWorld(v:Vec2) return relativeToWorld(localToRelative(v))
-	keep public function worldToLocal(v:Vec2) return relativeToLocal(worldToRelative(v))
-	keep public function relativeToWorld(v:Vec2) {
+	keep public function localToWorld(v:Vec2,?weak:Bool=false) return relativeToWorld(localToRelative(v,true),weak)
+	keep public function worldToLocal(v:Vec2,?weak:Bool=false) return relativeToLocal(worldToRelative(v,true),weak)
+	keep public function relativeToWorld(v:Vec2,?weak:Bool=false) {
 		Disposed(v,Vec2);
 		DEBUG(if(v==null) throw "Error: Cannot transform null Vec2";)
-		return Vec2.get(v.x+pr(inner).posx,v.y+pr(inner).posy);
+		var ret = Vec2.get(v.x+pr(inner).posx,v.y+pr(inner).posy,weak);
+		WEAK(v);
+		return ret;
 	}
-	keep public function worldToRelative(v:Vec2) {
+	keep public function worldToRelative(v:Vec2,?weak:Bool=false) {
 		Disposed(v,Vec2);
 		DEBUG(if(v==null) throw "Error: Cannot transform null Vec2";)
-		return Vec2.get(v.x-pr(inner).posx,v.y-pr(inner).posy);
+		var ret = Vec2.get(v.x-pr(inner).posx,v.y-pr(inner).posy,weak);
+		WEAK(v);
+		return ret;
 	}
-	keep public function localToRelative(v:Vec2) {
+	keep public function localToRelative(v:Vec2,?weak:Bool=false) {
 		Disposed(v,Vec2);
 		DEBUG(if(v==null) throw "Error: Cannot transform null Vec2";)
 		pr(inner).validate_axis();
 		vec_new(temp);
 		vec_rotate(v.,pr(inner).axis,temp);
-		return Vec2.get(tempx,tempy);
+		WEAK(v);
+		return Vec2.get(tempx,tempy,weak);
 	}
-	keep public function relativeToLocal(v:Vec2) {
+	keep public function relativeToLocal(v:Vec2,?weak:Bool=false) {
 		Disposed(v,Vec2);
 		DEBUG(if(v==null) throw "Error: Cannot transform null Vec2";)
 		pr(inner).validate_axis();
 		vec_new(temp);
 		vec_revrot(v.,pr(inner).axis,temp);
-		return Vec2.get(tempx,tempy);
+		WEAK(v);
+		return Vec2.get(tempx,tempy,weak);
 	}
 	
 	//----------------------------------------------------------------------------------------------
@@ -419,8 +427,10 @@ class Body {
 			vec_new(r);
 			vec_rotate(pos.,pr(inner).axis,r);
 			pr(inner).torque += vec_cross(r,force.);
+			WEAK(pos);
 		}
 		if(isDynamic()) pr(inner).invalidate_wake();
+		WEAK(force);
 	}
 	keep public function applyRelativeForce(force:Vec2,?pos:Vec2) {
 		Disposed(force,Vec2);
@@ -429,11 +439,14 @@ class Body {
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		
 		vec_addeq(pr(inner).force,force.);
-		if(pos!=null)
+		if(pos!=null) {
 			pr(inner).torque += vec_cross(pos.,force.);
+			WEAK(pos);
+		}
 		if(isDynamic()) pr(inner).invalidate_wake();
+		WEAK(force);
 	}
-	keep public function applyWorldForce(force:Vec2,pos:Vec2) {
+	keep public function applyWorldForce(force:Vec2,?pos:Vec2) {
 		Disposed(force,Vec2);
 		Disposed(pos,Vec2);
 
@@ -443,8 +456,10 @@ class Body {
 		if(pos!=null) {
 			vec_new(r); vec_sub(pos.,pr(inner).pos,r);
 			pr(inner).torque += vec_cross(r,force.);
+			WEAK(pos);
 		}
 		if(isDynamic()) pr(inner).invalidate_wake();
+		WEAK(force);
 	}
 	
 	//----------------------------------------------------------------------------------------------
@@ -463,8 +478,10 @@ class Body {
 			vec_rotate(pos.,pr(inner).axis,r);
             pr(inner).validate_inertia();
 			pr(inner).angvel += vec_cross(r,impulse.)*pr(inner).iinertia;
+			WEAK(pos);
 		}
 		if(isDynamic()) pr(inner).invalidate_wake();
+		WEAK(impulse);
 	}
 	keep public function applyRelativeImpulse(impulse:Vec2,?pos:Vec2) {
 		Disposed(impulse,Vec2);
@@ -477,10 +494,12 @@ class Body {
 		if(pos!=null) {
             pr(inner).validate_inertia();
 			pr(inner).angvel += vec_cross(pos.,impulse.)*pr(inner).iinertia;
+			WEAK(pos);
         }
 		if(isDynamic()) pr(inner).invalidate_wake();
+		WEAK(impulse);
 	}
-	keep public function applyWorldImpulse(impulse:Vec2,pos:Vec2) {
+	keep public function applyWorldImpulse(impulse:Vec2,?pos:Vec2) {
 		Disposed(impulse,Vec2);
 		Disposed(pos,Vec2);
 
@@ -492,8 +511,10 @@ class Body {
 			vec_new(r); vec_sub(pos.,pr(inner).pos,r);
             pr(inner).validate_inertia();
 			pr(inner).angvel += vec_cross(r,impulse.)*pr(inner).iinertia;
+			WEAK(pos);
 		}
 		if(isDynamic()) pr(inner).invalidate_wake();
+		WEAK(impulse);
 	}
 	
 	//----------------------------------------------------------------------------------------------
@@ -501,8 +522,15 @@ class Body {
 	keep public function translateShapes(displacement:Vec2) {
 		Disposed(displacement,Vec2);
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
-		
+		DEBUG(if(displacement==null) throw "Error: Cannot displace by null Vec2";)
+
+		var weak = displacement.pr(inner).weak;
+		displacement.pr(inner).weak = false;
+
 		Iter(s,pr(inner).shapes,s.outer.translate(displacement));
+
+		displacement.pr(inner).weak = weak;
+		WEAK(displacement);
 	}
 	keep public function rotateShapes(angle:Float) {
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
@@ -529,11 +557,13 @@ class Body {
 		pr(inner).validate_localCOM();
 		var dx = Vec2.get(-pr(inner).localCOMx,-pr(inner).localCOMy);
 		translateShapes(dx);
-		dx = localToRelative(dx);
-		position.subeq(dx);
+		var dx2 = localToRelative(dx);
+		position.subeq(dx2);
 		
 		if(pr(inner).pre_posx != PR(Const).POSINF)
-			vec_subeq(pr(inner).pre_pos,dx.);
+			vec_subeq(pr(inner).pre_pos,dx2.);
+		dx.dispose();
+		dx2.dispose();
 	}
 	
 	//----------------------------------------------------------------------------------------------
@@ -560,7 +590,7 @@ class Body {
         property(n,Vec2,{
             DEBUG(if(pr(inner).world) throw "Error: Space::world has no "+$str(n);)
             if(pr(inner).wrap_`n==null) {
-                pr(inner).wrap_`n = Vec2.get();
+                pr(inner).wrap_`n = Vec2.get(pr(inner).n`x,pr(inner).n`y);
                 pr(inner).wrap_`n.pr(inner).inuse = true;
                 pr(inner).wrap_`n.pr(inner).immutable = true;
                 pr(inner).wrap_`n.pr(inner)._validate = pr(inner).get`n;
@@ -585,21 +615,21 @@ class Body {
 		}
 	});
 	
-	keep public function normalImpulse(?body:Body=null,?freshOnly:Bool=false) {
+	keep public function normalImpulse(?body:Body=null,?freshOnly:Bool=false,?weak:Bool=false) {
 		vec3_new(ret,0,0,0);
 		witharbs(COL,{
 			var imp = arb.wrapper().collisionArbiter.normalImpulse(this,freshOnly);
 			vec3_addeq(ret, imp.);
 		});
-		return Vec2.get(retx,rety);
+		return Vec2.get(retx,rety,false);
 	}
-	keep public function tangentImpulse(?body:Body=null,?freshOnly:Bool=false) {
+	keep public function tangentImpulse(?body:Body=null,?freshOnly:Bool=false,?weak:Bool=false) {
 		vec3_new(ret,0,0,0);
 		witharbs(COL,{
 			var imp = arb.wrapper().collisionArbiter.tangentImpulse(this,freshOnly);
 			vec3_addeq(ret, imp.);
 		});
-		return Vec2.get(retx,rety);
+		return Vec2.get(retx,rety,weak);
 	}
 	keep public function totalContactsImpulse(?body:Body=null,?freshOnly:Bool=false) {
 		vec3_new(ret,0,0,0);
@@ -681,6 +711,14 @@ class Body {
 		return new Vec3(retx,rety,retz);
 	}
 	
+	//----------------------------------------------------------------------------------------------
+
+	keep public function contains(point:Vec2) {
+		Disposed(point,Vec2);
+		DEBUG(if(point==null) throw "Error: Cannot check containment of null point";)
+		return Exists(s, pr(inner).shapes, s.outer.contains(point));
+	}
+
 	//----------------------------------------------------------------------------------------------
 	
 	@:$keep public function toString() {

@@ -29,24 +29,31 @@ class PR(PartitionPoly) {
 		return ret;
 	}
 
+	inline function eq(a:PR(GeomVert),b:PR(GeomVert)) return vec_dsq(a.,b.)<PR(Const).EPSILON
 	public function new(P:PR(GeomVert)=null) {
 		if(P==null) return;
-
 		var p = P;
 		var cw = geom(clockwise(P));
 		do {
-			vec_new(u); vec_sub(p.,p.prev.,u);
-			vec_new(v); vec_sub(p.next.,p.,v);
-			if(vec_cross(u,v)!=0.0 || vec_dot(u,v)<0) {
-				vertices = if(cw)
-					push_after(vertices,Vertex.get(p.x,p.y));
-				else
-					push_before(vertices,Vertex.get(p.x,p.y));
-				//propogation away
-				vertices.forced = p.forced;
+			if(eq(p,p.next)) {
+			}else {
+				var pre = p.prev;
+				while(eq(pre,p) && pre!=p) pre = pre.prev;
+				if(pre==p) break;
+
+				vec_new(u); vec_sub(p.,pre.,u);
+				vec_new(v); vec_sub(p.next.,p.,v);
+				if(vec_cross(u,v)!=0.0) {
+					vertices = if(cw)
+						 push_after (vertices,Vertex.get(p.x,p.y));
+					else push_before(vertices,Vertex.get(p.x,p.y));
+					//propogation away
+					vertices.forced = p.forced;
+				}
 			}
 			p = p.next;
 		}while(p!=P);
+		DEBUG(if(size(vertices)<3) throw "Error: Degenerate poly cannot be decomposed";)
 	}
 
 	flibmdel public inline function insert_diagonal(p:Vertex,q:Vertex) {
@@ -93,8 +100,9 @@ class PR(PartitionPoly) {
 
 		assert(PR(Monotone).isMonotone(poly), "output poly is not monotone :(");
 		assert(geom(clockwise(poly)),"out poly is not convex-monotone :(");
-		rets.add(poly);
 
+		if(geom(signed_area(poly))!=0)
+			rets.add(poly);
 		return next;
 	}
 })
@@ -105,11 +113,12 @@ class Vertex {
 		assert(diagonals.empty(),"diagonals non empty, free PartVertex");
 		helper = null;
 		prev = null;
-		DEBUG(vec_set(this.,0,0);)
 		node = null;
+	}
+	flibmdel public inline function alloc() {
+		DEBUG(vec_set(this.,0,0))
 		forced = false;
 	}
-	flibmdel public inline function alloc() {}
 
 	//used by convex decomposition
 	flibmdel public inline function linked() {
@@ -131,6 +140,7 @@ class Vertex {
 
 	//used for PartitionPoly
 	public var diagonals:List(Vertex);
+	public var icnt:Int; //reference counting
 
 	//used for propogation of field to out GeomVerts
 	public var forced:Bool;
@@ -142,24 +152,55 @@ class Vertex {
 	flibmdel public inline function insert_diagonal(x:Vertex) {
 		assert(!diagonals.has(x),"diagonal already exists");
 		diagonals.add(x);
+		//each diagonal inserted means vertex is referenced twice more
+		icnt += 2;
 	}
-	flibmdel public inline function sort_diagonals() {
-		vec_new(u); vec_new(v);
-		$(mixin orient(a,b,c) ({
-			vec_sub(a.,b.,u);
-			vec_sub(c.,b.,v);
-			var ret = vec_cross(u,v);
-			ret < 0 ? -1 : 1;
-		}));
 
+	//in convex decompositions collinear diagonals can appear which destroy the partitioning!
+	//must make sure to remove them. CGAL convex decomp doesn't come across this problem
+	//since it does not use the partition poly (which is slower).
+	flibmdel public inline function prune_diagonals() {
+		var prev:Vertex = null;
+		var pre = null;
+		Iter(d, diagonals, {
+			if(prev!=null) {
+				if(orient(this,prev,d)==0) {
+					if(d.next==prev || d.prev==prev) {
+						if(vec_dsq(this.,prev.) > vec_dsq(this.,d.)) {
+							diagonals.remove(prev);
+							prev.diagonals.remove(this);
+						}else {
+							cx_ite = diagonals.erase(pre);
+							d.diagonals.remove(this);
+							continue;
+						}
+					}
+				}
+			}
+			prev = d;
+			pre = cx_ite;
+		});
+	}
+
+	$(mixin orient(a,b,c) ({
+		vec_new(u); vec_new(v);
+		vec_sub(a.,b.,u);
+		vec_sub(c.,b.,v);
+		var ret = vec_cross(u,v);
+		ret > 0 ? -1 : ret == 0 ? 0 : 1;
+	}));
+
+	flibmdel public inline function sort_diagonals() {
 		var vorient = orient(prev,this,next);
+		assert(vorient!=0, "collinear edge on boundary of partition poly");
 		Sort(diagonals,Node(Vertex),$(mixin lt(p,q) ({
 			var d1 = orient(prev,this,p);
 			var d2 = orient(prev,this,q);
-			if  (d1==d2) orient(p,this,q) == -1;
+			if  (d1==d2) orient(p,this,q) == 1;
 			elif(d1==0)  d2 == vorient;
 			else         d1 != vorient;
 		})) lt);
+		prune_diagonals();
 	}
 
 	//-------------------------------------------------------------

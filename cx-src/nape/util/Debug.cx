@@ -285,6 +285,9 @@ class ShapeDebug extends Debug {
 			v = pr(inner).xform.outer.transform(end);
 			g.lineTo(v.x,v.y); v.dispose();
 		}
+
+		WEAK(start);
+		WEAK(end);
     }
 
     public override function drawCircle(position:Vec2, radius:Float, colour:Int) {
@@ -305,6 +308,8 @@ class ShapeDebug extends Debug {
 			g.drawCircle(v.x,v.y,radius*pr(inner).xdet);
 			v.dispose();
 		}
+
+		WEAK(position);
     }
 
     public override function drawAABB(aabb:AABB, colour:Int) {
@@ -356,6 +361,8 @@ class ShapeDebug extends Debug {
 			g.lineTo(v.x,v.y); v.dispose();
 		}
         g.endFill();
+
+		WEAK(p0); WEAK(p1); WEAK(p2);
     }
 
     public override function drawFilledCircle(position:Vec2, radius:Float, colour:Int) {
@@ -377,6 +384,8 @@ class ShapeDebug extends Debug {
 			v.dispose();
 		}
         g.endFill();
+
+		WEAK(position);
     }
 
 	public override function drawPolygon(polygon:Dynamic, colour:Int) {
@@ -402,6 +411,7 @@ class ShapeDebug extends Debug {
 			v.dispose();
 		}
 		fst.dispose();
+		PolyWeak(polygon);
 	}
 
 	public override function drawFilledPolygon (polygon:Dynamic, colour:Int) {
@@ -429,6 +439,7 @@ class ShapeDebug extends Debug {
 		}
 		g.endFill();
 		fst.dispose();
+		PolyWeak(polygon);
 	}
     ///---------------------------------------------------------------------------------------------
 
@@ -492,6 +503,9 @@ class BitmapDebug extends Debug {
 			v.dispose();
 	        pr(inner_zn).__line(x0,y0,x1,y1,colour|0xff000000);
 		}
+
+		WEAK(start);
+		WEAK(end);
     }
 
     public override function drawCircle(position:Vec2, radius:Float, colour:Int) {
@@ -515,6 +529,8 @@ class BitmapDebug extends Debug {
 			var r:Int = fastint(radius*pr(inner).xdet+0.5);
 			pr(inner_zn).__circle(x,y,r, colour|0xff000000);
 		}
+
+		WEAK(position);
     }
 
     public override function drawAABB(aabb:AABB, colour:Int) {
@@ -555,6 +571,8 @@ class BitmapDebug extends Debug {
 		Disposed(p0,Vec2); Disposed(p1,Vec2); Disposed(p2,Vec2);
         DEBUG(if(p0==null || p1==null || p2==null) throw "Error: drawFilledTriangle can't use null points";)
         pr(inner_zn).__tri(p0,p1,p2, colour);
+
+		WEAK(p0); WEAK(p1); WEAK(p2);
     }
 
     public override function drawFilledCircle(position:Vec2, radius:Float, colour:Int) {
@@ -578,6 +596,8 @@ class BitmapDebug extends Debug {
 			var r:Int = fastint(radius*pr(inner).xdet+0.5);
 	        pr(inner_zn).__fcircle(x,y,r, colour|0xff000000);
  		}
+
+		WEAK(position);
     }
 
 	public override function drawPolygon(polygon:Dynamic, colour:Int) {
@@ -616,6 +636,7 @@ class BitmapDebug extends Debug {
 			px = cx; py = cy;
 		});
 		pr(inner_zn).__line(px,py,fx,fy,col);
+		PolyWeak(polygon);
 	}
 
 	public override function drawFilledPolygon(polygon:Dynamic, colour:Int) {
@@ -664,6 +685,7 @@ class BitmapDebug extends Debug {
 				for(p in polys) render(p);
 			}
 		}
+		PolyWeak(polygon);
 	}
 
     ///---------------------------------------------------------------------------------------------

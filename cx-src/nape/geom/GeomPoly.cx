@@ -61,7 +61,7 @@ class GeomPoly {
 		mix_circular(Vertex,
 			verts = push_after(verts, Vertex.get(x.x,x.y));
 		)
-
+		WEAK(x);
 		return current();
 	}
 	public inline function pop() {
@@ -80,7 +80,7 @@ class GeomPoly {
 		mix_circular(Vertex,
 			verts = push_before(verts, Vertex.get(x.x,x.y));
 		)
-
+		WEAK(x);
 		return current();
 	}
 	public inline function shift() {
@@ -137,8 +137,10 @@ class GeomPoly {
 
 	public function new(vertices:Dynamic=null) {
 		pr(inner) = new PR(GeomPoly)(this);
-		if(vertices!=null)
+		if(vertices!=null) {
 			PolyIter(v,vertices,mix_circular(Vertex, verts = push_after(verts,Vertex.get(v.x,v.y))));
+			PolyWeak(vertices);
+		}
 	}
 	@:$keep public function toString() {
 		var ret = "GeomPoly[";
@@ -173,8 +175,9 @@ class GeomPoly {
 	public function contains(point:Vec2) {
 		DEBUG(if(point==null) throw "Error: GeomPoly::contains point cannot be null";)
 		Disposed(point,Vec2);
-
-		return contains(verts, point.x,point.y);
+		var ret = contains(verts, point.x,point.y);
+		WEAK(point);
+		return ret;
 	}
 
 	public function isClockwise() return winding()==Winding.CLOCKWISE
@@ -261,6 +264,13 @@ class GeomPoly {
 	}
 
 mix_circular(Vertex,
+	public function transform(matrix:Mat23) {
+		DEBUG(if(matrix==null) throw "Error: Cannot transform by null matrix";)
+		for_iter(v, verts, {
+			mat_transform_hom(matrix.,v.);
+		});
+	}
+
 	public function bounds() {
 		DEBUG(if(empty()) throw "Error: empty GeomPoly has no defineable bounds";)
 		vec_new(min, PR(Const).FMAX, PR(Const).FMAX);

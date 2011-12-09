@@ -126,6 +126,7 @@ class Shape {
 			if(isCircle()) pr(inner).circle.__translate(displacement.x,displacement.y);
 			else           pr(inner).polygon.__translate(displacement.x,displacement.y);
 		}
+		WEAK(displacement);
 	}
 	keep public function scale(scalex:Float,scaley:Float) {
 		DEBUG(
@@ -178,12 +179,25 @@ class Shape {
 	}
 	
 	//----------------------------------------------------------------------------------------------
+
+	keep public function contains(point:Vec2) {
+		Disposed(point,Vec2);
+		DEBUG(if(point==null) throw "Cannot check null point for containment";)
+		DEBUG(if(body==null) throw "Error: Shape is not well defined without a Body";)	
+
+		PR(Geom).validateShape(pr(inner));
+		return PR(Collide).shapeContains(pr(inner),point.pr(inner));
+	}
+
+	//----------------------------------------------------------------------------------------------
 	
 	keep public static function copy(shape:Shape) {
 		DEBUG(if(shape==null)
 			throw "Error: Cannot copy null Shape";
 		)
-		return shape.pr(inner).copy();
+		var ret = shape.pr(inner).copy();
+		ret.userData = shape.userData;
+		return ret;
 	}
 	
 	//----------------------------------------------------------------------------------------------

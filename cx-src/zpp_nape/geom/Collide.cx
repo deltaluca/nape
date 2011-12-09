@@ -15,15 +15,33 @@ class PR(Collide) {
 	}
 	
 	//----------------------------------------------------------------------------------------------
+
+	flibstaticdel(shapeContains)
+	public static inline function shapeContains(s:PR(Shape),p:PR(Vec2)) {
+		return if(s.isCircle()) circleContains(s.circle,p);
+			   else             polyContains(s.polygon,p);
+	}
 	
 	flibstaticdel(bodyContains)
 	public static inline function bodyContains(b:PR(Body),p:PR(Vec2)) {
-		return Exists(s,b.shapes,
-			if(s.isCircle()) circleContains(s.circle,p)
-			else             polyContains(s.polygon,p)
-		);
+		return Exists(s,b.shapes,shapeContains(s,p));
 	}
 	
+	//----------------------------------------------------------------------------------------------
+
+	flibstaticdel(containTest)
+	public static force_inline function containTest(s1:PR(Shape),s2:PR(Shape)) {
+		if(s1.aabb.contains(s2.aabb)) {
+			return if(s1.isCircle()) {
+				if(s2.isCircle()) circle2circle_contain(s1.circle,s2.circle);
+				else              circle2poly_contain  (s1.circle,s2.polygon);
+			}else {
+				if(s2.isCircle()) poly2circle_contain(s1.polygon,s2.circle);
+				else              poly2poly_contain  (s1.polygon,s2.polygon);
+			};
+		}else return false;
+	}
+
 	//----------------------------------------------------------------------------------------------
 	
 	public force_inline static function contactCollide(s1:PR(Shape),s2:PR(Shape),arb:PR(ColArbiter), rev:Bool) {
@@ -111,7 +129,8 @@ class PR(Collide) {
 		var distSqr = vec_lsq(p);
 		distSqr <= minDist*minDist;
 	});
-	
+
+	$(mixin circle2circle_contain(c1,c2) circle2circle_query_test(c1.worldCOM,c1.worldCOM,c1.radius,(-c2.radius)));
 	
 	$(mixin circle2circle_flow(cx1,cx2,arb) {
 		var c1 = cx1; var c2 = cx2;
@@ -271,6 +290,15 @@ class PR(Collide) {
 			cont;
 		}else false;
 	});
+
+	$(mixin poly2poly_contain(p1,p2) ForAll(a,p1.edges,{
+		var max = -PR(Const).FMAX;
+		Iter(v,p2.gverts,{
+			var k = vec_dot(a.gnorm,v.);
+			if(k>max) max = k;
+		});
+		max <= a.gprojection;
+	}));
 	
 	public static var flowpoly:List(PR(Vec2)) = new List(PR(Vec2))();
 	$(mixin poly2poly_flow(p1,p2,arb) {
@@ -564,6 +592,9 @@ class PR(Collide) {
 			else true;
 		}else false;
 	});
+
+	$(mixin circle2poly_contain(circle,poly) ForAll(p,poly.gverts,circle2circle_query_test(circle.worldCOM,p.,circle.radius,0)));
+	$(mixin poly2circle_contain(poly,circle) ForAll(a,poly.edges,vec_dot(a.gnorm,circle.worldCOM)+circle.radius<=a.gprojection));
 	
 	public static var flowsegs = new List(PR(Vec2))();
 	$(mixin circle2poly_flow(circle,poly,arb) {

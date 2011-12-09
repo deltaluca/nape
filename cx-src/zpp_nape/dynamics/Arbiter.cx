@@ -199,7 +199,11 @@ class PR(SensorArbiter) extends PR(Arbiter) {
 class PR(FluidArbiter) extends PR(Arbiter) {
 	public var outer_zn:FluidArbiter;
 	MixPool(PR(FluidArbiter))
-	flibmdel public inline function alloc() { assert(pair==null,"AABBNode pair exists on arb going out of pool? (fluid)"); }
+	flibmdel public inline function alloc() {
+		assert(pair==null,"AABBNode pair exists on arb going out of pool? (fluid)"); 
+		vec_set(pdamp,0,0);
+		padamp = 0;
+	}
 	flibmdel public inline function free() { assert(pair==null,"AABBNode pair exists on arb going into pool? (fluid)"); }
 
     ///---------------------------------------------------------------------------------------------
@@ -234,6 +238,10 @@ class PR(FluidArbiter) extends PR(Arbiter) {
 
     ///used only for API
     vec_new(public,buoy); //cached buoyancy impulse
+
+	//used for proper impulse calculations (drag only, buoy applied only once)
+	vec_new(public,pdamp);
+	public var padamp:Float;
 
     ///---------------------------------------------------------------------------------------------
 	
@@ -293,26 +301,32 @@ class PR(FluidArbiter) extends PR(Arbiter) {
 
 		vec_sub(centroid,b1.pos,r1);
 		vec_sub(centroid,b2.pos,r2);
-		
+	
 		//----------------------
 		//buoyancy
 		
+		vec_new(g1); if(ws1.fluidEnabled && ws1.fluidProperties.wrap_gravity!=null) vec_set(g1, ws1.fluidProperties.gravity) else vec_set(g1, s.gravity);
+		vec_new(g2); if(ws2.fluidEnabled && ws2.fluidProperties.wrap_gravity!=null) vec_set(g2, ws2.fluidProperties.gravity) else vec_set(g2, s.gravity);
+
 		vec_new(buoy,0,0);
 		if(ws1.fluidEnabled && ws2.fluidEnabled) {
 			var mass1 = overlap*ws1.fluidProperties.density;
 			var mass2 = overlap*ws2.fluidProperties.density;
-			if     (mass1>mass2) vec_subeq(buoy, s.gravity, mass1+mass2);
-			else if(mass1<mass2) vec_addeq(buoy, s.gravity, mass1+mass2);
-			else if(vec_dot(ws1.worldCOM,s.gravity)>vec_dot(ws2.worldCOM,s.gravity))
-				vec_subeq(buoy, s.gravity, mass1+mass2);
-			else
-				vec_addeq(buoy, s.gravity, mass1+mass2);
+			if     (mass1>mass2) vec_subeq(buoy, g1, mass1+mass2);
+			else if(mass1<mass2) vec_addeq(buoy, g2, mass1+mass2);
+			else {
+				vec_new(g); vec_add(g1,g2,g); vec_muleq(g,0.5);
+				if(vec_dot(ws1.worldCOM,g)>vec_dot(ws2.worldCOM,g))
+					vec_subeq(buoy, g, mass1+mass2);
+				else
+					vec_addeq(buoy, g, mass1+mass2);
+			}
 		}else if(ws1.fluidEnabled) {
 			var mass = overlap*ws1.fluidProperties.density;
-			vec_subeq(buoy, s.gravity, mass);
+			vec_subeq(buoy, g1, mass);
 		}else if(ws2.fluidEnabled) {
 			var mass = overlap*ws2.fluidProperties.density;
-			vec_addeq(buoy, s.gravity, mass);
+			vec_addeq(buoy, g2, mass);
 		}
 		vec_muleq(buoy, dt);
 		vec_set(this.buoy,buoy);
@@ -449,6 +463,9 @@ class PR(FluidArbiter) extends PR(Arbiter) {
 			
 		b1.angvel -= adamp*b1.iinertia;
         b2.angvel += adamp*b2.iinertia;
+
+		vec_set(pdamp,damp);
+		padamp = adamp;
     }
 	
 	flibmdel public inline function applyImpulseVel() {
@@ -529,6 +546,8 @@ class PR(ColArbiter) extends PR(Arbiter) {
 	
 	public var rMass:Float; //rolling mass
 	public var jrAcc:Float; //accumulated rolling impulse
+	//used for proper impulse calculations
+	public var pjrAcc:Float;
 
     var rn1a:Float; var rt1a:Float;
     var rn1b:Float; var rt1b:Float;
@@ -573,7 +592,10 @@ class PR(ColArbiter) extends PR(Arbiter) {
 		type = PR(Arbiter).COL;
 		colarb = this;
 	}
-	flibmdel public inline function alloc() { assert(pair==null,"AABBNode exists on col arbiter going out of pool?"); }
+	flibmdel public inline function alloc() {
+		pjrAcc = 0.0;
+		assert(pair==null,"AABBNode exists on col arbiter going out of pool?"); 
+	}
 	flibmdel public inline function free() { assert(pair==null,"AABBNode exists on col arbiter going into pool?"); }
 	
     public var stat:Bool; //one of the bodies is non-dynamic (different arbiter list)
@@ -584,7 +606,6 @@ class PR(ColArbiter) extends PR(Arbiter) {
     public inline function injectContact(px:Float,py:Float,nx:Float,ny:Float,dist:Float,hash:Int) {
 		var c:PR(Contact) = null;
 		Iter(cur,contacts, if(hash==cur.hash) { c = cur; break; });
-		
 		if(c==null) {
 			c = Get(PR(Contact));
 			var ci = c.inner;
@@ -673,7 +694,6 @@ class PR(ColArbiter) extends PR(Arbiter) {
     public var pre_dt:Float;
 	flibmdel public inline function preStep(dt:Float) {
 		validate_props();
-
         #if NAPE_TIMES Debug.AACNT++; #end
 
         if(pre_dt==-1.0) pre_dt = dt;
@@ -798,7 +818,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
 				contacts.modified = true;
 			}
 		}
-		
+
 		//surface velocity
 		vec_set(surface,b2.svel);
 		vec_addeq(surface,b1.svel);
@@ -817,6 +837,12 @@ class PR(ColArbiter) extends PR(Arbiter) {
 			
 		b2.angvel += jrAcc*b2.iinertia;
         b1.angvel -= jrAcc*b1.iinertia;
+
+		oc1.pjnAcc = c1.jnAcc; oc1.pjtAcc = c1.jtAcc;
+		if(hc2) {
+			oc2.pjnAcc = c2.jnAcc; oc2.pjtAcc = c2.jtAcc;
+		}
+		pjrAcc = jrAcc;
     }
 
 	///---------------------------------------------------------------------------------------------

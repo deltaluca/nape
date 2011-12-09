@@ -24,20 +24,20 @@ class Polygon extends Shape {
 	
 	//----------------------------------------------------------------------------------------------
 	
-	keep public static inline function rect(x:Float,y:Float,width:Float,height:Float) {
+	keep public static inline function rect(x:Float,y:Float,width:Float,height:Float, ?weak:Bool=false) {
 		DEBUG(if(isNaN(x) || isNaN(y) || isNaN(width) || isNaN(height))
 			throw "Error: Polygon.rect cannot accept NaN arguments";
 		)
-		return [Vec2.get(x,y), Vec2.get(x+width,y), Vec2.get(x+width,y+height), Vec2.get(x,y+height)];
+		return [Vec2.get(x,y,weak), Vec2.get(x+width,y,weak), Vec2.get(x+width,y+height,weak), Vec2.get(x,y+height,weak)];
 	}
-	keep public static inline function box(width:Float, height:Float) {
+	keep public static inline function box(width:Float, height:Float, ?weak:Bool=false) {
 		DEBUG(if(isNaN(width) || isNaN(height))
 			throw "Error: Polygon.box cannot accept NaN arguments";
 		)
-		return rect(-width/2,-height/2,width,height);
+		return rect(-width/2,-height/2,width,height, weak);
 	}
 	
-	keep public static inline function regular(width:Float, height:Float, edgeCount:Int, ?angleOffset=0.0) {
+	keep public static inline function regular(width:Float, height:Float, edgeCount:Int, ?angleOffset=0.0, ?weak:Bool=false) {
 		DEBUG(if(isNaN(width) || isNaN(height) || isNaN(angleOffset))
 			throw "Error: Polygon.regular cannot accept NaN arguments";
 		)
@@ -45,7 +45,7 @@ class Polygon extends Shape {
 		var dangle = Math.PI*2/edgeCount;
 		for(i in 0...edgeCount) {
 			var ang = i*dangle + angleOffset;
-			var x = Vec2.get(Math.cos(ang)*width/2,Math.sin(ang)*height/2);
+			var x = Vec2.get(Math.cos(ang)*width/2,Math.sin(ang)*height/2,weak);
 			ret.push(x);
 		}
 		return ret;
@@ -88,6 +88,7 @@ class Polygon extends Shape {
 		pr(inner) = pr(inner_zn);
 	
 		PolyIter(x, localVerts, this.localVerts.push(x.copy()));
+		PolyWeak(localVerts);
 
 		if(material==null)
 			pr(inner).material = Get(PR(Material));
