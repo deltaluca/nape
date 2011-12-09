@@ -125,7 +125,6 @@ class PR(Space) {
 	//to provide a quick lookup on any existing listener given that cbtype_1.event > 0 && cbtype_2.event > 0
 	public var _begin  :FastHash2(PR(InteractionListener));
 	public var _end    :FastHash2(PR(InteractionListener));
-	public var _ongoing:FastHash2(PR(InteractionListener));
 
 //	public var _prebegin  :FastHash2(PR(Listener));
 //	public var _preongoing:FastHash2(PR(Listener));
@@ -294,7 +293,6 @@ class PR(Space) {
 
 		_begin   = new FastHash2(PR(InteractionListener))();
 		_end     = new FastHash2(PR(InteractionListener))();
-		_ongoing = new FastHash2(PR(InteractionListener))();
 
 //		_prebegin   = new FastHash2(PR(Listener))();
 //		_preongoing = new FastHash2(PR(Listener))();
@@ -306,7 +304,6 @@ class PR(Space) {
 		return switch(ev) {
 			case Flag(CbEvent,BEGIN  ): _begin;
 			case Flag(CbEvent,END    ): _end;
-			case Flag(CbEvent,ONGOING): _ongoing;
 //			case Flag(CbEvent,PRE_BEGIN):   _prebegin;
 //			case Flag(CbEvent,PRE_ONGOING): _preongoing;
 			DEBUG(default: assert(false,"cbhash"); null;)
@@ -1105,15 +1102,27 @@ class PR(Space) {
 
                 #if NAPE_TIMES Debug.ACNT++; #end
 				
+				var cb1 = arb.ws1.cbType;
+				var cb2 = arb.ws2.cbType;
 				//end callback.
 				if(arb.up_stamp==stamp-1) {
-					var cb1 = arb.ws1.cbType;
-					var cb2 = arb.ws2.cbType;
 					if(cb1._end > 0 && cb2._end > 0) {
 						var i = _end.ordered_get(cb1.id,cb2.id);
 						if(i!=null) {
 							var cb = push_callback(i,i.handler!=null);
 							cb.event = Flag(CbEvent,END);
+							cb.arbiter = arb;
+						}
+					}
+				}
+				//begin callback
+				else if(arb.fresh) {
+					arb.fresh = false;
+					if(cb1._begin > 0 && cb2._begin > 0) {
+						var i = _begin.ordered_get(cb1.id,cb2.id);
+						if(i!=null) {
+							var cb = push_callback(i,i.handler!=null);
+							cb.event = Flag(CbEvent,BEGIN);
 							cb.arbiter = arb;
 						}
 					}
@@ -1270,6 +1279,7 @@ class PR(Space) {
                     }
 						
                     if(first || arb.stamp!=stamp) {
+						if(!first) arb.fresh = arb.stamp<stamp-1; //handle persistance
                         arb.stamp = stamp;
 							
                         if(PR(Collide).flowCollide(sa,sb,arb)) {
@@ -1326,6 +1336,7 @@ class PR(Space) {
 
 					assert(bphase.is_sweep || first || arb.stamp!=stamp, "??"+arb.stamp+":"+stamp);
                     if(first || arb.stamp!=stamp) {
+						if(!first) arb.fresh = arb.stamp<stamp-1; //handle persistance
                         arb.stamp = stamp;
 
                         if(PR(Collide).contactCollide(sa,sb,arb,reverse)) {
@@ -1368,6 +1379,7 @@ class PR(Space) {
                     }
 						
                     if(first || arb.stamp!=stamp) {
+						if(!first) arb.fresh = arb.stamp<stamp-1; //handle persistance
                         arb.stamp = stamp;
 							
                         if(PR(Collide).testCollide(sa,sb)) {

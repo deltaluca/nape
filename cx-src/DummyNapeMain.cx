@@ -350,15 +350,20 @@ class Tracer {
 class DummyNapeMain {
 	static function main() {
 		var root = flash.Lib.current;
-		var space = new Space();
+		var space = new Space(Vec2.weak(-50,0));
 		var debug = new BitmapDebug(800,600,0x333333);
 		root.addChild(debug.display);
+
+		var q = new Body(BodyType.STATIC);
+		var r = new Polygon(Polygon.rect(0,0,-50,600));
+		r.body = q;
+		q.space = space;
 
 		var b1 = new Body(); 
 		var b2 = new Body();
 		b1.position = b2.position = new Vec2(100,100);
 		b2.position.x += 200;
-		b2.velocity.x -= 100;
+		b2.velocity.x -= 200;
 
 		b1.shapes.add(new Circle(50,null,Material.rubber()));
 		b2.shapes.add(new Circle(50,null,Material.rubber()));
@@ -367,11 +372,11 @@ class DummyNapeMain {
 		b2.space = space;
 
 		var begin = new InteractionListener(CbEvent.BEGIN, b1.cbType, b2.cbType, function (x:Arbiter) {
-			trace("BEGIN "+b1.cbType+":"+b2.cbType);
+			trace("BEGIN "+x.toString());
 		});
 		begin.space = space;
 		var endh = new InteractionListener(CbEvent.END, b1.cbType, b2.cbType, function (x:Arbiter) {
-			trace("END "+b1.cbType+":"+b2.cbType);
+			trace("END "+x.toString());
 		});
 		endh.space = space;
 

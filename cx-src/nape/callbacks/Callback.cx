@@ -3,23 +3,22 @@ $(import);
 
 Flags(CbEvent,
 	prop(BEGIN,0)
-	prop(ONGOING,1)
-	prop(END,2)
+	prop(END,1)
 	
-	prop(WAKE,3)
-	prop(SLEEP,4)
+	prop(WAKE,2)
+	prop(SLEEP,3)
 	
-	prop(BREAK,5)
+	prop(BREAK,4)
 
-	prop(PRE_BEGIN,6)
-	prop(PRE_ONGOING,7)
+	prop(PRE_BEGIN,5)
+	prop(PRE_ONGOING,6)
 )
 
 class Callback {
 	public var pr(inner):PR(Callback);
 
     property(event,CbEvent,{
-        [CbEvent.BEGIN,CbEvent.ONGOING,CbEvent.END,CbEvent.WAKE,CbEvent.SLEEP,CbEvent.BREAK][pr(inner).event];
+        [CbEvent.BEGIN,CbEvent.END,CbEvent.WAKE,CbEvent.SLEEP,CbEvent.BREAK][pr(inner).event];
     })
 
     ///---------------------------------------------------------------------------------------------
@@ -52,7 +51,7 @@ class Callback {
 
     @:$keep public inline function toString() {
         var ret = "Cb:";
-        ret += ["BEGIN","ONGOING","END","WAKE","SLEEP","BREAK"][pr(inner).event];
+        ret += ["BEGIN","END","WAKE","SLEEP","BREAK","PRE_BEGIN","PRE_ONGOING"][pr(inner).event];
         if(pr(inner).event==Flag(CbEvent,WAKE) || pr(inner).event==Flag(CbEvent,SLEEP))
             ret += ":"+(body!=null ? body.toString() : constraint.toString());
         ret += " : listener: "+listener;

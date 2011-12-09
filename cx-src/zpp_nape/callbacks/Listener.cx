@@ -158,7 +158,6 @@ class PR(InteractionListener) extends PR(Listener) {
 		if(cb2!=cb1) cb2.listeners.add(this);
 
 		if  (event==Flag(CbEvent,BEGIN))   { cb1._begin++;   if(cb2!=cb1) cb2._begin++;   }
-		elif(event==Flag(CbEvent,ONGOING)) { cb1._ongoing++; if(cb2!=cb1) cb2._ongoing++; }
 		else                               { cb1._end++;     if(cb2!=cb1) cb2._end++;     }
 	}
 	flibmdel public inline function removedFromSpace() {
@@ -168,7 +167,6 @@ class PR(InteractionListener) extends PR(Listener) {
 		if(cb2!=cb1) cb2.listeners.remove(this);
 
 		if  (event==Flag(CbEvent,BEGIN))   { cb1._begin--;   if(cb2!=cb1) cb2._begin--;   }
-		elif(event==Flag(CbEvent,ONGOING)) { cb1._ongoing--; if(cb2!=cb1) cb2._ongoing--; }
 		else                               { cb1._end--;     if(cb2!=cb1) cb2._end--;     }
 	}
 
@@ -181,7 +179,6 @@ class PR(InteractionListener) extends PR(Listener) {
 					dip.listeners.remove(this);
 
 					if  (event==Flag(CbEvent,BEGIN))   dip._begin--;
-					elif(event==Flag(CbEvent,ONGOING)) dip._ongoing--;
 					else                               dip._end--;
 				}
 
@@ -191,7 +188,6 @@ class PR(InteractionListener) extends PR(Listener) {
 					dip.listeners.add(this);
 
 					if  (event==Flag(CbEvent,BEGIN))   dip._begin++;
-					elif(event==Flag(CbEvent,ONGOING)) dip._ongoing++;
 					else                               dip._end++;
 				}
 			}else dip = newcb;
@@ -214,8 +210,8 @@ class PR(InteractionListener) extends PR(Listener) {
 
 	flibmdel public inline function swapEvent(newev:Int) {
 		DEBUG(
-			if(newev != Flag(CbEvent,BEGIN) && newev != Flag(CbEvent,ONGOING) && newev != Flag(CbEvent,END))
-				throw "Error: InteractionListener event must be either BEGIN, ONGOING or END";
+			if(newev != Flag(CbEvent,BEGIN) && newev != Flag(CbEvent,END))
+				throw "Error: InteractionListener event must be either BEGIN, END";
 		)
 		removedFromSpace();
 		event = newev;
