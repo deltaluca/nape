@@ -351,15 +351,17 @@ class DummyNapeMain {
 	static function main() {
 		var root = flash.Lib.current;
 		var space = new Space();
-		var debug = new BitmapDebug(600,600,0x333333);
+		var debug = new BitmapDebug(800,600,0x333333);
 		root.addChild(debug.display);
 
 		var b1 = new Body(); 
 		var b2 = new Body();
 		b1.position = b2.position = new Vec2(100,100);
+		b2.position.x += 200;
+		b2.velocity.x -= 100;
 
-		b1.shapes.add(new Circle(50));
-		b2.shapes.add(new Circle(50));
+		b1.shapes.add(new Circle(50,null,Material.rubber()));
+		b2.shapes.add(new Circle(50,null,Material.rubber()));
 
 		b1.space = space;
 		b2.space = space;
@@ -368,6 +370,10 @@ class DummyNapeMain {
 			trace("BEGIN "+b1.cbType+":"+b2.cbType);
 		});
 		begin.space = space;
+		var endh = new InteractionListener(CbEvent.END, b1.cbType, b2.cbType, function (x:Arbiter) {
+			trace("END "+b1.cbType+":"+b2.cbType);
+		});
+		endh.space = space;
 
 		(new haxe.Timer(0)).run = function() {
 			debug.clear();

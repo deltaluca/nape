@@ -139,6 +139,11 @@ class PR(InteractionListener) extends PR(Listener) {
     public var cb2:PR(CbType);
     public var handler:Arbiter->Void;
 
+	//used in hash lookups
+	public var hnext:PR(InteractionListener);
+	//ordered id's of cb1/cb2
+	public var id:Int; public var di:Int;
+
 	public function new(event:Int, handler:Arbiter->Void) {
 		this.event = event;
 		this.handler = handler;
@@ -194,6 +199,17 @@ class PR(InteractionListener) extends PR(Listener) {
 
 		if(which==1) dope(cb1,cb2);
 		else         dope(cb2,cb1);
+
+		if(cb1!=null && cb2!=null) {
+			if(space!=null) space.revoke_listener(this);
+
+			//set hash id's
+			if(cb1.id <= cb2.id)
+				 { id = cb1.id; di = cb2.id; }
+			else { id = cb2.id; di = cb1.id; }
+
+			if(space!=null) space.unrevoke_listener(this);
+		}
     }
 
 	flibmdel public inline function swapEvent(newev:Int) {
