@@ -1101,7 +1101,7 @@ class PR(Space) {
 				}
 
                 #if NAPE_TIMES Debug.ACNT++; #end
-				
+		
 				var cb1 = arb.ws1.cbType;
 				var cb2 = arb.ws2.cbType;
 				//end callback.
@@ -1117,7 +1117,6 @@ class PR(Space) {
 				}
 				//begin callback
 				else if(arb.fresh) {
-					arb.fresh = false;
 					if(cb1._begin > 0 && cb2._begin > 0) {
 						var i = _begin.ordered_get(cb1.id,cb2.id);
 						if(i!=null) {
@@ -1127,7 +1126,8 @@ class PR(Space) {
 						}
 					}
 				}
-			
+				arb.fresh = false;
+
 				//no need for sensor/fluid arbiters to persist after deactivation, just remove now.
 				if(arb.cleared
                  || ((arb.type==PR(Arbiter).SENSOR||arb.type==PR(Arbiter).FLUID) && arb.up_stamp<stamp)
@@ -1267,19 +1267,20 @@ class PR(Space) {
                     var xarb = if(in_arb==null) map_arb.get(sa.id,sb.id) else in_arb;
                     var first = xarb==null;
 
-                    var arb;
+                    var arb; var swapped = false;
                     if(first) arb = Get(PR(FluidArbiter))
                     else {
                         if(xarb.fluidarb==null) {
                             xarb.lazyRetire(this,null);
                             arb = Get(PR(FluidArbiter));
                             first = true;
+							swapped = true;
                         }else
                             arb = xarb.fluidarb;
                     }
 						
                     if(first || arb.stamp!=stamp) {
-						if(!first) arb.fresh = arb.stamp<stamp-1; //handle persistance
+						if(!first) arb.fresh = arb.up_stamp<stamp-1; //handle persistance
                         arb.stamp = stamp;
 							
                         if(PR(Collide).flowCollide(sa,sb,arb)) {
@@ -1287,6 +1288,7 @@ class PR(Space) {
                                 arb.assign(s1,s2,sa.id,sb.id);
                                 f_arbiters.add(arb);
                                 map_arb.add(arb);
+								if(swapped) arb.fresh = false; //avoid cb on arbiter type swap
                             }
                             arb.up_stamp = arb.stamp;
 								
@@ -1310,7 +1312,7 @@ class PR(Space) {
                     var xarb = if(in_arb==null) map_arb.get(sa.id,sb.id) else in_arb;
                     var first = xarb==null;
 						
-                    var arb;
+                    var arb; var swapped = false;
                     if(first) {
                         arb = Get(PR(ColArbiter));
                         arb.stat = stat;
@@ -1320,6 +1322,7 @@ class PR(Space) {
                             arb = Get(PR(ColArbiter));
                             arb.stat = stat;
                             first = true;
+							swapped = true;
                         }else {
                             arb = xarb.colarb;
                             reverse = sa != arb.s1;
@@ -1336,14 +1339,16 @@ class PR(Space) {
 
 					assert(bphase.is_sweep || first || arb.stamp!=stamp, "??"+arb.stamp+":"+stamp);
                     if(first || arb.stamp!=stamp) {
-						if(!first) arb.fresh = arb.stamp<stamp-1; //handle persistance
+						if(!first) arb.fresh = arb.up_stamp<stamp-1; //handle persistance
                         arb.stamp = stamp;
 
                         if(PR(Collide).contactCollide(sa,sb,arb,reverse)) {
+
                             if(first) {
                                 arb.assign(s1,s2,sa.id,sb.id);
                                 carbs.add(arb);
                                 map_arb.add(arb);
+								if(swapped) arb.fresh = false;
                             }
                             arb.up_stamp = arb.stamp;
 
@@ -1367,19 +1372,20 @@ class PR(Space) {
                     var xarb = if(in_arb==null) map_arb.get(sa.id,sb.id) else in_arb;
                     var first = xarb==null;
 						
-                    var arb;
+                    var arb; var swapped = false;
                     if(first) arb = Get(PR(SensorArbiter))
                     else {
                         if(xarb.sensorarb==null) {
                             xarb.lazyRetire(this,null);
                             arb = Get(PR(SensorArbiter));
                             first = true;
+							swapped = true;
                         }else
                             arb = xarb.sensorarb;
                     }
 						
                     if(first || arb.stamp!=stamp) {
-						if(!first) arb.fresh = arb.stamp<stamp-1; //handle persistance
+						if(!first) arb.fresh = arb.up_stamp<stamp-1; //handle persistance
                         arb.stamp = stamp;
 							
                         if(PR(Collide).testCollide(sa,sb)) {
@@ -1387,6 +1393,7 @@ class PR(Space) {
                                 arb.assign(s1,s2,sa.id,sb.id);
                                 s_arbiters.add(arb);
                                 map_arb.add(arb);
+								if(swapped) arb.fresh = false;
                             }
                             arb.up_stamp = arb.stamp;
 
