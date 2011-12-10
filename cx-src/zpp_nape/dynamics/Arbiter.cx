@@ -1,6 +1,12 @@
 package zpp_nape.dynamics;
 $(import);
 
+PRFlags(ImmState,
+	prop(ACCEPT, 1)
+	prop(IGNORE, 2)
+	prop(ALWAYS, 4)
+)
+
 class PR(Arbiter) {
 	public var outer:Arbiter;
 
@@ -66,8 +72,19 @@ class PR(Arbiter) {
     //set when arbiter is sweffed
     public var sleeping:Bool;
 
+    ///---------------------------------------------------------------------------------------------
+
 	//used to swap between begin/ongoing style cb
 	public var fresh:Bool;
+
+	//imm cb flags
+	public var immState:Int; //ImmState
+
+    ///---------------------------------------------------------------------------------------------
+
+	public inline function acting() {
+		return active && ((immState & Flag(ImmState,ACCEPT))!=0);
+	}
 
     ///---------------------------------------------------------------------------------------------
 	
@@ -694,6 +711,52 @@ class PR(ColArbiter) extends PR(Arbiter) {
 	});
 	
 	///---------------------------------------------------------------------------------------------
+
+	//called on an ignored arbiter to make sure arbiters are still cleaned up
+	//and so we can still determine if no more active contacts exist for cleaning up
+	//
+	//when arbiter is accepted, this is handled in the preStep
+	//later clean up may remove the common logic if it is deemed appropriate
+	//and not a hinderance
+	flibmdel public inline function cleanupContacts() {
+		var fst = true;
+
+		var pre = null; var prei = null;
+		var cx_itei = innards.begin();
+		Iter(c, contacts, {
+			if(c.stamp+PR(Config).PERSIST<stamp) {
+				cx_ite = contacts.erase(pre);
+				cx_itei = innards.erase(prei);
+				Free(PR(Contact), c);
+				continue;
+			}
+
+			var ci = c.inner;
+			var pact = c.active;
+			c.active = c.stamp==stamp;
+			//necessary to notify list of non structual changes when using accept mode for API.
+			if(pact!=c.active) contacts.modified = true;
+
+			if(c.active) {
+				if(fst) {
+					fst = false;
+					c1 = ci;
+					oc1 = c;
+				}else {
+					assert(!hc2,"arbiter has +2 contacts??");
+					hc2 = true;
+					c2 = ci;
+					oc2 = c;
+				}
+			}
+
+			pre = cx_ite;
+			prei = cx_itei;
+			cx_itei = cx_itei.next;
+		});
+
+		return !fst;
+	}
 	
     public var pre_dt:Float;
 	flibmdel public inline function preStep(dt:Float) {

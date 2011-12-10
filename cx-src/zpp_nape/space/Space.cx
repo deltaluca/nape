@@ -1148,7 +1148,11 @@ class PR(Space) {
 				var pact = arb.active;
 				arb.active = arb.up_stamp==stamp;
 
-				if(!(action)) arb.active = false;
+				if((arb.immState&Flag(ImmState,ACCEPT)) != 0) {
+					if(!(action)) arb.active = false;
+				}else if($str(arbs)=="c_arbiters_true" || $str(arbs)=="c_arbiters_false") {
+					if(!untyped arb.cleanupContacts()) arb.active = false;
+				}
 				
 				//necessary to notify lists of non structual changes for API
 				if(pact!=arb.active) {
@@ -1160,7 +1164,10 @@ class PR(Space) {
 				pre = cx_ite;
 			});
 		});
-		
+	
+		//still iterate non acting arbiters
+		//want to clean up contacts in collision arbiters
+		//and clean up outdated arbiters also	
 		prestep(c_arbiters(true),  if(arb.active) arb.preStep(dt));
 		prestep(c_arbiters(false), if(arb.active) arb.preStep(dt));
 		prestep(f_arbiters,      { if(arb.active) arb.preStep(this,dt); true; });
@@ -1170,15 +1177,15 @@ class PR(Space) {
 	//----------------------------------------------------------------------------------------------
 	
     public function warmStart() {
-        Iter(arb,f_arbiters,       if(arb.active) arb.warmStart());
-        Iter(arb,c_arbiters(false),if(arb.active) arb.warmStart());
-        Iter(arb,c_arbiters(true), if(arb.active) arb.warmStart());
+        Iter(arb,f_arbiters,       if(arb.acting()) arb.warmStart());
+        Iter(arb,c_arbiters(false),if(arb.acting()) arb.warmStart());
+        Iter(arb,c_arbiters(true), if(arb.acting()) arb.warmStart());
         Iter(con,live_constraints, con.warmStart());
 	}
 
 	public function iterateVel(times:Int,bouncy:Bool) {
 		for(i in 0...times) {
-			Iter(arb,f_arbiters,if(arb.active) arb.applyImpulseVel());
+			Iter(arb,f_arbiters,if(arb.acting()) arb.applyImpulseVel());
 			
 			var pre = null;
 			Iter(con,live_constraints, {
@@ -1200,8 +1207,8 @@ class PR(Space) {
 				pre = cx_ite;
 			});
 				
-			Iter(arb,c_arbiters(false),if(arb.active) arb.applyImpulseVel(bouncy));
-			Iter(arb,c_arbiters(true), if(arb.active) arb.applyImpulseVel(bouncy));
+			Iter(arb,c_arbiters(false),if(arb.acting()) arb.applyImpulseVel(bouncy));
+			Iter(arb,c_arbiters(true), if(arb.acting()) arb.applyImpulseVel(bouncy));
 		}
 	}
 	public function iteratePos(times:Int) {
@@ -1229,8 +1236,8 @@ class PR(Space) {
 				pre = cx_ite;
 			});
 				
-			Iter(arb,c_arbiters(false),if(arb.active) arb.applyImpulsePos());
-			Iter(arb,c_arbiters(true), if(arb.active) arb.applyImpulsePos());
+			Iter(arb,c_arbiters(false),if(arb.acting()) arb.applyImpulsePos());
+			Iter(arb,c_arbiters(true), if(arb.acting()) arb.applyImpulsePos());
 		}
 	}
 
@@ -1357,11 +1364,42 @@ class PR(Space) {
                             }
                             arb.up_stamp = arb.stamp;
 
-                            if(arb.b1.component.sleeping && arb.b1.isDynamic())
-                                wake(arb.b1);
-                            if(arb.b2.component.sleeping && arb.b2.isDynamic())
-                                wake(arb.b2);
-								
+							var cb1 = s1.cbType;
+							var cb2 = s2.cbType;
+							var handler = null;
+							if(arb.fresh) {
+								if(cb1._prebegin>0 && cb2._prebegin>0) {
+									var i = _prebegin.ordered_get(cb1.id,cb2.id);
+									if(i!=null) handler = i.handler;
+								}
+							}else {
+								if(cb1._preongoing>0 && cb2._preongoing>0) {
+									var i = _preongoing.ordered_get(cb1.id,cb2.id);
+									if(i!=null) handler = i.handler;
+								}
+							}
+							if(handler!=null) {
+								var ret = handler(arb.wrapper());
+								DEBUG(if(ret==null) throw "Error: ImmListener handler should not return null >.>";)
+								arb.immState =
+									if  (ret==ImmFlag.ACCEPT)      Flag(ImmState, ACCEPT) | Flag(ImmState, ALWAYS)
+									elif(ret==ImmFlag.ACCEPT_ONCE) Flag(ImmState, ACCEPT)
+									elif(ret==ImmFlag.IGNORE)      Flag(ImmState, IGNORE) | Flag(ImmState, ALWAYS)
+									else                           Flag(ImmState, IGNORE);
+							}else {
+								//reset state on non-persistance
+								if((arb.immState&Flag(ImmState,ALWAYS))==0)
+									arb.immState = Flag(ImmState,ACCEPT);
+							}
+
+							//optimisation, none-accepted arbiter need not wake it's constituents	
+							if((arb.immState & Flag(ImmState, ACCEPT)) != 0) {
+	                            if(arb.b1.component.sleeping && arb.b1.isDynamic())
+	                                wake(arb.b1);
+	                            if(arb.b2.component.sleeping && arb.b2.isDynamic())
+	                                wake(arb.b2);
+							}
+
                             if(arb.sleeping) {
                                 arb.sleeping = false;
                                 carbs.add(arb);
