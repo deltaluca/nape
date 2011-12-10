@@ -71,6 +71,18 @@ class Arbiter {
     })
 
 	//----------------------------------------------------------------------------------------------
+
+	property(state,ImmFlag,{
+		DEBUG(if(!active) throw "Error: Arbiter not currently in use";)
+		switch(pr(inner).immState) {
+			case Flag(ImmState,ACCEPT) | Flag(ImmState,ALWAYS): ImmFlag.ACCEPT;
+			case Flag(ImmState,ACCEPT)                        : ImmFlag.ACCEPT_ONCE;
+			case Flag(ImmState,IGNORE) | Flag(ImmState,ALWAYS): ImmFlag.IGNORE;
+			default                                           : ImmFlag.IGNORE_ONCE;
+		}
+	})
+
+	//----------------------------------------------------------------------------------------------
 	
 	keep public function totalImpulse(?body:Body,?freshOnly:Bool=false) {
 		DEBUG(if(!active) throw "Error: Arbiter not currently in use";)

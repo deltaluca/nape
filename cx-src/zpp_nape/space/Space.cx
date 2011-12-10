@@ -821,7 +821,11 @@ class PR(Space) {
 								else
 									s_arbiters.add(arb.sensorarb);
 							}
-                            if(arb.type != PR(Arbiter).SENSOR && !arb.cleared && arb.up_stamp==stamp) {
+							//we do not know anything about arb.active
+							//so base this on information we do know.
+							//that is to say up_stamp and immState
+                            if(arb.type != PR(Arbiter).SENSOR && !arb.cleared
+							&& arb.up_stamp==stamp && ((arb.immState&Flag(ImmState,ACCEPT))!=0)) {
 								if(arb.b1.isDynamic() && arb.b1.component.sleeping) wake(arb.b1);
 								if(arb.b2.isDynamic() && arb.b2.component.sleeping) wake(arb.b2);
 							}
@@ -870,14 +874,18 @@ class PR(Space) {
 	
 	public function doForests(dt:Float) {
 		//build set foreset.
+		//
+		//arb.active has not yet been computed.
+		//so we base it on all currently available information
+		//that is to say, arb.up_stamp==stamp and immState.
 		Iter(arb, c_arbiters(false), {
-            if(!arb.cleared && arb.up_stamp==stamp) {
+            if(!arb.cleared && arb.up_stamp==stamp && ((arb.immState&Flag(ImmState,ACCEPT))!=0)) {
                 if(arb.b1.isDynamic() && arb.b2.isDynamic())
                     DSF(union(arb.b1.component, arb.b2.component))
             }
 		});
 		Iter(arb, f_arbiters, {
-            if(!arb.cleared && arb.up_stamp==stamp) {
+            if(!arb.cleared && arb.up_stamp==stamp && ((arb.immState&Flag(ImmState,ACCEPT))!=0)) {
                 if(arb.b1.isDynamic() && arb.b2.isDynamic())
                     DSF(union(arb.b1.component, arb.b2.component))
             }
