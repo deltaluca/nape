@@ -126,8 +126,8 @@ class PR(Space) {
 	public var _begin  :FastHash2(PR(InteractionListener));
 	public var _end    :FastHash2(PR(InteractionListener));
 
-//	public var _prebegin  :FastHash2(PR(Listener));
-//	public var _preongoing:FastHash2(PR(Listener));
+	public var _prebegin  :FastHash2(PR(ImmListener));
+	public var _preongoing:FastHash2(PR(ImmListener));
 
     public var callbacks:PR(Callback); //as a deque
     public var wrap_callbacks:CallbackQueue;
@@ -294,41 +294,40 @@ class PR(Space) {
 		_begin   = new FastHash2(PR(InteractionListener))();
 		_end     = new FastHash2(PR(InteractionListener))();
 
-//		_prebegin   = new FastHash2(PR(Listener))();
-//		_preongoing = new FastHash2(PR(Listener))();
+		_prebegin   = new FastHash2(PR(ImmListener))();
+		_preongoing = new FastHash2(PR(ImmListener))();
 	}
 	
 	//----------------------------------------------------------------------------------------------
 
-	public function cbhash(ev:Int) {
-		return switch(ev) {
-			case Flag(CbEvent,BEGIN  ): _begin;
-			case Flag(CbEvent,END    ): _end;
-//			case Flag(CbEvent,PRE_BEGIN):   _prebegin;
-//			case Flag(CbEvent,PRE_ONGOING): _preongoing;
-			DEBUG(default: assert(false,"cbhash"); null;)
-		}
-	}
-
 	public function revoke_listener(x:PR(Listener)) {
-		var hash = cbhash(x.event);
 		if(x.type==Flag(ListenerType,INTERACTION)) {
+			var hash = if(x.event==Flag(CbEvent,BEGIN)) _begin else _end;
 			var it = x.interaction;
 			assert(hash.has(it.id,it.di), "hash doesn't have listener");
 			hash.remove(it);
 		}else {
+			var hash = if(x.event==Flag(CbEvent,PRE_BEGIN)) _prebegin else _preongoing;
+			var it = x.imm;
+			assert(hash.has(it.id,it.di), "hash doesn't have listener");
+			hash.remove(it);
 		}
 	}
 	public function unrevoke_listener(x:PR(Listener)) {
-		var hash = cbhash(x.event);
 		if(x.type==Flag(ListenerType,INTERACTION)) {
+			var hash = if(x.event==Flag(CbEvent,BEGIN)) _begin else _end;
 			var it = x.interaction;
 			DEBUG(if(hash.has(it.id,it.di))
 				throw "Error: Space already contains a listener between CbType id's: "+it.id+"<->"+it.di+" for CbEvent "+x.outer.event.toString();
 			)
-
 			hash.add(it);
 		}else {
+			var hash = if(x.event==Flag(CbEvent,PRE_BEGIN)) _prebegin else _preongoing;
+			var it = x.imm;
+			DEBUG(if(hash.has(it.id,it.di))
+				throw "Error: Space already contains a listener between CbType id's: "+it.id+"<->"+it.di+" for CbEvent "+x.outer.event.toString();
+			)
+			hash.add(it);
 		}
 	}
 
@@ -341,6 +340,9 @@ class PR(Space) {
 		else if(x.type==Flag(ListenerType,INTERACTION)) {
 			x.interaction.addedToSpace();
 			unrevoke_listener(x);
+		}else {
+			x.imm.addedToSpace();
+			unrevoke_listener(x);
 		}
     }
     public function remListener(x:PR(Listener)) {
@@ -351,6 +353,9 @@ class PR(Space) {
             x.constraint.removedFromSpace();
 		else if(x.type==Flag(ListenerType,INTERACTION)) {
 			x.interaction.removedFromSpace();
+			revoke_listener(x);
+		}else {
+			x.imm.removedFromSpace();
 			revoke_listener(x);
 		}
     }
