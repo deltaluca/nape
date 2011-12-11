@@ -350,23 +350,22 @@ class Tracer {
 class DummyNapeMain {
 	static function main() {
 		var root = flash.Lib.current;
-		var space = new Space(Vec2.weak(-50,0));
+		var space = new Space(Vec2.weak(0,300));
 		var debug = new BitmapDebug(800,600,0x333333);
 		root.addChild(debug.display);
 
 		var q = new Body(BodyType.STATIC);
-		var r = new Polygon(Polygon.rect(0,0,-50,600));
+		var r = new Polygon(Polygon.rect(0,600,800,-50));
 		r.body = q;
 		q.space = space;
 
 		var b1 = new Body(); 
 		var b2 = new Body();
-		b1.position = b2.position = new Vec2(100,100);
-		b2.position.x += 300;
-		b2.velocity.x -= 400;
+		b1.position = b2.position = new Vec2(400,400);
+		b2.position.y = 200;
 
-		b1.shapes.add(new Circle(50,null,Material.rubber()));
-		b2.shapes.add(new Circle(50,null,Material.rubber()));
+		b1.shapes.add(new Circle(50,null));
+		b2.shapes.add(new Circle(50,null));
 
 		b1.space = space;
 		b2.space = space;
@@ -384,15 +383,18 @@ class DummyNapeMain {
 			trace("PRE_BEGIN "+x.toString());
 			return ((x.body1==b2 && x.body2==b1) || (x.body1==b1 && x.body2==b2)) ? ImmFlag.IGNORE : ImmFlag.ACCEPT;
 		});
-		prebegin.space = space;
-/*		var preong = new ImmListener(CbEvent.PRE_ONGOING, b1.cbType, b2.cbType, function (x:Arbiter):ImmFlag {
+/*		prebegin.space = space;
+		var preong = new ImmListener(CbEvent.PRE_ONGOING, b1.cbType, b2.cbType, function (x:Arbiter):ImmFlag {
 			trace("PRE_ONGOING "+x.toString());
-			return ImmFlag.ACCEPT_ONCE;
+			return x.state;
 		});
 		preong.space = space;*/
 
 		(new haxe.Timer(Std.int(1000/flash.Lib.current.stage.frameRate))).run = function() {
 			debug.clear();
+
+//			if(flash.Lib.getTimer()>4000 && (b2.arbiters.at(0).body1==b1 || b2.arbiters.at(0).body2==b1)) b2.arbiters.at(0).state = ImmFlag.IGNORE;
+//			if(flash.Lib.getTimer()>5000 && (b2.arbiters.at(0).body1==b1 || b2.arbiters.at(0).body2==b1)) b2.arbiters.at(0).state = ImmFlag.ACCEPT;
 
 			space.step(1/60,10,10);
 			debug.draw(space);

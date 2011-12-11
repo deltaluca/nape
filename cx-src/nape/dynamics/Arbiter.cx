@@ -80,6 +80,21 @@ class Arbiter {
 			case Flag(ImmState,IGNORE) | Flag(ImmState,ALWAYS): ImmFlag.IGNORE;
 			default                                           : ImmFlag.IGNORE_ONCE;
 		}
+	},{
+		var xstate =
+			if  (state==ImmFlag.ACCEPT) Flag(ImmState,ACCEPT)
+			elif(state==ImmFlag.IGNORE) Flag(ImmState,IGNORE)
+			DEBUG(else throw "Error: only ImmFlag.ACCEPT/IGNORE make sense, as ACCEPT_ONCE/IGNORE_ONCE would have no effect here whatsoever!";)
+			RELEASE(;)
+
+		if((pr(inner).immState & xstate)!=0) {
+			//requires waking
+			pr(inner).immState = xstate | Flag(ImmState,ALWAYS);
+			body1.pr(inner).wake();
+			body2.pr(inner).wake();
+		}else
+			pr(inner).immState = xstate | Flag(ImmState,ALWAYS);
+
 	})
 
 	//----------------------------------------------------------------------------------------------
