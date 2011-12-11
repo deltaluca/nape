@@ -1402,6 +1402,16 @@ class PR(Space) {
 									arb.immState = Flag(ImmState,ACCEPT);
 							}
 
+							//DON'T LET THE OBJECTS GO TO SLEEP!!
+							//# we cannot assume that at some point
+							//  handler (without explicit change) will
+							//  inform nape to do something differently
+							//  which would require the objects to be woken
+							//  so we can't let the objects sleep
+							if((arb.immState&Flag(ImmState,ALWAYS))==0) {
+								wake(arb.b1);
+								wake(arb.b2);
+							}else
 							//optimisation, none-accepted arbiter need not wake it's constituents	
 							if((arb.immState & Flag(ImmState, ACCEPT)) != 0) {
 	                            if(arb.b1.component.sleeping && arb.b1.isDynamic())
