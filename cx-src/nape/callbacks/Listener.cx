@@ -226,6 +226,12 @@ class ImmListener extends Listener {
 			con.swapCbType(2, cbType2.pr(inner));
 	})
 
+	//do not need to wake bodies here!
+	//the contract of ACCEPT/IGNORE are that you hand control over to nape
+	//and have no further say, so any change to output is not in the domain of accepted behaviour
+	//
+	//in the case of #_ONCE, the objects are forced to stay awake (in space)
+	//and so any change to handler does not need to wake any objects already.
 	property(handler,Arbiter->ImmFlag,pr(inner_zn).handler,{
 		DEBUG(if(handler==null) throw "Error: ImmListener must take a non-null handler!";)
 		pr(inner_zn).handler = handler;
