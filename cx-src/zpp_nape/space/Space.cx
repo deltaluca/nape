@@ -1250,7 +1250,6 @@ class PR(Space) {
 	}
 
 	//----------------------------------------------------------------------------------------------
-	
 
 	flibmdel public inline function narrowPhase(s1:PR(Shape),s2:PR(Shape), stat:Bool, ?in_arb:PR(Arbiter)=null) {
 		var ret:PR(Arbiter) = null;
@@ -1283,6 +1282,90 @@ class PR(Space) {
                 }else { sa = s1; sb = s2; }
                 var reverse = sa == s2;
 
+				$(mixin narrowed(arb,Type,arbs, cond, waking) {
+					if(first || arb.stamp!=stamp) {
+						if(!first) arb.fresh = arb.up_stamp<stamp-1; //handle persistance
+						arb.stamp = stamp;
+
+						if(cond) {
+							if(first) {
+								arb.assign(s1,s2,sa.id,sb.id);
+								arbs.add(arb);
+								map_arb.add(arb);
+								if(swapped) arb.fresh = false; //avoid cb on arbiter type swap
+							}
+							arb.up_stamp = arb.stamp;
+
+							var cb1 = s1.cbType;
+							var cb2 = s2.cbType;
+							var handler = null;
+							if(arb.fresh) {
+								arb.immState = Flag(ImmState,ACCEPT);
+								if(cb1._prebegin>0 && cb2._prebegin>0) {
+									var i = _prebegin.ordered_get(cb1.id,cb2.id);
+									if(i!=null) handler = i.handler;
+								}
+							}
+							//check state is not #_ALWAYS.
+							else if((arb.immState&Flag(ImmState,ALWAYS))==0) {
+								if(cb1._preongoing>0 && cb2._preongoing>0) {
+									var i = _preongoing.ordered_get(cb1.id,cb2.id);
+									if(i!=null) handler = i.handler;
+								}
+							}
+							if(handler!=null) {
+								var ret = handler(arb.wrapper());
+								DEBUG(if(ret==null) throw "Error: ImmListener handler should not return null >.>";)
+								arb.immState = 
+									if  (ret==ImmFlag.ACCEPT)      Flag(ImmState, ACCEPT) | Flag(ImmState, ALWAYS)
+									elif(ret==ImmFlag.ACCEPT_ONCE) Flag(ImmState, ACCEPT)
+									elif(ret==ImmFlag.IGNORE)      Flag(ImmState, IGNORE) | Flag(ImmState, ALWAYS)
+									else                           Flag(ImmState, IGNORE);
+							}else {
+								//reset state on non-persistance
+								if((arb.immState&Flag(ImmState,ALWAYS))==0)
+									arb.immState = Flag(ImmState, ACCEPT);
+							}
+
+							//DON'T LET THE OBJECTS GO TO SLEEP!!
+							//# we cannot assume that at some point
+							//  handler (without explicit change) will
+							//  inform nape to do something differently
+							//  which would require the objects to be woken
+							//  so we can't let the objects sleep
+							if((arb.immState&Flag(ImmState,ALWAYS))==0) {
+								//wake even if 'waking' false (aka sensor arbiter)
+								//to keep consistency w.r.t #_ONCE handlers
+								//
+								//we do not check that they are sleeping before waking
+								//as we want them to never sleep which would be possible
+								//if we allowed them both to go to sleep at same time.
+								//
+								//TODO: what about non-dynamics? (like below waking)
+								wake(arb.b1);
+								wake(arb.b2);
+							}else
+							//optimisation, none-accept arbiter need not wake it's constituents
+							if(waking && (arb.immState & Flag(ImmState, ACCEPT)) !=0) {
+								if(arb.b1.component.sleeping && arb.b1.isDynamic())
+									wake(arb.b1);
+								if(arb.b2.component.sleeping && arb.b2.isDynamic())
+									wake(arb.b2);
+							}
+
+							if(arb.sleeping) {
+								arb.sleeping = false;
+								arbs.add(arb);
+							}
+
+							arb;
+						}else if(first) {
+							Free(Type, arb);
+							null;
+						}
+					}else null;
+				});
+
                 if(fcol) {
                     var xarb = if(in_arb==null) map_arb.get(sa.id,sb.id) else in_arb;
                     var first = xarb==null;
@@ -1299,7 +1382,9 @@ class PR(Space) {
                             arb = xarb.fluidarb;
                     }
 						
-                    if(first || arb.stamp!=stamp) {
+					ret = narrowed(arb,PR(FluidArbiter),f_arbiters, PR(Collide).flowCollide(sa,sb,arb), true);
+
+/*                    if(first || arb.stamp!=stamp) {
 						if(!first) arb.fresh = arb.up_stamp<stamp-1; //handle persistance
                         arb.stamp = stamp;
 							
@@ -1325,7 +1410,8 @@ class PR(Space) {
 							ret = arb;
                         }else if(first)
                             Free(PR(FluidArbiter),arb);
-                    }
+                    }*/
+
                 } else if(gcol) {
                     var carbs = stat ? c_arbiters(true) : c_arbiters(false);
 
@@ -1357,7 +1443,9 @@ class PR(Space) {
                         }
                     }
 
-					assert(bphase.is_sweep || first || arb.stamp!=stamp, "??"+arb.stamp+":"+stamp);
+					ret = narrowed(arb,PR(ColArbiter),carbs, PR(Collide).contactCollide(sa,sb,arb,reverse), true);
+
+/*					assert(bphase.is_sweep || first || arb.stamp!=stamp, "??"+arb.stamp+":"+stamp);
                     if(first || arb.stamp!=stamp) {
 						if(!first) arb.fresh = arb.up_stamp<stamp-1; //handle persistance
                         arb.stamp = stamp;
@@ -1430,7 +1518,7 @@ class PR(Space) {
                             if(first)
                                 Free(PR(ColArbiter),arb);
                         }
-                    }
+                    }*/
                 } else if(scol) {
                     var xarb = if(in_arb==null) map_arb.get(sa.id,sb.id) else in_arb;
                     var first = xarb==null;
@@ -1446,8 +1534,10 @@ class PR(Space) {
                         }else
                             arb = xarb.sensorarb;
                     }
+					
+					ret = narrowed(arb,PR(SensorArbiter),s_arbiters, PR(Collide).testCollide(sa,sb), false);
 						
-                    if(first || arb.stamp!=stamp) {
+/*                    if(first || arb.stamp!=stamp) {
 						if(!first) arb.fresh = arb.up_stamp<stamp-1; //handle persistance
                         arb.stamp = stamp;
 							
@@ -1468,7 +1558,7 @@ class PR(Space) {
 							ret = arb;
                         }else if(first)
                             Free(PR(SensorArbiter),arb);
-                    }
+                    }*/
 				}
 			}
 		}

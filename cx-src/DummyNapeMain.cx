@@ -370,6 +370,9 @@ class DummyNapeMain {
 		b1.space = space;
 		b2.space = space;
 
+		b1.shapes.at(0).fluidEnabled= true;
+		b1.shapes.at(0).fluidProperties.density = 3;
+
 		var begin = new InteractionListener(CbEvent.BEGIN, b1.cbType, b2.cbType, function (x:Arbiter) {
 			trace("BEGIN "+x.toString());
 		});
@@ -385,11 +388,11 @@ class DummyNapeMain {
 			return ImmFlag.ACCEPT_ONCE;
 		});
 		prebegin.space = space;
-/*		var preong = new ImmListener(CbEvent.PRE_ONGOING, b1.cbType, b2.cbType, function (x:Arbiter):ImmFlag {
+		var preong = new ImmListener(CbEvent.PRE_ONGOING, b1.cbType, b2.cbType, function (x:Arbiter):ImmFlag {
 			trace("PRE_ONGOING "+x.toString());
-			return x.state;
+			return ImmFlag.ACCEPT;
 		});
-		preong.space = space;*/
+		preong.space = space;
 
 		(new haxe.Timer(Std.int(1000/flash.Lib.current.stage.frameRate))).run = function() {
 			debug.clear();
