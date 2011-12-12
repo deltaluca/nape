@@ -382,17 +382,12 @@ class DummyNapeMain {
 		});
 		endh.space = space;
 
-		var prebegin = new ImmListener(CbEvent.PRE_BEGIN, b1.cbType, b2.cbType, function (x:Arbiter):ImmFlag {
-			trace("PRE_BEGIN "+x.toString());
+		var pre = new ImmListener(b1.cbType, b2.cbType, function (x:Arbiter):ImmFlag {
+			trace("PRE "+x.toString());
 //			return ((x.body1==b2 && x.body2==b1) || (x.body1==b1 && x.body2==b2)) ? ImmFlag.IGNORE : ImmFlag.ACCEPT;
-			return ImmFlag.ACCEPT_ONCE;
-		});
-		prebegin.space = space;
-		var preong = new ImmListener(CbEvent.PRE_ONGOING, b1.cbType, b2.cbType, function (x:Arbiter):ImmFlag {
-			trace("PRE_ONGOING "+x.toString());
 			return ImmFlag.ACCEPT;
 		});
-		preong.space = space;
+		pre.space = space;
 
 		(new haxe.Timer(Std.int(1000/flash.Lib.current.stage.frameRate))).run = function() {
 			debug.clear();

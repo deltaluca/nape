@@ -125,9 +125,7 @@ class PR(Space) {
 	//to provide a quick lookup on any existing listener given that cbtype_1.event > 0 && cbtype_2.event > 0
 	public var _begin  :FastHash2(PR(InteractionListener));
 	public var _end    :FastHash2(PR(InteractionListener));
-
-	public var _prebegin  :FastHash2(PR(ImmListener));
-	public var _preongoing:FastHash2(PR(ImmListener));
+	public var _pre    :FastHash2(PR(ImmListener));
 
     public var callbacks:PR(Callback); //as a deque
     public var wrap_callbacks:CallbackQueue;
@@ -291,11 +289,9 @@ class PR(Space) {
             me.remListener(x.pr(inner));
         };
 
-		_begin   = new FastHash2(PR(InteractionListener))();
-		_end     = new FastHash2(PR(InteractionListener))();
-
-		_prebegin   = new FastHash2(PR(ImmListener))();
-		_preongoing = new FastHash2(PR(ImmListener))();
+		_begin = new FastHash2(PR(InteractionListener))();
+		_end   = new FastHash2(PR(InteractionListener))();
+		_pre   = new FastHash2(PR(ImmListener))();
 	}
 	
 	//----------------------------------------------------------------------------------------------
@@ -307,7 +303,7 @@ class PR(Space) {
 			assert(hash.has(it.id,it.di), "hash doesn't have listener");
 			hash.remove(it);
 		}else {
-			var hash = if(x.event==Flag(CbEvent,PRE_BEGIN)) _prebegin else _preongoing;
+			var hash = _pre;
 			var it = x.imm;
 			assert(hash.has(it.id,it.di), "hash doesn't have listener");
 			hash.remove(it);
@@ -322,7 +318,7 @@ class PR(Space) {
 			)
 			hash.add(it);
 		}else {
-			var hash = if(x.event==Flag(CbEvent,PRE_BEGIN)) _prebegin else _preongoing;
+			var hash = _pre; 
 			var it = x.imm;
 			DEBUG(if(hash.has(it.id,it.di))
 				throw "Error: Space already contains a listener between CbType id's: "+it.id+"<->"+it.di+" for CbEvent "+x.outer.event.toString();
@@ -1299,17 +1295,11 @@ class PR(Space) {
 							var cb1 = s1.cbType;
 							var cb2 = s2.cbType;
 							var handler = null;
-							if(arb.fresh) {
+							//check state is not #_ALWAYS, else fresh.
+							if(arb.fresh || (arb.immState&Flag(ImmState,ALWAYS))==0) {
 								arb.immState = Flag(ImmState,ACCEPT);
-								if(cb1._prebegin>0 && cb2._prebegin>0) {
-									var i = _prebegin.ordered_get(cb1.id,cb2.id);
-									if(i!=null) handler = i.handler;
-								}
-							}
-							//check state is not #_ALWAYS.
-							else if((arb.immState&Flag(ImmState,ALWAYS))==0) {
-								if(cb1._preongoing>0 && cb2._preongoing>0) {
-									var i = _preongoing.ordered_get(cb1.id,cb2.id);
+								if(cb1._pre>0 && cb2._pre>0) {
+									var i = _pre.ordered_get(cb1.id,cb2.id);
 									if(i!=null) handler = i.handler;
 								}
 							}

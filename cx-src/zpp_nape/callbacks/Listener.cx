@@ -231,8 +231,8 @@ class PR(ImmListener) extends PR(Listener) {
 	//ordered id's of cb1/cb2
 	public var id:Int; public var di:Int;
 
-	public function new(event:Int, handler:Arbiter->ImmFlag) {
-		this.event = event;
+	public function new(handler:Arbiter->ImmFlag) {
+		event = Flag(CbEvent,PRE);
 		this.handler = handler;
 		imm = this;
 		type = Flag(ListenerType,IMM);
@@ -244,8 +244,7 @@ class PR(ImmListener) extends PR(Listener) {
 		cb1.listeners.add(this);
 		if(cb2!=cb1) cb2.listeners.add(this);
 
-		if  (event==Flag(CbEvent,PRE_BEGIN)) { cb1._prebegin++;   if(cb2!=cb1) cb2._prebegin++;   }
-		else                                 { cb1._preongoing++; if(cb2!=cb1) cb2._preongoing++; }
+		cb1._pre++; if(cb2!=cb1) cb2._pre++;
 	}
 	flibmdel public inline function removedFromSpace() {
 		assert(cb1!=null && cb2!=null, "listener added to space with no cbtypes associated?");
@@ -253,8 +252,7 @@ class PR(ImmListener) extends PR(Listener) {
 		cb1.listeners.remove(this);
 		if(cb2!=cb1) cb2.listeners.remove(this);
 
-		if  (event==Flag(CbEvent,PRE_BEGIN)) { cb1._prebegin--;   if(cb2!=cb1) cb2._prebegin--;   }
-		else                                 { cb1._preongoing--; if(cb2!=cb1) cb2._preongoing--; }
+		cb1._pre--; if(cb2!=cb1) cb2._pre--;
 	}
 
 	flibmdel public inline function swapCbType(which:Int, newcb:PR(CbType)) {
@@ -264,18 +262,14 @@ class PR(ImmListener) extends PR(Listener) {
 			if(space!=null) {
 				if(dip!=null && dip!=dat) {
 					dip.listeners.remove(this);
-
-					if  (event==Flag(CbEvent,PRE_BEGIN)) dip._prebegin--;
-					else                                 dip._preongoing--;
+					dip._pre--;
 				}
 
 				dip = newcb;
 
 				if(dip!=dat) {
 					dip.listeners.add(this);
-
-					if  (event==Flag(CbEvent,PRE_BEGIN)) dip._prebegin++;
-					else                                 dip._preongoing++;
+					dip._pre++;
 				}
 			}else dip = newcb;
 		});
@@ -293,15 +287,5 @@ class PR(ImmListener) extends PR(Listener) {
 
 			if(space!=null) space.unrevoke_listener(this);
 		}
-	}
-
-	flibmdel public inline function swapEvent(newev:Int) {
-		DEBUG(
-			if(newev != Flag(CbEvent,PRE_BEGIN) && newev != Flag(CbEvent,PRE_ONGOING))
-				throw "Error: ImmListener event must be either PRE_BEGIN or PRE_ONGOING";
-		)
-		removedFromSpace();
-		event = newev;
-		addedToSpace();
 	}
 }

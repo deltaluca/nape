@@ -26,7 +26,7 @@ class Listener {
         [ListenerType.BODY,ListenerType.CONSTRAINT,ListenerType.INTERACTION,ListenerType.IMM][pr(inner).type];
     })
     property(event,CbEvent,{
-        [CbEvent.BEGIN,CbEvent.END,CbEvent.WAKE,CbEvent.SLEEP,CbEvent.BREAK][pr(inner).event];
+        [CbEvent.BEGIN,CbEvent.END,CbEvent.WAKE,CbEvent.SLEEP,CbEvent.BREAK,CbEvent.PRE][pr(inner).event];
     },{
         DEBUG(if(event==null) throw "Error: Cannot set listener event type to null";)
         if(this.event!=event) {
@@ -34,8 +34,7 @@ class Listener {
                          event == CbEvent.END     ? Flag(CbEvent,END)     :
                          event == CbEvent.SLEEP   ? Flag(CbEvent,SLEEP)   :
                          event == CbEvent.WAKE    ? Flag(CbEvent,WAKE)    :
-						 event == CbEvent.PRE_BEGIN   ? Flag(CbEvent,PRE_BEGIN)   :
-						 event == CbEvent.PRE_ONGOING ? Flag(CbEvent,PRE_ONGOING) :
+						 event == CbEvent.PRE     ? Flag(CbEvent,PRE)     :
                          Flag(CbEvent,BREAK);
             if(pr(inner).type == Flag(ListenerType,BODY))
                 pr(inner).body.swapEvent(xevent);
@@ -43,8 +42,9 @@ class Listener {
                 pr(inner).constraint.swapEvent(xevent);
 			else if(pr(inner).type == Flag(ListenerType,INTERACTION))
 				pr(inner).interaction.swapEvent(xevent);
-			else
-				pr(inner).imm.swapEvent(xevent);
+			else {
+				if(xevent!=Flag(CbEvent,PRE)) throw "Error: ImmListener only accepts the PRE event type";
+			}
         }
     })
 
@@ -69,7 +69,7 @@ class Listener {
     ///---------------------------------------------------------------------------------------------
 
     @:$keep public inline function toString() {
-        var event = ["BEGIN","END","WAKE","SLEEP","BREAK","PRE_BEGIN","PRE_ONGOING"][pr(inner).type];
+        var event = ["BEGIN","END","WAKE","SLEEP","BREAK","PRE"][pr(inner).type];
         if(pr(inner).type == Flag(ListenerType,BODY)) {
             var body = pr(inner).body;
             return "BodyListener{"+event+"::"+body.outer_zn.cbType+"}";
@@ -239,20 +239,15 @@ class ImmListener extends Listener {
 
     ///---------------------------------------------------------------------------------------------
 
-	public function new(event:CbEvent, cbType1:CbType, cbType2:CbType, handler:Arbiter->ImmFlag) {
+	public function new(cbType1:CbType, cbType2:CbType, handler:Arbiter->ImmFlag) {
 		PR(Listener).internal = true; super(); PR(Listener).internal = false;
-
-		var xevent = -1;
-		if  (event==CbEvent.PRE_BEGIN)   xevent = Flag(CbEvent,PRE_BEGIN);
-		elif(event==CbEvent.PRE_ONGOING) xevent = Flag(CbEvent,PRE_ONGOING);
-		DEBUG(else throw "Error: CbEvent '"+event.toString()+"' is not a valid event type for ImmListener";)
 
 		DEBUG(if(cbType1==null) throw "Error: ImmListener CbType1 cannot be null";)
 		DEBUG(if(cbType2==null) throw "Error: ImmListener CbType2 cannot be null";)
 
 		DEBUG(if(handler==null) throw "Error: ImmListener must take a handler!";)
 
-		pr(inner_zn) = new PR(ImmListener)(xevent,handler);
+		pr(inner_zn) = new PR(ImmListener)(handler);
 		pr(inner) = pr(inner_zn);
 		pr(inner).outer = this;
 		pr(inner_zn).outer_zn = this;
