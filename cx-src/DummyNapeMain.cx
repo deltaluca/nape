@@ -347,40 +347,293 @@ class Tracer {
 	}
 }
 
+$(mixin global ArrayList(T,ARRAY) GenArrayList(T,ARRAY) ZNPArrayList_`T`ARRAY);
+$(expand global GenArrayList(T,ARRAY)
+class ArrayList(T,ARRAY) {
+	ArrayListMixin(
+		$(mixin _delelt(o) {})
+	,
+		T,ARRAY,ArrayListNode(T)
+	)
+}
+);
+
+$(mixin global ArrayAllocList(T,ARRAY) GenArrayAllocList(T,ARRAY) ZNPArrayAllocList_`T`ARRAY);
+$(expand global GenArrayAllocList(T,ARRAY)
+class ArrayAllocList(T,ARRAY) {
+	ArrayListMixin(
+		$(mixin _delelt(o) Free(T,o))
+	,
+		T,ARRAY,ArrayListNode(T)
+	)
+}
+);
+
+$(mixin global ArrayListMixin(defs, T,ARRAY,TI)
+	defs
+
+	#if !ARRAY
+		public var _head:ArrayListNode(T);
+	#else
+		public var _elts:Array<T>;
+	#end
+
+	public function new() {
+		#if ARRAY
+			_elts = [];
+		#end
+	}
+
+	$(mixin I() #if !ARRAY TI #else Int #end);
+	
+	flibmdel public inline function begin() {
+		return #if !ARRAY _head #else 0 #end;
+	}
+
+	flibmdel public inline function add(o:T) {
+		#if !ARRAY
+			var tmp = Get(ArrayListNode(T));
+			tmp.elt = o;
+			tmp.next = begin();
+			_head = tmp;
+		#else
+			_elts.push(o);
+		#end
+		return o;
+	}
+
+	flibmdel public inline function pop():Void {
+		#if !ARRAY
+			var ret = begin();
+			_head = ret.next;
+			_delelt(ret.elem());
+			Free(ArrayListNode(T),ret);
+		#else
+			_elts.pop();
+		#end
+	}
+
+	flibmdel public inline function pop_unsafe():T {
+		#if !ARRAY
+			var ret = front();
+			pop();
+			return ret;
+		#else
+			return _elts.pop();
+		#end
+	}
+
+	flibmdel public inline function remove(o:T) {
+		#if !ARRAY
+			var pre = null;
+			var cur = begin();
+			var ret = false;
+			while(cur!=null) {
+				if(cur.elem()==o) {
+					erase(pre);
+					ret = true;
+					break;
+				}
+				pre = cur;
+				cur = cur.next;
+			}
+			return ret;
+		#else
+			var ret = false;
+			for(i in 0..._elts.length) {
+				if(_elts[i]==o) {
+					erase(i-1);
+					ret = true;
+					break;
+				}
+			}
+			return ret;
+		#end
+	}
+
+	public static inline var nil#if !ARRAY :ArrayListNode(T) = null #else :Int = -1#end;
+
+	flibmdel public inline function erase(pre:I):I {
+		if(pre==nil) { pop(); return begin(); }
+		else {
+			#if !ARRAY
+				var old = pre.next;
+				var cur = old.next;
+				pre.next = cur;
+				_delelt(old.elem());
+				Free(ArrayListNode(T),old);
+				return cur;
+			#else
+				pre++;
+				_delelt(_elts[pre]);
+				_elts[pre] = _elts[_elts.length-1];
+				_elts.pop();
+				return pre;
+			#end
+		}
+	}
+
+	flibmdel public inline function clear() {
+		#if !ARRAY
+			while(!empty()) pop();
+		#else
+			if($str(_delelt)!="{}") {
+				for(i in _elts) _delelt(i);
+			}
+			_elts = [];
+		#end
+	}
+
+	flibmdel public inline function empty() return #if !ARRAY begin()==null #else _elts.length==0 #end
+
+	flibmdel public inline function size() {
+		#if !ARRAY
+			var cnt = 0;
+			var cur = begin();
+			while(cur!=null) { cnt++; cur = cur.next; }
+			return cnt;
+		#else
+			return _elts.length;
+		#end
+	}
+
+	flibmdel public inline function front() return #if !ARRAY begin().elem() #else _elts[0] #end
+
+	flibmdel public inline function iterator_at(ind:Int) {
+		#if !ARRAY
+			var ret = begin();
+			while(ind-->0 && ret!=null) ret = ret.next;
+			return ret;
+		#else
+			return ind;
+		#end
+	}
+
+	flibmdel public inline function at(ind:Int) {
+		#if !ARRAY
+			var it = iterator_at(ind);
+			return it.elem();
+		#else
+			return _elts[ind];
+		#end
+	}
+
+	flibmdel public inline function iter(f:T->Void) {
+		#if !ARRAY
+			var cur = begin();
+			while(cur!=null) {
+				f(cur.elem());
+				cur = cur.next;
+			}
+		#else
+			for(x in _elts) f(x);
+		#end
+	}
+	flibmdel public inline function iterbool(f:T->Bool) {
+		#if !ARRAY
+			var pre = null;
+			var cur = begin();
+			while(cur!=null) {
+				if(f(cur.elem()))
+					cur = erase(pre);
+				else {
+					pre = cur;
+					cur = cur.next;
+				}
+			}
+		#else
+			var i = 0;
+			var j = _elts.length;
+			while(i<j) {
+				if(f(_elts[i])) {
+					_delelt(_elts[i]);
+					_elts[i] = _elts[--j];
+					_elts.pop();
+				}else
+					i++;
+			}
+		#end
+	}
+);
+
+$(define class ArrayListNode(T) {
+	MixPoolNoNext(ArrayListNode(T))
+	
+	public var next:ArrayListNode(T);
+	flibmdel public inline function alloc() {}
+	flibmdel public inline function free() { trace("Node-free"); }
+
+	public var elt:T;
+	public function new() {}
+	flibmdel public inline function elem() return elt
+});
+
+class Integer {
+	MixPool(Integer)
+	public var i:Int;
+	public function new(i:Int) this.i = i
+
+	flibmdel public inline function alloc() {}
+	flibmdel public inline function free () { trace("Int-free"); }
+}
+
 class DummyNapeMain {
 	static function main() {
-		var cur = flash.Lib.current;
 
-		var body = new Body();
-		body.shapes.add(new Polygon(Polygon.rect(100,100,100,100,true)));
-		
-		var spr = new flash.display.Sprite();
-		spr.graphics.beginFill(0xff0000,1);
-		spr.graphics.drawRect(100,100,100,100);
-		spr.graphics.endFill();
+		var intlist = new ArrayList(Int,true)();
 
-/*		var d = body.localCOM.copy();
-		body.translateShapes(d.mul(-1));
-		body.position.addeq(d);
-		spr.x -= d.x;
-		spr.y -= d.y;*/
-		
-		var m = Mat23.rotation(Math.PI/2);
-		trace(m.toString());
-		m.concat(Mat23.translation(100,100));
-		trace(m.toString());
-		var m2 = new flash.geom.Matrix();
-		m2.rotate(Math.PI/2);
-		var m3 = new flash.geom.Matrix();
-		m3.translate(100,100);
-		trace([m2.a,m2.b,m2.c,m2.d,m2.tx,m2.ty]);
-		m2.concat(m3);
-		trace([m2.a,m2.b,m2.c,m2.d,m2.tx,m2.ty]);
+		intlist.add(10);
+		intlist.add(20);
+		intlist.add(30);
+		intlist.add(40);
+		intlist.add(50);
+		intlist.iter(function (x) trace(x)); trace("");
 
-		spr.rotation = 90;
-		var m2 = spr.transform.matrix;
-		trace([m2.a,m2.b,m2.c,m2.d,m2.tx,m2.ty]);
+		intlist.remove(30);
+		intlist.iterbool(function (x) return x==20);
+		intlist.iter(function (x) trace(x)); trace("");
 
+		intlist.clear();
+
+		var intlist = new ArrayList(Int,false)();
+		intlist.add(10);
+		intlist.add(20);
+		intlist.add(30);
+		intlist.add(40);
+		intlist.add(50);
+		intlist.iter(function (x) trace(x)); trace("");
+	
+		intlist.remove(30);
+		intlist.iterbool(function (x) return x==20);
+		intlist.iter(function (x) trace(x)); trace("");
+
+		intlist.clear();
+
+		var intlist = new ArrayAllocList(Integer,true)();
+		intlist.add(new Integer(10));
+		intlist.add(new Integer(20));
+		intlist.add(new Integer(30));
+		intlist.add(new Integer(40));
+		intlist.add(new Integer(50));
+		intlist.iter(function (x) trace(x.i)); trace("");
+
+		intlist.iterbool(function (x) return x.i==20);
+		intlist.iter(function (x) trace(x.i)); trace("");
+
+		intlist.clear();
+
+		var intlist = new ArrayAllocList(Integer,false)();
+		intlist.add(new Integer(10));
+		intlist.add(new Integer(20));
+		intlist.add(new Integer(30));
+		intlist.add(new Integer(40));
+		intlist.add(new Integer(50));
+		intlist.iter(function (x) trace(x.i)); trace("");
+
+		intlist.iterbool(function (x) return x.i==20);
+		intlist.iter(function (x) trace(x.i)); trace("");
+
+		intlist.clear();
 	}
 }
 
