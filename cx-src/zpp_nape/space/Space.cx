@@ -1158,12 +1158,13 @@ class PR(Space) {
 
 				//no need for sensor/fluid arbiters to persist after deactivation, just remove now.
 				// ^^ edit: no need for them to persist for more than a single frame! (if used in an end callback)
-				//          aka if endcb flag is set, we delay retirement
-				if(
-					arb.cleared //always retire
-				|| ( ((arb.type!=PR(Arbiter).COL && arb.up_stamp<stamp) || (arb.type==PR(Arbiter).COL && arb.up_stamp+PR(Config).PERSIST<stamp))
-					&& !arb.endcb)
+				//          aka if endcb flag is set, we delay retirement (endcb is reset after a frame)
+				if(arb.cleared //always retire
+			 	 || ( arb.up_stamp + (arb.type==PR(Arbiter).COL ? PR(Config).PERSIST : 0) < stamp //possibly delayed age-death
+				   && !arb.endcb ) // but not if part of an end callback!!
 				) {
+					assert(!(arb.endcb && arb.cleared), "end cb was cleared? oops "+([arb.endcb,arb.cleared,arb.up_stamp,stamp-1]));
+
 					if(!arb.cleared)
 						map_arb.remove(arb);
 					arb.retire();
