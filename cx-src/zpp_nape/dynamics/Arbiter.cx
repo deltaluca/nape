@@ -10,6 +10,11 @@ PRFlags(ImmState,
 class PR(Arbiter) {
 	public var outer:Arbiter;
 
+	#if NAPE_POOL_STATS
+		public var arbid:Int;
+		static var nextarbid:Int = 0;
+	#end
+
 	public static var internal = false;
 	public function wrapper() {
 		if(outer==null) {
@@ -37,7 +42,11 @@ class PR(Arbiter) {
     //used in hash map
     public var hnext:PR(Arbiter);
 
-	public function new() {}
+	public function new() {
+		#if NAPE_POOL_STATS
+			arbid = nextarbid++;
+		#end
+	}
 
     ///---------------------------------------------------------------------------------------------
 
@@ -77,7 +86,12 @@ class PR(Arbiter) {
 	//used to swap between begin/ongoing style cb
 	public var fresh:Bool;
 
-	//imm cb flags
+	//used to mark an arbiter for an end callback
+	//so that it is not deactivated before the user
+	//can process it
+	public var endcb:Bool;
+
+	//imm cb flag
 	public var immState:Int; //ImmState
 
     ///---------------------------------------------------------------------------------------------
@@ -133,6 +147,8 @@ class PR(Arbiter) {
 	//given argument should not have arbiter removed as is done externally
 	flibmdel public inline function lazyRetire(s:PR(Space), b:PR(Body)=null) {
         ///at entry, arbiter should not have already been cleared.
+		///an end-callback arbiter should also (TODO: i hope) be lazily retired
+		assert(!endcb,"ArbiteR::lazily retired endcb!! :(");
         assert(!cleared,"Arbiter::lazyRetire");
 		cleared = true;
 
@@ -145,8 +161,8 @@ class PR(Arbiter) {
 		}
 		s.map_arb.remove(this);
 		if(pair!=null) { pair.arb = null; pair = null; }
-		
-        active = false;
+	
+		active = false;
 		//need to tell wrapped space::arbiters list about non structual changes
 		//only one of the lists needs notifiying for the changes to take place
 		//so this suffices whether this arbiter is a fluid arbiter or not.
@@ -169,21 +185,23 @@ class PR(Arbiter) {
 		cleared  = false;
 		sleeping = false;
 		fresh    = true;
+		endcb    = false;
 	}
 	
     //called by sub-types on retirement.
 	flibmdel public inline function sup_retire() {
+		assert(!endcb,"retiring an arbiter that still has endcb set? bad times!! :(");
         ///arbiter should not have been fully retired yet, check this via body existance
         assert(b1!=null,"Arbiter::sup_retire");
         assert(b2!=null,"Arbiter::sup_retire");
 
-        if(!cleared) { //only need to remove arbiters if not prematurely cleared.
+	       if(!cleared) { //only need to remove arbiters if not prematurely cleared.
 			b1.arbiters.remove(this);
 			b2.arbiters.remove(this);
 			if(pair!=null) { pair.arb = null; pair = null; }
 		}
 		b1 = b2 = null;
-
+	
 		active = false;
 	}
 }
@@ -691,6 +709,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
 	
 	flibmdel public inline function retire() {
 		sup_retire();
+		//TODO: end-callback arbiters might want to retain contact information?
 		while(!contacts.empty()) {
 			Free(PR(Contact),contacts.pop_unsafe());
 			innards.pop();

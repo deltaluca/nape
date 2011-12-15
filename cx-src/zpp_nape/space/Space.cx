@@ -664,7 +664,17 @@ class PR(Space) {
                         o.handler(cb.constraint.outer);
                     }else if(cb.listener.type==Flag(ListenerType,INTERACTION)) {
 						var o = cb.listener.interaction;
+						assert(cb.arbiter.endcb == (cb.listener.event == Flag(CbEvent, END)), "end-cb arbiter doesn't have endcb flag set?");
+						assert(!cb.arbiter.endcb || cb.arbiter.b1!=null, "endcb flag ("+cb.arbiter.endcb+") not -> implicit active ("+cb.arbiter.b1+")");
+
 						o.handler(cb.arbiter.wrapper());
+						//
+						//though the Callback object itself will lazily
+						//deactivate an 'end' type arbiter on allocation
+						//we can do better when a handler is used
+						//so we do it now in this case!
+						if(cb.listener.event==Flag(CbEvent,END))
+							cb.arbiter.endcb = false;
 					}
 
                     cx_ite = callbacks.splice(cb);
@@ -1121,6 +1131,15 @@ class PR(Space) {
 							var cb = push_callback(i,i.handler!=null);
 							cb.event = Flag(CbEvent,END);
 							cb.arbiter = arb;
+							
+							// arbiter is about to be recycled.
+							// but we want to allow the user to perform actions
+							// using the arbiter in the callback (whether delayed or not)
+							// so we allow the arbiter to remain active
+							// and the cleaning up of it's associated callback deals
+							// with deactivating it
+
+							arb.endcb = true;
 						}
 					}
 				}
@@ -1138,10 +1157,13 @@ class PR(Space) {
 				arb.fresh = false;
 
 				//no need for sensor/fluid arbiters to persist after deactivation, just remove now.
-				if(arb.cleared
-                 || ((arb.type==PR(Arbiter).SENSOR||arb.type==PR(Arbiter).FLUID) && arb.up_stamp<stamp)
-				 || arb.up_stamp+PR(Config).PERSIST<stamp)
-				{
+				// ^^ edit: no need for them to persist for more than a single frame! (if used in an end callback)
+				//          aka if endcb flag is set, we delay retirement
+				if(
+					arb.cleared //always retire
+				|| ( ((arb.type!=PR(Arbiter).COL && arb.up_stamp<stamp) || (arb.type==PR(Arbiter).COL && arb.up_stamp+PR(Config).PERSIST<stamp))
+					&& !arb.endcb)
+				) {
 					if(!arb.cleared)
 						map_arb.remove(arb);
 					arb.retire();
@@ -1304,7 +1326,15 @@ class PR(Space) {
 								}
 							}
 							if(handler!=null) {
+								// arbiter (public) is not active as this is assigned in prestep
+								// we want user to be able to manipulate and handle the arbiter
+								// in this pre callback, so we pre-emptively 'activate' it for the user
+
+								// TODO: do we need to keep track of old value?
+								var pact = arb.active; arb.active = true;
 								var ret = handler(arb.wrapper());
+								arb.active = pact;
+
 								DEBUG(if(ret==null) throw "Error: ImmListener handler should not return null >.>";)
 								arb.immState = 
 									if  (ret==ImmFlag.ACCEPT)      Flag(ImmState, ACCEPT) | Flag(ImmState, ALWAYS)
@@ -1331,9 +1361,20 @@ class PR(Space) {
 								//as we want them to never sleep which would be possible
 								//if we allowed them both to go to sleep at same time.
 								//
-								//TODO: what about non-dynamics? (like below waking)
-								wake(arb.b1);
-								wake(arb.b2);
+								//what about non-dynamics? (like below waking)
+								//    @ not sure this is important.
+								//      the only relevant cases are static/kinematic - kinematic sensor arbiters
+								//      which it would be fairly strange to use pre callbacks with.
+								//    @ it should suffice to only wake non-statics
+								//      and for non-sensor arbiters, we should be able to wake only
+								//      dynamics as usual :)  ~ note: 'waking' only true for non-sensors so we use this.
+								if(waking) {
+									if(arb.b1.isDynamic()) wake(arb.b1);
+									if(arb.b1.isDynamic()) wake(arb.b2);
+								}else {
+									if(!arb.b1.isStatic()) wake(arb.b1);
+									if(!arb.b2.isStatic()) wake(arb.b2);
+								}
 							}else
 							//optimisation, none-accept arbiter need not wake it's constituents
 							if(waking && (arb.immState & Flag(ImmState, ACCEPT)) !=0) {
