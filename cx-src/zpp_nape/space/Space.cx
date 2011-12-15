@@ -1120,41 +1120,43 @@ class PR(Space) {
 				}
 
                 #if NAPE_TIMES Debug.ACNT++; #end
-		
-				var cb1 = arb.ws1.cbType;
-				var cb2 = arb.ws2.cbType;
-				//end callback.
-				if(arb.up_stamp==stamp-1) {
-					if(cb1._end > 0 && cb2._end > 0) {
-						var i = _end.ordered_get(cb1.id,cb2.id);
-						if(i!=null) {
-							var cb = push_callback(i,i.handler!=null);
-							cb.event = Flag(CbEvent,END);
-							cb.arbiter = arb;
-							
-							// arbiter is about to be recycled.
-							// but we want to allow the user to perform actions
-							// using the arbiter in the callback (whether delayed or not)
-							// so we allow the arbiter to remain active
-							// and the cleaning up of it's associated callback deals
-							// with deactivating it
-
-							arb.endcb = true;
+	
+				if(!arb.cleared) {	
+					var cb1 = arb.ws1.cbType;
+					var cb2 = arb.ws2.cbType;
+					//end callback.
+					if(arb.up_stamp==stamp-1) {
+						if(cb1._end > 0 && cb2._end > 0) {
+							var i = _end.ordered_get(cb1.id,cb2.id);
+							if(i!=null) {
+								var cb = push_callback(i,i.handler!=null);
+								cb.event = Flag(CbEvent,END);
+								cb.arbiter = arb;
+								
+								// arbiter is about to be recycled.
+								// but we want to allow the user to perform actions
+								// using the arbiter in the callback (whether delayed or not)
+								// so we allow the arbiter to remain active
+								// and the cleaning up of it's associated callback deals
+								// with deactivating it
+	
+								arb.endcb = true;
+							}
 						}
 					}
-				}
-				//begin callback
-				else if(arb.fresh) {
-					if(cb1._begin > 0 && cb2._begin > 0) {
-						var i = _begin.ordered_get(cb1.id,cb2.id);
-						if(i!=null) {
-							var cb = push_callback(i,i.handler!=null);
-							cb.event = Flag(CbEvent,BEGIN);
-							cb.arbiter = arb;
+					//begin callback
+					else if(arb.fresh) {
+						if(cb1._begin > 0 && cb2._begin > 0) {
+							var i = _begin.ordered_get(cb1.id,cb2.id);
+							if(i!=null) {
+								var cb = push_callback(i,i.handler!=null);
+								cb.event = Flag(CbEvent,BEGIN);
+								cb.arbiter = arb;
+							}
 						}
 					}
+					arb.fresh = false;
 				}
-				arb.fresh = false;
 
 				//no need for sensor/fluid arbiters to persist after deactivation, just remove now.
 				// ^^ edit: no need for them to persist for more than a single frame! (if used in an end callback)

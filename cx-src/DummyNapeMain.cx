@@ -364,7 +364,8 @@ class DummyNapeMain {
 		b1.position = b2.position = new Vec2(400,400);
 		b2.position.y = 200;
 
-		b1.shapes.add(new Circle(50,null));
+		b1.shapes.add(new Circle(50,new Vec2(-50,0)));
+		b1.shapes.add(new Circle(50,new Vec2(50,0)));
 		b2.shapes.add(new Circle(50,null));
 
 		b1.space = space;
@@ -372,6 +373,8 @@ class DummyNapeMain {
 
 		b1.shapes.at(0).fluidEnabled= true;
 		b1.shapes.at(0).fluidProperties.density = 3;
+		b1.shapes.at(1).fluidEnabled= true;
+		b1.shapes.at(1).fluidProperties.density = 3;
 
 		var begin = new InteractionListener(CbEvent.BEGIN, b1.cbType, b2.cbType, function (x:Arbiter) {
 			trace("BEGIN "+x.toString());
@@ -379,6 +382,7 @@ class DummyNapeMain {
 		begin.space = space;
 		var endh = new InteractionListener(CbEvent.END, b1.cbType, b2.cbType, function (x:Arbiter) {
 			trace("END "+x.toString());
+			x.body1.space = x.body2.space = null;
 		});
 		endh.space = space;
 
