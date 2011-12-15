@@ -664,7 +664,7 @@ class PR(Space) {
                         o.handler(cb.constraint.outer);
                     }else if(cb.listener.type==Flag(ListenerType,INTERACTION)) {
 						var o = cb.listener.interaction;
-						assert(cb.arbiter.endcb == (cb.listener.event == Flag(CbEvent, END)), "end-cb arbiter doesn't have endcb flag set?");
+						assert(cb.arbiter.endcb == (cb.listener.event == Flag(CbEvent, END)), "end-cb arbiter doesn't have endcb flag set?"+([cb.arbiter.endcb,cb.listener.event==Flag(CbEvent,END)]));
 						assert(!cb.arbiter.endcb || cb.arbiter.b1!=null, "endcb flag ("+cb.arbiter.endcb+") not -> implicit active ("+cb.arbiter.b1+")");
 
 						o.handler(cb.arbiter.wrapper());
@@ -1125,6 +1125,8 @@ class PR(Space) {
 					var cb1 = arb.ws1.cbType;
 					var cb2 = arb.ws2.cbType;
 					//end callback.
+
+					arb.endcb = false;
 					if(arb.up_stamp==stamp-1) {
 						if(cb1._end > 0 && cb2._end > 0) {
 							var i = _end.ordered_get(cb1.id,cb2.id);
@@ -1166,7 +1168,6 @@ class PR(Space) {
 				   && !arb.endcb ) // but not if part of an end callback!!
 				) {
 					assert(!(arb.endcb && arb.cleared), "end cb was cleared? oops "+([arb.endcb,arb.cleared,arb.up_stamp,stamp-1]));
-
 					if(!arb.cleared)
 						map_arb.remove(arb);
 					arb.retire();
@@ -1305,7 +1306,6 @@ class PR(Space) {
 
 				$(mixin narrowed(arb,Type,arbs, cond, waking) {
 					if(first || arb.stamp!=stamp) {
-						if(!first) arb.fresh = arb.up_stamp<stamp-1; //handle persistance
 						arb.stamp = stamp;
 
 						if(cond) {
@@ -1313,8 +1313,9 @@ class PR(Space) {
 								arb.assign(s1,s2,sa.id,sb.id);
 								arbs.add(arb);
 								map_arb.add(arb);
-								if(swapped) arb.fresh = false; //avoid cb on arbiter type swap
-							}
+								arb.fresh = !swapped;
+							}else
+								arb.fresh = arb.up_stamp<stamp-1; //handler persistance
 							arb.up_stamp = arb.stamp;
 
 							var cb1 = s1.cbType;
