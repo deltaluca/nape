@@ -380,26 +380,28 @@ class DummyNapeMain {
 
 		var begin = new InteractionListener(CbEvent.BEGIN, b1.cbType, b2.cbType, function (x:Arbiter) {
 			trace("BEGIN "+x.toString());
-			if(x.isFluidArbiter()) {
-				if(x.shape1 == l) x.shape1.body = null;
-				elif(x.shape2==l) x.shape2.body = null;
-				b1.align();
-			}
+			if(x.shape1==l || x.shape2==l) { l.body = null; b1.align(); }
 		});
 		begin.space = space;
 		var endh = new InteractionListener(CbEvent.END, b1.cbType, b2.cbType, function (x:Arbiter) {
 			trace("END "+x.toString());
-//			if(x.isFluidArbiter())
-//				x.body1.space = x.body2.space = null;
 		});
 		endh.space = space;
 
 		var pre = new ImmListener(b1.cbType, b2.cbType, function (x:Arbiter):ImmFlag {
 			trace("PRE "+x.toString());
-//			return ((x.body1==b2 && x.body2==b1) || (x.body1==b1 && x.body2==b2)) ? ImmFlag.IGNORE : ImmFlag.ACCEPT;
+			if(x.isCollisionArbiter()) {
+				var carb = x.collisionArbiter;
+				for(c in carb.contacts)
+					debug.drawCircle(c.position,4,0x00ffff);
+			}else if(x.isFluidArbiter()) {
+				var farb = x.fluidArbiter;
+				debug.drawCircle(farb.position,8,0x00ffff);
+			}
+//		return ((x.body1==b2 && x.body2==b1) || (x.body1==b1 && x.body2==b2)) ? ImmFlag.IGNORE : ImmFlag.ACCEPT;
 			return ImmFlag.ACCEPT;
 		});
-//		pre.space = space;
+		pre.space = space;
 
 		(new haxe.Timer(Std.int(1000/flash.Lib.current.stage.frameRate))).run = function() {
 			debug.clear();

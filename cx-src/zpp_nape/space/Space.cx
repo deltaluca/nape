@@ -1303,7 +1303,7 @@ class PR(Space) {
                 }else { sa = s1; sb = s2; }
                 var reverse = sa == s2;
 
-				$(mixin narrowed(arb,Type,arbs, cond, waking) {
+				$(mixin narrowed(arb,Type,arbs, cond, waking,collisions) {
 					if(first || arb.stamp!=stamp) {
 						arb.stamp = stamp;
 
@@ -1329,12 +1329,17 @@ class PR(Space) {
 								}
 							}
 							if(handler!=null) {
-								// arbiter (public) is not active as this is assigned in prestep
-								// we want user to be able to manipulate and handle the arbiter
-								// in this pre callback, so we pre-emptively 'activate' it for the user
+								// arbiter (public) is not active in the situtation of a persistant
+								// collision arbiter being re-used before it was retired.
+								// so we activate it temporarily.
 
-								// TODO: do we need to keep track of old value?
+								// we need to reset to old value so that in pre-step such an arbiter
+								// can as usual, update the public lists.
 								var pact = arb.active; arb.active = true;
+								#if collisions //need to do this with #if since fluid/sensor has no such method
+								//update wrapped contact list for user.
+								arb.cleanupContacts();
+								#end
 								var ret = handler(arb.wrapper());
 								arb.active = pact;
 
@@ -1416,7 +1421,7 @@ class PR(Space) {
                             arb = xarb.fluidarb;
                     }
 						
-					ret = narrowed(arb,PR(FluidArbiter),f_arbiters, PR(Collide).flowCollide(sa,sb,arb), true);
+					ret = narrowed(arb,PR(FluidArbiter),f_arbiters, PR(Collide).flowCollide(sa,sb,arb), true,false);
                 } else if(gcol) {
                     var carbs = stat ? c_arbiters(true) : c_arbiters(false);
 
@@ -1448,7 +1453,7 @@ class PR(Space) {
                         }
                     }
 
-					ret = narrowed(arb,PR(ColArbiter),carbs, PR(Collide).contactCollide(sa,sb,arb,reverse), true);
+					ret = narrowed(arb,PR(ColArbiter),carbs, PR(Collide).contactCollide(sa,sb,arb,reverse), true,true);
                 } else if(scol) {
                     var xarb = if(in_arb==null) map_arb.get(sa.id,sb.id) else in_arb;
                     var first = xarb==null;
@@ -1465,7 +1470,7 @@ class PR(Space) {
                             arb = xarb.sensorarb;
                     }
 					
-					ret = narrowed(arb,PR(SensorArbiter),s_arbiters, PR(Collide).testCollide(sa,sb), false);
+					ret = narrowed(arb,PR(SensorArbiter),s_arbiters, PR(Collide).testCollide(sa,sb), false,false);
 				}
 			}
 		}
