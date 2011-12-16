@@ -376,8 +376,15 @@ class DummyNapeMain {
 		b1.shapes.at(1).fluidEnabled= true;
 		b1.shapes.at(1).fluidProperties.density = 3;
 
+		var l = b1.shapes.at(0);
+
 		var begin = new InteractionListener(CbEvent.BEGIN, b1.cbType, b2.cbType, function (x:Arbiter) {
 			trace("BEGIN "+x.toString());
+			if(x.isFluidArbiter()) {
+				if(x.shape1 == l) x.shape1.body = null;
+				elif(x.shape2==l) x.shape2.body = null;
+				b1.align();
+			}
 		});
 		begin.space = space;
 		var endh = new InteractionListener(CbEvent.END, b1.cbType, b2.cbType, function (x:Arbiter) {
