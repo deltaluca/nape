@@ -1337,12 +1337,14 @@ class PR(Space) {
 								// can as usual, update the public lists.
 								var pact = arb.active; arb.active = true;
 								#if collisions //need to do this with #if since fluid/sensor has no such method
-								//update wrapped contact list for user.
-								arb.cleanupContacts();
+									//update wrapped contact list for user.
+									arb.cleanupContacts();
 								#end
 								DEBUG(arb.makemutable();)
 								var ret = handler(arb.wrapper());
 								DEBUG(arb.makeimmutable();)
+								//make sure things like normals are still normalised
+								arb.pre_validate();
 								
 								arb.active = pact;
 

@@ -103,7 +103,12 @@ class PR(Arbiter) {
 
     ///---------------------------------------------------------------------------------------------
 
-	public inline function acting() {
+	//called after pre-handler
+	flibmdel public inline function pre_validate() {
+		if(type==COL) colarb._pre_validate();
+	}
+
+	flibmdel public inline function acting() {
 		return active && ((immState & Flag(ImmState,ACCEPT))!=0);
 	}
 
@@ -610,6 +615,14 @@ class PR(ColArbiter) extends PR(Arbiter) {
 		wrap_normal.pr(inner)._invalidate = function(x:PR(Vec2)) {
 			vec_set(me.n,x.);
 		}
+	}
+
+    ///---------------------------------------------------------------------------------------------
+
+	flibmdel public inline function _pre_validate() {
+		var vl = vec_lsq(n);
+		DEBUG(if(vl==0) throw "Error: CollisionArbiter::normal cannot be zero length";)
+		vec_muleq(n, 1/Math.sqrt(vl));
 	}
 
     ///---------------------------------------------------------------------------------------------
