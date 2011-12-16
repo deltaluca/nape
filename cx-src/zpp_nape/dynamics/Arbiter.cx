@@ -38,6 +38,13 @@ class PR(Arbiter) {
 	}
 
     ///---------------------------------------------------------------------------------------------
+	//used in various parts of API
+
+	flibmdel public inline function inactiveme() {
+		return !(active || endcb);
+	}
+
+    ///---------------------------------------------------------------------------------------------
 
     //used in hash map
     public var hnext:PR(Arbiter);
@@ -301,7 +308,7 @@ class PR(FluidArbiter) extends PR(Arbiter) {
 		wrap_position.pr(inner).inuse = true;
 		wrap_position.pr(inner).immutable = !mutable;
 		wrap_position.pr(inner)._validate = function() {
-			DEBUG(if(!(me.active || me.endcb)) throw "Error: Arbiter not currently in use";)
+			DEBUG(if(me.inactiveme()) throw "Error: Arbiter not currently in use";)
 			vec_set(me.wrap_position.pr(inner).,me.centroid);
 		}
 		wrap_position.pr(inner)._invalidate = function(x:PR(Vec2)) {
@@ -734,7 +741,6 @@ class PR(ColArbiter) extends PR(Arbiter) {
 	
 	flibmdel public inline function retire() {
 		sup_retire();
-		//TODO: end-callback arbiters might want to retain contact information?
 		while(!contacts.empty()) {
 			Free(PR(Contact),contacts.pop_unsafe());
 			innards.pop();
@@ -745,8 +751,9 @@ class PR(ColArbiter) extends PR(Arbiter) {
 
     ///---------------------------------------------------------------------------------------------
 
-	flibmdel public inline function makemutable() {}
-	flibmdel public inline function makeimmutable() {}
+	public var mutable:Bool;
+	flibmdel public inline function makemutable() { mutable = true; }
+	flibmdel public inline function makeimmutable() { mutable = false; }
 	
 	///---------------------------------------------------------------------------------------------
 	

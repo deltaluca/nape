@@ -21,11 +21,21 @@ class PR(Contact) {
 		var me = this;
 		wrap_position = Vec2.get();
 		wrap_position.pr(inner).inuse = true;
-		wrap_position.pr(inner).immutable = true;
+		wrap_position.pr(inner).immutable = !arbiter.colarb.mutable;
 		wrap_position.pr(inner)._validate = function() {
-			DEBUG(if(me.arbiter==null || me.arbiter.cleared) throw "Error: Contact not currently in use";)
+			DEBUG(if(me.inactiveme()) throw "Error: Contact not currently in use";)
 			vec_set(me.wrap_position.pr(inner).,me.p);
 		}
+		wrap_position.pr(inner)._invalidate = function(x:PR(Vec2)) {
+			vec_set(me.p,x.);
+		}
+	}
+
+	//----------------------------------------------------------------------------------------------
+	//used in various parts of API
+
+	flibmdel public inline function inactiveme() {
+		return !(active && arbiter!=null && !arbiter.inactiveme());
 	}
 
 	//----------------------------------------------------------------------------------------------

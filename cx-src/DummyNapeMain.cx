@@ -357,6 +357,12 @@ class DummyNapeMain {
 		var q = new Body(BodyType.STATIC);
 		var r = new Polygon(Polygon.rect(0,600,800,-50));
 		r.body = q;
+		var r = new Polygon(Polygon.rect(0,0,-50,600));
+		r.body = q;
+		var r = new Polygon(Polygon.rect(800,0,50,600));
+		r.body = q;
+		q.shapes.add(new Polygon([new Vec2(0,300),new Vec2(280,550),new Vec2(0,550)]));
+		q.shapes.add(new Polygon([new Vec2(800,300),new Vec2(520,550),new Vec2(800,550)]));
 		q.space = space;
 
 		var b1 = new Body(); 
@@ -379,25 +385,26 @@ class DummyNapeMain {
 		var l = b1.shapes.at(0);
 
 		var begin = new InteractionListener(CbEvent.BEGIN, b1.cbType, b2.cbType, function (x:Arbiter) {
-			trace("BEGIN "+x.toString());
 			if(x.shape1==l || x.shape2==l) { l.body = null; b1.align(); }
 		});
 		begin.space = space;
 		var endh = new InteractionListener(CbEvent.END, b1.cbType, b2.cbType, function (x:Arbiter) {
-			trace("END "+x.toString());
 		});
 		endh.space = space;
 
 		var pre = new ImmListener(b1.cbType, b2.cbType, function (x:Arbiter):ImmFlag {
-			trace("PRE "+x.toString());
 			if(x.isCollisionArbiter()) {
 				var carb = x.collisionArbiter;
-				for(c in carb.contacts)
+				for(c in carb.contacts) {
+					c.position.x -= carb.normal.y*15;
+					c.position.y += carb.normal.x*15;
 					debug.drawCircle(c.position,4,0x00ffff);
+				}
 			}else if(x.isFluidArbiter()) {
 				var farb = x.fluidArbiter;
-				farb.overlap *= 0.5;
-				farb.position.x += 50;
+				if(farb.overlap<=1000) return ImmFlag.IGNORE_ONCE;
+				else farb.overlap -= 1000;
+				farb.overlap *= 5;
 				debug.drawCircle(farb.position,8,0x00ffff);
 			}
 //		return ((x.body1==b2 && x.body2==b1) || (x.body1==b1 && x.body2==b2)) ? ImmFlag.IGNORE : ImmFlag.ACCEPT;
