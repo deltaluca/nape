@@ -3,10 +3,12 @@ $(import);
 
 WrapList(Contact,MixList(PR(Contact)),PR(Contact),$(mixin closure(x) x.wrapper()) $(mixin erusolc(x) x.pr(inner)) $(mixin use_accept true) $(mixin accept(x) x.active && x.arbiter.active))
 
+$(mixin inactiveme() !(pr(inner).active && pr(inner).arbiter!=null && (pr(inner).arbiter.active || pr(inner).arbiter.endcb)));
+
 class Contact {
 	public var pr(inner):PR(Contact);
 	
-    property(active,Bool, pr(inner).active && pr(inner).arbiter!=null && !pr(inner).arbiter.cleared)
+    property(active,Bool, pr(inner).active && pr(inner).arbiter!=null && pr(inner).arbiter.active)
 	
     property(arbiter,CollisionArbiter,{
         if(pr(inner).arbiter==null) null else pr(inner).arbiter.outer.collisionArbiter;
@@ -15,25 +17,25 @@ class Contact {
 	//------------------------------------------------------------------------
 	
     property(penetration,Float,{
-		DEBUG(if(!active) throw "Error: Contact not currently in use";)
+		DEBUG(if(inactiveme) throw "Error: Contact not currently in use";)
 		-pr(inner).dist;
 	})
 	
 	property(position,Vec2,{
-		DEBUG(if(!active) throw "Error: Contact not currently in use";)
+		DEBUG(if(inactiveme) throw "Error: Contact not currently in use";)
 		if(pr(inner).wrap_position==null) pr(inner).getposition();
 		pr(inner).wrap_position;
 	})
 
 	property(fresh,Bool,{
-		DEBUG(if(!active) throw "Error: Contact not currently in use";)
+		DEBUG(if(inactiveme) throw "Error: Contact not currently in use";)
 		pr(inner).fresh;
 	})
 	
 	//------------------------------------------------------------------------
 	
 	keep public function normalImpulse(body:Body=null) {
-		DEBUG(if(!active) throw "Error: Contact not currently in use";)
+		DEBUG(if(inactiveme) throw "Error: Contact not currently in use";)
 		var colarb = pr(inner).arbiter.colarb;
 		var cin = pr(inner).inner;
 		var jnAcc = cin.jnAcc + pr(inner).pjnAcc;
@@ -48,7 +50,7 @@ class Contact {
 	}
 	
 	keep public function tangentImpulse(body:Body=null) {
-		DEBUG(if(!active) throw "Error: Contact not currently in use";)
+		DEBUG(if(inactiveme) throw "Error: Contact not currently in use";)
 		var colarb = pr(inner).arbiter.colarb;
 		var cin = pr(inner).inner;
 		var jtAcc = cin.jtAcc + pr(inner).pjtAcc;
@@ -63,7 +65,7 @@ class Contact {
 	}
 	
 	keep public function rollingImpulse(body:Body=null) {
-		DEBUG(if(!active) throw "Error: Contact not currently in use";)
+		DEBUG(if(inactiveme) throw "Error: Contact not currently in use";)
 		var colarb = pr(inner).arbiter.colarb;
 		var jrAcc = pr(inner).arbiter.colarb.jrAcc + pr(inner).arbiter.colarb.pjrAcc;
 		if(body==null)
@@ -76,7 +78,7 @@ class Contact {
 	}
 	
 	keep public function totalImpulse(body:Body=null) {
-		DEBUG(if(!active) throw "Error: Contact not currently in use";)
+		DEBUG(if(inactiveme) throw "Error: Contact not currently in use";)
 		
 		var colarb = pr(inner).arbiter.colarb;
 		var cin = pr(inner).inner;
@@ -102,17 +104,17 @@ class Contact {
 	//------------------------------------------------------------------------
 	
     property(restitution,Float, {
-		DEBUG(if(!active) throw "Error: Contact not currently in use";)
+		DEBUG(if(inactiveme) throw "Error: Contact not currently in use";)
 		pr(inner).elasticity;
 	})
 	
 	property(friction,Float, {
-		DEBUG(if(!active) throw "Error: Contact not currently in use";)
+		DEBUG(if(inactiveme) throw "Error: Contact not currently in use";)
 		pr(inner).inner.friction;
 	})
 	
 	property(rollingFriction,Float,{
-		DEBUG(if(!active) throw "Error: Contact not currently in use";)
+		DEBUG(if(inactiveme) throw "Error: Contact not currently in use";)
 		pr(inner).arbiter.colarb.rfric;
 	})
 	

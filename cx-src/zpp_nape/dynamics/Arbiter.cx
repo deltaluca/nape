@@ -234,6 +234,12 @@ class PR(SensorArbiter) extends PR(Arbiter) {
 		sup_retire();
 		Free(PR(SensorArbiter),this);
 	}
+
+    ///---------------------------------------------------------------------------------------------
+
+	//nothing to do!
+	flibmdel public inline function makemutable() {}
+	flibmdel public inline function makeimmutable() {}
 }
 
 ///_________________________________________________________________________________________________
@@ -293,10 +299,13 @@ class PR(FluidArbiter) extends PR(Arbiter) {
 		var me = this;
 		wrap_position = Vec2.get();
 		wrap_position.pr(inner).inuse = true;
-		wrap_position.pr(inner).immutable = true;
+		wrap_position.pr(inner).immutable = !mutable;
 		wrap_position.pr(inner)._validate = function() {
-			DEBUG(if(me.cleared) throw "Error: Arbiter not currently in use";)
+			DEBUG(if(!(me.active || me.endcb)) throw "Error: Arbiter not currently in use";)
 			vec_set(me.wrap_position.pr(inner).,me.centroid);
+		}
+		wrap_position.pr(inner)._invalidate = function(x:PR(Vec2)) {
+			vec_set(me.centroid,x.);
 		}
 	}
 
@@ -325,6 +334,18 @@ class PR(FluidArbiter) extends PR(Arbiter) {
 		sup_retire();
 		Free(PR(FluidArbiter),this);
         pre_dt = -1.0;
+	}
+
+    ///---------------------------------------------------------------------------------------------
+
+	public var mutable:Bool;
+	flibmdel public inline function makemutable() {
+		mutable = true;
+		if(wrap_position!=null) wrap_position.pr(inner).immutable = false;
+	}
+	flibmdel public inline function makeimmutable() {
+		mutable = false;
+		if(wrap_position!=null) wrap_position.pr(inner).immutable = true;
 	}
 
     ///---------------------------------------------------------------------------------------------
@@ -721,6 +742,11 @@ class PR(ColArbiter) extends PR(Arbiter) {
 		Free(PR(ColArbiter),this);
         pre_dt = -1.0;
 	}
+
+    ///---------------------------------------------------------------------------------------------
+
+	flibmdel public inline function makemutable() {}
+	flibmdel public inline function makeimmutable() {}
 	
 	///---------------------------------------------------------------------------------------------
 	

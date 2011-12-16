@@ -262,6 +262,11 @@ class FluidArbiter extends Arbiter {
 	property(overlap,Float,{
 		DEBUG(if(inactiveme) throw "Error: Arbiter not currently in use";)
 		pr(inner).fluidarb.overlap;
+	},{
+		DEBUG(if(!pr(inner).fluidarb.mutable) throw "Error: Arbiter is mutable only within a pre-handler";)
+		DEBUG(if(isNaN(overlap)) throw "Error: FluidArbiter::overlap cannot be NaN";)
+		DEBUG(if(overlap<=0 || overlap==Math.POSITIVE_INFINITY) throw "Error: FluidArbiter::overlap must be strictly positive and non infinite";)
+		pr(inner).fluidarb.overlap = overlap;
 	})
 	
 	//----------------------------------------------------------------------------------------------
