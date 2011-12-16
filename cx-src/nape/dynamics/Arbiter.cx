@@ -145,7 +145,7 @@ class CollisionArbiter extends Arbiter {
     property(contacts,ContactList,{
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
 		if(pr(inner).colarb.wrap_contacts==null)
-            pr(inner).colarb.wrap_contacts = PR(ContactList).get(pr(inner).colarb.contacts,true);
+			pr(inner).colarb.setupcontacts();
 		pr(inner).colarb.wrap_contacts;
     })
 	
@@ -153,7 +153,12 @@ class CollisionArbiter extends Arbiter {
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
 		if(pr(inner).colarb.wrap_normal==null) pr(inner).colarb.getnormal();
 		pr(inner).colarb.wrap_normal;
-    })
+    },{
+		DEBUG(if(!pr(inner).colarb.mutable) throw "Error: CollisionArbiter::normal is only mutable durnig a pre-handler";)
+		DEBUG(if(normal==null) throw "Error: CollisionArbiter::normal cannot be null";)
+		DEBUG(if(normal.length==0) throw "Error: CollisionArbiter::normal cannot be zero";)
+		this.normal.set(normal.mul(1/normal.length,true));
+	})
 
 	//----------------------------------------------------------------------------------------------
 	

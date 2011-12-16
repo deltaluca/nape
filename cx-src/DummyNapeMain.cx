@@ -370,7 +370,8 @@ class DummyNapeMain {
 		b1.position = b2.position = new Vec2(400,400);
 		b2.position.y = 200;
 
-		b1.shapes.add(new Circle(50,new Vec2(-50,0)));
+//		b1.shapes.add(new Circle(50,new Vec2(-50,0)));
+		b1.shapes.add(new Polygon(Polygon.rect(-100,-50,100,100)));
 		b1.shapes.add(new Circle(50,new Vec2(50,0)));
 		b2.shapes.add(new Circle(50,null));
 
@@ -398,6 +399,9 @@ class DummyNapeMain {
 				for(c in carb.contacts) {
 					c.position.x -= carb.normal.y*15;
 					c.position.y += carb.normal.x*15;
+				}
+				if(carb.contacts.length>1) carb.contacts.push(carb.contacts.pop());
+				for(c in carb.contacts) {
 					debug.drawCircle(c.position,4,0x00ffff);
 				}
 			}else if(x.isFluidArbiter()) {

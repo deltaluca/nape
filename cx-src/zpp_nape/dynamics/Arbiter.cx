@@ -601,11 +601,14 @@ class PR(ColArbiter) extends PR(Arbiter) {
 	public function getnormal() {
 		var me = this;
 		wrap_normal = Vec2.get(0,0);
-		wrap_normal.pr(inner).immutable = true;
+		wrap_normal.pr(inner).immutable = !mutable;
 		wrap_normal.pr(inner).inuse = true;
 		wrap_normal.pr(inner)._validate = function() {
 			if(me.cleared) throw "Error: Arbiter not currently in use";
 			vec_set(me.wrap_normal.pr(inner).,me.n);
+		}
+		wrap_normal.pr(inner)._invalidate = function(x:PR(Vec2)) {
+			vec_set(me.n,x.);
 		}
 	}
 
@@ -752,8 +755,50 @@ class PR(ColArbiter) extends PR(Arbiter) {
     ///---------------------------------------------------------------------------------------------
 
 	public var mutable:Bool;
-	flibmdel public inline function makemutable() { mutable = true; }
-	flibmdel public inline function makeimmutable() { mutable = false; }
+	flibmdel public inline function makemutable() {
+		mutable = true;
+		if(wrap_normal!=null) wrap_normal.pr(inner).immutable = false;
+		if(wrap_contacts!=null) wrap_contacts.pr(inner).immutable = false;
+	}
+	flibmdel public inline function makeimmutable() {
+		mutable = false;
+		if(wrap_normal!=null) wrap_normal.pr(inner).immutable = true;
+		if(wrap_contacts!=null) wrap_contacts.pr(inner).immutable = true;
+	}
+
+	public function setupcontacts() {
+		wrap_contacts = PR(ContactList).get(contacts,true);
+		wrap_contacts.pr(inner).immutable = !mutable;
+		wrap_contacts.pr(inner).adder = function(x:Contact) {
+			return !(Exists(c, contacts, x.pr(inner)==c));
+		}
+		wrap_contacts.pr(inner).post_adder = function(x:Contact) {
+			var prei = null;
+			var cx_itei = innards.begin();
+			Iter(c, contacts, {
+				if(c==x.pr(inner)) {
+					innards.insert(prei, c.inner);
+					break;
+				}
+				prei = cx_itei;
+				cx_itei = cx_itei.next;
+			});
+		}
+		wrap_contacts.pr(inner).subber = function(x:Contact) {
+			var pre = null; var prei = null;
+			var cx_itei = innards.begin();
+			Iter(c, contacts, {
+				if(c==x.pr(inner)) {
+					//wrap list deals with removing from contacts
+					innards.erase(prei);
+					break;
+				}
+				pre = cx_ite;
+				prei = cx_itei;
+				cx_itei = cx_itei.next;
+			});
+		}
+	}
 	
 	///---------------------------------------------------------------------------------------------
 	
@@ -779,6 +824,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
 
 		var pre = null; var prei = null;
 		var cx_itei = innards.begin();
+		hc2 = false;
 		Iter(c, contacts, {
 			if(c.stamp+PR(Config).PERSIST<stamp) {
 				cx_ite = contacts.erase(pre);
@@ -846,7 +892,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
 			c.active = c.stamp==stamp;
 			//necessary to notify list of non strutual changes when using accept mode for API.
 			if(pact!=c.active) contacts.modified = true;
-			
+		
 			if(c.active) {
                 #if NAPE_TIMES Debug.ACCNT++; #end
 
