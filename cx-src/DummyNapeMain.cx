@@ -386,7 +386,7 @@ class DummyNapeMain {
 		var l = b1.shapes.at(0);
 
 		var begin = new InteractionListener(CbEvent.BEGIN, b1.cbType, b2.cbType, function (x:Arbiter) {
-			if(x.shape1==l || x.shape2==l) { l.body = null; b1.align(); }
+//			if(x.shape1==l || x.shape2==l) { l.body = null; b1.align(); }
 		});
 		begin.space = space;
 		var endh = new InteractionListener(CbEvent.END, b1.cbType, b2.cbType, function (x:Arbiter) {
@@ -397,18 +397,18 @@ class DummyNapeMain {
 			if(x.isCollisionArbiter()) {
 				var carb = x.collisionArbiter;
 				for(c in carb.contacts) {
-					c.position.x -= carb.normal.y*15;
-					c.position.y += carb.normal.x*15;
+//					c.position.x -= carb.normal.y*15;
+//					c.position.y += carb.normal.x*15;
 				}
-				if(carb.contacts.length>1) carb.contacts.push(carb.contacts.pop());
 				for(c in carb.contacts) {
 					debug.drawCircle(c.position,4,0x00ffff);
 				}
 			}else if(x.isFluidArbiter()) {
 				var farb = x.fluidArbiter;
-				if(farb.overlap<=1000) return ImmFlag.IGNORE_ONCE;
+/*				if(farb.overlap<=1000) return ImmFlag.IGNORE_ONCE;
 				else farb.overlap -= 1000;
-				farb.overlap *= 5;
+				farb.overlap *= 5;*/
+				farb.overlap = 200000/(farb.overlap+1);
 				debug.drawCircle(farb.position,8,0x00ffff);
 			}
 //		return ((x.body1==b2 && x.body2==b1) || (x.body1==b1 && x.body2==b2)) ? ImmFlag.IGNORE : ImmFlag.ACCEPT;
