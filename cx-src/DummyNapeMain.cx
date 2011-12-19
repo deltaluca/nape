@@ -367,27 +367,26 @@ class DummyNapeMain {
 		q.space = space;
 
 		var b2 = new Body();
+		b2.shapes.add(new Circle(50,null));
 		b2.position.x = 400;
 		b2.position.y = 200;
 
-		for(i in 0...60) {
+		for(i in 0...20) {
 		var b1 = new Body(); 
 		b1.position = new Vec2(50+Math.random()*700,Math.random()*250);
 
 //		b1.shapes.add(new Circle(50,new Vec2(-50,0)));
 		b1.shapes.add(new Polygon(Polygon.rect(-100,-50,100,100)));
 		b1.shapes.add(new Circle(50,new Vec2(50,0)));
-		b2.shapes.add(new Circle(50,null));
 
 		b1.space = space;
 		b1.scaleShapes(0.5,0.5);
 
 		}
 
-//		b2.space = space;
+		b2.space = space;
 		b2.shapes.at(0).fluidEnabled= true;
 		b2.shapes.at(0).fluidProperties.density = 3;
-		var l = b2.shapes.at(0);
 
 		var begin = new InteractionListener(CbEvent.BEGIN, b2.cbType, b2.cbType, function (x:Arbiter) {
 //			if(x.shape1==l || x.shape2==l) { l.body = null; b1.align(); }
@@ -409,29 +408,47 @@ class DummyNapeMain {
 					}else c.penetration -= 10;
 					i++;
 				}
-//				for(c in carb.contacts) {
-//					debug.drawCircle(c.position,4,0x00ffff);
-//				}
 				if(carb.contacts.length==0) return ImmFlag.IGNORE_ONCE;
 				carb.pr(inner).colarb.radius -= 10;
 			}else if(x.isFluidArbiter()) {
 				var farb = x.fluidArbiter;
-/*				if(farb.overlap<=1000) return ImmFlag.IGNORE_ONCE;
+				if(farb.overlap<=1000) return ImmFlag.IGNORE_ONCE;
 				else farb.overlap -= 1000;
-				farb.overlap *= 5;*/
-//				farb.overlap = 200000/(farb.overlap+1);
-				debug.drawCircle(farb.position,8,0x00ffff);
 			}
-//		return ((x.body1==b2 && x.body2==b1) || (x.body1==b1 && x.body2==b2)) ? ImmFlag.IGNORE : ImmFlag.ACCEPT;
 			return ImmFlag.ACCEPT_ONCE;
 		});
 		pre.space = space;
+		pre.pure = true;
+
+		var mcon = new PivotJoint(space.world,space.world,Vec2.weak(),Vec2.weak());
+		mcon.active = false;
+		mcon.stiff = false;
+		mcon.space = space;
+
+		flash.Lib.current.stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function (_) {
+			var mx = flash.Lib.current.mouseX;	
+			var my = flash.Lib.current.mouseY;
+			var bods = space.bodiesInCircle(Vec2.weak(mx,my), 5);
+			for(b in bods) {
+				if(b.isDynamic()) {
+					mcon.body2 = b;
+					mcon.anchor2 = b.worldToLocal(Vec2.weak(mx,my),true);
+					mcon.active = true;
+				}
+			}
+		});
+
+		flash.Lib.current.stage.addEventListener(flash.events.MouseEvent.MOUSE_UP, function (_) {
+			mcon.active = false;
+		});
 
 		(new haxe.Timer(Std.int(1000/flash.Lib.current.stage.frameRate))).run = function() {
 			debug.clear();
 
 //			if(flash.Lib.getTimer()>4000 && (b2.arbiters.at(0).body1==b1 || b2.arbiters.at(0).body2==b1)) b2.arbiters.at(0).state = ImmFlag.IGNORE;
 //			if(flash.Lib.getTimer()>5000 && (b2.arbiters.at(0).body1==b1 || b2.arbiters.at(0).body2==b1)) b2.arbiters.at(0).state = ImmFlag.ACCEPT;
+
+			mcon.anchor1.setxy(flash.Lib.current.mouseX,flash.Lib.current.mouseY);
 
 			space.step(1/60,10,10);
 			debug.draw(space);

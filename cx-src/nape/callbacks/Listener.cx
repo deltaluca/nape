@@ -235,11 +235,27 @@ class ImmListener extends Listener {
 	property(handler,Arbiter->ImmFlag,pr(inner_zn).handler,{
 		DEBUG(if(handler==null) throw "Error: ImmListener must take a non-null handler!";)
 		pr(inner_zn).handler = handler;
+
+		//we do not check that handler is not the same, as we want to allow this to be used
+		//to notify nape of a change to a non-pure handler that user has decided to say is pure
+		//anyways!
+
+		///TODO: tell space to wake any corresponding bodies (+ track them!!)
+	})
+
+	//pure handlers allows nape to make optimisations, specifically allowing bodies to sleep
+	//even if there is a pre-handler returning IGNORE_ONCE or ACCEPT_ONCE where otherwise
+	//we cannot allow the bodies to sleep as the handler may change it's return.
+	property(pure,Bool,pr(inner_zn).pure,{
+		if(!pure) {
+			//TODO: tell space to wake any corresponding bodies (+ track them!!)
+		}
+		pr(inner_zn).pure = pure;
 	})
 
     ///---------------------------------------------------------------------------------------------
 
-	public function new(cbType1:CbType, cbType2:CbType, handler:Arbiter->ImmFlag) {
+	public function new(cbType1:CbType, cbType2:CbType, handler:Arbiter->ImmFlag, ?pure=false) {
 		PR(Listener).internal = true; super(); PR(Listener).internal = false;
 
 		DEBUG(if(cbType1==null) throw "Error: ImmListener CbType1 cannot be null";)
@@ -247,7 +263,7 @@ class ImmListener extends Listener {
 
 		DEBUG(if(handler==null) throw "Error: ImmListener must take a handler!";)
 
-		pr(inner_zn) = new PR(ImmListener)(handler);
+		pr(inner_zn) = new PR(ImmListener)(handler,pure);
 		pr(inner) = pr(inner_zn);
 		pr(inner).outer = this;
 		pr(inner_zn).outer_zn = this;

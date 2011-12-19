@@ -1319,16 +1319,16 @@ class PR(Space) {
 
 							var cb1 = s1.cbType;
 							var cb2 = s2.cbType;
-							var handler = null;
+							var listener = null;
 							//check state is not #_ALWAYS, else fresh.
 							if(arb.fresh || (arb.immState&Flag(ImmState,ALWAYS))==0) {
 								arb.immState = Flag(ImmState,ACCEPT);
 								if(cb1._pre>0 && cb2._pre>0) {
 									var i = _pre.ordered_get(cb1.id,cb2.id);
-									if(i!=null) handler = i.handler;
+									if(i!=null) listener = i;
 								}
 							}
-							if(handler!=null) {
+							if(listener!=null) {
 								// arbiter (public) is not active in the situtation of a persistant
 								// collision arbiter being re-used before it was retired.
 								// so we activate it temporarily.
@@ -1341,7 +1341,7 @@ class PR(Space) {
 									arb.cleanupContacts();
 								#end
 								DEBUG(arb.makemutable();)
-								var ret = handler(arb.wrapper());
+								var ret = listener.handler(arb.wrapper());
 								DEBUG(arb.makeimmutable();)
 								
 								arb.active = pact;
@@ -1369,7 +1369,7 @@ class PR(Space) {
 							//  inform nape to do something differently
 							//  which would require the objects to be woken
 							//  so we can't let the objects sleep
-							if(handler!=null && (arb.immState&Flag(ImmState,ALWAYS))==0) {
+							if(listener!=null && !listener.pure && (arb.immState&Flag(ImmState,ALWAYS))==0) {
 								//wake even if 'waking' false (aka sensor arbiter)
 								//to keep consistency w.r.t #_ONCE handlers
 								//
@@ -1391,7 +1391,7 @@ class PR(Space) {
 									if(!arb.b1.isStatic()) wake(arb.b1);
 									if(!arb.b2.isStatic()) wake(arb.b2);
 								}
-							}else
+							}
 							//optimisation, none-accept arbiter need not wake it's constituents
 							if(waking && (arb.immState & Flag(ImmState, ACCEPT)) !=0) {
 								if(arb.b1.component.sleeping && arb.b1.isDynamic())

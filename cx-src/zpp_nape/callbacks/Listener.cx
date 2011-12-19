@@ -225,15 +225,17 @@ class PR(ImmListener) extends PR(Listener) {
     public var cb1:PR(CbType);
     public var cb2:PR(CbType);
     public var handler:Arbiter->ImmFlag;
+	public var pure:Bool;
 
 	//used in hash lookups
 	public var hnext:PR(ImmListener);
 	//ordered id's of cb1/cb2
 	public var id:Int; public var di:Int;
 
-	public function new(handler:Arbiter->ImmFlag) {
+	public function new(handler:Arbiter->ImmFlag, ?pure=false) {
 		event = Flag(CbEvent,PRE);
 		this.handler = handler;
+		this.pure = pure;
 		imm = this;
 		type = Flag(ListenerType,IMM);
 	}
