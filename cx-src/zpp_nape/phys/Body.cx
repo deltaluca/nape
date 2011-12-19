@@ -111,6 +111,7 @@ class PR(Body) {
 		if(world) me.wrap_pos.pr(inner).immutable = true;
 		else {
 			me.wrap_pos.pr(inner)._invalidate = function(pos:PR(Vec2)) {
+				me.immutable_midstep("Body::position");
 				DEBUG(if(me.isStatic() && me.space!=null)
 					throw "Error: Cannot move a static object once inside a Space";
 				)
@@ -536,6 +537,10 @@ class PR(Body) {
         }
     }
 
+	flibmdel public inline function immutable_midstep(name:String) {
+		DEBUG(if(space!=null && space.midstep) throw "Error: "+name+" cannot be set during a space step()";)
+	}
+
     //----------------------------------------------------------------------------------------------
 
 	public function clear() {
@@ -666,6 +671,7 @@ class PR(Body) {
 		};
 		
 		wrap_shapes.pr(inner)._modifiable = function() {
+			me.immutable_midstep("Body::shapes");
 			if(me.isStatic() && me.space!=null)
 				throw "Error: Cannot modifiy shapes of static object once added to Space";
 		};
