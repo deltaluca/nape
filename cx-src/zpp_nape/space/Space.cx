@@ -1343,8 +1343,6 @@ class PR(Space) {
 								DEBUG(arb.makemutable();)
 								var ret = handler(arb.wrapper());
 								DEBUG(arb.makeimmutable();)
-								//make sure things like normals are still normalised
-								arb.pre_validate();
 								
 								arb.active = pact;
 
@@ -1354,6 +1352,11 @@ class PR(Space) {
 									elif(ret==ImmFlag.ACCEPT_ONCE) Flag(ImmState, ACCEPT)
 									elif(ret==ImmFlag.IGNORE)      Flag(ImmState, IGNORE) | Flag(ImmState, ALWAYS)
 									else                           Flag(ImmState, IGNORE);
+
+								if((arb.immState&Flag(ImmState,ACCEPT))!=0) {
+									//make sure things like normals are still normalised
+									arb.pre_validate();
+								}
 							}else {
 								//reset state on non-persistance
 								if((arb.immState&Flag(ImmState,ALWAYS))==0)
@@ -1366,7 +1369,7 @@ class PR(Space) {
 							//  inform nape to do something differently
 							//  which would require the objects to be woken
 							//  so we can't let the objects sleep
-							if((arb.immState&Flag(ImmState,ALWAYS))==0) {
+							if(handler!=null && (arb.immState&Flag(ImmState,ALWAYS))==0) {
 								//wake even if 'waking' false (aka sensor arbiter)
 								//to keep consistency w.r.t #_ONCE handlers
 								//

@@ -248,24 +248,33 @@ class PR(Collide) {
                     arb.rev = rev != (nCoef==-1);
                     arb.ptype = arb.rev ? PR(ColArbiter).FACE2 : PR(ColArbiter).FACE1;
 
-                    if(vec_dot(c0,ax.gnorm) <= ax.gprojection) {
-                        var con = if(rev) arb.injectContact(c0x,c0y,-nx,-ny,dist,arb.rev ? 1 : 0)
-                                  else    arb.injectContact(c0x,c0y, nx, ny,dist,arb.rev ? 1 : 0);
+					//per-contact distance, not massively important but for completeness.
+					//especcialy in light of being able to have more control over contacts
+					//with pre-handlers.
+					var c0d = vec_dot(c0,ax.gnorm)-ax.gprojection;
+					var c1d = vec_dot(c1,ax.gnorm)-ax.gprojection;
+					vec_subeq(c0,ax.gnorm,c0d*0.5);
+					vec_subeq(c1,ax.gnorm,c1d*0.5);
+
+					if(c0d <= 0) {
+                        var con = if(rev) arb.injectContact(c0x,c0y,-nx,-ny,c0d,arb.rev ? 1 : 0)
+                                  else    arb.injectContact(c0x,c0y, nx, ny,c0d,arb.rev ? 1 : 0);
                         //position iterations
                         vec_subeq(c0,p2.body.pos);
                         vec_revrot(c0,p2.body.axis,con.inner.lr1);
                     }
-                    if(vec_dot(c1,ax.gnorm) <= ax.gprojection) {
-                        var con = if(rev) arb.injectContact(c1x,c1y,-nx,-ny,dist,arb.rev ? 0 : 1);
-                                  else    arb.injectContact(c1x,c1y, nx, ny,dist,arb.rev ? 0 : 1);
+					if(c1d <= 0) {
+                        var con = if(rev) arb.injectContact(c1x,c1y,-nx,-ny,c1d,arb.rev ? 0 : 1);
+                                  else    arb.injectContact(c1x,c1y, nx, ny,c1d,arb.rev ? 0 : 1);
                         //position iterations
                         vec_subeq(c1,p2.body.pos);
                         vec_revrot(c1,p2.body.axis,con.inner.lr1);
                     }
+
+					c0d <=0 || c1d <= 0;
                 });
                 if(maxi==1) findVerts(arb,p1,p2,axis1, 1,max, rev);
                 else        findVerts(arb,p2,p1,axis2,-1,max, rev);
-                true;
             }
         }else false;
 	});

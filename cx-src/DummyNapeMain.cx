@@ -352,6 +352,7 @@ class DummyNapeMain {
 		var root = flash.Lib.current;
 		var space = new Space(Vec2.weak(0,300));
 		var debug = new BitmapDebug(800,600,0x333333);
+		debug.drawCollisionArbiters = true;
 		root.addChild(debug.display);
 
 		var q = new Body(BodyType.STATIC);
@@ -365,10 +366,13 @@ class DummyNapeMain {
 		q.shapes.add(new Polygon([new Vec2(800,300),new Vec2(520,550),new Vec2(800,550)]));
 		q.space = space;
 
-		var b1 = new Body(); 
 		var b2 = new Body();
-		b1.position = b2.position = new Vec2(400,400);
+		b2.position.x = 400;
 		b2.position.y = 200;
+
+		for(i in 0...6) {
+		var b1 = new Body(); 
+		b1.position = new Vec2(50+Math.random()*700,Math.random()*250);
 
 //		b1.shapes.add(new Circle(50,new Vec2(-50,0)));
 		b1.shapes.add(new Polygon(Polygon.rect(-100,-50,100,100)));
@@ -376,45 +380,51 @@ class DummyNapeMain {
 		b2.shapes.add(new Circle(50,null));
 
 		b1.space = space;
-		b2.space = space;
 
-		b1.shapes.at(0).fluidEnabled= true;
-		b1.shapes.at(0).fluidProperties.density = 3;
-		b1.shapes.at(1).fluidEnabled= true;
-		b1.shapes.at(1).fluidProperties.density = 3;
+		}
 
-		var l = b1.shapes.at(0);
+//		b2.space = space;
+		b2.shapes.at(0).fluidEnabled= true;
+		b2.shapes.at(0).fluidProperties.density = 3;
+		var l = b2.shapes.at(0);
 
-		var begin = new InteractionListener(CbEvent.BEGIN, b1.cbType, b2.cbType, function (x:Arbiter) {
+		var begin = new InteractionListener(CbEvent.BEGIN, b2.cbType, b2.cbType, function (x:Arbiter) {
 //			if(x.shape1==l || x.shape2==l) { l.body = null; b1.align(); }
 		});
 		begin.space = space;
-		var endh = new InteractionListener(CbEvent.END, b1.cbType, b2.cbType, function (x:Arbiter) {
+		var endh = new InteractionListener(CbEvent.END, b2.cbType, b2.cbType, function (x:Arbiter) {
 		});
 		endh.space = space;
 
-		var pre = new ImmListener(b1.cbType, b2.cbType, function (x:Arbiter):ImmFlag {
+		var pre = new ImmListener(b2.cbType, b2.cbType, function (x:Arbiter):ImmFlag {
 			if(x.isCollisionArbiter()) {
 				var carb = x.collisionArbiter;
-				for(c in carb.contacts) {
-//					c.position.x -= carb.normal.y*15;
-//					c.position.y += carb.normal.x*15;
+				var i = 0;
+				while(i<carb.contacts.length) {
+					var c = carb.contacts.at(i);
+					if(c.penetration<=20) {
+						carb.contacts.remove(c);
+						continue;
+					}else c.penetration -= 20;
+					i++;
 				}
 				for(c in carb.contacts) {
 					debug.drawCircle(c.position,4,0x00ffff);
 				}
+				if(carb.contacts.length==0) return ImmFlag.IGNORE_ONCE;
+				carb.pr(inner).colarb.radius += 20;
 			}else if(x.isFluidArbiter()) {
 				var farb = x.fluidArbiter;
 /*				if(farb.overlap<=1000) return ImmFlag.IGNORE_ONCE;
 				else farb.overlap -= 1000;
 				farb.overlap *= 5;*/
-				farb.overlap = 200000/(farb.overlap+1);
+//				farb.overlap = 200000/(farb.overlap+1);
 				debug.drawCircle(farb.position,8,0x00ffff);
 			}
 //		return ((x.body1==b2 && x.body2==b1) || (x.body1==b1 && x.body2==b2)) ? ImmFlag.IGNORE : ImmFlag.ACCEPT;
 			return ImmFlag.ACCEPT_ONCE;
 		});
-		pre.space = space;
+//		pre.space = space;
 
 		(new haxe.Timer(Std.int(1000/flash.Lib.current.stage.frameRate))).run = function() {
 			debug.clear();
