@@ -240,6 +240,15 @@ class PR(ImmListener) extends PR(Listener) {
 		type = Flag(ListenerType,IMM);
 	}
 
+	public function wake() {
+		//ImmListener only needs ito wake the bodies.
+		//but we iterate the cb SHAPES, not the bodies
+		//as the bodies refer to Body callbacks, not Interaction/Imm callbacks
+		Iter(s, cb1.shapes, s.body.wake());
+		if(cb2!=cb1)
+			Iter(s, cb2.shapes, s.body.wake());
+	}
+
 	flibmdel public inline function addedToSpace() {
 		assert(cb1!=null && cb2!=null, "listener added to space with no cbtypes associated");
 

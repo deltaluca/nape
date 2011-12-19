@@ -240,16 +240,15 @@ class ImmListener extends Listener {
 		//to notify nape of a change to a non-pure handler that user has decided to say is pure
 		//anyways!
 
-		///TODO: tell space to wake any corresponding bodies (+ track them!!)
+		pr(inner_zn).wake();
 	})
 
 	//pure handlers allows nape to make optimisations, specifically allowing bodies to sleep
 	//even if there is a pre-handler returning IGNORE_ONCE or ACCEPT_ONCE where otherwise
 	//we cannot allow the bodies to sleep as the handler may change it's return.
 	property(pure,Bool,pr(inner_zn).pure,{
-		if(!pure) {
-			//TODO: tell space to wake any corresponding bodies (+ track them!!)
-		}
+		if(!pure)
+			pr(inner_zn).wake();
 		pr(inner_zn).pure = pure;
 	})
 
