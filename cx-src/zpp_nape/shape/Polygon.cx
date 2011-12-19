@@ -71,33 +71,6 @@ class PR(Polygon) extends PR(Shape) {
 			};
 		}
 		wrap_lverts.pr(inner).subber = function(x:Vec2) {
-/*			var ite:PR(Vec2) = null;
-			var ite2:Node(PR(Edge)) = null;
-			Iter(i, me.lverts, {
-				if(i==x.pr(inner)) cx_break;
-				else {
-					ite = ite == null ? me.gverts.begin() : ite.next;
-					ite2 = ite2==null ? me.edges.begin() : ite2.next;
-				}
-			});
-			var rem = (ite==null ? me.gverts.front() : ite.next.elem());
-			me.gverts.erase(ite);
-			Free(PR(Vec2),rem);
-			
-			if(me.lverts.begin() != null) {
-				if(me.lverts.begin().next==null) {
-					Free(PR(Edge),me.edges.front());
-					me.edges.pop();
-					Free(PR(Edge),me.edges.front());
-					me.edges.pop();
-					me.edgeCnt-=2;
-				}else {
-					var rem = (ite2==null ? me.edges.front() : ite2.next.elem());
-					me.edges.erase(ite2);
-					Free(PR(Edge),rem);
-					me.edgeCnt--;
-				}
-			}*/
 			me.cleanup_lvert(x.pr(inner));
 		};
 		
@@ -109,6 +82,7 @@ class PR(Polygon) extends PR(Shape) {
 		};
 		
 		wrap_lverts.pr(inner)._modifiable = function() {
+			me.immutable_midstep("Polygon::localVerts");
 			DEBUG(if(me.body!=null && me.body.isStatic() && me.body.space!=null)
 				throw "Error: Cannot modifiy shapes of static object once added to Space";
 			)
