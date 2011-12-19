@@ -370,7 +370,7 @@ class DummyNapeMain {
 		b2.position.x = 400;
 		b2.position.y = 200;
 
-		for(i in 0...6) {
+		for(i in 0...60) {
 		var b1 = new Body(); 
 		b1.position = new Vec2(50+Math.random()*700,Math.random()*250);
 
@@ -380,6 +380,7 @@ class DummyNapeMain {
 		b2.shapes.add(new Circle(50,null));
 
 		b1.space = space;
+		b1.scaleShapes(0.5,0.5);
 
 		}
 
@@ -402,17 +403,17 @@ class DummyNapeMain {
 				var i = 0;
 				while(i<carb.contacts.length) {
 					var c = carb.contacts.at(i);
-					if(c.penetration<=20) {
+					if(c.penetration<=10) {
 						carb.contacts.remove(c);
 						continue;
-					}else c.penetration -= 20;
+					}else c.penetration -= 10;
 					i++;
 				}
-				for(c in carb.contacts) {
-					debug.drawCircle(c.position,4,0x00ffff);
-				}
+//				for(c in carb.contacts) {
+//					debug.drawCircle(c.position,4,0x00ffff);
+//				}
 				if(carb.contacts.length==0) return ImmFlag.IGNORE_ONCE;
-				carb.pr(inner).colarb.radius += 20;
+				carb.pr(inner).colarb.radius -= 10;
 			}else if(x.isFluidArbiter()) {
 				var farb = x.fluidArbiter;
 /*				if(farb.overlap<=1000) return ImmFlag.IGNORE_ONCE;
@@ -424,7 +425,7 @@ class DummyNapeMain {
 //		return ((x.body1==b2 && x.body2==b1) || (x.body1==b1 && x.body2==b2)) ? ImmFlag.IGNORE : ImmFlag.ACCEPT;
 			return ImmFlag.ACCEPT_ONCE;
 		});
-//		pre.space = space;
+		pre.space = space;
 
 		(new haxe.Timer(Std.int(1000/flash.Lib.current.stage.frameRate))).run = function() {
 			debug.clear();
