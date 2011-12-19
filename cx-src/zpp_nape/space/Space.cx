@@ -61,6 +61,7 @@ class PR(Space) {
 		wrap_gravity = Vec2.get(gravityx,gravityy);
 		wrap_gravity.pr(inner).inuse = true;
 		wrap_gravity.pr(inner)._invalidate = function(x:PR(Vec2)) {
+			DEBUG(if(me.midstep) throw "Error: Space::gravity cannot be set during space step";)
 			vec_set(me.gravity,x.);
 			Iter(b, me.bodies, {
 				me.wake(b);
@@ -149,12 +150,6 @@ class PR(Space) {
 
 		//islands
 		assert(islands.empty(),"islands exist... wuh?");
-		/*
-		while(!islands.empty()) {
-			var isl = islands.pop_unsafe();
-			ClearWith(c,isl.comps, c.reset());
-			Free(PR(Island),isl);
-		}*/
 
 		//handle islands that exist implicitly through components.
 		$(mixin isl(comp) {
@@ -218,6 +213,9 @@ class PR(Space) {
 		wrap_bodies.pr(inner).subber = function(x:Body) {
 			me.removeBody(x.pr(inner),0);
 		};
+		DEBUG(wrap_bodies.pr(inner)._modifiable = function() {
+			if(me.midstep) throw "Error: Space::bodies cannot be set during space step()";
+		})
 		
 		/// _invalidate method on these lists? is it needed?!
 
@@ -235,6 +233,9 @@ class PR(Space) {
 			wrap_`t`s.pr(inner).subber = function(x:Body) {
 				me.removeBody(x.pr(inner),Flag(BodyType,T));
 			}
+			DEBUG(wrap_`t`s.pr(inner)._modifiable = function() {
+				if(me.midstep) throw "Error: Space::"+$str(t)+" cannot be set during space step()";
+			})
 		);
 		wrap_bodies(STATIC,static)
 		wrap_bodies(DYNAMIC,dynamic)
@@ -266,6 +267,9 @@ class PR(Space) {
 		wrap_constraints.pr(inner).subber = function(x:Constraint) {
 			me.remConstraint(x.pr(inner));
 		};
+		DEBUG(wrap_constraints.pr(inner)._modifiable = function() {
+			if(me.midstep) throw "Error: Space::constraints cannot be set during space step()";
+		})
 		
 		live_constraints = new List(PR(Constraint))();
 		wrap_livecon = PR(ConstraintList).get(live_constraints,true);
@@ -288,6 +292,9 @@ class PR(Space) {
         wrap_listeners.pr(inner).subber = function(x:Listener) {
             me.remListener(x.pr(inner));
         };
+		DEBUG(wrap_listeners.pr(inner)._modifiable = function() {
+			if(me.midstep) throw "Error: Space::listeners cannot be set during space step()";
+		})
 
 		_begin = new FastHash2(PR(InteractionListener))();
 		_end   = new FastHash2(PR(InteractionListener))();
@@ -570,6 +577,8 @@ class PR(Space) {
 
 	public var pre_dt:Float;	
 	public function step(deltaTime:Float, velocityIterations:Int, positionIterations:Int) {
+		DEBUG(if(midstep) throw "Error: ... REALLY?? you're going to call space.step() inside of space.step()? COME ON!!";)
+
         time += deltaTime;
 		pre_dt = deltaTime;
 
