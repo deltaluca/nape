@@ -58,6 +58,12 @@ class PR(Constraint) {
 
 	//------------------------------------------------------------------------------------
 
+	flibmdel public inline function immutable_midstep(name:String) {
+		DEBUG(if(space!=null && space.midstep)
+			throw "Error: Constraint::"+name+" cannot be set during space step()";
+		)
+	}
+
     public function setCbType(cbType:PR(CbType)) {
         if(this.cbType != cbType) {
 			if(space!=null && active) {
@@ -186,6 +192,7 @@ $(mixin global withConstraint(block)
 				vec_set(me.wrap_`n.pr(inner).,me.n`local);
 			}
 			wrap_`n.pr(inner)._invalidate = function(x:PR(Vec2)) {
+				me.immutable_midstep("Constraint::"+$str(n));
 				vec_set(me.n`local,x.);
 				extra
 				me.wake();
@@ -211,12 +218,12 @@ $(mixin global withConstraint(block)
 	
 	$(mixin wrap_body_new(B,b, new)
         property(B,Body,if(pr(inner_zn).b==null) null else pr(inner_zn).b.outer,{
+			pr(inner).immutable_midstep("Constraint::"+$str(B));
         	DEBUG(if(B==null) throw "Error: Constraint::"+$str(B)+" cannot be null";)
 			if(B.pr(inner) != pr(inner_zn).b) {
 				if(pr(inner_zn).b != null) {
                     if(active && space!=null && new(pr(inner_zn).b)) {
 						inactive_body(pr(inner_zn).b, this.pr(inner));
-//                      pr(inner_zn).b.constraints.remove(this.pr(inner));
 					}
 
                     if(active && space!=null)
@@ -225,7 +232,6 @@ $(mixin global withConstraint(block)
 				pr(inner_zn).b = B.pr(inner);
 				if(active && space!=null && new(B.pr(inner))) {
 					active_body(B.pr(inner),this.pr(inner));
-//					B.pr(inner).constraints.add(this.pr(inner));
 				}
 
 				//must wake both.
