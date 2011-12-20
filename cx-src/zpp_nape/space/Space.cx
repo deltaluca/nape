@@ -565,6 +565,7 @@ class PR(Space) {
 
     public var any_handler:Bool; //set to true in step if any callback object needs to call a handler
     flibmdel public inline function push_callback(i:PR(Listener),hasHandler:Bool) {
+		assert(i!=null,"null listenere for push_callback?");
         var cb = Get(PR(Callback));
         callbacks.push(cb);
         cb.listener = i;
@@ -696,7 +697,7 @@ class PR(Space) {
 	//----------------------------------------------------------------------------------------------
 
     flibmdel public inline function bodyCbWake(b:PR(Body)) {
-        if(b.isDynamic() && b.cbType._bodywake != null) {
+        if(b.isDynamic() && b.cbType != null && b.cbType._bodywake != null) {
             if(midstep) {
 				var i = b.cbType._bodywake;
                 var cb = push_callback(i,i.handler!=null);
@@ -708,7 +709,7 @@ class PR(Space) {
     }
 
     flibmdel public inline function bodyCbSleep(b:PR(Body)) {
-        if(b.isDynamic() && b.cbType._bodysleep != null) {
+        if(b.isDynamic() && b.cbType!=null && b.cbType._bodysleep != null) {
 			var i = b.cbType._bodysleep;
             var cb = push_callback(i,i.handler!=null);
             cb.event = Flag(CbEvent,SLEEP);
@@ -719,7 +720,7 @@ class PR(Space) {
     //----------------------------------------------------------------------------------------------
 
     flibmdel public inline function constraintCbWake(con:PR(Constraint)) {
-        if(con.cbType._conwake != null) {
+        if(con.cbType != null && con.cbType._conwake != null) {
             if(midstep) {
 				var i = con.cbType._conwake;
                 var cb = push_callback(i,i.handler!=null);
@@ -731,7 +732,7 @@ class PR(Space) {
     }
 
     flibmdel public inline function constraintCbSleep(con:PR(Constraint)) {
-        if(con.cbType._consleep != null) {
+        if(con.cbType != null && con.cbType._consleep != null) {
 			var i = con.cbType._consleep;
             var cb = push_callback(i,i.handler!=null);
             cb.event = Flag(CbEvent,SLEEP);
@@ -740,7 +741,7 @@ class PR(Space) {
     }
 
     flibmdel public inline function constraintCbBreak(con:PR(Constraint)) {
-        if(con.cbType._break != null) {
+        if(con.cbType != null && con.cbType._break != null) {
 			var i = con.cbType._break;
             var cb = push_callback(i,i.handler!=null);
             cb.event = Flag(CbEvent,BREAK);
@@ -1027,7 +1028,7 @@ class PR(Space) {
 
                 //wake callbacks
                 if(!kin) {
-                    if(cur.component.woken) {
+                    if(cur.component.woken && cur.cbType != null && cur.cbType._bodywake!=null) {
 						var i = cur.cbType._bodywake;
                         var cb = push_callback(i,i.handler!=null);
                         cb.event = Flag(CbEvent,WAKE);
@@ -1046,7 +1047,7 @@ class PR(Space) {
         Iter(con,live_constraints,{
             if(con.active) {
                 DEBUG(con.validate();)
-                if(con.component.woken) {
+                if(con.component.woken && con.cbType != null && con.cbType._conwake!=null) {
 					var i = con.cbType._conwake;
                     var cb = push_callback(i,i.handler!=null);
                     cb.event = Flag(CbEvent,WAKE);
@@ -1135,33 +1136,35 @@ class PR(Space) {
 					//end callback.
 
 					arb.endcb = false;
-					if(arb.up_stamp==stamp-1) {
-						if(cb1._end > 0 && cb2._end > 0) {
-							var i = _end.ordered_get(cb1.id,cb2.id);
-							if(i!=null) {
-								var cb = push_callback(i,i.handler!=null);
-								cb.event = Flag(CbEvent,END);
-								cb.arbiter = arb;
-								
-								// arbiter is about to be recycled.
-								// but we want to allow the user to perform actions
-								// using the arbiter in the callback (whether delayed or not)
-								// so we allow the arbiter to remain active
-								// and the cleaning up of it's associated callback deals
-								// with deactivating it
-	
-								arb.endcb = true;
+					if(cb1!=null && cb2!=null) {
+						if(arb.up_stamp==stamp-1) {
+							if(cb1._end > 0 && cb2._end > 0) {
+								var i = _end.ordered_get(cb1.id,cb2.id);
+								if(i!=null) {
+									var cb = push_callback(i,i.handler!=null);
+									cb.event = Flag(CbEvent,END);
+									cb.arbiter = arb;
+									
+									// arbiter is about to be recycled.
+									// but we want to allow the user to perform actions
+									// using the arbiter in the callback (whether delayed or not)
+									// so we allow the arbiter to remain active
+									// and the cleaning up of it's associated callback deals
+									// with deactivating it
+		
+									arb.endcb = true;
+								}
 							}
 						}
-					}
-					//begin callback
-					else if(arb.fresh) {
-						if(cb1._begin > 0 && cb2._begin > 0) {
-							var i = _begin.ordered_get(cb1.id,cb2.id);
-							if(i!=null) {
-								var cb = push_callback(i,i.handler!=null);
-								cb.event = Flag(CbEvent,BEGIN);
-								cb.arbiter = arb;
+						//begin callback
+						else if(arb.fresh) {
+							if(cb1._begin > 0 && cb2._begin > 0) {
+								var i = _begin.ordered_get(cb1.id,cb2.id);
+								if(i!=null) {
+									var cb = push_callback(i,i.handler!=null);
+									cb.event = Flag(CbEvent,BEGIN);
+									cb.arbiter = arb;
+								}
 							}
 						}
 					}
@@ -1330,7 +1333,7 @@ class PR(Space) {
 							var cb2 = s2.cbType;
 							var listener = null;
 							//check state is not #_ALWAYS, else fresh.
-							if(arb.fresh || (arb.immState&Flag(ImmState,ALWAYS))==0) {
+							if((cb1!=null && cb2!=null) && (arb.fresh || (arb.immState&Flag(ImmState,ALWAYS))==0)) {
 								arb.immState = Flag(ImmState,ACCEPT);
 								if(cb1._pre>0 && cb2._pre>0) {
 									var i = _pre.ordered_get(cb1.id,cb2.id);

@@ -110,10 +110,11 @@ class Shape {
 	
 	//----------------------------------------------------------------------------------------------
 
-    property(cbType,CbType,pr(inner).cbType.wrapper(),{
+    property(cbType,CbType,{
+		if(pr(inner).cbType==null) null else pr(inner).cbType.wrapper();
+	},{
 		pr(inner).immutable_midstep("Shape::cbType");
-        DEBUG(if(cbType==null) throw "Error: Cannot assign null CbType to Shape";)
-        pr(inner).setCbType(cbType.pr(inner));
+        pr(inner).setCbType(cbType==null ? null : cbType.pr(inner));
     })
 
     //----------------------------------------------------------------------------------------------

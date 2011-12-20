@@ -526,11 +526,11 @@ class PR(Body) {
 
     public function setCbType(cbType:PR(CbType)) {
         if(this.cbType != cbType) {
-			if(space!=null) {
-	            if(this.cbType!=null) this.cbType.remBody(this);
-			}
+			if(space!=null && this.cbType!=null)
+	            this.cbType.remBody(this);
+
             this.cbType = cbType;
-			if(space!=null)
+			if(space!=null && cbType!=null) 
 	            cbType.addBody(this);
 
             wake();
@@ -580,8 +580,6 @@ class PR(Body) {
 			vec_set(gdelta,0,0);
 			grotdelta = 0;
 		#end
-
-		cbType = PR(CbType).DEFAULT;
 	}
 
     //----------------------------------------------------------------------------------------------
@@ -675,8 +673,6 @@ class PR(Body) {
 			if(me.isStatic() && me.space!=null)
 				throw "Error: Cannot modifiy shapes of static object once added to Space";
 		};
-		
-        cbType = PR(CbType).DEFAULT;
 	}
 	
 	//----------------------------------------------------------------------------------------------
@@ -689,7 +685,8 @@ class PR(Body) {
 		component.body = this;
 
 		//cbTypes only maintain list of ACTIVE bodies
-		cbType.addBody(this);
+		if(cbType!=null)
+			cbType.addBody(this);
 	}
 
 	public function removedFromSpace() {
@@ -702,7 +699,8 @@ class PR(Body) {
 		component = null;
 
 		//cbTypes only maintain list of ACTIVE bodies.
-		cbType.remBody(this);
+		if(cbType!=null)
+			cbType.remBody(this);
 	}
 	
 	//----------------------------------------------------------------------------------------------

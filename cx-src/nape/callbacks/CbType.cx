@@ -9,11 +9,6 @@ class CbType {
     public function new() {
         if(PR(CbType).internal) return;
 
-        DEBUG(
-            if(PR(CbType).nextId==0x10000)
-                throw "Error: You have exceeded maximum allowed CbType's... wow";
-        )
-
         pr(inner) = new PR(CbType)();
         pr(inner).outer = this;
     }
@@ -42,9 +37,6 @@ class CbType {
 
     ///---------------------------------------------------------------------------------------------
 
-    public static var DEFAULT(flibget_DEFAULT,never):CbType;
-    static force_inline function flibget_DEFAULT() return PR(CbType).DEFAULT.wrapper()
-
     flibmdel public static inline function get(id:Int) {
         DEBUG(if(id<0 || id>=PR(CbType).nextId) throw "Error: CbType::get : Index out of bounds!";)
         return PR(CbType).map[id].wrapper();
@@ -61,7 +53,6 @@ class CbType {
     ///---------------------------------------------------------------------------------------------
 
     @:$keep public inline function toString() {
-        if(id==0) return "CbType(DEFAULT#0)";
-        else return "CbType(#"+id+")";
+        return "CbType(#"+id+")";
     }
 }

@@ -371,6 +371,8 @@ class DummyNapeMain {
 		b2.position.x = 400;
 		b2.position.y = 200;
 
+		var cb = new CbType();
+
 		for(i in 0...20) {
 		var b1 = new Body(); 
 		b1.position = new Vec2(50+Math.random()*700,Math.random()*250);
@@ -382,21 +384,25 @@ class DummyNapeMain {
 		b1.space = space;
 		b1.scaleShapes(0.5,0.5);
 
+		for(s in b1.shapes) s.cbType = cb;
+
 		}
 
 		b2.space = space;
 		b2.shapes.at(0).fluidEnabled= true;
 		b2.shapes.at(0).fluidProperties.density = 3;
 
-		var begin = new InteractionListener(CbEvent.BEGIN, b2.cbType, b2.cbType, function (x:Arbiter) {
+		for(s in b2.shapes) s.cbType = cb;
+
+		var begin = new InteractionListener(CbEvent.BEGIN, cb, cb, function (x:Arbiter) {
 //			if(x.shape1==l || x.shape2==l) { l.body = null; b1.align(); }
 		});
 		begin.space = space;
-		var endh = new InteractionListener(CbEvent.END, b2.cbType, b2.cbType, function (x:Arbiter) {
+		var endh = new InteractionListener(CbEvent.END, cb, cb, function (x:Arbiter) {
 		});
 		endh.space = space;
 
-		var pre = new ImmListener(b2.cbType, b2.cbType, function (x:Arbiter):ImmFlag {
+		var pre = new ImmListener(cb, cb, function (x:Arbiter):ImmFlag {
 			if(x.isCollisionArbiter()) {
 				var carb = x.collisionArbiter;
 				var i = 0;

@@ -233,8 +233,6 @@ class PR(Shape) {
 		fluidProperties = null;
 		body = null;
 
-		//cbType handled in Circle/Polygon public class constructors
-
 		// #
 		refmaterial = new PR(Material)();
 		// #
@@ -285,11 +283,11 @@ class PR(Shape) {
 
     public function setCbType(cbType:PR(CbType)) {
         if(this.cbType != cbType) {
-			if(body!=null && body.space!=null) {
-	            if(this.cbType!=null) this.cbType.remShape(this);
-			}
+			if(body!=null && body.space!=null && this.cbType!=null)
+	            this.cbType.remShape(this);
+			
             this.cbType = cbType;
-			if(body!=null && body.space!=null)
+			if(body!=null && body.space!=null && cbType!=null)
 	            cbType.addShape(this);
 
             wake();
@@ -313,14 +311,16 @@ class PR(Shape) {
 	}
 
 	public function addedToSpace() {
-		cbType.addShape(this);
+		if(cbType!=null)
+			cbType.addShape(this);
 		material.addShape(this);
 		filter.addShape(this);
 		if(fluidProperties!=null)
 			fluidProperties.addShape(this);
 	}
 	public function removedFromSpace() {
-		cbType.remShape(this);
+		if(cbType!=null)
+			cbType.remShape(this);
 		material.remShape(this);
 		filter.remShape(this);
 		if(fluidProperties!=null)
