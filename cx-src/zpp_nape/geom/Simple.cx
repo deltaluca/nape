@@ -2,6 +2,7 @@ package zpp_nape.geom;
 $(import);
 
 $(mixin Vertex() PR(SimpleVert));
+GENID(Vertex)
 class Vertex {
 	//forced property to propagate to GeomVert
 	public var forced:Bool;
@@ -9,7 +10,6 @@ class Vertex {
 	vec_new(public,$(->));
 	public var links:Set(Vertex);
 
-	static var nextId:Int = 0;
 	public var id:Int;
 
 	MixPool(Vertex)
@@ -27,7 +27,7 @@ class Vertex {
 	}
 
 	function new() {
-		id = nextId++;
+		id = ID(Vertex);
 	}
 	public static inline function less_xy(p:Vertex,q:Vertex) {
 		return p.y < q.y || (p.y==q.y && p.x < q.x);
@@ -42,13 +42,13 @@ class Vertex {
 }
 
 $(mixin Segment() PR(SimpleSeg));
+GENID(Segment)
 class Segment {
 	public var left :Vertex;
 	public var right:Vertex;
 
 	public var vertices:Set(Vertex);
 
-	static var nextId = 0;
 	public var id:Int;
 
 	MixPool(Segment)
@@ -76,7 +76,7 @@ class Segment {
 		return a.x < b.x || (a.x==b.x && a.y < b.y);
 	}
 	function new() {
-		id = nextId++;
+		id = ID(Segment);
 	}
 	public static inline function get(left:Vertex,right:Vertex) {
 		var ret = Get(Segment);
