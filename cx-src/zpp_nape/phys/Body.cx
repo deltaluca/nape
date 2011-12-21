@@ -526,12 +526,16 @@ class PR(Body) {
 
     public function setCbType(cbType:PR(CbType)) {
         if(this.cbType != cbType) {
-			if(space!=null && this.cbType!=null)
+			if(space!=null && this.cbType!=null) {
 	            this.cbType.remBody(this);
+				space.nullBodyType(this);
+			}
 
             this.cbType = cbType;
-			if(space!=null && cbType!=null) 
+			if(space!=null && cbType!=null) {
 	            cbType.addBody(this);
+				space.freshBodyType(this);
+			}
 
             wake();
         }

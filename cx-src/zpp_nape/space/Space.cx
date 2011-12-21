@@ -424,34 +424,27 @@ class PR(Space) {
 					var cb1 = o1.cbType;
 					var cb2 = o2.cbType;
 					if(cb1!=null && cb2!=null) {
-						var cont = true;
-						if(cont && cb1._end>0 && cb2._end>0) {
-							var i = _end.ordered_get(cb1.id,cb2.id);
-							if(i!=null) {
-								cont = false;
-								var compound = compounds.ordered_get(o1.id,o2.id);
-								assert(compound!=null,"null compound on arbiter deletion? (end)");
-								if((--compound.value)==0) {
-									if(!deleting) {
-										var cb = push_callback(i,i.handler!=null);
-										cb.event = Flag(CbEvent,END);
-										cb.arbiter = xarb;
-									}
-
-									compounds.remove(compound);
-									Free(Hashable2(Int),compound);
-								}
-							}
+						var endcb = false;
+						var i = null;
+						if(cb1._end>0 && cb2._end>0) {
+							i = _end.ordered_get(cb1.id,cb2.id);
+							endcb = i!=null;
 						}
-						if(cont && cb1._begin>0 && cb2._begin>0) {
-							var i = _begin.ordered_get(cb1.id,cb2.id);
-							if(i!=null) {
-								var compound = compounds.ordered_get(o1.id,o2.id);
-								assert(compound!=null,"null compound on arbiter deletion? (beg)");
-								if((--compound.value)==0) {
-									compounds.remove(compound);
-									Free(Hashable2(Int),compound);
+						if(i==null && cb1._begin>0 && cb2._begin>0)
+							i = _begin.ordered_get(cb1.id,cb2.id);
+
+						if(i!=null) {
+							var compound = compounds.ordered_get(o1.id,o2.id);
+							assert(compound!=null,"null compound on arbiter deletion?");
+							if((--compound.value)==0) {
+								if(endcb && !deleting) {
+									var cb = push_callback(i,i.handler!=null);
+									cb.event = Flag(CbEvent,END);
+									cb.arbiter = xarb;
 								}
+
+								compounds.remove(compound);
+								Free(Hashable2(Int),compound);
 							}
 						}
 					}
@@ -801,6 +794,86 @@ class PR(Space) {
             cb.constraint = con;
         }
     }
+
+    //----------------------------------------------------------------------------------------------
+
+	//when body/shape cbType is changed, it is nulled, then set again
+
+	//called before set to null.
+	flibmdel public inline function nullBodyType(body:PR(Body)) {
+		nullBodyShapeType(body, $(mixin forobject(x) true) forobject);
+	}
+	flibmdel public inline function nullShapeType(shape:PR(Shape)) {
+		nullBodyShapeType(shape.body, $(mixin forobject(x) x.ws1==shape || x.ws2==shape) forobject);
+	}
+			
+	$(mixin nullBodyShapeType(xbody,forobject) {
+		Iter(xarb,xbody.arbiters,{
+			if(!(xarb.active && (forobject(xarb)))) cx_continue;
+			//only need to worry about to compound callbacks
+			$(mixin docbs(o1,o2) {
+				var cb1 = o1.cbType;
+				var cb2 = o2.cbType;
+				if(cb1!=null && cb2!=null) {
+					var i = null;
+					if(cb1._end>0 && cb2._end>0)
+						i = _end.ordered_get(cb1.id,cb2.id);
+					if(i==null && cb1._begin>0 && cb2._begin>0)
+						i = _begin.ordered_get(cb1.id,cb2.id);
+					
+					if(i!=null) {
+						var compound = compounds.ordered_get(o1.id,o2.id);
+						assert(compound!=null,"null compound on arbiter deletion?");
+						if((--compound.value)==0) {
+							compounds.remove(compound);
+							Free(Hashable2(Int),compound);
+						}
+					}
+				}
+			});
+			docbs(xarb.ws1,xarb.ws2.body);
+			docbs(xarb.ws1.body,xarb.ws2);
+			docbs(xarb.ws1.body,xarb.ws2.body);
+		});
+	});
+
+	//called after cbtype is set
+	flibmdel public inline function freshBodyType(body:PR(Body)) {
+		freshBodyShapeType(body, $(mixin forobject(x) true) forobject);
+	}
+	flibmdel public inline function freshShapeType(shape:PR(Shape)) {
+		freshBodyShapeType(shape.body, $(mixin forobject(x) x.ws1==shape || x.ws2==shape) forobject);
+	}
+
+	$(mixin freshBodyShapeType(xbody, forobject) {
+		Iter(xarb,xbody.arbiters,{
+			if(!(xarb.active && (forobject(xarb)))) cx_continue;
+			//only need to worry about compounds
+			$(mixin docbs(o1,o2) {
+				var cb1 = o1.cbType;
+				var cb2 = o2.cbType;
+				if(cb1!=null && cb2!=null) {
+					var i = null;
+					if(cb1._end>0 && cb2._end>0)
+						i = _end.ordered_get(cb1.id,cb2.id);
+					if(i==null && cb1._begin>0 && cb2._begin>0)
+						i = _begin.ordered_get(cb1.id,cb2.id);
+
+					if(i!=null) {
+						var compound = compounds.ordered_get(o1.id,o2.id);
+						if(compound==null) {
+							compound = Hashable2(Int).ordered_get(o1.id,o2.id,1);
+							compounds.add(compound);
+						}else
+							compound.value++;
+					}
+				}
+			});
+			docbs(xarb.ws1,xarb.ws2.body);
+			docbs(xarb.ws1.body,xarb.ws2);
+			docbs(xarb.ws1.body,xarb.ws2.body);
+		});
+	});
 
     //----------------------------------------------------------------------------------------------
 	
