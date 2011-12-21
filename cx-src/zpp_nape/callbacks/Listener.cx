@@ -159,6 +159,18 @@ class PR(InteractionListener) extends PR(Listener) {
 
 		if  (event==Flag(CbEvent,BEGIN))   { cb1._begin++;   if(cb2!=cb1) cb2._begin++;   }
 		else                               { cb1._end++;     if(cb2!=cb1) cb2._end++;     }
+
+		//see if this is a new compound callback listener for the two types
+		//aka if begin, check for an end existing already
+		if((event==Flag(CbEvent,BEGIN) && (cb1._end==0 || cb2._end==0 || space._end.ordered_get(cb1.id,cb2.id)==null))
+		|| (event==Flag(CbEvent,END) && (cb1._begin==0 || cb2._begin==0 || space._begin.ordered_get(cb1.id,cb2.id)==null))) {
+			Iter(shape, cb1.shapes, space.freshShapeType(shape));
+			Iter(body,  cb1.bodies, space.freshBodyType (body));
+			if(cb2!=cb1) {
+				Iter(shape, cb2.shapes, space.freshShapeType(shape));
+				Iter(body,  cb2.bodies, space.freshBodyType (body));
+			}
+		}
 	}
 	flibmdel public inline function removedFromSpace() {
 		assert(cb1!=null && cb2!=null,"listener added to space with no cbtypes associated?");
@@ -168,6 +180,18 @@ class PR(InteractionListener) extends PR(Listener) {
 
 		if  (event==Flag(CbEvent,BEGIN))   { cb1._begin--;   if(cb2!=cb1) cb2._begin--;   }
 		else                               { cb1._end--;     if(cb2!=cb1) cb2._end--;     }
+
+		//see if this was the only compound callback listener
+		//aka if begin, check end doesn't exist
+		if((event==Flag(CbEvent,BEGIN) && (cb1._end==0 || cb2._end==0 || space._end.ordered_get(cb1.id,cb2.id)==null))
+		|| (event==Flag(CbEvent,END) && (cb1._begin==0 || cb2._begin==0 || space._begin.ordered_get(cb1.id,cb2.id)==null))) {
+			Iter(shape, cb1.shapes, { space.nullShapeType(shape); space.freshShapeType(shape);} );
+			Iter(body,  cb1.bodies, { space.nullBodyType (body); space.freshBodyType(body);} );
+			if(cb2!=cb1) {
+				Iter(shape, cb2.shapes, { space.nullShapeType(shape); space.freshShapeType(shape);} );
+				Iter(body,  cb2.bodies, { space.nullBodyType (body); space.freshBodyType(body);} );
+			}
+		}
 	}
 
     flibmdel public inline function swapCbType(which:Int, newcb:PR(CbType)) {

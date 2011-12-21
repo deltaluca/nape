@@ -366,14 +366,14 @@ class DummyNapeMain {
 		b2.space = space;
 
 		var cb = new CbType();
-		b1.cbType = b2.shapes.at(0).cbType = cb;
+		b1.cbType = b2.cbType = cb;
 
-		space.listeners.add(new InteractionListener(CbEvent.BEGIN, cb,cb, function(x:Arbiter) {
+/*		space.listeners.add(new InteractionListener(CbEvent.BEGIN, cb,cb, function(x:Arbiter) {
 			trace("BEG");
 		}));
 		space.listeners.add(new InteractionListener(CbEvent.END, cb,cb, function(x:Arbiter) {
 			trace("END");
-		}));
+		}));*/
 
 		debug.clear();
 		debug.transform = new Mat23();
@@ -386,9 +386,16 @@ class DummyNapeMain {
 		}
 
 		drar();
-		var s = b2.shapes.shift();
+		space.listeners.add(new InteractionListener(CbEvent.END, cb,cb, function(x:Arbiter) {
+			trace("END");
+		}));
+		b2.position.y -= 100;
 		drar();
-		b2.shapes.unshift(s);
+		space.listeners.clear();
+		space.listeners.add(new InteractionListener(CbEvent.BEGIN, cb,cb, function(x:Arbiter) {
+			trace("BEG");
+		}));
+		b2.position.y += 100;
 		drar();
 	}
 

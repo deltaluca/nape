@@ -52,6 +52,8 @@ class PR(Component) {
 	}
 }
 
+$(mixin global HashedArbiters() Hashable2(FastHash2(PR(Arbiter))));
+
 class PR(Space) {
 	public var outer:Space;
 	
@@ -132,7 +134,7 @@ class PR(Space) {
     public var wrap_callbacks:CallbackQueue;
 
 	//used in compound callbacks to keep track of arbiter counts for unique begin/end/pre
-	public var compounds:FastHash2(Hashable2(Int));
+	public var compounds:FastHash2(HashedArbiters);
 	
 	//----------------------------------------------------------------------------------------------
 
@@ -303,7 +305,7 @@ class PR(Space) {
 		_end   = new FastHash2(PR(InteractionListener))();
 		_pre   = new FastHash2(PR(ImmListener))();
 
-		compounds = new FastHash2(Hashable2(Int))();
+		compounds = new FastHash2(HashedArbiters)();
 	}
 	
 	//----------------------------------------------------------------------------------------------
@@ -346,26 +348,26 @@ class PR(Space) {
         else if(x.type==Flag(ListenerType,CONSTRAINT))
             x.constraint.addedToSpace();
 		else if(x.type==Flag(ListenerType,INTERACTION)) {
+			unrevoke_listener(x);
 			x.interaction.addedToSpace();
-			unrevoke_listener(x);
 		}else {
-			x.imm.addedToSpace();
 			unrevoke_listener(x);
+			x.imm.addedToSpace();
 		}
     }
     public function remListener(x:PR(Listener)) {
-        x.space = null;
         if(x.type==Flag(ListenerType,BODY))
             x.body.removedFromSpace();
         else if(x.type==Flag(ListenerType,CONSTRAINT))
             x.constraint.removedFromSpace();
 		else if(x.type==Flag(ListenerType,INTERACTION)) {
+			revoke_listener(x);
 			x.interaction.removedFromSpace();
-			revoke_listener(x);
 		}else {
-			x.imm.removedFromSpace();
 			revoke_listener(x);
+			x.imm.removedFromSpace();
 		}
+        x.space = null;
     }
 
     //----------------------------------------------------------------------------------------------
@@ -436,7 +438,8 @@ class PR(Space) {
 						if(i!=null) {
 							var compound = compounds.ordered_get(o1.id,o2.id);
 							assert(compound!=null,"null compound on arbiter deletion?");
-							if((--compound.value)==0) {
+							compound.value.remove(xarb);
+							if(compound.value.empty()) {
 								if(endcb && !deleting) {
 									var cb = push_callback(i,i.handler!=null);
 									cb.event = Flag(CbEvent,END);
@@ -444,7 +447,7 @@ class PR(Space) {
 								}
 
 								compounds.remove(compound);
-								Free(Hashable2(Int),compound);
+								Free(HashedArbiters,compound);
 							}
 						}
 					}
@@ -618,7 +621,6 @@ class PR(Space) {
         callbacks.push(cb);
         cb.listener = i;
         cb.handler = hasHandler;
-		trace(cb);
         return cb;
     }
 
@@ -798,6 +800,9 @@ class PR(Space) {
     //----------------------------------------------------------------------------------------------
 
 	//when body/shape cbType is changed, it is nulled, then set again
+	//
+	//presently used as a non-optimal way of refreshing compounds
+	//on listener addition/removal/changes
 
 	//called before set to null.
 	flibmdel public inline function nullBodyType(body:PR(Body)) {
@@ -823,10 +828,11 @@ class PR(Space) {
 					
 					if(i!=null) {
 						var compound = compounds.ordered_get(o1.id,o2.id);
-						assert(compound!=null,"null compound on arbiter deletion?");
-						if((--compound.value)==0) {
+						assert(compound!=null,"null compound on nullBodyShapeType?");
+						compound.value.remove(xarb);
+						if(compound.value.empty()) {
 							compounds.remove(compound);
-							Free(Hashable2(Int),compound);
+							Free(HashedArbiters,compound);
 						}
 					}
 				}
@@ -862,10 +868,11 @@ class PR(Space) {
 					if(i!=null) {
 						var compound = compounds.ordered_get(o1.id,o2.id);
 						if(compound==null) {
-							compound = Hashable2(Int).ordered_get(o1.id,o2.id,1);
+							compound = HashedArbiters.ordered_get_persist(o1.id,o2.id);
+							if(compound.value==null) compound.value = new FastHash2(PR(Arbiter))();
 							compounds.add(compound);
-						}else
-							compound.value++;
+						}
+						compound.value.maybeAdd(xarb);
 					}
 				}
 			});
@@ -1288,10 +1295,11 @@ class PR(Space) {
 											cb.event = Flag(CbEvent,BEGIN);
 											cb.arbiter = arb;
 
-											compound = Hashable2(Int).ordered_get(o1.id,o2.id,1);
+											compound = HashedArbiters.ordered_get_persist(o1.id,o2.id);
+											if(compound.value==null) compound.value = new FastHash2(PR(Arbiter))();
 											compounds.add(compound);
-										}else
-											compound.value++;
+										}
+										compound.value.maybeAdd(arb);
 									}
 								}
 							}elif(endcb && cb1._end > 0 && cb2._end > 0) {
@@ -1305,13 +1313,14 @@ class PR(Space) {
 									}else {
 										var compound = compounds.ordered_get(o1.id,o2.id);
 										assert(compound!=null,"null compound on arbiter death");
-										if((--compound.value)==0) {
+										compound.value.remove(arb);
+										if(compound.value.empty()) {
 											var cb = push_callback(i,i.handler!=null);
 											cb.event = Flag(CbEvent,END);
 											cb.arbiter = arb;
 
 											compounds.remove(compound);
-											Free(Hashable2(Int),compound);
+											Free(HashedArbiters,compound);
 										}
 									}	
 									//arbiter is about to be recycled.
