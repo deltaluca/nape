@@ -349,6 +349,47 @@ class Tracer {
 
 class DummyNapeMain {
 	static function main() {
+		var cur = flash.Lib.current;
+		var space = new Space();
+		var debug = new BitmapDebug(800,600,0x333333);
+		cur.addChild(debug.display);
+
+		var b1 = new Body();
+		b1.shapes.add(new Polygon(Polygon.rect(50,150,100,100)));
+		b1.space = space;
+
+		var b2 = new Body();
+		b2.shapes.add(new Polygon(Polygon.rect(-20,-40,40,40)));
+		b2.shapes.add(new Polygon(Polygon.rect(-20,0,40,40)));
+
+		b2.position.setxy(100,130);
+		b2.space = space;
+
+		var cb = new CbType();
+		b1.cbType = b2.cbType = cb;
+
+		space.listeners.add(new InteractionListener(CbEvent.BEGIN, cb,cb, function(x:Arbiter) {
+			trace("BEG");
+		}));
+		space.listeners.add(new InteractionListener(CbEvent.END, cb,cb, function(x:Arbiter) {
+			trace("END");
+		}));
+
+		debug.clear();
+		debug.transform = new Mat23();
+		function drar() {
+			space.step(1/60,10,10);
+			debug.draw(space);
+			debug.flush();
+			debug.transform.tx += 200;
+		}
+
+		drar();
+		b2.shapes.shift();
+		drar();
+	}
+
+	static function mains() {
 		var root = flash.Lib.current;
 		var space = new Space(Vec2.weak(0,300));
 		var debug = new BitmapDebug(800,600,0x333333);
@@ -619,7 +660,6 @@ class XxDummyNapeMain {
 		dyn.position.setxy(100,100);
 		var filter = new InteractionFilter(1,-1);
 		var mat = new Material(0.1,0.5,0.5,0.5,0.1);
-		mat.shared = true;
 
 		var shape:Shape = new Circle(10, new Vec2(0,0), mat,filter);
 		dyn.type = BodyType.DYNAMIC;

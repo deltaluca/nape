@@ -411,6 +411,55 @@ class PR(Space) {
 		Iter(xarb,body.arbiters,{
 			var rem = xarb.ws1 == s || xarb.ws2 == s;
 			if(rem) {
+				//need to deal with compound callback counters!!!
+				//
+				//this handles shapes/bodies being removed
+				//we only generate end callbacks when body is not being deleted
+				//and we only care for compound callbacks as shape-shape are dealt
+				//with automaticaly and simply.
+				//
+				//we decrement on both begin/end callback existance
+				//as in either case the compound exists and must be cleaned
+				$(mixin docbs(o1,o2) {
+					var cb1 = o1.cbType;
+					var cb2 = o2.cbType;
+					if(cb1!=null && cb2!=null) {
+						var cont = true;
+						if(cont && cb1._end>0 && cb2._end>0) {
+							var i = _end.ordered_get(cb1.id,cb2.id);
+							if(i!=null) {
+								cont = false;
+								var compound = compounds.ordered_get(o1.id,o2.id);
+								assert(compound!=null,"null compound on arbiter deletion? (end)");
+								if((--compound.value)==0) {
+									if(!deleting) {
+										var cb = push_callback(i,i.handler!=null);
+										cb.event = Flag(CbEvent,END);
+										cb.arbiter = xarb;
+									}
+
+									compounds.remove(compound);
+									Free(Hashable2(Int),compound);
+								}
+							}
+						}
+						if(cont && cb1._begin>0 && cb2._begin>0) {
+							var i = _begin.ordered_get(cb1.id,cb2.id);
+							if(i!=null) {
+								var compound = compounds.ordered_get(o1.id,o2.id);
+								assert(compound!=null,"null compound on arbiter deletion? (beg)");
+								if((--compound.value)==0) {
+									compounds.remove(compound);
+									Free(Hashable2(Int),compound);
+								}
+							}
+						}
+					}
+				});
+				docbs(xarb.ws1,xarb.ws2.body);
+				docbs(xarb.ws1.body,xarb.ws2);
+				docbs(xarb.ws1.body,xarb.ws2.body);
+
 				//wake connected first.
 				if(xarb.b1 != body && xarb.b1.isDynamic()) wake(xarb.b1);
 				if(xarb.b2 != body && xarb.b2.isDynamic()) wake(xarb.b2);
@@ -568,14 +617,13 @@ class PR(Space) {
 	
 	//----------------------------------------------------------------------------------------------
 
-    public var any_handler:Bool; //set to true in step if any callback object needs to call a handler
     flibmdel public inline function push_callback(i:PR(Listener),hasHandler:Bool) {
 		assert(i!=null,"null listenere for push_callback?");
         var cb = Get(PR(Callback));
         callbacks.push(cb);
         cb.listener = i;
         cb.handler = hasHandler;
-        any_handler = any_handler || hasHandler;
+		trace(cb);
         return cb;
     }
 
@@ -588,7 +636,6 @@ class PR(Space) {
         time += deltaTime;
 		pre_dt = deltaTime;
 
-        any_handler = false;
 
         midstep = true;
         var elastic = velocityIterations>>1;
@@ -668,35 +715,34 @@ class PR(Space) {
         midstep = false;
 
         //process handlers
-        if(any_handler) {
-            IterQueue(cb,callbacks,{
-                if(cb.handler) {
-                    if(cb.listener.type==Flag(ListenerType,BODY)) {
-                        var o = cb.listener.body;
-                        o.handler(cb.body.outer);
-                    }else if(cb.listener.type==Flag(ListenerType,CONSTRAINT)) {
-                        var o = cb.listener.constraint;
-                        o.handler(cb.constraint.outer);
-                    }else if(cb.listener.type==Flag(ListenerType,INTERACTION)) {
-						var o = cb.listener.interaction;
-						assert(cb.arbiter.endcb == (cb.listener.event == Flag(CbEvent, END)), "end-cb arbiter doesn't have endcb flag set?"+([cb.arbiter.endcb,cb.listener.event==Flag(CbEvent,END)]));
-						assert(!cb.arbiter.endcb || cb.arbiter.b1!=null, "endcb flag ("+cb.arbiter.endcb+") not -> implicit active ("+cb.arbiter.b1+")");
-
-						o.handler(cb.arbiter.wrapper());
-						//
-						//though endcb is set to false on prestep
-						//we can do better in a handler case and set it
-						//false immediately :)
-						if(cb.listener.event==Flag(CbEvent,END))
-							cb.arbiter.endcb = false;
-					}
-
-                    cx_ite = callbacks.splice(cb);
-                    Free(PR(Callback),cb);
-                    continue;
-                }
-            });
-        }
+	    IterQueue(cb,callbacks,{
+		    if(cb.handler) {
+				if(cb.listener.type==Flag(ListenerType,BODY)) {
+					var o = cb.listener.body;
+					o.handler(cb.body.outer);
+				}else if(cb.listener.type==Flag(ListenerType,CONSTRAINT)) {
+					var o = cb.listener.constraint;
+					o.handler(cb.constraint.outer);
+				}else if(cb.listener.type==Flag(ListenerType,INTERACTION)) {
+					var o = cb.listener.interaction;
+					//not valid assertino with rmoval of shapes
+					//assert(cb.arbiter.endcb == (cb.listener.event == Flag(CbEvent, END)), "end-cb arbiter doesn't have endcb flag set?"+([cb.arbiter.endcb,cb.listener.event==Flag(CbEvent,END)]));
+					//assert(!cb.arbiter.endcb || cb.arbiter.b1!=null, "endcb flag ("+cb.arbiter.endcb+") not -> implicit active ("+cb.arbiter.b1+")");
+	
+					o.handler(cb.arbiter.wrapper());
+					//
+					//though endcb is set to false on prestep
+					//we can do better in a handler case and set it
+					//false immediately :)
+					if(cb.listener.event==Flag(CbEvent,END))
+						cb.arbiter.endcb = false;
+				}
+	
+				cx_ite = callbacks.splice(cb);
+				Free(PR(Callback),cb);
+				continue;
+			}
+		});
 	}
 	
 	//----------------------------------------------------------------------------------------------
@@ -1134,7 +1180,11 @@ class PR(Space) {
 				}
 
                 #if NAPE_TIMES Debug.ACNT++; #end
-	
+
+				var pact = arb.active;
+				arb.active = true;
+				arb.active = pact;
+
 				if(!arb.cleared) {	
 					//reset
 					arb.endcb = false;
@@ -1144,7 +1194,6 @@ class PR(Space) {
 					var begcb = arb.fresh;
 					assert(!begcb || arb.up_stamp==stamp, " fresh -> active=true hasn't held :(");
 
-					//docbs :: Bool->Bool->(Shape u Body)->(Shape u Body)->()
 					$(mixin docbs(S1,S2,o1,o2) {
 						var cb1 = o1.cbType;
 						var cb2 = o2.cbType;
@@ -1164,7 +1213,8 @@ class PR(Space) {
 											cb.event = Flag(CbEvent,BEGIN);
 											cb.arbiter = arb;
 
-											compounds.add(Hashable2(Int).ordered_get(o1.id,o2.id,1));
+											compound = Hashable2(Int).ordered_get(o1.id,o2.id,1);
+											compounds.add(compound);
 										}else
 											compound.value++;
 									}
