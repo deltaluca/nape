@@ -130,6 +130,9 @@ class PR(Space) {
 
     public var callbacks:PR(Callback); //as a deque
     public var wrap_callbacks:CallbackQueue;
+
+	//used in compound callbacks to keep track of arbiter counts for unique begin/end/pre
+	public var compounds:FastHash2(Hashable2(Int));
 	
 	//----------------------------------------------------------------------------------------------
 
@@ -299,6 +302,8 @@ class PR(Space) {
 		_begin = new FastHash2(PR(InteractionListener))();
 		_end   = new FastHash2(PR(InteractionListener))();
 		_pre   = new FastHash2(PR(ImmListener))();
+
+		compounds = new FastHash2(Hashable2(Int))();
 	}
 	
 	//----------------------------------------------------------------------------------------------
@@ -1131,43 +1136,74 @@ class PR(Space) {
                 #if NAPE_TIMES Debug.ACNT++; #end
 	
 				if(!arb.cleared) {	
-					var cb1 = arb.ws1.cbType;
-					var cb2 = arb.ws2.cbType;
-					//end callback.
-
+					//reset
 					arb.endcb = false;
-					if(cb1!=null && cb2!=null) {
-						if(arb.up_stamp==stamp-1) {
-							if(cb1._end > 0 && cb2._end > 0) {
+
+					//callbacks
+					var endcb = arb.up_stamp==stamp-1;
+					var begcb = arb.fresh;
+					assert(!begcb || arb.up_stamp==stamp, " fresh -> active=true hasn't held :(");
+
+					//docbs :: Bool->Bool->(Shape u Body)->(Shape u Body)->()
+					$(mixin docbs(S1,S2,o1,o2) {
+						var cb1 = o1.cbType;
+						var cb2 = o2.cbType;
+						if(cb1!=null && cb2!=null) {
+							if(begcb && cb1._begin > 0 && cb2._begin > 0) {
+								var i = _begin.ordered_get(cb1.id,cb2.id);
+								if(i!=null) {
+									if(S1 && S2) {
+										//special case shape-shape for performance/simplicity
+										var cb = push_callback(i,i.handler!=null);
+										cb.event = Flag(CbEvent,BEGIN);
+										cb.arbiter = arb;
+									}else {
+										var compound = compounds.ordered_get(o1.id,o2.id);
+										if(compound==null) {
+											var cb = push_callback(i,i.handler!=null);
+											cb.event = Flag(CbEvent,BEGIN);
+											cb.arbiter = arb;
+
+											compounds.add(Hashable2(Int).ordered_get(o1.id,o2.id,1));
+										}else
+											compound.value++;
+									}
+								}
+							}elif(endcb && cb1._end > 0 && cb2._end > 0) {
 								var i = _end.ordered_get(cb1.id,cb2.id);
 								if(i!=null) {
-									var cb = push_callback(i,i.handler!=null);
-									cb.event = Flag(CbEvent,END);
-									cb.arbiter = arb;
-									
-									// arbiter is about to be recycled.
-									// but we want to allow the user to perform actions
-									// using the arbiter in the callback (whether delayed or not)
-									// so we allow the arbiter to remain active
-									// and the cleaning up of it's associated callback deals
-									// with deactivating it
-		
+									if(S1 && S2) {
+										//special case shape-shape for performance/simplicity
+										var cb = push_callback(i,i.handler!=null);
+										cb.event = Flag(CbEvent,END);
+										cb.arbiter = arb;
+									}else {
+										var compound = compounds.ordered_get(o1.id,o2.id);
+										assert(compound!=null,"null compound on arbiter death");
+										if((--compound.value)==0) {
+											var cb = push_callback(i,i.handler!=null);
+											cb.event = Flag(CbEvent,END);
+											cb.arbiter = arb;
+
+											compounds.remove(compound);
+											Free(Hashable2(Int),compound);
+										}
+									}	
+									//arbiter is about to be recycled.
+									//but we want to allow user to perform actions
+									//using arbiter information
+									//so we force it to remain active one step longer.
 									arb.endcb = true;
 								}
 							}
 						}
-						//begin callback
-						else if(arb.fresh) {
-							if(cb1._begin > 0 && cb2._begin > 0) {
-								var i = _begin.ordered_get(cb1.id,cb2.id);
-								if(i!=null) {
-									var cb = push_callback(i,i.handler!=null);
-									cb.event = Flag(CbEvent,BEGIN);
-									cb.arbiter = arb;
-								}
-							}
-						}
-					}
+					});
+
+					docbs(true,true,arb.ws1,arb.ws2);
+					docbs(true,false,arb.ws1,arb.ws2.body);
+					docbs(false,true,arb.ws1.body,arb.ws2);
+					docbs(false,false,arb.ws1.body,arb.ws2.body);
+
 					arb.fresh = false;
 				}
 

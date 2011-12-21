@@ -373,7 +373,7 @@ class DummyNapeMain {
 
 		var cb = new CbType();
 
-		for(i in 0...20) {
+		for(i in 0...2) {
 		var b1 = new Body(); 
 		b1.position = new Vec2(50+Math.random()*700,Math.random()*250);
 
@@ -384,7 +384,8 @@ class DummyNapeMain {
 		b1.space = space;
 		b1.scaleShapes(0.5,0.5);
 
-		for(s in b1.shapes) s.cbType = cb;
+//		for(s in b1.shapes) s.cbType = cb;
+		b1.cbType = cb;
 
 		}
 
@@ -392,13 +393,15 @@ class DummyNapeMain {
 		b2.shapes.at(0).fluidEnabled= true;
 		b2.shapes.at(0).fluidProperties.density = 3;
 
-		for(s in b2.shapes) s.cbType = cb;
+//		for(s in b2.shapes) s.cbType = cb;
+		b2.cbType = cb;
 
 		var begin = new InteractionListener(CbEvent.BEGIN, cb, cb, function (x:Arbiter) {
-//			if(x.shape1==l || x.shape2==l) { l.body = null; b1.align(); }
+			trace("BEG "+x.toString());
 		});
 		begin.space = space;
 		var endh = new InteractionListener(CbEvent.END, cb, cb, function (x:Arbiter) {
+			trace("END "+x.toString());
 		});
 		endh.space = space;
 
@@ -423,7 +426,7 @@ class DummyNapeMain {
 			}
 			return ImmFlag.ACCEPT_ONCE;
 		});
-		pre.space = space;
+//		pre.space = space;
 		pre.pure = true;
 
 		var mcon = new PivotJoint(space.world,space.world,Vec2.weak(),Vec2.weak());
