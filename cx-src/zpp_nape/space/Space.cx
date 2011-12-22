@@ -1282,6 +1282,9 @@ class PR(Space) {
 					var begcb = arb.fresh;
 					assert(!begcb || arb.up_stamp==stamp, " fresh -> active=true hasn't held :(");
 
+					DEBUG(var endlist:PR(InteractionListener) = null;)
+					DEBUG(var beglist:PR(InteractionListener) = null;)
+
 					$(mixin docbs(S1,S2,o1,o2) {
 						var cb1 = o1.cbType;
 						var cb2 = o2.cbType;
@@ -1290,6 +1293,9 @@ class PR(Space) {
 								var i = _begin.ordered_get(cb1.id,cb2.id);
 								if(i!=null) {
 									if(S1 && S2) {
+										DEBUG(if(beglist!=null) throw "Error: Multiple valid listeners for BEGIN callback between possible shape/body combos, s1="+arb.ws1.outer.toString()+" s2="+arb.ws2.outer.toString()+". l1="+beglist.outer.toString()+" l2="+i.outer.toString();)
+										DEBUG(beglist=i;)
+
 										//special case shape-shape for performance/simplicity
 										var cb = push_callback(i,i.handler!=null);
 										cb.event = Flag(CbEvent,BEGIN);
@@ -1297,6 +1303,9 @@ class PR(Space) {
 									}else {
 										var compound = compounds.ordered_get(o1.id,o2.id);
 										if(compound==null) {
+											DEBUG(if(beglist!=null) throw "Error: Multiple valid listeners for BEGIN callback between possible shape/body combos, s1="+arb.ws1.outer.toString()+" s2="+arb.ws2.outer.toString()+". l1="+beglist.outer.toString()+" l2="+i.outer.toString();)
+											DEBUG(beglist=i;)									
+	
 											var cb = push_callback(i,i.handler!=null);
 											cb.event = Flag(CbEvent,BEGIN);
 											cb.arbiter = arb;
@@ -1312,6 +1321,9 @@ class PR(Space) {
 								var i = _end.ordered_get(cb1.id,cb2.id);
 								if(i!=null) {
 									if(S1 && S2) {
+										DEBUG(if(endlist!=null) throw "Error: Multiple valid listeners for END callback between possible shape/body combos, s1="+arb.ws1.outer.toString()+" s2="+arb.ws2.outer.toString()+". l1="+endlist.outer.toString()+" l2="+i.outer.toString();)
+										DEBUG(endlist=i;)
+										
 										//special case shape-shape for performance/simplicity
 										var cb = push_callback(i,i.handler!=null);
 										cb.event = Flag(CbEvent,END);
@@ -1321,6 +1333,9 @@ class PR(Space) {
 										assert(compound!=null,"null compound on arbiter death");
 										compound.value.remove(arb);
 										if(compound.value.empty()) {
+											DEBUG(if(endlist!=null) throw "Error: Multiple valid listeners for END callback between possible shape/body combos, s1="+arb.ws1.outer.toString()+" s2="+arb.ws2.outer.toString()+". l1="+endlist.outer.toString()+" l2="+i.outer.toString();)
+											DEBUG(endlist=i;)
+											
 											var cb = push_callback(i,i.handler!=null);
 											cb.event = Flag(CbEvent,END);
 											cb.arbiter = arb;
