@@ -426,24 +426,24 @@ class PR(Space) {
 					var cb1 = o1.cbType;
 					var cb2 = o2.cbType;
 					if(cb1!=null && cb2!=null) {
-						var endcb = false;
-						var i:PR(Listener) = null;
+						var endcb = null;
+						var exists = false;
 						if(cb1._end>0 && cb2._end>0) {
-							i = _end.ordered_get(cb1.id,cb2.id);
-							endcb = i!=null;
+							endcb = _end.ordered_get(cb1.id,cb2.id);
+							exists = endcb!=null;
 						}
-						if(i==null && cb1._begin>0 && cb2._begin>0)
-							i = _begin.ordered_get(cb1.id,cb2.id);
-						if(i==null && cb1._pre>0 && cb2._pre>0)
-							i = _pre.ordered_get(cb1.id,cb2.id);
+						if(!exists && cb1._begin>0 && cb2._begin>0)
+							exists = _begin.ordered_get(cb1.id,cb2.id) != null;
+						if(!exists && cb1._pre>0 && cb2._pre>0)
+							exists = _pre.ordered_get(cb1.id,cb2.id) != null;
 
-						if(i!=null) {
+						if(exists) {
 							var compound = compounds.ordered_get(o1.id,o2.id);
 							assert(compound!=null,"null compound on arbiter deletion?");
 							compound.value.remove(xarb);
 							if(compound.value.empty()) {
-								if(endcb && !deleting) {
-									var cb = push_callback(i,i.handler!=null);
+								if(endcb!=null && !deleting) {
+									var cb = push_callback(endcb,endcb.handler!=null);
 									cb.event = Flag(CbEvent,END);
 									cb.arbiter = xarb;
 								}
@@ -822,15 +822,15 @@ class PR(Space) {
 				var cb1 = o1.cbType;
 				var cb2 = o2.cbType;
 				if(cb1!=null && cb2!=null) {
-					var i = null;
+					var exists = false;
 					if(cb1._end>0 && cb2._end>0)
-						i = _end.ordered_get(cb1.id,cb2.id);
-					if(i==null && cb1._begin>0 && cb2._begin>0)
-						i = _begin.ordered_get(cb1.id,cb2.id);
-					if(i==null && cb1._pre>0 && cb2._pre>0)
-						i = _pre.ordered_get(cb1.id,cb2.id);
+						exists = _end.ordered_get(cb1.id,cb2.id)!=null;
+					if(!exists && cb1._begin>0 && cb2._begin>0)
+						exists = _begin.ordered_get(cb1.id,cb2.id)!=null;
+					if(!exists && cb1._pre>0 && cb2._pre>0)
+						exists = _pre.ordered_get(cb1.id,cb2.id)!=null;
 					
-					if(i!=null) {
+					if(exists) {
 						var compound = compounds.ordered_get(o1.id,o2.id);
 						assert(compound!=null,"null compound on nullBodyShapeType?");
 						compound.value.remove(xarb);
@@ -863,15 +863,15 @@ class PR(Space) {
 				var cb1 = o1.cbType;
 				var cb2 = o2.cbType;
 				if(cb1!=null && cb2!=null) {
-					var i = null;
+					var exists = false;
 					if(cb1._end>0 && cb2._end>0)
-						i = _end.ordered_get(cb1.id,cb2.id);
-					if(i==null && cb1._begin>0 && cb2._begin>0)
-						i = _begin.ordered_get(cb1.id,cb2.id);
-					if(i==null && cb1._pre>0 && cb2._pre>0)
-						i = _pre.ordered_get(cb1.id,cb2.id);
+						exists = _end.ordered_get(cb1.id,cb2.id) != null;
+					if(!exists && cb1._begin>0 && cb2._begin>0)
+						exists = _begin.ordered_get(cb1.id,cb2.id) != null;
+					if(!exists && cb1._pre>0 && cb2._pre>0)
+						exists = _pre.ordered_get(cb1.id,cb2.id) != null;
 
-					if(i!=null) {
+					if(exists) {
 						var compound = compounds.ordered_get(o1.id,o2.id);
 						if(compound==null) {
 							compound = HashedArbiters.ordered_get_persist(o1.id,o2.id);
