@@ -138,7 +138,7 @@ class PR(ShapeDebug) extends PR(Debug) {
     ///---------------------------------------------------------------------------------------------
 
      pr_debug(
-        $(mixin __lineStyle(XX,col,YY) graphics.lineStyle(XX,col,YY));
+        $(mixin __lineStyle(col,YY) graphics.lineStyle(outer_zn.thickness,col,YY));
         $(mixin __moveTo(x,y) graphics.moveTo(x,y));
         $(mixin __lineTo(x,y) graphics.lineTo(x,y));
         $(mixin __drawCircle(x,y,r) graphics.drawCircle(x,y,r));
@@ -414,7 +414,7 @@ class PR(BitmapDebug) extends PR(Debug) {
     flibmdel public inline function __round(x:Float):Int return fastint(x+0.5)
 
     pr_debug(
-        $(mixin __lineStyle(XX,col,YY) {
+        $(mixin __lineStyle(col,YY) {
             colour = col;
         });
 
@@ -472,7 +472,10 @@ class PR(BitmapDebug) extends PR(Debug) {
 ///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 
 $(mixin __colour(id,sleep) {
-    var idc:Int = fastint(0xffffff*Math.exp(-(id%500)/1500));
+	var idc:Int;
+	if(outer.colour==null) idc = fastint(0xffffff*Math.exp(-(id%500)/1500));
+	else				   idc = outer.colour(id);
+
 	var _r = (((idc&0xff0000)>>16))*0.7;
 	var _g = (((idc&0xff00)>>8))*0.7;
 	var _b = (idc&0xff)*0.7;
@@ -481,24 +484,6 @@ $(mixin __colour(id,sleep) {
         _r = 0.4*_r + 0.6*bg_r;
         _g = 0.4*_g + 0.6*bg_g;
         _b = 0.4*_b + 0.6*bg_b;
-    }
-	0xff000000|((fastint(_r))<<16)|((fastint(_g))<<8)|(fastint(_b));
-});
-
-$(mixin __con_colour(id,sleep) {
-    var idc:Int = fastint(0xffffff*Math.exp(-(id%500)/2500));
-	var _r = ((idc&0xff0000)>>16)*0.5;
-	var _g = ((idc&0xff00)>>8)*0.5;
-	var _b = (idc&0xff)*0.5;
-
-    _r = _r*0.6 + (0xff-bg_r)*0.4;
-    _g = _g*0.6 + (0xff-bg_g)*0.4;
-    _b = _b*0.6 + (0xff-bg_b)*0.4;
-		
-	if(sleep) {
-        _r = 0.6*_r + 0.4*bg_r;
-        _g = 0.6*_g + 0.4*bg_g;
-        _b = 0.6*_b + 0.4*bg_b;
     }
 	0xff000000|((fastint(_r))<<16)|((fastint(_g))<<8)|(fastint(_b));
 });
@@ -566,7 +551,7 @@ $(mixin pr_debug(utils)
         if(outer.drawBodyDetail) {
             var col = __colour(body.id, body.space!=null && body.outer.isSleeping);
             body.validate_worldCOM();
-            __lineStyle(0.1,__tint(col,0xff0000,0.8),1);
+            __lineStyle(__tint(col,0xff0000,0.8),1);
 
 			vec_new(p);
 			mat_xform_hom(xnull,xform,body.worldCOM,p);
@@ -583,7 +568,7 @@ $(mixin pr_debug(utils)
         if(body!=null) {
             var bcol = __colour(body.id, body.space!=null && body.outer.isSleeping);
             col = __tint(col,bcol,0.2);
-            __lineStyle(0.1,col,1.0);
+            __lineStyle(col,1.0);
 
             if(shape.isCircle()) {
                 var circ = shape.circle;
@@ -633,7 +618,7 @@ $(mixin pr_debug(utils)
 
             if(outer.drawShapeDetail) {
                 shape.validate_worldCOM();
-                __lineStyle(0.1,__tint(col,0xff0000,0.8),1);
+                __lineStyle(__tint(col,0xff0000,0.8),1);
 				vec_new(v); mat_xform_hom(xnull,xform,shape.worldCOM,v);
                 __drawCircle(vx,vy,1);
 
@@ -648,7 +633,7 @@ $(mixin pr_debug(utils)
         if(arb.outer.isSensorArbiter()) {
             if(outer.drawSensorArbiters) {
                 var sarb = arb.outer;
-                __lineStyle(0.1,__tint(0xff00,~bg_col,0.7),1);
+                __lineStyle(__tint(0xff00,~bg_col,0.7),1);
 				mat_xform_hom(xnull,xform,sarb.shape1.worldCOM.,v);
                 __moveTo(vx,vy);
 				mat_xform_hom(xnull,xform,sarb.shape2.worldCOM.,v);
@@ -657,7 +642,7 @@ $(mixin pr_debug(utils)
         }else if(arb.outer.isFluidArbiter()) {
             if(outer.drawFluidArbiters) {
                 var farb = arb.outer.fluidArbiter;
-                __lineStyle(0.1,__tint(0xff,~bg_col,0.7),1);
+                __lineStyle(__tint(0xff,~bg_col,0.7),1);
 				mat_xform_hom(xnull,xform,farb.position.,v);
                 __drawCircle(vx,vy,0.75);
             }
@@ -677,7 +662,7 @@ $(mixin pr_debug(utils)
                         x = -x;
                         y = -y;
                     }
-                    __lineStyle(0.1,__tint(0xff,~bg_col,0.7),1);
+                    __lineStyle(__tint(0xff,~bg_col,0.7),1);
 					vec_set(v,c1.x+n.x*y-n.y*x,c1.y+n.y*y+n.x*x);
 					mat_xform_hom(xnull,xform,v);
                     __moveTo(vx,vy);
@@ -685,7 +670,7 @@ $(mixin pr_debug(utils)
 					mat_xform_hom(xnull,xform,v);
                     __lineTo(vx,vy);
 
-                    __lineStyle(0.1,__tint(0xff0000,~bg_col,0.7),1);
+                    __lineStyle(__tint(0xff0000,~bg_col,0.7),1);
 					vec_set(v,c1.x-n.x*y-n.y*x,c1.y-n.y*y+n.x*x);
 					mat_xform_hom(xnull,xform,v);
                     __moveTo(vx,vy);
@@ -699,11 +684,11 @@ $(mixin pr_debug(utils)
                     vec_set(p, carb.contacts.at(0).position.);
 					mat_xform_hom(xnull,xform,p);
 
-                    __lineStyle(0.1,__tint(0xff00ff,~bg_col,0.7),1);
+                    __lineStyle(__tint(0xff00ff,~bg_col,0.7),1);
                     __drawCircle(px,py,1);
                 }
 					
-                __lineStyle(0.1,__tint(~bg_col,bg_col,0.7),1);
+                __lineStyle(__tint(~bg_col,bg_col,0.7),1);
                 __moveTo(px,py);
 				vec_set(v,carb.normal.x*5,carb.normal.y*5);
 				mat_xform(xnull,xform,v);
@@ -737,38 +722,38 @@ $(mixin pr_debug(utils)
                 var joint = cast(con, PR(PivotJoint));
 
                 vec_new(p1); LTW(joint.b1, joint.a1local, p1);
-                __lineStyle(0.1,blue,1);
+                __lineStyle(blue,1);
                 __drawCircle(p1x,p1y,1);
 
                 vec_new(p2); LTW(joint.b2, joint.a2local, p2);
-                __lineStyle(0.1,red,1);
+                __lineStyle(red,1);
                 __drawCircle(p2x,p2y,2);
 			}else if(Std.is(con, PR(DistanceJoint))) {
                 var joint = cast(con, PR(DistanceJoint));
 
                 vec_new(p1); LTW(joint.b1, joint.a1local, p1);
-                __lineStyle(0.1,blue,1);
+                __lineStyle(blue,1);
                 __drawCircle(p1x,p1y,1);
 
                 vec_new(p2); LTW(joint.b2, joint.a2local, p2);
-                __lineStyle(0.1,red,1);
+                __lineStyle(red,1);
                 __drawCircle(p2x,p2y,2);
 			}else if(Std.is(con, PR(WeldJoint))) {
                 var joint = cast(con, PR(WeldJoint));
 
                 vec_new(p1); LTW(joint.b1, joint.a1local, p1);
-                __lineStyle(0.1,blue,1);
+                __lineStyle(blue,1);
                 __drawCircle(p1x,p1y,1);
 
                 vec_new(p2); LTW(joint.b2, joint.a2local, p2);
-                __lineStyle(0.1,red,1);
+                __lineStyle(red,1);
                 __drawCircle(p2x,p2y,2);
 			}else if(Std.is(con, PR(LineJoint))) {
                 var joint = cast(con, PR(LineJoint));
 
                 vec_new(p1); LTW(joint.b1, joint.a1local, p1);
 
-                __lineStyle(0.1,green,1);
+                __lineStyle(green,1);
                 vec_new(dir); LTR(joint.b1, joint.nlocal, dir);
                 var min = joint.jointMin;
                 if(joint.jointMin!=-PR(Const).POSINF) {
@@ -787,10 +772,10 @@ $(mixin pr_debug(utils)
                 if(joint.jointMax!= PR(Const).POSINF) __drawCircle(e2x,e2y,2);
 
                 vec_new(p2); LTW(joint.b2, joint.a2local, p2);
-                __lineStyle(0.1,red,1);
+                __lineStyle(red,1);
                 __drawCircle(p2x,p2y,2);
 
-                __lineStyle(0.1,blue,1);
+                __lineStyle(blue,1);
                 __drawCircle(p1x,p1y,2);
 			}
         }
