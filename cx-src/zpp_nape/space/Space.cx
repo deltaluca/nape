@@ -128,7 +128,7 @@ class PR(Space) {
 	//to provide a quick lookup on any existing listener given that cbtype_1.event > 0 && cbtype_2.event > 0
 	public var _begin:FastHash2(PR(InteractionListener));
 	public var _end  :FastHash2(PR(InteractionListener));
-	public var _pre  :FastHash2(PR(ImmListener));
+	public var _pre  :FastHash2(PR(PreListener));
 
     public var callbacks:PR(Callback); //as a deque
     public var wrap_callbacks:CallbackQueue;
@@ -303,7 +303,7 @@ class PR(Space) {
 
 		_begin = new FastHash2(PR(InteractionListener))();
 		_end   = new FastHash2(PR(InteractionListener))();
-		_pre   = new FastHash2(PR(ImmListener))();
+		_pre   = new FastHash2(PR(PreListener))();
 
 		compounds = new FastHash2(HashedArbiters)();
 	}
@@ -1521,7 +1521,7 @@ class PR(Space) {
 							arb.up_stamp = arb.stamp;
 
 							//search for a pre-listener
-							var listener:PR(ImmListener) = null;
+							var listener:PR(PreListener) = null;
 							$(mixin docbs(o1,o2) {
 								if(RELEASE(listener==null) DEBUG(true)) {
 									var cb1 = o1.cbType;
@@ -1559,7 +1559,7 @@ class PR(Space) {
 								
 								arb.active = pact;
 
-								DEBUG(if(ret==null) throw "Error: ImmListener handler should not return null >.>";)
+								DEBUG(if(ret==null) throw "Error: PreListener handler should not return null >.>";)
 								arb.immState = 
 									if  (ret==ImmFlag.ACCEPT)      Flag(ImmState, ACCEPT) | Flag(ImmState, ALWAYS)
 									elif(ret==ImmFlag.ACCEPT_ONCE) Flag(ImmState, ACCEPT)

@@ -11,7 +11,7 @@ class PR(Listener) {
     public var body:PR(BodyListener);
     public var constraint:PR(ConstraintListener);
     public var interaction:PR(InteractionListener);
-    public var imm:PR(ImmListener);
+    public var imm:PR(PreListener);
 
     public var space:PR(Space);
 }
@@ -254,8 +254,8 @@ class PR(InteractionListener) extends PR(Listener) {
 	}
 }
 
-class PR(ImmListener) extends PR(Listener) {
-	public var outer_zn:ImmListener;
+class PR(PreListener) extends PR(Listener) {
+	public var outer_zn:PreListener;
 
     public var cb1:PR(CbType);
     public var cb2:PR(CbType);
@@ -263,7 +263,7 @@ class PR(ImmListener) extends PR(Listener) {
 	public var pure:Bool;
 
 	//used in hash lookups
-	public var hnext:PR(ImmListener);
+	public var hnext:PR(PreListener);
 	//ordered id's of cb1/cb2
 	public var id:Int; public var di:Int;
 
@@ -272,11 +272,11 @@ class PR(ImmListener) extends PR(Listener) {
 		this.handler = handler;
 		this.pure = pure;
 		imm = this;
-		type = Flag(ListenerType,IMM);
+		type = Flag(ListenerType,PRE);
 	}
 
 	public function wake() {
-		//ImmListener only needs ito wake the bodies.
+		//PreListener only needs ito wake the bodies.
 		//but we iterate the cb SHAPES, not the bodies
 		//as the bodies refer to Body callbacks, not Interaction/Imm callbacks
 		Iter(s, cb1.shapes, s.body.wake());

@@ -12,7 +12,7 @@ Flags(ListenerType,
     prop(BODY,0)
     prop(CONSTRAINT,1)
     prop(INTERACTION,2)
-    prop(IMM,3)
+    prop(PRE,3)
 )
 
 WrapList(Listener,List(PR(Listener)),Node(PR(Listener)),$(mixin closure(x) x.outer) $(mixin erusolc(x) x.pr(inner)))
@@ -23,7 +23,7 @@ class Listener {
     public var pr(inner):PR(Listener);
 
     property(type,ListenerType,{
-        [ListenerType.BODY,ListenerType.CONSTRAINT,ListenerType.INTERACTION,ListenerType.IMM][pr(inner).type];
+        [ListenerType.BODY,ListenerType.CONSTRAINT,ListenerType.INTERACTION,ListenerType.PRE][pr(inner).type];
     })
     property(event,CbEvent,{
         [CbEvent.BEGIN,CbEvent.END,CbEvent.WAKE,CbEvent.SLEEP,CbEvent.BREAK,CbEvent.PRE][pr(inner).event];
@@ -43,7 +43,7 @@ class Listener {
 			else if(pr(inner).type == Flag(ListenerType,INTERACTION))
 				pr(inner).interaction.swapEvent(xevent);
 			else {
-				if(xevent!=Flag(CbEvent,PRE)) throw "Error: ImmListener only accepts the PRE event type";
+				if(xevent!=Flag(CbEvent,PRE)) throw "Error: PreListener only accepts the PRE event type";
 			}
         }
     })
@@ -81,7 +81,7 @@ class Listener {
 			return "InteractionListener{"+event+"::"+con.outer_zn.cbType1+":"+con.outer_zn.cbType2+"}";
         }else {
 			var con = pr(inner).imm;
-			return "ImmListener{"+event+"::"+con.outer_zn.cbType1+":"+con.outer_zn.cbType2+"}";
+			return "PreListener{"+event+"::"+con.outer_zn.cbType1+":"+con.outer_zn.cbType2+"}";
 		}
     }
 }
@@ -208,8 +208,8 @@ class InteractionListener extends Listener {
 ///_________________________________________________________________________________________________
 ///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 
-class ImmListener extends Listener {
-	public var pr(inner_zn):PR(ImmListener);
+class PreListener extends Listener {
+	public var pr(inner_zn):PR(PreListener);
 
 	property(cbType1,CbType,pr(inner_zn).cb1.wrapper(),{
 		DEBUG(if(cbType1==null) throw "Error: Cannot assign null CbType to Listener";)
@@ -233,7 +233,7 @@ class ImmListener extends Listener {
 	//in the case of #_ONCE, the objects are forced to stay awake (in space)
 	//and so any change to handler does not need to wake any objects already.
 	property(handler,Arbiter->ImmFlag,pr(inner_zn).handler,{
-		DEBUG(if(handler==null) throw "Error: ImmListener must take a non-null handler!";)
+		DEBUG(if(handler==null) throw "Error: PreListener must take a non-null handler!";)
 		pr(inner_zn).handler = handler;
 
 		//we do not check that handler is not the same, as we want to allow this to be used
@@ -257,12 +257,12 @@ class ImmListener extends Listener {
 	public function new(cbType1:CbType, cbType2:CbType, handler:Arbiter->ImmFlag, ?pure=false) {
 		PR(Listener).internal = true; super(); PR(Listener).internal = false;
 
-		DEBUG(if(cbType1==null) throw "Error: ImmListener CbType1 cannot be null";)
-		DEBUG(if(cbType2==null) throw "Error: ImmListener CbType2 cannot be null";)
+		DEBUG(if(cbType1==null) throw "Error: PreListener CbType1 cannot be null";)
+		DEBUG(if(cbType2==null) throw "Error: PreListener CbType2 cannot be null";)
 
-		DEBUG(if(handler==null) throw "Error: ImmListener must take a handler!";)
+		DEBUG(if(handler==null) throw "Error: PreListener must take a handler!";)
 
-		pr(inner_zn) = new PR(ImmListener)(handler,pure);
+		pr(inner_zn) = new PR(PreListener)(handler,pure);
 		pr(inner) = pr(inner_zn);
 		pr(inner).outer = this;
 		pr(inner_zn).outer_zn = this;
