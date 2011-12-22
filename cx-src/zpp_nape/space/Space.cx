@@ -126,9 +126,9 @@ class PR(Space) {
 	//
 	//these hashes are indexed by the two associated cbtype id's
 	//to provide a quick lookup on any existing listener given that cbtype_1.event > 0 && cbtype_2.event > 0
-	public var _begin  :FastHash2(PR(InteractionListener));
-	public var _end    :FastHash2(PR(InteractionListener));
-	public var _pre    :FastHash2(PR(ImmListener));
+	public var _begin:FastHash2(PR(InteractionListener));
+	public var _end  :FastHash2(PR(InteractionListener));
+	public var _pre  :FastHash2(PR(ImmListener));
 
     public var callbacks:PR(Callback); //as a deque
     public var wrap_callbacks:CallbackQueue;
@@ -420,20 +420,22 @@ class PR(Space) {
 				//and we only care for compound callbacks as shape-shape are dealt
 				//with automaticaly and simply.
 				//
-				//we decrement on both begin/end callback existance
+				//we decrement on both begin/end callback existance also pre.
 				//as in either case the compound exists and must be cleaned
 				$(mixin docbs(o1,o2) {
 					var cb1 = o1.cbType;
 					var cb2 = o2.cbType;
 					if(cb1!=null && cb2!=null) {
 						var endcb = false;
-						var i = null;
+						var i:PR(Listener) = null;
 						if(cb1._end>0 && cb2._end>0) {
 							i = _end.ordered_get(cb1.id,cb2.id);
 							endcb = i!=null;
 						}
 						if(i==null && cb1._begin>0 && cb2._begin>0)
 							i = _begin.ordered_get(cb1.id,cb2.id);
+						if(i==null && cb1._pre>0 && cb2._pre>0)
+							i = _pre.ordered_get(cb1.id,cb2.id);
 
 						if(i!=null) {
 							var compound = compounds.ordered_get(o1.id,o2.id);
@@ -825,6 +827,8 @@ class PR(Space) {
 						i = _end.ordered_get(cb1.id,cb2.id);
 					if(i==null && cb1._begin>0 && cb2._begin>0)
 						i = _begin.ordered_get(cb1.id,cb2.id);
+					if(i==null && cb1._pre>0 && cb2._pre>0)
+						i = _pre.ordered_get(cb1.id,cb2.id);
 					
 					if(i!=null) {
 						var compound = compounds.ordered_get(o1.id,o2.id);
@@ -864,6 +868,8 @@ class PR(Space) {
 						i = _end.ordered_get(cb1.id,cb2.id);
 					if(i==null && cb1._begin>0 && cb2._begin>0)
 						i = _begin.ordered_get(cb1.id,cb2.id);
+					if(i==null && cb1._pre>0 && cb2._pre>0)
+						i = _pre.ordered_get(cb1.id,cb2.id);
 
 					if(i!=null) {
 						var compound = compounds.ordered_get(o1.id,o2.id);
