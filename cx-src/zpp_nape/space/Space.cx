@@ -1505,16 +1505,26 @@ class PR(Space) {
 								arb.fresh = arb.up_stamp<stamp-1; //handler persistance
 							arb.up_stamp = arb.stamp;
 
-							var cb1 = s1.cbType;
-							var cb2 = s2.cbType;
-							var listener = null;
-							//check state is not #_ALWAYS, else fresh.
-							if((cb1!=null && cb2!=null) && (arb.fresh || (arb.immState&Flag(ImmState,ALWAYS))==0)) {
-								arb.immState = Flag(ImmState,ACCEPT);
-								if(cb1._pre>0 && cb2._pre>0) {
-									var i = _pre.ordered_get(cb1.id,cb2.id);
-									if(i!=null) listener = i;
+							//search for a pre-listener
+							var listener:PR(ImmListener) = null;
+							$(mixin docbs(o1,o2) {
+								if(RELEASE(listener==null) DEBUG(true)) {
+									var cb1 = o1.cbType;
+									var cb2 = o2.cbType;
+									if(cb1!=null && cb2!=null && cb1._pre>0 && cb2._pre>0) {
+										DEBUG(var i) RELEASE(listener) = _pre.ordered_get(cb1.id,cb2.id);
+										DEBUG(if(i!=null && listener!=null) throw "Error: Multiple valid pre-listeners for possible shape/body combinations. s1="+s1.outer.toString()+" s2="+s2.outer.toString()+" and related bodies. l1="+i.outer.toString()+" l2="+listener.outer.toString();)
+										DEBUG(listener = i;)
+									}
 								}
+							});
+	
+							if(arb.fresh || (arb.immState&Flag(ImmState,ALWAYS))==0) {
+								arb.immState = Flag(ImmState,ACCEPT);
+								docbs(s1,s2);
+								docbs(s1.body,s2);
+								docbs(s1,s2.body);
+								docbs(s1.body,s2.body);
 							}
 							if(listener!=null) {
 								// arbiter (public) is not active in the situtation of a persistant
