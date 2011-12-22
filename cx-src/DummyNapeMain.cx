@@ -366,15 +366,7 @@ class DummyNapeMain {
 		b2.space = space;
 
 		var cb = new CbType();
-		b1.cbType = b2.cbType = cb;
-		b1.shapes.at(0).cbType = cb;
-
-/*		space.listeners.add(new InteractionListener(CbEvent.BEGIN, cb,cb, function(x:Arbiter) {
-			trace("BEG");
-		}));
-		space.listeners.add(new InteractionListener(CbEvent.END, cb,cb, function(x:Arbiter) {
-			trace("END");
-		}));*/
+		b1.shapes.at(0).cbType = b2.cbType = cb;
 
 		debug.clear();
 		debug.transform = new Mat23();
@@ -387,8 +379,8 @@ class DummyNapeMain {
 		}
 
 		drar();
-		space.listeners.add(new InteractionListener(CbEvent.END, cb,cb, function(x:Arbiter) {
-			trace("END");
+		space.listeners.add(new InteractionListener(CbEvent.END, cb,cb, function(x,y) {
+			trace("END "+x.toString()+" "+y.toString());
 		}));
 		b2.position.y -= 100;
 		drar();
@@ -454,12 +446,12 @@ class DummyNapeMain {
 //		for(s in b2.shapes) s.cbType = cb;
 		b2.cbType = cb;
 
-		var begin = new InteractionListener(CbEvent.BEGIN, cb, cb, function (x:Arbiter) {
-			trace("BEG "+x.toString());
+		var begin = new InteractionListener(CbEvent.BEGIN, cb, cb, function (x,y) {
+			trace("BEG "+x.toString()+" "+y.toString());
 		});
 		begin.space = space;
-		var endh = new InteractionListener(CbEvent.END, cb, cb, function (x:Arbiter) {
-			trace("END "+x.toString());
+		var endh = new InteractionListener(CbEvent.END, cb, cb, function (x,y) {
+			trace("END "+x.toString()+" "+y.toString());
 		});
 		endh.space = space;
 

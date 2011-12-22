@@ -162,6 +162,22 @@ class ConstraintListener extends Listener {
 ///_________________________________________________________________________________________________
 ///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 
+class Interactor {
+	property(shape,Shape,pr(inner).shape == null ? null : pr(inner).shape.outer)
+	property(body, Body, pr(inner).body  == null ? null : pr(inner).body .outer)
+
+	public function new() {
+		DEBUG(if(!PR(Interactor).internal)
+			throw "Error: Interactor is for callback use only, you shouldn't be trying to use these for your own purposes as they are automaticaly recycled";)
+	}
+
+	public var pr(inner):PR(Interactor);
+
+	@:$keep public function toString() {
+		return shape==null ? "@Int:"+body.toString()+"@" : "@Int:"+shape.toString()+"@";
+	}
+}
+
 class InteractionListener extends Listener {
 	public var pr(inner_zn):PR(InteractionListener);
 
@@ -180,11 +196,11 @@ class InteractionListener extends Listener {
 			con.swapCbType(2, cbType2.pr(inner));
 	})
 
-    property(handler,Arbiter->Void,pr(inner_zn).handler,pr(inner_zn).handler = handler)
+    property(handler,Interactor->Interactor->Void,pr(inner_zn).handler,pr(inner_zn).handler = handler)
 
     ///---------------------------------------------------------------------------------------------
 
-	public function new(event:CbEvent, cbType1:CbType, cbType2:CbType, ?handler:Arbiter->Void=null) {
+	public function new(event:CbEvent, cbType1:CbType, cbType2:CbType, ?handler:Interactor->Interactor->Void=null) {
 		PR(Listener).internal = true; super(); PR(Listener).internal = false;
 
 		var xevent = -1;

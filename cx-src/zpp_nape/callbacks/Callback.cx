@@ -31,21 +31,23 @@ class PR(Callback) {
 		// don't set to null here!
 		// as when processing callback queue
 		// CallBack's are auto gc-ed !
-		//arbiter = null;
-		//body = null;
-		//constraint = null;
 	}
 	flibmdel public inline function alloc() {
 		//do it here instead :)
-		arbiter = null;
+		if(int1!=null) {
+			int1 = int2 = null;
+			Free(PR(Interactor),int1);
+			Free(PR(Interactor),int2);
+		}
 		body = null;
 		constraint = null;
 	}
 	
 	//----------------
 	
-	//BEGIN,END,ONGOING
-	public var arbiter:PR(Arbiter);
+	//BEGIN/END
+	public var int1:PR(Interactor);
+	public var int2:PR(Interactor);
 	//SLEEP/WAKE
 	public var body:PR(Body);
 	//SLEEP/WAKE/BREAK

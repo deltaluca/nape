@@ -422,7 +422,7 @@ class PR(Space) {
 				//
 				//we decrement on both begin/end callback existance also pre.
 				//as in either case the compound exists and must be cleaned
-				$(mixin docbs(o1,o2) {
+				$(mixin docbs(S1,S2,o1,o2) {
 					var cb1 = o1.cbType;
 					var cb2 = o2.cbType;
 					if(cb1!=null && cb2!=null) {
@@ -445,7 +445,7 @@ class PR(Space) {
 								if(endcb!=null && !deleting) {
 									var cb = push_callback(endcb,endcb.handler!=null);
 									cb.event = Flag(CbEvent,END);
-									cb.arbiter = xarb;
+									PR(Interactor).int_callback(S1,S2)(o1,o2,endcb.cb1,cb);
 								}
 
 								compounds.remove(compound);
@@ -455,9 +455,9 @@ class PR(Space) {
 					}
 				});
 				if(xarb.active) {
-					docbs(xarb.ws1,xarb.ws2.body);
-					docbs(xarb.ws1.body,xarb.ws2);
-					docbs(xarb.ws1.body,xarb.ws2.body);
+					docbs(true,false,xarb.ws1,xarb.ws2.body);
+					docbs(false,true,xarb.ws1.body,xarb.ws2);
+					docbs(false,false,xarb.ws1.body,xarb.ws2.body);
 				}
 
 				//wake connected first.
@@ -724,17 +724,10 @@ class PR(Space) {
 					o.handler(cb.constraint.outer);
 				}else if(cb.listener.type==Flag(ListenerType,INTERACTION)) {
 					var o = cb.listener.interaction;
-					//not valid assertion with removal of shapes
-					//assert(cb.arbiter.endcb == (cb.listener.event == Flag(CbEvent, END)), "end-cb arbiter doesn't have endcb flag set?"+([cb.arbiter.endcb,cb.listener.event==Flag(CbEvent,END)]));
-					//assert(!cb.arbiter.endcb || cb.arbiter.b1!=null, "endcb flag ("+cb.arbiter.endcb+") not -> implicit active ("+cb.arbiter.b1+")");
-	
-					o.handler(cb.arbiter.wrapper());
-					//
-					//though endcb is set to false on prestep
-					//we can do better in a handler case and set it
-					//false immediately :)
-					if(cb.listener.event==Flag(CbEvent,END))
-						cb.arbiter.endcb = false;
+					o.handler(cb.int1.outer,cb.int2.outer);
+					Free(PR(Interactor),cb.int1);
+					Free(PR(Interactor),cb.int2);
+					cb.int1 = cb.int2 = null;
 				}
 	
 				cx_ite = callbacks.splice(cb);
@@ -1299,7 +1292,7 @@ class PR(Space) {
 										//special case shape-shape for performance/simplicity
 										var cb = push_callback(i,i.handler!=null);
 										cb.event = Flag(CbEvent,BEGIN);
-										cb.arbiter = arb;
+										PR(Interactor).int_callback(S1,S2)(o1,o2,i.cb1,cb);
 									}else {
 										var compound = compounds.ordered_get(o1.id,o2.id);
 										if(compound==null) {
@@ -1308,7 +1301,7 @@ class PR(Space) {
 	
 											var cb = push_callback(i,i.handler!=null);
 											cb.event = Flag(CbEvent,BEGIN);
-											cb.arbiter = arb;
+											PR(Interactor).int_callback(S1,S2)(o1,o2,i.cb1,cb);
 
 											compound = HashedArbiters.ordered_get_persist(o1.id,o2.id);
 											if(compound.value==null) compound.value = new FastHash2(PR(Arbiter))();
@@ -1327,7 +1320,7 @@ class PR(Space) {
 										//special case shape-shape for performance/simplicity
 										var cb = push_callback(i,i.handler!=null);
 										cb.event = Flag(CbEvent,END);
-										cb.arbiter = arb;
+										PR(Interactor).int_callback(S1,S2)(o1,o2,i.cb1,cb);
 									}else {
 										var compound = compounds.ordered_get(o1.id,o2.id);
 										assert(compound!=null,"null compound on arbiter death");
@@ -1338,7 +1331,7 @@ class PR(Space) {
 											
 											var cb = push_callback(i,i.handler!=null);
 											cb.event = Flag(CbEvent,END);
-											cb.arbiter = arb;
+											PR(Interactor).int_callback(S1,S2)(o1,o2,i.cb1,cb);
 
 											compounds.remove(compound);
 											Free(HashedArbiters,compound);
