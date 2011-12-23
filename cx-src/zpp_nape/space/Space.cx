@@ -447,7 +447,6 @@ class PR(Space) {
 									cb.event = Flag(CbEvent,END);
 									PR(Interactor).int_callback(S1,S2)(o1,o2,endcb.cb1,cb);
 								}
-
 								compounds.remove(compound);
 								Free(HashedArbiters,compound);
 							}
@@ -1285,71 +1284,77 @@ class PR(Space) {
 						var cb1 = o1.cbType;
 						var cb2 = o2.cbType;
 						if(cb1!=null && cb2!=null) {
-							if(begcb && cb1._begin > 0 && cb2._begin > 0) {
-								var i = _begin.ordered_get(cb1.id,cb2.id);
-								if(i!=null) {
-									if(S1 && S2) {
-										DEBUG(if(beglist!=null) throw "Error: Multiple valid listeners for BEGIN callback between possible shape/body combos, s1="+arb.ws1.outer.toString()+" s2="+arb.ws2.outer.toString()+". l1="+beglist.outer.toString()+" l2="+i.outer.toString();)
-										DEBUG(beglist=i;)
+							var exists = false;
+							var begi:PR(InteractionListener) = null;
+							var endi:PR(InteractionListener) = null;
+							if(cb1._begin > 0 && cb2._begin > 0) {
+								exists = (begi = _begin.ordered_get(cb1.id,cb2.id)) != null;
+							}
+							if(cb1._end > 0 && cb2._end > 0) {
+								endi = _end.ordered_get(cb1.id,cb2.id);
+								exists = exists || (endi != null);
+							}
+							if(!exists && cb1._pre>0 && cb2._pre>0)
+								exists = _pre.ordered_get(cb1.id,cb2.id)!=null;
 
-										//special case shape-shape for performance/simplicity
-										var cb = push_callback(i,i.handler!=null);
+							if(exists) {
+								DEBUG(
+									if(beglist!=null && begi!=null) throw "Error: Multiple valid listeners for BEGIN callback between possible shape/body combies, s1="+arb.ws1.outer.toString()+" s2="+arb.ws2.outer.toString()+". l1="+beglist.outer.toString()+" l2="+begi.outer.toString();
+									if(begi!=null) beglist = begi;
+
+									if(endlist!=null && endi!=null) throw "Error: Multiple valid listeners for END callback between possible shape/body combies, s1="+arb.ws1.outer.toString()+" s2="+arb.ws2.outer.toString()+". l1="+endlist.outer.toString()+" l2="+endi.outer.toString();
+									if(endi!=null) endlist = endi;
+								)
+								if(S1 && S2) {
+									//special case shape-shape
+									if(begcb && begi!=null) {
+										var cb = push_callback(begi,begi.handler!=null);
 										cb.event = Flag(CbEvent,BEGIN);
-										PR(Interactor).int_callback(S1,S2)(o1,o2,i.cb1,cb);
-									}else {
-										var compound = compounds.ordered_get(o1.id,o2.id);
+										PR(Interactor).int_callback(S1,S2)(o1,o2,begi.cb1,cb);
+									}elif(endcb && endi!=null) {
+										var cb = push_callback(endi,endi.handler!=null);
+										cb.event = Flag(CbEvent,END);
+										PR(Interactor).int_callback(S1,S2)(o1,o2,endi.cb1,cb);
+									}
+								}else {
+									var compound = compounds.ordered_get(o1.id,o2.id);
+									if(begcb) {
 										if(compound==null) {
-											DEBUG(if(beglist!=null) throw "Error: Multiple valid listeners for BEGIN callback between possible shape/body combos, s1="+arb.ws1.outer.toString()+" s2="+arb.ws2.outer.toString()+". l1="+beglist.outer.toString()+" l2="+i.outer.toString();)
-											DEBUG(beglist=i;)									
-	
-											var cb = push_callback(i,i.handler!=null);
-											cb.event = Flag(CbEvent,BEGIN);
-											PR(Interactor).int_callback(S1,S2)(o1,o2,i.cb1,cb);
-
 											compound = HashedArbiters.ordered_get_persist(o1.id,o2.id);
 											if(compound.value==null) compound.value = new FastHash2(PR(Arbiter))();
 											compounds.add(compound);
+
+											if(begi!=null) {
+												var cb = push_callback(begi,begi.handler!=null);
+												cb.event = Flag(CbEvent,BEGIN);
+												PR(Interactor).int_callback(S1,S2)(o1,o2,begi.cb1,cb);
+											}
 										}
 										compound.value.maybeAdd(arb);
-									}
-								}
-							}elif(endcb && cb1._end > 0 && cb2._end > 0) {
-								var i = _end.ordered_get(cb1.id,cb2.id);
-								if(i!=null) {
-									if(S1 && S2) {
-										DEBUG(if(endlist!=null) throw "Error: Multiple valid listeners for END callback between possible shape/body combos, s1="+arb.ws1.outer.toString()+" s2="+arb.ws2.outer.toString()+". l1="+endlist.outer.toString()+" l2="+i.outer.toString();)
-										DEBUG(endlist=i;)
-										
-										//special case shape-shape for performance/simplicity
-										var cb = push_callback(i,i.handler!=null);
-										cb.event = Flag(CbEvent,END);
-										PR(Interactor).int_callback(S1,S2)(o1,o2,i.cb1,cb);
-									}else {
-										var compound = compounds.ordered_get(o1.id,o2.id);
-										assert(compound!=null,"null compound on arbiter death");
+									}elif(endcb) {
+										assert(compound!=null,"end arbiter with no compound");
 										compound.value.remove(arb);
-										if(compound.value.empty()) {
-											DEBUG(if(endlist!=null) throw "Error: Multiple valid listeners for END callback between possible shape/body combos, s1="+arb.ws1.outer.toString()+" s2="+arb.ws2.outer.toString()+". l1="+endlist.outer.toString()+" l2="+i.outer.toString();)
-											DEBUG(endlist=i;)
-											
-											var cb = push_callback(i,i.handler!=null);
-											cb.event = Flag(CbEvent,END);
-											PR(Interactor).int_callback(S1,S2)(o1,o2,i.cb1,cb);
-
+										if(compound.value.empty()) { 
 											compounds.remove(compound);
 											Free(HashedArbiters,compound);
+
+											if(endi!=null) {
+												var cb = push_callback(endi,endi.handler!=null);
+												cb.event = Flag(CbEvent,END);
+												PR(Interactor).int_callback(S1,S2)(o1,o2,endi.cb1,cb);
+											}
 										}
-									}	
+									}
 								}
 							}
 						}
 					});
-
-					docbs(true,true,arb.ws1,arb.ws2);
-					docbs(true,false,arb.ws1,arb.ws2.body);
-					docbs(false,true,arb.ws1.body,arb.ws2);
-					docbs(false,false,arb.ws1.body,arb.ws2.body);
-
+					if(begcb || endcb) {
+						docbs(true,true,arb.ws1,arb.ws2);
+						docbs(true,false,arb.ws1,arb.ws2.body);
+						docbs(false,true,arb.ws1.body,arb.ws2);
+						docbs(false,false,arb.ws1.body,arb.ws2.body);
+					}
 					arb.fresh = false;
 				}
 
@@ -1494,6 +1499,7 @@ class PR(Space) {
                 var reverse = sa == s2;
 
 				$(mixin narrowed(arb,Type,arbs, cond, waking,collisions) {
+					trace("dum...");
 					if(first || arb.stamp!=stamp) {
 						arb.stamp = stamp;
 
@@ -1505,6 +1511,7 @@ class PR(Space) {
 								arb.fresh = !swapped;
 							}else
 								arb.fresh = arb.up_stamp<stamp-1; //handler persistance
+							trace([first,arb.fresh,arb.up_stamp,stamp]);
 							arb.up_stamp = arb.stamp;
 
 							//search for a pre-listener

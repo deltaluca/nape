@@ -358,7 +358,7 @@ class DummyNapeMain {
 		b1.shapes.add(new Polygon(Polygon.rect(50,150,100,100)));
 		b1.space = space;
 
-		var b2 = new Body(BodyType.KINEMATIC);
+		var b2 = new Body(BodyType.DYNAMIC);
 		b2.shapes.add(new Polygon(Polygon.rect(-20,-40,40,40)));
 		b2.shapes.add(new Polygon(Polygon.rect(-20,0,40,40)));
 
@@ -378,16 +378,19 @@ class DummyNapeMain {
 			debug.transform.tx += 140;
 		}
 
-		drar();
+		space.listeners.add(new PreListener(cb,cb, function(x) {
+			trace("PRE "+x.toString());
+			return ImmFlag.ACCEPT;
+		}));
+		space.listeners.add(new InteractionListener(CbEvent.BEGIN, cb,cb, function(x,y) {
+			trace("BEG "+x.toString()+" "+y.toString());
+		}));
 		space.listeners.add(new InteractionListener(CbEvent.END, cb,cb, function(x,y) {
 			trace("END "+x.toString()+" "+y.toString());
 		}));
+		drar();
 		b2.position.y -= 100;
 		drar();
-//		space.listeners.add(new PreListener(cb,cb, function(y) {
-//			trace("PRE "+y.toString());
-//			return ImmFlag.ACCEPT;
-//		}));
 		b2.position.y += 100;
 		drar();
 		b2.position.y -= 100;

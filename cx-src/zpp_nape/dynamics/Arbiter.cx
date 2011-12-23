@@ -154,12 +154,6 @@ class PR(Arbiter) {
 	//given argument should not have arbiter removed as is done externally
 	flibmdel public inline function lazyRetire(s:PR(Space), b:PR(Body)=null) {
         ///at entry, arbiter should not have already been cleared.
-		
-		//it is possible for an endcb arbiter to be lazily retired
-		// *situation = handling end-cb, and remove a body/shape correspondingly from the space
-		//since no arbiter information is destroyed on a lazy retire
-		//this is perfectly fine
-
         assert(!cleared,"Arbiter::lazyRetire");
 		cleared = true;
 
@@ -204,7 +198,7 @@ class PR(Arbiter) {
         assert(b1!=null,"Arbiter::sup_retire");
         assert(b2!=null,"Arbiter::sup_retire");
 
-	       if(!cleared) { //only need to remove arbiters if not prematurely cleared.
+	    if(!cleared) { //only need to remove arbiters if not prematurely cleared.
 			b1.arbiters.remove(this);
 			b2.arbiters.remove(this);
 			if(pair!=null) { pair.arb = null; pair = null; }
