@@ -644,9 +644,9 @@ class PR(Space) {
 		validation();
 		#if NAPE_TIMES Debug.VALID += flash.Lib.getTimer()-pt; #end
 		
-        #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
+        #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end 
 		bphase.broadphase();
-        #if NAPE_TIMES Debug.BROAD += flash.Lib.getTimer()-pt; #end
+        #if NAPE_TIMES Debug.BROAD += flash.Lib.getTimer()-pt; #end 
 
         #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
 		doForests(deltaTime);
@@ -698,8 +698,8 @@ class PR(Space) {
 					cur.invalidate_rot();
 				cur.pre_rot = cur.rot;
 
-				if(!bphase.is_sweep)
-					Iter(shape,cur.shapes,bphase.sync(shape))
+		//		if(!bphase.is_sweep)
+		//			Iter(shape,cur.shapes,bphase.sync(shape))
 			});
 		});
 		doit2(kinematics);
@@ -1173,6 +1173,9 @@ class PR(Space) {
                     }
                     cur.component.woken = false;
                 }
+
+				if(!bphase.is_sweep)
+					Iter(shape,cur.shapes,bphase.sync(shape));
 			});
 		});
 		
@@ -1499,7 +1502,6 @@ class PR(Space) {
                 var reverse = sa == s2;
 
 				$(mixin narrowed(arb,Type,arbs, cond, waking,collisions) {
-					trace("dum...");
 					if(first || arb.stamp!=stamp) {
 						arb.stamp = stamp;
 
@@ -1511,7 +1513,6 @@ class PR(Space) {
 								arb.fresh = !swapped;
 							}else
 								arb.fresh = arb.up_stamp<stamp-1; //handler persistance
-							trace([first,arb.fresh,arb.up_stamp,stamp]);
 							arb.up_stamp = arb.stamp;
 
 							//search for a pre-listener
