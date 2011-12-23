@@ -41,7 +41,7 @@ class PR(Arbiter) {
 	//used in various parts of API
 
 	flibmdel public inline function inactiveme() {
-		return !(active || endcb);
+		return !active;
 	}
 
     ///---------------------------------------------------------------------------------------------
@@ -92,11 +92,6 @@ class PR(Arbiter) {
 
 	//used to swap between begin/ongoing style cb
 	public var fresh:Bool;
-
-	//used to mark an arbiter for an end callback
-	//so that it is not deactivated before the user
-	//can process it
-	public var endcb:Bool;
 
 	//imm cb flag
 	public var immState:Int; //ImmState
@@ -201,12 +196,10 @@ class PR(Arbiter) {
 		cleared  = false;
 		sleeping = false;
 		fresh    = false;
-		endcb    = false;
 	}
 	
     //called by sub-types on retirement.
 	flibmdel public inline function sup_retire() {
-		assert(!endcb,"retiring an arbiter that still has endcb set? bad times!! :(");
         ///arbiter should not have been fully retired yet, check this via body existance
         assert(b1!=null,"Arbiter::sup_retire");
         assert(b2!=null,"Arbiter::sup_retire");

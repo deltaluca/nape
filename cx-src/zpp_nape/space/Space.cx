@@ -1273,9 +1273,6 @@ class PR(Space) {
 				arb.active = pact;
 
 				if(!arb.cleared) {	
-					//reset
-					arb.endcb = false;
-
 					//callbacks
 					var endcb = arb.up_stamp==stamp-1;
 					var begcb = arb.fresh;
@@ -1343,11 +1340,6 @@ class PR(Space) {
 											Free(HashedArbiters,compound);
 										}
 									}	
-									//arbiter is about to be recycled.
-									//but we want to allow user to perform actions
-									//using arbiter information
-									//so we force it to remain active one step longer.
-									arb.endcb = true;
 								}
 							}
 						}
@@ -1362,13 +1354,9 @@ class PR(Space) {
 				}
 
 				//no need for sensor/fluid arbiters to persist after deactivation, just remove now.
-				// ^^ edit: no need for them to persist for more than a single frame! (if used in an end callback)
-				//          aka if endcb flag is set, we delay retirement (endcb is reset after a frame)
 				if(arb.cleared //always retire
-			 	 || ( arb.up_stamp + (arb.type==PR(Arbiter).COL ? PR(Config).PERSIST : 0) < stamp //possibly delayed age-death
-				   && !arb.endcb ) // but not if part of an end callback!!
+			 	 || arb.up_stamp + (arb.type==PR(Arbiter).COL ? PR(Config).PERSIST : 0) < stamp //possibly delayed age-death
 				) {
-					assert(!(arb.endcb && arb.cleared), "end cb was cleared? oops "+([arb.endcb,arb.cleared,arb.up_stamp,stamp-1]));
 					if(!arb.cleared)
 						map_arb.remove(arb);
 					arb.retire();
