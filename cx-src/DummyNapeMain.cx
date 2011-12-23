@@ -384,21 +384,20 @@ class DummyNapeMain {
 		}));
 		b2.position.y -= 100;
 		drar();
-		space.listeners.clear();
-		space.listeners.add(new PreListener(cb,cb, function(x:Arbiter) {
-			trace("PRE");
-			return ImmFlag.ACCEPT;
+		space.listeners.add(new InteractionListener(CbEvent.BEGIN, cb,cb, function(x,y) {
+			trace("BEG "+x.toString()+" "+y.toString());
 		}));
 		b2.position.y += 100;
 		drar();
 		b2.position.y -= 100;
+		for(l in space.listeners) cast(l,InteractionListener).cbType1 = new CbType();
 		drar();
-		cast(space.listeners.at(0),PreListener).cbType1 = new CbType();
+		for(l in space.listeners) cast(l,InteractionListener).cbType1 = cb;
 		b2.position.y += 100;
 		drar();
 	}
 
-	static function mains() {
+	static function man() {
 		var root = flash.Lib.current;
 		var space = new Space(Vec2.weak(0,300));
 		var debug = new BitmapDebug(800,600,0x333333);
@@ -476,7 +475,7 @@ class DummyNapeMain {
 			}
 			return ImmFlag.ACCEPT_ONCE;
 		});
-//		pre.space = space;
+		pre.space = space;
 		pre.pure = true;
 
 		var mcon = new PivotJoint(space.world,space.world,Vec2.weak(),Vec2.weak());

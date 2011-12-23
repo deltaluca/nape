@@ -190,7 +190,7 @@ class PR(InteractionListener) extends PR(Listener) {
 		type = Flag(ListenerType,INTERACTION);
 	}
 
-	flibmdel public inline function addedToSpace() {
+	flibmdel public inline function addedToSpace(?skip=false) {
 		assert(cb1!=null && cb2!=null,"listener added to space with no cbtypes associated?");
 
 		cb1.listeners.add(this);
@@ -199,19 +199,21 @@ class PR(InteractionListener) extends PR(Listener) {
 		if  (event==Flag(CbEvent,BEGIN))   { cb1._begin++;   if(cb2!=cb1) cb2._begin++;   }
 		else                               { cb1._end++;     if(cb2!=cb1) cb2._end++;     }
 
-		//see if this is a new compound callback listener for the two types
-		//aka if begin, check for an end existing already etc
-		if((event==Flag(CbEvent,BEGIN) && cbnhas(cb1,cb2,end) && cbnhas(cb1,cb2,pre))
-		|| (event==Flag(CbEvent,END)   && cbnhas(cb1,cb2,begin) && cbnhas(cb1,cb2,pre))) {
-			Iter(shape, cb1.shapes, space.freshShapeType(shape));
-			Iter(body,  cb1.bodies, space.freshBodyType (body));
-			if(cb2!=cb1) {
-				Iter(shape, cb2.shapes, space.freshShapeType(shape));
-				Iter(body,  cb2.bodies, space.freshBodyType (body));
+		if(!skip) {
+			//see if this is a new compound callback listener for the two types
+			//aka if begin, check for an end existing already etc
+			if((event==Flag(CbEvent,BEGIN) && cbnhas(cb1,cb2,end) && cbnhas(cb1,cb2,pre))
+			|| (event==Flag(CbEvent,END)   && cbnhas(cb1,cb2,begin) && cbnhas(cb1,cb2,pre))) {
+				Iter(shape, cb1.shapes, space.freshShapeType(shape,cb1,cb2));
+				Iter(body,  cb1.bodies, space.freshBodyType (body,cb1,cb2));
+				if(cb2!=cb1) {
+					Iter(shape, cb2.shapes, space.freshShapeType(shape,cb1,cb2));
+					Iter(body,  cb2.bodies, space.freshBodyType (body,cb1,cb2));
+				}
 			}
 		}
 	}
-	flibmdel public inline function removedFromSpace() {
+	flibmdel public inline function removedFromSpace(?skip=false) {
 		assert(cb1!=null && cb2!=null,"listener added to space with no cbtypes associated?");
 
 		cb1.listeners.remove(this);
@@ -220,21 +222,37 @@ class PR(InteractionListener) extends PR(Listener) {
 		if  (event==Flag(CbEvent,BEGIN))   { cb1._begin--;   if(cb2!=cb1) cb2._begin--;   }
 		else                               { cb1._end--;     if(cb2!=cb1) cb2._end--;     }
 
-		//see if this was the only compound callback listener
-		//aka if begin, check end doesn't exist
-		if((event==Flag(CbEvent,BEGIN) && cbnhas(cb1,cb2,end) && cbnhas(cb1,cb2,pre))
-		|| (event==Flag(CbEvent,END)   && cbnhas(cb1,cb2,begin) && cbnhas(cb1,cb2,pre))) {
-			Iter(shape, cb1.shapes, { space.nullShapeType(shape); space.freshShapeType(shape);} );
-			Iter(body,  cb1.bodies, { space.nullBodyType (body); space.freshBodyType(body);} );
-			if(cb2!=cb1) {
-				Iter(shape, cb2.shapes, { space.nullShapeType(shape); space.freshShapeType(shape);} );
-				Iter(body,  cb2.bodies, { space.nullBodyType (body); space.freshBodyType(body);} );
+		if(!skip) {
+			//see if this was the only compound callback listener
+			//aka if begin, check end doesn't exist
+			if((event==Flag(CbEvent,BEGIN) && cbnhas(cb1,cb2,end) && cbnhas(cb1,cb2,pre))
+			|| (event==Flag(CbEvent,END)   && cbnhas(cb1,cb2,begin) && cbnhas(cb1,cb2,pre))) {
+				Iter(shape, cb1.shapes, space.nullShapeType(shape,cb1,cb2));
+				Iter(body,  cb1.bodies, space.nullBodyType (body,cb1,cb2));
+				if(cb2!=cb1) {
+					Iter(shape, cb2.shapes, space.nullShapeType(shape,cb1,cb2));
+					Iter(body,  cb2.bodies, space.nullBodyType (body,cb1,cb2));
+				}
 			}
 		}
 	}
 
     flibmdel public inline function swapCbType(which:Int, newcb:PR(CbType)) {
         assert(newcb!=null,"swap to null cbtype?");
+
+		if(cb1!=null && cb2!=null && space!=null) {	
+			space.revoke_listener(this);
+
+			if((event==Flag(CbEvent,BEGIN) && cbnhas(cb1,cb2,end) && cbnhas(cb1,cb2,pre))
+			|| (event==Flag(CbEvent,END)   && cbnhas(cb1,cb2,begin) && cbnhas(cb1,cb2,pre))) {
+				Iter(shape, cb1.shapes, space.nullShapeType(shape,cb1,cb2));
+				Iter(body,  cb1.bodies, space.nullBodyType (body,cb1,cb2));
+				if(cb2!=cb1) {
+					Iter(shape, cb2.shapes, space.nullShapeType(shape,cb1,cb2));
+					Iter(body,  cb2.bodies, space.nullBodyType (body,cb1,cb2));
+				}
+			}
+		}
 
 		$(mixin dope(dip,dat) {
 			if(space!=null) {
@@ -260,21 +278,22 @@ class PR(InteractionListener) extends PR(Listener) {
 		else         dope(cb2,cb1);
 
 		if(cb1!=null && cb2!=null) {
-			if(space!=null) space.revoke_listener(this);
-
 			//set hash id's
 			if(cb1.id <= cb2.id)
 				 { id = cb1.id; di = cb2.id; }
 			else { id = cb2.id; di = cb1.id; }
 
-			if(space!=null) space.unrevoke_listener(this);
-
 			if(space!=null) {
-				Iter(shape, cb1.shapes, { space.nullShapeType(shape); space.freshShapeType(shape);} );
-				Iter(body,  cb1.bodies, { space.nullBodyType (body); space.freshBodyType(body);} );
-				if(cb2!=cb1) {
-					Iter(shape, cb2.shapes, { space.nullShapeType(shape); space.freshShapeType(shape);} );
-					Iter(body,  cb2.bodies, { space.nullBodyType (body); space.freshBodyType(body);} );
+				space.unrevoke_listener(this);
+
+				if((event==Flag(CbEvent,BEGIN) && cbnhas(cb1,cb2,end) && cbnhas(cb1,cb2,pre))
+				|| (event==Flag(CbEvent,END)   && cbnhas(cb1,cb2,begin) && cbnhas(cb1,cb2,pre))) {
+					Iter(shape, cb1.shapes, space.freshShapeType(shape,cb1,cb2));
+					Iter(body,  cb1.bodies, space.freshBodyType (body,cb1,cb2));
+					if(cb2!=cb1) {
+						Iter(shape, cb2.shapes, space.freshShapeType(shape,cb1,cb2));
+						Iter(body,  cb2.bodies, space.freshBodyType (body,cb1,cb2));
+					}
 				}
 			}
 		}
@@ -285,9 +304,9 @@ class PR(InteractionListener) extends PR(Listener) {
 			if(newev != Flag(CbEvent,BEGIN) && newev != Flag(CbEvent,END))
 				throw "Error: InteractionListener event must be either BEGIN, END";
 		)
-		removedFromSpace();
+		removedFromSpace(true);
 		event = newev;
-		addedToSpace();
+		addedToSpace(true);
 	}
 }
 

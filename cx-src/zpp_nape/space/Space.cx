@@ -800,21 +800,24 @@ class PR(Space) {
 	//on listener addition/removal/changes
 
 	//called before set to null.
-	flibmdel public inline function nullBodyType(body:PR(Body)) {
+	flibmdel public inline function nullBodyType(body:PR(Body),incb1:PR(CbType)=null,incb2:PR(CbType)=null) {
 		nullBodyShapeType(body, $(mixin forobject(x) true) forobject);
 	}
-	flibmdel public inline function nullShapeType(shape:PR(Shape)) {
+	flibmdel public inline function nullShapeType(shape:PR(Shape),incb1:PR(CbType)=null,incb2:PR(CbType)=null) {
 		nullBodyShapeType(shape.body, $(mixin forobject(x) x.ws1==shape || x.ws2==shape) forobject);
 	}
 			
 	$(mixin nullBodyShapeType(xbody,forobject) {
+		assert((incb1==null) == (incb2==null), "bllop null");
+		var check = incb1!=null && incb2!=null;
+		
 		Iter(xarb,xbody.arbiters,{
 			if(!(xarb.active && (forobject(xarb)))) cx_continue;
 			//only need to worry about to compound callbacks
 			$(mixin docbs(o1,o2) {
 				var cb1 = o1.cbType;
 				var cb2 = o2.cbType;
-				if(cb1!=null && cb2!=null) {
+				if(cb1!=null && cb2!=null && (!check || ((cb1==incb1&&cb2==incb2)||(cb1==incb2&&cb2==incb1)))) {
 					var exists = false;
 					if(cb1._end>0 && cb2._end>0)
 						exists = _end.ordered_get(cb1.id,cb2.id)!=null;
@@ -825,7 +828,7 @@ class PR(Space) {
 					
 					if(exists) {
 						var compound = compounds.ordered_get(o1.id,o2.id);
-						assert(compound!=null,"null compound on nullBodyShapeType?");
+						assert(compound!=null,"null compound on nullBodyShapeType? "+o1.outer.toString()+" "+o2.outer.toString()+" "+xarb.type);
 						compound.value.remove(xarb);
 						if(compound.value.empty()) {
 							compounds.remove(compound);
@@ -841,21 +844,24 @@ class PR(Space) {
 	});
 
 	//called after cbtype is set
-	flibmdel public inline function freshBodyType(body:PR(Body)) {
+	flibmdel public inline function freshBodyType(body:PR(Body),incb1:PR(CbType)=null,incb2:PR(CbType)=null) {
 		freshBodyShapeType(body, $(mixin forobject(x) true) forobject);
 	}
-	flibmdel public inline function freshShapeType(shape:PR(Shape)) {
+	flibmdel public inline function freshShapeType(shape:PR(Shape),incb1:PR(CbType)=null,incb2:PR(CbType)=null) {
 		freshBodyShapeType(shape.body, $(mixin forobject(x) x.ws1==shape || x.ws2==shape) forobject);
 	}
 
 	$(mixin freshBodyShapeType(xbody, forobject) {
+		assert((incb1==null) == (incb2==null), "bllop null");
+		var check = incb1!=null && incb2!=null;
+		
 		Iter(xarb,xbody.arbiters,{
 			if(!(xarb.active && (forobject(xarb)))) cx_continue;
 			//only need to worry about compounds
 			$(mixin docbs(o1,o2) {
 				var cb1 = o1.cbType;
 				var cb2 = o2.cbType;
-				if(cb1!=null && cb2!=null) {
+				if(cb1!=null && cb2!=null && (!check || ((cb1==incb1&&cb2==incb2)||(cb1==incb2&&cb2==incb1)))) {
 					var exists = false;
 					if(cb1._end>0 && cb2._end>0)
 						exists = _end.ordered_get(cb1.id,cb2.id) != null;
