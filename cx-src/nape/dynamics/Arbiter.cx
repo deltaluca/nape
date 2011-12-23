@@ -76,19 +76,19 @@ class Arbiter {
 
 	//----------------------------------------------------------------------------------------------
 
-	property(state,ImmFlag,{
+	property(state,PreFlag,{
 		DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
 		switch(pr(inner).immState) {
-			case Flag(ImmState,ACCEPT) | Flag(ImmState,ALWAYS): ImmFlag.ACCEPT;
-			case Flag(ImmState,ACCEPT)                        : ImmFlag.ACCEPT_ONCE;
-			case Flag(ImmState,IGNORE) | Flag(ImmState,ALWAYS): ImmFlag.IGNORE;
-			default                                           : ImmFlag.IGNORE_ONCE;
+			case Flag(ImmState,ACCEPT) | Flag(ImmState,ALWAYS): PreFlag.ACCEPT;
+			case Flag(ImmState,ACCEPT)                        : PreFlag.ACCEPT_ONCE;
+			case Flag(ImmState,IGNORE) | Flag(ImmState,ALWAYS): PreFlag.IGNORE;
+			default                                           : PreFlag.IGNORE_ONCE;
 		}
 	},{
 		var xstate =
-			if  (state==ImmFlag.ACCEPT) Flag(ImmState,ACCEPT)
-			elif(state==ImmFlag.IGNORE) Flag(ImmState,IGNORE)
-			DEBUG(else throw "Error: only ImmFlag.ACCEPT/IGNORE make sense, as ACCEPT_ONCE/IGNORE_ONCE would have no effect here whatsoever!";)
+			if  (state==PreFlag.ACCEPT) Flag(ImmState,ACCEPT)
+			elif(state==PreFlag.IGNORE) Flag(ImmState,IGNORE)
+			DEBUG(else throw "Error: only PreFlag.ACCEPT/IGNORE make sense, as ACCEPT_ONCE/IGNORE_ONCE would have no effect here whatsoever!";)
 			RELEASE(;)
 
 		if((pr(inner).immState & xstate)!=0) {

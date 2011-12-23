@@ -1,7 +1,7 @@
 package nape.callbacks;
 $(import);
 
-Flags(ImmFlag,
+Flags(PreFlag,
     prop(ACCEPT,0)
     prop(IGNORE,2)
     prop(ACCEPT_ONCE,3)
@@ -248,7 +248,7 @@ class PreListener extends Listener {
 	//
 	//in the case of #_ONCE, the objects are forced to stay awake (in space)
 	//and so any change to handler does not need to wake any objects already.
-	property(handler,Arbiter->ImmFlag,pr(inner_zn).handler,{
+	property(handler,Arbiter->PreFlag,pr(inner_zn).handler,{
 		DEBUG(if(handler==null) throw "Error: PreListener must take a non-null handler!";)
 		pr(inner_zn).handler = handler;
 
@@ -270,7 +270,7 @@ class PreListener extends Listener {
 
     ///---------------------------------------------------------------------------------------------
 
-	public function new(cbType1:CbType, cbType2:CbType, handler:Arbiter->ImmFlag, ?pure=false) {
+	public function new(cbType1:CbType, cbType2:CbType, handler:Arbiter->PreFlag, ?pure=false) {
 		PR(Listener).internal = true; super(); PR(Listener).internal = false;
 
 		DEBUG(if(cbType1==null) throw "Error: PreListener CbType1 cannot be null";)
