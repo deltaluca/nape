@@ -526,9 +526,9 @@ class PR(Space) {
 		validation();
 	#if NAPE_TIMES Debug.VALID += flash.Lib.getTimer()-pt; #end
 		
-        #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
+        #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end 
 		bphase.broadphase();
-        #if NAPE_TIMES Debug.BROAD += flash.Lib.getTimer()-pt; #end
+        #if NAPE_TIMES Debug.BROAD += flash.Lib.getTimer()-pt; #end 
 
         #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
 		doForests(deltaTime);
@@ -580,8 +580,8 @@ class PR(Space) {
 					cur.invalidate_rot();
 				cur.pre_rot = cur.rot;
 
-				if(!bphase.is_sweep)
-					Iter(shape,cur.shapes,bphase.sync(shape))
+		//		if(!bphase.is_sweep)
+		//			Iter(shape,cur.shapes,bphase.sync(shape))
 			});
 		});
 		doit2(kinematics);
@@ -948,6 +948,9 @@ class PR(Space) {
                     }
                     cur.component.woken = false;
                 }
+
+				if(!bphase.is_sweep)
+					Iter(shape,cur.shapes,bphase.sync(shape));
 			});
 		});
 		
@@ -1042,9 +1045,6 @@ class PR(Space) {
 
                 #if NAPE_TIMES Debug.ACNT++; #end
 				
-				//if(arb.up_stamp==stamp-1)
-				//	trace("end");
-			
 				//no need for sensor/fluid arbiters to persist after deactivation, just remove now.
 				if(arb.cleared
                  || ((arb.type==PR(Arbiter).SENSOR||arb.type==PR(Arbiter).FLUID) && arb.up_stamp<stamp)
