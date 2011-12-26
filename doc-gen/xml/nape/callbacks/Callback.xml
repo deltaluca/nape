@@ -42,21 +42,23 @@
 	</description>
 
 	<property static="true" name="BEGIN" type="CbEvent" readonly="true">
-		<description> (NOT IMPLEMENTED YET) Handle interacting start event </description>
+		<description> Handle interacting start event </description>
 		<detail>
-			<description>(NOT IMPLEMENTED YET) Callback event corresponding to when two shapes/bodies begin interacting</description>
-		</detail>
-	</property>
-	<property static="true" name="ONGOING" type="CbEvent" readonly="true">
-		<description> (NOT IMPLEMENTED YET) Handle ongoing interaction event </description>
-		<detail>
-			<description>(NOT IMPLEMENTED YET) Callback event corresponding to two shapes/bodies with an ongoing interaction</description>
+			<description>Callback event corresponding to when two shapes/bodies begin interacting (As defined by their shapes overlapping)</description>
 		</detail>
 	</property>
 	<property static="true" name="END" type="CbEvent" readonly="true">
-		<description> (NOT IMPLEMENTED YET) Handle interacting end event </description>
+		<description> Handle interacting end event </description>
 		<detail>
-			<description>(NOT IMPLEMENTED YET) Callback event corresponding to when two shapes/bodies stop interacting</description>
+			<description>Callback event corresponding to when two shapes/bodies stop interacting (As defined by their shapes overlapping)</description>
+		</detail>
+	</property>
+
+	<property/>
+	<property static="true" name="PRE" type="CbEvent" readonly="true">
+		<description> Pre-interaction event </description>
+		<detail>
+			<description>Callback event occuring during a space.step() for fine control over interactions </description>
 		</detail>
 	</property>
 
@@ -103,10 +105,16 @@
 
 	<property/>
 
-	<property name="arbiter" type="Maybe[Arbiter]" readonly="true">
-		<description> Arbiter for event </description>
+	<property name="int1" type="Maybe[Interactor]" readonly="true">
+		<description> First body/shape for event </description>
 		<detail>
-			<description> Arbiter between related types. No callback using this is yet implemented. This value is null if the event type is not a BEGIN,ONGOING or END type. </description>
+			<description> First body/shape relating to event if applicable. This value is unless unless the event is a BEGIN or END type. </description>
+		</detail>
+	</property>
+	<property name="int2" type="Maybe[Interactor]" readonly="true">
+		<description> Second body/shape for event </description>
+		<detail>
+			<description> Second body/shape relating to event if applicable. This value is unless unless the event is a BEGIN or END type. </description>
 		</detail>
 	</property>
 	<property name="body" type="Maybe[Body]" readonly="true">

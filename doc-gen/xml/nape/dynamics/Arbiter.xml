@@ -61,6 +61,16 @@
 			<description>Type of Arbiter, whether one holding contact information (collision type), fluid interaction information (fluid type) or no extra information at all (sensor type).</description>
 		</detail>
 	</property>
+	<property name="state" type="PreFlag">
+		<description>Arbiter state</description>
+		<detail>
+			<description>Arbiter state (corresponding to pre-interaction return types). This value is mutable (allowing disabling of an interaction outside of a space step() call</description>
+		</detail>
+	</property>
+	<property name="isSleeping" type="Bool">
+		<description>If arbiter is sleeping</description>
+		<detail> <description>If arbiter is sleeping</description> </detail>
+	</property>
 	<property/>
 	
 	<property name="collisionArbiter" type="Maybe[CollisionArbiter]" readonly="true">
@@ -145,19 +155,30 @@
 	<short>Collision type arbiter</short>
 	<description>Arbiter subtype for collision interactions, provides contact information.</description>
 	
-	<property name="contacts" type="ContactList" readonly="true">
-		<description>Immutable list of contacts</description>
+	<property name="contacts" type="ContactList">
+		<description>List of contacts</description>
 		<detail>
-			<description>Immutable list of contacts between the shapes</description>
-			<get>Arbiter no longer in use - hint; dangerous to store your own references to arbiters</get>
+			<description>List of contacts between the shapes</description>
+			<get>Arbiter no longer in use - hint; dangerous to store your own references to arbiters. This list is immutable when not part of an on-going pre-interaction event handler.</get>
+			<set>Arbiter is not part of an on-going pre-interaction event handler</set>
 		</detail>
 	</property>
 	
-	<property name="normal" type="Vec2" readonly="true">
-		<description>Immutable Vec2 of contact normal*</description>
+	<property name="normal" type="Vec2">
+		<description>Vec2 of contact normal*</description>
 		<detail>
-			<description>Immutable Vec2 corresponding to the global normal of the contact points</description>
+			<description>Vec2 corresponding to the global normal of the contact points. Immutable when arbiter is not part of an on-going pre-interaction event handler.</description>
 			<get>Arbiter no longer in use - hint: dangerous to store your own references to arbiters</get>
+			<set>Arbiter is not part of an on-going pre-interaction event handler</set>
+		</detail>
+	</property>
+
+	<property name="radius" type="Float">
+		<description>Positional-fattening</description>
+		<detail>
+			<description>Position iterations work on either two points, or an edge and a point. The radius describes in the first case, the sum of the circle radii or the single circle radius in the case of a circle/vertex case. In the edge-point case, the radius corresponds to the circle radius or 0 if a poly-poly interaction.</description>
+			<get>Arbiter no longer in use - hint: dangerous to store your own references to arbiters</get>
+			<set>Arbiter is not part of an on-going pre-interaction event handler</set>
 		</detail>
 	</property>
 	
@@ -211,19 +232,21 @@
 	<short>Fluid interaction type arbiter</short>
 	<description>Arbiter subtype for fluid interactions, provides overlap information.</description>
 	
-	<property name="position" type="Vec2" readonly="true">
-		<description>Immutable Vec2 of geometric centre of overlap</description>
+	<property name="position" type="Vec2">
+		<description>Vec2 of geometric centre of overlap</description>
 		<detail>
-			<description>Immutable Vec2 representing the geometric centre of the overlapping region between shapes</description>
+			<description>Vec2 representing the geometric centre of the overlapping region between shapes. Immutable when arbiter is not part of an on-going pre-interaction event.</description>
 			<get>Arbiter no longer in use - hint; dangerous to store your own references to arbiters</get>
+			<set>Arbiter is not part of an on-going pre-interaction event.</set>
 		</detail>
 	</property>
 	
-	<property name="overlap" type="Float" readonly="true">
+	<property name="overlap" type="Float">
 		<description>Overlap area of shapes</description>
 		<detail>
 			<description>The amount of overlap between the shapes in px^2</description>
 			<get>Arbiter no longer in use - hint; dangerous to store your own references to arbiters</get>
+			<set>Arbiter is not part of an on-going pre-interaction event.</set>
 		</detail>
 	</property>
 	
