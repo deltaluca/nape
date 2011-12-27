@@ -52,7 +52,48 @@ class PR(Component) {
 	}
 }
 
-$(mixin global HashedArbiters() Hashable2(FastHash2(PR(Arbiter))));
+class PR(Compound) {
+	//for hash
+	public var hnext:PR(Compound);
+	public var id:Int; public var di:Int;
+
+	public static inline function get(id:Int,di:Int) {
+		var ret = Get(PR(Compound));
+		if(id<=di) { ret.id = id; ret.di = di; }
+		else       { ret.id = di; ret.di = id; }
+		return ret;
+	}
+
+	//can use a hash here and it naturally fits.
+	//but for the size of the arbiter sets
+	//it seems a waste of memory and would be sub-optimal
+	public var arbiters:List(PR(Arbiter));
+
+	//kept here so that any new arbiters can have the correct
+	//state set, even retained after a listener no longer exists
+	public var state:Int;
+
+	MixPool(PR(Compound))
+	flibmdel public inline function free() {
+		assert(arbiters.empty(),"compound released with lingering arbs");
+	}
+	flibmdel public inline function alloc() {
+		state = Flag(PreFlag,ACCEPT);
+	}
+
+	public function new() {
+		arbiters = new List(PR(Arbiter))();
+	}
+
+	//-------------
+
+	flibmdel public inline function add(x:PR(Arbiter)) {
+		if(!arbiters.has(x))
+			arbiters.add(x);
+	}
+	flibmdel public inline function remove(x:PR(Arbiter)) arbiters.remove(x)
+	flibmdel public inline function empty() return arbiters.empty()
+}
 
 class PR(Space) {
 	public var outer:Space;
@@ -134,7 +175,7 @@ class PR(Space) {
     public var wrap_callbacks:CallbackQueue;
 
 	//used in compound callbacks to keep track of arbiter counts for unique begin/end/pre
-	public var compounds:FastHash2(HashedArbiters);
+	public var compounds:FastHash2(PR(Compound));
 	
 	//----------------------------------------------------------------------------------------------
 
@@ -305,7 +346,7 @@ class PR(Space) {
 		_end   = new FastHash2(PR(InteractionListener))();
 		_pre   = new FastHash2(PR(PreListener))();
 
-		compounds = new FastHash2(HashedArbiters)();
+		compounds = new FastHash2(PR(Compound))();
 	}
 	
 	//----------------------------------------------------------------------------------------------
@@ -440,15 +481,15 @@ class PR(Space) {
 						if(exists) {
 							var compound = compounds.ordered_get(o1.id,o2.id);
 							assert(compound!=null,"null compound on arbiter deletion?");
-							compound.value.remove(xarb);
-							if(compound.value.empty()) {
+							compound.remove(xarb);
+							if(compound.empty()) {
 								if(endcb!=null && !deleting) {
 									var cb = push_callback(endcb,endcb.handler!=null);
 									cb.event = Flag(CbEvent,END);
 									PR(Interactor).int_callback(S1,S2)(o1,o2,endcb.cb1,cb);
 								}
 								compounds.remove(compound);
-								Free(HashedArbiters,compound);
+								Free(PR(Compound),compound);
 							}
 						}
 					}
@@ -794,9 +835,8 @@ class PR(Space) {
     //----------------------------------------------------------------------------------------------
 
 	//when body/shape cbType is changed, it is nulled, then set again
-	//
-	//presently used as a non-optimal way of refreshing compounds
-	//on listener addition/removal/changes
+	// ' also used as a perhaps non-optimal way of refreshing compounds
+	// on listener changes
 
 	//called before set to null.
 	flibmdel public inline function nullBodyType(body:PR(Body),incb1:PR(CbType)=null,incb2:PR(CbType)=null) {
@@ -828,10 +868,10 @@ class PR(Space) {
 					if(exists) {
 						var compound = compounds.ordered_get(o1.id,o2.id);
 						assert(compound!=null,"null compound on nullBodyShapeType? "+o1.outer.toString()+" "+o2.outer.toString()+" "+xarb.type);
-						compound.value.remove(xarb);
-						if(compound.value.empty()) {
+						compound.remove(xarb);
+						if(compound.empty()) {
 							compounds.remove(compound);
-							Free(HashedArbiters,compound);
+							Free(PR(Compound),compound);
 						}
 					}
 				}
@@ -872,11 +912,10 @@ class PR(Space) {
 					if(exists) {
 						var compound = compounds.ordered_get(o1.id,o2.id);
 						if(compound==null) {
-							compound = HashedArbiters.ordered_get_persist(o1.id,o2.id);
-							if(compound.value==null) compound.value = new FastHash2(PR(Arbiter))();
+							compound = PR(Compound).get(o1.id,o2.id);
 							compounds.add(compound);
 						}
-						compound.value.maybeAdd(xarb);
+						compound.add(xarb);
 					}
 				}
 			});
@@ -1323,23 +1362,23 @@ class PR(Space) {
 									var compound = compounds.ordered_get(o1.id,o2.id);
 									if(begcb) {
 										if(compound==null) {
-											compound = HashedArbiters.ordered_get_persist(o1.id,o2.id);
-											if(compound.value==null) compound.value = new FastHash2(PR(Arbiter))();
+											compound = PR(Compound).get(o1.id,o2.id);
 											compounds.add(compound);
-
-											if(begi!=null) {
-												var cb = push_callback(begi,begi.handler!=null);
-												cb.event = Flag(CbEvent,BEGIN);
-												PR(Interactor).int_callback(S1,S2)(o1,o2,begi.cb1,cb);
-											}
 										}
-										compound.value.maybeAdd(arb);
+										//check for empty, rather than null compound as the compound is created in narrowphase
+										//to avoid multiple pre-listeners.
+										if(compound.empty() && begi!=null) {
+											var cb = push_callback(begi,begi.handler!=null);
+											cb.event = Flag(CbEvent,BEGIN);
+											PR(Interactor).int_callback(S1,S2)(o1,o2,begi.cb1,cb);
+										}
+										compound.add(arb);
 									}elif(endcb) {
 										assert(compound!=null,"end arbiter with no compound");
-										compound.value.remove(arb);
-										if(compound.value.empty()) { 
+										compound.remove(arb);
+										if(compound.empty()) { 
 											compounds.remove(compound);
-											Free(HashedArbiters,compound);
+											Free(PR(Compound),compound);
 
 											if(endi!=null) {
 												var cb = push_callback(endi,endi.handler!=null);
@@ -1515,8 +1554,10 @@ class PR(Space) {
 								arb.fresh = arb.up_stamp<stamp-1; //handler persistance
 							arb.up_stamp = arb.stamp;
 
-							//search for a pre-listener
+							//search for a pre-listener or existing compound
 							var listener:PR(PreListener) = null;
+							var compound:PR(Compound) = null;
+							var ncompound:PR(Compound) = null;
 							$(mixin docbs(o1,o2) {
 								if(RELEASE(listener==null) DEBUG(true)) {
 									var cb1 = o1.cbType;
@@ -1525,6 +1566,13 @@ class PR(Space) {
 										DEBUG(var i) RELEASE(listener) = _pre.ordered_get(cb1.id,cb2.id);
 										DEBUG(if(i!=null && listener!=null) throw "Error: Multiple valid pre-listeners for possible shape/body combinations. s1="+s1.outer.toString()+" s2="+s2.outer.toString()+" and related bodies. l1="+i.outer.toString()+" l2="+listener.outer.toString();)
 										DEBUG(listener = i;)
+										if(listener!=null) {
+											compound = compounds.ordered_get(o1.id,o2.id); 
+											if(compound==null) {
+												ncompound = PR(Compound).get(o1.id,o2.id);
+												compounds.add(ncompound);
+											}
+										}
 									}
 								}
 							});
@@ -1535,8 +1583,9 @@ class PR(Space) {
 								docbs(s1.body,s2);
 								docbs(s1,s2.body);
 								docbs(s1.body,s2.body);
+								trace([listener,compound,ncompound]);
 							}
-							if(listener!=null) {
+							if(listener!=null && compound==null) {
 								// arbiter (public) is not active in the situtation of a persistant
 								// collision arbiter being re-used before it was retired.
 								// so we activate it temporarily.
@@ -1565,11 +1614,15 @@ class PR(Space) {
 									//make sure things like normals are still normalised
 									arb.pre_validate();
 								}
-							}else {
+							}else if(compound==null) {
 								//reset state on non-persistance
 								if((arb.immState&Flag(ImmState,ALWAYS))==0)
 									arb.immState = Flag(ImmState, ACCEPT);
+							}else {
+								arb.immState = compound.state;
 							}
+							if(compound==null && ncompound!=null)
+								ncompound.state = arb.immState;
 
 							//DON'T LET THE OBJECTS GO TO SLEEP!!
 							//# we cannot assume that at some point

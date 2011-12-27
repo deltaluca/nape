@@ -349,16 +349,17 @@ class Tracer {
 
 class DummyNapeMain {
 	static function main() {
+		haxe.Log.setColor(0xffffff);
 		var cur = flash.Lib.current;
 		var space = new Space();
 		var debug = new BitmapDebug(800,600,0x333333);
 		cur.addChild(debug.display);
 
-		var b1 = new Body(BodyType.KINEMATIC);
+		var b1 = new Body(BodyType.DYNAMIC);
 		b1.shapes.add(new Polygon(Polygon.rect(50,150,100,100)));
 		b1.space = space;
 
-		var b2 = new Body(BodyType.DYNAMIC);
+		var b2 = new Body(BodyType.KINEMATIC);
 		b2.shapes.add(new Polygon(Polygon.rect(-20,-40,40,40)));
 		b2.shapes.add(new Polygon(Polygon.rect(-20,0,40,40)));
 
@@ -366,7 +367,7 @@ class DummyNapeMain {
 		b2.space = space;
 
 		var cb = new CbType();
-		b1.shapes.at(0).cbType = b2.cbType = cb;
+		b1.cbType = b2.cbType = cb;
 
 		debug.clear();
 		debug.transform = new Mat23();
@@ -380,7 +381,7 @@ class DummyNapeMain {
 
 		space.listeners.add(new PreListener(cb,cb, function(x) {
 			trace("PRE "+x.toString());
-			return PreFlag.ACCEPT;
+			return PreFlag.IGNORE;
 		}));
 		space.listeners.add(new InteractionListener(CbEvent.BEGIN, cb,cb, function(x,y) {
 			trace("BEG "+x.toString()+" "+y.toString());
@@ -389,13 +390,8 @@ class DummyNapeMain {
 			trace("END "+x.toString()+" "+y.toString());
 		}));
 		drar();
-		b2.position.y -= 100;
-		drar();
-		b2.position.y += 100;
-		drar();
-		b2.position.y -= 100;
-		drar();
-		b2.position.y += 100;
+		space.listeners.clear();
+		b2.position.y += 40;
 		drar();
 	}
 
