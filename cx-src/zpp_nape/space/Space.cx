@@ -1558,7 +1558,7 @@ class PR(Space) {
 							var listener:PR(PreListener) = null;
 							var compound:PR(Compound) = null;
 							var ncompound:PR(Compound) = null;
-							$(mixin docbs(o1,o2) {
+							$(mixin docbs(SHAPES,o1,o2) {
 								if(RELEASE(listener==null) DEBUG(true)) {
 									var cb1 = o1.cbType;
 									var cb2 = o2.cbType;
@@ -1566,23 +1566,25 @@ class PR(Space) {
 										DEBUG(var i) RELEASE(listener) = _pre.ordered_get(cb1.id,cb2.id);
 										DEBUG(if(i!=null && listener!=null) throw "Error: Multiple valid pre-listeners for possible shape/body combinations. s1="+s1.outer.toString()+" s2="+s2.outer.toString()+" and related bodies. l1="+i.outer.toString()+" l2="+listener.outer.toString();)
 										DEBUG(listener = i;)
-										if(listener!=null) {
-											compound = compounds.ordered_get(o1.id,o2.id); 
-											if(compound==null) {
-												ncompound = PR(Compound).get(o1.id,o2.id);
-												compounds.add(ncompound);
+										#if !SHAPES
+											if(listener!=null) {
+												compound = compounds.ordered_get(o1.id,o2.id); 
+												if(compound==null) {
+													ncompound = PR(Compound).get(o1.id,o2.id);
+													compounds.add(ncompound);
+												}
 											}
-										}
+										#end
 									}
 								}
 							});
 	
 							if(arb.fresh || (arb.immState&Flag(ImmState,ALWAYS))==0) {
 								arb.immState = Flag(ImmState,ACCEPT);
-								docbs(s1,s2);
-								docbs(s1.body,s2);
-								docbs(s1,s2.body);
-								docbs(s1.body,s2.body);
+								docbs(true,s1,s2);
+								docbs(false,s1.body,s2);
+								docbs(false,s1,s2.body);
+								docbs(false,s1.body,s2.body);
 							}
 							if(listener!=null && compound==null) {
 								// arbiter (public) is not active in the situtation of a persistant
