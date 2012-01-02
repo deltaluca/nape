@@ -73,12 +73,16 @@ class PR(Compound) {
 	//state set, even retained after a listener no longer exists
 	public var state:Int;
 
+	//time stamp :)
+	public var stamp:Int;
+
 	MixPool(PR(Compound))
 	flibmdel public inline function free() {
 		assert(arbiters.empty(),"compound released with lingering arbs");
 	}
 	flibmdel public inline function alloc() {
 		state = Flag(PreFlag,ACCEPT);
+		stamp = 0;
 	}
 
 	public function new() {
@@ -1586,7 +1590,9 @@ class PR(Space) {
 								docbs(false,s1,s2.body);
 								docbs(false,s1.body,s2.body);
 							}
-							if(listener!=null && compound==null) {
+							if(listener!=null && (compound==null || compound.stamp!=stamp)) {
+								if(compound!=null) compound.stamp = stamp;
+
 								// arbiter (public) is not active in the situtation of a persistant
 								// collision arbiter being re-used before it was retired.
 								// so we activate it temporarily.
