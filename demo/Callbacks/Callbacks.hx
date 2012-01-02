@@ -166,7 +166,6 @@ class Callbacks extends FixedStep {
 		//and set up listeners
 		function circler(colour:Int) {
 			return function(circle:Body) {
-				trace(space.timeStamp+" <--");
 				debug.drawFilledCircle(circle.position,circle.shapes.at(0).circle.radius,colour);
 			}
 		}
@@ -204,12 +203,10 @@ class Callbacks extends FixedStep {
 		run(function (dt) {
 			hand.anchor1.setxy(mouseX,mouseY);
 
-			trace("clear <-- "+space.timeStamp);
 			debug.clear();
 			space.step(dt,10,10);
 			debug.draw(space);
 			debug.flush();
-			trace("done");
 		});
 	}
 }
