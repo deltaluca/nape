@@ -1,0 +1,55 @@
+package zpp_nape.phys;
+$(import);
+
+GENID(Group)
+class PR(Group) {
+	public var outer:Group;
+
+	public var id:Int;
+	
+	$(mixin listtype(n,N)
+		public var n:List(PR(N));
+		public var wrap_`n:N`List;
+		
+		public function setup_`n() {
+			var me = this;
+			wrap_`n.pr(inner).adder = function(x:N) {
+				#if N=="Group"
+					if(x==me) return false;
+				#end
+
+				if(x.pr(inner).group!=me) {
+					if(x.pr(inner).group!=null) x.pr(inner).group.wrap_`n.remove(x);
+					x.pr(inner).group = me;
+					return true;
+				}else
+					return false;
+			}
+			wrap_`n.pr(inner).subber = function(x:N) {
+				x.pr(inner).group = null;
+			}
+			wrap_`n.pr(inner)._invalidate = function(_) {
+				if(me.space!=null) me.space.wakeGroup(me);
+			}
+		}
+
+		inittype(n,N)
+	);
+
+	listtype(bodies,Body)
+	listtype(constraints,Constraint)
+	listtype(groups,Group)
+
+	public var space:PR(Space);
+	public var ignore:Bool;
+
+	public var group:PR(Group);
+
+	public function new() {
+		id = ID(Group);
+
+		$(expand object inittype(n,N)
+			n = new List(PR(N))();
+		);
+	}
+}

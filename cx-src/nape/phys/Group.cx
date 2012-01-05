@@ -1,0 +1,43 @@
+package nape.phys;
+$(import);
+
+WrapList(Group,List(PR(Group)),Node(PR(Group)),$(mixin closure(x) x.outer) $(mixin erusolc(x) x.pr(inner)))
+
+//--------------------------------------------------------------------------------------------------
+
+class Group {
+	public var pr(inner):PR(Group);
+
+	property(id,Int,pr(inner).id)
+
+	property(group,Group,{
+		if(pr(inner).group==null) null else pr(inner).group.outer;
+	})
+
+	property(space,Space,{
+		if(pr(inner).space==null) null else pr(inner).space.outer;
+	})
+
+	property(ignore,Bool,pr(inner).ignore)
+
+	property(bodies,BodyList,{
+		if(pr(inner).wrap_bodies==null) pr(inner).setup_bodies();
+		pr(inner).wrap_bodies;
+	})
+	property(constraints,ConstraintList,{
+		if(pr(inner).wrap_constraints==null) pr(inner).setup_constraints();
+		pr(inner).wrap_constraints;
+	})
+	property(groups,GroupList,{
+		if(pr(inner).wrap_groups==null) pr(inner).setup_groups();
+		pr(inner).wrap_groups;
+	})
+
+	public function new() {
+		pr(inner) = new PR(Group)();
+	}
+
+	public function toString() {
+		return "Group";
+	}
+}
