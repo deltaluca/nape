@@ -34,6 +34,16 @@ class Body {
 
     property(id,Int,pr(inner).id ^ PR(ID).BODY)
 
+	property(group,Group,{
+		if(pr(inner).group==null) null else pr(inner).group.outer;
+	},{
+		if(this.group!=group) {
+			if(pr(inner).group!=null) pr(inner).group.outer.bodies.remove(this);
+			if(group!=null) group.bodies.add(this);
+			else pr(inner).group = null;
+		}
+	})
+
     property(type,BodyType,{
         [null,BodyType.STATIC,BodyType.DYNAMIC,BodyType.KINEMATIC][pr(inner).type];
     },{

@@ -7,30 +7,32 @@ class PR(Group) {
 
 	public var id:Int;
 	
-	$(mixin listtype(n,N)
+	$(mixin listtype(n,N) listtype(n,N,false));
+	$(mixin listtype(n,N,GROUP)
 		public var n:List(PR(N));
 		public var wrap_`n:N`List;
 		
 		public function setup_`n() {
 			var me = this;
+			wrap_`n = PR(N`List).get(n);
 			wrap_`n.pr(inner).adder = function(x:N) {
-				#if N=="Group"
-					if(x==me) return false;
-				#end
-
 				if(x.pr(inner).group!=me) {
 					if(x.pr(inner).group!=null) x.pr(inner).group.wrap_`n.remove(x);
 					x.pr(inner).group = me;
+					#if GROUP
+						x.pr(inner).depth = me.depth + 1;
+					#end 
 					return true;
 				}else
 					return false;
 			}
 			wrap_`n.pr(inner).subber = function(x:N) {
 				x.pr(inner).group = null;
+				#if GROUP
+					x.pr(inner).depth = 0;
+				#end
 			}
-			wrap_`n.pr(inner)._invalidate = function(_) {
-				if(me.space!=null) me.space.wakeGroup(me);
-			}
+			wrap_`n.pr(inner)._invalidate = function(_) me.invalidate();
 		}
 
 		inittype(n,N)
@@ -38,12 +40,23 @@ class PR(Group) {
 
 	listtype(bodies,Body)
 	listtype(constraints,Constraint)
-	listtype(groups,Group)
+	listtype(groups,Group,true)
 
-	public var space:PR(Space);
 	public var ignore:Bool;
+	public var virtual:Bool;
 
 	public var group:PR(Group);
+
+	//improve lookup times on non-trivial MRCA calls
+	public var depth:Int;
+	public var root:PR(Group);
+
+	public function invalidate(?force=false) {
+		if(!(force || ignore)) return;
+
+		Iter(b,bodies,if(b.space!=null) b.space.wake(b));
+		Iter(g,groups,g.invalidate(force));
+	}
 
 	public function new() {
 		id = ID(Group);
@@ -51,5 +64,43 @@ class PR(Group) {
 		$(expand object inittype(n,N)
 			n = new List(PR(N))();
 		);
+
+		depth = 0;
+	}
+
+	public static inline function parent(g:PR(Group),self=false) {
+		assert(g!=null,"");
+
+		if(!self) g = g.group;
+		while(g!=null && g.virtual) g = g.group;
+		return g;
+	}
+
+	//find most-recent common ancestor group for the two bodies.
+	public static function MRCA(x:PR(Body),y:PR(Body)):PR(Group) {
+		assert(x.group!=null && y.group!=null, "shortcut not allowed?");
+
+		var g1 = parent(x.group,true); var g2 = parent(y.group,true);
+
+		var ret:PR(Group) = null;
+		while(g1!=null && g2!=null) {
+			if(g1==g2) {
+				ret = g1;
+				break;
+			}
+			elif(g1.depth==g2.depth) {
+				g1 = parent(g1); 
+				g2 = parent(g2);
+			}elif(g1.depth<g2.depth)
+				g2 = parent(g2);
+			else
+				g1 = parent(g1);
+		}
+		return ret;
+	}
+
+	public static function ignored(x:PR(Body),y:PR(Body)) {
+		var mrca = MRCA(x,y);
+		return if(mrca==null) false else mrca.ignore;
 	}
 }

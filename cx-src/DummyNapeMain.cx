@@ -357,17 +357,28 @@ class DummyNapeMain {
 
 		var b1 = new Body(BodyType.DYNAMIC);
 		b1.shapes.add(new Polygon(Polygon.rect(50,150,100,100)));
-		b1.space = space;
 
 		var b2 = new Body(BodyType.KINEMATIC);
 		b2.shapes.add(new Polygon(Polygon.rect(-20,-40,40,40)));
 		b2.shapes.add(new Polygon(Polygon.rect(-20,0,40,40)));
 
 		b2.position.setxy(100,130);
-		b2.space = space;
 
 		var cb = new CbType();
 		b1.cbType = b2.cbType = cb;
+
+		var g = new Group();
+		g.virtual = true;
+		b1.group = g;
+
+		g.group = new Group(); g.group.ignore = true;
+
+		b2.group = new Group();
+		b2.group.ignore = false;
+
+		b2.group.group = g;
+
+		g.addToSpace(space);
 
 		debug.clear();
 		debug.transform = new Mat23();

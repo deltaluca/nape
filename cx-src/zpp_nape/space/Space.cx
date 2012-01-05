@@ -932,6 +932,8 @@ class PR(Space) {
     //----------------------------------------------------------------------------------------------
 
 	public function wakeGroup(g:PR(Group)) {
+		Iterate(g.bodies, wake);
+		Iterate(g.groups, wakeGroup);
 	}
 	
 	public function wakeIsland(i:PR(Island)) {
@@ -1523,8 +1525,12 @@ class PR(Space) {
 		var b2 = s2.body;
 
         assert(!(b1.isStatic() && b2.isStatic()), "both objects static?");
+
         //check if constraints exists such that this should be ignored
-        if(!Exists(con, b1.constraints, con.ignore && con.pair_exists(b1.id,b2.id))) {
+		//check if the two bodies belong to a group hierarchy to be ignored.
+        if(!Exists(con, b1.constraints, con.ignore && con.pair_exists(b1.id,b2.id))
+		&& !(b1.group!=null && b2.group!=null && PR(Group).ignored(b1,b2))
+		) {
 
             var gcol = s1.filter.shouldCollide(s2.filter)
                 && !(b1.imass==0 && b2.imass==0 && b1.iinertia==0 && b2.iinertia==0);
