@@ -6,47 +6,16 @@ class PR(InteractionGroup) {
 	public var outer:InteractionGroup;
 
 	public var id:Int;
-	
-	$(mixin listtype(n,N) listtype(n,N,false,inner));
-	$(mixin listtype(n,N,GROUP,inneron)
-		public var n:List(PR(N));
-		public var wrap_`n:N`List;
-		
-		public function setup_`n() {
-			var me = this;
-			wrap_`n = PR(N`List).get(n);
-			wrap_`n.pr(inner).adder = function(x:N) {
-				if(x.pr(inneron).group!=me) {
-					if(x.pr(inneron).group!=null) x.pr(inneron).group.wrap_`n.remove(x);
-					x.pr(inneron).group = me;
-					#if GROUP
-						x.pr(inneron).depth = me.depth + 1;
-					#end 
-					return true;
-				}else
-					return false;
-			}
-			wrap_`n.pr(inner).subber = function(x:N) {
-				x.pr(inneron).group = null;
-				#if GROUP
-					x.pr(inneron).depth = 0;
-				#end
-			}
-			wrap_`n.pr(inner)._invalidate = function(_) me.invalidate();
-		}
-
-		inittype(n,N)
-	);
-
-	listtype(bodies,Body)
-	listtype(shapes,Shape)
-	listtype(interactors,Interactor,false,inner_i)
-
-	listtype(groups,InteractionGroup,true,inner)
 
 	public var ignore:Bool;
-
 	public var group:PR(InteractionGroup);
+
+	//lidyd
+	public var groups:List(PR(InteractionGroup)); public var wrap_groups:InteractionGroupList;
+	public var interactors:List(PR(Interactor)); public var wrap_interactors:InteractorList;
+
+	public var bodies:List(PR(Body));  public var wrap_bodies:BodyList;
+	public var shapes:List(PR(Shape)); public var wrap_shapes:ShapeList;
 
 	//improve lookup times on non-trivial MRCA calls
 	public var depth:Int;
@@ -56,17 +25,94 @@ class PR(InteractionGroup) {
 		if(!(force || ignore)) return;
 
 		Iter(b,bodies,if(b.space!=null) b.space.wake(b));
+		Iter(s,shapes,if(s.body!=null && s.body.space!=null) s.body.space.wake(s.body));
 		Iter(g,groups,g.invalidate(force));
 	}
+
+	public static inline var SHAPE = 1;
+	public static inline var BODY  = 2;
 
 	public function new() {
 		id = ID(InteractionGroup);
 
-		$(expand object inittype(n,N)
-			n = new List(PR(N))();
+		var me = this;
+		interactors = new List(PR(Interactor))();
+		wrap_interactors = PR(InteractorList).get(interactors);
+		wrap_interactors.pr(inner).adder = function(x:Interactor) {
+			if(x.pr(inner_i).group!=me) {
+				if(x.pr(inner_i).group!=null) x.pr(inner_i).group.wrap_interactors.remove(x);
+				me.addInteractor(x.pr(inner_i),0);
+				return true;
+			}else return false;
+		}
+		wrap_interactors.pr(inner).subber = function(x:Interactor) {
+			me.removeInteractor(x.pr(inner_i),0);
+		}
+		wrap_interactors.pr(inner)._invalidate = function(_) me.invalidate();
+
+		$(mixin wrap_ints(T,t,F)
+			t`s = new List(PR(T))();
+			wrap_`t`s = PR(T`List).get(t`s);
+			wrap_`t`s.pr(inner).adder = function(x:T) {
+				if(x.pr(inner).group!=me) {
+					if(x.pr(inner).group!=null) x.pr(inner).group.outer.t`s.remove(x);
+					me.addInteractor(x.pr(inner),F);
+					return true;
+				}else return false;
+			}
+			wrap_`t`s.pr(inner).subber = function(x:T) {
+				me.removeInteractor(x.pr(inner),F);
+			}
 		);
+		wrap_ints(Shape,shape,SHAPE)
+		wrap_ints(Body, bodie, BODY)
+
+		groups = new List(PR(InteractionGroup))();
+		wrap_groups = PR(InteractionGroupList).get(groups);
+		wrap_groups.pr(inner).adder = function(x:InteractionGroup) {
+			DEBUG(
+				var cur = x.pr(inner);
+				while(cur!=null && cur!=me) cur = cur.group;
+				if(cur==me) {
+					throw "Error: Assignment would cause a cycle in the InteractionGroup tree";
+					return false;
+				}
+			)
+			if(x.pr(inner).group!=null) x.pr(inner).group.outer.groups.remove(x);
+			x.pr(inner).group = me;
+			x.pr(inner).depth = me.depth+1;
+			return true;
+		}
+		wrap_groups.pr(inner).subber = function(x:InteractionGroup) {
+			x.pr(inner).group = null;
+			x.pr(inner).depth = 0;
+		}
+		wrap_groups.pr(inner)._invalidate = function(_) me.invalidate();
 
 		depth = 0;
+	}
+
+	public function addInteractor(int:PR(Interactor),?flag:Int=-1) {
+		int.group = this;
+
+		if(int.isShape()) {
+			if(flag!=SHAPE) shapes.add(int.ishape);
+		}else {
+			if(flag!=BODY) bodies.add(int.ibody);
+		}
+
+		if(flag!=0) interactors.add(int);
+	}
+
+	public function removeInteractor(int:PR(Interactor),?flag:Int=-1) {
+		if(int.isShape()) {
+			if(flag!=SHAPE) shapes.remove(int.ishape);
+		}else {
+			if(flag!=BODY) bodies.remove(int.ibody);
+		}
+		
+		if(flag!=0) interactors.remove(int);
+		int.group = null;
 	}
 
 	public static inline function parent(g:PR(InteractionGroup),self=false) {
@@ -79,7 +125,6 @@ class PR(InteractionGroup) {
 	//find most-recent common ancestor group for the two bodies.
 	public static function MRCA(x:PR(Body),y:PR(Body)):PR(InteractionGroup) {
 		assert(x.group!=null && y.group!=null, "shortcut not allowed?");
-
 		var g1 = parent(x.group,true); var g2 = parent(y.group,true);
 
 		var ret:PR(InteractionGroup) = null;
