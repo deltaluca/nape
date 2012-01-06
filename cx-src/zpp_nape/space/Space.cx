@@ -1515,6 +1515,28 @@ class PR(Space) {
 
 	//----------------------------------------------------------------------------------------------
 
+	flibmdel public inline function group_ignore(s1:PR(Shape),s2:PR(Shape)) {
+		//find closest group from interactor
+		var g1 = s1.lookup_group();
+		var g2 = s2.lookup_group();
+		if(g1==null || g2==null) return false;
+		else {
+			//lookup ignore on most recent shared ancestor
+			var ret = false;
+			while(g1!=null && g2!=null) {
+				if(g1==g2) { ret = g1.ignore; break; }
+				elif(g1.depth==g2.depth) {
+					g1 = g1.group;
+					g2 = g2.group;
+				}elif(g1.depth<g2.depth)
+					g2 = g2.group;
+				else
+					g1 = g1.group;
+			}
+			return ret;
+		}
+	}
+
 	flibmdel public inline function narrowPhase(s1:PR(Shape),s2:PR(Shape), stat:Bool, ?in_arb:PR(Arbiter)=null) {
 		var ret:PR(Arbiter) = null;
 
@@ -1526,7 +1548,7 @@ class PR(Space) {
         //check if constraints exists such that this should be ignored
 		//check if the two bodies belong to a group hierarchy to be ignored.
         if(!Exists(con, b1.constraints, con.ignore && con.pair_exists(b1.id,b2.id))
-		&& !(b1.group!=null && b2.group!=null && PR(InteractionGroup).ignored(b1,b2))
+		&& !group_ignore(s1,s2)
 		) {
 
             var gcol = s1.filter.shouldCollide(s2.filter)

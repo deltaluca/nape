@@ -71,10 +71,10 @@ class PR(InteractionGroup) {
 		wrap_groups = PR(InteractionGroupList).get(groups);
 		wrap_groups.pr(inner).adder = function(x:InteractionGroup) {
 			DEBUG(
-				var cur = x.pr(inner);
-				while(cur!=null && cur!=me) cur = cur.group;
-				if(cur==me) {
-					throw "Error: Assignment would cause a cycle in the InteractionGroup tree";
+				var cur = me;
+				while(cur!=null && cur!=x.pr(inner)) cur = cur.group;
+				if(cur==x.pr(inner)) {
+					throw "Error: Assignment would cause a cycle in the InteractionGroup tree: assigning "+x.toString()+".group = "+me.outer.toString();
 					return false;
 				}
 			)
@@ -113,39 +113,5 @@ class PR(InteractionGroup) {
 		
 		if(flag!=0) interactors.remove(int);
 		int.group = null;
-	}
-
-	public static inline function parent(g:PR(InteractionGroup),self=false) {
-		assert(g!=null,"");
-
-		if(!self) g = g.group;
-		return g;
-	}
-
-	//find most-recent common ancestor group for the two bodies.
-	public static function MRCA(x:PR(Body),y:PR(Body)):PR(InteractionGroup) {
-		assert(x.group!=null && y.group!=null, "shortcut not allowed?");
-		var g1 = parent(x.group,true); var g2 = parent(y.group,true);
-
-		var ret:PR(InteractionGroup) = null;
-		while(g1!=null && g2!=null) {
-			if(g1==g2) {
-				ret = g1;
-				break;
-			}
-			elif(g1.depth==g2.depth) {
-				g1 = parent(g1); 
-				g2 = parent(g2);
-			}elif(g1.depth<g2.depth)
-				g2 = parent(g2);
-			else
-				g1 = parent(g1);
-		}
-		return ret;
-	}
-
-	public static function ignored(x:PR(Body),y:PR(Body)) {
-		var mrca = MRCA(x,y);
-		return if(mrca==null) false else mrca.ignore;
 	}
 }

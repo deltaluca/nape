@@ -45,4 +45,13 @@ class PR(Interactor) {
 		if(o1.cbType==cb1) { cb.int1 = o1; cb.int2 = o2; }
 		else               { cb.int2 = o1; cb.int1 = o2; }
 	}
+
+	public inline function lookup_group() {
+		var cur = this;
+		while(cur!=null && cur.group==null) {
+			cur = if(cur.isShape()) cur.ishape.body;
+			      else null; 
+		}
+		return if(cur==null) null else cur.group;
+	}
 }
