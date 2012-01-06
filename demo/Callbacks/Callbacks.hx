@@ -136,8 +136,8 @@ class Callbacks extends FixedStep {
 				//we need to use interactor.body and not interator.shape
 			
 				//draw thick line using a quad.
-				var p1 = cast(box1,Body).position;
-				var p2 = cast(box2,Body).position;
+				var p1 = box1.castBody.position;
+				var p2 = box2.castBody.position;
 				var n = p1.sub(p2);
 				n.length=1; n.angle += Math.PI/2;
 	
