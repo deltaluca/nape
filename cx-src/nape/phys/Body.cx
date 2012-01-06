@@ -29,20 +29,8 @@ WrapList(Body,List(PR(Body)),Node(PR(Body)),$(mixin closure(x) x.outer) $(mixin 
 
 //--------------------------------------------------------------------------------------------------
 
-class Body {
+class Body extends Interactor {
 	public var pr(inner):PR(Body);
-
-    property(id,Int,pr(inner).id ^ PR(ID).BODY)
-
-	property(group,InteractionGroup,{
-		if(pr(inner).group==null) null else pr(inner).group.outer;
-	},{
-		if(this.group!=group) {
-			if(pr(inner).group!=null) pr(inner).group.outer.bodies.remove(this);
-			if(group!=null) group.bodies.add(this);
-			else pr(inner).group = null;
-		}
-	})
 
     property(type,BodyType,{
         [null,BodyType.STATIC,BodyType.DYNAMIC,BodyType.KINEMATIC][pr(inner).type];
@@ -75,10 +63,6 @@ class Body {
 
 	//----------------------------------------------------------------------------------------------
 	
-	public var userData:Dynamic;
-	
-	//----------------------------------------------------------------------------------------------
-
 	public function clear() {
 		pr(inner).immutable_midstep("Body::clear()");
     	DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
@@ -129,8 +113,14 @@ class Body {
 	//----------------------------------------------------------------------------------------------
 	
 	public function new(?type:BodyType,?position:Vec2) {
+		DEBUG(try { super(); } catch (e:Dynamic) {})
+		RELEASE(super();)
+
 		pr(inner) = new PR(Body)();
 		pr(inner).outer = this;
+		pr(inner).outer_i = this;
+		pr(inner_i) = pr(inner);
+
 		if(position!=null) {
 			Disposed(position,Vec2);
 			vec_set(pr(inner).pos,position.);
@@ -391,15 +381,6 @@ class Body {
 		}
 		force*/
 	#end
-
-    //----------------------------------------------------------------------------------------------
-
-    property(cbType,CbType,{
-		pr(inner).cbType==null ? null : pr(inner).cbType.wrapper();
-	},{
-		pr(inner).immutable_midstep("Body::cbType");
-        pr(inner).setCbType(cbType==null ? null : cbType.pr(inner));
-    })
 
     //----------------------------------------------------------------------------------------------
 	
@@ -753,7 +734,7 @@ class Body {
 
 	//----------------------------------------------------------------------------------------------
 	
-	@:$keep public function toString() {
+	@:$keep public override function toString() {
 		return (pr(inner).world?"(space::world":("("+(isDynamic()?"dynamic":isStatic()?"static":"kinematic")))+")#"+id;
 	}
 }

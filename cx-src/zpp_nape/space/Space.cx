@@ -490,7 +490,7 @@ class PR(Space) {
 								if(endcb!=null && !deleting) {
 									var cb = push_callback(endcb,endcb.handler!=null);
 									cb.event = Flag(CbEvent,END);
-									PR(Interactor).int_callback(S1,S2)(o1,o2,endcb.cb1,cb);
+									PR(Interactor).int_callback(o1,o2,endcb.cb1,cb);
 								}
 								compounds.remove(compound);
 								Free(PR(Compound),compound);
@@ -768,10 +768,7 @@ class PR(Space) {
 					o.handler(cb.constraint.outer);
 				}else if(cb.listener.type==Flag(ListenerType,INTERACTION)) {
 					var o = cb.listener.interaction;
-					o.handler(cb.int1.outer,cb.int2.outer);
-					Free(PR(Interactor),cb.int1);
-					Free(PR(Interactor),cb.int2);
-					cb.int1 = cb.int2 = null;
+					o.handler(cb.int1.outer_i,cb.int2.outer_i);
 				}
 	
 				cx_ite = callbacks.splice(cb);
@@ -1361,11 +1358,11 @@ class PR(Space) {
 									if(begcb && begi!=null) {
 										var cb = push_callback(begi,begi.handler!=null);
 										cb.event = Flag(CbEvent,BEGIN);
-										PR(Interactor).int_callback(S1,S2)(o1,o2,begi.cb1,cb);
+										PR(Interactor).int_callback(o1,o2,begi.cb1,cb);
 									}elif(endcb && endi!=null) {
 										var cb = push_callback(endi,endi.handler!=null);
 										cb.event = Flag(CbEvent,END);
-										PR(Interactor).int_callback(S1,S2)(o1,o2,endi.cb1,cb);
+										PR(Interactor).int_callback(o1,o2,endi.cb1,cb);
 									}
 								}else {
 									var compound = compounds.ordered_get(o1.id,o2.id);
@@ -1379,7 +1376,7 @@ class PR(Space) {
 										if(compound.empty() && begi!=null) {
 											var cb = push_callback(begi,begi.handler!=null);
 											cb.event = Flag(CbEvent,BEGIN);
-											PR(Interactor).int_callback(S1,S2)(o1,o2,begi.cb1,cb);
+											PR(Interactor).int_callback(o1,o2,begi.cb1,cb);
 										}
 										compound.add(arb);
 									}elif(endcb) {
@@ -1392,7 +1389,7 @@ class PR(Space) {
 											if(endi!=null) {
 												var cb = push_callback(endi,endi.handler!=null);
 												cb.event = Flag(CbEvent,END);
-												PR(Interactor).int_callback(S1,S2)(o1,o2,endi.cb1,cb);
+												PR(Interactor).int_callback(o1,o2,endi.cb1,cb);
 											}
 										}
 									}

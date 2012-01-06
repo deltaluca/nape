@@ -1,0 +1,51 @@
+package nape.phys;
+$(import);
+
+//--------------------------------------------------------------------------------------------------
+
+WrapList(Interactor,List(PR(Interactor)),Node(PR(Interactor)),$(mixin closure(x) x.outer_i) $(mixin erusolc(x) x.pr(inner_i)))
+
+//--------------------------------------------------------------------------------------------------
+
+class Interactor {
+	public var pr(inner_i):PR(Interactor);
+
+	property(id,Int,pr(inner_i).id)
+
+	public var userData:Dynamic;
+
+	//------------------------------------------------------------------------------
+
+	public inline function isShape() return pr(inner_i).ishape!=null
+	public inline function isBody () return pr(inner_i).ibody !=null
+
+	//------------------------------------------------------------------------------
+
+	property(group,InteractionGroup,{
+		if(pr(inner_i).group==null) null else pr(inner_i).group.outer;
+	},{
+		pr(inner_i).immutable_midstep("Interactor::group");
+		if(this.group!=group) {
+			if(pr(inner_i).group!=null) pr(inner_i).group.outer.interactors.remove(this);
+			if(group!=null) group.interactors.add(this);
+			else pr(inner_i).group = null;
+		}
+	})
+
+	property(cbType,CbType,{
+		if(pr(inner_i).cbType==null) null else pr(inner_i).cbType.wrapper();
+	},{
+		pr(inner_i).immutable_midstep("Interactor::cbType");
+		pr(inner_i).setCbType(cbType==null ? null : cbType.pr(inner));
+	})
+
+	//------------------------------------------------------------------------------
+
+	public function new() {
+		DEBUG(throw "Error: Cannot instantiate an Interactor, only Shape/Body/Compound";)
+	}
+
+	@:$keep public function toString() return ""
+}
+
+

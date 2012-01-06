@@ -1,0 +1,56 @@
+package nape.dynamics;
+$(import);
+
+WrapList(InteractionGroup,List(PR(InteractionGroup)),Node(PR(InteractionGroup)),$(mixin closure(x) x.outer) $(mixin erusolc(x) x.pr(inner)))
+
+//--------------------------------------------------------------------------------------------------
+
+class InteractionGroup {
+	public var pr(inner):PR(InteractionGroup);
+
+	property(id,Int,pr(inner).id)
+
+	property(group,InteractionGroup,{
+		if(pr(inner).group==null) null else pr(inner).group.outer;
+	},{
+		DEBUG(if(group==this) throw "Error: Cannot assign InteractionGroup to itself";)
+		if(this.group!=group) {
+			if(pr(inner).group!=null) pr(inner).group.outer.groups.remove(this);
+			if(group!=null) group.groups.add(this);
+			else pr(inner).group = null;
+		}
+	})
+
+	property(ignore,Bool,pr(inner).ignore,{
+		if(this.ignore!=ignore) {
+			pr(inner).invalidate(true);
+			pr(inner).ignore = ignore;
+		}
+	})
+
+	property(bodies,BodyList,{
+		if(pr(inner).wrap_bodies==null) pr(inner).setup_bodies();
+		pr(inner).wrap_bodies;
+	})
+	property(interactors,InteractorList,{
+		if(pr(inner).wrap_interactors==null) pr(inner).setup_interactors();
+		pr(inner).wrap_interactors;
+	})
+
+	property(groups,InteractionGroupList,{
+		if(pr(inner).wrap_groups==null) pr(inner).setup_groups();
+		pr(inner).wrap_groups;
+	})
+
+	public function new(?ignore=false) {
+		pr(inner) = new PR(InteractionGroup)();
+		pr(inner).outer = this;
+		this.ignore = ignore;
+	}
+
+	public function toString() {
+		var ret = "InteractionGroup#"+id;
+		if(ignore) ret += ":ignore";
+		return ret;
+	}
+}

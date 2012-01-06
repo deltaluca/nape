@@ -1,0 +1,106 @@
+package zpp_nape.dynamics;
+$(import);
+
+GENID(InteractionGroup)
+class PR(InteractionGroup) {
+	public var outer:InteractionGroup;
+
+	public var id:Int;
+	
+	$(mixin listtype(n,N) listtype(n,N,false,inner));
+	$(mixin listtype(n,N,GROUP,inneron)
+		public var n:List(PR(N));
+		public var wrap_`n:N`List;
+		
+		public function setup_`n() {
+			var me = this;
+			wrap_`n = PR(N`List).get(n);
+			wrap_`n.pr(inner).adder = function(x:N) {
+				if(x.pr(inneron).group!=me) {
+					if(x.pr(inneron).group!=null) x.pr(inneron).group.wrap_`n.remove(x);
+					x.pr(inneron).group = me;
+					#if GROUP
+						x.pr(inneron).depth = me.depth + 1;
+					#end 
+					return true;
+				}else
+					return false;
+			}
+			wrap_`n.pr(inner).subber = function(x:N) {
+				x.pr(inneron).group = null;
+				#if GROUP
+					x.pr(inneron).depth = 0;
+				#end
+			}
+			wrap_`n.pr(inner)._invalidate = function(_) me.invalidate();
+		}
+
+		inittype(n,N)
+	);
+
+	listtype(bodies,Body)
+	listtype(shapes,Shape)
+	listtype(interactors,Interactor,false,inner_i)
+
+	listtype(groups,InteractionGroup,true,inner)
+
+	public var ignore:Bool;
+
+	public var group:PR(InteractionGroup);
+
+	//improve lookup times on non-trivial MRCA calls
+	public var depth:Int;
+	public var root:PR(InteractionGroup);
+
+	public function invalidate(?force=false) {
+		if(!(force || ignore)) return;
+
+		Iter(b,bodies,if(b.space!=null) b.space.wake(b));
+		Iter(g,groups,g.invalidate(force));
+	}
+
+	public function new() {
+		id = ID(InteractionGroup);
+
+		$(expand object inittype(n,N)
+			n = new List(PR(N))();
+		);
+
+		depth = 0;
+	}
+
+	public static inline function parent(g:PR(InteractionGroup),self=false) {
+		assert(g!=null,"");
+
+		if(!self) g = g.group;
+		return g;
+	}
+
+	//find most-recent common ancestor group for the two bodies.
+	public static function MRCA(x:PR(Body),y:PR(Body)):PR(InteractionGroup) {
+		assert(x.group!=null && y.group!=null, "shortcut not allowed?");
+
+		var g1 = parent(x.group,true); var g2 = parent(y.group,true);
+
+		var ret:PR(InteractionGroup) = null;
+		while(g1!=null && g2!=null) {
+			if(g1==g2) {
+				ret = g1;
+				break;
+			}
+			elif(g1.depth==g2.depth) {
+				g1 = parent(g1); 
+				g2 = parent(g2);
+			}elif(g1.depth<g2.depth)
+				g2 = parent(g2);
+			else
+				g1 = parent(g1);
+		}
+		return ret;
+	}
+
+	public static function ignored(x:PR(Body),y:PR(Body)) {
+		var mrca = MRCA(x,y);
+		return if(mrca==null) false else mrca.ignore;
+	}
+}

@@ -1,17 +1,12 @@
 package zpp_nape.phys;
 $(import);
 
-GENID(Body,PR(ID).BODY)
-class PR(Body) {
+class PR(Body) extends PR(Interactor) {
 	public var outer:Body;
 	
 	public var world:Bool; //used for Space::static
 
-	public var group:PR(InteractionGroup);
-	
 	//----------------------------------------------------------------------------------------------
-	
-	public var id:Int;
 	
 	public var type:Int;
 	flibmdel public inline function isStatic   () return type == Flag(BodyType,STATIC)
@@ -524,9 +519,7 @@ class PR(Body) {
 
     //----------------------------------------------------------------------------------------------
 
-    public var cbType:PR(CbType);
-
-    public function setCbType(cbType:PR(CbType)) {
+    public function __setCbType(cbType:PR(CbType)) {
         if(this.cbType != cbType) {
 			if(space!=null && this.cbType!=null) {
 	            this.cbType.remBody(this);
@@ -543,7 +536,7 @@ class PR(Body) {
         }
     }
 
-	flibmdel public inline function immutable_midstep(name:String) {
+	flibmdel public inline function __immutable_midstep(name:String) {
 		DEBUG(if(space!=null && space.midstep) throw "Error: "+name+" cannot be set during a space step()";)
 	}
 
@@ -604,6 +597,8 @@ class PR(Body) {
     //----------------------------------------------------------------------------------------------
 
 	public function new() {
+		super();
+		ibody = this;
 		world = false;
 		
 		norotate = nomove = false;
@@ -629,8 +624,6 @@ class PR(Body) {
 		
 		vec_set(localCOM,0,0);
 		vec_set(worldCOM,0,0);
-		
-		id = ID(Body);
 		
 		inv(aabb) = true;
 		aabb = PR(AABB).get(0,0,0,0);
