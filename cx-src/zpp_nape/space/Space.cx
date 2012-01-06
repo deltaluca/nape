@@ -931,7 +931,7 @@ class PR(Space) {
 
     //----------------------------------------------------------------------------------------------
 
-	public function wakeGroup(g:PR(Group)) {
+	public function wakeGroup(g:PR(InteractionGroup)) {
 		Iterate(g.bodies, wake);
 		Iterate(g.groups, wakeGroup);
 	}
@@ -1529,7 +1529,7 @@ class PR(Space) {
         //check if constraints exists such that this should be ignored
 		//check if the two bodies belong to a group hierarchy to be ignored.
         if(!Exists(con, b1.constraints, con.ignore && con.pair_exists(b1.id,b2.id))
-		&& !(b1.group!=null && b2.group!=null && PR(Group).ignored(b1,b2))
+		&& !(b1.group!=null && b2.group!=null && PR(InteractionGroup).ignored(b1,b2))
 		) {
 
             var gcol = s1.filter.shouldCollide(s2.filter)
