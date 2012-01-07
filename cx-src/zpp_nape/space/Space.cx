@@ -358,6 +358,8 @@ class PR(Space) {
 		_pre   = new FastHash2(PR(PreListener))();
 
 		callbacksets = new FastHash2(PR(CallbackSet))();
+		mrca1 = new List(PR(Interactor))();
+		mrca2 = new List(PR(Interactor))();
 	}
 	
 	//----------------------------------------------------------------------------------------------
@@ -472,41 +474,38 @@ class PR(Space) {
 				//
 				//we decrement on both begin/end callback existance also pre.
 				//as in either case the callbackset exists and must be cleaned
-				$(mixin docbs(S1,S2,o1,o2) {
-					var cb1 = o1.cbType;
-					var cb2 = o2.cbType;
-					if(cb1!=null && cb2!=null) {
-						var endcb = null;
-						var exists = false;
-						if(cb1._end>0 && cb2._end>0) {
-							endcb = _end.ordered_get(cb1.id,cb2.id);
-							exists = endcb!=null;
-						}
-						if(!exists && cb1._begin>0 && cb2._begin>0)
-							exists = _begin.ordered_get(cb1.id,cb2.id) != null;
-						if(!exists && cb1._pre>0 && cb2._pre>0)
-							exists = _pre.ordered_get(cb1.id,cb2.id) != null;
+				if(xarb.active) {
+					MRCA_chains(xarb.ws1,xarb.ws2);
+					Iter(i1,mrca1,{
+					Iter(i2,mrca2,{
+						if(i1==xarb.ws1 && i2==xarb.ws2) cx_continue;
 
-						if(exists) {
-							var callbackset = callbacksets.ordered_get(o1.id,o2.id);
-							assert(callbackset!=null,"null callbackset on arbiter deletion?");
-							callbackset.remove(xarb);
-							if(callbackset.empty()) {
-								if(endcb!=null && !deleting) {
-									var cb = push_callback(endcb,endcb.handler!=null);
-									cb.event = Flag(CbEvent,END);
-									PR(Interactor).int_callback(o1,o2,endcb.cb1,cb);
+						var cb1 = i1.cbType;
+						var cb2 = i2.cbType;
+						if(cb1!=null && cb2!=null) {
+							var endcb = null;
+							if(cb1._end>0 && cb2._end>0) endcb = _end.ordered_get(cb1.id,cb2.id);
+							if(
+								endcb!=null
+							 || (cb1._begin>0 && cb2._begin>0 && _begin.ordered_get(cb1.id,cb2.id)!=null)
+							 || (cb1._pre  >0 && cb2._pre  >0 && _pre.  ordered_get(cb1.id,cb2.id)!=null)
+							) {
+								var callbackset = callbacksets.ordered_get(i1.id,i2.id);
+								assert(callbackset!=null,"null callbackset on arbiter deletion?");
+								callbackset.remove(xarb);
+								if(callbackset.empty()) {
+									if(endcb!=null && !deleting) {
+										var cb = push_callback(endcb,endcb.handler!=null);
+										cb.event = Flag(CbEvent,END);
+										PR(Interactor).int_callback(i1,i2,endcb.cb1,cb);
+									}
+									callbacksets.remove(callbackset);
+									Free(PR(CallbackSet),callbackset);
 								}
-								callbacksets.remove(callbackset);
-								Free(PR(CallbackSet),callbackset);
 							}
 						}
-					}
-				});
-				if(xarb.active) {
-					docbs(true,false,xarb.ws1,xarb.ws2.body);
-					docbs(false,true,xarb.ws1.body,xarb.ws2);
-					docbs(false,false,xarb.ws1.body,xarb.ws2.body);
+					});
+					});
 				}
 
 				//wake connected first.
@@ -861,21 +860,22 @@ class PR(Space) {
 		Iter(xarb,xbody.arbiters,{
 			if(!(xarb.active && (forobject(xarb)))) cx_continue;
 			//only need to worry about to callbackset callbacks
-			$(mixin docbs(o1,o2) {
-				var cb1 = o1.cbType;
-				var cb2 = o2.cbType;
+			MRCA_chains(xarb.ws1,xarb.ws2);
+			Iter(i1,mrca1,{
+			Iter(i2,mrca2,{
+				//don't need shape-shape handled.
+				if(i1==xarb.ws1 && i2==xarb.ws2) cx_continue;
+
+				var cb1 = i1.cbType;
+				var cb2 = i2.cbType;
 				if(cb1!=null && cb2!=null && (!check || ((cb1==incb1&&cb2==incb2)||(cb1==incb2&&cb2==incb1)))) {
-					var exists = false;
-					if(cb1._end>0 && cb2._end>0)
-						exists = _end.ordered_get(cb1.id,cb2.id)!=null;
-					if(!exists && cb1._begin>0 && cb2._begin>0)
-						exists = _begin.ordered_get(cb1.id,cb2.id)!=null;
-					if(!exists && cb1._pre>0 && cb2._pre>0)
-						exists = _pre.ordered_get(cb1.id,cb2.id)!=null;
-					
-					if(exists) {
-						var callbackset = callbacksets.ordered_get(o1.id,o2.id);
-						assert(callbackset!=null,"null callbackset on nullBodyShapeType? "+o1.outer.toString()+" "+o2.outer.toString()+" "+xarb.type);
+					if(
+						(cb1._end  >0 && cb2._end  >0 && _end.  ordered_get(cb1.id,cb2.id)!=null)
+					 || (cb1._begin>0 && cb2._begin>0 && _begin.ordered_get(cb1.id,cb2.id)!=null)
+					 || (cb1._pre  >0 && cb2._pre  >0 && _pre.  ordered_get(cb1.id,cb2.id)!=null)
+					) {
+						var callbackset = callbacksets.ordered_get(i1.id,i2.id);
+						assert(callbackset!=null,"null callbackset on nullBodyShapeType? "+i1.outer_i.toString()+" "+i2.outer_i.toString()+" "+xarb.type);
 						callbackset.remove(xarb);
 						if(callbackset.empty()) {
 							callbacksets.remove(callbackset);
@@ -884,9 +884,7 @@ class PR(Space) {
 					}
 				}
 			});
-			docbs(xarb.ws1,xarb.ws2.body);
-			docbs(xarb.ws1.body,xarb.ws2);
-			docbs(xarb.ws1.body,xarb.ws2.body);
+			});
 		});
 	});
 
@@ -906,32 +904,31 @@ class PR(Space) {
 		
 		Iter(xarb,xbody.arbiters,{
 			if(!(xarb.active && (forobject(xarb)))) cx_continue;
-			//only need to worry about callbacksets
-			$(mixin docbs(o1,o2) {
-				var cb1 = o1.cbType;
-				var cb2 = o2.cbType;
-				if(cb1!=null && cb2!=null && (!check || ((cb1==incb1&&cb2==incb2)||(cb1==incb2&&cb2==incb1)))) {
-					var exists = false;
-					if(cb1._end>0 && cb2._end>0)
-						exists = _end.ordered_get(cb1.id,cb2.id) != null;
-					if(!exists && cb1._begin>0 && cb2._begin>0)
-						exists = _begin.ordered_get(cb1.id,cb2.id) != null;
-					if(!exists && cb1._pre>0 && cb2._pre>0)
-						exists = _pre.ordered_get(cb1.id,cb2.id) != null;
 
-					if(exists) {
-						var callbackset = callbacksets.ordered_get(o1.id,o2.id);
+			MRCA_chains(xarb.ws1,xarb.ws2);
+			Iter(i1,mrca1,{
+			Iter(i2,mrca2,{
+				//don't need shape-shape handled.
+				if(i1==xarb.ws1 && i2==xarb.ws2) cx_continue;
+
+				var cb1 = i1.cbType;
+				var cb2 = i2.cbType;
+				if(cb1!=null && cb2!=null && (!check || ((cb1==incb1&&cb2==incb2)||(cb1==incb2&&cb2==incb1)))) {
+					if(
+						(cb1._end  >0 && cb2._end  >0 && _end.  ordered_get(cb1.id,cb2.id)!=null)
+					 || (cb1._begin>0 && cb2._begin>0 && _begin.ordered_get(cb1.id,cb2.id)!=null)
+					 || (cb1._pre  >0 && cb2._pre  >0 && _pre.  ordered_get(cb1.id,cb2.id)!=null)
+					) {
+						var callbackset = callbacksets.ordered_get(i1.id,i2.id);
 						if(callbackset==null) {
-							callbackset = PR(CallbackSet).get(o1.id,o2.id);
+							callbackset = PR(CallbackSet).get(i1.id,i2.id);
 							callbacksets.add(callbackset);
 						}
 						callbackset.add(xarb);
 					}
 				}
 			});
-			docbs(xarb.ws1,xarb.ws2.body);
-			docbs(xarb.ws1.body,xarb.ws2);
-			docbs(xarb.ws1.body,xarb.ws2.body);
+			});
 		});
 	});
 
@@ -1345,83 +1342,76 @@ class PR(Space) {
 					var begcb = arb.fresh;
 					assert(!begcb || arb.up_stamp==stamp, " fresh -> active=true hasn't held :(");
 
-					DEBUG(var endlist:PR(InteractionListener) = null;)
-					DEBUG(var beglist:PR(InteractionListener) = null;)
+					if(begcb || endcb) {
+						var listener:PR(Listener) = null;
+						MRCA_chains(arb.ws1,arb.ws2);
+						Iter(i1,mrca1,{
+						Iter(i2,mrca2,{
+							var cb1 = i1.cbType;
+							var cb2 = i2.cbType;
+							if(cb1!=null && cb2!=null) {
+								var i:PR(Listener) = null;
+								var begi:PR(InteractionListener) = null;
+								var endi:PR(InteractionListener) = null;
+								if(cb1._begin>0 && cb2._begin>0)
+									i = begi = _begin.ordered_get(cb1.id,cb2.id);
 
-					$(mixin docbs(S1,S2,o1,o2) {
-						var cb1 = o1.cbType;
-						var cb2 = o2.cbType;
-						if(cb1!=null && cb2!=null) {
-							var exists = false;
-							var begi:PR(InteractionListener) = null;
-							var endi:PR(InteractionListener) = null;
-							if(cb1._begin > 0 && cb2._begin > 0) {
-								exists = (begi = _begin.ordered_get(cb1.id,cb2.id)) != null;
-							}
-							if(cb1._end > 0 && cb2._end > 0) {
-								endi = _end.ordered_get(cb1.id,cb2.id);
-								exists = exists || (endi != null);
-							}
-							if(!exists && cb1._pre>0 && cb2._pre>0)
-								exists = _pre.ordered_get(cb1.id,cb2.id)!=null;
-
-							if(exists) {
+								if(cb1._end>0 && cb2._end>0) {
+									endi = _end.ordered_get(cb1.id,cb2.id);
+									if(i==null) i = endi;
+								}
+								if(i==null && cb1._pre>0 && cb2._pre>0)
+									i = _pre.ordered_get(cb1.id,cb2.id);
+								
 								DEBUG(
-									if(beglist!=null && begi!=null) throw "Error: Multiple valid listeners for BEGIN callback between possible shape/body combies, s1="+arb.ws1.outer.toString()+" s2="+arb.ws2.outer.toString()+". l1="+beglist.outer.toString()+" l2="+begi.outer.toString();
-									if(begi!=null) beglist = begi;
-
-									if(endlist!=null && endi!=null) throw "Error: Multiple valid listeners for END callback between possible shape/body combies, s1="+arb.ws1.outer.toString()+" s2="+arb.ws2.outer.toString()+". l1="+endlist.outer.toString()+" l2="+endi.outer.toString();
-									if(endi!=null) endlist = endi;
+									if(i!=null && listener!=null) throw "Error: Multiple valid pairings for callbacks between possible interactor combinations descended frmo shape1="+arb.ws1.outer.toString()+" shape2="+arb.ws2.outer.toString()+". Conflict arising from listener1="+i.outer.toString()+" listener2="+listener.outer.toString();
 								)
-								if(S1 && S2) {
-									//special case shape-shape
+								listener = i;
+
+								if(i1==arb.ws1 && i2==arb.ws2) { //shape-shape treat specially
 									if(begcb && begi!=null) {
 										var cb = push_callback(begi,begi.handler!=null);
 										cb.event = Flag(CbEvent,BEGIN);
-										PR(Interactor).int_callback(o1,o2,begi.cb1,cb);
+										PR(Interactor).int_callback(i1,i2,begi.cb1,cb);
 									}elif(endcb && endi!=null) {
 										var cb = push_callback(endi,endi.handler!=null);
 										cb.event = Flag(CbEvent,END);
-										PR(Interactor).int_callback(o1,o2,endi.cb1,cb);
+										PR(Interactor).int_callback(i1,i2,endi.cb1,cb);
 									}
 								}else {
-									var callbackset = callbacksets.ordered_get(o1.id,o2.id);
+									var callbackset = callbacksets.ordered_get(i1.id,i2.id);
 									if(begcb) {
 										if(callbackset==null) {
-											callbackset = PR(CallbackSet).get(o1.id,o2.id);
+											callbackset = PR(CallbackSet).get(i1.id,i2.id);
 											callbacksets.add(callbackset);
 										}
-										//check for empty, rather than null callbackset as the callbackset is created in narrowphase
-										//to avoid multiple pre-listeners.
+										//check for empty rather than null, since it might've been created
+										//already to prevent multiple pre-handlers
 										if(callbackset.empty() && begi!=null) {
 											var cb = push_callback(begi,begi.handler!=null);
 											cb.event = Flag(CbEvent,BEGIN);
-											PR(Interactor).int_callback(o1,o2,begi.cb1,cb);
+											PR(Interactor).int_callback(i1,i2,begi.cb1,cb);
 										}
 										callbackset.add(arb);
-									}elif(endcb) {
+									}else {
 										assert(callbackset!=null,"end arbiter with no callbackset");
 										callbackset.remove(arb);
-										if(callbackset.empty()) { 
+										if(callbackset.empty()) {
 											callbacksets.remove(callbackset);
 											Free(PR(CallbackSet),callbackset);
-
-											if(endi!=null) {
+												if(endi!=null) {
 												var cb = push_callback(endi,endi.handler!=null);
 												cb.event = Flag(CbEvent,END);
-												PR(Interactor).int_callback(o1,o2,endi.cb1,cb);
+												PR(Interactor).int_callback(i1,i2,endi.cb1,cb);
 											}
 										}
 									}
 								}
 							}
-						}
-					});
-					if(begcb || endcb) {
-						docbs(true,true,arb.ws1,arb.ws2);
-						docbs(true,false,arb.ws1,arb.ws2.body);
-						docbs(false,true,arb.ws1.body,arb.ws2);
-						docbs(false,false,arb.ws1.body,arb.ws2.body);
+							if(listener!=null) cx_break;
+						});
+						if(listener!=null) cx_break;
+						});
 					}
 					arb.fresh = false;
 				}
@@ -1549,13 +1539,9 @@ class PR(Space) {
 			var ret = false;
 			while(g1!=null && g2!=null) {
 				if(g1==g2) { ret = g1.ignore; break; }
-				elif(g1.depth==g2.depth) {
-					g1 = g1.group;
-					g2 = g2.group;
-				}elif(g1.depth<g2.depth)
-					g2 = g2.group;
-				else
-					g1 = g1.group;
+				if(g1.depth<g2.depth)
+					 g2 = g2.group;
+				else g1 = g1.group;
 			}
 			return ret;
 		}
@@ -1614,34 +1600,39 @@ class PR(Space) {
 							var listener:PR(PreListener) = null;
 							var callbackset:PR(CallbackSet) = null;
 							var ncallbackset:PR(CallbackSet) = null;
-							$(mixin docbs(SHAPES,o1,o2) {
-								if(RELEASE(listener==null) DEBUG(true)) {
-									var cb1 = o1.cbType;
-									var cb2 = o2.cbType;
+
+							if(arb.fresh || (arb.immState&Flag(ImmState,ALWAYS))==0) {
+								arb.immState = Flag(ImmState,ACCEPT);
+
+								MRCA_chains(s1,s2);
+								Iter(i1, mrca1, {
+								Iter(i2, mrca2, {
+									var cb1 = i1.cbType;
+									var cb2 = i2.cbType;
 									if(cb1!=null && cb2!=null && cb1._pre>0 && cb2._pre>0) {
-										DEBUG(var i) RELEASE(listener) = _pre.ordered_get(cb1.id,cb2.id);
-										DEBUG(if(i!=null && listener!=null) throw "Error: Multiple valid pre-listeners for possible shape/body combinations. s1="+s1.outer.toString()+" s2="+s2.outer.toString()+" and related bodies. l1="+i.outer.toString()+" l2="+listener.outer.toString();)
-										DEBUG(listener = i;)
-										#if !SHAPES
-											if(listener!=null) {
-												callbackset = callbacksets.ordered_get(o1.id,o2.id); 
+										DEBUG(
+											var i = _pre.ordered_get(cb1.id,cb2.id);
+											if(i!=null && listener!=null) throw "Error: Multiple valid pre-listeners for possible interactor combinations descended from shape1="+s1.outer.toString()+" shape2="+s2.outer.toString()+". listener1="+i.outer.toString()+" listener2="+listener.outer.toString();
+											listener = i;
+										)
+										RELEASE(listener = _pre.ordered_get(cb1.id,cb2.id);)
+
+										if(listener!=null) {
+											if(!(i1==s1 && i2==s2)) { //don't need callbackset for shape-shape
+												callbackset = callbacksets.ordered_get(i1.id,i2.id);
 												if(callbackset==null) {
-													ncallbackset = PR(CallbackSet).get(o1.id,o2.id);
+													ncallbackset = PR(CallbackSet).get(i1.id,i2.id);
 													callbacksets.add(ncallbackset);
 												}
 											}
-										#end
+											cx_break;
+										}
 									}
-								}
-							});
-	
-							if(arb.fresh || (arb.immState&Flag(ImmState,ALWAYS))==0) {
-								arb.immState = Flag(ImmState,ACCEPT);
-								docbs(true,s1,s2);
-								docbs(false,s1.body,s2);
-								docbs(false,s1,s2.body);
-								docbs(false,s1.body,s2.body);
+								});
+								if(listener!=null) cx_break;
+								});
 							}
+
 							if(listener!=null && (callbackset==null || callbackset.stamp!=stamp)) {
 								if(callbackset!=null) callbackset.stamp = stamp;
 
@@ -1803,5 +1794,35 @@ class PR(Space) {
 			}
 		}
 		return ret;
+	}
+
+	//-------------------------------------------------------------------------------------------------
+
+	//build chains of interactors from each shape up to (but not including) their MRCA (most recent common ancestor)
+	//as the shapes are in the space the MRCA is guaranteed to exist (allowing the space itself to be an ancestor at the root level)
+	//
+	//these chains are used to handle every possible pair of interactors for callbacks.
+	//assume that the chains are used and can be destroyed, perhaps a premature optimisation but what have you.
+	public var mrca1:List(PR(Interactor));
+	public var mrca2:List(PR(Interactor));
+	flibmdel public inline function MRCA_chains(s1:PR(Shape), s2:PR(Shape)) {
+		assert(s1!=s2 && s1.body!=s2.body, "MRCA chain for equal shapes, or shapes of the same body?");
+		//clear any remnants
+		mrca1.clear();
+		mrca2.clear();
+
+		//first part done explicitly for most common path.
+		mrca1.add(s1); mrca1.add(s1.body);
+		mrca2.add(s2); mrca2.add(s2.body);
+
+		//slower path for rest of compound chain.
+		var c1 = s1.body.compound;
+		var c2 = s2.body.compound;
+		while(c1!=c2) {
+			var d1 = if(c1==null) 0 else c1.depth;
+			var d2 = if(c2==null) 0 else c2.depth;
+			if(d1<d2) {	mrca2.add(c2); c2 = c2.compound; }
+			else      { mrca1.add(c1); c1 = c1.compound; }
+		}
 	}
 }

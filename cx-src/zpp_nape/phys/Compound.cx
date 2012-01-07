@@ -16,6 +16,7 @@ class PR(Compound) extends PR(Interactor) {
 
 	//----------------------------------------------------
 
+	public var depth:Int;
 	public var compound:PR(Compound);
 	public var space:PR(Space);
 
@@ -50,26 +51,30 @@ class PR(Compound) extends PR(Interactor) {
 	public function new() {
 		super();
 		icompound = this;
+		depth = 1; //space is taken to be depth=0
 
 		var me = this;
-		$(mixin list(b,B) list(b,B,$(mixin check(x){}) check));
-		$(mixin list(b,B,check)
+		$(mixin list(b,B) list(b,B,$(mixin check(x){}) check,$(mixin onadd(x){}) onadd,$(mixin onsub(x){}) onsub));
+		$(mixin list(b,B,check,onadd,onsub)
 			b = new List(PR(B))();
 			wrap_`b = PR(B`List).get(b);
 			wrap_`b.pr(inner).adder = function(x:B) {
-				check(x);
+				check(x)
 				if(x.pr(inner).compound!=me) {
 					if(x.pr(inner).compound!=null) x.pr(inner).compound.wrap_`b.remove(x);
 					elif(x.pr(inner).space!=null) x.pr(inner).space.wrap_`b.remove(x);
 
 					x.pr(inner).compound = me;
-					if(me.space!=null) me.space.add`B(x.pr(inner));
+					onadd(x);
 
+					if(me.space!=null) me.space.add`B(x.pr(inner));
 					return true;
 				}else return false;
 			}
 			wrap_`b.pr(inner).subber = function(x:B) {
 				x.pr(inner).compound = null;
+				onsub(x);
+
 				if(me.space!=null) me.space.rem`B(x.pr(inner));
 			}
 			DEBUG(wrap_`b.pr(inner)._modifiable = function() {
@@ -79,13 +84,17 @@ class PR(Compound) extends PR(Interactor) {
 
 		list(bodies,Body)
 		list(constraints,Constraint)
-		list(compounds,Compound,$(mixin check(x) DEBUG(
+
+		list(compounds,Compound,
+		$(mixin check(x) DEBUG(
 			var cur = me;
 			while(cur!=null && cur!=x.pr(inner)) cur = cur.compound;
 			if(cur==x.pr(inner)) {
 				throw "Error: Assignment would cause a cycle in the Compound tree: assigning "+x.toString()+".compound = "+me.outer.toString();
 				return false;
-			})) check
+		})) check,
+		$(mixin onadd(x) x.pr(inner).depth = me.depth+1) onadd,
+		$(mixin onsub(x) x.pr(inner).depth = 1 /*space is taken to be 0*/) onsub
 		)
 	}
 }
