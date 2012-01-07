@@ -352,12 +352,13 @@ class DummyNapeMain {
 		haxe.Log.setColor(0xffffff);
 		var cur = flash.Lib.current;
 		var space = new Space();
-		var debug = new BitmapDebug(800,600,0x333333);
+		var debug = new ShapeDebug(800,600,0x333333);
 		debug.transform = new Mat23();
 		debug.clear();
 		cur.addChild(debug.display);
 
 		function dope() {
+			trace("-------");
 			space.step(1/60,10,10);
 			debug.draw(space);
 			debug.transform.tx += 150;
@@ -365,7 +366,10 @@ class DummyNapeMain {
 		}
 
 		var cb = new CbType();
-
+		space.listeners.add(new PreListener(cb,cb,function(arb) { trace(arb); return PreFlag.IGNORE; }));
+		space.listeners.add(new InteractionListener(CbEvent.BEGIN, cb,cb, function(x,y) trace("BEGIN "+x+" "+y)));
+		space.listeners.add(new InteractionListener(CbEvent.END, cb,cb, function(x,y) trace("END "+x+" "+y)));
+		
 		var c = new Compound();
 		var b1 = new Body(); b1.shapes.add(new Circle(50));
 		b1.position.setxy(50,50);
@@ -379,15 +383,24 @@ class DummyNapeMain {
 		c.space = space;
 		b2.space = space;
 
-		space.listeners.add(new PreListener(cb,cb,function(arb) { trace(arb); return PreFlag.IGNORE; }));
-		space.listeners.add(new InteractionListener(CbEvent.BEGIN, cb,cb, function(x,y) trace("BEGIN "+x+" "+y)));
-		space.listeners.add(new InteractionListener(CbEvent.END, cb,cb, function(x,y) trace("END "+x+" "+y)));
-		
 		dope();
 		b2.position.y -= 100;
 		dope();
+		c.cbType = null;
+		dope();
 		b2.position.y += 100;
 		dope();
+
+		b1.cbType = cb;
+		b2.position.y -= 100;
+		dope();
+	
+		c.cbType = cb;
+		b1.cbType = null;
+		
+		dope();
+		b2.position.y += 100;
+		dope();	
 	}
 
 	static function man() {

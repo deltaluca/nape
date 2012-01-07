@@ -26,13 +26,13 @@ class PR(Compound) extends PR(Interactor) {
 		if(this.cbType != cbType) {
 			if(space!=null && this.cbType!=null) {
 				this.cbType.remCompound(this);
-				space.nullCompoundType(this);
+				space.nullInteractorType(this);
 			}
 
 			this.cbType = cbType;
 			if(space!=null && cbType!=null) {
 				cbType.addCompound(this);
-				space.freshCompoundType(this);
+				space.freshInteractorType(this);
 			}
 
 			wake();
@@ -44,6 +44,15 @@ class PR(Compound) extends PR(Interactor) {
 
 	flibmdel public inline function wake() {
 		if(space!=null) space.wakeCompound(this);
+	}
+
+	public function addedToSpace() {
+		if(cbType!=null)
+			cbType.addCompound(this);
+	}
+	public function removedFromSpace() {
+		if(cbType!=null)
+			cbType.remCompound(this);
 	}
 
 	//----------------------------------------------------
