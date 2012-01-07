@@ -357,24 +357,16 @@ class DummyNapeMain {
 
 		var c1 = new Compound();
 		var c2 = new Compound();
-		var b1 = new Body(); b1.shapes.add(new Circle(10));
-		var b2 = new Body(); b2.shapes.add(new Circle(10));
+		var b1 = new Body();
 
-		b1.compound = c1;
-		b2.compound = c2;
-		c2.compound = c1;
-
-		$(mixin try(x) $try { trace($str(x)); x; } catch (e:Dynamic) { trace(e); });
-		try(b1.space = space);
-		try(b2.space = space);
-		try(c1.space = space);
-		try(c2.space = space);
-
-		var c = new AngleJoint(null,null,0,0);
-		try(c.space = space);
-		c.body1 = b1; c.body2 = b2;
-		try(space.step(0.1));
-
+		space.compounds.add(c1);
+		trace([b1.space,b1.compound,c1.space,c1.compound,c2.space]);
+		c1.bodies.add(b1);
+		trace([b1.space,b1.compound,c1.space,c1.compound,c2.space]);
+		c1.compound = c2;
+		trace([b1.space,b1.compound,c1.space,c1.compound,c2.space]);
+		c2.space = space;
+		trace([b1.space,b1.compound,c1.space,c1.compound,c2.space]);
 	}
 
 	static function man() {

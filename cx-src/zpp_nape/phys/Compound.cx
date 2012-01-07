@@ -34,59 +34,41 @@ class PR(Compound) extends PR(Interactor) {
 		super();
 		icompound = this;
 
-		bodies = new List(PR(Body))();
-		wrap_bodies = PR(BodyList).get(bodies);
 		var me = this;
-		wrap_bodies.pr(inner).adder = function(b:Body) {
-			if(b.pr(inner).compound!=me) {
-				if(b.pr(inner).compound!=null) b.pr(inner).compound.wrap_bodies.remove(b);
-				b.pr(inner).compound = me;
-				return true;
-			}else return false;
-		}
-		wrap_bodies.pr(inner).subber = function(b:Body) {
-			b.pr(inner).compound = null;	
-		}
-		wrap_bodies.pr(inner)._modifiable = function() {
-			me.immutable_midstep("Compound::bodies");
-		}
+		$(mixin list(b,B) list(b,B,$(mixin check(x){}) check));
+		$(mixin list(b,B,check)
+			b = new List(PR(B))();
+			wrap_`b = PR(B`List).get(b);
+			wrap_`b.pr(inner).adder = function(x:B) {
+				check(x);
+				if(x.pr(inner).compound!=me) {
+					if(x.pr(inner).compound!=null) x.pr(inner).compound.wrap_`b.remove(x);
+					elif(x.pr(inner).space!=null) x.pr(inner).space.wrap_`b.remove(x);
 
-		constraints = new List(PR(Constraint))();
-		wrap_constraints = PR(ConstraintList).get(constraints);
-		wrap_constraints.pr(inner).adder = function(c:Constraint) {
-			if(c.pr(inner).compound!=me) {
-				if(c.pr(inner).compound!=null) c.pr(inner).compound.wrap_constraints.remove(c);
-				c.pr(inner).compound = me;
-				return true;
-			}else return false;
-		}
-		wrap_constraints.pr(inner).subber = function(c:Constraint) {
-			c.pr(inner).compound = null;
-		}
-		wrap_constraints.pr(inner)._modifiable = function() {
-			me.immutable_midstep("Compound::constraints");
-		}
+					x.pr(inner).compound = me;
+					if(me.space!=null) me.space.add`B(x.pr(inner));
 
-		compounds = new List(PR(Compound))();
-		wrap_compounds = PR(CompoundList).get(compounds);
-		wrap_compounds.pr(inner).adder = function(c:Compound) {
-			DEBUG(
-				var cur = me;
-				while(cur!=null && cur!=c.pr(inner)) cur = cur.compound;
-				if(cur==c.pr(inner)) {
-					throw "Error: Assignment would cause a cycle in the Compound tree: assigning "+c.toString()+".compound = "+me.outer.toString();
-					return false;
-				}
-			)
-			if(c.pr(inner).compound!=null) c.pr(inner).compound.wrap_compounds.remove(c);
-			c.pr(inner).compound = me;
-			return true;
-		}
-		wrap_compounds.pr(inner).subber = function(c:Compound) {
-			c.pr(inner).compound = null;
-		}
-		wrap_compounds.pr(inner)._modifiable = function() {
-			me.immutable_midstep("Compound::compounds");
-		}
+					return true;
+				}else return false;
+			}
+			wrap_`b.pr(inner).subber = function(x:B) {
+				x.pr(inner).compound = null;
+				if(me.space!=null) me.space.rem`B(x.pr(inner));
+			}
+			DEBUG(wrap_`b.pr(inner)._modifiable = function() {
+				me.immutable_midstep("Compound::"+$str(b));
+			})
+		);
+
+		list(bodies,Body)
+		list(constraints,Constraint)
+		list(compounds,Compound,$(mixin check(x) DEBUG(
+			var cur = me;
+			while(cur!=null && cur!=x.pr(inner)) cur = cur.compound;
+			if(cur==x.pr(inner)) {
+				throw "Error: Assignment would cause a cycle in the Compound tree: assigning "+x.toString()+".compound = "+me.outer.toString();
+				return false;
+			})) check
+		)
 	}
 }
