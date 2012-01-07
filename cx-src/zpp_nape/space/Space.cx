@@ -851,6 +851,8 @@ class PR(Space) {
 	flibmdel public inline function nullShapeType(shape:PR(Shape),incb1:PR(CbType)=null,incb2:PR(CbType)=null) {
 		nullBodyShapeType(shape.body, $(mixin forobject(x) x.ws1==shape || x.ws2==shape) forobject);
 	}
+	flibmdel public inline function nullCompoundType(comp:PR(Compound),incb1:PR(CbType)=null,incb2:PR(CbType)=null) {
+	}
 			
 	$(mixin nullBodyShapeType(xbody,forobject) {
 		assert((incb1==null) == (incb2==null), "bllop null");
@@ -895,6 +897,8 @@ class PR(Space) {
 	flibmdel public inline function freshShapeType(shape:PR(Shape),incb1:PR(CbType)=null,incb2:PR(CbType)=null) {
 		freshBodyShapeType(shape.body, $(mixin forobject(x) x.ws1==shape || x.ws2==shape) forobject);
 	}
+	flibmdel public inline function freshCompoundType(comp:PR(Compound),incb1:PR(CbType)=null,incb2:PR(CbType)=null) {
+	}
 
 	$(mixin freshBodyShapeType(xbody, forobject) {
 		assert((incb1==null) == (incb2==null), "bllop null");
@@ -936,6 +940,12 @@ class PR(Space) {
 	public function wakeGroup(g:PR(InteractionGroup)) {
 		Iterate(g.bodies, wake);
 		Iterate(g.groups, wakeGroup);
+	}
+
+	public function wakeCompound(x:PR(Compound)) {
+		Iterate(x.bodies, wake);
+		Iterate(x.constraints, wake_constraint);
+		Iterate(x.compounds, wakeCompound);
 	}
 	
 	public function wakeIsland(i:PR(Island)) {

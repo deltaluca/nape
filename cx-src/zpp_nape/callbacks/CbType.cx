@@ -28,14 +28,17 @@ class PR(CbType) {
     public var shapes     :List(PR(Shape));      public var wrap_shapes     :ShapeList;
     public var constraints:List(PR(Constraint)); public var wrap_constraints:ConstraintList;
     public var bodies     :List(PR(Body));       public var wrap_bodies     :BodyList;
+	public var compounds  :List(PR(Compound));   public var wrap_compounds  :CompoundList;
 
-    flibmdel public inline function addShape     (shape:PR(Shape))      shapes.     add   (shape)
-    flibmdel public inline function addConstraint(con  :PR(Constraint)) constraints.add   (con)
-    flibmdel public inline function addBody      (body :PR(Body))       bodies.     add   (body)
-
-    flibmdel public inline function remShape     (shape:PR(Shape))      shapes.     remove(shape)
+    flibmdel public inline function addShape     (shape:PR(Shape))      shapes.     add(shape)
+    flibmdel public inline function addConstraint(con  :PR(Constraint)) constraints.add(con)
+    flibmdel public inline function addBody      (body :PR(Body))       bodies.     add(body)
+	flibmdel public inline function addCompound  (comp :PR(Compound))   compounds.  add(comp)
+	
+	flibmdel public inline function remShape     (shape:PR(Shape))      shapes.     remove(shape)
     flibmdel public inline function remConstraint(con  :PR(Constraint)) constraints.remove(con)
     flibmdel public inline function remBody      (body :PR(Body))       bodies.     remove(body)
+	flibmdel public inline function remCompound  (comp :PR(Compound))   compounds.  remove(comp)
 
     ///---------------------------------------------------------------------------------------------
 
@@ -63,9 +66,10 @@ class PR(CbType) {
         id = ID(Constraint);
         map.push(this);
 
-        shapes = new List(PR(Shape))();
+        shapes      = new List(PR(Shape))();
         constraints = new List(PR(Constraint))();
-        bodies = new List(PR(Body))();
+        bodies      = new List(PR(Body))();
+		compounds   = new List(PR(Compound))();
 
         _begin = _end = 0;
         _pre = 0;
