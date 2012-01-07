@@ -120,11 +120,15 @@ class PR(Space) {
 	}
 	
 	//----------------------------------------------------------------------------------------------
-	
+
+	public var compounds :List(PR(Compound)); public var wrap_compounds:CompoundList;
+
+	//these 4 lists (internally) store 'every' body of that type in the space
+	//the public lists however expose only those 
 	public var bodies    :List(PR(Body)); public var wrap_bodies    :BodyList;
-	public var statics   :List(PR(Body)); public var wrap_statics   :BodyList;
-	public var dynamics  :List(PR(Body)); public var wrap_dynamics  :BodyList;
-	public var kinematics:List(PR(Body)); public var wrap_kinematics:BodyList;
+	public var statics   :List(PR(Body));
+	public var dynamics  :List(PR(Body));
+	public var kinematics:List(PR(Body));
 	
 	public var constraints:List(PR(Constraint));  public var wrap_constraints:ConstraintList;
 	
@@ -266,30 +270,26 @@ class PR(Space) {
 		DEBUG(wrap_bodies.pr(inner)._modifiable = function() {
 			if(me.midstep) throw "Error: Space::bodies cannot be set during space step()";
 		})
-		
-		/// _invalidate method on these lists? is it needed?!
 
-		$(mixin wrap_bodies(T,t)
-			t`s = new List(PR(Body))();
-			wrap_`t`s = PR(BodyList).get(t`s);
-			wrap_`t`s.pr(inner).adder = function(x:Body) {
-				DEBUG(if(x.type!=BodyType.T) throw "Error: Cannot add non-"+$str(t)+" Body to "+$str(t)+"s list";)
-				if(x.pr(inner).space!=me) {
-					if(x.pr(inner).space!=null) x.pr(inner).space.outer.t`s.remove(x);
-					me.addBody(x.pr(inner),Flag(BodyType,T));
-					return true;
-				}else return false;
-			}
-			wrap_`t`s.pr(inner).subber = function(x:Body) {
-				me.removeBody(x.pr(inner),Flag(BodyType,T));
-			}
-			DEBUG(wrap_`t`s.pr(inner)._modifiable = function() {
-				if(me.midstep) throw "Error: Space::"+$str(t)+" cannot be set during space step()";
-			})
-		);
-		wrap_bodies(STATIC,static)
-		wrap_bodies(DYNAMIC,dynamic)
-		wrap_bodies(KINEMATIC,kinematic)
+		compounds = new List(PR(Compound))();
+		wrap_compounds = PR(CompoundList).get(compounds);
+		wrap_compounds.pr(inner).adder = function(x:Compound) {
+			if(x.pr(inner).space!=me) {
+				if(x.pr(inner).space!=null) x.pr(inner).space.wrap_compounds.remove(x);
+				me.addCompound(x.pr(inner));
+				return true;
+			}else return false;
+		}
+		wrap_compounds.pr(inner).subber = function(x:Compound) {
+			me.removeCompound(x.pr(inner));
+		}
+		DEBUG(wrap_compounds.pr(inner)._modifiable = function() {
+			if(me.midstep) throw "Error: Space::compounds cannot be set during space step()";
+		})
+
+		statics = new List(PR(Body))();
+		dynamics = new List(PR(Body))();
+		kinematics = new List(PR(Body))();
 		
 		c_arbiters(true) = new List(PR(ColArbiter))();
 		c_arbiters(false) = new List(PR(ColArbiter))();
@@ -542,6 +542,22 @@ class PR(Space) {
 		con.space = null;
 	}
 	
+	//----------------------------------------------------------------------------------------------
+
+	//simple batching
+	public function addCompound(x:PR(Compound)) {
+		x.space = this;
+		Iterate(x.bodies,      addBody);
+		Iterate(x.constraints, addConstraint);
+		Iterate(x.compounds,   addCompound);
+	}
+	public function remCompound(x:PR(Compound)) {
+		x.space = null;
+		Iterate(x.bodies,      remBody);
+		Iterate(x.constraints, remConstraint);
+		Iterate(x.compounds,   remCompound);
+	}
+
 	//----------------------------------------------------------------------------------------------
 	
 	//flag = 0 if already added to bodies list, -1 if nothing has yet been done

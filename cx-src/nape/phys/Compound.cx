@@ -24,7 +24,15 @@ class Compound extends Interactor {
 		}
 	})
 
-	property(space,Space,if(pr(inner).space==null) null else pr(inner).space.outer)
+	property(space,Space,{
+		if(pr(inner).space==null) null else pr(inner).space.outer;
+	},{
+		pr(inner).immutable_midstep("Compound::space");
+		if(this.space!=space) {
+			if(this.space!=null) this.space.compounds.remove(this);
+			if(space!=null) space.compounds.add(this);
+		}
+	})
 
 	public function new() {
 		DEBUG(try { super(); } catch (e:Dynamic) {})
