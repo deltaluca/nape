@@ -52,13 +52,13 @@ class PR(Component) {
 	}
 }
 
-class PR(Compound) {
+class PR(CallbackSet) {
 	//for hash
-	public var hnext:PR(Compound);
+	public var hnext:PR(CallbackSet);
 	public var id:Int; public var di:Int;
 
 	public static inline function get(id:Int,di:Int) {
-		var ret = Get(PR(Compound));
+		var ret = Get(PR(CallbackSet));
 		if(id<=di) { ret.id = id; ret.di = di; }
 		else       { ret.id = di; ret.di = id; }
 		return ret;
@@ -76,9 +76,9 @@ class PR(Compound) {
 	//time stamp :)
 	public var stamp:Int;
 
-	MixPool(PR(Compound))
+	MixPool(PR(CallbackSet))
 	flibmdel public inline function free() {
-		assert(arbiters.empty(),"compound released with lingering arbs");
+		assert(arbiters.empty(),"callbackset released with lingering arbs");
 	}
 	flibmdel public inline function alloc() {
 		state = Flag(PreFlag,ACCEPT);
@@ -178,8 +178,8 @@ class PR(Space) {
     public var callbacks:PR(Callback); //as a deque
     public var wrap_callbacks:CallbackQueue;
 
-	//used in compound callbacks to keep track of arbiter counts for unique begin/end/pre
-	public var compounds:FastHash2(PR(Compound));
+	//used in callbackset callbacks to keep track of arbiter counts for unique begin/end/pre
+	public var callbacksets:FastHash2(PR(CallbackSet));
 	
 	//----------------------------------------------------------------------------------------------
 
@@ -350,7 +350,7 @@ class PR(Space) {
 		_end   = new FastHash2(PR(InteractionListener))();
 		_pre   = new FastHash2(PR(PreListener))();
 
-		compounds = new FastHash2(PR(Compound))();
+		callbacksets = new FastHash2(PR(CallbackSet))();
 	}
 	
 	//----------------------------------------------------------------------------------------------
@@ -458,15 +458,15 @@ class PR(Space) {
 		Iter(xarb,body.arbiters,{
 			var rem = xarb.ws1 == s || xarb.ws2 == s;
 			if(rem) {
-				//need to deal with compound callback counters!!!
+				//need to deal with callbackset callback counters!!!
 				//
 				//this handles shapes/bodies being removed
 				//we only generate end callbacks when body is not being deleted
-				//and we only care for compound callbacks as shape-shape are dealt
+				//and we only care for callbackset callbacks as shape-shape are dealt
 				//with automaticaly and simply.
 				//
 				//we decrement on both begin/end callback existance also pre.
-				//as in either case the compound exists and must be cleaned
+				//as in either case the callbackset exists and must be cleaned
 				$(mixin docbs(S1,S2,o1,o2) {
 					var cb1 = o1.cbType;
 					var cb2 = o2.cbType;
@@ -483,17 +483,17 @@ class PR(Space) {
 							exists = _pre.ordered_get(cb1.id,cb2.id) != null;
 
 						if(exists) {
-							var compound = compounds.ordered_get(o1.id,o2.id);
-							assert(compound!=null,"null compound on arbiter deletion?");
-							compound.remove(xarb);
-							if(compound.empty()) {
+							var callbackset = callbacksets.ordered_get(o1.id,o2.id);
+							assert(callbackset!=null,"null callbackset on arbiter deletion?");
+							callbackset.remove(xarb);
+							if(callbackset.empty()) {
 								if(endcb!=null && !deleting) {
 									var cb = push_callback(endcb,endcb.handler!=null);
 									cb.event = Flag(CbEvent,END);
 									PR(Interactor).int_callback(o1,o2,endcb.cb1,cb);
 								}
-								compounds.remove(compound);
-								Free(PR(Compound),compound);
+								callbacksets.remove(callbackset);
+								Free(PR(CallbackSet),callbackset);
 							}
 						}
 					}
@@ -836,7 +836,7 @@ class PR(Space) {
     //----------------------------------------------------------------------------------------------
 
 	//when body/shape cbType is changed, it is nulled, then set again
-	// ' also used as a perhaps non-optimal way of refreshing compounds
+	// ' also used as a perhaps non-optimal way of refreshing callbacksets
 	// on listener changes
 
 	//called before set to null.
@@ -853,7 +853,7 @@ class PR(Space) {
 		
 		Iter(xarb,xbody.arbiters,{
 			if(!(xarb.active && (forobject(xarb)))) cx_continue;
-			//only need to worry about to compound callbacks
+			//only need to worry about to callbackset callbacks
 			$(mixin docbs(o1,o2) {
 				var cb1 = o1.cbType;
 				var cb2 = o2.cbType;
@@ -867,12 +867,12 @@ class PR(Space) {
 						exists = _pre.ordered_get(cb1.id,cb2.id)!=null;
 					
 					if(exists) {
-						var compound = compounds.ordered_get(o1.id,o2.id);
-						assert(compound!=null,"null compound on nullBodyShapeType? "+o1.outer.toString()+" "+o2.outer.toString()+" "+xarb.type);
-						compound.remove(xarb);
-						if(compound.empty()) {
-							compounds.remove(compound);
-							Free(PR(Compound),compound);
+						var callbackset = callbacksets.ordered_get(o1.id,o2.id);
+						assert(callbackset!=null,"null callbackset on nullBodyShapeType? "+o1.outer.toString()+" "+o2.outer.toString()+" "+xarb.type);
+						callbackset.remove(xarb);
+						if(callbackset.empty()) {
+							callbacksets.remove(callbackset);
+							Free(PR(CallbackSet),callbackset);
 						}
 					}
 				}
@@ -897,7 +897,7 @@ class PR(Space) {
 		
 		Iter(xarb,xbody.arbiters,{
 			if(!(xarb.active && (forobject(xarb)))) cx_continue;
-			//only need to worry about compounds
+			//only need to worry about callbacksets
 			$(mixin docbs(o1,o2) {
 				var cb1 = o1.cbType;
 				var cb2 = o2.cbType;
@@ -911,12 +911,12 @@ class PR(Space) {
 						exists = _pre.ordered_get(cb1.id,cb2.id) != null;
 
 					if(exists) {
-						var compound = compounds.ordered_get(o1.id,o2.id);
-						if(compound==null) {
-							compound = PR(Compound).get(o1.id,o2.id);
-							compounds.add(compound);
+						var callbackset = callbacksets.ordered_get(o1.id,o2.id);
+						if(callbackset==null) {
+							callbackset = PR(CallbackSet).get(o1.id,o2.id);
+							callbacksets.add(callbackset);
 						}
-						compound.add(xarb);
+						callbackset.add(xarb);
 					}
 				}
 			});
@@ -1365,26 +1365,26 @@ class PR(Space) {
 										PR(Interactor).int_callback(o1,o2,endi.cb1,cb);
 									}
 								}else {
-									var compound = compounds.ordered_get(o1.id,o2.id);
+									var callbackset = callbacksets.ordered_get(o1.id,o2.id);
 									if(begcb) {
-										if(compound==null) {
-											compound = PR(Compound).get(o1.id,o2.id);
-											compounds.add(compound);
+										if(callbackset==null) {
+											callbackset = PR(CallbackSet).get(o1.id,o2.id);
+											callbacksets.add(callbackset);
 										}
-										//check for empty, rather than null compound as the compound is created in narrowphase
+										//check for empty, rather than null callbackset as the callbackset is created in narrowphase
 										//to avoid multiple pre-listeners.
-										if(compound.empty() && begi!=null) {
+										if(callbackset.empty() && begi!=null) {
 											var cb = push_callback(begi,begi.handler!=null);
 											cb.event = Flag(CbEvent,BEGIN);
 											PR(Interactor).int_callback(o1,o2,begi.cb1,cb);
 										}
-										compound.add(arb);
+										callbackset.add(arb);
 									}elif(endcb) {
-										assert(compound!=null,"end arbiter with no compound");
-										compound.remove(arb);
-										if(compound.empty()) { 
-											compounds.remove(compound);
-											Free(PR(Compound),compound);
+										assert(callbackset!=null,"end arbiter with no callbackset");
+										callbackset.remove(arb);
+										if(callbackset.empty()) { 
+											callbacksets.remove(callbackset);
+											Free(PR(CallbackSet),callbackset);
 
 											if(endi!=null) {
 												var cb = push_callback(endi,endi.handler!=null);
@@ -1586,10 +1586,10 @@ class PR(Space) {
 								arb.fresh = arb.up_stamp<stamp-1; //handler persistance
 							arb.up_stamp = arb.stamp;
 
-							//search for a pre-listener or existing compound
+							//search for a pre-listener or existing callbackset
 							var listener:PR(PreListener) = null;
-							var compound:PR(Compound) = null;
-							var ncompound:PR(Compound) = null;
+							var callbackset:PR(CallbackSet) = null;
+							var ncallbackset:PR(CallbackSet) = null;
 							$(mixin docbs(SHAPES,o1,o2) {
 								if(RELEASE(listener==null) DEBUG(true)) {
 									var cb1 = o1.cbType;
@@ -1600,10 +1600,10 @@ class PR(Space) {
 										DEBUG(listener = i;)
 										#if !SHAPES
 											if(listener!=null) {
-												compound = compounds.ordered_get(o1.id,o2.id); 
-												if(compound==null) {
-													ncompound = PR(Compound).get(o1.id,o2.id);
-													compounds.add(ncompound);
+												callbackset = callbacksets.ordered_get(o1.id,o2.id); 
+												if(callbackset==null) {
+													ncallbackset = PR(CallbackSet).get(o1.id,o2.id);
+													callbacksets.add(ncallbackset);
 												}
 											}
 										#end
@@ -1618,8 +1618,8 @@ class PR(Space) {
 								docbs(false,s1,s2.body);
 								docbs(false,s1.body,s2.body);
 							}
-							if(listener!=null && (compound==null || compound.stamp!=stamp)) {
-								if(compound!=null) compound.stamp = stamp;
+							if(listener!=null && (callbackset==null || callbackset.stamp!=stamp)) {
+								if(callbackset!=null) callbackset.stamp = stamp;
 
 								// arbiter (public) is not active in the situtation of a persistant
 								// collision arbiter being re-used before it was retired.
@@ -1649,15 +1649,15 @@ class PR(Space) {
 									//make sure things like normals are still normalised
 									arb.pre_validate();
 								}
-							}else if(compound==null) {
+							}else if(callbackset==null) {
 								//reset state on non-persistance
 								if((arb.immState&Flag(ImmState,ALWAYS))==0)
 									arb.immState = Flag(ImmState, ACCEPT);
 							}else {
-								arb.immState = compound.state;
+								arb.immState = callbackset.state;
 							}
-							if(compound==null && ncompound!=null)
-								ncompound.state = arb.immState;
+							if(callbackset==null && ncallbackset!=null)
+								ncallbackset.state = arb.immState;
 
 							//DON'T LET THE OBJECTS GO TO SLEEP!!
 							//# we cannot assume that at some point
