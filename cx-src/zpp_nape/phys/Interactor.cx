@@ -51,11 +51,11 @@ class PR(Interactor) {
 	}
 
 	flibmdel public inline function lookup_group() {
-		var cur = this;
+		var cur:PR(Interactor) = this;
 		while(cur!=null && cur.group==null) {
-			cur = if(cur.isShape()) cur.ishape.body;
-				  if(cur.isCompound()) cur.icompound.compound;
-			      else cur.ibody.compound;
+			if(cur.isShape()) cur = cur.ishape.body;
+			elif(cur.isCompound()) cur = cur.icompound.compound;
+			else cur = cur.ibody.compound;
 		}
 		return if(cur==null) null else cur.group;
 	}
