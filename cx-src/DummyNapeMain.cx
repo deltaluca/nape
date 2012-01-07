@@ -353,20 +353,41 @@ class DummyNapeMain {
 		var cur = flash.Lib.current;
 		var space = new Space();
 		var debug = new BitmapDebug(800,600,0x333333);
+		debug.transform = new Mat23();
+		debug.clear();
 		cur.addChild(debug.display);
 
-		var c1 = new Compound();
-		var c2 = new Compound();
-		var b1 = new Body();
+		function dope() {
+			space.step(1/60,10,10);
+			debug.draw(space);
+			debug.transform.tx += 150;
+			debug.flush();
+		}
 
-		space.compounds.add(c1);
-		trace([b1.space,b1.compound,c1.space,c1.compound,c2.space]);
-		c1.bodies.add(b1);
-		trace([b1.space,b1.compound,c1.space,c1.compound,c2.space]);
-		c1.compound = c2;
-		trace([b1.space,b1.compound,c1.space,c1.compound,c2.space]);
-		c2.space = space;
-		trace([b1.space,b1.compound,c1.space,c1.compound,c2.space]);
+		var cb = new CbType();
+
+		var c = new Compound();
+		var b1 = new Body(); b1.shapes.add(new Circle(50));
+		b1.position.setxy(50,50);
+		b1.compound = c;
+		c.cbType = cb;
+
+		var b2 = new Body(); b2.shapes.add(new Circle(50));
+		b2.cbType = cb;
+		b2.position.setxy(50,200);
+
+		c.space = space;
+		b2.space = space;
+
+		space.listeners.add(new PreListener(cb,cb,function(arb) { trace(arb); return PreFlag.IGNORE; }));
+		space.listeners.add(new InteractionListener(CbEvent.BEGIN, cb,cb, function(x,y) trace("BEGIN "+x+" "+y)));
+		space.listeners.add(new InteractionListener(CbEvent.END, cb,cb, function(x,y) trace("END "+x+" "+y)));
+		
+		dope();
+		b2.position.y -= 100;
+		dope();
+		b2.position.y += 100;
+		dope();
 	}
 
 	static function man() {
