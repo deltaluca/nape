@@ -11,9 +11,11 @@ class PR(Interactor) {
 
 	public var ishape:PR(Shape);
 	public var ibody :PR(Body);
+	public var icompound:PR(Compound);
 
-	public inline function isShape() return ishape!=null
-	public inline function isBody () return ibody !=null
+	flibmdel public inline function isShape() return ishape!=null
+	flibmdel public inline function isBody () return ibody !=null
+	flibmdel public inline function isCompound() return icompound != null 
 
 	//--------------------------------------------------------------------
 
@@ -22,15 +24,17 @@ class PR(Interactor) {
 
 	public function setCbType(cbType:PR(CbType)) {
 		if(isBody()) ibody.__setCbType(cbType);
-		else        ishape.__setCbType(cbType);
+		elif(isShape()) ishape.__setCbType(cbType);
+		else icompound.__setCbType(cbType);
 	}
 
 	//--------------------------------------------------------------------
 
-	public inline function immutable_midstep(n:String) {
+	flibmdel public inline function immutable_midstep(n:String) {
 		return
 		if(isBody()) ibody.__immutable_midstep(n);
-		else        ishape.__immutable_midstep(n);
+		elif(isShape()) ishape.__immutable_midstep(n);
+		else icompound.__imutable_midstep(n);
 	}
 
 	//--------------------------------------------------------------------
@@ -46,11 +50,12 @@ class PR(Interactor) {
 		else               { cb.int2 = o1; cb.int1 = o2; }
 	}
 
-	public inline function lookup_group() {
+	flibmdel public inline function lookup_group() {
 		var cur = this;
 		while(cur!=null && cur.group==null) {
 			cur = if(cur.isShape()) cur.ishape.body;
-			      else null; 
+				  if(cur.isCompound()) cur.icompound.compound;
+			      else cur.ibody.compound;
 		}
 		return if(cur==null) null else cur.group;
 	}

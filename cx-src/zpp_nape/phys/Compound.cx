@@ -1,0 +1,92 @@
+package zpp_nape.phys;
+$(import);
+
+class PR(Compound) extends PR(Interactor) {
+	public var outer:Compound;
+
+	//----------------------------------------------------
+
+	public var bodies:List(PR(Body)); 
+	public var constraints:List(PR(Constraint));
+	public var compounds:List(PR(Compound)); 
+
+	public var wrap_bodies:BodyList;
+	public var wrap_constraints:ConstraintList;
+	public var wrap_compounds:CompoundList;
+
+	//----------------------------------------------------
+
+	public var compound:PR(Compound);
+	public var space:PR(Space);
+
+	//----------------------------------------------------
+
+	public function __setCbType(cbType:PR(CbType)) {
+		throw "not done yet";
+	}
+	flibmdel public inline function __imutable_midstep(name:String) {
+		DEBUG(if(space!=null && space.midstep) throw "Error: "+name+" cannot be set during space step()";)
+	}
+
+	//----------------------------------------------------
+
+	public function new() {
+		super();
+		icompound = this;
+
+		bodies = new List(PR(Body))();
+		wrap_bodies = PR(BodyList).get(bodies);
+		var me = this;
+		wrap_bodies.pr(inner).adder = function(b:Body) {
+			if(b.pr(inner).compound!=me) {
+				if(b.pr(inner).compound!=null) b.pr(inner).compound.wrap_bodies.remove(b);
+				b.pr(inner).compound = me;
+				return true;
+			}else return false;
+		}
+		wrap_bodies.pr(inner).subber = function(b:Body) {
+			b.pr(inner).compound = null;	
+		}
+		wrap_bodies.pr(inner)._modifiable = function() {
+			me.immutable_midstep("Compound::bodies");
+		}
+
+		constraints = new List(PR(Constraint))();
+		wrap_constraints = PR(ConstraintList).get(constraints);
+		wrap_constraints.pr(inner).adder = function(c:Constraint) {
+			if(c.pr(inner).compound!=me) {
+				if(c.pr(inner).compound!=null) c.pr(inner).compound.wrap_constraints.remove(c);
+				c.pr(inner).compound = me;
+				return true;
+			}else return false;
+		}
+		wrap_constraints.pr(inner).subber = function(c:Constraint) {
+			c.pr(inner).compound = null;
+		}
+		wrap_constraints.pr(inner)._modifiable = function() {
+			me.immutable_midstep("Compound::constraints");
+		}
+
+		compounds = new List(PR(Compound))();
+		wrap_compounds = PR(CompoundList).get(compounds);
+		wrap_compounds.pr(inner).adder = function(c:Compound) {
+			DEBUG(
+				var cur = me;
+				while(cur!=null && cur!=c.pr(inner)) cur = cur.compound;
+				if(cur==c.pr(inner)) {
+					throw "Error: Assignment would cause a cycle in the Compound tree: assigning "+c.toString()+".compound = "+me.outer.toString();
+					return false;
+				}
+			)
+			if(c.pr(inner).compound!=null) c.pr(inner).compound.wrap_compounds.remove(c);
+			c.pr(inner).compound = me;
+			return true;
+		}
+		wrap_compounds.pr(inner).subber = function(c:Compound) {
+			c.pr(inner).compound = null;
+		}
+		wrap_compounds.pr(inner)._modifiable = function() {
+			me.immutable_midstep("Compound::compounds");
+		}
+	}
+}

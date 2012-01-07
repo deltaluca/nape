@@ -355,54 +355,20 @@ class DummyNapeMain {
 		var debug = new BitmapDebug(800,600,0x333333);
 		cur.addChild(debug.display);
 
-		var b1 = new Body(BodyType.DYNAMIC);
-		b1.shapes.add(new Polygon(Polygon.rect(50,150,100,100)));
+		var compound = new Compound();
+		(new Body()).compound = compound;
+		var c2 = new Compound(); c2.compound = compound;
+		(new Body()).compound = c2;
 
-		var b2 = new Body(BodyType.KINEMATIC);
-		b2.shapes.add(new Polygon(Polygon.rect(-20,-40,40,40)));
-		b2.shapes.add(new Polygon(Polygon.rect(-20,0,40,40)));
-
-		b2.position.setxy(100,130);
-
-		b1.space = b2.space = space;
-
-		var cb = new CbType();
-		b1.cbType = b2.cbType = cb;
-
-		var g = new InteractionGroup();
-		b1.group = g; g.ignore = true;
-
-		g.group = new InteractionGroup(); g.group.ignore = true;
-
-		b2.group = new InteractionGroup();
-		b2.group.ignore = false;
-
-		b2.group.group = g;
-
-		debug.clear();
-		debug.transform = new Mat23();
-		function drar() {
-			trace("---");
-			space.step(1/60,10,10);
-			debug.draw(space);
-			debug.flush();
-			debug.transform.tx += 140;
+		trace(compound);
+		trace(compound.bodies);
+		trace(compound.compounds);
+		for(c in compound.compounds) {
+			trace(c);
+			trace(c.bodies);
 		}
 
-		space.listeners.add(new PreListener(cb,cb, function(x) {
-			trace("PRE "+x.toString());
-			return PreFlag.IGNORE;
-		}));
-		space.listeners.add(new InteractionListener(CbEvent.BEGIN, cb,cb, function(x,y) {
-			trace("BEG "+x.toString()+" "+y.toString());
-		}));
-		space.listeners.add(new InteractionListener(CbEvent.END, cb,cb, function(x,y) {
-			trace("END "+x.toString()+" "+y.toString());
-		}));
-		drar();
-		space.listeners.clear();
-		b2.position.y += 40;
-		drar();
+		compound.compound = c2;
 	}
 
 	static function man() {

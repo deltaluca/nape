@@ -1,0 +1,42 @@
+package nape.phys;
+$(import);
+
+//--------------------------------------------------------------------------------------------------
+
+WrapList(Compound,List(PR(Compound)),Node(PR(Compound)),$(mixin closure(x) x.outer) $(mixin erusolc(x) x.pr(inner)))
+
+//--------------------------------------------------------------------------------------------------
+
+class Compound extends Interactor {
+	public var pr(inner):PR(Compound);
+
+	property(bodies,BodyList,pr(inner).wrap_bodies)
+	property(constraints,ConstraintList,pr(inner).wrap_constraints)
+	property(compounds,CompoundList,pr(inner).wrap_compounds)
+
+	property(compound,Compound,{
+		if(pr(inner).compound==null) null else pr(inner).compound.outer;
+	},{
+		pr(inner).immutable_midstep("Compound::compound");
+		if(this.compound!=compound) {
+			if(this.compound!=null) this.compound.compounds.remove(this);
+			if(compound!=null) compound.compounds.add(this);
+		}
+	})
+
+	property(space,Space,if(pr(inner).space==null) null else pr(inner).space.outer)
+
+	public function new() {
+		DEBUG(try { super(); } catch (e:Dynamic) {})
+		RELEASE(super();)
+
+		pr(inner) = new PR(Compound)();
+		pr(inner).outer = this;
+		pr(inner).outer_i = this;
+		pr(inner_i) = pr(inner);
+	}
+
+	@:$keep public override function toString() {
+		return "Compound#"+id;
+	}
+}

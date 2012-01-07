@@ -74,6 +74,15 @@ class Body extends Interactor {
 	
     property(shapes,ShapeList,pr(inner).wrap_shapes)
 
+	property(compound,Compound,{
+		if(pr(inner).compound==null) null else pr(inner).compound.outer;
+	},{
+		if(this.compound!=compound) {
+			if(this.compound!=null) this.compound.bodies.remove(this);
+			if(compound!=null) compound.bodies.add(this);
+		}
+	})
+
     property(space,Space,{
         if(pr(inner).space==null) null else pr(inner).space.outer;
     },{
