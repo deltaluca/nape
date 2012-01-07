@@ -357,8 +357,8 @@ class DummyNapeMain {
 
 		var c1 = new Compound();
 		var c2 = new Compound();
-		var b1 = new Body();
-		var b2 = new Body();
+		var b1 = new Body(); b1.shapes.add(new Circle(10));
+		var b2 = new Body(); b2.shapes.add(new Circle(10));
 
 		b1.compound = c1;
 		b2.compound = c2;
@@ -369,6 +369,12 @@ class DummyNapeMain {
 		try(b2.space = space);
 		try(c1.space = space);
 		try(c2.space = space);
+
+		var c = new AngleJoint(null,null,0,0);
+		try(c.space = space);
+		c.body1 = b1; c.body2 = b2;
+		try(space.step(0.1));
+
 	}
 
 	static function man() {

@@ -103,6 +103,7 @@ class PR(AngleJoint) extends PR(Constraint) {
 	}
 	
 	public override function validate() {
+		if(b1==null || b2==null) throw "Error: AngleJoint cannot be simulated null bodies";
 		if(b1==b2) throw "Error: AngleJoint cannot be simulated with body1 == body2";
 		if(b1.space != space || b2.space != space) throw "Error: Constraints must have each body within the same space to which the constraint has been assigned";
 		if(jointMin>jointMax) throw "Error: AngleJoint must have jointMin <= jointMax";
@@ -110,8 +111,8 @@ class PR(AngleJoint) extends PR(Constraint) {
 	}
 	
 	public override function wake_connected() {
-		if(b1.isDynamic()) b1.wake();
-		if(b2.isDynamic()) b2.wake();
+		if(b1!=null && b1.isDynamic()) b1.wake();
+		if(b2!=null && b2.isDynamic()) b2.wake();
 	}
 	
 	public override function forest() {
