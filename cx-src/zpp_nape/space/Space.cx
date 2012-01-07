@@ -264,6 +264,7 @@ class PR(Space) {
 		bodies = new List(PR(Body))();	
 		wrap_bodies = PR(BodyList).get(bodies);
 		wrap_bodies.pr(inner).adder = function(x:Body) {
+			DEBUG(if(x.pr(inner).compound!=null) throw "Error: Cannot set the space of a Body belonging to a Compound, only the root Compound space can be set";)
 			if(x.pr(inner).space!=me) {
 				if(x.pr(inner).space!=null) x.pr(inner).space.outer.bodies.remove(x);
 				me.addBody(x.pr(inner));
@@ -280,6 +281,7 @@ class PR(Space) {
 		compounds = new List(PR(Compound))();
 		wrap_compounds = PR(CompoundList).get(compounds);
 		wrap_compounds.pr(inner).adder = function(x:Compound) {
+			DEBUG(if(x.pr(inner).compound!=null) throw "Error: Cannot set the space of an inner Compound, only the root Compound space can be set";)
 			if(x.pr(inner).space!=me) {
 				if(x.pr(inner).space!=null) x.pr(inner).space.wrap_compounds.remove(x);
 				me.addCompound(x.pr(inner));
@@ -312,6 +314,7 @@ class PR(Space) {
 		constraints = new List(PR(Constraint))();
 		wrap_constraints = PR(ConstraintList).get(constraints);
 		wrap_constraints.pr(inner).adder = function(x:Constraint) {
+			DEBUG(if(x.pr(inner).compound!=null) throw "Error: Cannot set the space of a Constraint belonging to a Compound, only the root Compound space can be set";)
 			if(x.pr(inner).space!=me) {
 				if(x.pr(inner).space!=null) x.pr(inner).space.outer.constraints.remove(x);
 				me.addConstraint(x.pr(inner));

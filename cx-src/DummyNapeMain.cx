@@ -355,18 +355,20 @@ class DummyNapeMain {
 		var debug = new BitmapDebug(800,600,0x333333);
 		cur.addChild(debug.display);
 
-		var compound = new Compound();
-		(new Body()).compound = compound;
-		var c2 = new Compound(); c2.compound = compound;
-		(new Body()).compound = c2;
+		var c1 = new Compound();
+		var c2 = new Compound();
+		var b1 = new Body();
+		var b2 = new Body();
 
-		trace(compound);
-		trace(compound.bodies);
-		trace(compound.compounds);
-		for(c in compound.compounds) {
-			trace(c);
-			trace(c.bodies);
-		}
+		b1.compound = c1;
+		b2.compound = c2;
+		c2.compound = c1;
+
+		$(mixin try(x) $try { trace($str(x)); x; } catch (e:Dynamic) { trace(e); });
+		try(b1.space = space);
+		try(b2.space = space);
+		try(c1.space = space);
+		try(c2.space = space);
 	}
 
 	static function man() {
