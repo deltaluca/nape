@@ -110,9 +110,15 @@ class PR(Space) {
 		wrap_gravity.pr(inner)._invalidate = function(x:PR(Vec2)) {
 			DEBUG(if(me.midstep) throw "Error: Space::gravity cannot be set during space step";)
 			vec_set(me.gravity,x.);
-			Iter(b, me.dynamics, {
-				me.wake(b);
-			});
+
+			var stack = new List(PR(Compound))();
+			Iterate(me.bodies, me.wake);
+			Iterate(me.compounds, stack.add);
+			while(!stack.empty()) {
+				var s = stack.pop_unsafe();
+				Iterate(s.bodies, me.wake);
+				Iterate(s.compounds, stack.add);
+			}
 		}
 		wrap_gravity.pr(inner)._validate = function() {
 			vec_set(me.wrap_gravity.pr(inner).,me.gravity);
@@ -122,15 +128,14 @@ class PR(Space) {
 	//----------------------------------------------------------------------------------------------
 
 	//these model the public lists with the Space acting much like a Compound
-	public var pubbodies :List(PR(Body));     public var wrap_bodies   :BodyList;
+	public var bodies :List(PR(Body));     public var wrap_bodies   :BodyList;
 	public var compounds :List(PR(Compound)); public var wrap_compounds:CompoundList;
-	public var pubconstraints:List(PR(Constraint)); public var wrap_constraints:ConstraintList;
+	public var constraints:List(PR(Constraint)); public var wrap_constraints:ConstraintList;
 
-	//these 4 lists (internally) store 'every' body of that type / constraint in the space
-	public var statics   :List(PR(Body));
-	public var dynamics  :List(PR(Body));
+	//this list stores 'all' kinematics.
+	//we assume kinematics will never really sleep.
+	//could be improved later.
 	public var kinematics:List(PR(Body));	
-	public var constraints:List(PR(Constraint));
 	
 	public var bphase:PR(Broadphase);
 	
@@ -256,8 +261,8 @@ class PR(Space) {
 		if(gravity!=null) vec_set(this.gravity,gravity.);
 		else vec_set(this.gravity,0,0);
 	
-		pubbodies = new List(PR(Body))();	
-		wrap_bodies = PR(BodyList).get(pubbodies);
+		bodies = new List(PR(Body))();	
+		wrap_bodies = PR(BodyList).get(bodies);
 		wrap_bodies.pr(inner).adder = function(x:Body) {
 			if(x.pr(inner).space!=me) {
 				if(x.pr(inner).space!=null) x.pr(inner).space.outer.bodies.remove(x);
@@ -288,10 +293,7 @@ class PR(Space) {
 			if(me.midstep) throw "Error: Space::compounds cannot be set during space step()";
 		})
 
-		statics = new List(PR(Body))();
-		dynamics = new List(PR(Body))();
 		kinematics = new List(PR(Body))();
-		constraints = new List(PR(Constraint))();
 		
 		c_arbiters(true) = new List(PR(ColArbiter))();
 		c_arbiters(false) = new List(PR(ColArbiter))();
@@ -307,8 +309,8 @@ class PR(Space) {
 		
 		staticsleep = new List(PR(Body))();
 		
-		pubconstraints = new List(PR(Constraint))();
-		wrap_constraints = PR(ConstraintList).get(pubconstraints);
+		constraints = new List(PR(Constraint))();
+		wrap_constraints = PR(ConstraintList).get(constraints);
 		wrap_constraints.pr(inner).adder = function(x:Constraint) {
 			if(x.pr(inner).space!=me) {
 				if(x.pr(inner).space!=null) x.pr(inner).space.outer.constraints.remove(x);
@@ -424,15 +426,13 @@ class PR(Space) {
 		//wake object
 		wake(p);
 		
-		if     (p.type == Flag(BodyType,DYNAMIC))   { dynamics.remove(p);   live.remove(p);        }
+		if     (p.type == Flag(BodyType,DYNAMIC))   { live.remove(p); }
 		else if(p.type == Flag(BodyType,KINEMATIC)) { kinematics.remove(p); staticsleep.remove(p); }
-		else if(p.type == Flag(BodyType,STATIC))    { statics.remove(p);    staticsleep.remove(p); }
+		else if(p.type == Flag(BodyType,STATIC))    { staticsleep.remove(p); }
 		
 		p.type = new_type;
 		
-		if     (p.type == Flag(BodyType,DYNAMIC))   dynamics.add(p);
-		else if(p.type == Flag(BodyType,KINEMATIC)) kinematics.add(p);
-		else if(p.type == Flag(BodyType,STATIC))    statics.add(p);
+		if(p.type == Flag(BodyType,KINEMATIC)) kinematics.add(p);
 		
 		if(p.type == Flag(BodyType,STATIC)) static_validation(p);
 		
@@ -526,7 +526,6 @@ class PR(Space) {
 	//----------------------------------------------------------------------------------------------
 	
 	public function addConstraint(con:PR(Constraint)) {
-		constraints.add(con);
 		con.space = this;
 		con.addedToSpace();
 		if(con.active) {
@@ -537,7 +536,6 @@ class PR(Space) {
 	}
 	
 	public function remConstraint(con:PR(Constraint)) {
-		constraints.remove(con);
 		if(con.active) {
 			wake_constraint(con,true);
 			live_constraints.remove(con);
@@ -580,13 +578,9 @@ class PR(Space) {
 			//validation won't be done on statics later.
 			static_validation(body);
 
-			if(flag!=Flag(BodyType,STATIC)) statics.add(body);
-
 			assert(staticsleep.has(body),"a2b f="+flag);
 		}else {
 			if(body.isDynamic()) {
-				if(flag!=Flag(BodyType,DYNAMIC)) dynamics.add(body);
-
 				assert(live.has(body),"a4b f="+flag);
 			}else {
 				if(flag!=Flag(BodyType,KINEMATIC)) kinematics.add(body);
@@ -601,10 +595,6 @@ class PR(Space) {
 	//flag = 0 if already removed from bodies list, -1 if nothing has yet been done
 	public function remBody(body:PR(Body),?flag:Int=-1) {
 		if(body.isStatic()) {
-			assert(statics.has(body),"neither? stat="+statics.has(body));
-
-			if(flag!=Flag(BodyType,STATIC)) statics.remove(body);
-			
 			wake(body,true);
 
 			assert(!body.component.sleeping,"as3");
@@ -615,8 +605,6 @@ class PR(Space) {
 			assert(!staticsleep.has(body),"e1");
 		}else {
 			if(body.isDynamic()) {
-				if(flag!=Flag(BodyType,DYNAMIC)) dynamics.remove(body);
-				
 				wake(body,true);
 				live.remove(body);
 				assert(!live.has(body),"e3b");
@@ -1306,8 +1294,13 @@ class PR(Space) {
 
                 if(con.removeOnBreak) {
                     //set sleeping to true as already removed from live list.
-                    con.component.sleeping = true; remConstraint(con);
-                    constraints.remove(con);
+                    con.component.sleeping = true;
+
+					//momentarigly 'escape' the space step() environment.
+					midstep = false;
+					if(con.compound!=null) con.compound.wrap_constraints.remove(con.outer);
+					else                   wrap_constraints.remove(con.outer);
+					midstep = true;
                 }else
                     con.active = false;
 
@@ -1480,8 +1473,12 @@ class PR(Space) {
 
 					if(con.removeOnBreak) {
                         //set sleeping to true as already removed from live list.
-                        con.component.sleeping = true; remConstraint(con);
-                        constraints.remove(con);
+                        con.component.sleeping = true;
+						//momentarigly 'escape' the space step() environment.
+						midstep = false;
+						if(con.compound!=null) con.compound.wrap_constraints.remove(con.outer);
+						else                   wrap_constraints.remove(con.outer);
+						midstep = true;
                     }else
                         con.active = false;
 

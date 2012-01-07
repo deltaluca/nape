@@ -520,6 +520,7 @@ $(mixin pr_debug(utils)
 		}
 	});
 
+	public var compoundstack:List(PR(Compound));
     flibmdel public inline function draw_space(space:PR(Space),xform:PR(Mat23),xdet:Float,xnull:Bool) {
 		if(outer.cullingEnabled) {
 	        if(outer.drawBodies) {
@@ -539,16 +540,30 @@ $(mixin pr_debug(utils)
 			}
 		}else {
 	        if(outer.drawBodies) {
-				Iter(b, space.statics, draw_body(b,xform,xdet,xnull));
-				Iter(b, space.dynamics, draw_body(b,xform,xdet,xnull));
-				Iter(b, space.kinematics, draw_body(b,xform,xdet,xnull));
+				if(compoundstack==null) compoundstack = new List(PR(Compound))();
+				Iter(b, space.bodies, draw_body(b,xform,xdet,xnull));
+				Iter(c, space.compounds, compoundstack.add(c));
+				while(!compoundstack.empty()) {
+					var x = compoundstack.pop_unsafe();
+					Iter(b, x.bodies, draw_body(b,xform,xdet,xnull));
+					Iter(c, x.compounds, compoundstack.add(c));
+				}
 			}
 		}
 
         if(outer.drawCollisionArbiters || outer.drawFluidArbiters || outer.drawSensorArbiters)
             for(arb in space.outer.arbiters) draw_arbiter(arb.pr(inner),xform,xdet,xnull);
 
-        if(outer.drawConstraints) Iter(c, space.constraints, draw_con(c,xform,xdet,xnull));
+        if(outer.drawConstraints) {
+			if(compoundstack==null) compoundstack = new List(PR(Compound))();
+			Iter(c, space.constraints, draw_con(c,xform,xdet,xnull));
+			Iter(c, space.compounds, compoundstack.add(c));
+			while(!compoundstack.empty()) {
+				var x = compoundstack.pop_unsafe();
+				Iter(c, x.constraints, draw_con(c,xform,xdet,xnull));
+				Iter(c, x.compounds, compoundstack.add(c));
+			}
+		}
     }
     public function draw_body(body:PR(Body),xform:PR(Mat23),xdet:Float,xnull:Bool) {
         Iter(s,body.shapes, draw_shape(s,xform,xdet,xnull));
