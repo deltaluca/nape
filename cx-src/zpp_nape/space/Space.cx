@@ -1740,6 +1740,7 @@ class PR(Space) {
 
 										if(listener!=null) {
 											if(!(i1==s1 && i2==s2)) { //don't need callbackset for shape-shape
+												trace([i1.outer_i.toString(),i2.outer_i.toString(),s1.outer.toString(),s2.outer.toString()]);
 												callbackset = callbacksets.ordered_get(i1.id,i2.id);
 												if(callbackset==null) {
 													ncallbackset = PR(CallbackSet).get(i1,i2);
@@ -1754,8 +1755,9 @@ class PR(Space) {
 								});
 							}
 
-							if(listener!=null && (callbackset==null || callbackset.stamp!=stamp)) {
-								if(callbackset!=null) callbackset.stamp = stamp;
+							if(listener!=null && (callbackset==null || (callbackset.stamp!=stamp && (callbackset.state&Flag(ImmState,ALWAYS)==0)))) {
+								if(ncallbackset!=null) callbackset = ncallbackset;
+								callbackset.stamp = stamp;
 
 								// arbiter (public) is not active in the situtation of a persistant
 								// collision arbiter being re-used before it was retired.
@@ -1792,8 +1794,9 @@ class PR(Space) {
 							}else {
 								arb.immState = callbackset.state;
 							}
-							if(callbackset==null && ncallbackset!=null)
-								ncallbackset.state = arb.immState;
+
+							if(callbackset!=null)
+								callbackset.state = arb.immState;
 
 							//DON'T LET THE OBJECTS GO TO SLEEP!!
 							//# we cannot assume that at some point

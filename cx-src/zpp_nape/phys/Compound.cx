@@ -111,9 +111,9 @@ class PR(Compound) extends PR(Interactor) {
 
 	//copy compound recursively matching bodies to clones for constraint lookups
 	//and deferring any missing bodies to the todo list.
-	public function copy(?dict:IntHash<Body>,?todo:Array<{id:Int, cb:Body->Void}>):Compound {
+	public function copy(?dict:Array<{id:Int,bc:Body}>,?todo:Array<{id:Int, cb:Body->Void}>):Compound {
 		var root = dict==null;
-		if(dict==null) dict = new IntHash<Body>();
+		if(dict==null) dict = new Array<{id:Int,bc:Body}>();
 		if(todo==null) todo = new Array<{id:Int, cb:Body->Void}>();
 
 		var ret = new Compound();
@@ -126,7 +126,7 @@ class PR(Compound) extends PR(Interactor) {
 		});
 		Iter(b, bodies, {
 			var bc = b.outer.copy();
-			dict.set(b.id,bc);
+			dict.push({id:b.id,bc:bc});
 			bc.compound = ret;
 		});
 		Iter(c, constraints, {
@@ -137,8 +137,12 @@ class PR(Compound) extends PR(Interactor) {
 		if(root) {
 			while(todo.length>0) {
 				var xcb = todo.pop();
-				var bc = dict.get(xcb.id);
-				if(bc!=null) xcb.cb(bc);
+				for(idc in dict) {
+					if(idc.id == xcb.id) {
+						xcb.cb(idc.bc);
+						break;
+					}
+				}
 			}
 		}
 

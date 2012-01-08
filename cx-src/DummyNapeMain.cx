@@ -352,28 +352,36 @@ class DummyNapeMain {
 		haxe.Log.setColor(0xffffff);
 		var cur = flash.Lib.current;
 
-		var c1 = new Compound();
-		var c2 = new Compound();
-		var b1 = new Body();
-		var b2 = new Body();
-		var c = new AngleJoint(b1,b2,0,0);
+		var space = new Space();
 
-		c2.compound = c1;
-		b1.compound = c1;
-		b2.compound = c2;
-		c.compound = c2;
+		var cb = new CbType();
+		var plat = new Body();
+		plat.cbType = cb;
+		plat.shapes.add(new Circle(100));
+		plat.position.setxy(100,100);
+		plat.space = space;
 
-		var c22 = c2.copy();
-		trace([c2.bodies,c22.bodies]);
-		trace([c2.constraints,c22.constraints]);
-		trace([cast(c22.constraints.at(0),AngleJoint).body1,cast(c22.constraints.at(0),AngleJoint).body2]);
+		var cc = new Compound();
+		var b = new Body(); b.shapes.add(new Circle(20));
+		b.position.setxy(100,250);
+		b.compound = cc;
 
-		var c12 = c1.copy();
-		trace([c1.bodies,c12.bodies]);
-		var c22 = c12.compounds.at(0);
-		trace([c2.bodies,c22.bodies]);
-		trace([c2.constraints,c22.constraints]);
-		trace([cast(c22.constraints.at(0),AngleJoint).body1,cast(c22.constraints.at(0),AngleJoint).body2]);
+		var b2 = new Body(); b2.shapes.add(new Circle(20));
+		b2.position.setxy(100,350);
+		b2.compound = cc;
+		cc.space = space;
+		cc.cbType = cb;
+
+		space.listeners.add(new PreListener(cb,cb, function (x) {
+			trace(x);
+			return PreFlag.IGNORE;
+		}));
+
+		trace("--"); space.step(1/60);
+		b.position.setxy(100,80);
+		trace("--"); space.step(1/60);
+		b2.position.setxy(100,120);
+		trace("--"); space.step(1/60);
 	}
 
 	static function man() {

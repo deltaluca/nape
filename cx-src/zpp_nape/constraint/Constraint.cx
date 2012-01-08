@@ -175,7 +175,7 @@ class PR(Constraint) {
 
 	//extra funky fields used in copying Compounds
 	//so as to be able to resolve any dangling references external to the Compound.
-	public function copy(?dict:IntHash<Body>,?todo:Array<{id:Int, cb:Body->Void}>):Constraint { return null; }
+	public function copy(?dict:Array<{id:Int,bc:Body}>,?todo:Array<{id:Int, cb:Body->Void}>):Constraint { return null; }
 
 	public function copyto(ret:Constraint) {
 		var me = outer;
@@ -199,7 +199,13 @@ $(mixin global withConstraint(block)
 	$(mixin copybody(to,body,dict,todo) {
 		if(dict!=null && body!=null) {
 			assert(todo!=null,"dict non-null,but todo is in constraint copy?");
-			var b = dict.get(body.id);
+			var b:Body = null;
+			for(idc in dict) {
+				if(idc.id == body.id) {
+					b = idc.bc;
+					break;
+				}
+			}
 			if(b!=null) to.body = b.pr(inner);
 			else todo.push({id:body.id, cb:function(b:Body) to.body=b.pr(inner)});
 		}

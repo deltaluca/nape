@@ -9,6 +9,7 @@ import nape.phys.Body;
 import nape.phys.BodyType;
 import nape.phys.FluidProperties;
 import nape.phys.Interactor;
+import nape.phys.Compound;
 
 import nape.shape.Circle;
 import nape.shape.Polygon;
@@ -36,6 +37,7 @@ class Callbacks extends FixedStep {
 		var space = new Space(new Vec2(0,400));
 		var debug = new BitmapDebug(stage.stageWidth,stage.stageHeight,0x333333,false);
 		debug.drawCollisionArbiters = true;
+		debug.drawConstraints = true;
 		addChild(debug.display);
 
 		var hand = new PivotJoint(space.world,space.world,new Vec2(),new Vec2());
@@ -118,15 +120,38 @@ class Callbacks extends FixedStep {
 
 		//squares that report on BEGIN/END events.
 		var boxcb = new CbType();
+		//pairs of boxes that act like a single body for one-way platform (using Compounds)
+		var paircb = new CbType();
 
+		var boxes = [];
 		for(i in 0...10) {
 			var box = new Body();
 			box.shapes.add(new Polygon(Polygon.box(40,40)));
 			box.position.setxy(800/11*(i+1),100);
-			box.space = space;
+			boxes.push(box);
+			//note box isn't added to space (# see few lines below)
 			
 			//set it's cbType
 			box.cbType = boxcb;
+		}
+
+		for(i in 0...5) {
+			var b1 = boxes[i*2];
+			var b2 = boxes[i*2+1];
+		
+			var compound = new Compound();
+			b1.compound = b2.compound = compound;
+			
+			var mid = b1.position.add(b2.position).mul(0.5);
+			var link = new PivotJoint(b1,b2,b1.worldToLocal(mid),b2.worldToLocal(mid));
+			link.compound = compound;
+
+			// (#) <-- because it is added to the space via it's compound instead.
+			// see also that the link constraint is not directly added to the space.
+			compound.space = space;
+
+			//set it's cbType
+			compound.cbType = paircb;
 		}
 
 		//setup listeners
@@ -190,14 +215,13 @@ class Callbacks extends FixedStep {
 		//don't have sum-types yet, so have to assign for all types we want to operate with one-way
 		function oneway(arb:Arbiter) {
 			if(!arb.isCollisionArbiter()) return PreFlag.ACCEPT;
-				
 			var rev = arb.body2.cbType==platcb; //reverse direction logic if objects are opposite to what we expect.
 			var dir = new Vec2(0,rev ? 1 : -1);
 
 			return if(dir.dot(arb.collisionArbiter.normal)>=0) PreFlag.ACCEPT else PreFlag.IGNORE;
 		}
 
-		for(cb in [hexcb,boxcb])
+		for(cb in [hexcb,paircb])
 			space.listeners.add(new PreListener(platcb,cb,oneway));
 
 		run(function (dt) {
