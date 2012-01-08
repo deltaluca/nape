@@ -158,8 +158,6 @@ class Callbacks extends FixedStep {
 			// see also that the link constraint is not directly added to the space.
 			compound.space = space;
 			compound.cbType = paircb;
-
-			(new haxe.Timer(8000)).run = function() { link.maxError = 0; }
 		}
 
 		//setup listeners
