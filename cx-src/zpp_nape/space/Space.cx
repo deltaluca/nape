@@ -57,10 +57,15 @@ class PR(CallbackSet) {
 	public var hnext:PR(CallbackSet);
 	public var id:Int; public var di:Int;
 
-	public static inline function get(id:Int,di:Int) {
+	public var int1:PR(Interactor);
+	public var int2:PR(Interactor);
+
+	public static inline function get(i1:PR(Interactor),i2:PR(Interactor)) {
 		var ret = Get(PR(CallbackSet));
-		if(id<=di) { ret.id = id; ret.di = di; }
-		else       { ret.id = di; ret.di = id; }
+		if(i1.id<=i2.id) { ret.int1 = i1; ret.int2 = i2; }
+		else             { ret.int1 = i2; ret.int2 = i1; }
+		ret.id = ret.int1.id;
+		ret.di = ret.int2.id;
 		return ret;
 	}
 
@@ -847,18 +852,58 @@ class PR(Space) {
 	//when used as a (perhaps non-optimal) way of refreshing callbacksets when listener changes types/added etc
 	//then incb1 and incb2 are defined and we effect all callbacksets as long as the cbtypes match.
 
-	//called before set to null.
-	public function nullBodyType(body:PR(Body),incb1:PR(CbType)=null,incb2:PR(CbType)=null) {
-		nullBodyShapeType(body, $(mixin forobject(x) true) forobject);
+	//clean up all callbacksets associated with these cbTypes
+	//pre: this is valid! (aka cb1/cb2 have no matching listener for interaction/pre)
+	public function nullListenerType(cb1:PR(CbType),cb2:PR(CbType)) {
+		//we could iterate the callbackset hash here instead to pick them out easily
+		//but iterating the hash and deleting elements isn't something currently possible
+		//at least not properly and well tested. so we'll take the dirty approach
+		//since this is a function that will not often be called.
+		//
+		//or atleast only iterate pairs of shapes once! TODO
+		var stack = new List(PR(Interactor))();	
+		Iterate(cb1.shapes, stack.add);
+		Iterate(cb1.bodies, stack.add);
+		Iterate(cb1.compounds, stack.add);
+		if(cb1!=cb2) {
+			Iterate(cb1.shapes, stack.add);
+			Iterate(cb1.bodies, stack.add);
+			Iterate(cb1.compounds, stack.add);
+		}
+	
+		while(!stack.empty()) {
+			var int = stack.pop_unsafe();
+			if(int.isCompound()) {
+				var comp = int.icompound;
+				Iterate(comp.bodies, stack.add);
+				Iterate(comp.compounds, stack.add);
+			}else {
+				var xbody = if(int.isBody()) int.ibody else int.ishape.body;
+				var xshp = if(int.isShape()) int.ishape else null;
+				Iter(xarb,xbody.arbiters,{
+					if(!xarb.active) cx_continue;
+					if(xshp!=null && !(xarb.ws1==xshp || xarb.ws2==xshp)) cx_continue; //short-cut
+
+					MRCA_chains(xarb.ws1,xarb.ws2);
+					Iter(i1,mrca1,{ if(i1.cbType != cb1 && i1.cbType != cb2) cx_continue;
+					Iter(i2,mrca2,{ if(i2.cbType != cb1 && i2.cbType != cb2) cx_continue;
+						//don't need shape-shape handled
+						if(i1==xarb.ws1 && i2==xarb.ws2) cx_continue;
+
+						var callbackset = callbacksets.ordered_get(i1.id,i2.id);
+						if(callbackset!=null) {
+							callbackset.arbiters.clear();
+							callbacksets.remove(callbackset);
+							Free(PR(CallbackSet),callbackset);
+						}
+					});
+					});
+				});
+			}
+		}
 	}
-	public function nullShapeType(shape:PR(Shape),incb1:PR(CbType)=null,incb2:PR(CbType)=null) {
-		nullBodyShapeType(shape.body, $(mixin forobject(x) x.ws1==shape || x.ws2==shape) forobject);
-	}
-	public function nullCompoundType(comp:PR(Compound),incb1:PR(CbType)=null,incb2:PR(CbType)=null) {
-		Iter(body, comp.bodies, nullBodyType(body, incb1,incb2));
-		Iter(comp2, comp.compounds, nullCompoundType(comp2, incb1,incb2));
-	}
-		
+	
+	//clean up all callbacksets associated with interactor	
 	public function nullInteractorType(int:PR(Interactor),me:PR(Interactor)=null) {
 		if(me==null) me = int;
 
@@ -884,14 +929,8 @@ class PR(Space) {
 					var cb1 = i1.cbType;
 					var cb2 = i2.cbType;
 					if(cb1!=null && cb2!=null) {
-						if(
-							(cb1._end  >0 && cb2._end  >0 && _end.  ordered_get(cb1.id,cb2.id)!=null)
-						 || (cb1._begin>0 && cb2._begin>0 && _begin.ordered_get(cb1.id,cb2.id)!=null)
-						 || (cb1._pre  >0 && cb2._pre  >0 && _pre.  ordered_get(cb1.id,cb2.id)!=null)
-						) {
-							var callbackset = callbacksets.ordered_get(i1.id,i2.id);
-							assert(callbackset!=null,"null callbackset on nullCbType? "+i1.outer_i.toString()+" "+i2.outer_i.toString()+" "+xarb.type);
-							trace("null type: handle callbackset "+[i1.outer_i.toString(),i2.outer_i.toString(),xarb.outer.toString()]);
+						var callbackset = callbacksets.ordered_get(i1.id,i2.id);
+						if(callbackset!=null) {
 							callbackset.remove(xarb);
 							if(callbackset.empty()) {
 								callbacksets.remove(callbackset);
@@ -904,55 +943,54 @@ class PR(Space) {
 			});
 		}
 	}
-			
-	$(mixin nullBodyShapeType(xbody,forobject) {
-		assert((incb1==null) == (incb2==null), "bllop null");
-		var check = incb1!=null && incb2!=null;
-		
-		Iter(xarb,xbody.arbiters,{
-			if(!(xarb.active && (forobject(xarb)))) cx_continue;
-			//only need to worry about to callbackset callbacks
-			MRCA_chains(xarb.ws1,xarb.ws2);
-			Iter(i1,mrca1,{
-			Iter(i2,mrca2,{
-				//don't need shape-shape handled.
-				if(i1==xarb.ws1 && i2==xarb.ws2) cx_continue;
+	
+	//create all callbacksets associated with these cbTypes
+	//pre: this is valid! (aka cb1/cb2 has only one matching listener for interaction/pre)
+	public function freshListenerType(cb1:PR(CbType),cb2:PR(CbType)) {
+		//this could be improved greatly to only consider pairs of shapes once
+		//but for now it will do: TODO
+		var stack = new List(PR(Interactor))();	
+		Iterate(cb1.shapes, stack.add);
+		Iterate(cb1.bodies, stack.add);
+		Iterate(cb1.compounds, stack.add);
+		if(cb1!=cb2) {
+			Iterate(cb1.shapes, stack.add);
+			Iterate(cb1.bodies, stack.add);
+			Iterate(cb1.compounds, stack.add);
+		}
+	
+		while(!stack.empty()) {
+			var int = stack.pop_unsafe();
+			if(int.isCompound()) {
+				var comp = int.icompound;
+				Iterate(comp.bodies, stack.add);
+				Iterate(comp.compounds, stack.add);
+			}else {
+				var xbody = if(int.isBody()) int.ibody else int.ishape.body;
+				var xshp = if(int.isShape()) int.ishape else null;
+				Iter(xarb,xbody.arbiters,{
+					if(!xarb.active) cx_continue;
+					if(xshp!=null && !(xarb.ws1==xshp || xarb.ws2==xshp)) cx_continue; //short-cut
 
-				var cb1 = i1.cbType;
-				var cb2 = i2.cbType;
-				if(cb1!=null && cb2!=null && (!check || ((cb1==incb1&&cb2==incb2)||(cb1==incb2&&cb2==incb1)))) {
-					if(
-						(cb1._end  >0 && cb2._end  >0 && _end.  ordered_get(cb1.id,cb2.id)!=null)
-					 || (cb1._begin>0 && cb2._begin>0 && _begin.ordered_get(cb1.id,cb2.id)!=null)
-					 || (cb1._pre  >0 && cb2._pre  >0 && _pre.  ordered_get(cb1.id,cb2.id)!=null)
-					) {
+					MRCA_chains(xarb.ws1,xarb.ws2);
+					Iter(i1,mrca1,{ if(i1.cbType != cb1 && i1.cbType != cb2) cx_continue;
+					Iter(i2,mrca2,{ if(i2.cbType != cb1 && i2.cbType != cb2) cx_continue;
+						//don't need shape-shape handled
+						if(i1==xarb.ws1 && i2==xarb.ws2) cx_continue;
+
 						var callbackset = callbacksets.ordered_get(i1.id,i2.id);
-						assert(callbackset!=null,"null callbackset on nullBodyShapeType? "+i1.outer_i.toString()+" "+i2.outer_i.toString()+" "+xarb.type);
-						trace("null type: handle callbackset "+[i1.outer_i.toString(),i2.outer_i.toString(),xarb.outer.toString()]);
-						callbackset.remove(xarb);
-						if(callbackset.empty()) {
-							callbacksets.remove(callbackset);
-							Free(PR(CallbackSet),callbackset);
+						if(callbackset==null) {
+							callbackset = PR(CallbackSet).get(i1,i2);
+							callbacksets.add(callbackset);
 						}
-					}
-				}
-			});
-			});
-		});
-	});
-
-	//called after cbtype is set
-	public function freshBodyType(body:PR(Body),incb1:PR(CbType)=null,incb2:PR(CbType)=null) {
-		freshBodyShapeType(body, $(mixin forobject(x) true) forobject);
+						callbackset.add(xarb);
+					});
+					});
+				});
+			}
+		}
 	}
-	public function freshShapeType(shape:PR(Shape),incb1:PR(CbType)=null,incb2:PR(CbType)=null) {
-		freshBodyShapeType(shape.body, $(mixin forobject(x) x.ws1==shape || x.ws2==shape) forobject);
-	}
-	public function freshCompoundType(comp:PR(Compound),incb1:PR(CbType)=null,incb2:PR(CbType)=null) {
-		Iter(body, comp.bodies, freshBodyType(body, incb1,incb2));
-		Iter(comp2, comp.compounds, freshCompoundType(comp2, incb1,incb2));
-	}
-
+	
 	public function freshInteractorType(int:PR(Interactor),me:PR(Interactor)=null) {
 		if(me==null) me = int;
 
@@ -983,10 +1021,9 @@ class PR(Space) {
 						 || (cb1._begin>0 && cb2._begin>0 && _begin.ordered_get(cb1.id,cb2.id)!=null)
 						 || (cb1._pre  >0 && cb2._pre  >0 && _pre.  ordered_get(cb1.id,cb2.id)!=null)
 						) {
-							trace("fresh type: handle callbackset "+[i1.outer_i.toString(),i2.outer_i.toString(),xarb.outer.toString()]);
 							var callbackset = callbacksets.ordered_get(i1.id,i2.id);
 							if(callbackset==null) {
-								callbackset = PR(CallbackSet).get(i1.id,i2.id);
+								callbackset = PR(CallbackSet).get(i1,i2);
 								callbacksets.add(callbackset);
 							}
 							callbackset.add(xarb);
@@ -998,41 +1035,6 @@ class PR(Space) {
 		}
 	}
 	
-	$(mixin freshBodyShapeType(xbody, forobject) {
-		assert((incb1==null) == (incb2==null), "bllop null");
-		var check = incb1!=null && incb2!=null;
-		
-		Iter(xarb,xbody.arbiters,{
-			if(!(xarb.active && (forobject(xarb)))) cx_continue;
-
-			MRCA_chains(xarb.ws1,xarb.ws2);
-			Iter(i1,mrca1,{
-			Iter(i2,mrca2,{
-				//don't need shape-shape handled.
-				if(i1==xarb.ws1 && i2==xarb.ws2) cx_continue;
-
-				var cb1 = i1.cbType;
-				var cb2 = i2.cbType;
-				if(cb1!=null && cb2!=null && (!check || ((cb1==incb1&&cb2==incb2)||(cb1==incb2&&cb2==incb1)))) {
-					if(
-						(cb1._end  >0 && cb2._end  >0 && _end.  ordered_get(cb1.id,cb2.id)!=null)
-					 || (cb1._begin>0 && cb2._begin>0 && _begin.ordered_get(cb1.id,cb2.id)!=null)
-					 || (cb1._pre  >0 && cb2._pre  >0 && _pre.  ordered_get(cb1.id,cb2.id)!=null)
-					) {
-						trace("fresh type: handle callbackset "+[i1.outer_i.toString(),i2.outer_i.toString(),xarb.outer.toString()]);
-						var callbackset = callbacksets.ordered_get(i1.id,i2.id);
-						if(callbackset==null) {
-							callbackset = PR(CallbackSet).get(i1.id,i2.id);
-							callbacksets.add(callbackset);
-						}
-						callbackset.add(xarb);
-					}
-				}
-			});
-			});
-		});
-	});
-
     //----------------------------------------------------------------------------------------------
 
 	public function wakeGroup(g:PR(InteractionGroup)) {
@@ -1469,41 +1471,43 @@ class PR(Space) {
 								)
 								listener = i;
 
-								if(i1==arb.ws1 && i2==arb.ws2) { //shape-shape treat specially
-									if(begcb && begi!=null) {
-										var cb = push_callback(begi,begi.handler!=null);
-										cb.event = Flag(CbEvent,BEGIN);
-										PR(Interactor).int_callback(i1,i2,begi.cb1,cb);
-									}elif(endcb && endi!=null) {
-										var cb = push_callback(endi,endi.handler!=null);
-										cb.event = Flag(CbEvent,END);
-										PR(Interactor).int_callback(i1,i2,endi.cb1,cb);
-									}
-								}else {
-									var callbackset = callbacksets.ordered_get(i1.id,i2.id);
-									if(begcb) {
-										if(callbackset==null) {
-											callbackset = PR(CallbackSet).get(i1.id,i2.id);
-											callbacksets.add(callbackset);
-										}
-										//check for empty rather than null, since it might've been created
-										//already to prevent multiple pre-handlers
-										if(callbackset.empty() && begi!=null) {
+								if(listener!=null) {
+									if(i1==arb.ws1 && i2==arb.ws2) { //shape-shape treat specially
+										if(begcb && begi!=null) {
 											var cb = push_callback(begi,begi.handler!=null);
 											cb.event = Flag(CbEvent,BEGIN);
 											PR(Interactor).int_callback(i1,i2,begi.cb1,cb);
+										}elif(endcb && endi!=null) {
+											var cb = push_callback(endi,endi.handler!=null);
+											cb.event = Flag(CbEvent,END);
+											PR(Interactor).int_callback(i1,i2,endi.cb1,cb);
 										}
-										callbackset.add(arb);
 									}else {
-										assert(callbackset!=null,"end arbiter with no callbackset");
-										callbackset.remove(arb);
-										if(callbackset.empty()) {
-											callbacksets.remove(callbackset);
-											Free(PR(CallbackSet),callbackset);
-												if(endi!=null) {
-												var cb = push_callback(endi,endi.handler!=null);
-												cb.event = Flag(CbEvent,END);
-												PR(Interactor).int_callback(i1,i2,endi.cb1,cb);
+										var callbackset = callbacksets.ordered_get(i1.id,i2.id);
+										if(begcb) {
+											if(callbackset==null) {
+												callbackset = PR(CallbackSet).get(i1,i2);
+												callbacksets.add(callbackset);
+											}
+											//check for empty rather than null, since it might've been created
+											//already to prevent multiple pre-handlers
+											if(callbackset.empty() && begi!=null) {
+												var cb = push_callback(begi,begi.handler!=null);
+												cb.event = Flag(CbEvent,BEGIN);
+												PR(Interactor).int_callback(i1,i2,begi.cb1,cb);
+											}
+											callbackset.add(arb);
+										}else {
+											assert(callbackset!=null,"end arbiter with no callbackset");
+											callbackset.remove(arb);
+											if(callbackset.empty()) {
+												callbacksets.remove(callbackset);
+												Free(PR(CallbackSet),callbackset);
+													if(endi!=null) {
+													var cb = push_callback(endi,endi.handler!=null);
+													cb.event = Flag(CbEvent,END);
+													PR(Interactor).int_callback(i1,i2,endi.cb1,cb);
+												}
 											}
 										}
 									}
@@ -1722,7 +1726,7 @@ class PR(Space) {
 											if(!(i1==s1 && i2==s2)) { //don't need callbackset for shape-shape
 												callbackset = callbacksets.ordered_get(i1.id,i2.id);
 												if(callbackset==null) {
-													ncallbackset = PR(CallbackSet).get(i1.id,i2.id);
+													ncallbackset = PR(CallbackSet).get(i1,i2);
 													callbacksets.add(ncallbackset);
 												}
 											}

@@ -157,31 +157,15 @@ class PR(InteractionListener) extends PR(Listener) {
 		//see if this is a new compound callback listener for the two types
 		//aka if begin, check for an end existing already etc
 		if((event==Flag(CbEvent,BEGIN) && cbnhas(cb1,cb2,end) && cbnhas(cb1,cb2,pre))
-		|| (event==Flag(CbEvent,END)   && cbnhas(cb1,cb2,begin) && cbnhas(cb1,cb2,pre))) {
-			Iter(shape, cb1.shapes, space.freshShapeType(shape,cb1,cb2));
-			Iter(body,  cb1.bodies, space.freshBodyType (body,cb1,cb2));
-			Iter(comp,cb1.compounds,space.freshCompoundType(comp,cb1,cb2));
-			if(cb2!=cb1) {
-				Iter(shape, cb2.shapes, space.freshShapeType(shape,cb1,cb2));
-				Iter(body,  cb2.bodies, space.freshBodyType (body,cb1,cb2));
-				Iter(comp,cb2.compounds,space.freshCompoundType(comp,cb1,cb2));
-			}
-		}
+		|| (event==Flag(CbEvent,END)   && cbnhas(cb1,cb2,begin) && cbnhas(cb1,cb2,pre)))
+			space.freshListenerType(cb1,cb2);
 	}
 	public function unassign() {
 		//see if this was the only compound callback listener
 		//aka if begin, check end doesn't exist
 		if((event==Flag(CbEvent,BEGIN) && cbnhas(cb1,cb2,end) && cbnhas(cb1,cb2,pre))
-		|| (event==Flag(CbEvent,END)   && cbnhas(cb1,cb2,begin) && cbnhas(cb1,cb2,pre))) {
-			Iter(shape, cb1.shapes, space.nullShapeType(shape,cb1,cb2));
-			Iter(body,  cb1.bodies, space.nullBodyType (body,cb1,cb2));
-			Iter(comp,cb1.compounds,space.nullCompoundType(comp,cb1,cb2));
-			if(cb2!=cb1) {
-				Iter(shape, cb2.shapes, space.nullShapeType(shape,cb1,cb2));
-				Iter(body,  cb2.bodies, space.nullBodyType (body,cb1,cb2));
-				Iter(comp,cb2.compounds,space.nullCompoundType(comp,cb1,cb2));
-			}
-		}
+		|| (event==Flag(CbEvent,END)   && cbnhas(cb1,cb2,begin) && cbnhas(cb1,cb2,pre)))
+			space.nullListenerType(cb1,cb2);
 	}
 
 	flibmdel public inline function addedToSpace(?skip=false) {
@@ -293,30 +277,14 @@ class PR(PreListener) extends PR(Listener) {
 	public function assign() {
 		//see if this is a new compound callback listener for the two types
 		//aka if begin, check for an end existing already etc
-		if(cbnhas(cb1,cb2,begin) && cbnhas(cb1,cb2,end)) {
-			Iter(shape, cb1.shapes, space.freshShapeType(shape,cb1,cb2));
-			Iter(body,  cb1.bodies, space.freshBodyType (body,cb1,cb2));
-			Iter(comp,cb1.compounds,space.freshCompoundType(comp,cb1,cb2));
-			if(cb2!=cb1) {
-				Iter(shape, cb2.shapes, space.freshShapeType(shape,cb1,cb2));
-				Iter(body,  cb2.bodies, space.freshBodyType (body,cb1,cb2));
-				Iter(comp,cb2.compounds,space.freshCompoundType(comp,cb1,cb2));
-			}
-		}
+		if(cbnhas(cb1,cb2,begin) && cbnhas(cb1,cb2,end))
+			space.freshListenerType(cb1,cb2);
 	}
 	public function unassign() {
 		//see if this was the only compound callback listener
 		//aka if begin, check end doesn't exist
-		if(cbnhas(cb1,cb2,begin) && cbnhas(cb1,cb2,end)) {
-			Iter(shape, cb1.shapes, space.nullShapeType(shape,cb1,cb2));
-			Iter(body,  cb1.bodies, space.nullBodyType (body,cb1,cb2));
-			Iter(comp,cb1.compounds,space.nullCompoundType(comp,cb1,cb2));
-			if(cb2!=cb1) {
-				Iter(shape, cb2.shapes, space.nullShapeType(shape,cb1,cb2));
-				Iter(body,  cb2.bodies, space.nullBodyType (body,cb1,cb2));
-				Iter(comp,cb2.compounds,space.nullCompoundType(comp,cb1,cb2));
-			}
-		}
+		if(cbnhas(cb1,cb2,begin) && cbnhas(cb1,cb2,end))
+			space.nullListenerType(cb1,cb2);
 	}
 
 	flibmdel public inline function addedToSpace() {
