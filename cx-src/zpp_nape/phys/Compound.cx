@@ -106,4 +106,42 @@ class PR(Compound) extends PR(Interactor) {
 		$(mixin onsub(x) x.pr(inner).depth = 1 /*space is taken to be 0*/) onsub
 		)
 	}
+
+	//------------------------------------------
+
+	//copy compound recursively matching bodies to clones for constraint lookups
+	//and deferring any missing bodies to the todo list.
+	public function copy(?dict:IntHash<Body>,?todo:Array<{id:Int, cb:Body->Void}>):Compound {
+		var root = dict==null;
+		if(dict==null) dict = new IntHash<Body>();
+		if(todo==null) todo = new Array<{id:Int, cb:Body->Void}>();
+
+		var ret = new Compound();
+		//we first compounds, and then bodies followed by constraints
+		//in the case of no dangling constraints in an inner compound
+		//we guarantee the smallest todo list.
+		Iter(c, compounds, {
+			var cc = c.copy(dict,todo);
+			cc.compound = ret;
+		});
+		Iter(b, bodies, {
+			var bc = b.outer.copy();
+			dict.set(b.id,bc);
+			bc.compound = ret;
+		});
+		Iter(c, constraints, {
+			var cc = c.copy(dict,todo);
+			cc.compound = ret;
+		});
+
+		if(root) {
+			while(todo.length>0) {
+				var xcb = todo.pop();
+				var bc = dict.get(xcb.id);
+				if(bc!=null) xcb.cb(bc);
+			}
+		}
+
+		return ret;
+	}
 }

@@ -172,9 +172,38 @@ class PR(Constraint) {
 	//----------------------------------------------------------------------------------------------
 
     public var cbType:PR(CbType);
+
+	//extra funky fields used in copying Compounds
+	//so as to be able to resolve any dangling references external to the Compound.
+	public function copy(?dict:IntHash<Body>,?todo:Array<{id:Int, cb:Body->Void}>):Constraint { return null; }
+
+	public function copyto(ret:Constraint) {
+		var me = outer;
+		ret.cbType = me.cbType;
+		ret.removeOnBreak = me.removeOnBreak;
+		ret.breakUnderError = me.breakUnderError;
+		ret.breakUnderForce = me.breakUnderForce;
+		ret.maxError = me.maxError;
+		ret.maxForce = me.maxForce;
+		ret.damping = me.damping;
+		ret.frequency = me.frequency;
+		ret.stiff = me.stiff;
+		ret.ignore = me.ignore;
+		ret.active = me.active;
+	}
 }
 
 $(mixin global withConstraint(block)
+
+	//assume dict/todo exist
+	$(mixin copybody(to,body,dict,todo) {
+		if(dict!=null && body!=null) {
+			assert(todo!=null,"dict non-null,but todo is in constraint copy?");
+			var b = dict.get(body.id);
+			if(b!=null) to.body = b.pr(inner);
+			else todo.push({id:body.id, cb:function(b:Body) to.body=b.pr(inner)});
+		}
+	});
 	
 	$(mixin anchor_init(n) {
 		vec_set(n`local,0,0);

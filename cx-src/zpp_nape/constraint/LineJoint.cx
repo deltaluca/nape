@@ -116,6 +116,15 @@ class PR(LineJoint) extends PR(Constraint) {
 	
 	//---------------------------------------------------
 	
+	public override function copy(?dict:IntHash<Body>,?todo:Array<{id:Int,cb:Body->Void}>):Constraint {
+		var ret = new LineJoint(null,null,outer_zn.anchor1,outer_zn.anchor2,outer_zn.direction,jointMin,jointMax);
+		copyto(ret);
+
+		copybody(ret.pr(inner_zn),b1,dict,todo);
+		copybody(ret.pr(inner_zn),b2,dict,todo);
+		return ret;
+	}
+
 	public function new() {
 		super();
 		anchor_init(a1);

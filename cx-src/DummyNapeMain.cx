@@ -351,62 +351,29 @@ class DummyNapeMain {
 	static function main() {
 		haxe.Log.setColor(0xffffff);
 		var cur = flash.Lib.current;
-		var space = new Space();
-		var debug = new ShapeDebug(800,600,0x333333);
-		debug.transform = new Mat23();
-		debug.clear();
-		cur.addChild(debug.display);
 
-		function dope() {
-			trace("-------");
-			space.step(1/60,10,10);
-			debug.draw(space);
-			debug.transform.tx += 150;
-			debug.flush();
-		}
+		var c1 = new Compound();
+		var c2 = new Compound();
+		var b1 = new Body();
+		var b2 = new Body();
+		var c = new AngleJoint(b1,b2,0,0);
 
-		var cb = new CbType();
-		space.listeners.add(new PreListener(cb,cb,function(arb) { trace(arb); return PreFlag.IGNORE; }));
-		space.listeners.add(new InteractionListener(CbEvent.BEGIN, cb,cb, function(x,y) trace("BEGIN "+x+" "+y)));
-		space.listeners.add(new InteractionListener(CbEvent.END, cb,cb, function(x,y) trace("END "+x+" "+y)));
-		
-		var c = new Compound();
-		var b1 = new Body(); b1.shapes.add(new Circle(50));
-		b1.position.setxy(50,50);
-		b1.compound = c;
-		c.cbType = cb;
+		c2.compound = c1;
+		b1.compound = c1;
+		b2.compound = c2;
+		c.compound = c2;
 
-		var b2 = new Body(); b2.shapes.add(new Circle(50));
-		b2.cbType = cb;
-		b2.position.setxy(50,200);
+		var c22 = c2.copy();
+		trace([c2.bodies,c22.bodies]);
+		trace([c2.constraints,c22.constraints]);
+		trace([cast(c22.constraints.at(0),AngleJoint).body1,cast(c22.constraints.at(0),AngleJoint).body2]);
 
-		c.space = space;
-		b2.space = space;
-
-		dope();
-		b2.position.y -= 100;
-		dope();
-		c.cbType = null;
-		dope();
-		b2.position.y += 100;
-		dope();
-
-		b1.cbType = cb;
-		b2.position.y -= 100;
-		dope();
-	
-		c.cbType = cb;
-		b1.cbType = null;
-		
-		dope();
-		var is = [];
-		for(l in space.listeners) is.push(l);
-		space.listeners.clear();
-		for(l in is) space.listeners.add(l);
-		b2.position.y += 100;
-		dope();	
-
-		space.clear();
+		var c12 = c1.copy();
+		trace([c1.bodies,c12.bodies]);
+		var c22 = c12.compounds.at(0);
+		trace([c2.bodies,c22.bodies]);
+		trace([c2.constraints,c22.constraints]);
+		trace([cast(c22.constraints.at(0),AngleJoint).body1,cast(c22.constraints.at(0),AngleJoint).body2]);
 	}
 
 	static function man() {

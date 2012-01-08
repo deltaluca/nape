@@ -56,6 +56,15 @@ class PR(MotorJoint) extends PR(Constraint) {
 	
 	//---------------------------------------------------
 	
+	public override function copy(?dict:IntHash<Body>,?todo:Array<{id:Int,cb:Body->Void}>):Constraint {
+		var ret = new MotorJoint(null,null,rate,ratio);
+		copyto(ret);
+
+		copybody(ret.pr(inner_zn),b1,dict,todo);
+		copybody(ret.pr(inner_zn),b2,dict,todo);
+		return ret;
+	}
+
 	public function new() {
 		super();
 		

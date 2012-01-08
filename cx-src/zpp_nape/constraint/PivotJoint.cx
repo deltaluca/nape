@@ -78,6 +78,15 @@ class PR(PivotJoint) extends PR(Constraint) {
 	
 	//---------------------------------------------------
 	
+	public override function copy(?dict:IntHash<Body>,?todo:Array<{id:Int,cb:Body->Void}>):Constraint {
+		var ret = new PivotJoint(null,null,outer_zn.anchor1,outer_zn.anchor2);
+		copyto(ret);
+
+		copybody(ret.pr(inner_zn),b1,dict,todo);
+		copybody(ret.pr(inner_zn),b2,dict,todo);
+		return ret;
+	}
+
 	public function new() {
 		super();
 		stepped = false;
