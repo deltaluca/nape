@@ -882,9 +882,9 @@ class PR(Space) {
 		Iterate(cb1.bodies, stack.add);
 		Iterate(cb1.compounds, stack.add);
 		if(cb1!=cb2) {
-			Iterate(cb1.shapes, stack.add);
-			Iterate(cb1.bodies, stack.add);
-			Iterate(cb1.compounds, stack.add);
+			Iterate(cb2.shapes, stack.add);
+			Iterate(cb2.bodies, stack.add);
+			Iterate(cb2.compounds, stack.add);
 		}
 	
 		while(!stack.empty()) {
@@ -970,9 +970,9 @@ class PR(Space) {
 		Iterate(cb1.bodies, stack.add);
 		Iterate(cb1.compounds, stack.add);
 		if(cb1!=cb2) {
-			Iterate(cb1.shapes, stack.add);
-			Iterate(cb1.bodies, stack.add);
-			Iterate(cb1.compounds, stack.add);
+			Iterate(cb2.shapes, stack.add);
+			Iterate(cb2.bodies, stack.add);
+			Iterate(cb2.compounds, stack.add);
 		}
 	
 		while(!stack.empty()) {
@@ -1628,9 +1628,13 @@ class PR(Space) {
 						cx_ite = live_constraints.erase(pre);
 						
                         if(con.removeOnBreak) {
-                            //set sleeping to true as already removed from live list.
-                            con.component.sleeping = true; remConstraint(con);
-                            constraints.remove(con);
+	                        //set sleeping to true as already removed from live list.
+	                        con.component.sleeping = true;
+							//momentarigly 'escape' the space step() environment.
+							midstep = false;
+							if(con.compound!=null) con.compound.wrap_constraints.remove(con.outer);
+							else                   wrap_constraints.remove(con.outer);
+							midstep = true;
                         }else
                             con.active = false;
 
@@ -1766,9 +1770,11 @@ class PR(Space) {
 								// we need to reset to old value so that in pre-step such an arbiter
 								// can as usual, update the public lists.
 								var pact = arb.active; arb.active = true;
+
 								#if collisions //need to do this with #if since fluid/sensor has no such method
 									//update wrapped contact list for user.
 									arb.cleanupContacts();
+									assert(arb.wrapper().collisionArbiter.contacts.length!=0,"0 contacts BEFORE pre handler??");
 								#end
 								DEBUG(arb.makemutable();)
 								var ret = listener.handler(arb.wrapper());

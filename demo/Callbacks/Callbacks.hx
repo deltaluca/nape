@@ -17,6 +17,7 @@ import nape.shape.Polygon;
 import nape.dynamics.Arbiter;
 import nape.geom.Vec2;
 
+import nape.callbacks.ConstraintListener;
 import nape.callbacks.InteractionListener;
 import nape.callbacks.PreListener;
 import nape.callbacks.BodyListener;
@@ -25,6 +26,7 @@ import nape.callbacks.CbType;
 import nape.callbacks.CbEvent;
 
 import nape.constraint.PivotJoint;
+import nape.constraint.Constraint;
 
 class Callbacks extends FixedStep {
 	static function main() {
@@ -121,7 +123,9 @@ class Callbacks extends FixedStep {
 		//squares that report on BEGIN/END events.
 		var boxcb = new CbType();
 		//pairs of boxes that act like a single body for one-way platform (using Compounds)
+		//that is, until the constraint breaks!
 		var paircb = new CbType();
+		var concb = new CbType();
 
 		var boxes = [];
 		for(i in 0...10) {
@@ -145,13 +149,17 @@ class Callbacks extends FixedStep {
 			var mid = b1.position.add(b2.position).mul(0.5);
 			var link = new PivotJoint(b1,b2,b1.worldToLocal(mid),b2.worldToLocal(mid));
 			link.compound = compound;
+			link.cbType = concb;
+			link.maxError = 5; //px
+			link.breakUnderError = true;
+			link.removeOnBreak = true;
 
 			// (#) <-- because it is added to the space via it's compound instead.
 			// see also that the link constraint is not directly added to the space.
 			compound.space = space;
-
-			//set it's cbType
 			compound.cbType = paircb;
+
+			(new haxe.Timer(8000)).run = function() { link.maxError = 0; }
 		}
 
 		//setup listeners
@@ -172,6 +180,16 @@ class Callbacks extends FixedStep {
 
 		space.listeners.add(new InteractionListener(CbEvent.BEGIN, boxcb,boxcb, boxer(0x00ff00)));
 		space.listeners.add(new InteractionListener(CbEvent.END,   boxcb,boxcb, boxer(0xff0000)));
+
+		space.listeners.add(new ConstraintListener(CbEvent.BREAK, concb, function (x:Constraint) {
+			//We're going to break apart the compound containing the constraint and the two boxes
+			//we set the constraint to be removed when it broke, so we don't need to remove the constraint
+			// - When removed, it is also removed from the compound treating it as though it is completely deleted.
+			var link = cast(x,PivotJoint);
+			var b1 = link.body1; var b2 = link.body2;
+			b1.compound.breakApart();
+			b1.cbType = b2.cbType = paircb;
+		}));
 
 		//----------------------------
 

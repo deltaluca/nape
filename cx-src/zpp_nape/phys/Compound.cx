@@ -57,6 +57,29 @@ class PR(Compound) extends PR(Interactor) {
 
 	//----------------------------------------------------
 
+	flibmdel public inline function breakApart() {
+		if(compound!=null) compound.compounds.remove(this);
+		if(space   !=null) space.   compounds.remove(this);
+
+		ClearWith(b, bodies, {
+			if((b.compound = compound) != null) compound.bodies.add(b);
+			elif(space!=null) space.bodies.add(b);
+		});
+		ClearWith(c, constraints, {
+			if((c.compound = compound) != null) compound.constraints.add(c);
+			elif(space!=null) space.constraints.add(c);
+		});
+		ClearWith(c, compounds, {
+			if((c.compound = compound) != null) compound.compounds.add(c);
+			elif(space!=null) space.compounds.add(c);
+		});
+	
+		compound = null;
+		space    = null;
+	}
+
+	//----------------------------------------------------
+
 	public function new() {
 		super();
 		icompound = this;
