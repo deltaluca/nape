@@ -199,6 +199,8 @@ class PR(Space) {
 
 	public function clear() {
 		callbacks.clear();
+
+		//this also deals naturally with removing all callbacksets
 		ClearWith(c, listeners, remListener(c));
 
 		///clear internal lists to object pools if applicable
@@ -227,13 +229,23 @@ class PR(Space) {
 		});
 
 		//clear user lists
-/*		ClearWith(b, bodies,     { isl(b.component); b.removedFromSpace(); b.space = null; });
-		statics.clear();
-		dynamics.clear();
+		ClearWith(b, bodies, { isl(b.component); b.removedFromSpace(); b.space = null; });
+		ClearWith(c, constraints, { isl(c.component); c.removedFromSpace(); c.space = null; });
 		kinematics.clear();
 
-		ClearWith(c, constraints, { isl(c.component); c.removedFromSpace(); c.space = null; });*/
-		throw "not working yet (compound changes)"; //TODO
+		var stack = new List(PR(Compound))();
+		ClearWith(c, compounds, stack.add(c));
+
+		while(!stack.empty()) {
+			var comp = stack.pop_unsafe();
+			comp.removedFromSpace();
+			comp.space = null;
+
+			Iter(b, comp.bodies, { isl(b.component); b.removedFromSpace(); b.space = null; });
+			Iter(c, comp.constraints, { isl(c.component); c.removedFromSpace(); c.space = null; });
+
+			Iterate(comp.compounds, stack.add);
+		}
 
 		//other
 		staticsleep.clear();
@@ -248,6 +260,10 @@ class PR(Space) {
 			Debug.FOR = Debug.BROAD = Debug.PRE = Debug.POS = Debug.VEL = Debug.DRAW = 0;
 			Debug.ltime = 0;
 		#end
+
+		//extra shiz
+		mrca1.clear();
+		mrca2.clear();
 	}
 
 	//----------------------------------------------------------------------------------------------
