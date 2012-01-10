@@ -178,7 +178,17 @@
 <class package="nape.callbacks" name="InteractionListener" super="Listener">
 	<file>Listener.hx</file>
 	<short>Interaction event listener</short>
-	<description>Listener type for Interaction events. Allowed types are CbEvent.BEGIN/END</description>
+	<description>
+		<text>Listener type for Interaction events. Allowed types are CbEvent.BEGIN/END</text><br/><br/>
+		<text>These callbacks can occur between any applicable combination of Interactors, whether a Shapes, Bodys or Compounds</text>
+		<text class="bold">Example:</text>
+		<img file="../../../exgif/IntCb.png"/>
+		<text>The possible Interactor pairs for this nape world are formed by taking each valid pair of shapes (So no two shapes from the same body), finding their MRCA (most-recent common ancestor) and pairing up all the Interactors on the way. For this example we have:</text>
+		<code><![CDATA[MRCA(S1,S2) = C1   => Interactor pairs = [S1,B1] x [S2,B2,C2]
+MRCA(S1,S3) = null => Interactor pairs = [S1,B1,C1] x [S3,B3,C3]
+MRCA(S2,S3) = null => Interactor pairs = [S2,B2,C2,C1] X [S3,B3,C3]]]></code><br/>
+		<text>Of course not all of these will generate callbacks! only those for which a listener exists between the two cbType's. Presently it is infact only allowed that one such pairing from two shapes should generate a callback</text>
+	</description>
 
 	<property name="cbType1" type="CbType">
 		<description> First CbType for shapes/bodies handled by listener </description>
@@ -216,7 +226,11 @@
 <class package="nape.callbacks" name="PreListener" super="Listener">
 	<file>Listener.hx</file>
 	<short>Immediate interaction event listener</short>
-	<description>Listener type for immediate interaction events. Allowed types are CbEvent.PRE only and as such is not an argument to the constructor.</description>
+	<description>
+		<text>Listener type for immediate interaction events. Allowed types are CbEvent.PRE only and as such is not an argument to the constructor.</text><br/>
+		<br/>
+		<text>For information about how interaction events work between various Interactors see the description in </text><link type="class" href="InteractionListener"><text>InteractionListener</text></link>
+	</description>
 
 	<property name="cbType1" type="CbType">
 		<description> First CbType for shapes/bodies handled by listener </description>
