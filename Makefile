@@ -34,6 +34,13 @@ unit_swf: pre_compile
 	unzip bin/release/assert_nape.swc -x catalog.xml
 	mv library.swf bin/release/haxe_assert_nape.swf
 
+demos: pre_compile
+	mkdir -p bin/release
+	haxe -swf bin/release/release_nape.swc -swf-version $(SWFV) $(RELEASE_FLAGS)
+	flib bin/release/release_nape.swc
+	unzip bin/release/release_nape.swc -x catalog.xml
+	mv library.swf bin/release/haxe_release_nape.swf	
+
 release: pre_compile
 	mkdir -p bin/release
 #	cpp

@@ -207,7 +207,7 @@ class Callbacks extends FixedStep {
 		//and set up listeners
 		function circler(colour:Int) {
 			return function(circle:Body) {
-				debug.drawFilledCircle(circle.position,circle.shapes.at(0).circle.radius,colour);
+				debug.drawFilledCircle(circle.position,circle.shapes.at(0).castCircle.radius,colour);
 			}
 		}
 

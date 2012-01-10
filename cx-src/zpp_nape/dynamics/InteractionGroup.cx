@@ -47,13 +47,18 @@ class PR(InteractionGroup) {
 	public function new() {
 		id = ID(InteractionGroup);
 		depth = 0;
+
+		groups = new List(PR(InteractionGroup))();
+		interactors = new List(PR(Interactor))();
 	}
 
 	public function addGroup(group:PR(InteractionGroup)) {
 		groups.add(group);
+		group.depth = depth+1;
 	}
 	public function remGroup(group:PR(InteractionGroup)) {
 		groups.remove(group);
+		group.depth = 0;
 	}
 
 	public function addInteractor(int:PR(Interactor)) {
