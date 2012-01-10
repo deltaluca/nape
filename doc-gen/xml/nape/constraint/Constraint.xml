@@ -24,11 +24,21 @@
 	<file>Constraint.hx</file>
 	<short>Constraintt</short>
 	<description>Base type for all nape constraints/joints</description>
-	
-	<property name="space" type="Maybe[Space]">
+
+	<property name="compound" type="Compound">	
+		<description>Compound this constraint is assigned to</description>
+		<detail>
+			<description>Compound this constraint is assigned to</description>
+		</detail>
+	</property>
+	<property name="space" type="Space">
 		<description>Space to which constraint is assigned</description>
 		<detail>
-			<description>Space object to which this Constraint belongs. This value can also be set and is equivalent to removing the constraint from it's present space, and adding it to the new one.</description>
+			<description>
+				<text>Space object to which this Constraint belongs. This value can also be set and is equivalent to removing the constraint from it's present space, and adding it to the new one.</text><br/>
+				<text>Like with Bodys and Compounds, if the constraint has been assigned to a Compound, then the space property is readonly</text>
+				<set><code inline="true">this.compound!=null</code><text> Only the root Compound has a mutable space property</text></set>
+			</description>
 		</detail>
 	</property>
 	<property name="cbType" type="CbType" value="CbType.DEFAULT">
@@ -113,6 +123,13 @@
 			<description><text>When true, the constraint will be allowed to break; destroying the constraint and removing it from the space if the positional error exceeds maxError.</text></description>
 		</detail>
 	</property>
+
+	<method name="copy" const="true" return="Constraint">
+		<description>Produce a copy of the constraint</description>
+		<detail>
+			<description><text>Produce an exact copy of the constraint noting that it will of course have null body references</text></description>
+		</detail>
+	</method>
 	
 	<method name="impulse" const="true" return="MatMN">
 		<description>Return constraint space impulse</description>
