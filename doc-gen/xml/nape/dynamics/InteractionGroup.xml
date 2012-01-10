@@ -40,20 +40,19 @@
 	<file>InteractionGroup.hx</file>
 	<short>InteractionGroup</short>
 	<description>
-		<text>InteractionGroup's are another way of controlling what should collide with what.</text><br/><br/>
+		<text>InteractionGroup's are another way of controlling what should collide with what, in the general case they form trees (and such property is enforced).</text><br/><br/>
 		<text>Before InteractionFilter's are considered, nape will first check for the most-recent common ancestor between the two Shapes (if it exists) in the InteractionGroup tree, and if that group says they should not interact, they will be ignored.</text><br/><br/>
-		<text>For the purposes of this check, should a Shape have no InteractionGroup, it will use the InteractionGroup of the shape's Body instead</text><br/><br/>
+		<text>For the purposes of this check, should a Shape have no InteractionGroup, it will use the first InteractionGroup found whilst walking up the Interactor chain (Aka check the body, and if body's is null, check the body compound and so forth)</text><br/><br/>
 		<text class="bold">Example:</text><br/>
-		<img file="../../../exgif/InteractionGroup.png"/><br/>
-		<text>Consider the function</text><code inline="true"><![CDATA[MRCA :: Shape->Shape->InteractionGroup]]></code><text> which given two Shapes will return their most recent common ancestor in the InteractionGroup tree, then for our example we would have:</text>
-		<code><![CDATA[MRCA(S1,S2) := null //G3 and G1 share no ancestor
-MRCA(S2,S4) := G3
-MRCA(S1,S5) := G1
-MRCA(S3,S5) := G2
-]]></code>
-		<text>If we were to say that G1.ignore = G3.ignore = false, and G2.ignore = true. Then Shapes S2,S4 and S1,S5 would interact (unless something else prevents them) but S3 and S5 would not interact.</text>
+		<img file="../../../exgif/InteractionGroup.png"/>
+		<text>If we look at which InteractionGroup is used for which Shape following the above rule then the left graph is transformed into the InteractionGroup tree on the right hand side. It is immediately clear then, that the MRCA (Most-recent common ancestor) is such that:</text>
+		<code><![CDATA[MRCA(S1,S3) == G1;
+MRCA(S2,S3) == G2;
+MRCA(S4,__) == null;]]></code><br/>
+		<text>If we were to say that G1.ignore = true; G2.ignore = false; Then Shapes S1/S3 would not interact, whilst Shapes S2/S3 would (unless something else prevents them).</text><br/><br/>
+		<text>The purpose of G3 here is purely to prevent S4 from binding with G2 as it would when walking up the Interactor tree should G3 not exist, as the MRCA of S4 with any of the other shapes is null, it is irrelevant the value of G3.ignore</text>
 		<br/><br/>
-		<text class="small1">InteractionGroup trees can be fairly expressive, but note that they are strictly less powerful than InteractionFilters which can describe more complex relations (The limitatino of the InteractinGroup is not being able to have multiple groups assigned to one object which would just complicate things further especcialy when it comes to internal implementation of the MRCA function which would need to branch and become non-linear in complexity)</text>
+		<text class="small1">InteractionGroup trees can be fairly expressive, but note that they are strictly less powerful than InteractionFilters which can describe more complex relations (The limitation of the InteractionGroup is not being able to have multiple groups assigned to one object which would just complicate things further especcialy when it comes to internal implementation of the MRCA function which would need to branch and become non-linear in complexity, as well as producing ambiguities as such a relaxation would be 'too' powerful)</text>
 	</description>
 
 	<property name="id" type="Int" readonly="true">
@@ -102,6 +101,12 @@ MRCA(S3,S5) := G2
 		<description>Mutable body list</description>
 		<detail>
 			<description>Mutable list of all Body's assigned to this InteractionGroup. This is a sublist of the Interactors list</description>
+		</detail>
+	</property>
+	<property name="compounds" type="CompoundList" readonly="true">
+		<description>Mutable compound list</description>
+		<detail>
+			<description>Mutable list of all Compound's assigned to this InteractionGroup. This is a sublist of the Interactors list</description>
 		</detail>
 	</property>
 
