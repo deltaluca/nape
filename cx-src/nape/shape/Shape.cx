@@ -10,14 +10,12 @@ Flags(ShapeType,
 
 WrapList(Shape,List(PR(Shape)),Node(PR(Shape)),$(mixin closure(x) x.outer) $(mixin erusolc(x) x.pr(inner)))
 
-class Shape {
+class Shape extends Interactor {
 	public var pr(inner):PR(Shape);
 	
     property(type,ShapeType,{
         [ShapeType.CIRCLE,ShapeType.POLYGON][pr(inner).type];
     })
-	
-    property(id,Int,pr(inner).id ^ PR(ID).SHAPE)
 	
 	keep public inline function isCircle () return pr(inner).isCircle()
 	keep public inline function isPolygon() return pr(inner).isPolygon()
@@ -25,12 +23,11 @@ class Shape {
 	//----------------------------------------------------------------------------------------------
 	
 	function new() {
+		DEBUG(try { super(); } catch (e:Dynamic) {})
+		RELEASE(super();)
+
 		DEBUG(throw "Error: Shape cannot be instantiated derp!";)
 	}
-	
-	//----------------------------------------------------------------------------------------------
-	
-	public var userData:Dynamic;
 	
 	//----------------------------------------------------------------------------------------------
 	
@@ -44,8 +41,8 @@ class Shape {
 		}
 	})
 	
-    property(circle, Circle, if(isCircle())  pr(inner).circle.outer_zn  else null)
-	property(polygon,Polygon,if(isPolygon()) pr(inner).polygon.outer_zn else null)
+    property(castCircle, Circle, if(isCircle())  pr(inner).circle.outer_zn  else null)
+	property(castPolygon,Polygon,if(isPolygon()) pr(inner).polygon.outer_zn else null)
 
 	//----------------------------------------------------------------------------------------------
 	
@@ -109,16 +106,7 @@ class Shape {
 	})
 	
 	//----------------------------------------------------------------------------------------------
-
-    property(cbType,CbType,{
-		if(pr(inner).cbType==null) null else pr(inner).cbType.wrapper();
-	},{
-		pr(inner).immutable_midstep("Shape::cbType");
-        pr(inner).setCbType(cbType==null ? null : cbType.pr(inner));
-    })
-
-    //----------------------------------------------------------------------------------------------
-	
+   
     property(bounds,AABB,pr(inner).aabb.wrapper())
 	
 	//----------------------------------------------------------------------------------------------
@@ -214,7 +202,7 @@ class Shape {
 	
 	//----------------------------------------------------------------------------------------------
 	
-	@:$keep public inline function toString() {
+	@:$keep public override function toString() {
 		var ret = isCircle() ? "Circle" : "Polygon";
 		return ret + "#" + id;
 	}

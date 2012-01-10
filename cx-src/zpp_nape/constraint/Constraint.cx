@@ -8,7 +8,9 @@ class PR(Constraint) {
 	public inline function clear() {}
 
     public var id:Int;
-	
+
+	public var compound:PR(Compound);
+
 	//assigned space
 	public var space:PR(Space);
 	
@@ -170,9 +172,44 @@ class PR(Constraint) {
 	//----------------------------------------------------------------------------------------------
 
     public var cbType:PR(CbType);
+
+	//extra funky fields used in copying Compounds
+	//so as to be able to resolve any dangling references external to the Compound.
+	public function copy(?dict:Array<{id:Int,bc:Body}>,?todo:Array<{id:Int, cb:Body->Void}>):Constraint { return null; }
+
+	public function copyto(ret:Constraint) {
+		var me = outer;
+		ret.cbType = me.cbType;
+		ret.removeOnBreak = me.removeOnBreak;
+		ret.breakUnderError = me.breakUnderError;
+		ret.breakUnderForce = me.breakUnderForce;
+		ret.maxError = me.maxError;
+		ret.maxForce = me.maxForce;
+		ret.damping = me.damping;
+		ret.frequency = me.frequency;
+		ret.stiff = me.stiff;
+		ret.ignore = me.ignore;
+		ret.active = me.active;
+	}
 }
 
 $(mixin global withConstraint(block)
+
+	//assume dict/todo exist
+	$(mixin copybody(to,body,dict,todo) {
+		if(dict!=null && body!=null) {
+			assert(todo!=null,"dict non-null,but todo is in constraint copy?");
+			var b:Body = null;
+			for(idc in dict) {
+				if(idc.id == body.id) {
+					b = idc.bc;
+					break;
+				}
+			}
+			if(b!=null) to.body = b.pr(inner);
+			else todo.push({id:body.id, cb:function(b:Body) to.body=b.pr(inner)});
+		}
+	});
 	
 	$(mixin anchor_init(n) {
 		vec_set(n`local,0,0);
@@ -219,8 +256,8 @@ $(mixin global withConstraint(block)
 	$(mixin wrap_body_new(B,b, new)
         property(B,Body,if(pr(inner_zn).b==null) null else pr(inner_zn).b.outer,{
 			pr(inner).immutable_midstep("Constraint::"+$str(B));
-        	DEBUG(if(B==null) throw "Error: Constraint::"+$str(B)+" cannot be null";)
-			if(B.pr(inner) != pr(inner_zn).b) {
+			var in`B = if(B==null) null else B.pr(inner);
+			if(in`B != pr(inner_zn).b) {
 				if(pr(inner_zn).b != null) {
                     if(active && space!=null && new(pr(inner_zn).b)) {
 						inactive_body(pr(inner_zn).b, this.pr(inner));
@@ -229,28 +266,28 @@ $(mixin global withConstraint(block)
                     if(active && space!=null)
                         pr(inner_zn).b.wake(); //wake old object!
 				}
-				pr(inner_zn).b = B.pr(inner);
-				if(active && space!=null && new(B.pr(inner))) {
-					active_body(B.pr(inner),this.pr(inner));
+				pr(inner_zn).b = in`B;
+				if(active && space!=null && in`B != null && new(in`B)) {
+					active_body(in`B,this.pr(inner));
 				}
 
 				//must wake both.
 				//it's possible that constraint is woken, but the newly assigned body is not.
 				//equally it's possible constraint is not woken, but the newly assigned body is!
 				pr(inner).wake();
-				B.pr(inner).wake();
+				if(in`B!=null) in`B.wake();
 			}
 		})
 	);
 
 	$(mixin active_body(b) active_body(b,this));
 	$(mixin active_body(b,this) {
-		b.constraints.add(this);
+		if(b!=null) b.constraints.add(this);
 	});
 
 	$(mixin inactive_body(b) inactive_body(b,this));
 	$(mixin inactive_body(b,this) {
-		b.constraints.remove(this);
+		if(b!=null) b.constraints.remove(this);
 	});
 	
 	//-----------------------------------------------------------

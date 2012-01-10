@@ -95,20 +95,21 @@ class Debug {
 
 		for(s in body.shapes) {
 			if(s.isCircle()) {
-				var c = s.circle;
+				var c = s.castCircle;
 				graphics.drawCircle(c.localCOM.x,c.localCOM.y,c.radius);	
 			} else {
+				var p = s.castPolygon;
 				graphics.moveTo(s.localCOM.x,s.localCOM.y);
-				for(i in 0...s.polygon.worldVerts.length) {
-					var p = s.polygon.localVerts.at(i);
-					graphics.lineTo(p.x,p.y);
+				for(i in 0...p.worldVerts.length) {
+					var px = p.localVerts.at(i);
+					graphics.lineTo(px.x,px.y);
 				}
-				var p = s.polygon.localVerts.at(0);
-				graphics.lineTo(p.x,p.y);
+				var px = p.localVerts.at(0);
+				graphics.lineTo(px.x,px.y);
 			}
 
 			if(s.isCircle()) {
-				var c = s.circle;
+				var c = s.castCircle;
 				graphics.moveTo(c.localCOM.x+c.radius*0.3,c.localCOM.y);
 				graphics.lineTo(c.localCOM.x+c.radius,c.localCOM.y);
 			}

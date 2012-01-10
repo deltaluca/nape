@@ -1,15 +1,12 @@
 package zpp_nape.phys;
 $(import);
 
-GENID(Body,PR(ID).BODY)
-class PR(Body) {
+class PR(Body) extends PR(Interactor) {
 	public var outer:Body;
 	
 	public var world:Bool; //used for Space::static
-	
+
 	//----------------------------------------------------------------------------------------------
-	
-	public var id:Int;
 	
 	public var type:Int;
 	flibmdel public inline function isStatic   () return type == Flag(BodyType,STATIC)
@@ -22,6 +19,8 @@ class PR(Body) {
 	}
 	
 	//----------------------------------------------------------------------------------------------
+
+	public var compound:PR(Compound);
 	
 	public var shapes:List(PR(Shape));
 	public var wrap_shapes:ShapeList;
@@ -522,26 +521,24 @@ class PR(Body) {
 
     //----------------------------------------------------------------------------------------------
 
-    public var cbType:PR(CbType);
-
-    public function setCbType(cbType:PR(CbType)) {
+    public function __setCbType(cbType:PR(CbType)) {
         if(this.cbType != cbType) {
 			if(space!=null && this.cbType!=null) {
 	            this.cbType.remBody(this);
-				space.nullBodyType(this);
+				space.nullInteractorType(this);
 			}
 
             this.cbType = cbType;
 			if(space!=null && cbType!=null) {
 	            cbType.addBody(this);
-				space.freshBodyType(this);
+				space.freshInteractorType(this);
 			}
 
             wake();
         }
     }
 
-	flibmdel public inline function immutable_midstep(name:String) {
+	flibmdel public inline function __immutable_midstep(name:String) {
 		DEBUG(if(space!=null && space.midstep) throw "Error: "+name+" cannot be set during a space step()";)
 	}
 
@@ -602,6 +599,8 @@ class PR(Body) {
     //----------------------------------------------------------------------------------------------
 
 	public function new() {
+		super();
+		ibody = this;
 		world = false;
 		
 		norotate = nomove = false;
@@ -627,8 +626,6 @@ class PR(Body) {
 		
 		vec_set(localCOM,0,0);
 		vec_set(worldCOM,0,0);
-		
-		id = ID(Body);
 		
 		inv(aabb) = true;
 		aabb = PR(AABB).get(0,0,0,0);
@@ -761,8 +758,7 @@ class PR(Body) {
 			vec_set(ret.worldCOM,worldCOM);
 		else ret.invalidate_worldCOM();
 
-        ret.cbType = cbType;
-		
+		copyto(ret.outer);	
 		return ret.outer;
 	}
 }

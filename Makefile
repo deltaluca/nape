@@ -3,7 +3,7 @@ SWFV = 10
 local: pre_compile
 	mkdir -p bin
 	haxe -cp src -main DummyNapeMain -swf bin/nape.swf -swf-version $(SWFV) --times \
-	     -swf-header 800:600:60:ffffff \
+	     -swf-header 800:600:60:333333 \
 	     		 -D NAPE_ASSERT --no-inline -debug \
 	     -D NAPE_POOL_STATS
 # 			--dead-code-elimination \
@@ -33,6 +33,13 @@ unit_swf: pre_compile
 	flib bin/release/assert_nape.swc
 	unzip bin/release/assert_nape.swc -x catalog.xml
 	mv library.swf bin/release/haxe_assert_nape.swf
+
+demos: pre_compile
+	mkdir -p bin/release
+	haxe -swf bin/release/release_nape.swc -swf-version $(SWFV) $(RELEASE_FLAGS)
+	flib bin/release/release_nape.swc
+	unzip bin/release/release_nape.swc -x catalog.xml
+	mv library.swf bin/release/haxe_release_nape.swf	
 
 release: pre_compile
 	mkdir -p bin/release

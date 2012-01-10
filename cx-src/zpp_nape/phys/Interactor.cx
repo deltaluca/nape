@@ -1,0 +1,88 @@
+package zpp_nape.phys;
+$(import);
+
+GENID(Interactor)
+class PR(Interactor) {
+	public var outer_i:Interactor;
+
+	public var id:Int;
+
+	//--------------------------------------------------------------------
+
+	public var ishape:PR(Shape);
+	public var ibody :PR(Body);
+	public var icompound:PR(Compound);
+
+	flibmdel public inline function isShape() return ishape!=null
+	flibmdel public inline function isBody () return ibody !=null
+	flibmdel public inline function isCompound() return icompound != null 
+
+	//--------------------------------------------------------------------
+
+	public var group:PR(InteractionGroup);
+	public var cbType:PR(CbType);
+
+	public function setCbType(cbType:PR(CbType)) {
+		if(isBody()) ibody.__setCbType(cbType);
+		elif(isShape()) ishape.__setCbType(cbType);
+		else icompound.__setCbType(cbType);
+	}
+
+	public function setGroup(group:PR(InteractionGroup)) {
+		if(this.group!=group) {
+			var inspace =
+				if(isShape())  ishape.body!=null && ishape.body.space!=null
+				elif(isBody()) ibody.space!=null
+				else           icompound.space!=null;
+
+			if(inspace && this.group!=null) this.group.remInteractor(this);
+			this.group = group;
+			if(inspace && group!=null) group.addInteractor(this);
+
+			if(inspace) {
+				if(isShape())  ishape.body.wake();
+				elif(isBody()) ibody.wake();
+				else           icompound.wake();
+			}
+		}
+	}
+	
+	//--------------------------------------------------------------------
+
+	flibmdel public inline function immutable_midstep(n:String) {
+		return
+		if(isBody()) ibody.__immutable_midstep(n);
+		elif(isShape()) ishape.__immutable_midstep(n);
+		else icompound.__imutable_midstep(n);
+	}
+
+	//--------------------------------------------------------------------
+
+	public function new() {
+		id = ID(Interactor);
+	}
+
+	//--------------------------------------------------------------------
+
+	public static inline function int_callback(o1:PR(Interactor),o2:PR(Interactor),cb1:PR(CbType),cb:PR(Callback)) {
+		if(o1.cbType==cb1) { cb.int1 = o1; cb.int2 = o2; }
+		else               { cb.int2 = o1; cb.int1 = o2; }
+	}
+
+	flibmdel public inline function lookup_group() {
+		var cur:PR(Interactor) = this;
+		while(cur!=null && cur.group==null) {
+			if(cur.isShape()) cur = cur.ishape.body;
+			elif(cur.isCompound()) cur = cur.icompound.compound;
+			else cur = cur.ibody.compound;
+		}
+		return if(cur==null) null else cur.group;
+	}
+
+	//-------------------------------------------------------------------
+
+	public inline function copyto(ret:Interactor) {
+		ret.pr(inner_i).group = group;
+		ret.pr(inner_i).cbType = cbType;
+	}
+}

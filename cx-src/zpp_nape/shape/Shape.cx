@@ -1,13 +1,11 @@
 package zpp_nape.shape;
 $(import);
 
-GENID(Shape,PR(ID).SHAPE)
-class PR(Shape) {
+class PR(Shape) extends PR(Interactor) {
 	public var outer:Shape;
 	public var body:PR(Body);
 	
 	public var type:Int;
-	public var id:Int;
 	
 	flibmdel public inline function isCircle() return type==Flag(ShapeType,CIRCLE)
 	flibmdel public inline function isPolygon() return type==Flag(ShapeType,POLYGON)
@@ -46,8 +44,6 @@ class PR(Shape) {
 	
 	public var fluidEnabled:Bool;
 
-    public var cbType:PR(CbType);
-	
 	//----------------------------------------------------------------------------------------------
 	
 	//for sweep and prune
@@ -215,8 +211,10 @@ class PR(Shape) {
 	}
 	
 	function new(type:Int) {
+		ishape = this;
+		super();
+
 		this.type = type;
-		id = ID(Shape);
 		aabb = PR(AABB).get(0,0,0,0);
 		aabb.immutable = true;
 		var me = this;
@@ -281,24 +279,24 @@ class PR(Shape) {
 		}
 	}
 
-    public function setCbType(cbType:PR(CbType)) {
+    public function __setCbType(cbType:PR(CbType)) {
         if(this.cbType != cbType) {
 			if(body!=null && body.space!=null && this.cbType!=null) {
 	            this.cbType.remShape(this);
-				body.space.nullShapeType(this);
+				body.space.nullInteractorType(this);
 			}
 			
             this.cbType = cbType;
 			if(body!=null && body.space!=null && cbType!=null) {
 	            cbType.addShape(this);
-				body.space.freshShapeType(this);
+				body.space.freshInteractorType(this);
 			}
 
             wake();
         }
     }
 
-	flibmdel public inline function immutable_midstep(name:String) {
+	flibmdel public inline function __immutable_midstep(name:String) {
 		DEBUG(if(body!=null && body.space!=null && body.space.midstep)
 			throw "Error: "+name+" cannot be set during a space step()";
 		)
@@ -360,8 +358,7 @@ class PR(Shape) {
 			ret.fluidProperties = fluidProperties;
 		ret.fluidEnabled = fluidEnabled;
 		
-        ret.cbType = cbType;
-
+		copyto(ret.outer);
 		return ret.outer;
 	}
 }

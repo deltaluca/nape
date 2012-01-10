@@ -8,6 +8,8 @@ import nape.util.BitmapDebug;
 import nape.phys.Body;
 import nape.phys.BodyType;
 import nape.phys.FluidProperties;
+import nape.phys.Interactor;
+import nape.phys.Compound;
 
 import nape.shape.Circle;
 import nape.shape.Polygon;
@@ -15,15 +17,16 @@ import nape.shape.Polygon;
 import nape.dynamics.Arbiter;
 import nape.geom.Vec2;
 
+import nape.callbacks.ConstraintListener;
 import nape.callbacks.InteractionListener;
 import nape.callbacks.PreListener;
 import nape.callbacks.BodyListener;
 import nape.callbacks.PreFlag;
-import nape.callbacks.Interactor;
 import nape.callbacks.CbType;
 import nape.callbacks.CbEvent;
 
 import nape.constraint.PivotJoint;
+import nape.constraint.Constraint;
 
 class Callbacks extends FixedStep {
 	static function main() {
@@ -36,6 +39,7 @@ class Callbacks extends FixedStep {
 		var space = new Space(new Vec2(0,400));
 		var debug = new BitmapDebug(stage.stageWidth,stage.stageHeight,0x333333,false);
 		debug.drawCollisionArbiters = true;
+		debug.drawConstraints = true;
 		addChild(debug.display);
 
 		var hand = new PivotJoint(space.world,space.world,new Vec2(),new Vec2());
@@ -118,15 +122,42 @@ class Callbacks extends FixedStep {
 
 		//squares that report on BEGIN/END events.
 		var boxcb = new CbType();
+		//pairs of boxes that act like a single body for one-way platform (using Compounds)
+		//that is, until the constraint breaks!
+		var paircb = new CbType();
+		var concb = new CbType();
 
+		var boxes = [];
 		for(i in 0...10) {
 			var box = new Body();
 			box.shapes.add(new Polygon(Polygon.box(40,40)));
 			box.position.setxy(800/11*(i+1),100);
-			box.space = space;
+			boxes.push(box);
+			//note box isn't added to space (# see few lines below)
 			
 			//set it's cbType
 			box.cbType = boxcb;
+		}
+
+		for(i in 0...5) {
+			var b1 = boxes[i*2];
+			var b2 = boxes[i*2+1];
+		
+			var compound = new Compound();
+			b1.compound = b2.compound = compound;
+			
+			var mid = b1.position.add(b2.position).mul(0.5);
+			var link = new PivotJoint(b1,b2,b1.worldToLocal(mid),b2.worldToLocal(mid));
+			link.compound = compound;
+			link.cbType = concb;
+			link.maxError = 5; //px
+			link.breakUnderError = true;
+			link.removeOnBreak = true;
+
+			// (#) <-- because it is added to the space via it's compound instead.
+			// see also that the link constraint is not directly added to the space.
+			compound.space = space;
+			compound.cbType = paircb;
 		}
 
 		//setup listeners
@@ -136,8 +167,8 @@ class Callbacks extends FixedStep {
 				//we need to use interactor.body and not interator.shape
 			
 				//draw thick line using a quad.
-				var p1 = box1.body.position;
-				var p2 = box2.body.position;
+				var p1 = box1.castBody.position;
+				var p2 = box2.castBody.position;
 				var n = p1.sub(p2);
 				n.length=1; n.angle += Math.PI/2;
 	
@@ -147,6 +178,16 @@ class Callbacks extends FixedStep {
 
 		space.listeners.add(new InteractionListener(CbEvent.BEGIN, boxcb,boxcb, boxer(0x00ff00)));
 		space.listeners.add(new InteractionListener(CbEvent.END,   boxcb,boxcb, boxer(0xff0000)));
+
+		space.listeners.add(new ConstraintListener(CbEvent.BREAK, concb, function (x:Constraint) {
+			//We're going to break apart the compound containing the constraint and the two boxes
+			//we set the constraint to be removed when it broke, so we don't need to remove the constraint
+			// - When removed, it is also removed from the compound treating it as though it is completely deleted.
+			var link = cast(x,PivotJoint);
+			var b1 = link.body1; var b2 = link.body2;
+			b1.compound.breakApart();
+			b1.cbType = b2.cbType = paircb;
+		}));
 
 		//----------------------------
 
@@ -166,7 +207,7 @@ class Callbacks extends FixedStep {
 		//and set up listeners
 		function circler(colour:Int) {
 			return function(circle:Body) {
-				debug.drawFilledCircle(circle.position,circle.shapes.at(0).circle.radius,colour);
+				debug.drawFilledCircle(circle.position,circle.shapes.at(0).castCircle.radius,colour);
 			}
 		}
 
@@ -190,14 +231,13 @@ class Callbacks extends FixedStep {
 		//don't have sum-types yet, so have to assign for all types we want to operate with one-way
 		function oneway(arb:Arbiter) {
 			if(!arb.isCollisionArbiter()) return PreFlag.ACCEPT;
-				
 			var rev = arb.body2.cbType==platcb; //reverse direction logic if objects are opposite to what we expect.
 			var dir = new Vec2(0,rev ? 1 : -1);
 
 			return if(dir.dot(arb.collisionArbiter.normal)>=0) PreFlag.ACCEPT else PreFlag.IGNORE;
 		}
 
-		for(cb in [hexcb,boxcb])
+		for(cb in [hexcb,paircb])
 			space.listeners.add(new PreListener(platcb,cb,oneway));
 
 		run(function (dt) {

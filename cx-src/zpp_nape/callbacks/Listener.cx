@@ -132,43 +132,6 @@ class PR(ConstraintListener) extends PR(Listener) {
     }
 }
 
-class PR(Interactor) {
-	static public var internal = false;
-	public var outer:Interactor;
-
-	public var shape:PR(Shape);
-	public var body :PR(Body);
-
-	MixPool(PR(Interactor))
-
-	public function new() {
-		internal = true;
-		outer = new Interactor();
-		outer.pr(inner) = this;
-		internal = false;
-	}
-
-	flibmdel public inline function free() { shape = null; body = null; }
-	flibmdel public inline function alloc() {}
-
-	$(define global public static inline function int_callback(S1,S2)(
-		o1:#if S1 PR(Shape) #else PR(Body) #end,
-		o2:#if S2 PR(Shape) #else PR(Body) #end,
-		cb1:PR(CbType),
-		cb:PR(Callback)
-	) {
-		cb.int1 = Get(PR(Interactor));
-		cb.int2 = Get(PR(Interactor));
-		if(o1.cbType==cb1) {
-			#if S1 cb.int1.shape #else cb.int1.body #end = o1;
-			#if S2 cb.int2.shape #else cb.int2.body #end = o2;
-		}else {
-			#if S1 cb.int2.shape #else cb.int2.body #end = o1;
-			#if S2 cb.int1.shape #else cb.int1.body #end = o2;
-		}
-	});
-}
-
 $(mixin cbnhas(cb1,cb2,type) (cb1._`type==0 || cb2._`type==0 || space._`type.ordered_get(cb1.id,cb2.id)==null));
 
 class PR(InteractionListener) extends PR(Listener) {
@@ -194,27 +157,15 @@ class PR(InteractionListener) extends PR(Listener) {
 		//see if this is a new compound callback listener for the two types
 		//aka if begin, check for an end existing already etc
 		if((event==Flag(CbEvent,BEGIN) && cbnhas(cb1,cb2,end) && cbnhas(cb1,cb2,pre))
-		|| (event==Flag(CbEvent,END)   && cbnhas(cb1,cb2,begin) && cbnhas(cb1,cb2,pre))) {
-			Iter(shape, cb1.shapes, space.freshShapeType(shape,cb1,cb2));
-			Iter(body,  cb1.bodies, space.freshBodyType (body,cb1,cb2));
-			if(cb2!=cb1) {
-				Iter(shape, cb2.shapes, space.freshShapeType(shape,cb1,cb2));
-				Iter(body,  cb2.bodies, space.freshBodyType (body,cb1,cb2));
-			}
-		}
+		|| (event==Flag(CbEvent,END)   && cbnhas(cb1,cb2,begin) && cbnhas(cb1,cb2,pre)))
+			space.freshListenerType(cb1,cb2);
 	}
 	public function unassign() {
 		//see if this was the only compound callback listener
 		//aka if begin, check end doesn't exist
 		if((event==Flag(CbEvent,BEGIN) && cbnhas(cb1,cb2,end) && cbnhas(cb1,cb2,pre))
-		|| (event==Flag(CbEvent,END)   && cbnhas(cb1,cb2,begin) && cbnhas(cb1,cb2,pre))) {
-			Iter(shape, cb1.shapes, space.nullShapeType(shape,cb1,cb2));
-			Iter(body,  cb1.bodies, space.nullBodyType (body,cb1,cb2));
-			if(cb2!=cb1) {
-				Iter(shape, cb2.shapes, space.nullShapeType(shape,cb1,cb2));
-				Iter(body,  cb2.bodies, space.nullBodyType (body,cb1,cb2));
-			}
-		}
+		|| (event==Flag(CbEvent,END)   && cbnhas(cb1,cb2,begin) && cbnhas(cb1,cb2,pre)))
+			space.nullListenerType(cb1,cb2);
 	}
 
 	flibmdel public inline function addedToSpace(?skip=false) {
@@ -326,26 +277,14 @@ class PR(PreListener) extends PR(Listener) {
 	public function assign() {
 		//see if this is a new compound callback listener for the two types
 		//aka if begin, check for an end existing already etc
-		if(cbnhas(cb1,cb2,begin) && cbnhas(cb1,cb2,end)) {
-			Iter(shape, cb1.shapes, space.freshShapeType(shape,cb1,cb2));
-			Iter(body,  cb1.bodies, space.freshBodyType (body,cb1,cb2));
-			if(cb2!=cb1) {
-				Iter(shape, cb2.shapes, space.freshShapeType(shape,cb1,cb2));
-				Iter(body,  cb2.bodies, space.freshBodyType (body,cb1,cb2));
-			}
-		}
+		if(cbnhas(cb1,cb2,begin) && cbnhas(cb1,cb2,end))
+			space.freshListenerType(cb1,cb2);
 	}
 	public function unassign() {
 		//see if this was the only compound callback listener
 		//aka if begin, check end doesn't exist
-		if(cbnhas(cb1,cb2,begin) && cbnhas(cb1,cb2,end)) {
-			Iter(shape, cb1.shapes, space.nullShapeType(shape,cb1,cb2));
-			Iter(body,  cb1.bodies, space.nullBodyType (body,cb1,cb2));
-			if(cb2!=cb1) {
-				Iter(shape, cb2.shapes, space.nullShapeType(shape,cb1,cb2));
-				Iter(body,  cb2.bodies, space.nullBodyType (body,cb1,cb2));
-			}
-		}
+		if(cbnhas(cb1,cb2,begin) && cbnhas(cb1,cb2,end))
+			space.nullListenerType(cb1,cb2);
 	}
 
 	flibmdel public inline function addedToSpace() {

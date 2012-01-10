@@ -99,7 +99,7 @@
 
 <!-- ------------------------------------------------------------------------------------------- -->
 
-<class package="nape.phys" name="Body">
+<class package="nape.phys" name="Body" super="Interactor">
 	<file>Body.hx</file>
 	<short>Rigid body</short>
 	<description>Rigid body composed of Shapes</description>
@@ -112,11 +112,6 @@
 			<description>Construct new Rigid Body</description>
 		</detail>
 	</constructor>
-	
-	<property name="id" type="Int" readonly="true">
-		<description>Unique identifier for physics object</description>
-		<detail><description>Unique per-PhysObj instance identifier</description></detail>
-	</property>
 	
 	<property name="type" type="BodyType">
 		<description>Rigid body type</description>
@@ -134,25 +129,20 @@
 			<text class="bold">Immutable if:</text><br/><indent><throw/><code inline="true"> isStatic() &amp;&amp; space!=null</code><br/><text>Whether implicit or explicit operations are performed on this list, an error will be thrown.</text></indent> </description>
 		</detail>
 	</property>
-	<property name="cbType" type="CbType" value="CbType.DEFAULT">
-		<description>Body callback type id</description>
-		<detail>
-			<description>Body callback type id for callback event listeners</description>
-		</detail>
-	</property>
-	<property name="userData" type="Dynamic">
-		<description>user defined data </description>
-		<detail>
-			<description>user defined data</description>
-		</detail>
-	</property>
 	
 	
 	<property/>
-	<property name="space" type="Maybe[Space]">
-		<description>Space to which Body belongs</description>
+	<property name="compound" type="Compound">
+		<description>Compuond Body belongs to</description>
 		<detail>
-			<description>Space object to which this Body belongs. This value can also be set and is equivalent to removing the body from it's present space, and adding it to the new one.</description>
+			<description>The compound this Body belongs to.</description>
+		</detail>
+	</property>	
+	<property name="space" type="Space">
+		<description>Space to which Body is contained</description>
+		<detail>
+			<description>Space the body is contained in. This value can also be set unless the Body is part of a Compound in which case only the root of the tree can have it's space modified.</description>
+			<set><code inline="true">this.compound!=null</code><text> Only the root of the tree has a mutable space property</text></set>
 		</detail>
 	</property>
 	

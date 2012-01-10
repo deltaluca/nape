@@ -2,17 +2,12 @@ package zpp_nape;
 $(import);
 
 class PR(ID) {
-	public static inline var SHAPE = 0x80000000;
-	public static inline var BODY  = 0;
-
-	$(expand global GENID(n,FLAG)
+	$(expand global GENID(n)
 		public static var _`n:Int = 0;
 		public static inline function n() {
-			return FLAG | (_`n++);
+			return _`n++;
 		}
 	);
-
-	$(mixin global GENID(n) GENID(n,0));
 
 	$(mixin global ID(n) PR(ID).n());
 }

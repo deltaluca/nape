@@ -351,48 +351,37 @@ class DummyNapeMain {
 	static function main() {
 		haxe.Log.setColor(0xffffff);
 		var cur = flash.Lib.current;
+
 		var space = new Space();
-		var debug = new BitmapDebug(800,600,0x333333);
-		cur.addChild(debug.display);
-
-		var b1 = new Body(BodyType.DYNAMIC);
-		b1.shapes.add(new Polygon(Polygon.rect(50,150,100,100)));
-		b1.space = space;
-
-		var b2 = new Body(BodyType.KINEMATIC);
-		b2.shapes.add(new Polygon(Polygon.rect(-20,-40,40,40)));
-		b2.shapes.add(new Polygon(Polygon.rect(-20,0,40,40)));
-
-		b2.position.setxy(100,130);
-		b2.space = space;
 
 		var cb = new CbType();
-		b1.cbType = b2.cbType = cb;
+		var plat = new Body();
+		plat.cbType = cb;
+		plat.shapes.add(new Circle(100));
+		plat.position.setxy(100,100);
+		plat.space = space;
 
-		debug.clear();
-		debug.transform = new Mat23();
-		function drar() {
-			trace("---");
-			space.step(1/60,10,10);
-			debug.draw(space);
-			debug.flush();
-			debug.transform.tx += 140;
-		}
+		var cc = new Compound();
+		var b = new Body(); b.shapes.add(new Circle(20));
+		b.position.setxy(100,250);
+		b.compound = cc;
 
-		space.listeners.add(new PreListener(cb,cb, function(x) {
-			trace("PRE "+x.toString());
+		var b2 = new Body(); b2.shapes.add(new Circle(20));
+		b2.position.setxy(100,350);
+		b2.compound = cc;
+		cc.space = space;
+		cc.cbType = cb;
+
+		space.listeners.add(new PreListener(cb,cb, function (x) {
+			trace(x);
 			return PreFlag.IGNORE;
 		}));
-		space.listeners.add(new InteractionListener(CbEvent.BEGIN, cb,cb, function(x,y) {
-			trace("BEG "+x.toString()+" "+y.toString());
-		}));
-		space.listeners.add(new InteractionListener(CbEvent.END, cb,cb, function(x,y) {
-			trace("END "+x.toString()+" "+y.toString());
-		}));
-		drar();
-		space.listeners.clear();
-		b2.position.y += 40;
-		drar();
+
+		trace("--"); space.step(1/60);
+		b.position.setxy(100,80);
+		trace("--"); space.step(1/60);
+		b2.position.setxy(100,120);
+		trace("--"); space.step(1/60);
 	}
 
 	static function man() {
@@ -804,7 +793,7 @@ class DummyNapeMains {
 			debug.draw(space);
 
 			if(mcon.active) {
-				for(b in space.dynamics) {
+/*				for(b in space.dynamics) {
 					if(b==mcon.body2) continue;
 					if(Geom.intersects(b.shapes.at(0),mcon.body2.shapes.at(0))) {
 						debug.drawLine(b.worldCOM,mcon.body2.worldCOM,0xff0000);
@@ -815,7 +804,7 @@ class DummyNapeMains {
 					if(Geom.distance(b.shapes.at(0),mcon.body2.shapes.at(0),x,y)>=0) {
 						debug.drawLine(x,y,0xff00ff);
 					}
-				}
+				}*/			
 			}
 
 			debug.flush();

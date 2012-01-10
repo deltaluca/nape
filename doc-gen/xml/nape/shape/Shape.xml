@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <data>
 
-<class package="nape.shape" name="Shape">
+<class package="nape.shape" name="Shape" super="Interactor">
 	<file>Shape.hx</file>
 	<description>Super class for all Shape types</description>
 	<short>Shape super class.</short>
@@ -11,23 +11,18 @@
 		<detail><description>Type of Shape</description></detail>
 	</property>
 	
-	<property name="id" type="Int" readonly="true">
-		<description>Unique identifier for shape</description>
-		<detail><description>Unique per-Shape instance identifier</description></detail>
-	</property>
-	
 	<property/>
-	<property name="body" type="Maybe[Body]" readonly="true">
+	<property name="body" type="Body" readonly="true">
 		<description>Body to which Shape belongs</description>
 		<detail><description>Body to which Shape belongs</description></detail>
 	</property>
-	<property name="circle" type="Maybe[Circle]" readonly="true">
-		<description>Reference to inner Circle type</description>
-		<detail><description>Use this in preference to a casting operation.</description></detail>
+	<property name="castCircle" type="Circle" readonly="true">
+		<description>Fast down-cast self-reference</description> 
+		<detail><description>If this Shape is actually a Circle, then this is a typed self-reference to avoid run-time casting</description></detail>
 	</property>
-	<property name="polygon" type="Maybe[Polygon]" readonly="true">
-		<description>Reference to inner Polygon type</description>
-		<detail><description>Use this in preference to a casting operation.</description></detail>
+	<property name="castPolygon" type="Polygon" readonly="true">
+		<description>Fast down-cast self-reference</description> 
+		<detail><description>If this Shape is actually a Polygon, then this is a typed self-reference to avoid run-time casting</description></detail>
 	</property>
 	
 	<property/>
@@ -58,18 +53,6 @@
 		<detail>
 			<description><text>If true, and filtering allows it then this shape will interact as a fluid object interacting with buoyancy instead of collision.</text><br/><br/><text>There are further restrictions placed on fluid interaction, see InteractionFilter.</text></description>
 			<seealso><link type="class" href="InteractionFilter">InteractionFilter</link> </seealso>
-		</detail>
-	</property>
-	<property name="cbType" type="CbType" value="CbType.DEFAULT">
-		<description>Shape callback type id</description>
-		<detail>
-			<description>Shape callback type id for callback event listeners</description>
-		</detail>
-	</property>
-	<property name="userData" type="Dynamic">
-		<description>user defined data </description>
-		<detail>
-			<description>user defined data</description>
 		</detail>
 	</property>
 	
@@ -128,11 +111,11 @@
 	<method/>
 	<method name="isCircle" return="Bool" const="true" inline="true">
 		<description>Whether Shape is a Circle</description>
-		<detail><description>Returns true if Shape is a Circle</description></detail>
+		<detail><description>Returns true if Shape is actually a Circle</description></detail>
 	</method>
 	<method name="isPolygon" return="Bool" const="true" inline="true">
 		<description>Whether Shape is a Polygon</description>
-		<detail><description>Returns true if Shape is a Polygon</description></detail>
+		<detail><description>Returns true if Shape is actually a Polygon</description></detail>
 	</method>
 	<method/>
 	<method name="translate">
