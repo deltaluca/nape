@@ -28,6 +28,25 @@ class PR(Interactor) {
 		else icompound.__setCbType(cbType);
 	}
 
+	public function setGroup(group:PR(InteractionGroup)) {
+		if(this.group!=group) {
+			var inspace =
+				if(isShape())  ishape.body!=null && ishape.body.space!=null
+				elif(isBody()) ibody.space!=null
+				else           icompound.space!=null;
+
+			if(inspace && this.group!=null) this.group.remInteractor(this);
+			this.group = group;
+			if(inspace && group!=null) group.addInteractor(this);
+
+			if(inspace) {
+				if(isShape())  ishape.body.wake();
+				elif(isBody()) ibody.wake();
+				else           icompound.wake();
+			}
+		}
+	}
+	
 	//--------------------------------------------------------------------
 
 	flibmdel public inline function immutable_midstep(n:String) {

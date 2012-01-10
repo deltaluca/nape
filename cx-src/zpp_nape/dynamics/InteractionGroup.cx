@@ -9,23 +9,35 @@ class PR(InteractionGroup) {
 
 	public var ignore:Bool;
 	public var group:PR(InteractionGroup);
+	public function setGroup(group:PR(InteractionGroup)) {
+		if(this.group!=group) {
+			if(this.group!=null) {
+				this.group.remGroup(this);
+				this.group.invalidate(true);
+			}
+			this.group = group;
+			if(group!=null) {
+				group.addGroup(this);
+				group.invalidate(true);
+			}else this.invalidate(true);
+		}
+	}
 
 	//lidyd
 	public var groups:List(PR(InteractionGroup)); public var wrap_groups:InteractionGroupList;
 	public var interactors:List(PR(Interactor)); public var wrap_interactors:InteractorList;
 
-	public var bodies:List(PR(Body));  public var wrap_bodies:BodyList;
-	public var shapes:List(PR(Shape)); public var wrap_shapes:ShapeList;
-
 	//improve lookup times on non-trivial MRCA calls
 	public var depth:Int;
-	public var root:PR(InteractionGroup);
 
 	public function invalidate(?force=false) {
 		if(!(force || ignore)) return;
 
-		Iter(b,bodies,if(b.space!=null) b.space.wake(b));
-		Iter(s,shapes,if(s.body!=null && s.body.space!=null) s.body.space.wake(s.body));
+		Iter(b,interactors,{
+			if  (b.isBody ()) b.ibody.wake();
+			elif(b.isShape()) b.ishape.body.wake();
+			else              b.icompound.wake();
+		});
 		Iter(g,groups,g.invalidate(force));
 	}
 
@@ -34,84 +46,20 @@ class PR(InteractionGroup) {
 
 	public function new() {
 		id = ID(InteractionGroup);
-
-		var me = this;
-		interactors = new List(PR(Interactor))();
-		wrap_interactors = PR(InteractorList).get(interactors);
-		wrap_interactors.pr(inner).adder = function(x:Interactor) {
-			if(x.pr(inner_i).group!=me) {
-				if(x.pr(inner_i).group!=null) x.pr(inner_i).group.wrap_interactors.remove(x);
-				me.addInteractor(x.pr(inner_i),0);
-				return true;
-			}else return false;
-		}
-		wrap_interactors.pr(inner).subber = function(x:Interactor) {
-			me.removeInteractor(x.pr(inner_i),0);
-		}
-		wrap_interactors.pr(inner)._invalidate = function(_) me.invalidate();
-
-		$(mixin wrap_ints(T,t,F)
-			t`s = new List(PR(T))();
-			wrap_`t`s = PR(T`List).get(t`s);
-			wrap_`t`s.pr(inner).adder = function(x:T) {
-				if(x.pr(inner).group!=me) {
-					if(x.pr(inner).group!=null) x.pr(inner).group.outer.t`s.remove(x);
-					me.addInteractor(x.pr(inner),F);
-					return true;
-				}else return false;
-			}
-			wrap_`t`s.pr(inner).subber = function(x:T) {
-				me.removeInteractor(x.pr(inner),F);
-			}
-		);
-		wrap_ints(Shape,shape,SHAPE)
-		wrap_ints(Body, bodie, BODY)
-
-		groups = new List(PR(InteractionGroup))();
-		wrap_groups = PR(InteractionGroupList).get(groups);
-		wrap_groups.pr(inner).adder = function(x:InteractionGroup) {
-			DEBUG(
-				var cur = me;
-				while(cur!=null && cur!=x.pr(inner)) cur = cur.group;
-				if(cur==x.pr(inner)) {
-					throw "Error: Assignment would cause a cycle in the InteractionGroup tree: assigning "+x.toString()+".group = "+me.outer.toString();
-					return false;
-				}
-			)
-			if(x.pr(inner).group!=null) x.pr(inner).group.outer.groups.remove(x);
-			x.pr(inner).group = me;
-			x.pr(inner).depth = me.depth+1;
-			return true;
-		}
-		wrap_groups.pr(inner).subber = function(x:InteractionGroup) {
-			x.pr(inner).group = null;
-			x.pr(inner).depth = 0;
-		}
-		wrap_groups.pr(inner)._invalidate = function(_) me.invalidate();
-
 		depth = 0;
 	}
 
-	public function addInteractor(int:PR(Interactor),?flag:Int=-1) {
-		int.group = this;
-
-		if(int.isShape()) {
-			if(flag!=SHAPE) shapes.add(int.ishape);
-		}else {
-			if(flag!=BODY) bodies.add(int.ibody);
-		}
-
-		if(flag!=0) interactors.add(int);
+	public function addGroup(group:PR(InteractionGroup)) {
+		groups.add(group);
+	}
+	public function remGroup(group:PR(InteractionGroup)) {
+		groups.remove(group);
 	}
 
-	public function removeInteractor(int:PR(Interactor),?flag:Int=-1) {
-		if(int.isShape()) {
-			if(flag!=SHAPE) shapes.remove(int.ishape);
-		}else {
-			if(flag!=BODY) bodies.remove(int.ibody);
-		}
-		
-		if(flag!=0) interactors.remove(int);
-		int.group = null;
+	public function addInteractor(int:PR(Interactor)) {
+		interactors.add(int);
+	}
+	public function remInteractor(int:PR(Interactor),?flag:Int=-1) {
+		interactors.remove(int);
 	}
 }
