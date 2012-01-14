@@ -584,6 +584,23 @@ class Body extends Interactor {
 		dx.dispose();
 		dx2.dispose();
 	}
+
+	//----------------------------------------------------------------------------------------------
+
+	keep public function rotate(centre:Vec2,angle:Float) {
+		Disposed(centre,Vec2);
+		DEBUG(if(centre==null) throw "Error: Cannot rotate about a null Vec2";)
+		DEBUG(if(isNaN(angle)) throw "Error: Cannot rotate by NaN radians";)
+
+		var del = position.sub(centre);
+		del.rotate(angle);
+		position = centre.add(del,true);
+		del.dispose();
+
+		rotation += angle;
+
+		WEAK(centre);
+	}
 	
 	//----------------------------------------------------------------------------------------------
 	
