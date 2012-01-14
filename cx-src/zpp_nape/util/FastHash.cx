@@ -61,11 +61,11 @@ $(define global keep class FastHash2(T) {
 		#end
 	}
 
-	public inline function empty() return cnt==0
+	flibmdel public inline function empty() return cnt==0
 
-	public inline function clear() ClearHashWith(this,$(mixin cb(x)))
+	flibmdel public inline function clear() ClearHashWith(this,$(mixin cb(x)))
 
-	public inline function get(id:Int,di:Int):T {
+	flibmdel public inline function get(id:Int,di:Int):T {
 		var n = table[hash(id,di)];
 		if(n==null) return null;
 		else if(n.id == id && n.di == di) return n;
@@ -76,11 +76,11 @@ $(define global keep class FastHash2(T) {
 		}
 	}
 
-	public inline function ordered_get(id:Int,di:Int) {
+	flibmdel public inline function ordered_get(id:Int,di:Int) {
 		return if(id<=di) get(id,di) else get(di,id);
 	}
 
-	public inline function has(id:Int,di:Int):Bool {
+	flibmdel public inline function has(id:Int,di:Int):Bool {
 		var n = table[hash(id,di)];
 		if(n==null) return false;
 		else if(n.id == id && n.di == di) return true;
@@ -91,7 +91,7 @@ $(define global keep class FastHash2(T) {
 		}
 	}
 
-	public inline function maybeAdd(arb:T) {
+	flibmdel public inline function maybeAdd(arb:T) {
 		assert(arb!=null,"cannot add null to hash2");
 		var h = hash(arb.id,arb.di);
 		var n = table[h];
@@ -127,7 +127,7 @@ $(define global keep class FastHash2(T) {
 		}
 	}
 
-	public inline function add(arb:T) {
+	flibmdel public inline function add(arb:T) {
 		assert(arb!=null,"cannot add null to hash2");
 		var h = hash(arb.id,arb.di);
 		var n = table[h];
@@ -155,7 +155,7 @@ $(define global keep class FastHash2(T) {
 		cnt++;
 	}
 
-	public inline function remove(arb:T) {
+	flibmdel public inline function remove(arb:T) {
 		assert(arb!=null,"cannot remove null from hash2");
 		var h = hash(arb.id,arb.di);
 		var n = table[h];
@@ -172,9 +172,9 @@ $(define global keep class FastHash2(T) {
 		cnt--;
 	}
 
-	public inline function hash(id:Int,di:Int) return ((id*106039)+di)&0xffff
-//	public inline function hash(id:Int,di:Int) return ((~(id*106039))^di)&0xffff
-//	public inline function hash(a,b) return 0
+	flibmdel public inline function hash(id:Int,di:Int) return ((id*106039)+di)&0xffff
+//	flibmdel public inline function hash(id:Int,di:Int) return ((~(id*106039))^di)&0xffff
+//	flibmdel public inline function hash(a,b) return 0
 });
 
 $(define global class FastHash(T) {
@@ -189,9 +189,9 @@ $(define global class FastHash(T) {
         #end
     }
 
-	public inline function clear() ClearHashWith(this,$(mixin cb(x)))
+	flibmdel public inline function clear() ClearHashWith(this,$(mixin cb(x)))
 
-    public inline function get(id:Int):T {
+    flibmdel public inline function get(id:Int):T {
         var n = table[hash(id)];
         if(n==null) return null;
         else if(n.id == id) return n;
@@ -202,7 +202,7 @@ $(define global class FastHash(T) {
         }
     }
 
-	public inline function has(id:Int):Bool {
+	flibmdel public inline function has(id:Int):Bool {
 		var n = table[hash(id)];
 		if(n==null) return false;
 		else if(n.id == id) return true;
@@ -213,7 +213,7 @@ $(define global class FastHash(T) {
 		}
 	}
 
-    public inline function add(arb:T) {
+    flibmdel public inline function add(arb:T) {
 	    assert(arb!=null,"cannot add null to hash");
         var h = hash(arb.id);
         var n = table[h];
@@ -240,7 +240,7 @@ $(define global class FastHash(T) {
 		#end
     }
 
-    public inline function remove(arb:T) {
+    flibmdel public inline function remove(arb:T) {
 		assert(arb!=null,"cannot remove null from hash");
         var h = hash(arb.id);
         var n = table[h];
@@ -254,5 +254,5 @@ $(define global class FastHash(T) {
         arb.hnext = null;
     }
 
-    public inline function hash(key:Int) return (key*106039) & 0xffff
+    flibmdel public inline function hash(key:Int) return (key*106039) & 0xffff
 });
