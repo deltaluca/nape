@@ -152,6 +152,8 @@ class PR(Space) {
     public var midstep:Bool;
     public var time:Float;
 	
+	public var sortcontacts:Bool;
+
 	//----------------------------------------------------------------------------------------------
 	
 	$(define global public var c_arbiters(stat):List(PR(ColArbiter)););
@@ -257,7 +259,7 @@ class PR(Space) {
 		time = 0.0;
 		vec_set(gravity,0,0);
 		#if NAPE_TIMES
-			Debug.FOR = Debug.BROAD = Debug.PRE = Debug.POS = Debug.VEL = Debug.DRAW = 0;
+			Debug.FOR = Debug.BROAD = Debug.PRE = Debug.POS = Debug.VEL = Debug.DRAW = Debug.SORT = 0;
 			Debug.ltime = 0;
 		#end
 
@@ -269,6 +271,7 @@ class PR(Space) {
 	//----------------------------------------------------------------------------------------------
 	
 	public function new(gravity:PR(Vec2),broadphase:Broadphase) {
+		sortcontacts = true;
 		pre_dt = 0.0;
 
 		if(broadphase==null || broadphase==Broadphase.DYNAMIC_AABB_TREE)
@@ -734,6 +737,14 @@ class PR(Space) {
 		#if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
         prestep(deltaTime);
         #if NAPE_TIMES Debug.PRE += flash.Lib.getTimer()-pt; #end
+
+		#if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
+		if(sortcontacts) {
+			Sort(c_arbiters(false), Node(PR(ColArbiter)), $(mixin lt(a,b) {
+				if(a.active && b.active) a.oc1.dist < b.oc1.dist else true;
+			}) lt);
+		}
+		#if NAPE_TIMES Debug.SORT += flash.Lib.getTimer()-pt; #end
 
         #if NAPE_TIEMS var pt = flash.Lib.getTimer(); #end
         iterateVel(elastic,true);
@@ -1562,7 +1573,7 @@ class PR(Space) {
 	
 		//still iterate non acting arbiters
 		//want to clean up contacts in collision arbiters
-		//and clean up outdated arbiters also	
+		//and clean up outdated arbiters also
 		prestep(c_arbiters(true),  if(arb.active) arb.preStep(dt));
 		prestep(c_arbiters(false), if(arb.active) arb.preStep(dt));
 		prestep(f_arbiters,      { if(arb.active) arb.preStep(this,dt); true; });

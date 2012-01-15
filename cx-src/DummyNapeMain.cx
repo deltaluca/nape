@@ -350,38 +350,53 @@ class Tracer {
 class DummyNapeMain {
 	static function main() {
 		haxe.Log.setColor(0xffffff);
-		var cur = flash.Lib.current;
+		var stage = flash.Lib.current.stage;
 
-		var space = new Space();
+		var space = new Space(new Vec2(0,400),Broadphase.SWEEP_AND_PRUNE);
+		var debug = new BitmapDebug(stage.stageWidth,stage.stageHeight,0x333333);
+		stage.addChild(debug.display);
+		debug.drawShapeAngleIndicators = false;
 
-		var cb = new CbType();
-		var plat = new Body();
-		plat.cbType = cb;
-		plat.shapes.add(new Circle(100));
-		plat.position.setxy(100,100);
-		plat.space = space;
+		var border = new Body(BodyType.STATIC);
+		border.shapes.add(new Polygon(Polygon.rect(0,0,-50,stage.stageHeight)));
+		border.shapes.add(new Polygon(Polygon.rect(stage.stageWidth,0,50,stage.stageHeight)));
+		border.shapes.add(new Polygon(Polygon.rect(0,0,stage.stageWidth,-50)));
+		border.shapes.add(new Polygon(Polygon.rect(0,stage.stageHeight,stage.stageWidth,50)));
+		border.space = space;
 
-		var cc = new Compound();
-		var b = new Body(); b.shapes.add(new Circle(20));
-		b.position.setxy(100,250);
-		b.compound = cc;
+		var boxw = 6;
+		var boxh = 12;
+		var height = 40; //820 blocks
 
-		var b2 = new Body(); b2.shapes.add(new Circle(20));
-		b2.position.setxy(100,350);
-		b2.compound = cc;
-		cc.space = space;
-		cc.cbType = cb;
+		for(y in 1...(height+1)) {
+			for(x in 0...y) {
+				var block = new Body();
+				block.position.x = stage.stageWidth/2 - boxw*(y-1)/2 + x*boxw;
+				//we give blocks y-position so that they're already overlapping a bit
+				//since with the chain of allowed overlaps will mean 'ideal' position won't be satisfied.
+				block.position.y = stage.stageHeight - boxh/2 - boxh*(height-y)*0.97;
+				block.shapes.add(new Polygon(Polygon.box(boxw,boxh)));
+				block.space = space;
+			}
+		}		
 
-		space.listeners.add(new PreListener(cb,cb, function (x) {
-			trace(x);
-			return PreFlag.IGNORE;
-		}));
+		//----------------------------------------------------------------------------------
 
-		trace("--"); space.step(1/60);
-		b.position.setxy(100,80);
-		trace("--"); space.step(1/60);
-		b2.position.setxy(100,120);
-		trace("--"); space.step(1/60);
+		stage.addEventListener(flash.events.Event.ENTER_FRAME, function (_) {
+			//we start of simulation with a lower timestep to help with stability as all the contact constraints 'warm up'
+			//  once the contacts are 'warm' the time-step will go to full speed and the pyramid will remain standing
+			//without this the pyramid will simply tumble before the contacts have had time to settle towards a solution
+			//  to the huge set of contact equations.
+			var dt = min(1/40, 1/200 + space.timeStamp*60*1e-5);
+
+			debug.clear();
+			space.step(dt,10,10);
+			debug.draw(space);
+			debug.flush();
+
+			haxe.Log.clear();
+			trace(Debug.TIMES(space));
+		});
 	}
 
 	static function man() {
