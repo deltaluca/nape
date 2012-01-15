@@ -1936,8 +1936,8 @@ class PR(Space) {
 		mrca2.clear();
 
 		//first part done explicitly for most common path.
-		mrca1.add(s1); mrca1.add(s1.body);
-		mrca2.add(s2); mrca2.add(s2.body);
+		if(s1.cbType!=null) mrca1.add(s1); if(s1.body.cbType!=null) mrca1.add(s1.body);
+		if(s2.cbType!=null) mrca2.add(s2); if(s2.body.cbType!=null) mrca2.add(s2.body);
 
 		//slower path for rest of compound chain.
 		var c1 = s1.body.compound;
@@ -1945,8 +1945,8 @@ class PR(Space) {
 		while(c1!=c2) {
 			var d1 = if(c1==null) 0 else c1.depth;
 			var d2 = if(c2==null) 0 else c2.depth;
-			if(d1<d2) {	mrca2.add(c2); c2 = c2.compound; }
-			else      { mrca1.add(c1); c1 = c1.compound; }
+			if(d1<d2) {	if(c2.cbType!=null) mrca2.add(c2); c2 = c2.compound; }
+			else      { if(c1.cbType!=null) mrca1.add(c1); c1 = c1.compound; }
 		}
 	}
 }
