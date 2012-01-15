@@ -503,26 +503,26 @@ class PR(Space) {
 
 						var cb1 = i1.cbType;
 						var cb2 = i2.cbType;
-						if(cb1!=null && cb2!=null) {
-							var endcb = null;
-							if(cb1._end>0 && cb2._end>0) endcb = _end.ordered_get(cb1.id,cb2.id);
-							if(
-								endcb!=null
-							 || (cb1._begin>0 && cb2._begin>0 && _begin.ordered_get(cb1.id,cb2.id)!=null)
-							 || (cb1._pre  >0 && cb2._pre  >0 && _pre.  ordered_get(cb1.id,cb2.id)!=null)
-							) {
-								var callbackset = callbacksets.ordered_get(i1.id,i2.id);
-								assert(callbackset!=null,"null callbackset on arbiter deletion?");
-								callbackset.remove(xarb);
-								if(callbackset.empty()) {
-									if(endcb!=null && !deleting) {
-										var cb = push_callback(endcb,endcb.handler!=null);
-										cb.event = Flag(CbEvent,END);
-										PR(Interactor).int_callback(i1,i2,endcb.cb1,cb);
-									}
-									callbacksets.remove(callbackset);
-									Free(PR(CallbackSet),callbackset);
+						assert(cb1!=null && cb2!=null, "null cbs from MRCA_chains?");
+
+						var endcb = null;
+						if(cb1._end>0 && cb2._end>0) endcb = _end.ordered_get(cb1.id,cb2.id);
+						if(
+							endcb!=null
+						 || (cb1._begin>0 && cb2._begin>0 && _begin.ordered_get(cb1.id,cb2.id)!=null)
+						 || (cb1._pre  >0 && cb2._pre  >0 && _pre.  ordered_get(cb1.id,cb2.id)!=null)
+						) {
+							var callbackset = callbacksets.ordered_get(i1.id,i2.id);
+							assert(callbackset!=null,"null callbackset on arbiter deletion?");
+							callbackset.remove(xarb);
+							if(callbackset.empty()) {
+								if(endcb!=null && !deleting) {
+									var cb = push_callback(endcb,endcb.handler!=null);
+									cb.event = Flag(CbEvent,END);
+									PR(Interactor).int_callback(i1,i2,endcb.cb1,cb);
 								}
+								callbacksets.remove(callbackset);
+								Free(PR(CallbackSet),callbackset);
 							}
 						}
 					});
@@ -944,14 +944,13 @@ class PR(Space) {
 
 					var cb1 = i1.cbType;
 					var cb2 = i2.cbType;
-					if(cb1!=null && cb2!=null) {
-						var callbackset = callbacksets.ordered_get(i1.id,i2.id);
-						if(callbackset!=null) {
-							callbackset.remove(xarb);
-							if(callbackset.empty()) {
-								callbacksets.remove(callbackset);
-								Free(PR(CallbackSet),callbackset);
-							}
+					assert(cb1!=null && cb2!=null, "null cb from MRCA_chains??");
+					var callbackset = callbacksets.ordered_get(i1.id,i2.id);
+					if(callbackset!=null) {
+						callbackset.remove(xarb);
+						if(callbackset.empty()) {
+							callbacksets.remove(callbackset);
+							Free(PR(CallbackSet),callbackset);
 						}
 					}
 				});
@@ -1031,19 +1030,18 @@ class PR(Space) {
 
 					var cb1 = i1.cbType;
 					var cb2 = i2.cbType;
-					if(cb1!=null && cb2!=null) {
-						if(
-							(cb1._end  >0 && cb2._end  >0 && _end.  ordered_get(cb1.id,cb2.id)!=null)
-						 || (cb1._begin>0 && cb2._begin>0 && _begin.ordered_get(cb1.id,cb2.id)!=null)
-						 || (cb1._pre  >0 && cb2._pre  >0 && _pre.  ordered_get(cb1.id,cb2.id)!=null)
-						) {
-							var callbackset = callbacksets.ordered_get(i1.id,i2.id);
-							if(callbackset==null) {
-								callbackset = PR(CallbackSet).get(i1,i2);
-								callbacksets.add(callbackset);
-							}
-							callbackset.add(xarb);
+					assert(cb1!=null && cb2!=null, "null cb from MRCA_chain?");
+					if(
+						(cb1._end  >0 && cb2._end  >0 && _end.  ordered_get(cb1.id,cb2.id)!=null)
+					 || (cb1._begin>0 && cb2._begin>0 && _begin.ordered_get(cb1.id,cb2.id)!=null)
+					 || (cb1._pre  >0 && cb2._pre  >0 && _pre.  ordered_get(cb1.id,cb2.id)!=null)
+					) {
+						var callbackset = callbacksets.ordered_get(i1.id,i2.id);
+						if(callbackset==null) {
+							callbackset = PR(CallbackSet).get(i1,i2);
+							callbacksets.add(callbackset);
 						}
+						callbackset.add(xarb);
 					}
 				});
 				});
@@ -1463,62 +1461,61 @@ class PR(Space) {
 						Iter(i2,mrca2,{
 							var cb1 = i1.cbType;
 							var cb2 = i2.cbType;
-							if(cb1!=null && cb2!=null) {
-								var i:PR(Listener) = null;
-								var begi:PR(InteractionListener) = null;
-								var endi:PR(InteractionListener) = null;
-								if(cb1._begin>0 && cb2._begin>0)
-									i = begi = _begin.ordered_get(cb1.id,cb2.id);
+							assert(cb1!=null && cb2!=null, "null cb from MRCA_chains?");
+							var i:PR(Listener) = null;
+							var begi:PR(InteractionListener) = null;
+							var endi:PR(InteractionListener) = null;
+							if(cb1._begin>0 && cb2._begin>0)
+								i = begi = _begin.ordered_get(cb1.id,cb2.id);
 
-								if(cb1._end>0 && cb2._end>0) {
-									endi = _end.ordered_get(cb1.id,cb2.id);
-									if(i==null) i = endi;
-								}
-								if(i==null && cb1._pre>0 && cb2._pre>0)
-									i = _pre.ordered_get(cb1.id,cb2.id);
-								
-								DEBUG(
-									if(i!=null && listener!=null) throw "Error: Multiple valid pairings for callbacks between possible interactor combinations descended frmo shape1="+arb.ws1.outer.toString()+" shape2="+arb.ws2.outer.toString()+". Conflict arising from listener1="+i.outer.toString()+" listener2="+listener.outer.toString();
-								)
-								listener = i;
+							if(cb1._end>0 && cb2._end>0) {
+								endi = _end.ordered_get(cb1.id,cb2.id);
+								if(i==null) i = endi;
+							}
+							if(i==null && cb1._pre>0 && cb2._pre>0)
+								i = _pre.ordered_get(cb1.id,cb2.id);
+							
+							DEBUG(
+								if(i!=null && listener!=null) throw "Error: Multiple valid pairings for callbacks between possible interactor combinations descended frmo shape1="+arb.ws1.outer.toString()+" shape2="+arb.ws2.outer.toString()+". Conflict arising from listener1="+i.outer.toString()+" listener2="+listener.outer.toString();
+							)
+							listener = i;
 
-								if(listener!=null) {
-									if(i1==arb.ws1 && i2==arb.ws2) { //shape-shape treat specially
-										if(begcb && begi!=null) {
+							if(listener!=null) {
+								if(i1==arb.ws1 && i2==arb.ws2) { //shape-shape treat specially
+									if(begcb && begi!=null) {
+										var cb = push_callback(begi,begi.handler!=null);
+										cb.event = Flag(CbEvent,BEGIN);
+										PR(Interactor).int_callback(i1,i2,begi.cb1,cb);
+									}elif(endcb && endi!=null) {
+										var cb = push_callback(endi,endi.handler!=null);
+										cb.event = Flag(CbEvent,END);
+										PR(Interactor).int_callback(i1,i2,endi.cb1,cb);
+									}
+								}else {
+									var callbackset = callbacksets.ordered_get(i1.id,i2.id);
+									if(begcb) {
+										if(callbackset==null) {
+											callbackset = PR(CallbackSet).get(i1,i2);
+											callbacksets.add(callbackset);
+										}
+										//check for empty rather than null, since it might've been created
+										//already to prevent multiple pre-handlers
+										if(callbackset.empty() && begi!=null) {
 											var cb = push_callback(begi,begi.handler!=null);
 											cb.event = Flag(CbEvent,BEGIN);
 											PR(Interactor).int_callback(i1,i2,begi.cb1,cb);
-										}elif(endcb && endi!=null) {
-											var cb = push_callback(endi,endi.handler!=null);
-											cb.event = Flag(CbEvent,END);
-											PR(Interactor).int_callback(i1,i2,endi.cb1,cb);
 										}
+										callbackset.add(arb);
 									}else {
-										var callbackset = callbacksets.ordered_get(i1.id,i2.id);
-										if(begcb) {
-											if(callbackset==null) {
-												callbackset = PR(CallbackSet).get(i1,i2);
-												callbacksets.add(callbackset);
-											}
-											//check for empty rather than null, since it might've been created
-											//already to prevent multiple pre-handlers
-											if(callbackset.empty() && begi!=null) {
-												var cb = push_callback(begi,begi.handler!=null);
-												cb.event = Flag(CbEvent,BEGIN);
-												PR(Interactor).int_callback(i1,i2,begi.cb1,cb);
-											}
-											callbackset.add(arb);
-										}else {
-											assert(callbackset!=null,"end arbiter with no callbackset");
-											callbackset.remove(arb);
-											if(callbackset.empty()) {
-												callbacksets.remove(callbackset);
-												Free(PR(CallbackSet),callbackset);
-													if(endi!=null) {
-													var cb = push_callback(endi,endi.handler!=null);
-													cb.event = Flag(CbEvent,END);
-													PR(Interactor).int_callback(i1,i2,endi.cb1,cb);
-												}
+										assert(callbackset!=null,"end arbiter with no callbackset");
+										callbackset.remove(arb);
+										if(callbackset.empty()) {
+											callbacksets.remove(callbackset);
+											Free(PR(CallbackSet),callbackset);
+												if(endi!=null) {
+												var cb = push_callback(endi,endi.handler!=null);
+												cb.event = Flag(CbEvent,END);
+												PR(Interactor).int_callback(i1,i2,endi.cb1,cb);
 											}
 										}
 									}
@@ -1729,7 +1726,8 @@ class PR(Space) {
 								Iter(i2, mrca2, {
 									var cb1 = i1.cbType;
 									var cb2 = i2.cbType;
-									if(cb1!=null && cb2!=null && cb1._pre>0 && cb2._pre>0) {
+									assert(cb1!=null && cb2!=null, "null cb from MRCA_chains?");
+									if(cb1._pre>0 && cb2._pre>0) {
 										DEBUG(
 											var i = _pre.ordered_get(cb1.id,cb2.id);
 											if(i!=null && listener!=null) throw "Error: Multiple valid pre-listeners for possible interactor combinations descended from shape1="+s1.outer.toString()+" shape2="+s2.outer.toString()+". listener1="+i.outer.toString()+" listener2="+listener.outer.toString();
