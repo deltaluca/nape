@@ -42,7 +42,7 @@ class FixedStep extends flash.display.Sprite {
 			var delta = dt - Std.int(steps*ideal);
 			pt = ct - delta;
 		};
-		(new haxe.Timer(0)).run = del;
+		(new haxe.Timer(1)).run = del;
 		main(ideal/1000);
 	}
 
