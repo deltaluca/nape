@@ -36,24 +36,27 @@ class Debug {
         static public function TIMES(space:Space) {
             var text = "";
 			var dt = space.timeStamp - ltime;
-	    text += "Validation:    "+Std.string(Debug.VALID/dt).substr(0,5)+"ms"+"\n";
-            text += "Collision:     "+Std.string(Debug.BROAD/dt).substr(0,5)+"ms"+"\n";
-            text += "Set-Forest:    "+Std.string(Debug.FOR/dt).substr(0,5)+"ms"+"\n";
-            text += "Prestep:       "+Std.string(Debug.PRE/dt).substr(0,5)+"ms"+"\n";
-			text += "Contact sort:  "+Std.string(Debug.SORT/dt).substr(0,5)+"ms"+"\n";
-            text += "Position It.:  "+Std.string(Debug.POS/dt).substr(0,5)+"ms"+"\n";
-            text += "Velocity It.:  "+Std.string(Debug.VEL/dt).substr(0,5)+"ms"+"\n";
-            text += "Debug Draw:    "+Std.string(Debug.DRAW/dt).substr(0,5)+"ms"+"\n";
+	    text += "Validation:    "+Std.string(Debug.VALID/dt).substr(0,5)+"ms\n";
+            text += "Broadphase:    "+Std.string((Debug.BROAD-Debug.NARROW)/dt).substr(0,5)+"ms :: total = "+Std.string(Debug.BROAD/dt).substr(0,5)+"ms\n";
+			text += "Narrowphase:   "+Std.string(Debug.NARROW/dt).substr(0,5)+"ms\n";
+            text += "Set-Forest:    "+Std.string(Debug.FOR/dt).substr(0,5)+"ms\n";
+            text += "Prestep:       "+Std.string(Debug.PRE/dt).substr(0,5)+"ms\n";
+			text += "Contact sort:  "+Std.string(Debug.SORT/dt).substr(0,5)+"ms\n";
+            text += "Position It.:  "+Std.string(Debug.POS/dt).substr(0,5)+"ms\n";
+            text += "Velocity It.:  "+Std.string(Debug.VEL/dt).substr(0,5)+"ms\n";
+            text += "Debug Draw:    "+Std.string(Debug.DRAW/dt).substr(0,5)+"ms\n";
             text += "\n";
             text += "arb:        "+Debug.ACNT+"\n";
             text += "active arb: "+Debug.AACNT+"\n";
             text += "con:        "+Debug.CCNT+"\n";
             text += "active con: "+Debug.ACCNT+"\n";
 			text += "\n";
-			text += "hash collisions: "+Std.string(Debug.HASH/Debug.HASHT).substr(0,5)+"%\n";
+			text += "hash collisions: "+Std.string(Debug.HASH/Debug.HASHT*100).substr(0,5)+"%\n";
+			text += "\n";
+			text += "Broadphase adjustments: "+Std.string(BROADCLASH/BROADTOTAL*100).substr(0,5)+"%\n";
 
 			if(space.timeStamp-ltime > 50) {
-				Debug.FOR = Debug.BROAD = Debug.PRE = Debug.POS = Debug.VEL = Debug.DRAW = Debug.VALID = Debug.SORT = 0;
+				Debug.FOR = Debug.BROAD = Debug.PRE = Debug.POS = Debug.VEL = Debug.DRAW = Debug.VALID = Debug.SORT = Debug.NARROW = Debug.BROADCLASH = Debug.BROADTOTAL = 0;
 				ltime = space.timeStamp;
 			}
 
@@ -70,12 +73,16 @@ class Debug {
         static public var VEL = 0;
         static public var POS = 0;
         static public var BROAD = 0;
+		static public var NARROW = 0;
         static public var DRAW = 0;
 		static public var VALID = 0;
 		static public var SORT = 0;
 
 		static public var HASH = 0;
 		static public var HASHT = 0;
+
+		static public var BROADCLASH = 0;
+		static public var BROADTOTAL = 0;
     #end
 
     ///---------------------------------------------------------------------------------------------

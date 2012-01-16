@@ -352,8 +352,8 @@ class DummyNapeMain {
 		haxe.Log.setColor(0xffffff);
 		var stage = flash.Lib.current.stage;
 
-		var space = new Space(new Vec2(0,400),Broadphase.SWEEP_AND_PRUNE);
-		var debug = new BitmapDebug(stage.stageWidth,stage.stageHeight,0x333333);
+		var space = new Space(new Vec2(0,400)/*,Broadphase.SWEEP_AND_PRUNE*/);
+		var debug = new BitmapDebug(stage.stageWidth,stage.stageHeight,0x333333,true);
 		stage.addChild(debug.display);
 		debug.drawShapeAngleIndicators = false;
 
@@ -381,8 +381,8 @@ class DummyNapeMain {
 		}		
 
 		//----------------------------------------------------------------------------------
-
 		stage.addEventListener(flash.events.Event.ENTER_FRAME, function (_) {
+			haxe.Log.clear();
 			//we start of simulation with a lower timestep to help with stability as all the contact constraints 'warm up'
 			//  once the contacts are 'warm' the time-step will go to full speed and the pyramid will remain standing
 			//without this the pyramid will simply tumble before the contacts have had time to settle towards a solution
@@ -390,11 +390,10 @@ class DummyNapeMain {
 			var dt = min(1/40, 1/200 + space.timeStamp*60*1e-5);
 
 			debug.clear();
-			space.step(dt,10,10);
+			space.step(dt,5,5);
 			debug.draw(space);
 			debug.flush();
 
-			haxe.Log.clear();
 			trace(Debug.TIMES(space));
 		});
 	}

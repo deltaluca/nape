@@ -408,9 +408,11 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 			var sync = node.dyn != dyn(shape) || !node.aabb.contains(shape.aabb);
 			//var sync = !(node.dyn && node.aabb.contains(shape.aabb));
 			if(sync) {
+				#if NAPE_TIMES Debug.BROADCLASH++; #end
 				node.synced = true;
 				iadd(syncs,node,snext);
 			}
+			#if NAPE_TIMES Debug.BROADTOTAL++; #end
 		}
     }	
 
@@ -441,6 +443,7 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 		aabb.set_expand(shape.aabb,FATTEN);
 
 		//add a velocity contribution
+/*
         vec_new(vel, shape.body.velx, shape.body.vely);
         var ang = shape.body.angvel;
         velx -= (shape.worldCOMy-shape.body.posy)*ang;
@@ -451,7 +454,7 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
             
         if(velx<0) aabb.minx += velx; else aabb.maxx += velx;
         if(vely<0) aabb.miny += vely; else aabb.maxy += vely;
-
+*/
 		//and insert/re-insert
 		if(node.dyn = dyn(shape))
 			 dtree.insertLeaf(node);

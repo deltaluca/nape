@@ -1675,7 +1675,10 @@ class PR(Space) {
 		}
 	}
 
-	flibmdel public inline function narrowPhase(s1:PR(Shape),s2:PR(Shape), stat:Bool, ?in_arb:PR(Arbiter)=null) {
+	flibmdel public /*inline */function narrowPhase(s1:PR(Shape),s2:PR(Shape), stat:Bool, ?in_arb:PR(Arbiter)=null) {
+		#if NAPE_TIMES
+			var pt = flash.Lib.getTimer();
+		#end
 		var ret:PR(Arbiter) = null;
 
         var b1 = s1.body;
@@ -1926,6 +1929,9 @@ class PR(Space) {
 				}
 			}
 		}
+		#if NAPE_TIMES
+			Debug.NARROW += flash.Lib.getTimer()-pt;
+		#end
 		return ret;
 	}
 
