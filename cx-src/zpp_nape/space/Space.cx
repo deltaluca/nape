@@ -104,6 +104,7 @@ class PR(CallbackSet) {
 	flibmdel public inline function empty() return arbiters.empty()
 }
 
+GENID(Space)
 class PR(Space) {
 	public var outer:Space;
 	
@@ -148,6 +149,10 @@ class PR(Space) {
 	
 	//----------------------------------------------------------------------------------------------
 	
+	public var id:Int;
+
+	//----------------------------------------------------------------------------------------------
+
 	public var stamp:Int;
     public var midstep:Bool;
     public var time:Float;
@@ -271,6 +276,7 @@ class PR(Space) {
 	//----------------------------------------------------------------------------------------------
 	
 	public function new(gravity:PR(Vec2),broadphase:Broadphase) {
+		id = ID(Space);
 		sortcontacts = true;
 		pre_dt = 0.0;
 
@@ -1703,7 +1709,7 @@ class PR(Space) {
                 || (s1.fluidEnabled && !b1.isDynamic() && !b2.isDynamic())
                 || (s2.fluidEnabled && !b2.isDynamic() && !b1.isDynamic())
             );
-				
+
             if(scol || gcol || fcol) {
                 var sa,sb;
                 if(s1.type > s2.type) { sa = s2; sb = s1; }

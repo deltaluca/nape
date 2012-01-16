@@ -350,6 +350,57 @@ class Tracer {
 class DummyNapeMain {
 	static function main() {
 		haxe.Log.setColor(0xffffff);
+
+		var _fship = 0x2;
+		var _fbull = 0x4;
+		var _fcarr = 0x8;
+		var _eship = 0x20000;
+		var _ebull = 0x40000;
+
+		var ints = [
+			{name:"fship", intx:new InteractionFilter(_fship,_ebull)},
+			{name:"fbull", intx:new InteractionFilter(_fbull,_eship)},
+			{name:"fcarr", intx:new InteractionFilter(_fcarr,0)},
+			{name:"eship", intx:new InteractionFilter(_eship,_fbull)},
+			{name:"ebul", intx:new InteractionFilter(_ebull,_fship)}
+		];
+
+		var space = new Space();
+		var cb = new CbType();
+
+		var cnt = 0;
+		for(i in 0...ints.length) {
+			for(j in (i+1)...ints.length) {
+				var int1 = ints[i];
+				var int2 = ints[j];
+				trace(int1.name+"<->"+int2.name+"  "+int1.intx.shouldCollide(int2.intx));
+
+				var b1 = new Body(); b1.position.setxy(cnt*30,50);
+				b1.shapes.add(new Circle(10));
+				b1.setShapeFilters(int1.intx);
+				b1.space = space;
+				
+				var b2 = new Body(); b2.position.setxy(cnt*30,50);
+				b2.shapes.add(new Circle(10));
+				b2.setShapeFilters(int2.intx);
+				b2.space = space;
+
+				b1.cbType = cb;
+				b2.cbType = cb;
+
+				cnt++;
+			}
+		}
+
+		space.listeners.add(new InteractionListener(CbEvent.BEGIN, cb, cb, function (a,b) {
+			trace([a,b]);
+			for(arb in a.castBody.arbiters) { if(arb.body2==b || arb.body1==b) trace(arb); }
+		}));
+		space.step(1/60);
+	}
+
+	static function maisn() {
+		haxe.Log.setColor(0xffffff);
 		var stage = flash.Lib.current.stage;
 
 		var space = new Space(new Vec2(0,400)/*,Broadphase.SWEEP_AND_PRUNE*/);
