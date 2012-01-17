@@ -905,14 +905,14 @@ class PR(Space) {
 		}
 	
 		while(!stack.empty()) {
-			var int = stack.pop_unsafe();
-			if(int.isCompound()) {
-				var comp = int.icompound;
+			var intx = stack.pop_unsafe();
+			if(intx.isCompound()) {
+				var comp = intx.icompound;
 				Iterate(comp.bodies, stack.add);
 				Iterate(comp.compounds, stack.add);
 			}else {
-				var xbody = if(int.isBody()) int.ibody else int.ishape.body;
-				var xshp = if(int.isShape()) int.ishape else null;
+				var xbody = if(intx.isBody()) intx.ibody else intx.ishape.body;
+				var xshp = if(intx.isShape()) intx.ishape else null;
 				Iter(xarb,xbody.arbiters,{
 					if(!xarb.active) cx_continue;
 					if(xshp!=null && !(xarb.ws1==xshp || xarb.ws2==xshp)) cx_continue; //short-cut
@@ -937,16 +937,16 @@ class PR(Space) {
 	}
 	
 	//clean up all callbacksets associated with interactor	
-	public function nullInteractorType(int:PR(Interactor),me:PR(Interactor)=null) {
-		if(me==null) me = int;
+	public function nullInteractorType(intx:PR(Interactor),me:PR(Interactor)=null) {
+		if(me==null) me = intx;
 
-		if(int.isCompound()) {
-			var comp = int.icompound;
+		if(intx.isCompound()) {
+			var comp = intx.icompound;
 			Iter(body, comp.bodies,    nullInteractorType(body,me));
 			Iter(comp, comp.compounds, nullInteractorType(comp,me));
 		}else {
-			var xbody = if(int.isBody()) int.ibody else int.ishape.body;
-			var xshp = if(int.isShape()) int.ishape else null;
+			var xbody = if(intx.isBody()) intx.ibody else intx.ishape.body;
+			var xshp = if(intx.isShape()) intx.ishape else null;
 			Iter(xarb,xbody.arbiters,{
 				if(!xarb.active) cx_continue;
 				if(xshp!=null && !(xarb.ws1==xshp || xarb.ws2==xshp)) cx_continue; //short-cut
@@ -992,14 +992,14 @@ class PR(Space) {
 		}
 	
 		while(!stack.empty()) {
-			var int = stack.pop_unsafe();
-			if(int.isCompound()) {
-				var comp = int.icompound;
+			var intx = stack.pop_unsafe();
+			if(intx.isCompound()) {
+				var comp = intx.icompound;
 				Iterate(comp.bodies, stack.add);
 				Iterate(comp.compounds, stack.add);
 			}else {
-				var xbody = if(int.isBody()) int.ibody else int.ishape.body;
-				var xshp = if(int.isShape()) int.ishape else null;
+				var xbody = if(intx.isBody()) intx.ibody else intx.ishape.body;
+				var xshp = if(intx.isShape()) intx.ishape else null;
 				Iter(xarb,xbody.arbiters,{
 					if(!xarb.active) cx_continue;
 					if(xshp!=null && !(xarb.ws1==xshp || xarb.ws2==xshp)) cx_continue; //short-cut
@@ -1023,16 +1023,16 @@ class PR(Space) {
 		}
 	}
 	
-	public function freshInteractorType(int:PR(Interactor),me:PR(Interactor)=null) {
-		if(me==null) me = int;
+	public function freshInteractorType(intx:PR(Interactor),me:PR(Interactor)=null) {
+		if(me==null) me = intx;
 
-		if(int.isCompound()) {
-			var comp = int.icompound;
+		if(intx.isCompound()) {
+			var comp = intx.icompound;
 			Iter(body, comp.bodies,    freshInteractorType(body,me));
 			Iter(comp, comp.compounds, freshInteractorType(comp,me));
 		}else {
-			var xbody = if(int.isBody()) int.ibody else int.ishape.body;
-			var xshp = if(int.isShape()) int.ishape else null;
+			var xbody = if(intx.isBody()) intx.ibody else intx.ishape.body;
+			var xshp = if(intx.isShape()) intx.ishape else null;
 			Iter(xarb,xbody.arbiters,{
 				if(!xarb.active) cx_continue;
 				if(xshp!=null && !(xarb.ws1==xshp || xarb.ws2==xshp)) cx_continue; //short-cut

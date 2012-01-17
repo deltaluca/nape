@@ -369,20 +369,20 @@ class PR(Simple) {
 
 			$(mixin do_intersect(high,low) {
 				if(high!=null && low!=null && !(high.id<low.id ? inthash.has(high.id,low.id) : inthash.has(low.id,high.id))) {
-					var int = sweep.intersection(high,low);
-					if(int!=null) {
-						if(int.vertex.x >= sweep.sweepx) {
-							var ex = SetFind(queue,int);
+					var intx = sweep.intersection(high,low);
+					if(intx!=null) {
+						if(intx.vertex.x >= sweep.sweepx) {
+							var ex = SetFind(queue,intx);
 							if(ex==null) {
-								var vx = SetFind(ints,int);
+								var vx = SetFind(ints,intx);
 								if(vx!=null) {
-									Free(Vertex,int.vertex);
-									int.vertex = vx.data.vertex;
-									vx.data = int;
-									queue.insert(int);
+									Free(Vertex,intx.vertex);
+									intx.vertex = vx.data.vertex;
+									vx.data = intx;
+									queue.insert(intx);
 								}else {
-									queue.insert(int);
-									ints.insert(int);
+									queue.insert(intx);
+									ints.insert(intx);
 								}
 								if(high.id<low.id)
 									 inthash.add(Hashable2(Bool).get(high.id,low.id,true));
@@ -390,15 +390,15 @@ class PR(Simple) {
 							}else {
 								var x = ex.data;
 								DEBUG(
-									if(x.segment!=int.segment || int.segment2!=x.segment2)
+									if(x.segment!=intx.segment || intx.segment2!=x.segment2)
 										throw "corner case 2, shiiiit.";
 								)
-								Free(Vertex,int.vertex);
-								Free(Event,int);
+								Free(Vertex,intx.vertex);
+								Free(Event,intx);
 							}
 						}else {
-							Free(Vertex,int.vertex);
-							Free(Event,int);
+							Free(Vertex,intx.vertex);
+							Free(Event,intx);
 						}
 					}
 				}
@@ -419,39 +419,39 @@ class PR(Simple) {
 					do_intersect(nxt,pre);
 				}
 			}else {
-				var int = e.vertex;
-				var pnull = int.node == null;
+				var intx = e.vertex;
+				var pnull = intx.node == null;
 
 				var a = e.segment; var b = e.segment2;
 				assert((a.prev==b && b.next==a) || (b.prev==a && a.next==b),"no.!!!");
 				if(b.next!=a) swap(a,b);
 
-				var anew = SetFind(a.vertices,int)==null;
-				var bnew = SetFind(b.vertices,int)==null;
+				var anew = SetFind(a.vertices,intx)==null;
+				var bnew = SetFind(b.vertices,intx)==null;
 				if(anew) {
-					var aint = a.vertices.insert(int);
-					var naleft  = int==a.left  ? int : a.vertices.predecessor_node(aint).data;
-					var naright = int==a.right ? int : a.vertices.successor_node  (aint).data;
+					var aint = a.vertices.insert(intx);
+					var naleft  = intx==a.left  ? intx : a.vertices.predecessor_node(aint).data;
+					var naright = intx==a.right ? intx : a.vertices.successor_node  (aint).data;
 					//cut segment at intersection
-					naleft .links.remove(naright); if(int!=naleft ) naleft .links.insert(int);
-					naright.links.remove(naleft);  if(int!=naright) naright.links.insert(int);
-					if(int!=naleft ) int.links.insert(naleft);
-					if(int!=naright) int.links.insert(naright);
+					naleft .links.remove(naright); if(intx!=naleft ) naleft .links.insert(intx);
+					naright.links.remove(naleft);  if(intx!=naright) naright.links.insert(intx);
+					if(intx!=naleft ) intx.links.insert(naleft);
+					if(intx!=naright) intx.links.insert(naright);
 				}
 				if(bnew) {
-					var bint = b.vertices.insert(int);
-					var nbleft  = int==b.left  ? int : b.vertices.predecessor_node(bint).data;
-					var nbright = int==b.right ? int : b.vertices.successor_node  (bint).data;
+					var bint = b.vertices.insert(intx);
+					var nbleft  = intx==b.left  ? intx : b.vertices.predecessor_node(bint).data;
+					var nbright = intx==b.right ? intx : b.vertices.successor_node  (bint).data;
 					//cut segment at intersection
-					nbleft .links.remove(nbright); if(int!=nbleft ) nbleft .links.insert(int);
-					nbright.links.remove(nbleft);  if(int!=nbright) nbright.links.insert(int);
-					if(int!=nbleft ) int.links.insert(nbleft);
-					if(int!=nbright) int.links.insert(nbright);
+					nbleft .links.remove(nbright); if(intx!=nbleft ) nbleft .links.insert(intx);
+					nbright.links.remove(nbleft);  if(intx!=nbright) nbright.links.insert(intx);
+					if(intx!=nbleft ) intx.links.insert(nbleft);
+					if(intx!=nbright) intx.links.insert(nbright);
 				}
 
-				if(pnull) int.node = vertices.insert(int);
+				if(pnull) intx.node = vertices.insert(intx);
 				//mark intersection as a forced vertex for simplifications.
-				int.forced = true;
+				intx.forced = true;
 
 				//swap edges
 				if(pnull) {
