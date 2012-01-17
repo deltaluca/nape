@@ -120,7 +120,7 @@
 			<text>In conversion to kinematic, the kinematic velocity will be set to 0.</text></description>
 		</detail>
 	</property>
-	
+
 	<property/>
 	<property name="shapes" type="ShapeList" readonly="true">
 		<description>List of Body's shapes</description>
@@ -129,7 +129,6 @@
 			<text class="bold">Immutable if:</text><br/><indent><throw/><code inline="true"> isStatic() &amp;&amp; space!=null</code><br/><text>Whether implicit or explicit operations are performed on this list, an error will be thrown.</text></indent> </description>
 		</detail>
 	</property>
-	
 	
 	<property/>
 	<property name="compound" type="Compound">
@@ -145,7 +144,36 @@
 			<set><code inline="true">this.compound!=null</code><text> Only the root of the tree has a mutable space property</text></set>
 		</detail>
 	</property>
+
+	<property/>
+
+	<property name="graphic" type="Dynamic">
+		<description>Assigned graphic</description>
+		<detail>
+			<description><text>A graphic that can be assigned for auto-placement by nape. Assumption is that such a graphic has an x,y property (in px) and a rotation property (in degrees).</text><br/><br/>
+			<text>If this is not the case, you should set the graphicUpdate property also to customise how the graphic is handled</text>
+			</description>
+		</detail>
+	</property>
+	<property name="graphicUpdate" type="Body->Void">
+		<description>Assigned graphic handler</description>
+		<detail>
+			<description><text>A function handler taking the Body who's position/rotation has changed and should be rendered.</text><br/><br/>
+				<text>This takes precedence over any handling of the 'graphic' property and so can be used either on it's own, or together with the graphic property to customise it's placement</text><br/><br/>
+				<text>For example, you could emulate how nape internally updates the graphic property with the following handler:</text>
+				<br/><code><![CDATA[body.graphic = ...;
+body.graphicUpdate = function(b:Body) {
+	b.graphic.x = b.position.x;
+	b.graphic.y = b.position.y;
+	//rotation is clamped to [-360,360] as flash doesn't like large rotation values
+	b.graphic.rotation = (b.rotation*180/Math.PI)%360;
+}]]></code>
+			</description>
+		</detail>
+	</property>
 	
+	<property/>
+
 	<property name="bounds" type="AABB" readonly="true">
 		<description>Body world bounds</description>
 		<detail>
@@ -173,7 +201,21 @@
 			<description>If true then this body has been put to sleep.</description>
 		</detail>
 	</property>
-	
+	<property name="localCOM" type="Vec2" readonly="true">
+		<description>Immutable local centre of mass</description>
+		<detail>
+			<description>Immutable Vec2 corresponding to the centre of mass of the rigid body in it's local coordinates</description>
+			<get>shapes.empty()</get>
+		</detail>
+	</property>
+	<property name="worldCOM" type="Vec2" readonly="true">
+		<description>Immutable world centre of mass</description>
+		<detail>
+			<description>Immutable Vec2 corresponding to the centre of mass of the rigid body in world/world coordinates</description>
+			<get>shapes.empty()</get>
+		</detail>
+	</property>
+		
 	<property/>
 	
 	<property/>
@@ -314,22 +356,7 @@
 		</detail>
 	</property>
 	
-	<property/>
-	<property name="localCOM" type="Vec2" readonly="true">
-		<description>Immutable local centre of mass</description>
-		<detail>
-			<description>Immutable Vec2 corresponding to the centre of mass of the rigid body in it's local coordinates</description>
-			<get>shapes.empty()</get>
-		</detail>
-	</property>
-	<property name="worldCOM" type="Vec2" readonly="true">
-		<description>Immutable world centre of mass</description>
-		<detail>
-			<description>Immutable Vec2 corresponding to the centre of mass of the rigid body in world/world coordinates</description>
-			<get>shapes.empty()</get>
-		</detail>
-	</property>
-	
+
 	<method name="isStatic" return="Bool" const="true">
 		<description>Whether Body is static</description>
 		<detail><description>Whether Body is static</description></detail>

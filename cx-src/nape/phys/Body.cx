@@ -355,41 +355,22 @@ class Body extends Interactor {
 	
 	//----------------------------------------------------------------------------------------------
 	
-	#if (flash9||nme)
-        property(graphic,flash.display.DisplayObject,pr(inner).graphic,{
-			DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
-			if(graphic!=this.graphic) {
-				if(graphic==null) {
-					pr(inner).hasgraphic = false;
-					pr(inner).graphic = null;
-				}else {
-					pr(inner).hasgraphic = true;
-					pr(inner).graphic = graphic;
-					pr(inner).validate_graphic();
-				}
-			}
-		})
-		
-		/*public var graphic_delta_rot(flibget_graphic_delta_rot, flibset_graphic_delta_rot):Float;
-		force_inline function flibget_graphic_delta_rot() {
-			return pr(inner).grotdelta;
-		}
-		force_inline function flibset_graphic_delta_rot(delta_rot:Float) {
-			DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
-			
-			if(pr(inner).grotdelta != delta_rot) {
-				pr(inner).grotdelta = delta_rot;
+    property(graphic,Dynamic,pr(inner).graphic,{
+		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
+		if(graphic!=this.graphic) {
+			if(graphic==null) {
+				pr(inner).graphic = null;
+			}else {
+				pr(inner).graphic = graphic;
 				pr(inner).validate_graphic();
 			}
-			return delta_rot;
-		}*/
-		
-		/*public var graphic_delta(flibget_graphic_delta,flibset_graphic_delta):Vec2;
-		force_inline function flibget_graphic_delta() {
-			return null;
 		}
-		force*/
-	#end
+	})
+	
+	property(graphicUpdate,Body->Void,pr(inner).graphicUpdate,{
+		pr(inner).graphicUpdate = graphicUpdate;
+		if(graphicUpdate!=null) pr(inner).validate_graphic();
+	})
 
     //----------------------------------------------------------------------------------------------
 	

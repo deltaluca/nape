@@ -427,27 +427,20 @@ class PR(Body) extends PR(Interactor) {
 	
 	//----------------------------------------------------------------------------------------------
 	
-	#if (flash9||nme)
-		public var hasgraphic:Bool;
-		public var graphic:flash.display.DisplayObject;
-		vec_new(public,gdelta); public var wrap_gdelta:Vec2;
-		public var grotdelta:Float;
+	public var graphic:Dynamic;
+	public var graphicUpdate:Body->Void;
 		
-		flibmdel public inline function validate_graphic() {
-			if(hasgraphic) {
-				//flash graphics API certainly (I cannot speak for NME)
-				//does not like very large values for rotations, so mudulo operation
-				//is necessary to avoid lengthy simulations causes objects to simply
-				//stop rotating visually.
-				graphic.rotation = ((rot + grotdelta)*180/Math.PI)%360.0;
-				
-				validate_axis();
-				vec_new(d); vec_rotate(gdelta, axis, d);
-				graphic.x = posx + dx;
-				graphic.y = posy + dy;
-			}
+	flibmdel public inline function validate_graphic() {
+		if(graphicUpdate!=null) graphicUpdate(outer);
+		else if(graphic!=null) {
+			//flash graphics API certainly (I cannot speak for NME)
+			//does not like very large values for rotations, so mudulo operation
+			//is necessary to avoid lengthy simulations causes objects to simply
+			//stop rotating visually.
+			graphic.rotation = (rot*180/Math.PI)%360.0;
+			vec_set(graphic.,pos);
 		}
-	#end
+	}
 	
 	//----------------------------------------------------------------------------------------------
 	
@@ -575,12 +568,8 @@ class PR(Body) extends PR(Interactor) {
 		norotate = false;
 		nomove = false;
 
-		#if (flash9||nme)
-			hasgraphic = false;
-			graphic = null;
-			vec_set(gdelta,0,0);
-			grotdelta = 0;
-		#end
+		graphic = null;
+		graphicUpdate = null;
 	}
 
     //----------------------------------------------------------------------------------------------
@@ -604,12 +593,6 @@ class PR(Body) extends PR(Interactor) {
 		world = false;
 		
 		norotate = nomove = false;
-		
-		#if (flash9||nme)
-			vec_set(gdelta,0,0);
-			grotdelta = 0;
-			hasgraphic = false;
-		#end
 		
 		vec_set(pos,0,0);
 		rot = 0;
