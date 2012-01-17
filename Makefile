@@ -90,3 +90,14 @@ tar:
 	find cx-src -name "*.cx" -type f | xargs tar cvfz nape.tar.gz Makefile
 	rm -f nape.zip
 	find cx-src -name "*.cx" -type f | xargs zip nape Makefile
+
+size_report: pre_compile
+	haxe -swf bin/inlined_nape.swc -swf-version $(SWFV) $(RELEASE_FLAGS)
+	flib bin/inlined_nape.swc
+	du -h bin/inlined_nape.swc > bin/inlined.dat
+	flib --report bin/inlined_nape.swc >> bin/inlined.dat
+	
+	haxe -swf bin/noninlined_nape.swc -swf-version $(SWFV) $(RELEASE_FLAGS) -D NAPE_NO_INLINE
+	flib bin/noninlined_nape.swc
+	du -h bin/noninlined_nape.swc > bin/noninlined.dat
+	flib --report bin/noninlined_nape.swc >> bin/noninlined.dat
