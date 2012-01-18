@@ -73,7 +73,6 @@ class Listener {
     ///---------------------------------------------------------------------------------------------
 
     @:$keep public function toString() {
-		throw "not done yet";
         var event = ["BEGIN","END","WAKE","SLEEP","BREAK","PRE"][pr(inner).event];
         if(pr(inner).type == Flag(ListenerType,BODY)) {
             var body = pr(inner).body;
@@ -83,8 +82,16 @@ class Listener {
             return "ConstraintListener{"+event+"::"+con.outer_zn.cbType+"}";
 		}else {
 			var con = pr(inner).interaction;
-//			return "InteractionListener{"+event+"::"+con.outer_zn.cbType1+":"+con.outer_zn.cbType2+"}";
-return "??";
+			var itype = switch(con.itype) {
+				case Flag(InteractionType,COLLISION): "COLLISION";
+				case Flag(InteractionType,SENSOR):    "SENSOR";
+				case Flag(InteractionType,FLUID):     "FLUID";
+				default: "ALL";
+			}
+			var ret = if(pr(inner).type==Flag(ListenerType,INTERACTION))
+				 "InteractionListener{"+event+"#";
+			else "PreListener{";
+			return ret+itype+"::"+con.outer_zni.cbType1+":"+con.outer_zni.cbType2+"}";
 		}
     }
 }
@@ -188,7 +195,8 @@ class InteractionListener extends Listener {
 		if  (ret==Flag(InteractionType,COLLISION)) InteractionType.COLLISION;
 		elif(ret==Flag(InteractionType,SENSOR))    InteractionType.SENSOR;
 		elif(ret==Flag(InteractionType,FLUID))     InteractionType.FLUID;
-		else                                       InteractionType.ANY;
+		elif(ret==Flag(InteractionType,ANY))       InteractionType.ANY;
+		else null;
 	},{
         DEBUG(if(interactionType==null) throw "Error: Cannot set listener interaction type to null";)
         if(this.interactionType!=interactionType) {
