@@ -21,6 +21,7 @@ import nape.callbacks.ConstraintListener;
 import nape.callbacks.InteractionListener;
 import nape.callbacks.PreListener;
 import nape.callbacks.BodyListener;
+import nape.callbacks.InteractionType;
 import nape.callbacks.PreFlag;
 import nape.callbacks.CbType;
 import nape.callbacks.CbEvent;
@@ -88,7 +89,7 @@ class Callbacks extends FixedStep {
 		// note: this is a pure function with respect to the two objects
 		//       (it's output doesn't change) so we can tell nape this and allow objects
 		//       to sleep as normal.
-		space.listeners.add(new PreListener(hexcb,hexcb,function(arb:Arbiter) {
+		space.listeners.add(new PreListener(InteractionType.COLLISION,hexcb,hexcb,function(arb:Arbiter) {
 			var depth = 15;
 
 			if(arb.isCollisionArbiter()) {
@@ -176,8 +177,8 @@ class Callbacks extends FixedStep {
 			};
 		}
 
-		space.listeners.add(new InteractionListener(CbEvent.BEGIN, boxcb,boxcb, boxer(0x00ff00)));
-		space.listeners.add(new InteractionListener(CbEvent.END,   boxcb,boxcb, boxer(0xff0000)));
+		space.listeners.add(new InteractionListener(CbEvent.BEGIN, InteractionType.COLLISION, boxcb,boxcb, boxer(0x00ff00)));
+		space.listeners.add(new InteractionListener(CbEvent.END,   InteractionType.COLLISION, boxcb,boxcb, boxer(0xff0000)));
 
 		space.listeners.add(new ConstraintListener(CbEvent.BREAK, concb, function (x:Constraint) {
 			//We're going to break apart the compound containing the constraint and the two boxes
@@ -238,7 +239,7 @@ class Callbacks extends FixedStep {
 		}
 
 		for(cb in [hexcb,paircb])
-			space.listeners.add(new PreListener(platcb,cb,oneway));
+			space.listeners.add(new PreListener(InteractionType.COLLISION, platcb,cb,oneway));
 
 		run(function (dt) {
 			hand.anchor1.setxy(mouseX,mouseY);
