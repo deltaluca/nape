@@ -85,6 +85,37 @@
 	</property>
 </class>
 
+<class package="nape.callbacks" name="InteractionType">
+	<file>Listener.hx</file>
+	<short>Interaction type for listeners</short>
+	<description>Used for Interaction and Pre listeners to define what sort of interaction they should handle</description>
+	
+	<property static="true" name="COLLISION" type="InteractionType" readonly="true">
+		<description>Collision type interaction</description>
+		<detail>
+			<description>Collision type interaction</description>
+		</detail>
+	</property>
+	<property static="true" name="SENSOR" type="InteractionType" readonly="true">
+		<description>Sensor type interaction</description>
+		<detail>
+			<description>Sensor type interaction</description>
+		</detail>
+	</property>
+	<property static="true" name="FLUID" type="InteractionType" readonly="true">
+		<description>Fluid type interaction</description>
+		<detail>
+			<description>Fluid type interaction</description>
+		</detail>
+	</property>
+	<property static="true" name="ANY" type="InteractionType" readonly="true">
+		<description>Any type of interaction</description>
+		<detail>
+			<description>Any type of interaction</description>
+		</detail>
+	</property>
+</class>
+
 <!-- ------------------------------------------------------------------------------------------- -->
 
 <class package="nape.callbacks" name="Listener">
@@ -187,7 +218,8 @@
 		<code><![CDATA[MRCA(S1,S2) = C1   => Interactor pairs = [S1,B1] x [S2,B2,C2]
 MRCA(S1,S3) = null => Interactor pairs = [S1,B1,C1] x [S3,B3,C3]
 MRCA(S2,S3) = null => Interactor pairs = [S2,B2,C2,C1] X [S3,B3,C3]]]></code><br/>
-		<text>Of course not all of these will generate callbacks! only those for which a listener exists between the two cbType's. Presently it is infact only allowed that one such pairing from two shapes should generate a callback</text>
+		<text>Of course not all of these will generate callbacks! only those for which a listener exists between the two cbType's. Presently it is infact only allowed that one such pairing from two shapes should generate a callback</text><br/><br/>
+		<text>Furthermore an Interaction type for the listener to operate upon is specified which works even in mixed cases where many type of interaction is happening at once. The listeners are at present implemented so that there cannot be more than one listener for an interaction type</text>
 	</description>
 
 	<property name="cbType1" type="CbType">
@@ -203,6 +235,13 @@ MRCA(S2,S3) = null => Interactor pairs = [S2,B2,C2,C1] X [S3,B3,C3]]]></code><br
 		</detail>
 	</property>
 
+	<property name="interactionType" type="InteractionType">
+		<description> Type of interaction handled </description>
+		<detail>
+			<description> Type of interactino handled by this listener </description>
+		</detail>
+	</property>
+
 	<property name="handler" type="Interactor->Interactor->Void">
 		<description> Function handler for listener </description>
 		<detail>
@@ -212,6 +251,7 @@ MRCA(S2,S3) = null => Interactor pairs = [S2,B2,C2,C1] X [S3,B3,C3]]]></code><br
 
 	<constructor>
 		<arg name="event" type="CbEvent"/>
+		<arg name="interactionType" type="InteractionType"/>
 		<arg name="cbType1" type="CbType"/>
 		<arg name="cbType2" type="CbType"/>
 		<arg name="handler" type="Interactor->Interactor->Void" optional="true" default="null"/>
@@ -245,6 +285,13 @@ MRCA(S2,S3) = null => Interactor pairs = [S2,B2,C2,C1] X [S3,B3,C3]]]></code><br
 		</detail>
 	</property>
 
+	<property name="interactionType" type="InteractionType">
+		<description> Type of interaction handled </description>
+		<detail>
+			<description> Type of interactino handled by this listener </description>
+		</detail>
+	</property>
+
 	<property name="handler" type="Arbiter->PreFlag">
 		<description> Function handler for listener </description>
 		<detail>
@@ -259,6 +306,7 @@ MRCA(S2,S3) = null => Interactor pairs = [S2,B2,C2,C1] X [S3,B3,C3]]]></code><br
 	</property>
 
 	<constructor>
+		<arg name="interactionType" type="InteractionType"/>
 		<arg name="cbType1" type="CbType"/>
 		<arg name="cbType2" type="CbType"/>
 		<arg name="handler" type="Arbiter->PreFlag"/>
