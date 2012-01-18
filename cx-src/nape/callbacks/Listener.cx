@@ -12,7 +12,14 @@ Flags(ListenerType,
     prop(BODY,0)
     prop(CONSTRAINT,1)
     prop(INTERACTION,2)
-    prop(PRE,3)
+	prop(PRE,3)
+)
+
+Flags(InteractionType,
+	prop(COLLISION,1)
+	prop(SENSOR,2)
+	prop(FLUID,4)
+	prop(ANY,7)
 )
 
 WrapList(Listener,List(PR(Listener)),Node(PR(Listener)),$(mixin closure(x) x.outer) $(mixin erusolc(x) x.pr(inner)))
@@ -40,11 +47,8 @@ class Listener {
                 pr(inner).body.swapEvent(xevent);
             else if(pr(inner).type == Flag(ListenerType,CONSTRAINT))
                 pr(inner).constraint.swapEvent(xevent);
-			else if(pr(inner).type == Flag(ListenerType,INTERACTION))
+			else
 				pr(inner).interaction.swapEvent(xevent);
-			else {
-				if(xevent!=Flag(CbEvent,PRE)) throw "Error: PreListener only accepts the PRE event type";
-			}
         }
     })
 
@@ -69,6 +73,7 @@ class Listener {
     ///---------------------------------------------------------------------------------------------
 
     @:$keep public function toString() {
+		throw "not done yet";
         var event = ["BEGIN","END","WAKE","SLEEP","BREAK","PRE"][pr(inner).event];
         if(pr(inner).type == Flag(ListenerType,BODY)) {
             var body = pr(inner).body;
@@ -76,12 +81,10 @@ class Listener {
         }else if(pr(inner).type == Flag(ListenerType,CONSTRAINT)) {
             var con = pr(inner).constraint;
             return "ConstraintListener{"+event+"::"+con.outer_zn.cbType+"}";
-		}else if(pr(inner).type == Flag(ListenerType,INTERACTION)) {
+		}else {
 			var con = pr(inner).interaction;
-			return "InteractionListener{"+event+"::"+con.outer_zn.cbType1+":"+con.outer_zn.cbType2+"}";
-        }else {
-			var con = pr(inner).imm;
-			return "PreListener{"+event+"::"+con.outer_zn.cbType1+":"+con.outer_zn.cbType2+"}";
+//			return "InteractionListener{"+event+"::"+con.outer_zn.cbType1+":"+con.outer_zn.cbType2+"}";
+return "??";
 		}
     }
 }
@@ -180,13 +183,31 @@ class InteractionListener extends Listener {
 			con.swapCbType(2, cbType2.pr(inner));
 	})
 
-    property(handler,Interactor->Interactor->Void,pr(inner_zn).handler,pr(inner_zn).handler = handler)
+	property(interactionType,InteractionType,{
+		var ret = pr(inner_zn).itype;
+		if  (ret==Flag(InteractionType,COLLISION)) InteractionType.COLLISION;
+		elif(ret==Flag(InteractionType,SENSOR))    InteractionType.SENSOR;
+		elif(ret==Flag(InteractionType,FLUID))     InteractionType.FLUID;
+		else                                       InteractionType.ANY;
+	},{
+        DEBUG(if(interactionType==null) throw "Error: Cannot set listener interaction type to null";)
+        if(this.interactionType!=interactionType) {
+            var xtype = interactionType == InteractionType.COLLISION ? Flag(InteractionType,COLLISION) :
+                        interactionType == InteractionType.SENSOR    ? Flag(InteractionType,SENSOR)    :
+                        interactionType == InteractionType.FLUID     ? Flag(InteractionType,FLUID)     :
+                        Flag(InteractionType,ANY);
+			pr(inner_zn).settype(xtype);
+        }
+	})
+
+    property(handler,Interactor->Interactor->Void,pr(inner_zn).handleri,pr(inner_zn).handleri = handler)
 
     ///---------------------------------------------------------------------------------------------
 
-	public function new(event:CbEvent, cbType1:CbType, cbType2:CbType, ?handler:Interactor->Interactor->Void=null) {
+	public function new(event:CbEvent, interactionType:InteractionType, cbType1:CbType, cbType2:CbType, ?handler:Interactor->Interactor->Void=null) {
 		PR(Listener).internal = true; super(); PR(Listener).internal = false;
 
+		DEBUG(if(event==null) throw "Error: CbEvent cannot be null for InteractionListener";)
 		var xevent = -1;
 		if     (event==CbEvent.BEGIN)   xevent = Flag(CbEvent,BEGIN);
 		else if(event==CbEvent.END)     xevent = Flag(CbEvent,END);
@@ -195,13 +216,15 @@ class InteractionListener extends Listener {
 		DEBUG(if(cbType1==null) throw "Error: InteractionListener cbType1 cannot be null";)
 		DEBUG(if(cbType2==null) throw "Error: InteractionListener cbType2 cannot be null";)
 
-		pr(inner_zn) = new PR(InteractionListener)(xevent,handler);
+		pr(inner_zn) = new PR(InteractionListener)(xevent,Flag(ListenerType,INTERACTION));
 		pr(inner) = pr(inner_zn);
 		pr(inner).outer = this;
-		pr(inner_zn).outer_zn = this;
+		pr(inner_zn).outer_zni = this;
 
+		pr(inner_zn).handleri = handler;
 		this.cbType1 = cbType1;
 		this.cbType2 = cbType2;
+		this.interactionType = interactionType;
 	}
 }
 
@@ -209,7 +232,7 @@ class InteractionListener extends Listener {
 ///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 
 class PreListener extends Listener {
-	public var pr(inner_zn):PR(PreListener);
+	public var pr(inner_zn):PR(InteractionListener);
 
 	property(cbType1,CbType,pr(inner_zn).cb1.wrapper(),{
 		DEBUG(if(cbType1==null) throw "Error: Cannot assign null CbType to Listener";)
@@ -232,9 +255,9 @@ class PreListener extends Listener {
 	//
 	//in the case of #_ONCE, the objects are forced to stay awake (in space)
 	//and so any change to handler does not need to wake any objects already.
-	property(handler,Arbiter->PreFlag,pr(inner_zn).handler,{
+	property(handler,Arbiter->PreFlag,pr(inner_zn).handlerp,{
 		DEBUG(if(handler==null) throw "Error: PreListener must take a non-null handler!";)
-		pr(inner_zn).handler = handler;
+		pr(inner_zn).handlerp = handler;
 
 		//we do not check that handler is not the same, as we want to allow this to be used
 		//to notify nape of a change to a non-pure handler that user has decided to say is pure
@@ -252,9 +275,26 @@ class PreListener extends Listener {
 		pr(inner_zn).pure = pure;
 	})
 
+	property(interactionType,InteractionType,{
+		var ret = pr(inner_zn).itype;
+		if  (ret==Flag(InteractionType,COLLISION)) InteractionType.COLLISION;
+		elif(ret==Flag(InteractionType,SENSOR))    InteractionType.SENSOR;
+		elif(ret==Flag(InteractionType,FLUID))     InteractionType.FLUID;
+		else                                       InteractionType.ANY;
+	},{
+        DEBUG(if(interactionType==null) throw "Error: Cannot set listener interaction type to null";)
+        if(this.interactionType!=interactionType) {
+            var xtype = interactionType == InteractionType.COLLISION ? Flag(InteractionType,COLLISION) :
+                        interactionType == InteractionType.SENSOR    ? Flag(InteractionType,SENSOR)    :
+                        interactionType == InteractionType.FLUID     ? Flag(InteractionType,FLUID)     :
+                        Flag(InteractionType,ANY);
+			pr(inner_zn).settype(xtype);
+        }
+	})
+
     ///---------------------------------------------------------------------------------------------
 
-	public function new(cbType1:CbType, cbType2:CbType, handler:Arbiter->PreFlag, ?pure=false) {
+	public function new(interactionType:InteractionType, cbType1:CbType, cbType2:CbType, handler:Arbiter->PreFlag, ?pure=false) {
 		PR(Listener).internal = true; super(); PR(Listener).internal = false;
 
 		DEBUG(if(cbType1==null) throw "Error: PreListener CbType1 cannot be null";)
@@ -262,12 +302,15 @@ class PreListener extends Listener {
 
 		DEBUG(if(handler==null) throw "Error: PreListener must take a handler!";)
 
-		pr(inner_zn) = new PR(PreListener)(handler,pure);
+		pr(inner_zn) = new PR(InteractionListener)(Flag(CbEvent,PRE),Flag(ListenerType,PRE));
 		pr(inner) = pr(inner_zn);
 		pr(inner).outer = this;
-		pr(inner_zn).outer_zn = this;
+		pr(inner_zn).outer_znp = this;
 
+		pr(inner_zn).pure = pure;
+		pr(inner_zn).handlerp = handler;
 		this.cbType1 = cbType1;
 		this.cbType2 = cbType2;
+		this.interactionType = interactionType;
 	}
 }

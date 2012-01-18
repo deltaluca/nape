@@ -187,14 +187,9 @@ class PR(Space) {
     public var listeners:List(PR(Listener));
     public var wrap_listeners:ListenerList;
 
-	//cbtype stores number of active listeneres utilising the cbtype for the particular event type
-	//but this is not enoguh to determine that such a listener exists.
-	//
-	//these hashes are indexed by the two associated cbtype id's
-	//to provide a quick lookup on any existing listener given that cbtype_1.event > 0 && cbtype_2.event > 0
-	public var _begin:FastHash2(PR(InteractionListener));
-	public var _end  :FastHash2(PR(InteractionListener));
-	public var _pre  :FastHash2(PR(PreListener));
+	//maps each pair of cbTypes with active listeners to a record
+	//of all such listeners.
+	public var listenersets:FastHash2(PR(ListenerSet));
 
     public var callbacks:PR(Callback); //as a deque
     public var wrap_callbacks:CallbackQueue;
@@ -383,46 +378,28 @@ class PR(Space) {
 			if(me.midstep) throw "Error: Space::listeners cannot be set during space step()";
 		})
 
-		_begin = new FastHash2(PR(InteractionListener))();
-		_end   = new FastHash2(PR(InteractionListener))();
-		_pre   = new FastHash2(PR(PreListener))();
-
+		listenersets = new FastHash2(PR(ListenerSet))();
 		callbacksets = new FastHash2(PR(CallbackSet))();
+		
 		mrca1 = new List(PR(Interactor))();
 		mrca2 = new List(PR(Interactor))();
 	}
 	
 	//----------------------------------------------------------------------------------------------
 
-	public function revoke_listener(x:PR(Listener)) {
-		if(x.type==Flag(ListenerType,INTERACTION)) {
-			var hash = if(x.event==Flag(CbEvent,BEGIN)) _begin else _end;
-			var it = x.interaction;
-			assert(hash.has(it.id,it.di), "hash doesn't have listener");
-			hash.remove(it);
-		}else {
-			var hash = _pre;
-			var it = x.imm;
-			assert(hash.has(it.id,it.di), "hash doesn't have listener");
-			hash.remove(it);
+	public function revoke_listener(x:PR(InteractionListener)) {
+		var set = listenersets.get(x.id,x.di);
+		assert(set!=null,"revoke_listener with no listenerset");
+		set.listeners.remove(x);
+		if(set.listeners.empty()) {
+			listenersets.remove(set);
+			Free(PR(ListenerSet),set);
 		}
 	}
-	public function unrevoke_listener(x:PR(Listener)) {
-		if(x.type==Flag(ListenerType,INTERACTION)) {
-			var hash = if(x.event==Flag(CbEvent,BEGIN)) _begin else _end;
-			var it = x.interaction;
-			DEBUG(if(hash.has(it.id,it.di))
-				throw "Error: Space already contains a listener between CbType id's: "+it.id+"<->"+it.di+" for CbEvent "+x.outer.event.toString();
-			)
-			hash.add(it);
-		}else {
-			var hash = _pre; 
-			var it = x.imm;
-			DEBUG(if(hash.has(it.id,it.di))
-				throw "Error: Space already contains a listener between CbType id's: "+it.id+"<->"+it.di+" for CbEvent "+x.outer.event.toString();
-			)
-			hash.add(it);
-		}
+	public function unrevoke_listener(x:PR(InteractionListener)) {
+		var set = listenersets.get(x.id,x.di);
+		if(set==null) listenersets.add(set = PR(ListenerSet).get(x));
+		set.listeners.add(x);
 	}
 
     public function addListener(x:PR(Listener)) {
@@ -431,12 +408,9 @@ class PR(Space) {
             x.body.addedToSpace();
         else if(x.type==Flag(ListenerType,CONSTRAINT))
             x.constraint.addedToSpace();
-		else if(x.type==Flag(ListenerType,INTERACTION)) {
-			unrevoke_listener(x);
+		else {
 			x.interaction.addedToSpace();
-		}else {
-			unrevoke_listener(x);
-			x.imm.addedToSpace();
+			unrevoke_listener(x)
 		}
     }
     public function remListener(x:PR(Listener)) {
@@ -444,12 +418,9 @@ class PR(Space) {
             x.body.removedFromSpace();
         else if(x.type==Flag(ListenerType,CONSTRAINT))
             x.constraint.removedFromSpace();
-		else if(x.type==Flag(ListenerType,INTERACTION)) {
+		else {
 			revoke_listener(x);
 			x.interaction.removedFromSpace();
-		}else {
-			revoke_listener(x);
-			x.imm.removedFromSpace();
 		}
         x.space = null;
     }
