@@ -351,59 +351,55 @@ class DummyNapeMain {
 	static function main() {
 		haxe.Log.setColor(0xffffff);
 
-		var _fship = 0x2;
-		var _fbull = 0x4;
-		var _fcarr = 0x8;
-		var _eship = 0x20000;
-		var _ebull = 0x40000;
-
-		var ints = [
-			{name:"fship", intx:new InteractionFilter(_fship,_ebull)},
-			{name:"fbull", intx:new InteractionFilter(_fbull,_eship)},
-			{name:"fcarr", intx:new InteractionFilter(_fcarr,0)},
-			{name:"eship", intx:new InteractionFilter(_eship,_fbull)},
-			{name:"ebul", intx:new InteractionFilter(_ebull,_fship)}
-		];
-
 		var space = new Space();
 		var cb = new CbType();
 
-		var bs = [];
-		var cnt = 0;
-		for(i in 0...ints.length) {
-			for(j in (i+1)...ints.length) {
-				var int1 = ints[i];
-				var int2 = ints[j];
-				trace(int1.name+"<->"+int2.name+"  "+int1.intx.shouldCollide(int2.intx));
+		var b1 = new Body();
+		b1.shapes.add(new Circle(20,new Vec2(-26,0)));
+		b1.shapes.add(new Circle(20,new Vec2(26,0)));
+		b1.shapes.at(0).filter.collisionMask = 0;
+		b1.space = space;
+		b1.cbType = cb;
 
-				var b1 = new Body(); b1.position.setxy(cnt*30,50);
-				b1.shapes.add(new Circle(10));
-				b1.setShapeFilters(int1.intx);
-				b1.space = space;
-				
-				var b2 = new Body(); b2.position.setxy(cnt*30,50);
-				b2.shapes.add(new Circle(10));
-				b2.setShapeFilters(int2.intx);
-				b2.space = space;
-				bs.push(b2);
+		var b2 = new Body();
+		b2.shapes.add(new Circle(20,new Vec2(-26,0)));
+		b2.shapes.add(new Circle(20,new Vec2(26,0)));
+		b2.space = space;
+		b2.cbType = cb;
 
-				b1.cbType = cb;
-				b2.cbType = cb;
-
-				cnt++;
-			}
-		}
+		space.listeners.add(new PreListener(InteractionType.COLLISION, cb, cb, function(arb) {
+			trace(["PRE",arb]);
+			return PreFlag.ACCEPT;
+		}));
+		space.listeners.add(new PreListener(InteractionType.SENSOR, cb, cb, function(arb) {
+			trace(["PRE(sense)",arb]);
+			return PreFlag.ACCEPT;
+		}));
 
 		space.listeners.add(new InteractionListener(CbEvent.BEGIN, InteractionType.COLLISION, cb, cb, function (a,b) {
 			trace(["BEGIN",a,b]);
 			for(arb in a.castBody.arbiters) { if(arb.body2==b || arb.body1==b) trace(arb); }
 		}));
-		space.listeners.add(new InteractionListener(CbEvent.END, InteractionType.SENSOR, cb, cb, function (a,b) {
+		space.listeners.add(new InteractionListener(CbEvent.END, InteractionType.COLLISION, cb, cb, function (a,b) {
 			trace(["END",a,b]);
 			for(arb in a.castBody.arbiters) { if(arb.body2==b || arb.body1==b) trace(arb); }
 		}));
+
+		space.listeners.add(new InteractionListener(CbEvent.BEGIN, InteractionType.SENSOR, cb, cb, function (a,b) {
+			trace(["BEGIN(sense)",a,b]);
+			for(arb in a.castBody.arbiters) { if(arb.body2==b || arb.body1==b) trace(arb); }
+		}));
+		space.listeners.add(new InteractionListener(CbEvent.END, InteractionType.SENSOR, cb, cb, function (a,b) {
+			trace(["END(sense)",a,b]);
+			for(arb in a.castBody.arbiters) { if(arb.body2==b || arb.body1==b) trace(arb); }
+		}));
+
 		space.step(1/60);
-		for(b in bs) b.position.y += 100;
+		var ls = [];
+		for(l in space.listeners) ls.push(l);
+		space.listeners.clear();
+		b2.position.y += 100;
+		for(l in ls) l.space = space;
 		space.step(1/60);
 	}
 
