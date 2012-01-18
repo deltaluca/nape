@@ -74,20 +74,25 @@ class PR(CallbackSet) {
 	//it seems a waste of memory and would be sub-optimal
 	public var arbiters:List(PR(Arbiter));
 
-	//kept here so that any new arbiters can have the correct
-	//state set, even retained after a listener no longer exists
-	public var state:Int;
-
-	//time stamp :)
-	public var stamp:Int;
+	//per-interaction type state and time-stamp
+	$(mixin type(n)
+		public var n`state:Int;
+		public var n`stamp:Int;
+		gentype(n)
+	);
+	type(COLLISION)
+	type(SENSOR)
+	type(FLUID)
 
 	MixPool(PR(CallbackSet))
 	flibmdel public inline function free() {
 		assert(arbiters.empty(),"callbackset released with lingering arbs");
 	}
 	flibmdel public inline function alloc() {
-		state = Flag(PreFlag,ACCEPT);
-		stamp = 0;
+		$(expand object gentype(n)
+			n`state = Flag(PreFlag,ACCEPT);
+			n`stamp = 0;
+		);
 	}
 
 	public function new() {
@@ -1661,7 +1666,7 @@ class PR(Space) {
 
         var b1 = s1.body;
 		var b2 = s2.body;
-
+		assert(b1!=b2,"colliding same body?");
         assert(!(b1.isStatic() && b2.isStatic()), "both objects static?");
 
         //check if constraints exists such that this should be ignored
@@ -1691,7 +1696,9 @@ class PR(Space) {
                 }else { sa = s1; sb = s2; }
                 var reverse = sa == s2;
 
-				$(mixin narrowed(arb,inttype,Type,arbs, cond, waking,collisions) {
+				$(mixin narrowed(arb,INTTYPE,Type,arbs, cond, waking,collisions) {
+					var inttype = Flag(InteractionType,INTTYPE);
+
 					if(first || arb.stamp!=stamp) {
 						arb.stamp = stamp;
 
@@ -1744,9 +1751,14 @@ class PR(Space) {
 								});
 							}
 
-							if(listener!=null && (callbackset==null || (callbackset.stamp!=stamp && (callbackset.state&Flag(ImmState,ALWAYS)==0)))) {
+							if(listener!=null && (callbackset==null || (callbackset.INTTYPE`stamp!=stamp && (callbackset.INTTYPE`state&Flag(ImmState,ALWAYS)==0)))) {
 								if(ncallbackset!=null) callbackset = ncallbackset;
-								callbackset.stamp = stamp;
+								if(listener.itype==Flag(InteractionType,ANY)) {
+									callbackset.COLLISIONstamp = stamp;
+									callbackset.SENSORstamp = stamp;
+									callbackset.FLUIDstamp = stamp;
+								}else
+									callbackset.INTTYPE`stamp = stamp;
 
 								// arbiter (public) is not active in the situtation of a persistant
 								// collision arbiter being re-used before it was retired.
@@ -1778,16 +1790,20 @@ class PR(Space) {
 									//make sure things like normals are still normalised
 									arb.pre_validate();
 								}
+
+								if(listener.itype==Flag(InteractionType,ANY)) {
+									callbackset.COLLISIONstate = arb.immState;
+									callbackset.SENSORstate = arb.immState;
+									callbackset.FLUIDstate = arb.immState;
+								}else
+									callbackset.INTTYPE`state = arb.immState;
 							}else if(callbackset==null) {
 								//reset state on non-persistance
 								if((arb.immState&Flag(ImmState,ALWAYS))==0)
 									arb.immState = Flag(ImmState, ACCEPT);
 							}else {
-								arb.immState = callbackset.state;
+								arb.immState = callbackset.INTTYPE`state;
 							}
-
-							if(callbackset!=null)
-								callbackset.state = arb.immState;
 
 							//DON'T LET THE OBJECTS GO TO SLEEP!!
 							//# we cannot assume that at some point
@@ -1855,7 +1871,7 @@ class PR(Space) {
                             arb = xarb.fluidarb;
                     }
 						
-					ret = narrowed(arb,Flag(InteractionType,FLUID),PR(FluidArbiter),f_arbiters, PR(Collide).flowCollide(sa,sb,arb), true,false);
+					ret = narrowed(arb,FLUID,PR(FluidArbiter),f_arbiters, PR(Collide).flowCollide(sa,sb,arb), true,false);
                 } else if(gcol) {
                     var carbs = stat ? c_arbiters(true) : c_arbiters(false);
 
@@ -1887,7 +1903,7 @@ class PR(Space) {
                         }
                     }
 
-					ret = narrowed(arb,Flag(InteractionType,COLLISION),PR(ColArbiter),carbs, PR(Collide).contactCollide(sa,sb,arb,reverse), true,true);
+					ret = narrowed(arb,COLLISION,PR(ColArbiter),carbs, PR(Collide).contactCollide(sa,sb,arb,reverse), true,true);
                 } else if(scol) {
                     var xarb = if(in_arb==null) map_arb.get(sa.id,sb.id) else in_arb;
                     var first = xarb==null;
@@ -1904,7 +1920,7 @@ class PR(Space) {
                             arb = xarb.sensorarb;
                     }
 					
-					ret = narrowed(arb,Flag(InteractionType,SENSOR),PR(SensorArbiter),s_arbiters, PR(Collide).testCollide(sa,sb), false,false);
+					ret = narrowed(arb,SENSOR,PR(SensorArbiter),s_arbiters, PR(Collide).testCollide(sa,sb), false,false);
 				}
 			}
 		}
