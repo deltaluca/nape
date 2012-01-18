@@ -419,7 +419,7 @@ class PR(Space) {
             x.constraint.addedToSpace();
 		else {
 			x.interaction.addedToSpace();
-			unrevoke_listener(x)
+			unrevoke_listener(x.interaction);
 		}
     }
     public function remListener(x:PR(Listener)) {
@@ -428,7 +428,7 @@ class PR(Space) {
         else if(x.type==Flag(ListenerType,CONSTRAINT))
             x.constraint.removedFromSpace();
 		else {
-			revoke_listener(x);
+			revoke_listener(x.interaction);
 			x.interaction.removedFromSpace();
 		}
         x.space = null;
@@ -494,25 +494,26 @@ class PR(Space) {
 						var cb2 = i2.cbType;
 						assert(cb1!=null && cb2!=null, "null cbs from MRCA_chains?");
 
-						var endcb = null;
-						if(cb1._end>0 && cb2._end>0) endcb = _end.ordered_get(cb1.id,cb2.id);
-						if(
-							endcb!=null
-						 || (cb1._begin>0 && cb2._begin>0 && _begin.ordered_get(cb1.id,cb2.id)!=null)
-						 || (cb1._pre  >0 && cb2._pre  >0 && _pre.  ordered_get(cb1.id,cb2.id)!=null)
-						) {
-							var callbackset = callbacksets.ordered_get(i1.id,i2.id);
-							assert(callbackset!=null,"null callbackset on arbiter deletion?");
-							callbackset.remove(xarb);
-							if(callbackset.empty()) {
-								if(endcb!=null && !deleting) {
-									var cb = push_callback(endcb,endcb.handler!=null);
-									cb.event = Flag(CbEvent,END);
-									PR(Interactor).int_callback(i1,i2,endcb.cb1,cb);
-								}
-								callbacksets.remove(callbackset);
-								Free(PR(CallbackSet),callbackset);
+						var set = listenersets.ordered_get(cb1.id,cb2.id);
+						if(set==null) cx_continue;
+
+						var callbackset = callbacksets.ordered_get(i1.id,i2.id);
+						assert(callbackset!=null,"null callbackset on arbiter deletion?");
+						callbackset.remove(xarb);
+
+						if(!deleting) {
+							var listener = set.find(Flag(CbEvent,END),xarb.type);
+							if(listener!=null
+							&& callbackset.empty(listener.itype) && (listener.itype&xarb.type)!=0) {	
+								var cb = push_callback(listener,listener.handleri!=null);
+								cb.event = Flag(CbEvent,END);
+								PR(Interactor).int_callback(i1,i2,listener.cb1,cb);
 							}
+						}
+
+						if(callbackset.really_empty()) {
+							callbacksets.remove(callbackset);
+							Free(PR(CallbackSet),callbackset);
 						}
 					});
 					});
@@ -792,7 +793,7 @@ class PR(Space) {
 					o.handler(cb.constraint.outer);
 				}else if(cb.listener.type==Flag(ListenerType,INTERACTION)) {
 					var o = cb.listener.interaction;
-					o.handler(cb.int1.outer_i,cb.int2.outer_i);
+					o.handleri(cb.int1.outer_i,cb.int2.outer_i);
 				}
 	
 				cx_ite = callbacks.splice(cb);
@@ -945,7 +946,7 @@ class PR(Space) {
 					var callbackset = callbacksets.ordered_get(i1.id,i2.id);
 					if(callbackset!=null) {
 						callbackset.remove(xarb);
-						if(callbackset.empty()) {
+						if(callbackset.really_empty()) {
 							callbacksets.remove(callbackset);
 							Free(PR(CallbackSet),callbackset);
 						}
@@ -1028,11 +1029,7 @@ class PR(Space) {
 					var cb1 = i1.cbType;
 					var cb2 = i2.cbType;
 					assert(cb1!=null && cb2!=null, "null cb from MRCA_chain?");
-					if(
-						(cb1._end  >0 && cb2._end  >0 && _end.  ordered_get(cb1.id,cb2.id)!=null)
-					 || (cb1._begin>0 && cb2._begin>0 && _begin.ordered_get(cb1.id,cb2.id)!=null)
-					 || (cb1._pre  >0 && cb2._pre  >0 && _pre.  ordered_get(cb1.id,cb2.id)!=null)
-					) {
+					if(listenersets.ordered_get(cb1.id,cb2.id)!=null) {
 						var callbackset = callbacksets.ordered_get(i1.id,i2.id);
 						if(callbackset==null) {
 							callbackset = PR(CallbackSet).get(i1,i2);
