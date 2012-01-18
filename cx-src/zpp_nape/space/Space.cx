@@ -1471,13 +1471,13 @@ class PR(Space) {
 								listener = i;
 							)
 
-							if(listener==null) cx_continue;
-							trace(listener.outer.toString());
 
 							if(i1==arb.ws1 && i2==arb.ws2) { //shape-shape treat specially
-								var cb = push_callback(listener,listener.handleri!=null);
-								cb.event = begcb ? Flag(CbEvent,BEGIN) : Flag(CbEvent,END);
-								PR(Interactor).int_callback(i1,i2,listener.cb1,cb);
+								if(listener!=null) {
+									var cb = push_callback(listener,listener.handleri!=null);
+									cb.event = begcb ? Flag(CbEvent,BEGIN) : Flag(CbEvent,END);
+									PR(Interactor).int_callback(i1,i2,listener.cb1,cb);
+								}
 							}else {
 								var callbackset = callbacksets.ordered_get(i1.id,i2.id);
 								if(begcb) {
@@ -1487,19 +1487,23 @@ class PR(Space) {
 									}
 									//check for empty rather than null, since it might've been created
 									//already to prevent multiple pre-handlers
-									if(callbackset.empty(listener.itype) && (listener.itype&arb.type)!=0) {
-										var cb = push_callback(listener,listener.handleri!=null);
-										cb.event = Flag(CbEvent,BEGIN);
-										PR(Interactor).int_callback(i1,i2,listener.cb1,cb);
+									if(listener!=null) {
+										if(callbackset.empty(listener.itype) && (listener.itype&arb.type)!=0) {
+											var cb = push_callback(listener,listener.handleri!=null);
+											cb.event = Flag(CbEvent,BEGIN);
+											PR(Interactor).int_callback(i1,i2,listener.cb1,cb);
+										}
 									}
 									callbackset.add(arb);
 								}else {
 									assert(callbackset!=null,"end arbiter with no callbackset");
 									callbackset.remove(arb);
-									if(callbackset.empty(listener.itype) && (listener.itype&arb.type)!=0) {
-										var cb = push_callback(listener,listener.handleri!=null);
-										cb.event = Flag(CbEvent,END);
-										PR(Interactor).int_callback(i1,i2,listener.cb1,cb);
+									if(listener!=null) {
+										if(callbackset.empty(listener.itype) && (listener.itype&arb.type)!=0) {
+											var cb = push_callback(listener,listener.handleri!=null);
+											cb.event = Flag(CbEvent,END);
+											PR(Interactor).int_callback(i1,i2,listener.cb1,cb);
+										}
 									}
 									if(callbackset.really_empty()) {
 										callbacksets.remove(callbackset);

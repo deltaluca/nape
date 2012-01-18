@@ -368,6 +368,7 @@ class DummyNapeMain {
 		var space = new Space();
 		var cb = new CbType();
 
+		var bs = [];
 		var cnt = 0;
 		for(i in 0...ints.length) {
 			for(j in (i+1)...ints.length) {
@@ -384,6 +385,7 @@ class DummyNapeMain {
 				b2.shapes.add(new Circle(10));
 				b2.setShapeFilters(int2.intx);
 				b2.space = space;
+				bs.push(b2);
 
 				b1.cbType = cb;
 				b2.cbType = cb;
@@ -393,9 +395,15 @@ class DummyNapeMain {
 		}
 
 		space.listeners.add(new InteractionListener(CbEvent.BEGIN, InteractionType.COLLISION, cb, cb, function (a,b) {
-			trace([a,b]);
+			trace(["BEGIN",a,b]);
 			for(arb in a.castBody.arbiters) { if(arb.body2==b || arb.body1==b) trace(arb); }
 		}));
+		space.listeners.add(new InteractionListener(CbEvent.END, InteractionType.SENSOR, cb, cb, function (a,b) {
+			trace(["END",a,b]);
+			for(arb in a.castBody.arbiters) { if(arb.body2==b || arb.body1==b) trace(arb); }
+		}));
+		space.step(1/60);
+		for(b in bs) b.position.y += 100;
 		space.step(1/60);
 	}
 
