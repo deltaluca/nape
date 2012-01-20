@@ -14,17 +14,34 @@ class PR(UserConstraint) {
 
 	//--------------------------------------------
 	
+	//defined copying of constraint.
 	public var ucopy : Void -> Constraint;
-	public var udest : Void -> Void; //can be null
-	public var valid : Void -> Void; //can be null
 
+	//defined additional destroy logic.
+	public var udest : Void -> Void; //can be null
+
+	//defined additional validation logic.
+	public var valid : Void -> Void; //can be null
+	
+	//positional error.
 	public var cerr : Void -> ARRAY(Float); //can be null (velocity constraint)
+
+	//velocity error.
 	public var verr : Void -> ARRAY(Float);
+
+	//effective mass.
 	public var keff : Void -> ARRAY(Float);
+
+	//defined clamping of impulses.
 	public var clamp: ARRAY(Float) -> Void;
 
+	//apply velocity impulse to all bodies.
 	public var vimp : ARRAY(Float) -> Void;
-	public var pimp : ARRAY(Float) -> Void;
+
+	//apply positional impulse to all bodies.
+	public var pimp : ARRAY(Float) -> Void; //null when cerr is null
+
+	//determine impulse applied to particular body (veloctiy).
 	public var bimp : ARRAY(Float) -> Body -> Vec3;
 
 	//--------------------------------------------
@@ -69,7 +86,6 @@ class PR(UserConstraint) {
 
 	public override function validate() {
 		Iter(b, bodies, if(b.space!=space) throw "Error: Constraints must have each body within the same sapce to which the constraint has been assigned";);
-		if(valid!=null) valid();
 	}
 
 	public override function wake_connected() {
@@ -106,6 +122,51 @@ class PR(UserConstraint) {
 
 	//-----------------------------------------------------------------------------
 
+	flibmdel public inline function invert(m:ARRAY(Float)) {
+
+	}
+	flibmdel public inline function transform(m:ARRAY(Float),x:ARRAY(Float)):ARRAY(Float) {
+		var out = newARRAY(Float,dim);
+		for(i in 0...dim) {
+			var sum = 0.0;
+			for(j in 0...dim) sum += m[j+i*dim]*x[j];
+			out[i] = sum;
+		}
+		return out;
+	}
+	flibmdel public inline function solve(m:ARRAY(Float),x:ARRAY(Float)) {
+		var L = newARRAY(Float,dim*dim);
+		for(j in 0...dim) {
+			var sum = 0.0;
+			for(k in 1...j) sum += L[j*dim+k]*L[j*dim+k];
+			var rec = Math.sqrt(m[j*dim+j] - sum);
+			L[j*dim+j] = rec;
+
+			rec = 1.0/rec;
+			for(i in j+1...dim) {
+				var sum = 0.0;
+				for(k in 1...j) sum += L[i*dim+j]*L[j*dim+k];
+				L[i*dim+j] = rec*(m[i*dim+j] - sum);
+			}
+		}
+
+		var out = newARRAY(Float,dim);
+		for(i in 0...dim) {
+			var sum = x[i];
+			for(k in 0...i) sum -= L[i*dim+k]*x[k];
+			out[i] = sum / L[i*dim+i];
+		}
+
+		for(ix in 0...dim) {
+			var i = dim-1-ix;
+			var sum = out[i];
+			for(k in i+1...dim) sum -= L[k*dim+i];
+			x[i] = sum/L[i*dim+i];
+		}
+	}
+
+	//-----------------------------------------------------------------------------
+
 	public override function preStep(dt:Float) {
 		if(pre_dt==-1.0) pre_dt = dt;
 		var dtratio = dt/pre_dt;
@@ -113,8 +174,7 @@ class PR(UserConstraint) {
 
 		stepped = true;
 
-		//validate any anchors etc?
-		throw "not done yet";
+		if(valid!=null) valid();
 
 		//any positional error
 		var Cerr = if(cerr!=null) cerr() else null;
@@ -143,7 +203,7 @@ class PR(UserConstraint) {
 		var J = newARRAY(Float,dim);
 		for(i in 0...dim) J[i] = bias[i] - E[i];
 
-		transform(kMass, J);
+		J = transform(kMass, J);
 
 		//combine these steps
 		var jOld = newARRAY(Float,dim);
