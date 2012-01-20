@@ -1,3 +1,4 @@
+package zpp_nape.constraint;
 $(import);
 
 withConstraint(
@@ -12,7 +13,7 @@ class PR(UserConstraint) extends PR(Constraint) {
 	public var pjAcc : ARRAY(Float);
 	public var  bias : ARRAY(Float);
 
-	public function addBody(b:PR(Body)) {
+	flibmdel public inline function addBody(b:PR(Body)) {
 		var match = null;
 		for(x in bodies) { if(x.body==b) { match = x; break; } };
 
@@ -21,14 +22,16 @@ class PR(UserConstraint) extends PR(Constraint) {
 		else match.cnt++;
 	}
 
-	public function remBody(b:PR(Body)) {
+	flibmdel public inline function remBody(b:PR(Body)) {
 		var match = null;
-		var i = 0; while(i<bodies.length) {
+		var bl = Std.int(bodies.length);
+		var i = 0; while(i<bl) {
 			var x = bodies[i];
 			if(x.body==b) {
 				x.cnt--;
 				if(x.cnt==0) {
-					bodies[i] = bodies[bodies.length-1];
+					if(bl>0)
+						bodies[i] = bodies[bl-1];
 					bodies.pop();
 				}
 				match=x;
@@ -147,9 +150,10 @@ class PR(UserConstraint) extends PR(Constraint) {
 
 	public override function pair_exists(id:Int, di:Int) {
 		var ret = false;
-		for(bi in 0...bodies.length) {
+		var bl = Std.int(bodies.length);
+		for(bi in 0...bl) {
 			var b = bodies[bi].body;
-			for(ci in bi+1...bodies.length) {
+			for(ci in bi+1...bl) {
 				var c = bodies[ci].body;
 				if((b.id==id && c.id==di) || (b.id==di && c.id==id)) {
 					ret = true;
@@ -223,7 +227,7 @@ class PR(UserConstraint) extends PR(Constraint) {
 		DEBUG(
 			if(cerr!=null && Cerr==null) throw "Error: ???(cerr) non-null, but returned null value";
 			if(Cerr!=null) {
-				if(Cerr.length != dim) throw "Error: Dimensions of ???(cerr) do not match constraint dimensions!";
+				if(Std.int(Cerr.length) != dim) throw "Error: Dimensions of ???(cerr) do not match constraint dimensions!";
 			}
 		)
 
@@ -231,7 +235,7 @@ class PR(UserConstraint) extends PR(Constraint) {
 		var Keff = keff();
 		DEBUG(
 			if(Keff==null) throw "Error: ???(Keff) returned null value";
-			if(Keff.length != dim*dim) throw "Error: Dimensions of ???(keff) do not match constraint dimensions!";
+			if(Std.int(Keff.length) != dim*dim) throw "Error: Dimensions of ???(keff) do not match constraint dimensions!";
 		)
 		L = solve(Keff);
 
@@ -256,7 +260,7 @@ class PR(UserConstraint) extends PR(Constraint) {
 		var E = verr();
 		DEBUG(
 			if(E==null) throw "Error: ???(verr) returned null value";
-			if(E.length!=dim) throw "Error: Dimensions of ???(verr) do not match constraint dimensions!";
+			if(Std.int(E.length)!=dim) throw "Error: Dimensions of ???(verr) do not match constraint dimensions!";
 		)
 		for(i in 0...dim) J[i] = bias[i] - E[i];
 
@@ -284,10 +288,10 @@ class PR(UserConstraint) extends PR(Constraint) {
 		var K = keff();
 		DEBUG(
 			if(E==null) throw "Error: ???(cerr) returned null value";
-			if(E.length != dim) throw "Error: Dimensions of ???(cerr) do not match constraint dimensions!";
+			if(Std.int(E.length) != dim) throw "Error: Dimensions of ???(cerr) do not match constraint dimensions!";
 
 			if(K==null) throw "Error: ???(Keff) returned null value";
-			if(K.length != dim*dim) throw "Error: Dimensions of ???(keff) do not match constraint dimensions!";
+			if(Std.int(K.length) != dim*dim) throw "Error: Dimensions of ???(keff) do not match constraint dimensions!";
 		)
 
 		for(i in 0...dim) J[i] = -E[i];
