@@ -351,56 +351,46 @@ class DummyNapeMain {
 	static function main() {
 		haxe.Log.setColor(0xffffff);
 
-		var space = new Space();
-		var cb = new CbType();
+		var space = new Space(new Vec2(0,400));
+		var debug = new BitmapDebug(800,600,0x333333);
+		debug.drawCollisionArbiters = true;
+		flash.Lib.current.addChild(debug.display);
 
-		var b1 = new Body();
-		b1.shapes.add(new Circle(20,new Vec2(-26,0)));
-		b1.shapes.add(new Circle(20,new Vec2(26,0)));
-		b1.shapes.at(0).filter.collisionMask = 0;
-		b1.space = space;
-		b1.cbType = cb;
+		var portaltype = new CbType();
+		var balltype = new CbType();
 
-		var b2 = new Body();
-		b2.shapes.add(new Circle(20,new Vec2(-26,0)));
-		b2.shapes.add(new Circle(20,new Vec2(26,0)));
-		b2.space = space;
-		b2.cbType = cb;
+		var portal = new Body(BodyType.STATIC);
+		portal.shapes.add(new Polygon([new Vec2(150,450),new Vec2(250,450),new Vec2(200,550)]));
+		portal.cbType = portaltype;
+		portal.space = space;
 
-		space.listeners.add(new PreListener(InteractionType.COLLISION, cb, cb, function(arb) {
-			trace(["PRE",arb]);
-			return PreFlag.ACCEPT;
-		}));
-		space.listeners.add(new PreListener(InteractionType.SENSOR, cb, cb, function(arb) {
-			trace(["PRE(sense)",arb]);
-			return PreFlag.ACCEPT;
-		}));
+		var ground = new Body(BodyType.STATIC);
+		ground.shapes.add(new Polygon(Polygon.rect(0,580,800,20)));
+		ground.space = space;
 
-		space.listeners.add(new InteractionListener(CbEvent.BEGIN, InteractionType.COLLISION, cb, cb, function (a,b) {
-			trace(["BEGIN",a,b]);
-			for(arb in a.castBody.arbiters) { if(arb.body2==b || arb.body1==b) trace(arb); }
-		}));
-		space.listeners.add(new InteractionListener(CbEvent.END, InteractionType.COLLISION, cb, cb, function (a,b) {
-			trace(["END",a,b]);
-			for(arb in a.castBody.arbiters) { if(arb.body2==b || arb.body1==b) trace(arb); }
-		}));
+		var ball = new Body(BodyType.DYNAMIC);
+		ball.shapes.add(new Circle(40));
+		ball.space = space;
+		ball.cbType = balltype;
+		ball.position.setxy(200,300);
 
-		space.listeners.add(new InteractionListener(CbEvent.BEGIN, InteractionType.SENSOR, cb, cb, function (a,b) {
-			trace(["BEGIN(sense)",a,b]);
-			for(arb in a.castBody.arbiters) { if(arb.body2==b || arb.body1==b) trace(arb); }
-		}));
-		space.listeners.add(new InteractionListener(CbEvent.END, InteractionType.SENSOR, cb, cb, function (a,b) {
-			trace(["END(sense)",a,b]);
-			for(arb in a.castBody.arbiters) { if(arb.body2==b || arb.body1==b) trace(arb); }
+		space.listeners.add(new PreListener(InteractionType.COLLISION, balltype, portaltype, function (arb:Arbiter) {
+			if(!arb.isCollisionArbiter()) { throw "??????"; return PreFlag.ACCEPT; }
+			var carb = arb.collisionArbiter;
+
+			if(carb.normal.y > 0.9)
+				return PreFlag.IGNORE;
+			else
+				return PreFlag.ACCEPT;
 		}));
 
-		space.step(1/60);
-		var ls = [];
-		for(l in space.listeners) ls.push(l);
-		space.listeners.clear();
-		b2.position.y += 100;
-		for(l in ls) l.space = space;
-		space.step(1/60);
+		(new haxe.Timer(0)).run = function() {
+			debug.clear();
+			space.step(1/60);
+			debug.draw(space);
+			debug.flush();
+		};
+
 	}
 
 	static function maisn() {

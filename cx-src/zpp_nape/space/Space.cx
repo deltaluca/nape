@@ -1786,10 +1786,13 @@ class PR(Space) {
 									elif(ret==PreFlag.IGNORE)      Flag(ImmState, IGNORE) | Flag(ImmState, ALWAYS)
 									else                           Flag(ImmState, IGNORE);
 
+								//validate in non release mode anyways,
+								DEBUG(arb.pre_validate();)
+								RELEASE(
 								if((arb.immState&Flag(ImmState,ACCEPT))!=0) {
 									//make sure things like normals are still normalised
 									arb.pre_validate();
-								}
+								})
 
 								if(listener.itype==Flag(InteractionType,ANY)) {
 									callbackset.COLLISIONstate = arb.immState;
