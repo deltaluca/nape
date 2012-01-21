@@ -1,0 +1,2050 @@
+#LyX 2.0 created this file. For more info see http://www.lyx.org/
+\lyxformat 413
+\begin_document
+\begin_header
+\textclass article
+\begin_preamble
+\lstset{ %
+basicstyle=\ttfamily\footnotesize\bfseries
+}
+\end_preamble
+\use_default_options true
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize default
+\use_geometry true
+\use_amsmath 1
+\use_esint 1
+\use_mhchem 1
+\use_mathdots 1
+\cite_engine basic
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\use_refstyle 1
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\leftmargin 3cm
+\topmargin 3cm
+\rightmargin 3cm
+\bottommargin 3cm
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+User-defined Constraints in Nape
+\end_layout
+
+\begin_layout Author
+Luca Deltodesco
+\end_layout
+
+\begin_layout Standard
+\begin_inset FormulaMacro
+\renewcommand{\mag}[1]{\left\Vert #1\right\Vert }
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset FormulaMacro
+\renewcommand{\cross}[1]{\left[#1\right]_{\times}}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset toc
+LatexCommand tableofcontents
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Newpage newpage
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Notations and results.
+\end_layout
+
+\begin_layout Paragraph
+Vector notation:
+\end_layout
+
+\begin_layout Standard
+For vectors 
+\begin_inset Formula $\vec{u},\vec{v}$
+\end_inset
+
+ and scalars 
+\begin_inset Formula $s,t$
+\end_inset
+
+:
+\end_layout
+
+\begin_layout Standard
+Let 
+\begin_inset Formula $\vec{u}\cdot\vec{v}$
+\end_inset
+
+ denote the dot-product 
+\begin_inset Formula $\vec{u}\cdot\vec{v}=u_{x}v_{x}+u_{y}v_{y}=\mag{\vec{u}}\mag{\vec{v}}\cos\theta$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Let 
+\begin_inset Formula $\vec{u}\times\vec{v}$
+\end_inset
+
+ denote the perp-dot-product 
+\begin_inset Formula $\vec{u}\times\vec{v}=u_{x}v_{y}-u_{y}v_{x}=\mag{\vec{u}}\mag{\vec{v}}\sin\theta$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Define 
+\begin_inset Formula $\cross{\vec{u}}=\left[\begin{array}{c}
+-u_{y}\\
+u_{x}
+\end{array}\right]$
+\end_inset
+
+ such that 
+\begin_inset Formula $\vec{u}\times\vec{v}=\cross{\vec{u}}\cdot\vec{v}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+noting that 
+\begin_inset Formula $\cross{\vec{u}}\cdot\cross{\vec{v}}=\vec{u}\cdot\vec{v}$
+\end_inset
+
+ and 
+\begin_inset Formula $\cross{\cross{\vec{u}}}=-\vec{u}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Overloading the 
+\begin_inset Formula $\times$
+\end_inset
+
+ operator, let 
+\begin_inset Formula $s\times\vec{u}=s\cross{\vec{u}}$
+\end_inset
+
+ and 
+\begin_inset Formula $\vec{u}\times s=-s\times\vec{u}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Paragraph
+Triple products:
+\end_layout
+
+\begin_layout Standard
+For vectors 
+\begin_inset Formula $\vec{u},\vec{v},\vec{w}$
+\end_inset
+
+ and scalars 
+\begin_inset Formula $s,t$
+\end_inset
+
+:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\vec{u}\times\left(\vec{v}\times\vec{w}\right)=-\left(\vec{v}\times\vec{w}\right)\cross{\vec{u}}\leftarrow\text{a vector}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\left(\vec{u}\times\vec{v}\right)\times\vec{w}=$
+\end_inset
+
+
+\begin_inset Formula $\left(\vec{u}\times\vec{v}\right)\cross{\vec{w}}\leftarrow\text{a vector}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\vec{u}\times\left(s\times\vec{v}\right)=s\left(\vec{u}\cdot\vec{v}\right)$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\left(s\times\vec{u}\right)\times\vec{v}=-s\left(\vec{u}\cdot\vec{v}\right)$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Paragraph
+Outer products:
+\end_layout
+
+\begin_layout Standard
+For vectors 
+\begin_inset Formula $\vec{u},\vec{v}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\vec{u}\vec{v}^{\top}=\vec{u}\otimes\vec{v}=\left[\begin{array}{cc}
+u_{x}v_{x} & u_{x}v_{y}\\
+u_{y}v_{x} & u_{y}v_{y}
+\end{array}\right]$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\cross{\vec{u}}\cross{\vec{v}}^{\top}=\vec{u}\odot\vec{v}=\left[\begin{array}{cc}
+u_{y}v_{y} & -u_{y}v_{x}\\
+-u_{x}v_{y} & u_{x}v_{x}
+\end{array}\right]$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Paragraph
+Derivatives:
+\end_layout
+
+\begin_layout Standard
+For general a,b:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\frac{d}{dt}\left(a\cdot b\right)=\left(\frac{da}{dt}\cdot b\right)+\left(a\cdot\frac{db}{dt}\right)$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\frac{d}{dt}\left(a\times b\right)=\left(\frac{da}{d}\times b\right)+\left(a\times\frac{db}{dt}\right)$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\frac{d}{dt}\mag a=\frac{1}{\mag a}\left(a\cdot\frac{da}{dt}\right)$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Paragraph
+Body defined by:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Tabular
+<lyxtabular version="3" rows="2" columns="8">
+<features tabularvalignment="middle">
+<column alignment="right" valignment="top" width="0">
+<column alignment="center" valignment="top" width="0">
+<column alignment="center" valignment="top" width="0">
+<column alignment="right" valignment="top" width="0">
+<column alignment="center" valignment="top" width="0">
+<column alignment="center" valignment="top" width="0">
+<column alignment="right" valignment="top" width="0">
+<column alignment="center" valignment="top" width="0">
+<row>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Position
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $\vec{x}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Velocity
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $\vec{v}=\frac{d\vec{x}}{dt}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Mass 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $m$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Rotation
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $\theta$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Angular Velocity
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $\omega=\frac{d\theta}{dt}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Moment of Inertia
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $i$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Paragraph
+Body derivatives:
+\end_layout
+
+\begin_layout Standard
+Given a vector 
+\begin_inset Formula $\vec{u}$
+\end_inset
+
+ defined with respect to the coordinate system of a Body as above, we have:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\frac{d\vec{u}}{dt}=\omega\times\vec{u}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Newpage newpage
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+UserConstraint deriviations
+\end_layout
+
+\begin_layout Standard
+A (positional) constraint is defined by a function of all the bodies' positions
+ and rotations which are collectively grouped into a block-vector like:
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\vec{x}=\left[\begin{array}{c}
+\vec{x}_{1}\\
+\theta_{1}\\
+\vdots
+\end{array}\right]$
+\end_inset
+
+ and related 
+\begin_inset Formula $\vec{v}=\frac{d\vec{x}}{dt}$
+\end_inset
+
+ for the block-vector of velocities.
+\end_layout
+
+\begin_layout Standard
+for however many bodies there are.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The positional constraint is a function 
+\begin_inset Formula $C:\mathbb{R}^{3n}\to\mathbb{R}^{\text{dimensions}}$
+\end_inset
+
+ satisftying 
+\begin_inset Formula $C(\vec{x})=\vec{0}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Box Shadowbox
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+A PivotJoint in nape is defined on two Bodies with two locally defined anchors.
+ These anchors are transform into 'relative' space producing the vectors
+ 
+\begin_inset Formula $\vec{r}_{1},\vec{r}_{2}$
+\end_inset
+
+ and the positional constraint is:
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Formula $C(\vec{x})=\left(\vec{x}_{2}+\vec{r}_{2}\right)-\left(\vec{x}_{1}+\vec{r}_{1}\right)$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+Noting that the dimension of this constraint is 
+\begin_inset Formula $2$
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+As well as the positional constraint, nape requires the velocity constraint
+ which is determined by 
+\begin_inset Formula $V(\vec{v})=\frac{d}{dt}C(\vec{x})$
+\end_inset
+
+, such that 
+\begin_inset Formula $V(\vec{v})=\vec{0}$
+\end_inset
+
+.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Box Shadowbox
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+The velocity constraint for the PivotJoint in nape is:
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Formula $V(\vec{v})=\left(\vec{v}_{2}+\omega_{2}\times\vec{r}_{2}\right)-\left(\vec{v}_{1}+\omega_{1}\times\vec{r}_{1}\right)$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Furthermore, we require (implicitly) the jacobian of the velocity constraint,
+ formed as a block-row vector of each of the partial derivatives of 
+\begin_inset Formula $V$
+\end_inset
+
+ with respect to the velocities.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\mathbf{J}=\left[\begin{array}{ccc}
+\frac{\partial V}{\partial\vec{v}_{1}} & \frac{\partial V}{\partial\omega_{1}} & \cdots\end{array}\right]$
+\end_inset
+
+.
+ Infact the jacobian is a function of the 
+\emph on
+positions
+\emph default
+ of the objects.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Such that 
+\begin_inset Formula $V(\vec{v})=\mathbf{J}\vec{v}+\vec{b}$
+\end_inset
+
+ for some velocity bias 
+\begin_inset Formula $\vec{b}$
+\end_inset
+
+ (Generally 
+\begin_inset Formula $\vec{0}$
+\end_inset
+
+ except for motors).
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Box Shadowbox
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+The Jacobian of the PivotJoint's velocity constraint in nape is:
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Formula $\mathbf{J}=\left[\begin{array}{cccc}
+-\mathbf{E}_{2} & -\cross{\vec{r}_{1}} & \mathbf{E}_{2} & \cross{\vec{r}_{2}}\end{array}\right]=\left[\begin{array}{cccccc}
+-1 & 0 & r_{1y} & 1 & 0 & -r_{2y}\\
+0 & -1 & -r_{1x} & 0 & 1 & r_{2x}
+\end{array}\right]$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+Noting that the number of columns matches the number of velocities, and
+ the number of rows matches the dimension of the constraint.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The Jacobian of the velocity constraint is used for two things:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Firstly, nape requires the effective mass matrix of the constraint.
+ This long named thing is the equivalent of the usual mass matrix in the
+ contraint space.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+In the normal nape space, the 'mass matrix' 
+\begin_inset Formula $\mathbf{M}$
+\end_inset
+
+ is a diagonal matrix composed of all the bodies' masses and moments of
+ inertia:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\mathbf{M}=m_{1}\mathbf{E}_{2}\oplus i_{1}\oplus\cdots=\left[\begin{array}{cccc}
+m_{1}\\
+ & m_{1}\\
+ &  & i_{1}\\
+ &  &  & \ddots
+\end{array}\right]$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The effective mass matrix of the constraint is then computed as:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\mathbf{K}=\mathbf{J}\mathbf{M}^{-1}\mathbf{J}^{\top}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+This sounds difficult, but there are a lot of simplifications we can make
+ since 
+\begin_inset Formula $\mathbf{M}$
+\end_inset
+
+ is diagonal, infact what we end up with is:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\mathbf{K}=\frac{1}{m_{1}}\left(\frac{\partial V}{\partial\vec{v}_{1}}\right)\left(\frac{\partial V}{\partial\vec{v}_{1}}\right)^{\top}+\frac{1}{i_{1}}\left(\frac{\partial V}{\partial\omega_{1}}\right)\left(\frac{\partial V}{\partial\omega_{1}}\right)^{\top}+\cdots$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Noting that the effective mass matrix is 
+\emph on
+\noun on
+always
+\emph default
+\noun default
+ symmetric.
+ And like the jacobian is also a function of the 
+\emph on
+positions 
+\emph default
+of the objects.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Box Shadowbox
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+Remembering the Jacobian for nape's PivotJoint:
+\end_layout
+
+\begin_layout Plain Layout
+
+\family roman
+\series medium
+\shape up
+\size normal
+\emph off
+\bar no
+\strikeout off
+\uuline off
+\uwave off
+\noun off
+\color none
+\begin_inset Formula $\mathbf{J}=\left[\begin{array}{cccc}
+-\mathbf{E}_{2} & -\cross{\vec{r}_{1}} & \mathbf{E}_{2} & \cross{\vec{r}_{2}}\end{array}\right]$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+We see that it's effective mass matrix is:
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Formula $\mathbf{K}=\frac{1}{m_{1}}\mathbf{E}_{2}+\frac{1}{i_{1}}\left(\vec{r}_{1}\odot\vec{r}_{1}\right)+\frac{1}{m_{2}}\mathbf{E}_{2}+\frac{1}{i_{2}}\left(\vec{r}_{2}\odot\vec{r}_{2}\right)=\left[\begin{array}{cc}
+\frac{1}{m_{1}}+\frac{1}{m_{2}}+\frac{r_{1y}^{2}}{i_{1}}+\frac{r_{2y}^{2}}{i_{2}} & -\frac{r_{1x}r_{1y}}{i_{1}}-\frac{r_{2x}r_{2y}}{i_{2}}\\
+\# & \frac{1}{m_{1}}+\frac{1}{m_{2}}+\frac{r_{1x}^{2}}{i_{1}}+\frac{r_{2x}^{2}}{i_{2}}
+\end{array}\right]$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Secondly, the Jacobian is used in determining how constraint space impulses
+ are applied to the the bodies.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Quite simply, from the constraint space impulse 
+\begin_inset Formula $\lambda$
+\end_inset
+
+ we get a world-space impulse 
+\begin_inset Formula $\mathbf{J}^{\top}\lambda$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Box Shadowbox
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+For nape's PivotJoint, this looks quite simply like:
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Formula $\mathbf{J}^{\top}\lambda=\left[\begin{array}{c}
+-\lambda\\
+-\vec{r}_{1}\times\lambda\\
+\lambda\\
+\vec{r}_{2}\times\lambda
+\end{array}\right]$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+And we see that the impulse received by the first body is 
+\begin_inset Formula $-\lambda$
+\end_inset
+
+ with rotational impulse 
+\begin_inset Formula $-\vec{r}_{1}\times\lambda$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Plain Layout
+And we see that the inpulse received by the second body is 
+\begin_inset Formula $\lambda$
+\end_inset
+
+ with rotational impulse 
+\begin_inset Formula $\vec{r}_{2}\times\lambda$
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section*
+\begin_inset Newpage newpage
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Constructing a UserConstraint
+\end_layout
+
+\begin_layout Standard
+Clearly, all that is truly needed for a basic positional constraint is the
+ function 
+\begin_inset Formula $C(\vec{x}),V(\vec{v})$
+\end_inset
+
+ and the jacobian 
+\begin_inset Formula $\mathbf{J}$
+\end_inset
+
+ from which everything else can be derived.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+However there is a lot of computational shortcuts that can be taken by ignoring
+ the jacobian, and instead asking for the effective mass matrix and a method
+ of converting the constraint space impulse into a specific body impulse
+ which is what nape presently asks for.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+These together with various other pieces of logic come together to form
+ a User-defined constraint in nape:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+class MyConstraint extends UserConstraint {
+\end_layout
+
+\begin_layout Plain Layout
+
+	public function new() {
+\end_layout
+
+\begin_layout Plain Layout
+
+		super(/*dimensions*/);
+\end_layout
+
+\begin_layout Plain Layout
+
+	}
+\end_layout
+
+\begin_layout Plain Layout
+
+	public override function __position(err:ARRAY<Float>):Void {
+\end_layout
+
+\begin_layout Plain Layout
+
+		//populate 'err' with value of C(x)
+\end_layout
+
+\begin_layout Plain Layout
+
+	}
+\end_layout
+
+\begin_layout Plain Layout
+
+	public override function __velocity(err:ARRAY<Float>):Void {
+\end_layout
+
+\begin_layout Plain Layout
+
+		//populate 'err' with value of V(v)
+\end_layout
+
+\begin_layout Plain Layout
+
+	}
+\end_layout
+
+\begin_layout Plain Layout
+
+	public override function __eff_mass(eff:ARRAY<Float>):Void {
+\end_layout
+
+\begin_layout Plain Layout
+
+		//populate 'eff' with value of K(x)
+\end_layout
+
+\begin_layout Plain Layout
+
+		//eff is actually compressed for symmetry of effective mass and looks
+ like:
+\end_layout
+
+\begin_layout Plain Layout
+
+		//K = [eff[0], eff[1], eff[2],
+\end_layout
+
+\begin_layout Plain Layout
+
+		//             eff[3], eff[4],
+\end_layout
+
+\begin_layout Plain Layout
+
+		//       #             eff[5]] for example
+\end_layout
+
+\begin_layout Plain Layout
+
+	}
+\end_layout
+
+\begin_layout Plain Layout
+
+	public override function __impulse(imp:ARRAY<Float>,body:Body,out:Vec3):Void
+ {
+\end_layout
+
+\begin_layout Plain Layout
+
+		//populate 'out' with the impulse to be applied to 'body' given
+\end_layout
+
+\begin_layout Plain Layout
+
+		//constraint space impulse 'imp'
+\end_layout
+
+\begin_layout Plain Layout
+
+		//(Note we don't actually apply the impulse here)
+\end_layout
+
+\begin_layout Plain Layout
+
+	}
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Ontop of these functions are various others:
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+	...
+\end_layout
+
+\begin_layout Plain Layout
+
+	public override function __copy():UserConstraint {
+\end_layout
+
+\begin_layout Plain Layout
+
+		//produce a copy of the user-defined constraint
+\end_layout
+
+\begin_layout Plain Layout
+
+	}
+\end_layout
+
+\begin_layout Plain Layout
+
+	public override function __destroy():Void {
+\end_layout
+
+\begin_layout Plain Layout
+
+		//if there is any extra logic that must be performed when a
+\end_layout
+
+\begin_layout Plain Layout
+
+		//constraint breaks it can be done here.
+\end_layout
+
+\begin_layout Plain Layout
+
+	}
+\end_layout
+
+\begin_layout Plain Layout
+
+	public override function __validate():Void {
+\end_layout
+
+\begin_layout Plain Layout
+
+		//perform any verifications on the integrity of the constraint
+\end_layout
+
+\begin_layout Plain Layout
+
+		//for instance, are all bodies defined? Are we trying to
+\end_layout
+
+\begin_layout Plain Layout
+
+		//simulate a constraint between static bodies which will fail?
+\end_layout
+
+\begin_layout Plain Layout
+
+		//
+\end_layout
+
+\begin_layout Plain Layout
+
+		//If there are any computations that can be re-used throughout
+\end_layout
+
+\begin_layout Plain Layout
+
+		//both velocity and positional iterations, they can be done here also.
+\end_layout
+
+\begin_layout Plain Layout
+
+	}
+\end_layout
+
+\begin_layout Plain Layout
+
+	public override function __prepare():Void {
+\end_layout
+
+\begin_layout Plain Layout
+
+		//any calculations that depend on positional values should be done
+\end_layout
+
+\begin_layout Plain Layout
+
+		//here to be called before velocity iterations, and before every position
+ iteration.
+\end_layout
+
+\begin_layout Plain Layout
+
+	}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Beyond these, all that remains is to inform the constraint of what bodies
+ it is operating over.
+ This should be done as per the following model:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+	...
+\end_layout
+
+\begin_layout Plain Layout
+
+	public var body1(default,set_body1):Body;
+\end_layout
+
+\begin_layout Plain Layout
+
+	function set_body1(body1:Body) {
+\end_layout
+
+\begin_layout Plain Layout
+
+		return this.body1 = registerBody(this.body1,body1);
+\end_layout
+
+\begin_layout Plain Layout
+
+	}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Like this, the constraint will act exactly like all other nape constraints.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+You are free to add any other parameters to the constraint, but for a fully
+ compliant constraint which will work in nape like any other there are some
+ things to be noted:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Whenever a parameter of the constraint changes, you must call the invalidate()
+ method of the UserConstraint to inform nape of the change.
+ This is to make sure that the constraint is awoken should it be sleeping.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+You should do this internally, so that to the outside the Constraint acts
+ like any other nape constraint (which do not have a need for an invalidate
+ method).
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+For example, for simple datatypes like Float/Int you can follow this model:
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+	...
+\end_layout
+
+\begin_layout Plain Layout
+
+	public var parameter(default,set_parameter):Type;
+\end_layout
+
+\begin_layout Plain Layout
+
+	function set_parameter(parameter:Type) {
+\end_layout
+
+\begin_layout Plain Layout
+
+		if(this.parameter!=parameter) invalidate();
+\end_layout
+
+\begin_layout Plain Layout
+
+		return this.parameter = parameter;
+\end_layout
+
+\begin_layout Plain Layout
+
+	}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+For a complex data type, it is up to you to ensure that any invalidation
+ of that data type produces a call to the constraint invalidate() method
+ (through setters/function handlers etc).
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+For the specific Vec2 nape type which will be most common for such things
+ as anchors and direction vectors etc, you can follow this model:
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+	...
+\end_layout
+
+\begin_layout Plain Layout
+
+	public var vec2param(default,set_vec2param):Vec2;
+\end_layout
+
+\begin_layout Plain Layout
+
+	function set_vec2param(vec2param:Vec2) {
+\end_layout
+
+\begin_layout Plain Layout
+
+		if(this.vec2param==null) this.vec2param = bindVec2();
+\end_layout
+
+\begin_layout Plain Layout
+
+		return this.vec2param.set(vec2param);
+\end_layout
+
+\begin_layout Plain Layout
+
+	}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Again, this will ensure a consistent API with respect to all other constraints
+ where assignment of a Vec2 value like throughout all of nape consists of
+ a copy-by-value and not copy-by-reference.
+ Instantiating the parameter with 
+\emph on
+bindVec2 
+\emph default
+handles invalidation of the constraint when it's x/y values are modified
+ automaticaly.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Newpage newpage
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Example:
+\end_layout
+
+\begin_layout Standard
+Here is a re-implementation of nape's PivotJoint, but as a custom UserConstraint.
+ The result is a PivotJoint that behaves almost exactly like the internal
+ nape PivotJoint (The differences are of performance, and that the internal
+ nape PivotJoint has extra logic to deal with large positional errors which
+ is not implemented here).
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+typedef ARRAY<T> = #if flash9 flash.Vector<T> #else Array<T> #end;
+\end_layout
+
+\begin_layout Plain Layout
+
+class UserPivotJoint extends UserConstraint {
+\end_layout
+
+\begin_layout Plain Layout
+
+	public var body1(default,set_body1):Body;
+\end_layout
+
+\begin_layout Plain Layout
+
+	public var body2(default,set_body2):Body;
+\end_layout
+
+\begin_layout Plain Layout
+
+	function set_body1(body1:Body) return this.body1 = registerBody(this.body1,body1)
+\end_layout
+
+\begin_layout Plain Layout
+
+	function set_body2(body2:Body) return this.body2 = registerBody(this.body2,body2)
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+	public var anchor1(default,set_anchor1):Vec2;
+\end_layout
+
+\begin_layout Plain Layout
+
+	public var anchor2(default,set_anchor2):Vec2;
+\end_layout
+
+\begin_layout Plain Layout
+
+	function set_anchor1(anchor1:Vec2) {
+\end_layout
+
+\begin_layout Plain Layout
+
+		if(this.anchor1==null) this.anchor1 = bindVec2();
+\end_layout
+
+\begin_layout Plain Layout
+
+		return this.anchor1.set(anchor1);
+\end_layout
+
+\begin_layout Plain Layout
+
+	}
+\end_layout
+
+\begin_layout Plain Layout
+
+	function set_anchor2(anchor2:Vec2) {
+\end_layout
+
+\begin_layout Plain Layout
+
+		if(this.anchor2==null) this.anchor2 = bindVec2();
+\end_layout
+
+\begin_layout Plain Layout
+
+		return this.anchor2.set(anchor2);
+\end_layout
+
+\begin_layout Plain Layout
+
+	}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+	public function new(body1:Body,body2:Body,anchor1:Vec2,anchor2:Vec2) {
+\end_layout
+
+\begin_layout Plain Layout
+
+		super(2);
+\end_layout
+
+\begin_layout Plain Layout
+
+		this.body1 = body1;
+\end_layout
+
+\begin_layout Plain Layout
+
+		this.body2 = body2;
+\end_layout
+
+\begin_layout Plain Layout
+
+		this.anchor1 = anchor1;
+\end_layout
+
+\begin_layout Plain Layout
+
+		this.anchor2 = anchor2;
+\end_layout
+
+\begin_layout Plain Layout
+
+	}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+	public override function __copy():UserConstraint {
+\end_layout
+
+\begin_layout Plain Layout
+
+		return new UserPivotJoint(body1,body2,anchor1,anchor2);
+\end_layout
+
+\begin_layout Plain Layout
+
+	}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+	public override function __validate() {
+\end_layout
+
+\begin_layout Plain Layout
+
+		//example:
+\end_layout
+
+\begin_layout Plain Layout
+
+		if(body1==null || body1==null) throw "Error: UserPivotJoint cannot be
+ simulated with null bodies";
+\end_layout
+
+\begin_layout Plain Layout
+
+	}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+	var rel1:Vec2;
+\end_layout
+
+\begin_layout Plain Layout
+
+	var rel2:Vec2;
+\end_layout
+
+\begin_layout Plain Layout
+
+	public override function __prepare() {
+\end_layout
+
+\begin_layout Plain Layout
+
+		rel1 = body1.localToRelative(anchor1);
+\end_layout
+
+\begin_layout Plain Layout
+
+		rel2 = body2.localToRelative(anchor2);
+\end_layout
+
+\begin_layout Plain Layout
+
+	}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+	public override function __position(err:ARRAY<Float>) {
+\end_layout
+
+\begin_layout Plain Layout
+
+		err[0] = (body2.position.x + rel2.x) - (body1.position.x + rel1.x);
+\end_layout
+
+\begin_layout Plain Layout
+
+		err[1] = (body2.position.y + rel2.y) - (body1.position.y + rel1.y);
+\end_layout
+
+\begin_layout Plain Layout
+
+	}
+\end_layout
+
+\begin_layout Plain Layout
+
+	public override function __velocity(err:ARRAY<Float>) {
+\end_layout
+
+\begin_layout Plain Layout
+
+		var v1 = body1.constraintVelocity;
+\end_layout
+
+\begin_layout Plain Layout
+
+		var v2 = body2.constraintVelocity;
+\end_layout
+
+\begin_layout Plain Layout
+
+		err[0] = (v2.x - rel2.y*v2.z) - (v1.x - rel1.y*v1.z);
+\end_layout
+
+\begin_layout Plain Layout
+
+		err[1] = (v2.y + rel2.x*v2.z) - (v1.x + rel1.x*v1.z);
+\end_layout
+
+\begin_layout Plain Layout
+
+	}
+\end_layout
+
+\begin_layout Plain Layout
+
+	public override function __eff_mass(eff:ARRAY<Float>) {
+\end_layout
+
+\begin_layout Plain Layout
+
+		var m1 = body1.constraintMass; var m2 = body2.constraintMass;
+\end_layout
+
+\begin_layout Plain Layout
+
+		var i1 = body1.constraintInertia; var i2 = body2.constraintInertia;
+\end_layout
+
+\begin_layout Plain Layout
+
+		eff[0] = m1 + m2 + rel1.y*rel1.y*i1 + rel2.y*rel2.y*i2;
+\end_layout
+
+\begin_layout Plain Layout
+
+		eff[1] =         - rel1.x*rel1.y*i1 - rel2.x*rel2.y*i2;
+\end_layout
+
+\begin_layout Plain Layout
+
+		eff[2] = m1 + m2 + rel1.x*rel1.x*i1 + rel2.x*rel2.x*i2;
+\end_layout
+
+\begin_layout Plain Layout
+
+	}
+\end_layout
+
+\begin_layout Plain Layout
+
+	public override function __impulse(imp:ARRAY<Float>,body:Body,out:Vec3)
+ {
+\end_layout
+
+\begin_layout Plain Layout
+
+		var scale = if(body==body1) -1.0 else 1.0;
+\end_layout
+
+\begin_layout Plain Layout
+
+		var relv  = if(body==body1) rel1 else rel2;
+\end_layout
+
+\begin_layout Plain Layout
+
+		out.x = scale*imp[0];
+\end_layout
+
+\begin_layout Plain Layout
+
+		out.y = scale*imp[1];
+\end_layout
+
+\begin_layout Plain Layout
+
+		out.z = scale*relv.cross(new Vec2(imp[0],imp[1]));
+\end_layout
+
+\begin_layout Plain Layout
+
+	}
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Moar!!
+\end_layout
+
+\begin_layout Standard
+You can additionaly define velocity-only constraints like the MotorJoint
+ in nape.
+ To do this you simply do not implement the __position method and pass 
+\noun on
+true 
+\noun default
+as a second argument to the super constructor call.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+You can also define inequality constraints.
+ For this purpose there is one more additional function that can be overriden
+ not listed about which is:
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+	...
+\end_layout
+
+\begin_layout Plain Layout
+
+	public override function __clamp(jAcc:ARRAY<Float>) {
+\end_layout
+
+\begin_layout Plain Layout
+
+	}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Which should perform any necessary clamping of the accumulated impulse to
+ handle inequalities in the constraint.
+ For instance in the internal penetration contact constraint of nape, the
+ inequality means that we clamp the one-dimensional jAcc so that it is never
+ negative (Contact only pushes, never pulls).
+\end_layout
+
+\end_body
+\end_document

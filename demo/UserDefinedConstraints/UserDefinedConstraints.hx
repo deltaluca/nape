@@ -11,6 +11,7 @@ import nape.geom.Vec3;
 
 import nape.constraint.UserConstraint;
 import nape.constraint.PivotJoint;
+import nape.constraint.WeldJoint;
 
 import FixedStep;
 import FPS;
@@ -21,27 +22,50 @@ import FPS;
 	typedef ARRAY<T> = Array<T>;
 #end
 
-class UserPivotJoint extends UserConstraint {
+class UserWeldJoint extends UserConstraint {
 	public var body1(default,set_body1):Body;
 	public var body2(default,set_body2):Body;
 	//. this handles body assignment perfectly!
 	//  registerBody will deregister the old one, and register the new one returning it
 	//. registering/deregestering occur in pairs and can happen multiple times.
 	//. null values are checked to make sure everything occurs as it should internally.
-	function set_body1(b:Body) { return this.body1 = registerBody(this.body1,b); }
-	function set_body2(b:Body) { return this.body2 = registerBody(this.body2,b); }
+	function set_body1(body1:Body) { return this.body1 = registerBody(this.body1,body1); }
+	function set_body2(body2:Body) { return this.body2 = registerBody(this.body2,body2); }
 
-	public var anchor1:Vec2;
-	public var anchor2:Vec2;
+	//. to make the user-def constraint robust
+	//  the anchors Vec2's are special, and bound to the constraint
+	//  so like with nape constraints the constraint is auto-woken
+	//  when the anchor values are modified
+	public var anchor1(default,set_anchor1):Vec2;
+	public var anchor2(default,set_anchor2):Vec2;
+	function set_anchor1(anchor1:Vec2) {
+		if(this.anchor1==null) this.anchor1 = bindVec2();
+		return this.anchor1.set(anchor1);
+	}
+	function set_anchor2(anchor2:Vec2) {
+		if(this.anchor2==null) this.anchor2 = bindVec2();
+		return this.anchor2.set(anchor2);
+	}
 
-	public function new(body1:Body,body2:Body,anchor1:Vec2,anchor2:Vec2) {
-		super(2); //2 dimensional constraint.
+	//need to use the invalidate method to keep constraint robust here
+	//above it's provided by using the bindVec2() method
+	public var phase(default,set_phase):Float;
+	function set_phase(phase:Float) {
+		if(this.phase!=phase) invalidate();
+		return this.phase = phase;
+	}
+
+	public function new(body1:Body,body2:Body,anchor1:Vec2,anchor2:Vec2,?phase=0.0) {
+		super(3); //3 dimensional constraint.
 
 		this.body1 = body1;
 		this.body2 = body2;
 
 		this.anchor1 = anchor1;
 		this.anchor2 = anchor2;
+		this.phase = phase;
+
+		rel1 = new Vec2(); rel2 = new Vec2();
 	}
 
 	//------------------------------------------------------------
@@ -51,13 +75,13 @@ class UserPivotJoint extends UserConstraint {
 		//when the normal Constraint::copy() function is called
 		//this method is called first, and then all other properties shared between Constraints
 		//are copied also.
-		return new UserPivotJoint(body1,body2,anchor1,anchor2);
+		return new UserWeldJoint(body1,body2,anchor1,anchor2,phase);
 	}
 
 	//public override function __destroy():Void {} //nothing extra needs to be done
 
 	public override function __validate():Void {
-		if(body1==null || body2==null) throw "Error: UserPivotJonit cannot have null bodies";
+		if(body1==null || body2==null) throw "Error: UserWeldJoint cannot have null bodies";
 		//^ for example
 	}
 
@@ -67,8 +91,8 @@ class UserPivotJoint extends UserConstraint {
 		//here we can pre-calculate anything that is persistant throughout a step
 		//in this case, the relative anchors for each body to be used
 		//throughout the velocity iterations.
-		rel1 = body1.localToRelative(anchor1);
-		rel2 = body2.localToRelative(anchor2);
+		rel1.set(body1.localToRelative(anchor1,true));
+		rel2.set(body2.localToRelative(anchor2,true));
 	}
 
 	//--------------------------------------------------------------
@@ -77,6 +101,7 @@ class UserPivotJoint extends UserConstraint {
 	public override function __position(err:ARRAY<Float>) {
 		err[0] = (body2.position.x + rel2.x) - (body1.position.x + rel1.x);
 		err[1] = (body2.position.y + rel2.y) - (body1.position.y + rel1.y);
+		err[2] = body2.rotation - body1.rotation - phase;
 	}
 
 	//velocity error (time-derivative of positional error)
@@ -85,21 +110,26 @@ class UserPivotJoint extends UserConstraint {
 		var v2 = body2.constraintVelocity;
 		err[0] = (v2.x - rel2.y*v2.z) - (v1.x - rel1.y*v1.z);
 		err[1] = (v2.y + rel2.x*v2.z) - (v1.y + rel1.x*v1.z);
+		err[2] = v2.z - v1.z;
 	}
 
 	//effective mass matrix
 	//K = J*M^-1*J^T where J is the jacobian of the velocity error.
 	//
 	//output should be a compact version of the eff-mass matrix like
-	// [ eff[0], eff[1] ]
-	// [ eff[1], eff[2] ]
+	// [ eff[0], eff[1], eff[2] ]
+	// [ eff[1], eff[3], eff[4] ]
+	// [ eff[2], eff[4], eff[5] ]
 	public override function __eff_mass(eff:ARRAY<Float>) {
 		//constraintMass is well defined on all bodies as the mass/inertia we should use for constraints
 		var im1 = body1.constraintMass; var ii1 = body1.constraintInertia;
 		var im2 = body2.constraintMass; var ii2 = body2.constraintInertia;
 		eff[0] = im1+im2 + rel1.y*rel1.y*ii1 + rel2.y*rel2.y*ii2;
-		eff[1] =         - rel1.y*rel1.x*ii1 - rel2.y*rel2.x*ii2;
-		eff[2] = im1+im2 + rel1.x*rel1.x*ii1 + rel2.x*rel2.x*ii2;
+		eff[1] =         - rel1.x*rel1.y*ii1 - rel2.x*rel2.y*ii2;
+		eff[2] =         -        rel1.y*ii1 -        rel2.y*ii2;
+		eff[3] = im1+im2 + rel1.x*rel1.x*ii1 + rel2.x*rel2.x*ii2;
+		eff[4] =                  rel1.x*ii1 +        rel2.x*ii2;
+		eff[5] =                         ii1 +               ii2;
 	}
 
 	//public override function __clamp(jAcc:ARRAY<Float>):Void {} // nothing needs to be done here.
@@ -111,161 +141,10 @@ class UserPivotJoint extends UserConstraint {
 	public override function __impulse(imp:ARRAY<Float>,body:Body,out:Vec3) {
 		var scale = if(body==body1) -1.0 else 1.0;
 		var rel   = if(body==body1) rel1 else rel2;
-		out.x = imp[0]*scale;
-		out.y = imp[1]*scale;
-		out.z = scale*rel.cross(Vec2.weak(imp[0],imp[1]));
+		out.x = scale*imp[0];
+		out.y = scale*imp[1];
+		out.z = scale*(imp[2] + rel.cross(Vec2.weak(imp[0],imp[1])));
 	}
-}
-
-class UserMotorJoint extends UserConstraint {
-	public var body1(default,set_body1):Body;
-	public var body2(default,set_body2):Body;
-	function set_body1(b:Body) { return this.body1 = registerBody(this.body1,b); }
-	function set_body2(b:Body) { return this.body2 = registerBody(this.body2,b); }
-
-	public var rate:Float;
-	public var ratio:Float;
-
-	public function new(body1:Body,body2:Body,?rate=0.0,?ratio=1.0) {
-		super(1,true); //1 dimensional, velocity only constraint
-
-		this.body1 = body1;
-		this.body2 = body2;
-
-		this.rate = rate;
-		this.ratio = ratio;
-	}
-
-	//------------------------------------------------------------
-
-	public override function __copy():UserConstraint {
-		return new UserMotorJoint(body1,body2,rate,ratio);
-	}
-
-	//neither extra destruction or validation logic is required.
-	//public override function __destroy():Voidy {}
-	//public override function __validate():Void {}
-	//public override function __prepare():Void {}
-
-	//------------------------------------------------------------
-
-	//velocity only constraint, so no __position() needed
-	//public override function __position(err:ARRAY<Float>) {}
-
-	public override function __velocity(err:ARRAY<Float>) {
-		var v1 = body1.constraintVelocity;
-		var v2 = body2.constraintVelocity;
-		err[0] = ratio*v2.z - v1.z - rate;
-	}
-
-	//velocity only, so positional is never true
-	public override function __eff_mass(eff:ARRAY<Float>) {
-		eff[0] = body1.constraintInertia + ratio*ratio*body2.constraintInertia;
-	}
-
-	//public override function __clamp(jAcc:ARRAY<Float>):Void {} //nothing needs to be done here.
-
-	//------------------------------------------------------------
-
-	public override function __impulse(imp:ARRAY<Float>,body:Body,out:Vec3) {
-		var scale = if(body==body1) -1.0 else ratio;
-		out.x = out.y = 0.0;
-		out.z = scale*imp[0];
-	}
-}
-
-class UserDistanceJoint extends UserConstraint {
-	public var body1(default,set_body1):Body;
-	public var body2(default,set_body2):Body;
-	function set_body1(b:Body) { return this.body1 = registerBody(this.body1,b); }
-	function set_body2(b:Body) { return this.body2 = registerBody(this.body2,b); }
-
-	public var anchor1:Vec2;
-	public var anchor2:Vec2;
-
-	public var jointMin:Float;
-	public var jointMax:Float;
-
-	public function new(body1:Body,body2:Body,anchor1:Vec2,anchor2:Vec2,jointMin:Float,jointMax:Float) {
-		super(1); //1 dimensional constraint.
-
-		this.body1 = body1;
-		this.body2 = body2;
-
-		this.anchor1 = anchor1;
-		this.anchor2 = anchor2;
-
-		this.jointMin = jointMin;
-		this.jointMax = jointMax;
-
-		n = new Vec2();
-	}
-
-	//------------------------------------------------------------
-
-	public override function __copy():UserConstraint {
-		return new UserDistanceJoint(body1,body2,anchor1,anchor2,jointMin,jointMax);
-	}
-
-	var rel1:Vec2;
-	var rel2:Vec2;
-	var n:Vec2; var cerr:Float;
-
-	public override function __prepare() {
-		rel1 = body1.localToRelative(anchor1);
-		rel2 = body2.localToRelative(anchor2);
-		n.x = (body2.position.x+rel2.x) - (body1.position.x+rel1.x);
-		n.y = (body2.position.y+rel2.y) - (body1.position.y+rel1.y);
-		cerr = n.lsq();
-		if(cerr<1e-5) {
-			n.setxy(0,0);
-			cerr = 0;
-		}else {
-			cerr = Math.sqrt(cerr);
-			n.muleq(1/cerr);
-			if(jointMin==jointMax) {
-				cerr -= jointMax;
-			}else {
-				if(cerr<jointMin) {
-					cerr = jointMin - cerr;
-					n.muleq(-1);
-				}else if(cerr>jointMax) {
-					cerr -= jointMax;
-				}else {
-					n.setxy(0,0);
-					cerr = 0;
-				}
-			}
-		}
-	}
-
-	public override function __position(err:ARRAY<Float>) {
-		err[0] = cerr;	
-	}
-
-	public override function __velocity(err:ARRAY<Float>) {
-		var v1 = body1.constraintVelocity;
-		var v2 = body2.constraintVelocity;
-		err[0] = n.x*(v2.x-v1.x) + n.y*(v2.y-v1.y) + v2.z*cx2 - v1.z*cx1;
-	}
-
-	var cx1:Float;
-	var cx2:Float;
-	public override function __eff_mass(eff:ARRAY<Float>) {
-		cx1 = rel1.cross(n); cx2 = rel2.cross(n);
-		eff[0] = body1.constraintMass + body2.constraintMass
-		       + body1.constraintInertia*cx1*cx1 + body2.constraintInertia*cx2*cx2;
-	}
-
-	//------------------------------------------------------------
-
-	public override function __impulse(imp:ARRAY<Float>,body:Body,out:Vec3) {
-		var scale = if(body==body1) -1.0 else 1.0;
-		out.x = imp[0]*n.x*scale;
-		out.y = imp[0]*n.y*scale;
-		out.z = imp[0]*scale*(body==body1 ? cx1 : cx2);
-	}
-
 }
 
 class UserDefinedConstraints extends FixedStep {
@@ -277,7 +156,7 @@ class UserDefinedConstraints extends FixedStep {
 
 		var space = new Space(new Vec2(0,400));
 		var debug = new BitmapDebug(stage.stageWidth,stage.stageHeight,0x333333);
-//		debug.drawConstraints = true;
+		debug.drawConstraints = true;
 		addChild(debug.display);
 
 		addChild(new FPS(stage.stageWidth,60,0,60,0x40000000,0xffffffff,0xa0ff0000));
@@ -303,10 +182,12 @@ class UserDefinedConstraints extends FixedStep {
 
 //		var motor = new UserMotorJoint(b1,b2,10);
 //		motor.space = space;
-		var dist = new UserDistanceJoint(b1,b2,new Vec2(0,50),new Vec2(-50,0),1,1);
-		dist.space = space;
+		var weld = new UserWeldJoint(b1,b2,new Vec2(100,0),new Vec2(-100,0));
+//		dist.stiff = false;
+//		dist.frequency = 1;
+		weld.space = space;
 
-		var hand = new UserPivotJoint(space.world,null,new Vec2(),new Vec2());
+		var hand = new PivotJoint(space.world,null,new Vec2(),new Vec2());
 		hand.stiff = false;
 		hand.active = false;
 		hand.space = space;

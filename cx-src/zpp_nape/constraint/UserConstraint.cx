@@ -189,14 +189,14 @@ class PR(UserConstraint) extends PR(Constraint) {
 	flibmdel public inline function transform(L:ARRAY(Float),x:ARRAY(Float)) {
 		for(i in 0...dim) {
 			var sum = x[i];
-			for(k in 0...i) sum -= L[i*dim+k]*x[k];
+			for(k in 0...i) sum -= L[i*dim+k]*y[k];
 			y[i] = sum / L[i*dim+i];
 		}
 
 		for(ix in 0...dim) {
 			var i = dim-1-ix;
 			var sum = y[i];
-			for(k in i+1...dim) sum -= L[k*dim+i]*y[k];
+			for(k in i+1...dim) sum -= L[k*dim+i]*x[k];
 			x[i] = sum/L[i*dim+i];
 		}
 	}
