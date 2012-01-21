@@ -17,8 +17,11 @@ class PR(UserConstraint) extends PR(Constraint) {
 		var match = null;
 		for(x in bodies) { if(x.body==b) { match = x; break; } };
 
-		if(match==null)
+		if(match==null) {
 			 bodies.push({cnt:1,body:b});
+			 if(active && space!=null)
+				 active_body(b);
+		}
 		else match.cnt++;
 	}
 
@@ -33,6 +36,9 @@ class PR(UserConstraint) extends PR(Constraint) {
 					if(bl>0)
 						bodies[i] = bodies[bl-1];
 					bodies.pop();
+
+					if(active && space!=null)
+						inactive_body(b);
 				}
 				match=x;
 				break;
@@ -144,6 +150,19 @@ class PR(UserConstraint) extends PR(Constraint) {
 
 	//-----------------------------------------------------------------------------
 
+	flibmdel public inline function lsq(v:ARRAY(Float)) {
+		var sum = 0.0;
+		for(i in 0...dim) sum += v[i]*v[i];
+		return sum;
+	}
+	flibmdel public inline function _clamp(v:ARRAY(Float),max:Float) {
+		var x = lsq(v);
+		if(x>max*max) {
+			var scale = max/Math.sqrt(x);
+			for(i in 0...dim) v[i] *= scale;
+		}
+	}
+
 	var L:ARRAY(Float);
 	flibmdel public inline function solve(m:ARRAY(Float)) {
 		var ind = 0;
@@ -184,6 +203,7 @@ class PR(UserConstraint) extends PR(Constraint) {
 	public var soft:Float;
 	public var gamma:Float;
 	public var velonly:Bool;
+	public var jMax:Float;
 
 	public var Keff:ARRAY(Float);
 	public override function preStep(dt:Float) {
@@ -197,22 +217,17 @@ class PR(UserConstraint) extends PR(Constraint) {
 
 		//effective mass
 		outer_zn.__eff_mass(false, Keff);
-		DEBUG(
-			if(Keff==null) throw "Error: ???(Keff) returned null value";
-			if(Std.int(Keff.length) != (dim*(dim+1))>>>1) throw "Error: Dimensions of ???(keff) do not match constraint dimensions!";
-		)
 		L = solve(Keff);
 
 		if(!stiff && !velonly) {
 			var biasCoef;
 			soft = soft_gamma(frequency,damping,dt,gamma,biasCoef);
 
-			//breaking?
-
 			outer_zn.__position(bias);
-			for(i in 0...dim) bias[i] *= -dt*biasCoef;
+			if(breakUnderError && lsq(bias) > maxError*maxError) return true;
 
-			//clamping?
+			for(i in 0...dim) bias[i] *= -dt*biasCoef;
+			_clamp(bias,maxError);
 		}else {
 			for(i in 0...dim) bias[i] = 0.0;
 			gamma = 0.0;
@@ -220,6 +235,7 @@ class PR(UserConstraint) extends PR(Constraint) {
 		}
 
 		for(i in 0...dim) jAcc[i] *= dtratio;
+		jMax = maxForce*dt;
 
 		return false;
 	}
@@ -254,6 +270,11 @@ class PR(UserConstraint) extends PR(Constraint) {
 		//clamping
 		outer_zn.__clamp(jAcc);
 
+		if((breakUnderForce || !stiff) && lsq(jAcc)>jMax*jMax) {
+			if(breakUnderForce) return true;
+			else if(!stiff) _clamp(jAcc,jMax);
+		}
+
 		for(i in 0...dim) J[i] = jAcc[i] - jOld[i];
 
 		for(bs in bodies) {
@@ -270,11 +291,13 @@ class PR(UserConstraint) extends PR(Constraint) {
 		if(velonly) return false;
 
 		outer_zn.__position(J);
-		outer_zn.__eff_mass(true, Keff);
+		var lj = lsq(J);
+		if(breakUnderError && lj > maxError*maxError) return true;
+		else if(lj < PR(Config).SLOP) return false;
 
 		for(i in 0...dim) J[i] *= -1;
-		//clamping?
 
+		outer_zn.__eff_mass(true, Keff);
 		transform(solve(Keff),J);
 
 		for(bs in bodies) {
