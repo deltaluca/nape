@@ -20,7 +20,7 @@ class UserConstraint extends Constraint {
 		DEBUG(throw "Error: Userconstraint::__velocity must be overriden";)
 		return null;
 	}
-	public function __eff_mass():ARRAY(Float) {
+	public function __eff_mass(positional:Bool):ARRAY(Float) {
 		DEBUG(throw "Error: UserConstraint::__eff_mass must be overriden";)
 		return null;
 	}
@@ -28,15 +28,8 @@ class UserConstraint extends Constraint {
 
 	//------------------------------------------------------------------------
 
-	public function __vel_impulse(imp:ARRAY(Float)) {
-		DEBUG(throw "Error: UserConstraint::__vel_impulse must be overriden";)
-	}
-	public function __pos_impulse(imp:ARRAY(Float)) {
-		DEBUG(throw "Error: UserConstraint::__pos_impulse must be overriden";)
-	}
-
-	public function __body_impulse(imp:ARRAY(Float),body:Body):Vec3 {
-		DEBUG(throw "Error: UserConstraint::__body_impulse must be overriden";)
+	public function __impulse(imp:ARRAY(Float),body:Body):Vec3 {
+		DEBUG(throw "Error: UserConstraint::__impulse must be overriden";)
 		return null;
 	}
 
@@ -80,12 +73,12 @@ class UserConstraint extends Constraint {
 
 	public function registerBody(body:Body) {
 		pr(inner).immutable_midstep("UserConstraint::registerBody");
-		DEBUG(if(body==null) throw "Error: Cannot register null body";)
+		if(body==null) return;
 		pr(inner_zn).addBody(body.pr(inner));
 	}
 	public function unregisterBody(body:Body) {
 		pr(inner).immutable_midstep("UserConstraint::unregisterBody");
-		DEBUG(if(body==null) throw "Error: Cannot unregister null body";)
+		if(body==null) return;
 		if(!pr(inner_zn).remBody(body.pr(inner))) {
 			DEBUG(throw "Error: Body is not registered to the constraint";)
 		}

@@ -36,7 +36,7 @@ unit_swf: pre_compile
 
 demos: pre_compile
 	mkdir -p bin/release
-	haxe -swf bin/release/release_nape.swc -swf-version $(SWFV) $(RELEASE_FLAGS)
+	haxe -swf bin/release/release_nape.swc -swf-version $(SWFV) $(ASSERT_FLAGS)
 	flib bin/release/release_nape.swc
 	unzip bin/release/release_nape.swc -x catalog.xml
 	mv library.swf bin/release/haxe_release_nape.swf	
