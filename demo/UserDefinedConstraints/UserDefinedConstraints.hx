@@ -174,6 +174,7 @@ class UserDefinedConstraints extends FixedStep {
 		b2.velocity.y = -100;
 
 		var piv = new UserPivotJoint(b1,b2,new Vec2(80,0), new Vec2(-80,0));
+		piv.stiff = false;
 		piv.space = space;
 
 		run(function (dt) {
