@@ -113,6 +113,7 @@ class PR(UserConstraint) extends PR(Constraint) {
 
 	public override function validate() {
 		for(b in bodies) if(b.body.space!=space) throw "Error: Constraints must have each body within the same sapce to which the constraint has been assigned";
+		outer_zn.__validate();
 	}
 
 	public override function wake_connected() {
@@ -215,10 +216,10 @@ class PR(UserConstraint) extends PR(Constraint) {
 
 		stepped = true;
 
-		outer_zn.__validate();
+		outer_zn.__prepare();
 
 		//effective mass
-		outer_zn.__eff_mass(false, Keff);
+		outer_zn.__eff_mass(Keff);
 		L = solve(Keff);
 
 		if(!stiff && !velonly) {
@@ -292,6 +293,8 @@ class PR(UserConstraint) extends PR(Constraint) {
 	public override function applyImpulsePos() {
 		if(velonly) return false;
 
+		outer_zn.__prepare();
+
 		outer_zn.__position(J);
 		var lj = lsq(J);
 		if(breakUnderError && lj > maxError*maxError) return true;
@@ -299,7 +302,7 @@ class PR(UserConstraint) extends PR(Constraint) {
 
 		for(i in 0...dim) J[i] *= -1;
 
-		outer_zn.__eff_mass(true, Keff);
+		outer_zn.__eff_mass(Keff);
 		transform(solve(Keff),J);
 
 		for(bs in bodies) {

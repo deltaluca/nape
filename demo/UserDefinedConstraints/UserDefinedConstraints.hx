@@ -56,9 +56,14 @@ class UserPivotJoint extends UserConstraint {
 
 	//public override function __destroy():Void {} //nothing extra needs to be done
 
+	public override function __validate():Void {
+		if(body1==null || body2==null) throw "Error: UserPivotJonit cannot have null bodies";
+		//^ for example
+	}
+
 	var rel1:Vec2;
 	var rel2:Vec2;
-	public override function __validate():Void {
+	public override function __prepare():Void {
 		//here we can pre-calculate anything that is persistant throughout a step
 		//in this case, the relative anchors for each body to be used
 		//throughout the velocity iterations.
@@ -88,9 +93,7 @@ class UserPivotJoint extends UserConstraint {
 	//output should be a compact version of the eff-mass matrix like
 	// [ eff[0], eff[1] ]
 	// [ eff[1], eff[2] ]
-	public override function __eff_mass(positional:Bool,eff:ARRAY<Float>) {
-		//recompute relative vectors for positional updates
-		if(positional) __validate();
+	public override function __eff_mass(eff:ARRAY<Float>) {
 		//constraintMass is well defined on all bodies as the mass/inertia we should use for constraints
 		var im1 = body1.constraintMass; var ii1 = body1.constraintInertia;
 		var im2 = body2.constraintMass; var ii2 = body2.constraintInertia;
@@ -142,6 +145,7 @@ class UserMotorJoint extends UserConstraint {
 	//neither extra destruction or validation logic is required.
 	//public override function __destroy():Voidy {}
 	//public override function __validate():Void {}
+	//public override function __prepare():Void {}
 
 	//------------------------------------------------------------
 
@@ -155,7 +159,7 @@ class UserMotorJoint extends UserConstraint {
 	}
 
 	//velocity only, so positional is never true
-	public override function __eff_mass(_,eff:ARRAY<Float>) {
+	public override function __eff_mass(eff:ARRAY<Float>) {
 		eff[0] = body1.constraintInertia + ratio*ratio*body2.constraintInertia;
 	}
 
@@ -190,8 +194,77 @@ class UserDistanceJoint extends UserConstraint {
 
 		this.anchor1 = anchor1;
 		this.anchor2 = anchor2;
+
+		this.jointMin = jointMin;
+		this.jointMax = jointMax;
+
+		n = new Vec2();
 	}
 
+	//------------------------------------------------------------
+
+	public override function __copy():UserConstraint {
+		return new UserDistanceJoint(body1,body2,anchor1,anchor2,jointMin,jointMax);
+	}
+
+	var rel1:Vec2;
+	var rel2:Vec2;
+	var n:Vec2; var cerr:Float;
+
+	public override function __prepare() {
+		rel1 = body1.localToRelative(anchor1);
+		rel2 = body2.localToRelative(anchor2);
+		n.x = (body2.position.x+rel2.x) - (body1.position.x+rel1.x);
+		n.y = (body2.position.y+rel2.y) - (body1.position.y+rel1.y);
+		cerr = n.lsq();
+		if(cerr<1e-5) {
+			n.setxy(0,0);
+			cerr = 0;
+		}else {
+			cerr = Math.sqrt(cerr);
+			n.muleq(1/cerr);
+			if(jointMin==jointMax) {
+				cerr -= jointMax;
+			}else {
+				if(cerr<jointMin) {
+					cerr = jointMin - cerr;
+					n.muleq(-1);
+				}else if(cerr>jointMax) {
+					cerr -= jointMax;
+				}else {
+					n.setxy(0,0);
+					cerr = 0;
+				}
+			}
+		}
+	}
+
+	public override function __position(err:ARRAY<Float>) {
+		err[0] = cerr;	
+	}
+
+	public override function __velocity(err:ARRAY<Float>) {
+		var v1 = body1.constraintVelocity;
+		var v2 = body2.constraintVelocity;
+		err[0] = n.x*(v2.x-v1.x) + n.y*(v2.y-v1.y) + v2.z*cx2 - v1.z*cx1;
+	}
+
+	var cx1:Float;
+	var cx2:Float;
+	public override function __eff_mass(eff:ARRAY<Float>) {
+		cx1 = rel1.cross(n); cx2 = rel2.cross(n);
+		eff[0] = body1.constraintMass + body2.constraintMass
+		       + body1.constraintInertia*cx1*cx1 + body2.constraintInertia*cx2*cx2;
+	}
+
+	//------------------------------------------------------------
+
+	public override function __impulse(imp:ARRAY<Float>,body:Body,out:Vec3) {
+		var scale = if(body==body1) -1.0 else 1.0;
+		out.x = imp[0]*n.x*scale;
+		out.y = imp[0]*n.y*scale;
+		out.z = imp[0]*scale*(body==body1 ? cx1 : cx2);
+	}
 
 }
 
@@ -228,8 +301,10 @@ class UserDefinedConstraints extends FixedStep {
 		b2.space = space;
 		b2.velocity.y = -100;
 
-		var motor = new UserMotorJoint(b1,b2,10);
-		motor.space = space;
+//		var motor = new UserMotorJoint(b1,b2,10);
+//		motor.space = space;
+		var dist = new UserDistanceJoint(b1,b2,new Vec2(0,50),new Vec2(-50,0),1,1);
+		dist.space = space;
 
 		var hand = new UserPivotJoint(space.world,null,new Vec2(),new Vec2());
 		hand.stiff = false;
