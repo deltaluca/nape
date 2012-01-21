@@ -189,6 +189,20 @@ class PR(Body) extends PR(Interactor) {
 	}
 	
 	//----------------------------------------------------------------------------------------------
+
+	public var wrapcvel:Vec3;
+	public function setup_cvel() {
+		var me = this;
+		me.wrapcvel = new Vec3();
+		me.wrapcvel.pr(inner).immutable = true;
+		me.wrapcvel.pr(inner).validate = function() {
+			me.wrapcvel.pr(inner).x = me.velx + me.kinvelx;
+			me.wrapcvel.pr(inner).y = me.vely + me.kinvely;
+			me.wrapcvel.pr(inner).z = me.angvel + me.kinangvel;
+		}
+	}
+
+	//----------------------------------------------------------------------------------------------
 	
 	public var angvel:Float;
 	public var torque:Float;

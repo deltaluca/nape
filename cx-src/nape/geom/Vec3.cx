@@ -2,9 +2,24 @@ package nape.geom;
 $(import);
 
 class Vec3 {
-	vec3_new(public, $(->));
+	public var pr(inner):PR(Vec3);
+
+	$(mixin genprop(x)
+		property(x,Float,{
+			if(pr(inner).validate!=null) pr(inner).validate();
+			pr(inner).x;
+		},{
+			DEBUG(if(pr(inner).immutable) throw "Error: Vec3 is immutable";)
+			pr(inner).x = x;
+		})
+	);
+	genprop(x)
+	genprop(y)
+	genprop(z)
 	
 	public function new(?x:Float=0,?y:Float=0,?z:Float=0) {
+		pr(inner) = new PR(Vec3)();
+		pr(inner).outer = this;
 		vec3_set(this.,$(->));
 	}
 	keep public inline function copy() return new Vec3(x,y,z)

@@ -166,6 +166,13 @@ class Body extends Interactor {
     vecprop(force,       wrap_force, setupForce)
 	
     //----------------------------------------------------------------------------------------------
+
+	property(constraintVelocity,Vec3,{
+		if(pr(inner).wrapcvel==null) pr(inner).setup_cvel();
+		pr(inner).wrapcvel;
+	})
+
+    //----------------------------------------------------------------------------------------------
 	
     property(rotation,Float,pr(inner).rot,{
 		pr(inner).immutable_midstep("Body::rotation");
@@ -247,6 +254,11 @@ class Body extends Interactor {
 		)
 		pr(inner).massMode = massMode == MassMode.DEFAULT ? Flag(MassMode,DEFAULT) : Flag(MassMode,FIXED);
 		pr(inner).invalidate_mass();
+	})
+
+	property(constraintMass,Float,{
+		if(!pr(inner).world) pr(inner).validate_mass();
+		pr(inner).imass;
 	})
 	
     property(mass,Float,{
@@ -331,6 +343,11 @@ class Body extends Interactor {
 		)
 		pr(inner).inertiaMode = inertiaMode == InertiaMode.FIXED ? Flag(InertiaMode,FIXED) : Flag(InertiaMode,DEFAULT);
 		pr(inner).invalidate_inertia();
+	})
+
+	property(constraintInertia,Float,{
+		if(!pr(inner).world) pr(inner).validate_inertia();
+		pr(inner).iinertia;
 	})
 	
     property(inertia,Float,{

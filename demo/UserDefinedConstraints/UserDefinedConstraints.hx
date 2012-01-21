@@ -28,22 +28,12 @@ class UserPivotJoint extends UserConstraint {
 	public var anchor1:Vec2;
 	public var anchor2:Vec2;
 
-	//this handles body assignment perfectly!
-	//register/unregister can be called multiple times with the same body
-	//so this case is handled. They also allow null arguments
-	//so that checking for null before calling is not needed.
-	function set_body1(b:Body):Body {
-		unregisterBody(this.body1);
-		this.body1 = b;
-		registerBody(this.body1);
-		return this.body1;
-	}	
-	function set_body2(b:Body):Body {
-		unregisterBody(this.body2);
-		this.body2 = b;
-		registerBody(this.body2);
-		return this.body2;
-	}	
+	//. this handles body assignment perfectly!
+	//  registerBody will deregister the old one, and register the new one returning it
+	//. registering/deregestering occur in pairs and can happen multiple times.
+	//. null values are checked to make sure everything occurs as it should internally.
+	function set_body1(b:Body) { return this.body1 = registerBody(this.body1,b); }
+	function set_body2(b:Body) { return this.body2 = registerBody(this.body2,b); }
 
 	public function new(body1:Body,body2:Body,anchor1:Vec2,anchor2:Vec2) {
 		super(2); //2 dimensional constraint.
@@ -64,9 +54,8 @@ class UserPivotJoint extends UserConstraint {
 		//are copied also.
 		return new UserPivotJoint(body1,body2,anchor1,anchor2);
 	}
-	public override function __destroy():Void {
-		//nothing extra needs to be done.
-	}	
+
+	//public override function __destroy():Void {} //nothing extra needs to be done
 
 	var rel1:Vec2;
 	var rel2:Vec2;
@@ -80,46 +69,35 @@ class UserPivotJoint extends UserConstraint {
 
 	//--------------------------------------------------------------
 
-	inline function array(x) return #if flash9 flash.Vector.ofArray(x) #else x #end
-
 	//positional error
-	public override function __position():ARRAY<Float> {
-		return array([
-			(body2.position.x + rel2.x) - (body1.position.x + rel1.x),
-			(body2.position.y + rel2.y) - (body1.position.y + rel1.y)
-		]);
+	public override function __position(err:ARRAY<Float>) {
+		err[0] = (body2.position.x + rel2.x) - (body1.position.x + rel1.x);
+		err[1] = (body2.position.y + rel2.y) - (body1.position.y + rel1.y);
 	}
 
 	//velocity error (time-derivative of positional error)
-	public override function __velocity():ARRAY<Float> {
-
-		var v1 = body1.velocity.add(body1.kinematicVel); var w1 = body1.angularVel + body1.kinAngVel;
-		var v2 = body2.velocity.add(body2.kinematicVel); var w2 = body2.angularVel + body2.kinAngVel;
-		return array([
-			(v2.x - rel2.y*w2) - (v1.x - rel1.y*w1),
-			(v2.y + rel2.x*w2) - (v1.y + rel1.x*w1)
-		]);
+	public override function __velocity(err:ARRAY<Float>) {
+		var v1 = body1.constraintVelocity;
+		var v2 = body2.constraintVelocity;
+		err[0] = (v2.x - rel2.y*v2.z) - (v1.x - rel1.y*v1.z);
+		err[1] = (v2.y + rel2.x*v2.z) - (v1.y + rel1.x*v1.z);
 	}
 
 	//effective mass matrix
 	//K = J*M^-1*J^T where J is the jacobian of the velocity error.
 	//
 	//output should be a compact version of the eff-mass matrix like
-	// [ ret[0], ret[1] ]
-	// [ ret[1], ret[2] ]
-	public override function __eff_mass(positional:Bool):ARRAY<Float> {
+	// [ eff[0], eff[1] ]
+	// [ eff[1], eff[2] ]
+	public override function __eff_mass(positional:Bool,eff:ARRAY<Float>) {
 		//recompute relative vectors for positional updates
 		if(positional) __validate();
-		//non-dynamics are treat as having infinite mass.
-		//so inverse mass is 0.
-		var im1 = if(!body1.isDynamic()) 0.0 else 1.0/body1.mass;
-		var im2 = if(!body2.isDynamic()) 0.0 else 1.0/body2.mass;
-		var ii1 = if(!body1.isDynamic()) 0.0 else 1.0/body1.inertia;
-		var ii2 = if(!body2.isDynamic()) 0.0 else 1.0/body2.inertia;
-		return array([
-			im1+im2 + rel1.y*rel1.y*ii1 + rel2.y*rel2.y*ii2,  -rel1.y*rel1.x*ii1 - rel2.y*rel2.x*ii2,
-			                                         im1+im2 + rel1.x*rel1.x*ii1 + rel2.x*rel2.x*ii2
-		]);
+		//constraintMass is well defined on all bodies as the mass/inertia we should use for constraints
+		var im1 = body1.constraintMass; var ii1 = body1.constraintInertia;
+		var im2 = body2.constraintMass; var ii2 = body2.constraintInertia;
+		eff[0] = im1+im2 + rel1.y*rel1.y*ii1 + rel2.y*rel2.y*ii2;
+		eff[1] =         - rel1.y*rel1.x*ii1 - rel2.y*rel2.x*ii2;
+		eff[2] = im1+im2 + rel1.x*rel1.x*ii1 + rel2.x*rel2.x*ii2;
 	}
 
 	//public override function __clamp(jAcc:ARRAY<Float>):Void {} // nothing needs to be done here.
@@ -128,14 +106,12 @@ class UserPivotJoint extends UserConstraint {
 
 	//this is computed as a selection from the full world impulse
 	//imp = J^T * constraint_imp
-	public override function __impulse(imp:ARRAY<Float>,body:Body):Vec3 {
+	public override function __impulse(imp:ARRAY<Float>,body:Body,out:Vec3) {
 		var scale = if(body==body1) -1.0 else 1.0;
 		var rel   = if(body==body1) rel1 else rel2;
-		return new Vec3(
-			scale*imp[0],
-			scale*imp[1],
-			scale*rel.cross(Vec2.weak(imp[0],imp[1]))
-		);
+		out.x = imp[0]*scale;
+		out.y = imp[1]*scale;
+		out.z = scale*rel.cross(Vec2.weak(imp[0],imp[1]));
 	}
 
 }

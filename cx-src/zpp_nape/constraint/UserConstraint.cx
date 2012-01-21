@@ -43,13 +43,13 @@ class PR(UserConstraint) extends PR(Constraint) {
 	}
 
 	//--------------------------------------------
-	
-	flibmdel public inline function bodyImpulse(b:PR(Body)) {
-		var jtotal = newARRAY(Float,dim);
-		for(i in 0...dim) jtotal[i] = pjAcc[i] + jAcc[i];
 
-		if(stepped) return outer_zn.__impulse(jtotal,b.outer);
-		else return new Vec3(0,0,0);
+	flibmdel public inline function bodyImpulse(b:PR(Body)) {
+		for(i in 0...dim) J[i] = pjAcc[i] + jAcc[i];
+
+		var ret = new Vec3(0,0,0);
+		if(stepped) outer_zn.__impulse(J,b.outer,ret);
+		return ret;
 	}
 
 	//--------------------------------------------
@@ -76,12 +76,14 @@ class PR(UserConstraint) extends PR(Constraint) {
 		return ret;
 	}
 
-	public function new(dim:Int) {
+	public function new(dim:Int,velonly:Bool) {
 		super();
 
 		bodies = newARRAY({cnt:Int,body:PR(Body)});
 
 		this.dim = dim;
+		this.velonly = velonly;
+
 		jAcc = newARRAY(Float,dim);
 		pjAcc = newARRAY(Float,dim);
 		bias = newARRAY(Float,dim);
@@ -90,6 +92,8 @@ class PR(UserConstraint) extends PR(Constraint) {
 		J = newARRAY(Float,dim);
 		jOld = newARRAY(Float,dim);
 		y = newARRAY(Float,dim);
+		Keff = newARRAY(Float,(dim*(dim+1))>>>1);
+		vec3 = new Vec3(0,0,0);
 
 		for(i in 0...dim) {
 			jAcc[i] = pjAcc[i] = bias[i] = J[i] = jOld[i] = y[i] = 0.0;
@@ -179,8 +183,9 @@ class PR(UserConstraint) extends PR(Constraint) {
 
 	public var soft:Float;
 	public var gamma:Float;
-
 	public var velonly:Bool;
+
+	public var Keff:ARRAY(Float);
 	public override function preStep(dt:Float) {
 		if(pre_dt==-1.0) pre_dt = dt;
 		var dtratio = dt/pre_dt;
@@ -190,12 +195,8 @@ class PR(UserConstraint) extends PR(Constraint) {
 
 		outer_zn.__validate();
 
-		//any positional error
-		var Cerr = outer_zn.__position();
-		velonly = Cerr==null;
-
 		//effective mass
-		var Keff = outer_zn.__eff_mass(false);
+		outer_zn.__eff_mass(false, Keff);
 		DEBUG(
 			if(Keff==null) throw "Error: ???(Keff) returned null value";
 			if(Std.int(Keff.length) != (dim*(dim+1))>>>1) throw "Error: Dimensions of ???(keff) do not match constraint dimensions!";
@@ -208,7 +209,8 @@ class PR(UserConstraint) extends PR(Constraint) {
 
 			//breaking?
 
-			for(i in 0...dim) bias[i] = -dt*biasCoef*Cerr[i];
+			outer_zn.__position(bias);
+			for(i in 0...dim) bias[i] *= -dt*biasCoef;
 
 			//clamping?
 		}else {
@@ -222,12 +224,13 @@ class PR(UserConstraint) extends PR(Constraint) {
 		return false;
 	}
 
+	var vec3:Vec3;
 	public override function warmStart() {
 		for(bs in bodies) {
 			var b = bs.body;
-			var j = outer_zn.__impulse(jAcc, b.outer);
-			vec_addeq(b.vel, j., b.imass);
-			b.angvel += j.z*b.iinertia;
+			outer_zn.__impulse(jAcc, b.outer, vec3);
+			vec_addeq(b.vel, vec3., b.imass);
+			b.angvel += vec3.z*b.iinertia;
 		}
 
 		for(i in 0...dim) pjAcc[i] = jAcc[i];
@@ -237,12 +240,8 @@ class PR(UserConstraint) extends PR(Constraint) {
 	var jOld:ARRAY(Float);
 	public override function applyImpulseVel() {
 		//velocity corrections
-		var E = outer_zn.__velocity();
-		DEBUG(
-			if(E==null) throw "Error: ???(verr) returned null value";
-			if(Std.int(E.length)!=dim) throw "Error: Dimensions of ???(verr) do not match constraint dimensions!";
-		)
-		for(i in 0...dim) J[i] = bias[i] - E[i];
+		outer_zn.__velocity(J);
+		for(i in 0...dim) J[i] = bias[i] - J[i];
 
 		transform(L,J);
 
@@ -259,9 +258,9 @@ class PR(UserConstraint) extends PR(Constraint) {
 
 		for(bs in bodies) {
 			var b = bs.body;
-			var j = outer_zn.__impulse(J, b.outer);
-			vec_addeq(b.vel, j., b.imass);
-			b.angvel += j.z*b.iinertia;
+			outer_zn.__impulse(J, b.outer, vec3);
+			vec_addeq(b.vel, vec3., b.imass);
+			b.angvel += vec3.z*b.iinertia;
 		}
 
 		return false;
@@ -270,26 +269,19 @@ class PR(UserConstraint) extends PR(Constraint) {
 	public override function applyImpulsePos() {
 		if(velonly) return false;
 
-		var E = outer_zn.__position();
-		var K = outer_zn.__eff_mass(true);
-		DEBUG(
-			if(E==null) throw "Error: ???(cerr) returned null value";
-			if(Std.int(E.length) != dim) throw "Error: Dimensions of ???(cerr) do not match constraint dimensions!";
+		outer_zn.__position(J);
+		outer_zn.__eff_mass(true, Keff);
 
-			if(K==null) throw "Error: ???(Keff) returned null value";
-			if(Std.int(K.length) != (dim*(dim+1))>>>1) throw "Error: Dimensions of ???(keff) do not match constraint dimensions!";
-		)
-
-		for(i in 0...dim) J[i] = -E[i];
+		for(i in 0...dim) J[i] *= -1;
 		//clamping?
 
-		transform(solve(K),J);
+		transform(solve(Keff),J);
 
 		for(bs in bodies) {
 			var b = bs.body;
-			var j = outer_zn.__impulse(J, b.outer);
-			vec_addeq(b.pos, j., b.imass);
-			b.delta_rot(j.z*b.iinertia);
+			outer_zn.__impulse(J, b.outer, vec3);
+			vec_addeq(b.pos, vec3., b.imass);
+			b.delta_rot(vec3.z*b.iinertia);
 		}
 
 		return false;
