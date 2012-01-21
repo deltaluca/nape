@@ -7,11 +7,13 @@ import nape.shape.Polygon;
 import nape.shape.Circle;
 import nape.geom.Vec2;
 import nape.util.BitmapDebug;
+import nape.util.Debug;
 import nape.geom.Vec3;
 
 import nape.constraint.UserConstraint;
 import nape.constraint.PivotJoint;
 import nape.constraint.WeldJoint;
+import nape.constraint.LineJoint;
 
 import FixedStep;
 import FPS;
@@ -145,6 +147,13 @@ class UserWeldJoint extends UserConstraint {
 		out.y = scale*imp[1];
 		out.z = scale*(imp[2] + rel.cross(Vec2.weak(imp[0],imp[1])));
 	}
+
+	//-------------------------------------------------------------
+
+	public override function __draw(debug:Debug) {
+		debug.drawCircle(body1.localToWorld(anchor1,true),1,0xff);
+		debug.drawCircle(body2.localToWorld(anchor2,true),2,0xff000);
+	}
 }
 
 class UserDefinedConstraints extends FixedStep {
@@ -183,12 +192,9 @@ class UserDefinedConstraints extends FixedStep {
 //		var motor = new UserMotorJoint(b1,b2,10);
 //		motor.space = space;
 		var weld = new UserWeldJoint(b1,b2,new Vec2(100,0),new Vec2(-100,0));
-//		dist.stiff = false;
-//		dist.frequency = 1;
 		weld.space = space;
 
-		var hand = new PivotJoint(space.world,null,new Vec2(),new Vec2());
-		hand.stiff = false;
+		var hand = new LineJoint(space.world,null,new Vec2(),new Vec2(),new Vec2(1,0),-20,20);
 		hand.active = false;
 		hand.space = space;
 		stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function (_) {
@@ -209,7 +215,7 @@ class UserDefinedConstraints extends FixedStep {
 			hand.anchor1.setxy(mouseX,mouseY);
 
 			debug.clear();
-			space.step(dt,1,1);
+			space.step(dt);
 			debug.draw(space);
 			debug.flush();
 		});
