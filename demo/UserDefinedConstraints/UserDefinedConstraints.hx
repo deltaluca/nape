@@ -12,8 +12,6 @@ import nape.geom.Vec3;
 
 import nape.constraint.UserConstraint;
 import nape.constraint.PivotJoint;
-import nape.constraint.WeldJoint;
-import nape.constraint.LineJoint;
 
 import FixedStep;
 import FPS;
@@ -151,8 +149,11 @@ class UserWeldJoint extends UserConstraint {
 	//-------------------------------------------------------------
 
 	public override function __draw(debug:Debug) {
-		debug.drawCircle(body1.localToWorld(anchor1,true),1,0xff);
-		debug.drawCircle(body2.localToWorld(anchor2,true),2,0xff000);
+		var a1 = body1.localToWorld(anchor1);
+		var a2 = body2.localToWorld(anchor2);
+		debug.drawCircle(a1,1,0xff);
+		debug.drawCircle(a2,2,0xff0000);
+		debug.drawLine(a1,a2,0xff00);
 	}
 }
 
@@ -189,12 +190,12 @@ class UserDefinedConstraints extends FixedStep {
 		b2.space = space;
 		b2.velocity.y = -100;
 
-//		var motor = new UserMotorJoint(b1,b2,10);
-//		motor.space = space;
 		var weld = new UserWeldJoint(b1,b2,new Vec2(100,0),new Vec2(-100,0));
+		weld.stiff = false;
+		weld.frequency = 2;
 		weld.space = space;
 
-		var hand = new LineJoint(space.world,null,new Vec2(),new Vec2(),new Vec2(1,0),-20,20);
+		var hand = new PivotJoint(space.world,null,new Vec2(),new Vec2());
 		hand.active = false;
 		hand.space = space;
 		stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function (_) {
