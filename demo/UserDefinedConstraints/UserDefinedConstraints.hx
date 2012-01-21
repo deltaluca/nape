@@ -24,16 +24,15 @@ import FPS;
 class UserPivotJoint extends UserConstraint {
 	public var body1(default,set_body1):Body;
 	public var body2(default,set_body2):Body;
-
-	public var anchor1:Vec2;
-	public var anchor2:Vec2;
-
 	//. this handles body assignment perfectly!
 	//  registerBody will deregister the old one, and register the new one returning it
 	//. registering/deregestering occur in pairs and can happen multiple times.
 	//. null values are checked to make sure everything occurs as it should internally.
 	function set_body1(b:Body) { return this.body1 = registerBody(this.body1,b); }
 	function set_body2(b:Body) { return this.body2 = registerBody(this.body2,b); }
+
+	public var anchor1:Vec2;
+	public var anchor2:Vec2;
 
 	public function new(body1:Body,body2:Body,anchor1:Vec2,anchor2:Vec2) {
 		super(2); //2 dimensional constraint.
@@ -113,6 +112,86 @@ class UserPivotJoint extends UserConstraint {
 		out.y = imp[1]*scale;
 		out.z = scale*rel.cross(Vec2.weak(imp[0],imp[1]));
 	}
+}
+
+class UserMotorJoint extends UserConstraint {
+	public var body1(default,set_body1):Body;
+	public var body2(default,set_body2):Body;
+	function set_body1(b:Body) { return this.body1 = registerBody(this.body1,b); }
+	function set_body2(b:Body) { return this.body2 = registerBody(this.body2,b); }
+
+	public var rate:Float;
+	public var ratio:Float;
+
+	public function new(body1:Body,body2:Body,?rate=0.0,?ratio=1.0) {
+		super(1,true); //1 dimensional, velocity only constraint
+
+		this.body1 = body1;
+		this.body2 = body2;
+
+		this.rate = rate;
+		this.ratio = ratio;
+	}
+
+	//------------------------------------------------------------
+
+	public override function __copy():UserConstraint {
+		return new UserMotorJoint(body1,body2,rate,ratio);
+	}
+
+	//neither extra destruction or validation logic is required.
+	//public override function __destroy():Voidy {}
+	//public override function __validate():Void {}
+
+	//------------------------------------------------------------
+
+	//velocity only constraint, so no __position() needed
+	//public override function __position(err:ARRAY<Float>) {}
+
+	public override function __velocity(err:ARRAY<Float>) {
+		var v1 = body1.constraintVelocity;
+		var v2 = body2.constraintVelocity;
+		err[0] = ratio*v2.z - v1.z - rate;
+	}
+
+	//velocity only, so positional is never true
+	public override function __eff_mass(_,eff:ARRAY<Float>) {
+		eff[0] = body1.constraintInertia + ratio*ratio*body2.constraintInertia;
+	}
+
+	//public override function __clamp(jAcc:ARRAY<Float>):Void {} //nothing needs to be done here.
+
+	//------------------------------------------------------------
+
+	public override function __impulse(imp:ARRAY<Float>,body:Body,out:Vec3) {
+		var scale = if(body==body1) -1.0 else ratio;
+		out.x = out.y = 0.0;
+		out.z = scale*imp[0];
+	}
+}
+
+class UserDistanceJoint extends UserConstraint {
+	public var body1(default,set_body1):Body;
+	public var body2(default,set_body2):Body;
+	function set_body1(b:Body) { return this.body1 = registerBody(this.body1,b); }
+	function set_body2(b:Body) { return this.body2 = registerBody(this.body2,b); }
+
+	public var anchor1:Vec2;
+	public var anchor2:Vec2;
+
+	public var jointMin:Float;
+	public var jointMax:Float;
+
+	public function new(body1:Body,body2:Body,anchor1:Vec2,anchor2:Vec2,jointMin:Float,jointMax:Float) {
+		super(1); //1 dimensional constraint.
+
+		this.body1 = body1;
+		this.body2 = body2;
+
+		this.anchor1 = anchor1;
+		this.anchor2 = anchor2;
+	}
+
 
 }
 
@@ -149,12 +228,10 @@ class UserDefinedConstraints extends FixedStep {
 		b2.space = space;
 		b2.velocity.y = -100;
 
-		var piv = new PivotJoint(b1,b2,new Vec2(80,0), new Vec2(-80,0));
-		piv.breakUnderError = true;
-		piv.maxError = 100;
-		piv.space = space;
+		var motor = new UserMotorJoint(b1,b2,10);
+		motor.space = space;
 
-		var hand = new PivotJoint(space.world,null,new Vec2(),new Vec2());
+		var hand = new UserPivotJoint(space.world,null,new Vec2(),new Vec2());
 		hand.stiff = false;
 		hand.active = false;
 		hand.space = space;

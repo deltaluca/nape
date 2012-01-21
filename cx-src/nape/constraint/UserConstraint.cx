@@ -71,6 +71,11 @@ class UserConstraint extends Constraint {
 
 	//------------------------------------------------------------------------
 
+	public function invalidate() {
+		if(active && space!=null)
+			pr(inner).wake();
+	}
+
 	public function registerBody(oldBody:Body,newBody:Body) {
 		pr(inner).immutable_midstep("UserConstraint::registerBody");
 		if(oldBody!=newBody) {
@@ -78,8 +83,14 @@ class UserConstraint extends Constraint {
 				if(!pr(inner_zn).remBody(oldBody.pr(inner))) {
 					DEBUG(throw "Error: oldBody is not registered to the cosntraint";)
 				}
+
+				if(active && space!=null)
+					oldBody.pr(inner).wake();
 			}
 			if(newBody!=null) pr(inner_zn).addBody(newBody.pr(inner));
+
+			pr(inner).wake();
+			if(newBody!=null) newBody.pr(inner).wake();
 		}
 		return newBody;
 	}
