@@ -149,11 +149,32 @@ class UserDefinedConstraints extends FixedStep {
 		b2.space = space;
 		b2.velocity.y = -100;
 
-		var piv = new UserPivotJoint(b1,b2,new Vec2(80,0), new Vec2(-80,0));
-		piv.stiff = false;
+		var piv = new PivotJoint(b1,b2,new Vec2(80,0), new Vec2(-80,0));
+		piv.breakUnderError = true;
+		piv.maxError = 100;
 		piv.space = space;
 
+		var hand = new PivotJoint(space.world,null,new Vec2(),new Vec2());
+		hand.stiff = false;
+		hand.active = false;
+		hand.space = space;
+		stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function (_) {
+			var mp = new Vec2(mouseX,mouseY);
+			for(b in space.bodiesUnderPoint(mp)) {
+				if(b.isDynamic()) {
+					hand.body2 = b;
+					hand.anchor2 = b.worldToLocal(mp);
+					hand.active = true;
+				}
+			}
+		});
+		stage.addEventListener(flash.events.MouseEvent.MOUSE_UP, function (_) {
+			hand.active = false;
+		});
+
 		run(function (dt) {
+			hand.anchor1.setxy(mouseX,mouseY);
+
 			debug.clear();
 			space.step(dt,1,1);
 			debug.draw(space);

@@ -14,6 +14,7 @@ class PR(UserConstraint) extends PR(Constraint) {
 	public var  bias : ARRAY(Float);
 
 	flibmdel public inline function addBody(b:PR(Body)) {
+		assert(b!=null,"addBody :: null UserConstraint");
 		var match = null;
 		for(x in bodies) { if(x.body==b) { match = x; break; } };
 
@@ -26,6 +27,7 @@ class PR(UserConstraint) extends PR(Constraint) {
 	}
 
 	flibmdel public inline function remBody(b:PR(Body)) {
+		assert(b!=null,"remBody :: null Userconstraint");
 		var match = null;
 		var bl = Std.int(bodies.length);
 		var i = 0; while(i<bl) {
@@ -114,11 +116,11 @@ class PR(UserConstraint) extends PR(Constraint) {
 	}
 
 	public override function wake_connected() {
-		for(b in bodies) b.body.wake();
+		for(b in bodies) { if(b.body.isDynamic()) b.body.wake(); }
 	}
 
 	public override function forest() {
-		for(b in bodies) DSF(union(b.body.component, component));
+		for(b in bodies) { if(b.body.isDynamic()) DSF(union(b.body.component, component)); }
 	}
 
 	public override function pair_exists(id:Int, di:Int) {
