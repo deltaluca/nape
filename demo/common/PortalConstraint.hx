@@ -115,8 +115,8 @@ class PortalConstraint extends UserConstraint {
 	}
 
 	public override function __position(err:ARRAY<Float>) {
-		err[0] = scale*s1.dot  (n1) - s2.dot  (n2);
-		err[1] = scale*s1.cross(n1) - s2.cross(n2);
+		err[0] = scale*s1.dot  (n1) + s2.dot  (n2);
+		err[1] = scale*s1.cross(n1) + s2.cross(n2);
 		err[2] = (body1.rotation - a1) - (body2.rotation - a2);
 	}
 
@@ -129,8 +129,8 @@ class PortalConstraint extends UserConstraint {
 		var u1 = v1.xy().sub(p1.perp().mul(pv1.z)).sub(pv1.xy());
 		var u2 = v2.xy().sub(p2.perp().mul(pv2.z)).sub(pv2.xy());
 
-		err[0] = scale*(u1.dot(n1) + pv1.z*s1.cross(n1)) - (u2.dot(n2) + pv2.z*s2.cross(n2));
-		err[1] = scale*(u1.cross(n1) + pv1.z*s1.dot(n1)) - (u2.cross(n2) + pv2.z*s2.dot(n2));
+		err[0] = scale*(u1.dot(n1) + pv1.z*s1.cross(n1)) + (u2.dot(n2) + pv2.z*s2.cross(n2));
+		err[1] = scale*(u1.cross(n1) + pv1.z*s1.dot(n1)) + (u2.cross(n2) + pv2.z*s2.dot(n2));
 		err[2] = (v1.z - pv1.z) - (v2.z - pv2.z);
 	}
 
@@ -144,7 +144,7 @@ class PortalConstraint extends UserConstraint {
 	public override function __impulse(imp:ARRAY<Float>,body:Body,out:Vec3) {
 		if(body==portalBody1 || body==portalBody2) out.x = out.y = out.z = 0.0;
 		else {
-			var sc = if(body==body1) scale else -1.0;
+			var sc = if(body==body1) scale else 1.0;
 			var norm  = if(body==body1) n1  else n2;
 			out.x = sc*(norm.x*imp[0] + norm.y*imp[1]);
 			out.y = sc*(norm.y*imp[0] - norm.x*imp[1]);

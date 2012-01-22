@@ -94,6 +94,21 @@ These portals are defined by a local anchor and direction on the 'portal'
 \end_inset
 
  from portal 1 to 2.
+ A body enter in the direction of 
+\begin_inset Formula $\vec{d}_{1}$
+\end_inset
+
+ and is emitted in the direction of 
+\begin_inset Formula $\vec{d}_{2}$
+\end_inset
+
+.
+ It is assumed that the mass/inertia of body 2 are 
+\begin_inset Formula $\eta\times$
+\end_inset
+
+mass/inertia of body 1 so that the bodies can be treat equally in terms
+ of the constraint.
 \end_layout
 
 \begin_layout Standard
@@ -160,8 +175,8 @@ as the vectors from portal position in world space to object positions,
 
 \begin_layout Standard
 \begin_inset Formula $C(\vec{x})=\left[\begin{array}{c}
-\eta\vec{s}_{1}\cdot\vec{n}_{1}-\vec{s}_{2}\cdot\vec{n}_{2}\\
-\eta\vec{s}_{1}\times\vec{n}_{1}-\vec{s}_{2}\times\vec{n}_{2}\\
+\eta\vec{s}_{1}\cdot\vec{n}_{1}+\vec{s}_{2}\cdot\vec{n}_{2}\\
+\eta\vec{s}_{1}\times\vec{n}_{1}+\vec{s}_{2}\times\vec{n}_{2}\\
 \left(\theta_{1}-\alpha_{1}\right)-\left(\theta_{2}-\alpha_{2}\right)
 \end{array}\right]$
 \end_inset
@@ -221,8 +236,8 @@ We can find the velocity constraint:
 
 \begin_layout Standard
 \begin_inset Formula $V(\vec{v})=\left[\begin{array}{c}
-\eta\left[\left(\frac{d}{dt}\vec{s}_{1}\right)\cdot\vec{n}_{1}+\vec{s}_{1}\cdot\left(\frac{d}{dt}\vec{n}_{1}\right)\right]-\left[\left(\frac{d}{dt}\vec{s}_{2}\right)\cdot\vec{n}_{2}+\vec{s}_{2}\cdot\left(\frac{d}{dt}\vec{n}_{2}\right)\right]\\
-\eta\left[\left(\frac{d}{dt}\vec{s}_{1}\right)\times\vec{n}_{1}+\vec{s}_{1}\times\left(\frac{d}{dt}\vec{n}_{1}\right)\right]-\left[\left(\frac{d}{dt}\vec{s}_{2}\right)\times\vec{n}_{2}+\vec{s}_{2}\times\left(\frac{d}{dt}\vec{n}_{2}\right)\right]\\
+\eta\left[\left(\frac{d}{dt}\vec{s}_{1}\right)\cdot\vec{n}_{1}+\vec{s}_{1}\cdot\left(\frac{d}{dt}\vec{n}_{1}\right)\right]+\left[\left(\frac{d}{dt}\vec{s}_{2}\right)\cdot\vec{n}_{2}+\vec{s}_{2}\cdot\left(\frac{d}{dt}\vec{n}_{2}\right)\right]\\
+\eta\left[\left(\frac{d}{dt}\vec{s}_{1}\right)\times\vec{n}_{1}+\vec{s}_{1}\times\left(\frac{d}{dt}\vec{n}_{1}\right)\right]+\left[\left(\frac{d}{dt}\vec{s}_{2}\right)\times\vec{n}_{2}+\vec{s}_{2}\times\left(\frac{d}{dt}\vec{n}_{2}\right)\right]\\
 \frac{d}{dt}\left(\theta_{1}-\alpha_{1}\right)-\frac{d}{dt}\left(\theta_{2}-\alpha_{2}\right)
 \end{array}\right]$
 \end_inset
@@ -290,8 +305,8 @@ And express the velocity constraint more succintly by:
 
 \begin_layout Standard
 \begin_inset Formula $V(\vec{v})=\left[\begin{array}{c}
-\eta\left(\vec{u}_{1}\cdot\vec{n}_{1}+\omega_{A}\left(\vec{s}_{1}\times\vec{n}_{1}\right)\right)-\left(\vec{u}_{2}\cdot\vec{n}_{2}+\omega_{B}\left(\vec{s}_{2}\times\vec{n}_{2}\right)\right)\\
-\eta\left(\vec{u}_{1}\times\vec{n}_{1}+\omega_{A}\left(\vec{s}_{1}\cdot\vec{n}_{1}\right)\right)-\left(\vec{u}_{2}\times\vec{n}_{2}+\omega_{B}\left(\vec{s}_{2}\cdot\vec{n}_{2}\right)\right)\\
+\eta\left(\vec{u}_{1}\cdot\vec{n}_{1}+\omega_{A}\left(\vec{s}_{1}\times\vec{n}_{1}\right)\right)+\left(\vec{u}_{2}\cdot\vec{n}_{2}+\omega_{B}\left(\vec{s}_{2}\times\vec{n}_{2}\right)\right)\\
+\eta\left(\vec{u}_{1}\times\vec{n}_{1}+\omega_{A}\left(\vec{s}_{1}\cdot\vec{n}_{1}\right)\right)+\left(\vec{u}_{2}\times\vec{n}_{2}+\omega_{B}\left(\vec{s}_{2}\cdot\vec{n}_{2}\right)\right)\\
 \left(\omega_{1}-\omega_{A}\right)-\left(\omega_{2}-\omega_{B}\right)
 \end{array}\right]$
 \end_inset
@@ -346,8 +361,8 @@ We find the jacobian of our portal constraint as:
 0\\
 1
 \end{array}\right] & \left[\begin{array}{c}
--\eta\vec{n}_{2}^{\top}\\
-\eta\left[\vec{n}_{2}\right]_{\times}^{\top}\\
+\eta\vec{n}_{2}^{\top}\\
+-\eta\left[\vec{n}_{2}\right]_{\times}^{\top}\\
 0
 \end{array}\right] & \left[\begin{array}{c}
 0\\
@@ -395,12 +410,12 @@ And our effective mass matrix:
 
 \begin_layout Standard
 \begin_inset Formula $+\frac{1}{m_{2}}\left[\begin{array}{c}
--\eta\vec{n}_{2}^{\top}\\
-\eta\left[\vec{n}_{2}\right]_{\times}^{\top}\\
+\vec{n}_{2}^{\top}\\
+-\left[\vec{n}_{2}\right]_{\times}^{\top}\\
 0
 \end{array}\right]\left[\begin{array}{c}
--\eta\vec{n}_{2}^{\top}\\
-\eta\left[\vec{n}_{2}\right]_{\times}^{\top}\\
+\vec{n}_{2}^{\top}\\
+-\left[\vec{n}_{2}\right]_{\times}^{\top}\\
 0
 \end{array}\right]^{\top}+\frac{1}{i_{2}}\left[\begin{array}{c}
 0\\
@@ -428,7 +443,7 @@ Noting the lovely facts:
 \end_layout
 
 \begin_layout Standard
-\begin_inset Formula $\vec{u}^{\top}\left(\vec{u}^{\top}\right)^{\top}=\left\Vert\vec{u}\right\Vert=\left[\vec{u}\right]_{\times}^{\top}\left(\left[\vec{u}\right]_{\times}^{\top}\right)^{\top},\ \left\Vert\vec{n}_{i}\right\Vert=1\ $
+\begin_inset Formula $\vec{u}^{\top}\left(\vec{u}^{\top}\right)^{\top}=\left\Vert \vec{u}\right\Vert =\left[\vec{u}\right]_{\times}^{\top}\left(\left[\vec{u}\right]_{\times}^{\top}\right)^{\top},\ \left\Vert \vec{n}_{i}\right\Vert =1\ $
 \end_inset
 
 
