@@ -2083,5 +2083,150 @@ status open
 
 \end_layout
 
+\begin_layout Standard
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The exact order of the defined calls is as such (ignoring __copy,__destroy,__dra
+w):
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+space.step() <<
+\end_layout
+
+\begin_layout Plain Layout
+
+	user_constraint.__validate()
+\end_layout
+
+\begin_layout Plain Layout
+
+	user_constraint.__prepare()
+\end_layout
+
+\begin_layout Plain Layout
+
+	user_constraint.__eff_mass()
+\end_layout
+
+\begin_layout Plain Layout
+
+	if(!user_constraint.stiff) user_constraint.__position()
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+	//velocity iterations (elastic)
+\end_layout
+
+\begin_layout Plain Layout
+
+	repeat *V/2 <<
+\end_layout
+
+\begin_layout Plain Layout
+
+		user_constraint.__velocity()
+\end_layout
+
+\begin_layout Plain Layout
+
+		user_constraint.__clamp()
+\end_layout
+
+\begin_layout Plain Layout
+
+		user_constraint.__impulse() *N
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+	//warm starting
+\end_layout
+
+\begin_layout Plain Layout
+
+	user_constraint.__impulse() *N
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+	//velocity iterations (inelastic)
+\end_layout
+
+\begin_layout Plain Layout
+
+	repeat *V/2 << (same as above)
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+	//position iterations (if stiff)
+\end_layout
+
+\begin_layout Plain Layout
+
+	repeat *P <<
+\end_layout
+
+\begin_layout Plain Layout
+
+		user_constraint.__prepare()
+\end_layout
+
+\begin_layout Plain Layout
+
+		user_constraint.__position()
+\end_layout
+
+\begin_layout Plain Layout
+
+		user_constraint.__eff_mass()
+\end_layout
+
+\begin_layout Plain Layout
+
+		user_constraint.__impulse() *N
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
 \end_body
 \end_document
