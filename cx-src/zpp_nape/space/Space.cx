@@ -1753,12 +1753,14 @@ class PR(Space) {
 
 							if(listener!=null && (callbackset==null || (callbackset.INTTYPE`stamp!=stamp && (callbackset.INTTYPE`state&Flag(ImmState,ALWAYS)==0)))) {
 								if(ncallbackset!=null) callbackset = ncallbackset;
-								if(listener.itype==Flag(InteractionType,ANY)) {
-									callbackset.COLLISIONstamp = stamp;
-									callbackset.SENSORstamp = stamp;
-									callbackset.FLUIDstamp = stamp;
-								}else
-									callbackset.INTTYPE`stamp = stamp;
+								if(callbackset!=null) {
+									if(listener.itype==Flag(InteractionType,ANY)) {
+										callbackset.COLLISIONstamp = stamp;
+										callbackset.SENSORstamp = stamp;
+										callbackset.FLUIDstamp = stamp;
+									}else
+										callbackset.INTTYPE`stamp = stamp;
+								}
 
 								// arbiter (public) is not active in the situtation of a persistant
 								// collision arbiter being re-used before it was retired.
@@ -1793,13 +1795,15 @@ class PR(Space) {
 									//make sure things like normals are still normalised
 									arb.pre_validate();
 								})
-
-								if(listener.itype==Flag(InteractionType,ANY)) {
-									callbackset.COLLISIONstate = arb.immState;
-									callbackset.SENSORstate = arb.immState;
-									callbackset.FLUIDstate = arb.immState;
-								}else
-									callbackset.INTTYPE`state = arb.immState;
+								
+								if(callbackset!=null) {
+									if(listener.itype==Flag(InteractionType,ANY)) {
+										callbackset.COLLISIONstate = arb.immState;
+										callbackset.SENSORstate = arb.immState;
+										callbackset.FLUIDstate = arb.immState;
+									}else
+										callbackset.INTTYPE`state = arb.immState;
+								}
 							}else if(callbackset==null) {
 								//reset state on non-persistance
 								if((arb.immState&Flag(ImmState,ALWAYS))==0)
