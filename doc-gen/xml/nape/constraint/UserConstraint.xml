@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<data>
+
+<class package="nape.constraint" name="UserConstraint" super="Constraint">
+	<file>UserConstraint.hx</file>
+	<description>
+		<text>Base class for user-defined constraints.</text><br/>
+		<br/>
+		<text>Though less performant than modifying nape itself to add such a constraint, working with a custom constraint like this is far easier as well as not needing to modify nape</text><br/><br/>
+		<text>For a nice full tutorial on deriving the necessary equations for such constraints, as well as an example implementation of a PivotJoint to complement the WeldJoint in the UserDefinedConstraints demo, see </text><link type="outside" href="../../../exgif/userdef_constraints.pdf">this</link><text> pdf.</text><br/><br/>
+		<text>In all that follows the type </text><code inline="true">ARRAY&lt;T&gt;</code><text> corresponds to </text><code inline="true">flash.Vector&lt;T&gt;</code><text> in flash9+, otherwise to </text><code inline="true">Array&lt;Float&gt;</code>
+	</description>
+	<short>Base class for user-defined constraints.</short>
+
+	<constructor>
+		<arg name="dimensions" type="Int"/>
+		<arg name="velocityOnly" type="Bool" optional="true" default="false"/>
+		<description>Base constructor for UserConstraints</description>
+		<detail>
+			<description>Initialise UserConstraint with given number of dimensions and whether this is a positional constaint, or a velocity-only constraint (like MotorJoint)</description>
+		</detail>
+	</constructor>
+
+	<method name="registerBody" return="Body">
+		<description>Body registering</description>
+		<arg name="oldBody" type="Body"/>
+		<arg name="newBody" type="Body"/>
+		<detail>
+			<description><text>To be used in registering bodies with the internal constraint.</text><br/><br/><text>See the pdf at top to see the template for how body properties should be set up for UserContraints</text></description>
+		</detail>
+	</method>
+	<method name="bindVec2" return="Vec2">
+		<description>Create and bind a Vec2</description>
+		<detail>
+			<description><text>To be used in defining compliant Vec2 properties of constraint.</text><br/><br/><text>See the pdf at top to see the template for how Vec2 properties should be set up for UserConstraints</text></description>
+		</detail>
+	</method>
+	<method name="invalidate" return="Void">
+		<description>Invalidate UserConstraint</description>
+		<detail>
+			<description><text>To be used in any non Vec2 property for compliant behaviour of constraint.</text><br/><br/><text>See the pdf at top to see the template for how this should be used for settingup additional properties of UserConstraints</text></description>
+		</detail>
+	</method>
+
+	<method name="__copy" return="UserConstraint" abstract="true">
+		<description>Defined copying</description>
+		<detail>
+			<description>Method should be overriden by user-defined constraint to produce a copy of the constraint without worrying about all of the shared Constraint properties which will be dealt with afterwards by nape</description>
+		</detail>
+	</method>
+	<method name="__destroy" return="Void" abstract="true">
+		<description>Defined destruction</description>
+		<detail>
+			<description>Method can optionally be overriden to define extra actions to be taken when the constraint is broken</description>
+		</detail>
+	</method>
+	<method name="__draw" return="Void" abstract="true">
+		<arg name="debug" type="Debug"/>
+		<description>Defined debug drawing</description>
+		<detail>
+			<description>Method can optionally be overriden to define how the constraint should be drawn in the debug views</description>
+		</detail>
+	</method>
+
+	<method abstract="true"/>
+
+	<method name="__validate" return="Void" abstract="true">
+		<description>Defined validation</description>
+		<detail>
+			<description><text>Method can optionally be overriden to define extra validation steps for debug messages to users of the constraint.</text><br/><br/><text>Method can also perform any operations which to not depend on the states of the objects which would otherwise have to be done in __prepare</text></description>
+		</detail>
+	</method>
+	<method name="__prepare" return="Void" abstract="true">
+		<description>Defined position-dependant calculations</description>
+		<detail>
+			<description>Method can optionally be overriden to define any calculations which depend on the positions/rotations of the involved bodies to be used in other methods</description>
+		</detail>
+	</method>
+
+	<method abstract="true"/>
+
+	<method name="__position" return="Void" abstract="true">
+		<arg name="err" type="ARRAY[Float]"/>
+		<description>Defined computation of positional error</description>
+		<detail>
+			<description>Should be overriden for non - velocity-only constraints to compute the positional error of the constraint. The length of the err input is the number of dimensions in the constraint</description>
+		</detail>
+	</method>
+	<method name="__velocity" return="Void" abstract="true">
+		<arg name="err" type="ARRAY[Float]"/>
+		<description>Defined computation of velocity error</description>
+		<detail>
+			<description>Should be overriden for all constraints to compute the velocity error of the constraint. The length of the err input is the number of dimensions in the constraint</description>
+		</detail>
+	</method>
+	<method name="__eff_mass" return="Void" abstract="true">
+		<arg name="eff" type="ARRAY[Float]"/>
+		<description>Defined computation of effective mass</description>
+		<detail>
+			<description><text>Should be overriden for all constraints to compute the effective mass. The length of the eff input is n(n+1)/2 for dimensions n corresponding to a compressed representation of the symmetric mass matrix.</text><br/><br/><text>For example if the number of dimensions is 3 then the effective mass is given by:</text>
+				<code><![CDATA[    ┌                    ┐
+    │eff[0] eff[1] eff[2]│
+K = │eff[1] eff[3] eff[4]│
+    │eff[2] eff[4] eff[5]│
+    └                    ┘]]></code>
+			</description>
+		</detail>
+	</method>
+	<method name="__clamp" return="Void" abstract="true">
+		<arg name="jAcc" type="ARRAY[Float]"/>
+		<description>Defined impulse clamping</description>
+		<detail>
+			<description>Can be optionally overriden to define how the accumulated impulse should be clamped for inequality constraints</description>
+		</detail>
+	</method>
+	<method name="__impulse" return="Void" abstract="true">
+		<arg name="imp" type="ARRAY[Float]"/>
+		<arg name="body" type="Body"/>
+		<arg name="out" type="Vec3"/>
+		<description>Defined computation of body world impulse</description>
+		<detail>
+			<description><text>Should be overriden for all constraints to compute the body-specific world impulse from the input constraint impulse</text></description>
+		</detail>
+	</method>
+</class>
+
+</data>

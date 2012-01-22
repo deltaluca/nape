@@ -247,25 +247,24 @@ class Gen {
 					else           ret += BEG_DIV("code");
 					
 					ret += '<code class="prettyprint codes">';
-						if (cde.fref.length==0)
-							ret += cde.incode;
-						else {
-							var f = File.getContent(cde.fref);
-							var i = 0;
-							while (i < f.length) {
-								if (f.charAt(i) == '\n') {
-									f = f.substr(0, i) + '<br/>' + f.substr(i + 1);
-									i += 5;
-								}else if(f.charAt(i) == '<') {
-									f = f.substr(0, i) + '&lt;' + f.substr(i+1);
-									i += 4;
-								}else if(f.charAt(i) == '>') {
-									f = f.substr(0, i) + '&gt;' + f.substr(i+1);
-									i += 4;
-								}else i++;
-							}
-							ret += f;
+						var f = if(cde.fref.length==0) cde.incode else File.getContent(cde.fref);
+						var i = 0;
+						while (i < f.length) {
+							if (f.charAt(i) == ' ') {
+								f = f.substr(0, i) + '&nbsp;' + f.substr(i+1);
+								i += 6;
+							}else if (f.charAt(i) == '\n') {
+								f = f.substr(0, i) + '<br/>' + f.substr(i + 1);
+								i += 5;
+							}else if(f.charAt(i) == '<') {
+								f = f.substr(0, i) + '&lt;' + f.substr(i+1);
+								i += 4;
+							}else if(f.charAt(i) == '>') {
+								f = f.substr(0, i) + '&gt;' + f.substr(i+1);
+								i += 4;
+							}else i++;
 						}
+						ret += f;
 					ret += '</code>';
 					
 					if (cde.inlin) ret += END_SPAN();
