@@ -197,6 +197,7 @@ class UserDefinedConstraints extends FixedStep {
 
 		var hand = new PivotJoint(space.world,null,new Vec2(),new Vec2());
 		hand.active = false;
+		hand.stiff = false;
 		hand.space = space;
 		stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function (_) {
 			var mp = new Vec2(mouseX,mouseY);
