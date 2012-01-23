@@ -65,6 +65,38 @@ class PortalConstraint extends UserConstraint {
 		if(this.scale!=scale) invalidate();
 		return this.scale = scale;
 	}
+		
+	//----------------------------------------------------------------
+
+	//set properties of the clone based on position of the original
+	//aka we find clone.position/clone.rotation so that __position() would set err to [0,0,0]
+	//and we find clone.velocity/clone.angularVel so that __velocity() would set err to [0,0,0]
+	public function set_properties(clone:Body,orig:Body) {
+		__validate();
+		__prepare();
+		var v = new ARRAY<Float>();
+		__velocity(v);
+
+		if(clone==body2) {
+			clone.position = portalBody2.position.add(p2);
+			clone.position.x -= (n2.x * s1.dot(n1) + n2.y * s1.cross(n1))*scale;
+			clone.position.y -= (n2.y * s1.dot(n1) - n2.x * s1.cross(n1))*scale;
+			clone.rotation = -Math.PI + orig.rotation - a1 + a2;
+
+			clone.velocity.x -= n2.x * v[0] + n2.y * v[1];
+			clone.velocity.y -= n2.y * v[0] - n2.x * v[1];
+			clone.angularVel += v[2];
+		}else {
+			clone.position = portalBody1.position.add(p1);
+			clone.position.x -= (n1.x * s2.dot(n2) + n1.y * s2.cross(n2))/scale;
+			clone.position.y -= (n1.y * s2.dot(n2) - n1.x * s2.cross(n2))/scale;
+			clone.rotation = Math.PI + orig.rotation - a2 + a1;
+
+			clone.velocity.x += (n1.x * v[0] + n1.y * v[1]) / scale;
+			clone.velocity.y += (n1.y * v[0] - n1.x * v[1]) / scale;
+			clone.angularVel += v[2];
+		}
+	}
 
 	//----------------------------------------------------------------
 
@@ -117,7 +149,7 @@ class PortalConstraint extends UserConstraint {
 	public override function __position(err:ARRAY<Float>) {
 		err[0] = scale*s1.dot  (n1) + s2.dot  (n2);
 		err[1] = scale*s1.cross(n1) + s2.cross(n2);
-		err[2] = (body1.rotation - a1) - (body2.rotation - a2);
+		err[2] = (body1.rotation - a1) - (body2.rotation - a2) - Math.PI;
 	}
 
 	public override function __velocity(err:ARRAY<Float>) {
@@ -144,17 +176,19 @@ class PortalConstraint extends UserConstraint {
 	public override function __impulse(imp:ARRAY<Float>,body:Body,out:Vec3) {
 		if(body==portalBody1 || body==portalBody2) out.x = out.y = out.z = 0.0;
 		else {
-			var sc = if(body==body1) scale else 1.0;
-			var norm  = if(body==body1) n1  else n2;
-			out.x = sc*(norm.x*imp[0] + norm.y*imp[1]);
-			out.y = sc*(norm.y*imp[0] - norm.x*imp[1]);
-			out.z = if(body==body1) imp[2] else -imp[2];
+			var sc1, sc2, norm;
+			if(body==body1) { sc1 = scale; sc2 =  1.0; norm = n1; }
+			else            { sc1 = 1.0;   sc2 = -1.0; norm = n2; }
+			out.x = sc1*(norm.x*imp[0] + norm.y*imp[1]);
+			out.y = sc1*(norm.y*imp[0] - norm.x*imp[1]);
+			out.z = sc2*imp[2];
 		}
 	}
-	
+
 	//----------------------------------------------------------------
 
 	public override function __draw(debug:Debug) {
+		__validate();
 		var p1 = portalBody1.localToWorld(position1);
 		debug.drawCircle(p1,2,0xff);
 		debug.drawLine(p1,p1.add(portalBody1.localToRelative(unit_dir1).mul(20)),0xff);
