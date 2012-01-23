@@ -26,6 +26,8 @@ $(import);
 	DEBUG(x) - perform x, unless NAPE_RELEASE_BUILD is set.
 	RELEASE(x) - otherwise
 
+	flibopts(N) - metadata for flib to denote actual optional count for constructors
+
 **/
 
 $(mixin global pr(x)  zpp_`x);
@@ -39,6 +41,8 @@ $(mixin global class keep $class);
 
 $(mixin global inline #if NAPE_NO_INLINE #else $inline #end);
 $(mixin global force_inline $inline);
+
+$(mixin global flibopts(N) #if flib @:$keep function flibopts_`N(){} #end);
 
 $(mixin global flibmdel #if NAPE_NO_INLINE #elseif (flash9&&flib) @:ns("flibdel") #end);
 $(mixin global flibdel(n) #if NAPE_NO_INLINE #elseif (flash9&&flib) @:$keep var flibdel_`n:Void->Void; #end);
