@@ -283,6 +283,15 @@ body.graphicUpdate = function(b:Body) {
 			 <description><text>The surface velocity is an additional velocity used for dynamic and kinematic objects which only effects contact calculations; there is no angular version of this as the surface velocity is applied in the coordinate frame of the contact point, so that the x-value of the surface velocity effects the tangentenial velocity seen by the contact points regardless of orientation of the contact, and the y-value effects the normal velocity seen by the contact point.</text><br/><br/><text>This is best used for such things as conveyor belts, and for such things as trampolines or pinball style bouncers etc.</text></description>
 		 </detail>
 	 </property>
+
+	<property/>
+
+	<property name="constraintVelocity" type="Vec3" readonly="true">
+		<description> Velocity seen by constraints </description>
+		<detail>
+			<description><text>Property to be used when working with user-defined constraints to get the velocity of the body that should be used (Currently computes the sum of velocities and kinematic velocities)</text></description>
+		</detail>
+	</property>
 	
 	<property/>
 	<property name="allowMovement" type="Bool" value="true">
@@ -312,6 +321,12 @@ body.graphicUpdate = function(b:Body) {
 			<description><text>Mass of body</text><br/><text>Setting this field will implicitly set </text><code inline="true">massMode = MassMode.FIXED</code> </description>
 			<set><code inline="true">mass &lt;= 0</code> </set>
 			<get><code inline="true">shapes.empty() &amp;&amp; massMode==MassMode.DEFAULT</code> </get>
+		</detail>
+	</property>
+	<property name="constraintMass" type="Float" readonly="true">
+		<description>Mass seen by constraint</description>
+		<detail>
+			<description>For use in user defined constraints, this value defines the inverse mass to be used in effective mass computations, equal to 1/mass for dynamic bodies, and 0 for statics/kinematics and space.world bodies</description>
 		</detail>
 	</property>
 	
@@ -355,7 +370,14 @@ body.graphicUpdate = function(b:Body) {
 			<get><code inline="true">inertiaMode == InertiaMode.DEFAULT &amp;&amp; shapes.empty()</code> </get>
 		</detail>
 	</property>
+	<property name="constraintInertia" type="Float" readonly="true">
+		<description>Moment of inertia seen by constraint</description>
+		<detail>
+			<description>For use in user defined constraints, this value defines the inverse moment of inertia to be used in effective mass computations, equal to 1/mass for dynamic bodies, and 0 for statics/kinematics and space.world bodies</description>
+		</detail>
+	</property>
 	
+
 
 	<method name="isStatic" return="Bool" const="true">
 		<description>Whether Body is static</description>

@@ -390,6 +390,31 @@ class Body extends Interactor {
 	})
 
     //----------------------------------------------------------------------------------------------
+
+	keep public function crushFactor():Float {
+		DEBUG(if(space==null) throw "Error: Makes no sense to see how much an object not taking part in a simulation is being crushed";)
+		var msum = 0.0;
+		var jsum = new Vec2();
+
+		for(arb in arbiters) {
+			var imp = arb.totalImpulse(this).xy();
+			jsum.addeq(imp);
+			msum += imp.length;
+			imp.dispose();
+		}
+		for(con in constraints) {
+			var imp = con.bodyImpulse(this).xy();
+			jsum.addeq(imp);
+			msum += imp.length;
+			imp.dispose();
+		}
+
+		var ret = (msum - jsum.length)*space.pr(inner).pre_dt;
+		jsum.dispose();
+		return ret;
+	}
+
+    //----------------------------------------------------------------------------------------------
 	
 	keep public function localToWorld(v:Vec2,?weak:Bool=false) return relativeToWorld(localToRelative(v,true),weak)
 	keep public function worldToLocal(v:Vec2,?weak:Bool=false) return relativeToLocal(worldToRelative(v,true),weak)
