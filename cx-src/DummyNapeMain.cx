@@ -290,6 +290,9 @@ class Tracer {
 		var stack = [];
 		var dict = new flash.utils.Dictionary(false);
 		var idl = [];
+		
+		var sdict = new Hash<Bool>();
+		var stats = [];
 
 		$(mixin pushobj(i) ({
 			if((untyped dict[i])!=null) (untyped dict[i]).id;
@@ -306,14 +309,30 @@ class Tracer {
 		var tim = new haxe.Timer(0);
 
 		var fcnt = 0;
+		var finish2 = function() {
+			var pt = flash.Lib.getTimer();
+			var buf = "";
+			while(flash.Lib.getTimer()-pt <= 50) {
+				if(fcnt >= stats.length) {
+					txt.text += buf+"\n\nDONE";
+					txt.scrollV = txt.maxScrollV;
+					tim.stop();
+					return;
+				}
+				var i = stats[fcnt++];
+				buf += "nme: "+i.name+" refs:"+Std.string(i.refs)+"\n";
+			}
+		}
+
 		var finish = function() {	
 			var pt = flash.Lib.getTimer();
 			var buf = "";
 			while(flash.Lib.getTimer()-pt <= 50) {
 				if(fcnt >= idl.length) {
-					txt.text += buf+"\n\nDONE";
+					txt.text += buf+"\n";
 					txt.scrollV = txt.maxScrollV;
-					tim.stop();
+					fcnt = 0;
+					tim.run = finish2;
 					return;
 				}
 				var i = idl[fcnt++];
@@ -322,10 +341,10 @@ class Tracer {
 			txt.text += buf;
 			txt.scrollV = txt.maxScrollV;
 		}
-		
+
 		var cnnt = 0;
 		tim.run = function() {
-			txt.text = "running: stack size="+stack.length+" cnt="+cnnt;
+			txt.text = "running: stack size="+stack.length+" cnt="+cnnt+"\n";
 
 			if(stack.length==0) { tim.run = finish; txt.text = ""; return; }
 
@@ -342,6 +361,18 @@ class Tracer {
 						cur.refs.push({ name:o, id:	pushobj(field) });
 					}
 				}
+				var nme = Type.getClassName(cls);
+				if(!sdict.exists(nme)) {
+					sdict.set(nme,true);
+					var ccur = [];
+					for(o in Type.getClassFields(cls)) {
+						var field:Dynamic = Reflect.field(cur.obj, o);
+						if(field!=null && Reflect.isObject(field)) {
+							ccur.push({ name:o, id: pushobj(field) });
+						}
+					}
+					stats.push({name:nme,refs:ccur});
+				}
 			}
 		}
 	}
@@ -351,47 +382,45 @@ class DummyNapeMain {
 	static function main() {
 		haxe.Log.setColor(0xffffff);
 
-		var space = new Space(new Vec2(0,400));
-		var debug = new BitmapDebug(800,600,0x333333);
-		debug.drawCollisionArbiters = true;
-		flash.Lib.current.addChild(debug.display);
+		var txt = new flash.text.TextField();
+		txt.width = flash.Lib.current.stage.stageWidth;
+		txt.height = flash.Lib.current.stage.stageHeight;
+		flash.Lib.current.addChild(txt);
 
-		var portaltype = new CbType();
-		var balltype = new CbType();
+/*		haxe.Timer.delay(function() {
+			for(i in 0...10000) {
+				var b = new Body();
+				b.shapes.add(new Circle(10));
+				b.shapes.clear();
+			}
+			Debug.clearObjectPools();
+		},3000);*/
 
-		var portal = new Body(BodyType.STATIC);
-		portal.shapes.add(new Polygon([new Vec2(150,450),new Vec2(250,450),new Vec2(200,550)]));
-		portal.cbType = portaltype;
-		portal.space = space;
 
-		var ground = new Body(BodyType.STATIC);
-		ground.shapes.add(new Polygon(Polygon.rect(0,580,800,20)));
-		ground.space = space;
+		(new haxe.Timer(400)).run = doit;
+//		Tracer.trace([c,b],txt);
 
-		var ball = new Body(BodyType.DYNAMIC);
-		ball.shapes.add(new Circle(40));
-		ball.space = space;
-		ball.cbType = balltype;
-		ball.position.setxy(200,300);
-
-		space.listeners.add(new PreListener(InteractionType.COLLISION, balltype, portaltype, function (arb:Arbiter) {
-			if(!arb.isCollisionArbiter()) { throw "??????"; return PreFlag.ACCEPT; }
-			var carb = arb.collisionArbiter;
-
-			if(carb.normal.y > 0.9)
-				return PreFlag.IGNORE;
-			else
-				return PreFlag.ACCEPT;
-		}));
-
-		(new haxe.Timer(0)).run = function() {
-			debug.clear();
-			space.step(1/60);
-			debug.draw(space);
-			debug.flush();
-		};
-
+/*		for(key in (untyped __keys__(dict)).iterator()) {
+			txt.text += untyped dict[key];
+		}*/
+		
 	}
+
+	static var space = new Space();
+	static function doit() {
+		for(i in 0...100) {
+			var c = new Polygon(Polygon.box(10,10));
+//			var c = new Circle(10);
+			var b = new Body(); c.body = b;
+			b.position.x = Math.random()*800;
+			b.position.y = Math.random()*600;
+			b.space = space;
+		}
+		space.step(1/60);
+		space.clear();
+//		Debug.clearObjectPools();
+	}
+
 
 	static function maisn() {
 		haxe.Log.setColor(0xffffff);
@@ -439,7 +468,7 @@ class DummyNapeMain {
 			debug.draw(space);
 			debug.flush();
 
-			trace(Debug.TIMES(space));
+//			trace(Debug.TIMES(space));
 		});
 	}
 

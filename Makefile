@@ -1,16 +1,24 @@
-SWFV = 10
+SWFV = 11
 
 local: pre_compile
 	mkdir -p bin
 	haxe -cp src -main DummyNapeMain -swf bin/nape.swf -swf-version $(SWFV) --times \
-	     -swf-header 800:600:60:333333 \
-		 -D NAPE_ASSERT --no-inline -debug \
-		 -D NAPE_TIMES
+	     -swf-header 800:600:60:888888 \
+		-D NAPE_ASSERT --no-inline -debug 
 #	     -D NAPE_POOL_STATS \
 # 			--dead-code-elimination \
 #	     -D NAPE_RELEASE_BUILD
 #	firefox bin/index.html
 	debugfp bin/nape.swf
+
+profile: pre_compile
+	mkdir -p bin
+	haxe -cp src -main DummyNapeMain -swf bin/nape.swf -swf-version $(SWFV) --times \
+		-swf-header 800:600:60:333333 \
+#		-D NAPE_RELEASE_BUILD
+#		-D NAPE_ASSERT --no-inline -debug 
+#	     -D NAPE_POOL_STATS
+	proffp bin/nape.swf
 
 cpp: pre_compile
 	haxe -cp src -lib nme --remap flash:nme -main DummyNapeMain -cpp cpp -D NAPE_RELEASE_BUILD

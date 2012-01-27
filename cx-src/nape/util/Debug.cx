@@ -9,6 +9,13 @@ class Debug {
     }
 
 	public static function clearObjectPools() {
+		$(expand global CLEARITERATOR(T) {
+			while(T.pr(pool)!=null) {
+				var nxt = T.pr(pool).pr(next);
+				T.pr(pool).pr(next) = null;
+				T.pr(pool) = nxt;
+			}
+		});
 		$(expand global CLEARPOOL(T) {
 			while(T.pr(pool)!=null) {
 				var nxt = T.pr(pool).next;
