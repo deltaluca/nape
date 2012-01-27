@@ -77,11 +77,20 @@ class PR(Shape) extends PR(Interactor) {
 		aabb.immutable = false;
 		Free(PR(AABB),aabb);
 		aabb = null;
+
+		refmaterial.feature_destroy();
 		refmaterial = null; //not a public Material, no destroy needed
 		//we assume shape is not active, so no need to remove from material etc.
+
+		//can only destroy if these are the default assigned and not publicly accesible
+		if(material.outer==null) material.feature_destroy();
 		material = null;
+		if(filter.outer==null) filter.feature_destroy();
 		filter = null;
+
+		//this one has no default
 		fluidProperties = null;
+
 		assert(sweep==null,"...sweep null shape destroy");
 		assert(node==null,"...node null shape destroy");
 		//

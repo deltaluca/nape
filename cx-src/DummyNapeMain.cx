@@ -301,14 +301,14 @@ class Tracer extends flash.text.TextField {
 	static inline var SLEEP = 3;
 	var state:Int;
 
-	var trace_stack:Array<{objs:Array<Dynamic>,cont:Void->Void}>;
-	public function trace(objs:Array<Dynamic>,?cont:Void->Void) {
+	var trace_stack:Array<{objs:Array<Dynamic>,cont:Array<Dynamic>->Void}>;
+	public function trace(objs:Array<Dynamic>,?cont:Array<Dynamic>->Void) {
 		if(objs.length==0) return;
 		trace_stack.push({objs:objs,cont:cont});
 		begin();
 	}
 
-	var ctrace:{objs:Array<Dynamic>,cont:Void->Void};
+	var ctrace:{objs:Array<Dynamic>,cont:Array<Dynamic>->Void};
 	var dict_id:Int;
 	var stack:Array<TracerObj>;
 	var dict:flash.utils.Dictionary;
@@ -377,7 +377,11 @@ class Tracer extends flash.text.TextField {
 					text += buf+"\nDONE\n";
 					scrollV = maxScrollV;
 					state = SLEEP;
-					if(ctrace.cont!=null) ctrace.cont();
+					if(ctrace.cont!=null) {
+						var objs:Array<Dynamic> = [];
+						for(i in idl) objs.push(i.obj);
+						ctrace.cont(objs);
+					}
 					break;
 				}
 				var i = idl[fcnt++];
@@ -417,14 +421,11 @@ class DummyNapeMain {
 //		var space = new Space();
 //		tracer.trace([space]);
 //		var v = new Circle(10, new Vec2(10,10), new Material(), new InteractionFilter());
-		var v = new Polygon(Polygon.box(10,20), new Material(), new InteractionFilter());
-		v.edges; v.worldVerts;
-		var q = v.pr(inner).polygon;
-		v.cbType = new CbType();
-		v.group = new InteractionGroup();
-		tracer.trace([v,q], function() {
+		var v = new Polygon(Polygon.box(10,20));
+		tracer.trace([v], function(objs) {
 			v.destroy();
-			tracer.trace([v,q]);
+//			Debug.clearObjectPools();
+			tracer.trace(objs);
 		});
 
 /*		for(key in (untyped __keys__(dict)).iterator()) {

@@ -6,8 +6,8 @@ class PR(Polygon) extends PR(Shape) {
 	
 	//----------------------------------------------------------------------------------------------
 	
-	public var lverts:MixList(PR(Vec2)); public var wrap_lverts:Vec2List;
-	public var gverts:MixList(PR(Vec2)); public var wrap_gverts:Vec2List;
+	public var lverts:MixList(PR(Vec2)); public var wrap_lverts:PR(MixVec2List);
+	public var gverts:MixList(PR(Vec2)); public var wrap_gverts:PR(MixVec2List);
 	
 	public var edges:List(PR(Edge)); public var wrap_edges:EdgeList;
 	public var edgeCnt:Int;
@@ -38,6 +38,7 @@ class PR(Polygon) extends PR(Shape) {
 		});
 		lverts = null;
 		wrap_lverts.pr(inner).__destroy();
+		wrap_lverts.__destroy();
 		wrap_lverts = null;
 
 		ClearWith(x, gverts, {
@@ -49,6 +50,7 @@ class PR(Polygon) extends PR(Shape) {
 		gverts = null;
 		if(wrap_gverts!=null) {
 			wrap_gverts.pr(inner).__destroy();
+			wrap_gverts.__destroy();
 			wrap_gverts = null;
 		}
 	}
