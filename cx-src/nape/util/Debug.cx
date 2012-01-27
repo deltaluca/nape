@@ -306,9 +306,9 @@ class ShapeDebug extends Debug {
 	        g.lineTo(end.x,end.y);
 		}else {
 			var v = pr(inner).xform.outer.transform(start);
-			g.moveTo(v.x,v.y); v.dispose();
+			g.moveTo(v.x,v.y); v.destroy();
 			v = pr(inner).xform.outer.transform(end);
-			g.lineTo(v.x,v.y); v.dispose();
+			g.lineTo(v.x,v.y); v.destroy();
 		}
 
 		WEAK(start);
@@ -331,7 +331,7 @@ class ShapeDebug extends Debug {
 		else {
 			var v = pr(inner).xform.outer.transform(position);
 			g.drawCircle(v.x,v.y,radius*pr(inner).xdet);
-			v.dispose();
+			v.destroy();
 		}
 
 		WEAK(position);
@@ -357,9 +357,9 @@ class ShapeDebug extends Debug {
 			g.lineTo(v.x+h2.x,v.y+h2.y);
 			g.lineTo(v.x,v.y);
 
-			v.dispose();
-			w.dispose(); w2.dispose();
-			h.dispose(); h2.dispose();
+			v.destroy();
+			w.destroy(); w2.destroy();
+			h.destroy(); h2.destroy();
 		}
     }
     
@@ -379,11 +379,11 @@ class ShapeDebug extends Debug {
 	        g.lineTo(p2.x,p2.y);
 		}else {
 			var v = pr(inner).xform.outer.transform(p0);
-			g.moveTo(v.x,v.y); v.dispose();
+			g.moveTo(v.x,v.y); v.destroy();
 			v = pr(inner).xform.outer.transform(p1);
-			g.lineTo(v.x,v.y); v.dispose();
+			g.lineTo(v.x,v.y); v.destroy();
 			v = pr(inner).xform.outer.transform(p2);
-			g.lineTo(v.x,v.y); v.dispose();
+			g.lineTo(v.x,v.y); v.destroy();
 		}
         g.endFill();
 
@@ -406,7 +406,7 @@ class ShapeDebug extends Debug {
 		else {
 			var v = pr(inner).xform.outer.transform(position);
 			g.drawCircle(v.x,v.y,radius*pr(inner).xdet);
-			v.dispose();
+			v.destroy();
 		}
         g.endFill();
 
@@ -429,13 +429,13 @@ class ShapeDebug extends Debug {
 				var v = pr(inner).xform.outer.transform(p);
 				if(fsttime) g.moveTo(v.x,v.y) else g.lineTo(v.x,v.y);
 				fsttime = false;
-				v.dispose();
+				v.destroy();
 			});
 			var v = pr(inner).xform.outer.transform(fst);
 			g.lineTo(v.x,v.y);
-			v.dispose();
+			v.destroy();
 		}
-		fst.dispose();
+		fst.destroy();
 		PolyWeak(polygon);
 	}
 
@@ -456,14 +456,14 @@ class ShapeDebug extends Debug {
 				var v = pr(inner).xform.outer.transform(p);
 				if(fsttime) g.moveTo(v.x,v.y) else g.lineTo(v.x,v.y);
 				fsttime = false;
-				v.dispose();
+				v.destroy();
 			});
 			var v = pr(inner).xform.outer.transform(fst);
 			g.lineTo(v.x,v.y);
-			v.dispose();
+			v.destroy();
 		}
 		g.endFill();
-		fst.dispose();
+		fst.destroy();
 		PolyWeak(polygon);
 	}
     ///---------------------------------------------------------------------------------------------
@@ -522,11 +522,11 @@ class BitmapDebug extends Debug {
 			var v = pr(inner).xform.outer.transform(start);
 			var x0:Int = fastint(v.x+0.5);
 			var y0:Int = fastint(v.y+0.5);
-			v.dispose();
+			v.destroy();
 			v = pr(inner).xform.outer.transform(end);
 			var x1:Int = fastint(v.x+0.5);
 			var y1:Int = fastint(v.y+0.5);
-			v.dispose();
+			v.destroy();
 	        pr(inner_zn).__line(x0,y0,x1,y1,colour|0xff000000);
 		}
 
@@ -551,7 +551,7 @@ class BitmapDebug extends Debug {
 			var v = pr(inner).xform.outer.transform(position);
 			var x:Int = fastint(v.x+0.5);
 			var y:Int = fastint(v.y+0.5);
-			v.dispose();
+			v.destroy();
 			var r:Int = fastint(radius*pr(inner).xdet+0.5);
 			pr(inner_zn).__circle(x,y,r, colour|0xff000000);
 		}
@@ -579,9 +579,9 @@ class BitmapDebug extends Debug {
 			var x3:Int = fastint(v.x+h2.x+0.5);
 			var y3:Int = fastint(v.y+h2.y+0.5);
 
-			v.dispose();
-			w.dispose(); w2.dispose();
-			h.dispose(); h2.dispose();
+			v.destroy();
+			w.destroy(); w2.destroy();
+			h.destroy(); h2.destroy();
 
 			var col = colour|0xff000000;
 	        pr(inner_zn).__line(x0,y0,x1,y1,col);
@@ -618,7 +618,7 @@ class BitmapDebug extends Debug {
 			var v = pr(inner).xform.outer.transform(position);
 			var x:Int = fastint(v.x+0.5);
 			var y:Int = fastint(v.y+0.5);
-			v.dispose();
+			v.destroy();
 			var r:Int = fastint(radius*pr(inner).xdet+0.5);
 	        pr(inner_zn).__fcircle(x,y,r, colour|0xff000000);
  		}
@@ -640,9 +640,9 @@ class BitmapDebug extends Debug {
 			var v = pr(inner).xform.outer.transform(fst);
 			fx = fastint(v.x+0.5);
 			fy = fastint(v.y+0.5);
-			v.dispose();
+			v.destroy();
 		}
-		fst.dispose();
+		fst.destroy();
 		var fsttime = true;
 		var px = fx; var py = fy;
 		PolyIter(p,polygon,{
@@ -656,7 +656,7 @@ class BitmapDebug extends Debug {
 				var v = pr(inner).xform.outer.transform(p);
 				cx = fastint(v.x+0.5);
 				cy = fastint(v.y+0.5);
-				v.dispose();
+				v.destroy();
 			}
 			pr(inner_zn).__line(px,py,cx,cy,col);
 			px = cx; py = cy;
@@ -676,11 +676,11 @@ class BitmapDebug extends Debug {
 			while(!gp.empty()) {
 				var cur = gp.current().copy(); gp.shift();
 				drawFilledTriangle(p0,pre,cur,colour);
-				pre.dispose();
+				pre.destroy();
 				pre = cur;
 			}
-			pre.dispose();
-			p0.dispose();
+			pre.destroy();
+			p0.destroy();
 		});
 
 		var gpoly = new GeomPoly(polygon);

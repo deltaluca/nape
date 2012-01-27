@@ -408,17 +408,17 @@ class Body extends Interactor {
 			var imp = arb.totalImpulse(this).xy();
 			jsum.addeq(imp);
 			msum += imp.length;
-			imp.dispose();
+			imp.destroy();
 		}
 		for(con in constraints) {
 			var imp = con.bodyImpulse(this).xy();
 			jsum.addeq(imp);
 			msum += imp.length;
-			imp.dispose();
+			imp.destroy();
 		}
 
 		var ret = (msum - jsum.length)*space.pr(inner).pre_dt;
-		jsum.dispose();
+		jsum.destroy();
 		return ret;
 	}
 
@@ -612,8 +612,8 @@ class Body extends Interactor {
 		
 		if(pr(inner).pre_posx != PR(Const).POSINF)
 			vec_subeq(pr(inner).pre_pos,dx2.);
-		dx.dispose();
-		dx2.dispose();
+		dx.destroy();
+		dx2.destroy();
 	}
 
 	//----------------------------------------------------------------------------------------------
@@ -626,7 +626,7 @@ class Body extends Interactor {
 		var del = position.sub(centre);
 		del.rotate(angle);
 		position = centre.add(del,true);
-		del.dispose();
+		del.destroy();
 
 		rotation += angle;
 
