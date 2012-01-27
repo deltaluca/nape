@@ -23,31 +23,20 @@ class Vec2 {
 		if(weak) ret.pr(inner).weak = true;
 		return ret;
 	}
-	public inline function dispose() {
-		Disposed(this,Vec2);
-		DEBUG(if(pr(inner).inuse) throw "Error: This Vec2 is not disposable";)
-
-		var pr = pr(inner);
-		pr(inner).outer = null;
-		pr(inner) = null;
-		PublicFree(Vec2,this);
-		Free(PR(Vec2),pr);
-	}
-
 	public inline function destroy() {
-		Disposed(this,Vec2);
+		Destroyed(this,Vec2);
 		DEBUG(if(pr(inner).inuse) throw "Error: This Vec2 is not destroyable";)
 		pr(inner).__destroy();
 		PublicFree(Vec2,this);
 	}
-	
+
 	public function new(?x:Float=0, ?y:Float=0) {
 		DEBUG(if(isNaN(x) || isNaN(y)) throw "Error: Vec2 components cannot be NaN";)
 		pr(inner) = PR(Vec2).get(x,y);
 		pr(inner).outer = this;
 	}
 	keep public inline function copy(?weak:Bool=false) {
-		Disposed(this,Vec2);
+		Destroyed(this,Vec2);
 		return Vec2.get(x,y,weak); 
 	}
 
@@ -76,12 +65,12 @@ class Vec2 {
 	
 	$(mixin comp(n)
         property(n,Float,{
-			Disposed(this,Vec2);
+			Destroyed(this,Vec2);
 
             pr(inner).validate();
             pr(inner).n;
         },{
-			Disposed(this,Vec2);
+			Destroyed(this,Vec2);
 
 			DEBUG(
 				if(pr(inner).immutable) throw "Error: Vec2 is immutable";
@@ -101,11 +90,11 @@ class Vec2 {
 	//----------------------------------------------------------------------------------------------
 		
     property(length,Float,{
-		Disposed(this,Vec2);
+		Destroyed(this,Vec2);
 
 		vec_length_slow(this.);
 	},{
-		Disposed(this,Vec2);
+		Destroyed(this,Vec2);
 
 		DEBUG(
 			if(pr(inner).immutable) throw "Error: Vec2 is immutable";
@@ -118,7 +107,7 @@ class Vec2 {
 	})
 	
 	keep public function lsq() {
-		Disposed(this,Vec2);
+		Destroyed(this,Vec2);
 
 		return vec_lsq(this.);
 	}
@@ -126,8 +115,8 @@ class Vec2 {
 	//----------------------------------------------------------------------------------------------
 	
 	public function set(p:Vec2) {
-		Disposed(this,Vec2);
-		Disposed(p,Vec2);
+		Destroyed(this,Vec2);
+		Destroyed(p,Vec2);
 
 		DEBUG(
 			if(pr(inner).immutable) throw "Error: Vec2 is immutable";
@@ -139,7 +128,7 @@ class Vec2 {
 		return ret;
 	}
 	public function setxy(x:Float,y:Float) {
-		Disposed(this,Vec2);
+		Destroyed(this,Vec2);
 
 		DEBUG(
 			if(pr(inner).immutable) throw "Error: Vec2 is immutable";
@@ -156,11 +145,11 @@ class Vec2 {
 	//----------------------------------------------------------------------------------------------
 	
     property(angle,Float, {
-		Disposed(this,Vec2);
+		Destroyed(this,Vec2);
 
 		if(x==y && x==0) 0.0 else Math.atan2(y,x);
 	},{
-		Disposed(this,Vec2);
+		Destroyed(this,Vec2);
 
 		DEBUG(
 			if(pr(inner).immutable) throw "Error: Vec2 is immutable";
@@ -172,7 +161,7 @@ class Vec2 {
 	})
 
 	keep public inline function rotate(angle:Float) {
-		Disposed(this,Vec2);
+		Destroyed(this,Vec2);
 		DEBUG(if(isNaN(angle)) throw "Error: Cannot rotate Vec2 by NaN";)
 
 		var ax = Math.sin(angle);
@@ -185,8 +174,8 @@ class Vec2 {
 	//----------------------------------------------------------------------------------------------
 	
 	keep public inline function add  (a:Vec2, ?weak:Bool=false) {
-		Disposed(this,Vec2);
-		Disposed(a,Vec2);
+		Destroyed(this,Vec2);
+		Destroyed(a,Vec2);
 
 		DEBUG(if(a==null) throw "Error: Cannot add null vectors";)
 		var ret = Vec2.get(vec_iadd($(->),a.),weak);
@@ -194,8 +183,8 @@ class Vec2 {
 		return ret;
 	}
 	keep public inline function sub  (a:Vec2, ?weak:Bool=false) {
-		Disposed(this,Vec2);
-		Disposed(a,Vec2);
+		Destroyed(this,Vec2);
+		Destroyed(a,Vec2);
 
 		DEBUG(if(a==null) throw "Error: Cannot subtract null vectors";)
 		var ret = Vec2.get(vec_isub($(->),a.),weak);
@@ -203,14 +192,14 @@ class Vec2 {
 		return ret;
 	}
 	keep public inline function mul (s:Float, ?weak:Bool=false) {
-		Disposed(this,Vec2);
+		Destroyed(this,Vec2);
 
 		DEBUG(if(isNaN(s)) throw "Error: Cannot multiply with NaN";)
 		return Vec2.get(vec_imul($(->),s),weak);
 	}
 	keep public inline function addeq(a:Vec2) {
-		Disposed(this,Vec2);
-		Disposed(a,Vec2);
+		Destroyed(this,Vec2);
+		Destroyed(a,Vec2);
 
 		DEBUG(
 			if(pr(inner).immutable) throw "Error: Vec2 is immutable";
@@ -221,8 +210,8 @@ class Vec2 {
 		return ret;
 	}
 	keep public inline function subeq(a:Vec2) {
-		Disposed(this,Vec2);
-		Disposed(a,Vec2);
+		Destroyed(this,Vec2);
+		Destroyed(a,Vec2);
 
 		DEBUG(
 			if(pr(inner).immutable) throw "Error: Vec2 is immutable";
@@ -233,7 +222,7 @@ class Vec2 {
 		return ret;
 	}
 	keep public inline function muleq(s:Float) {
-		Disposed(this,Vec2);
+		Destroyed(this,Vec2);
 
 		DEBUG(
 			if(pr(inner).immutable) throw "Error: Vec2 is immutable";
@@ -242,8 +231,8 @@ class Vec2 {
 		return setxy(vec_imul($(->),s));
 	}
 	keep public inline function dot  (a:Vec2) {
-		Disposed(this,Vec2);
-		Disposed(a,Vec2);
+		Destroyed(this,Vec2);
+		Destroyed(a,Vec2);
 
 		DEBUG(if(a==null) throw "Error: Cannot take dot product with null vector";)
 		var ret = vec_dot($(->),a.);
@@ -251,8 +240,8 @@ class Vec2 {
 		return ret;
 	}
 	keep public inline function cross(a:Vec2) {
-		Disposed(this,Vec2);
-		Disposed(a,Vec2);
+		Destroyed(this,Vec2);
+		Destroyed(a,Vec2);
 
 		DEBUG(if(a==null) throw "Error: Cannot take cross product with null vector";)
 		var ret = vec_cross($(->),a.);
@@ -261,7 +250,7 @@ class Vec2 {
 	}
 
 	keep public inline function perp(weak=false) {
-		Disposed(this,Vec2);
+		Destroyed(this,Vec2);
 		return Vec2.get(-y,x,weak);
 	}
 	
@@ -269,7 +258,7 @@ class Vec2 {
 	
 	//keep is only for swc, use standard metadata
 	@:$keep public function toString() {
-		Disposed(this,Vec2);
+		Destroyed(this,Vec2);
 
 		pr(inner).validate();
 		return pr(inner).toString();

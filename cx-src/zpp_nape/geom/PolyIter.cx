@@ -9,14 +9,14 @@ $(import);
 //  a flash.Vector<Vec2> //flash9+
 // an Array<Vec2>
 
-$(mixin global PolyFirst(polygon) (${DEBUG/1,Disposed/2,PR/1,pr/1->
+$(mixin global PolyFirst(polygon) (${DEBUG/1,Destroyed/2,PR/1,pr/1->
 	if(Std.is(polygon,Array)) {
 		var lv:Array<Dynamic> = polygon;
 		DEBUG(if(lv.length==0) throw "Error: Array<Vec2> is empty";)
 		DEBUG(if(lv[0]==null) throw "Error: Array<Vec2> contains null objects";)
 		DEBUG(if(!Std.is(lv[0],Vec2)) throw "Error: Array<Vec2> contains non Vec2 objects";)
 		var ret:Vec2 = lv[0];
-		Disposed(ret,Vec2);
+		Destroyed(ret,Vec2);
 		ret.copy();
 	}#if flash9 else if(Std.is(polygon,flash.Vector)) {
 		var lv:flash.Vector<Dynamic> = polygon;
@@ -24,14 +24,14 @@ $(mixin global PolyFirst(polygon) (${DEBUG/1,Disposed/2,PR/1,pr/1->
 		DEBUG(if(lv[0]==null) throw "Error: flash.Vector<Vec2> contains null objects";)
 		DEBUG(if(!Std.is(lv[0],Vec2)) throw "Error: flash.Vector<Vec2> contains non Vec2 objects";)
 		var ret:Vec2 = lv[0];
-		Disposed(ret,Vec2);
+		Destroyed(ret,Vec2);
 		ret.copy();
 	}#end
 	else if(Std.is(polygon,Vec2List)) {
 		var lv:Vec2List = polygon;
 		DEBUG(if(lv.empty()) throw "Error: Vec2List is empty";)
 		var v = lv.at(0);
-		Disposed(v,Vec2);
+		Destroyed(v,Vec2);
 		v.copy();
 	}else if(Std.is(polygon,GeomPoly)) {
 		var lv:GeomPoly = polygon;
@@ -88,14 +88,14 @@ $(mixin global PolyWeak(polygon) ${DEBUG/1,isWEAK/1,WEAK/1,PR/1,pr/1->
 	}
 });
 
-$(mixin global PolyIter(val, polygon, block) ${DEBUG/1,Disposed/2,PR/1,pr/1->
+$(mixin global PolyIter(val, polygon, block) ${DEBUG/1,Destroyed/2,PR/1,pr/1->
 	if(Std.is(polygon,Array)) {
 		var lv:Array<Dynamic> = polygon;
 		for(vite in lv) {
 			DEBUG(if(vite==null) throw "Error: Array<Vec2> contains null objects";)
 			DEBUG(if(!Std.is(vite,Vec2)) throw "Error: Array<Vec2> contains non Vec2 objects";)
 			var val:Vec2 = vite;
-			Disposed(val,Vec2);
+			Destroyed(val,Vec2);
 			block;
 		}
 	}#if flash9 else if(Std.is(polygon,flash.Vector)) {
@@ -104,7 +104,7 @@ $(mixin global PolyIter(val, polygon, block) ${DEBUG/1,Disposed/2,PR/1,pr/1->
 			DEBUG(if(vite==null) throw "Error: flash.Vector<Vec2> contains null objects";)
 			DEBUG(if(!Std.is(vite,Vec2)) throw "Error: flash.Vector<Vec2> contains non Vec2 objects";)
 			var val:Vec2 = vite;
-			Disposed(val,Vec2);
+			Destroyed(val,Vec2);
 
 			block;
 		}
@@ -113,7 +113,7 @@ $(mixin global PolyIter(val, polygon, block) ${DEBUG/1,Disposed/2,PR/1,pr/1->
 		var lv:Vec2List = polygon;
 		for(val in lv) {
 			DEBUG(if(val==null) throw "Error: Vec2List contains null objects";)
-			Disposed(val,Vec2);
+			Destroyed(val,Vec2);
 			
 			block;
 		}	

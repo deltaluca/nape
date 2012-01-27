@@ -139,7 +139,7 @@ class Body extends Interactor {
 		pr(inner_i) = pr(inner);
 
 		if(position!=null) {
-			Disposed(position,Vec2);
+			Destroyed(position,Vec2);
 			vec_set(pr(inner).pos,position.);
 		}
 		else vec_set(pr(inner).pos,0,0);
@@ -161,7 +161,7 @@ class Body extends Interactor {
             if(pr(inner).wrap==null) pr(inner).setup();
             pr(inner).wrap;
         },{
-			Disposed(n,Vec2);
+			Destroyed(n,Vec2);
 			DEBUG(if(n==null) throw "Error: Body::"+$str(n)+" cannot be null";)
             this.n.set(n);
         })
@@ -427,21 +427,21 @@ class Body extends Interactor {
 	keep public function localToWorld(v:Vec2,?weak:Bool=false) return relativeToWorld(localToRelative(v,true),weak)
 	keep public function worldToLocal(v:Vec2,?weak:Bool=false) return relativeToLocal(worldToRelative(v,true),weak)
 	keep public function relativeToWorld(v:Vec2,?weak:Bool=false) {
-		Disposed(v,Vec2);
+		Destroyed(v,Vec2);
 		DEBUG(if(v==null) throw "Error: Cannot transform null Vec2";)
 		var ret = Vec2.get(v.x+pr(inner).posx,v.y+pr(inner).posy,weak);
 		WEAK(v);
 		return ret;
 	}
 	keep public function worldToRelative(v:Vec2,?weak:Bool=false) {
-		Disposed(v,Vec2);
+		Destroyed(v,Vec2);
 		DEBUG(if(v==null) throw "Error: Cannot transform null Vec2";)
 		var ret = Vec2.get(v.x-pr(inner).posx,v.y-pr(inner).posy,weak);
 		WEAK(v);
 		return ret;
 	}
 	keep public function localToRelative(v:Vec2,?weak:Bool=false) {
-		Disposed(v,Vec2);
+		Destroyed(v,Vec2);
 		DEBUG(if(v==null) throw "Error: Cannot transform null Vec2";)
 		pr(inner).validate_axis();
 		vec_new(temp);
@@ -450,7 +450,7 @@ class Body extends Interactor {
 		return Vec2.get(tempx,tempy,weak);
 	}
 	keep public function relativeToLocal(v:Vec2,?weak:Bool=false) {
-		Disposed(v,Vec2);
+		Destroyed(v,Vec2);
 		DEBUG(if(v==null) throw "Error: Cannot transform null Vec2";)
 		pr(inner).validate_axis();
 		vec_new(temp);
@@ -462,8 +462,8 @@ class Body extends Interactor {
 	//----------------------------------------------------------------------------------------------
 	
 	keep public function applyLocalForce(force:Vec2,?pos:Vec2) {
-		Disposed(force,Vec2);
-		Disposed(pos,Vec2);
+		Destroyed(force,Vec2);
+		Destroyed(pos,Vec2);
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		
 		vec_addeq(pr(inner).force,force.);
@@ -478,8 +478,8 @@ class Body extends Interactor {
 		WEAK(force);
 	}
 	keep public function applyRelativeForce(force:Vec2,?pos:Vec2) {
-		Disposed(force,Vec2);
-		Disposed(pos,Vec2);
+		Destroyed(force,Vec2);
+		Destroyed(pos,Vec2);
 
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		
@@ -492,8 +492,8 @@ class Body extends Interactor {
 		WEAK(force);
 	}
 	keep public function applyWorldForce(force:Vec2,?pos:Vec2) {
-		Disposed(force,Vec2);
-		Disposed(pos,Vec2);
+		Destroyed(force,Vec2);
+		Destroyed(pos,Vec2);
 
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		
@@ -510,8 +510,8 @@ class Body extends Interactor {
 	//----------------------------------------------------------------------------------------------
 	
 	keep public function applyLocalImpulse(impulse:Vec2,?pos:Vec2) {
-		Disposed(impulse,Vec2);
-		Disposed(pos,Vec2);
+		Destroyed(impulse,Vec2);
+		Destroyed(pos,Vec2);
 
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		
@@ -529,8 +529,8 @@ class Body extends Interactor {
 		WEAK(impulse);
 	}
 	keep public function applyRelativeImpulse(impulse:Vec2,?pos:Vec2) {
-		Disposed(impulse,Vec2);
-		Disposed(pos,Vec2);
+		Destroyed(impulse,Vec2);
+		Destroyed(pos,Vec2);
 
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		
@@ -545,8 +545,8 @@ class Body extends Interactor {
 		WEAK(impulse);
 	}
 	keep public function applyWorldImpulse(impulse:Vec2,?pos:Vec2) {
-		Disposed(impulse,Vec2);
-		Disposed(pos,Vec2);
+		Destroyed(impulse,Vec2);
+		Destroyed(pos,Vec2);
 
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		
@@ -566,7 +566,7 @@ class Body extends Interactor {
 	
 	keep public function translateShapes(displacement:Vec2) {
 		pr(inner).immutable_midstep("Body::translateShapes()");
-		Disposed(displacement,Vec2);
+		Destroyed(displacement,Vec2);
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		DEBUG(if(displacement==null) throw "Error: Cannot displace by null Vec2";)
 
@@ -619,7 +619,7 @@ class Body extends Interactor {
 	//----------------------------------------------------------------------------------------------
 
 	keep public function rotate(centre:Vec2,angle:Float) {
-		Disposed(centre,Vec2);
+		Destroyed(centre,Vec2);
 		DEBUG(if(centre==null) throw "Error: Cannot rotate about a null Vec2";)
 		DEBUG(if(isNaN(angle)) throw "Error: Cannot rotate by NaN radians";)
 
@@ -784,7 +784,7 @@ class Body extends Interactor {
 	//----------------------------------------------------------------------------------------------
 
 	keep public function contains(point:Vec2) {
-		Disposed(point,Vec2);
+		Destroyed(point,Vec2);
 		DEBUG(if(point==null) throw "Error: Cannot check containment of null point";)
 		return Exists(s, pr(inner).shapes, s.outer.contains(point));
 	}
