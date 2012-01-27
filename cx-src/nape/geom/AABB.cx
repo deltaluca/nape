@@ -12,7 +12,17 @@ class AABB {
 		pr(inner) = PR(AABB).get(x,y,x+width,y+height);
 		pr(inner).outer = this;
 	}
-	keep public inline function copy() return pr(inner).copy().wrapper()
+	keep public inline function copy() {
+		Destroyed(this,AABB)
+		return pr(inner).copy().wrapper();
+	}
+
+	keep public inline function destroy() {
+		Destroyed(this,AABB)
+		DEBUG(if(pr(inner).immutable) throw "Error: This AABB is not destroyable";)
+		pr(inner).__destroy();
+		pr(inner) = null;
+	}
 	
 	//----------------------------------------------------------------------------------------------
 	
@@ -27,6 +37,7 @@ class AABB {
 	
 	$(mixin comp(n)
         property(n,Vec2,pr(inner).get_`n(),{
+			Destroyed(this,AABB)
 			Disposed(n,Vec2);
 			DEBUG(
 				if(pr(inner).immutable) throw "Error: AABB is immutable";
@@ -51,9 +62,11 @@ class AABB {
 	
 	$(mixin coord(n)
         property(n,Float,{
+			Destroyed(this,AABB)
             pr(inner).validate();
             pr(inner).min`n;
         },{
+			Destroyed(this,AABB)
 			DEBUG(if(pr(inner).immutable) throw "Error: AABB is immutable";)
 			
 			if(this.n!=n) {
@@ -74,9 +87,11 @@ class AABB {
 	
 	$(mixin dim(N,n)
         property(N,Float,{
+			Destroyed(this,AABB)
 			pr(inner).validate();
 			pr(inner).N();
 		},{
+			Destroyed(this,AABB)
 			DEBUG(if(pr(inner).immutable) throw "Error: AABB is immutable";)
 			
 			if(this.N!=N) {
@@ -96,6 +111,7 @@ class AABB {
 	
 	//keep is used for swc, use standard metadata so that it's present in swf also.
 	@:$keep public function toString() {
+		Destroyed(this,AABB)
 		pr(inner).validate();
 		return pr(inner).toString();
 	}

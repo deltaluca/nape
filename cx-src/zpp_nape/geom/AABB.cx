@@ -22,6 +22,22 @@ class PR(AABB) {
 		}
 		return outer;
 	}
+
+	flibmdel public inline function __destroy() {
+		_invalidate = null;
+		_validate = null;
+		if(wrap_min!=null) {
+			wrap_min.pr(inner).inuse = false;
+			wrap_min.destroy();
+		}
+		if(wrap_max!=null) {
+			wrap_max.pr(inner).inuse = false;
+			wrap_max.destroy();
+		}
+		wrap_min = wrap_max = null;
+		outer = null;
+		assert(next==null,"Pooled AABB was destroyed?");
+	}
 	
 	//----------------------------------------------------------------------------------------------
 	
