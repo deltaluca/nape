@@ -70,6 +70,14 @@ class Body extends Interactor {
 		userData = null;
 	}
 
+	public override function destroy() {
+		pr(inner).immutable_midstep("Body::clear()");
+    	DEBUG(if(pr(inner).world) throw "Error: Space::world cannot be destroyed directly";)
+		userData = null;
+		pr(inner).__destroy();
+		pr(inner) = null;
+	}
+
 	//----------------------------------------------------------------------------------------------
 	
     property(shapes,ShapeList,pr(inner).wrap_shapes)
