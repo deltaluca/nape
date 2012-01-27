@@ -418,10 +418,11 @@ class DummyNapeMain {
 
 
 //		(new haxe.Timer(400)).run = doit;
-//		var space = new Space();
-//		tracer.trace([space]);
+
 //		var v = new Circle(10, new Vec2(10,10), new Material(), new InteractionFilter());
 		var v = new Polygon(Polygon.box(10,20));
+		v.worldVerts;
+		v.edges;
 		tracer.trace([v], function(objs) {
 			v.destroy();
 //			Debug.clearObjectPools();
@@ -433,18 +434,23 @@ class DummyNapeMain {
 		}*/
 	}
 
-	static var space = new Space();
+//	static var space = new Space();
 	static function doit() {
+		var cs = new flash.Vector<Polygon>();
 		for(i in 0...100) {
 			var c = new Polygon(Polygon.box(10,10));
+			cs.push(c);
 //			var c = new Circle(10);
-			var b = new Body(); c.body = b;
-			b.position.x = Math.random()*800;
-			b.position.y = Math.random()*600;
-			b.space = space;
+//			var b = new Body(); c.body = ib;
+//			b.position.x = Math.random()*800;
+//			b.position.y = Math.random()*600;
+//			b.space = space;
+			//c.destroy();
 		}
-		space.step(1/60);
-		space.clear();
+		for(c in cs) c.destroy();
+
+//		space.step(1/60);
+//		space.clear();
 //		Debug.clearObjectPools();
 	}
 

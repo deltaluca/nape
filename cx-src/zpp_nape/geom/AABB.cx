@@ -24,8 +24,6 @@ class PR(AABB) {
 	}
 
 	flibmdel public inline function __destroy() {
-		_invalidate = null;
-		_validate = null;
 		if(wrap_min!=null) {
 			wrap_min.pr(inner).inuse = false;
 			wrap_min.destroy();
@@ -35,8 +33,8 @@ class PR(AABB) {
 			wrap_max.destroy();
 		}
 		wrap_min = wrap_max = null;
-		outer = null;
 		assert(next==null,"Pooled AABB was destroyed?");
+		Free(PR(AABB),this);
 	}
 	
 	//----------------------------------------------------------------------------------------------
@@ -46,9 +44,9 @@ class PR(AABB) {
 	flibmdel public inline function free() {
 		if(outer!=null) outer.pr(inner) = null;
 		outer = null;
-		wrap_min = wrap_max = null;
 		_invalidate = null;
 		_validate = null;
+		immutable = false;
 	}
 	
 	//----------------------------------------------------------------------------------------------
