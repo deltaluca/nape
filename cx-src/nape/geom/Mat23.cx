@@ -6,6 +6,7 @@ class Mat23 {
 	
 	$(mixin comp(n)
         property(n,Float,pr(inner).n,{
+			Destroyed(this,Mat23)
 			DEBUG(if(isNaN(n)) throw "Error: Mat23::"+$str(n)+" cannot be NaN";)
 			pr(inner).n = n;
 			if(pr(inner).__invalidate!=null) pr(inner).__invalidate();
@@ -13,6 +14,13 @@ class Mat23 {
 	);
 	comp(a) comp(b) comp(tx)
 	comp(c) comp(d) comp(ty)
+
+	public function destroy() {
+		Destroyed(this,Mat23)
+		DEBUG(if(pr(inner).inuse) throw "Error: Mat23 is in use and cannot be destroyed";)
+		pr(inner).__destroy();
+		pr(inner) = null;
+	}
 	
 	//----------------------------------------------------------------------------------------------
 
@@ -28,6 +36,8 @@ class Mat23 {
     }
 
 	public inline function set(matrix:Mat23) {
+		Destroyed(this,Mat23)
+		Destroyed(matrix,Mat23)
 		DEBUG(if(matrix==null) throw "Error: Cannot set form null matrix";)
 		pr(inner).set(matrix.pr(inner));
 		if(pr(inner).__invalidate!=null) pr(inner).__invalidate();
@@ -35,10 +45,14 @@ class Mat23 {
 	public inline function setAs(?a:Float=1.0,?b:Float=0.0,
 	                             ?c:Float=0.0,?d:Float=1.0,
 								 ?tx:Float=0.0,?ty:Float=0.0) {
+		Destroyed(this,Mat23)
 		pr(inner).setas(a,b,c,d,tx,ty);
 		if(pr(inner).__invalidate!=null) pr(inner).__invalidate();
 	}
-	public inline function reset() setAs()
+	public inline function reset() { 
+		Destroyed(this,Mat23)
+		setAs();
+	}
 
 	#if (flash9||nme)
 		keep public static function fromMatrix(m:flash.geom.Matrix) {
@@ -64,13 +78,20 @@ class Mat23 {
 	
 	//----------------------------------------------------------------------------------------------
 	
-	keep public function copy() return new Mat23(a,b,c,d,tx,ty)
+	keep public function copy() {
+		Destroyed(this,Mat23)
+		return new Mat23(a,b,c,d,tx,ty);
+	}
 	
 	//----------------------------------------------------------------------------------------------
 	
-    property(determinant,Float,a*d-b*c)
+    property(determinant,Float,{
+		Destroyed(this,Mat23)
+		a*d-b*c;
+	})
 	
 	keep public function singular() {
+		Destroyed(this,Mat23)
 		var d = determinant;
 		return d*d<PR(Const).EPSILON;
 	}
@@ -78,6 +99,7 @@ class Mat23 {
 	//----------------------------------------------------------------------------------------------
 	
 	keep public function inverse() {
+		Destroyed(this,Mat23)
 		var det = determinant;
 		DEBUG(if(det*det<PR(Const).EPSILON)
 			throw "Error: Matrix is singular and cannot be inverted";
@@ -92,12 +114,17 @@ class Mat23 {
 		);
 	}
 	
-	keep public function transpose() return new Mat23(a,c,b,d,tx,ty)
+	keep public function transpose() {
+		Destroyed(this,Mat23)
+		return new Mat23(a,c,b,d,tx,ty);
+	}
 	
 	//----------------------------------------------------------------------------------------------
 	
 	//x concat y = yx
 	keep public function concat(x:Mat23) {
+		Destroyed(this,Mat23)
+		Destroyed(x,Mat23)
 		return new Mat23(
 			x.a*a + x.b*c, x.a*b + x.b*d,
 			x.c*a + x.d*c, x.c*b + x.d*d,
@@ -107,6 +134,7 @@ class Mat23 {
 	}
 	
 	keep public inline function transform(p:Vec2,?no_translation:Bool=false,?weak:Bool=false):Vec2 {
+		Destroyed(this,Mat23)
 		Disposed(p,Vec2);
 		var ret = if(no_translation)
 			Vec2.get(
@@ -125,6 +153,8 @@ class Mat23 {
 	}
 
 	keep public function inverse_transform(p:Vec2,?no_translation:Bool=false,?weak:Bool=false):Vec2 {
+		Destroyed(this,Mat23)
+		Disposed(p,Vec2)
 		var det = determinant;
 		DEBUG(if(det*det<PR(Const).EPSILON)
 			throw "Error: Matrix is singular and cannot be inverted in course of inverse transformation";
@@ -150,6 +180,7 @@ class Mat23 {
 	
 	//keep is only for swc, use standard metadata
     @:$keep public function toString() {
+		Destroyed(this,Mat23)
         return "{ a: "+a+ " b: "+b+" c: "+c+" d: "+d+" tx: "+tx+" ty: "+ty+" }";
     }
 	
@@ -157,6 +188,7 @@ class Mat23 {
 
     //whether transpose(M).M = kI -> can transform one circle to another.
     keep public function equiorthogonal() {
+		Destroyed(this,Mat23)
 		if(singular()) return false;
 		else {
 			var x = a*b+c*d;
@@ -171,6 +203,7 @@ class Mat23 {
 	//transform matrix into the most similar, but [equi]orthogonal matrix
 	$(mixin alise(n,kdef)
 		keep public function n`ise() {
+			Destroyed(this,Mat23)
 			if(!n()) {
 				var k1 = Math.sqrt(a*a+c*c);
 				var k2 = Math.sqrt(b*b+d*d);
@@ -204,6 +237,7 @@ class Mat23 {
 	//----------------------------------------------------------------------------------------------
 
     keep public function orthogonal() {
+		Destroyed(this,Mat23)
         var x = a*b+c*d;
         if (x*x < PR(Const).EPSILON) {
 			var y = a*a+b*b- 1;

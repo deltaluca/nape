@@ -16,6 +16,13 @@ class PR(Mat23) {
     vec_new(public,t);
 
 	public var __invalidate:Void->Void;
+	DEBUG(public var inuse:Bool;)
+
+	flibmdel public inline function __destroy() {
+		__invalidate = null;
+		outer = null;
+		assert(next==null,"Pooled Mat23 destroyed?");
+	}
 	
 	//----------------------------------------------------------------------------------------------
 
@@ -30,7 +37,10 @@ class PR(Mat23) {
 	//----------------------------------------------------------------------------------------------
 	
 	MixPool(PR(Mat23))
-	flibmdel public inline function free() {}
+	flibmdel public inline function free() {
+		__invalidate = null;
+		DEBUG(inuse = false;)
+	}
 	flibmdel public inline function alloc() {}
 	
 	//----------------------------------------------------------------------------------------------
