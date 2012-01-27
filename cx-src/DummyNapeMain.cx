@@ -284,17 +284,54 @@ class DummyNapeMain {
 
 #else 
 
-class Tracer {
-	static public function trace(objs:Array<Dynamic>,txt:flash.text.TextField) {
-		var dict_id = 0;
-		var stack = [];
-		var dict = new flash.utils.Dictionary(false);
-		var idl = [];
-		
-		var sdict = new Hash<Bool>();
-		var stats = [];
+typedef TracerObj = {id:Int, obj:Dynamic, refs:Array<{name:String,id:Int}>};
+class Tracer extends flash.text.TextField {
+	public function new() {
+		super();
+		width = flash.Lib.current.stage.stageWidth;
+		height = flash.Lib.current.stage.stageHeight;
+		defaultTextFormat = new flash.text.TextFormat(null,null,0xffffff);
 
-		$(mixin pushobj(i) ({
+		init();
+	}
+
+	static inline var INIT = 0;
+	static inline var SEARCH = 1;
+	static inline var TRACE = 2;
+	static inline var SLEEP = 3;
+	var state:Int;
+
+	var trace_stack:Array<{objs:Array<Dynamic>,cont:Void->Void}>;
+	public function trace(objs:Array<Dynamic>,?cont:Void->Void) {
+		if(objs.length==0) return;
+		trace_stack.push({objs:objs,cont:cont});
+		begin();
+	}
+
+	var ctrace:{objs:Array<Dynamic>,cont:Void->Void};
+	var dict_id:Int;
+	var stack:Array<TracerObj>;
+	var dict:flash.utils.Dictionary;
+	var idl:Array<TracerObj>;
+	var cnnt:Int; var fcnt:Int;
+	public function begin() {
+		if(state!=SLEEP) return;
+		if(trace_stack.length==0) return;
+		ctrace = trace_stack.shift();
+		state = INIT;
+	}
+
+	function init() {
+		state = SLEEP;
+		trace_stack = [];
+
+		(new haxe.Timer(0)).run = mainloop;
+	}
+
+	function mainloop() {
+		if(state==SLEEP) return;
+
+		$(mixin pushobj(i) {
 			if((untyped dict[i])!=null) (untyped dict[i]).id;
 			else {
 				var o = { id: dict_id++, obj:i, refs:[] };
@@ -303,77 +340,59 @@ class Tracer {
 				idl.push(o);
 				o.id;
 			}
-		}));
+		});
 
-		for(i in objs) pushobj(i);
-		var tim = new haxe.Timer(0);
-
-		var fcnt = 0;
-		var finish2 = function() {
-			var pt = flash.Lib.getTimer();
-			var buf = "";
-			while(flash.Lib.getTimer()-pt <= 50) {
-				if(fcnt >= stats.length) {
-					txt.text += buf+"\n\nDONE";
-					txt.scrollV = txt.maxScrollV;
-					tim.stop();
-					return;
-				}
-				var i = stats[fcnt++];
-				buf += "nme: "+i.name+" refs:"+Std.string(i.refs)+"\n";
-			}
+		if(state==INIT) {
+			stack = [];
+			idl = [];
+			dict_id = 0;
+			cnnt = 0;
+			dict = new flash.utils.Dictionary(false);
+			for(i in ctrace.objs) pushobj(i);
+			state = SEARCH;
 		}
 
-		var finish = function() {	
-			var pt = flash.Lib.getTimer();
-			var buf = "";
-			while(flash.Lib.getTimer()-pt <= 50) {
-				if(fcnt >= idl.length) {
-					txt.text += buf+"\n";
-					txt.scrollV = txt.maxScrollV;
+		var pt = flash.Lib.getTimer();
+		var buf = "";
+		while(flash.Lib.getTimer()-pt <= 50) {
+			if(state==SEARCH) {
+				if(stack.length==0) {
 					fcnt = 0;
-					tim.run = finish2;
-					return;
+					state = TRACE;
+					continue;
 				}
-				var i = idl[fcnt++];
-				buf += "id: "+i.id+" refs:"+Std.string(i.refs)+" = "+Std.string(i.obj)+"\n";
-			}
-			txt.text += buf;
-			txt.scrollV = txt.maxScrollV;
-		}
 
-		var cnnt = 0;
-		tim.run = function() {
-			txt.text += "running: stack size="+stack.length+" cnt="+cnnt+"\n";
-
-			if(stack.length==0) { tim.run = finish; return; }
-
-			var pt = flash.Lib.getTimer();
-			while(flash.Lib.getTimer()-pt <= 50) {
-				if(stack.length==0) { tim.run = finish; return; }
+				text += "running: stack size="+stack.length+" cnt="+cnnt+"\n";
 
 				var cur = stack.shift();
 				cnnt++;
 				var cls = Type.getClass(cur.obj);
 				for(o in Type.getInstanceFields(cls)) {
 					var field:Dynamic = Reflect.field(cur.obj, o);
-					if(field!=null && Reflect.isObject(field)) {
-						cur.refs.push({ name:o, id:	pushobj(field) });
-					}
+					if(field!=null && Reflect.isObject(field))
+						cur.refs.push({name:o, id:pushobj(field)});
 				}
-				var nme = Type.getClassName(cls);
-				if(!sdict.exists(nme)) {
-					sdict.set(nme,true);
-					var ccur = [];
-					for(o in Type.getClassFields(cls)) {
-						var field:Dynamic = Reflect.field(cur.obj, o);
-						if(field!=null && Reflect.isObject(field)) {
-							ccur.push({ name:o, id: pushobj(field) });
-						}
-					}
-					stats.push({name:nme,refs:ccur});
+			}else {
+				if(fcnt >= idl.length) {
+					text += buf+"\nDONE\n";
+					scrollV = maxScrollV;
+					state = SLEEP;
+					if(ctrace.cont!=null) ctrace.cont();
+					break;
 				}
+				var i = idl[fcnt++];
+				var nme:String;
+				try {
+					nme = Std.string(i.obj);
+				}catch(e:Dynamic) {
+					nme = Std.string(e);
+				}
+				buf += "id: "+i.id+" refs:"+Std.string(i.refs)+" = "+nme+"\n";
 			}
+		}
+		if(state==TRACE) {
+			text += buf;
+			scrollV = maxScrollV;
 		}
 	}
 }
@@ -381,11 +400,8 @@ class Tracer {
 class DummyNapeMain {
 	static function main() {
 		haxe.Log.setColor(0xffffff);
-
-		var txt = new flash.text.TextField();
-		txt.width = flash.Lib.current.stage.stageWidth;
-		txt.height = flash.Lib.current.stage.stageHeight;
-		flash.Lib.current.addChild(txt);
+		var tracer = new Tracer();
+		flash.Lib.current.addChild(tracer);
 
 /*		haxe.Timer.delay(function() {
 			for(i in 0...10000) {
@@ -398,23 +414,17 @@ class DummyNapeMain {
 
 
 //		(new haxe.Timer(400)).run = doit;
-		var space = new Space();
-		Tracer.trace([space],txt);
-		txt.text += "\n\n";
-
-		var b = new Body(); b.shapes.add(new Circle(10)); b.space = space;
-		b.cbType = new CbType();
-		space.listeners.add(new PreListener(InteractionType.ANY, b.cbType,b.cbType, function(_) return PreFlag.IGNORE));
-		space.clear();
-		Debug.clearObjectPools();
-		haxe.Timer.delay(function() {
-		Tracer.trace([space],txt);
-		},1000);
+//		var space = new Space();
+//		tracer.trace([space]);
+		var v = new Vec2();
+		tracer.trace([v], function() {
+			v.destroy();
+			tracer.trace([v]);
+		});
 
 /*		for(key in (untyped __keys__(dict)).iterator()) {
 			txt.text += untyped dict[key];
 		}*/
-		
 	}
 
 	static var space = new Space();
