@@ -354,6 +354,8 @@ class Tracer extends flash.text.TextField {
 
 		var pt = flash.Lib.getTimer();
 		var buf = "";
+		if(state==SEARCH)
+			text += "running: stdack size="+stack.length+" cnt="+cnnt+"\n";	
 		while(flash.Lib.getTimer()-pt <= 50) {
 			if(state==SEARCH) {
 				if(stack.length==0) {
@@ -361,8 +363,6 @@ class Tracer extends flash.text.TextField {
 					state = TRACE;
 					continue;
 				}
-
-				text += "running: stack size="+stack.length+" cnt="+cnnt+"\n";
 
 				var cur = stack.shift();
 				cnnt++;
@@ -416,7 +416,7 @@ class DummyNapeMain {
 //		(new haxe.Timer(400)).run = doit;
 //		var space = new Space();
 //		tracer.trace([space]);
-		var v = new Mat23();
+		var v = new Ray(new Vec2(), new Vec2(0,1));
 		tracer.trace([v], function() {
 			v.destroy();
 			tracer.trace([v]);

@@ -19,6 +19,7 @@ class PR(Ray) {
 	public function new() {
 		origin = Vec2.get();
 		direction = Vec2.get();
+		origin.pr(inner).inuse = direction.pr(inner).inuse = true;
 		var me = this;
 		origin.pr(inner)._invalidate = function(x:PR(Vec2)) {
 			vec_set(me.origin,x.);
@@ -44,6 +45,13 @@ class PR(Ray) {
 			vec_set(normal,-diry,dirx);
 			vec_set(absnormal,abs(normalx),abs(normaly));
 		}
+	}
+
+	flibmdel public inline function __destroy() {
+		origin.pr(inner).inuse = false;
+		origin.destroy();
+		direction.pr(inner).inuse = false;
+		direction.destroy();
 	}
 	
 	//--------------------------------------------------------------
