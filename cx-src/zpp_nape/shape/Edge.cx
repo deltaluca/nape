@@ -22,6 +22,26 @@ class PR(Edge) {
 		}
 		return outer;
 	}
+
+	flibmdel public inline function destroy() {
+		assert(next==null,"destroy edge in pool?");
+		polygon = null;
+		if(outer!=null) {
+			outer.pr(inner) = null;
+			outer = null;
+		}
+		if(wrap_lnorm!=null) {
+			wrap_lnorm.pr(inner).inuse = false;
+			wrap_lnorm.destroy();
+		}
+		if(wrap_gnorm!=null) {
+			wrap_gnorm.pr(inner).inuse = false;
+			wrap_gnorm.destroy();
+		}
+		wrap_lnorm = wrap_gnorm = null;
+		//assumption that nothing more complex is involved for these.
+		lp0 = lp1 = gp0 = gp1 = null;
+	}
 	
 	vec_new(public,lnorm); public var wrap_lnorm:Vec2;
 	vec_new(public,gnorm); public var wrap_gnorm:Vec2;
@@ -37,6 +57,7 @@ class PR(Edge) {
 	public function get_lnorm() {
 		var me = this;
 		wrap_lnorm = Vec2.get(lnormx,lnormy);
+		wrap_lnorm.pr(inner).inuse = true;
 		wrap_lnorm.pr(inner).immutable = true;
 		wrap_lnorm.pr(inner)._validate = function() {
 			DEBUG(if(me.polygon==null)
@@ -49,6 +70,7 @@ class PR(Edge) {
 	public function get_gnorm() {
 		var me = this;
 		wrap_gnorm = Vec2.get(gnormx,gnormy);
+		wrap_gnorm.pr(inner).inuse = true;
 		wrap_gnorm.pr(inner).immutable = true;
 		wrap_gnorm.pr(inner)._validate = function() {
 			DEBUG(

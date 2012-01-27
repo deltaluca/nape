@@ -416,10 +416,15 @@ class DummyNapeMain {
 //		(new haxe.Timer(400)).run = doit;
 //		var space = new Space();
 //		tracer.trace([space]);
-		var v = new Ray(new Vec2(), new Vec2(0,1));
-		tracer.trace([v], function() {
+//		var v = new Circle(10, new Vec2(10,10), new Material(), new InteractionFilter());
+		var v = new Polygon(Polygon.box(10,20), new Material(), new InteractionFilter());
+		v.edges; v.worldVerts;
+		var q = v.pr(inner).polygon;
+		v.cbType = new CbType();
+		v.group = new InteractionGroup();
+		tracer.trace([v,q], function() {
 			v.destroy();
-			tracer.trace([v]);
+			tracer.trace([v,q]);
 		});
 
 /*		for(key in (untyped __keys__(dict)).iterator()) {

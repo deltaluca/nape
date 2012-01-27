@@ -14,11 +14,18 @@ class Shape extends Interactor {
 	public var pr(inner):PR(Shape);
 	
     property(type,ShapeType,{
+		Destroyed(this,Shape)
         [ShapeType.CIRCLE,ShapeType.POLYGON][pr(inner).type];
     })
 	
-	keep public inline function isCircle () return pr(inner).isCircle()
-	keep public inline function isPolygon() return pr(inner).isPolygon()
+	keep public inline function isCircle () {
+		Destroyed(this,Shape)
+		return pr(inner).isCircle();
+	}
+	keep public inline function isPolygon() {
+		Destroyed(this,Shape)
+		return pr(inner).isPolygon();
+	}
 	
 	//----------------------------------------------------------------------------------------------
 	
@@ -28,12 +35,25 @@ class Shape extends Interactor {
 
 		DEBUG(throw "Error: Shape cannot be instantiated derp!";)
 	}
+
+	public function destroy() {
+		Destroyed(this,Shape)
+		pr(inner).immutable_midstep("Shape::destroy()");
+		DEBUG(
+			if(body!=null) throw "Error: Cannot destroy a Shape that is inside a Body, remove it first";
+		)
+
+		pr(inner).__destroy();
+		pr(inner) = null;
+	}
 	
 	//----------------------------------------------------------------------------------------------
 	
     property(body,Body,{
+		Destroyed(this,Shape)
 		if(pr(inner).body!=null) pr(inner).body.outer else null;
 	},{
+		Destroyed(this,Shape)
 		pr(inner).immutable_midstep("Shape::body");
 		if(this.body!=body) {
 			if(pr(inner).body!=null) this.body.shapes.remove(this);
@@ -41,12 +61,19 @@ class Shape extends Interactor {
 		}
 	})
 	
-    property(castCircle, Circle, if(isCircle())  pr(inner).circle.outer_zn  else null)
-	property(castPolygon,Polygon,if(isPolygon()) pr(inner).polygon.outer_zn else null)
+    property(castCircle, Circle, {
+		Destroyed(this,Shape)
+		if(isCircle())  pr(inner).circle.outer_zn  else null;
+	})
+	property(castPolygon,Polygon, {
+		Destroyed(this,Shape)
+		if(isPolygon()) pr(inner).polygon.outer_zn else null;
+	})
 
 	//----------------------------------------------------------------------------------------------
 	
 	property(worldCOM,Vec2,{
+		Destroyed(this,Shape)
 		if(pr(inner).wrap_worldCOM==null) {
 			pr(inner).wrap_worldCOM = Vec2.get(pr(inner).worldCOMx,pr(inner).worldCOMy);
 			pr(inner).wrap_worldCOM.pr(inner).inuse = true;
@@ -57,12 +84,14 @@ class Shape extends Interactor {
 	})
 	
 	property(localCOM,Vec2,{
+		Destroyed(this,Shape)
 		if(pr(inner).wrap_localCOM==null) {
 			if(isCircle()) pr(inner).circle.setupLocalCOM();
 			else           pr(inner).polygon.setupLocalCOM();
 		}
 		pr(inner).wrap_localCOM;
 	},{
+		Destroyed(this,Shape)
 		pr(inner).immutable_midstep("Body::localCOM");
 		Disposed(localCOM,Vec2);
 		DEBUG(if(localCOM==null) throw "Error: Shape::localCOM cannot be null";)
@@ -71,34 +100,48 @@ class Shape extends Interactor {
 	
 	//----------------------------------------------------------------------------------------------
 	
-    property(area,   Float, { pr(inner).validate_area_inertia(); pr(inner).area;    })
-    property(inertia,Float, { pr(inner).validate_area_inertia(); pr(inner).inertia; })
-    property(angDrag,Float, { pr(inner).validate_angDrag();      pr(inner).angDrag; })
+    property(area,   Float, { Destroyed(this,Shape) pr(inner).validate_area_inertia(); pr(inner).area;    })
+    property(inertia,Float, { Destroyed(this,Shape) pr(inner).validate_area_inertia(); pr(inner).inertia; })
+    property(angDrag,Float, { Destroyed(this,Shape) pr(inner).validate_angDrag();      pr(inner).angDrag; })
 
 	//----------------------------------------------------------------------------------------------
 	
-    property(material,Material,pr(inner).material.wrapper(),{
+    property(material,Material,{
+		Destroyed(this,Shape)
+		pr(inner).material.wrapper();
+	},{
+		Destroyed(this,Shape)
 		pr(inner).immutable_midstep("Shape::material");
         DEBUG(if(material==null) throw "Error: Cannot assign null as Shape material";)
         pr(inner).setMaterial(material.pr(inner));
     })
 	
-    property(filter,InteractionFilter,pr(inner).filter.wrapper(),{
+    property(filter,InteractionFilter,{
+		Destroyed(this,Shape)
+		pr(inner).filter.wrapper();
+	},{
+		Destroyed(this,Shape)
 		pr(inner).immutable_midstep("Shape::filter");
 		DEBUG(if(filter==null) throw "Error: Cannot assign null as Shape filter";)
 		pr(inner).setFilter(filter.pr(inner));
 	})
 	
     property(fluidProperties,FluidProperties,{
+		Destroyed(this,Shape)
 		pr(inner).immutable_midstep("Shape::fluidProperties");
 		if(pr(inner).fluidProperties==null) pr(inner).setFluid(new FluidProperties().pr(inner));
 		pr(inner).fluidProperties.wrapper();
 	},{
+		Destroyed(this,Shape)
 		DEBUG(if(fluidProperties==null) throw "Error: Cannot assign null as Shape fluidProperties, disable fluids by setting fluidEnabled to false";)
 		pr(inner).setFluid(fluidProperties.pr(inner));
 	})
 	
-    property(fluidEnabled,Bool,pr(inner).fluidEnabled,{
+    property(fluidEnabled,Bool,{
+		Destroyed(this,Shape)
+		pr(inner).fluidEnabled;
+	},{
+		Destroyed(this,Shape)
 		pr(inner).immutable_midstep("Shape::fluidEnabled");
 		pr(inner).fluidEnabled = fluidEnabled;
 		if(fluidEnabled && pr(inner).fluidProperties==null) this.fluidProperties = new FluidProperties();
@@ -107,11 +150,15 @@ class Shape extends Interactor {
 	
 	//----------------------------------------------------------------------------------------------
    
-    property(bounds,AABB,pr(inner).aabb.wrapper())
+    property(bounds,AABB,{
+		Destroyed(this,Shape)
+		pr(inner).aabb.wrapper();
+	})
 	
 	//----------------------------------------------------------------------------------------------
 	
 	keep public function translate(displacement:Vec2) {
+		Destroyed(this,Shape)
 		pr(inner).immutable_midstep("Shape::translate()");
 		Disposed(displacement,Vec2);
 		DEBUG(
@@ -126,6 +173,7 @@ class Shape extends Interactor {
 		WEAK(displacement);
 	}
 	keep public function scale(scalex:Float,scaley:Float) {
+		Destroyed(this,Shape)
 		pr(inner).immutable_midstep("Shape::scale()");
 		DEBUG(
             if(pr(inner).body!=null && pr(inner).body.space!=null && pr(inner).body.isStatic())
@@ -144,6 +192,7 @@ class Shape extends Interactor {
 		}
 	}
 	keep public function rotate(angle:Float) {
+		Destroyed(this,Shape)
 		pr(inner).immutable_midstep("Shape::rotate()");
 		DEBUG(
 			if(pr(inner).body!=null && pr(inner).body.space!=null && pr(inner).body.isStatic())
@@ -160,6 +209,7 @@ class Shape extends Interactor {
 	}
 	
 	keep public function transform(matrix:Mat23) {
+		Destroyed(this,Shape)
 		pr(inner).immutable_midstep("Shape::transform()");
 		DEBUG(
 			if(pr(inner).body!=null && pr(inner).body.space!=null && pr(inner).body.isStatic())
@@ -181,6 +231,7 @@ class Shape extends Interactor {
 	//----------------------------------------------------------------------------------------------
 
 	keep public function contains(point:Vec2) {
+		Destroyed(this,Shape)
 		Disposed(point,Vec2);
 		DEBUG(if(point==null) throw "Cannot check null point for containment";)
 		DEBUG(if(body==null) throw "Error: Shape is not well defined without a Body";)	
@@ -192,6 +243,7 @@ class Shape extends Interactor {
 	//----------------------------------------------------------------------------------------------
 	
 	keep public static function copy(shape:Shape) {
+		Destroyed(shape,Shape)
 		DEBUG(if(shape==null)
 			throw "Error: Cannot copy null Shape";
 		)
@@ -203,6 +255,7 @@ class Shape extends Interactor {
 	//----------------------------------------------------------------------------------------------
 	
 	@:$keep public override function toString() {
+		Destroyed(this,Shape)
 		var ret = isCircle() ? "Circle" : "Polygon";
 		return ret + "#" + id;
 	}

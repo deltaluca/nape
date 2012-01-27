@@ -38,13 +38,18 @@ class Circle extends Shape {
 	}
 	
 	keep public static function copy(circle:Circle) {
+		Destroyed(circle,Circle)
 		DEBUG(if(circle==null) throw "Error: Cannot copy null circle";)
 		return circle.pr(inner).copy().castCircle;
 	}
 	
 	//----------------------------------------------------------------------------------------------
 	
-    property(radius,Float,pr(inner_zn).radius,{
+    property(radius,Float,{
+		Destroyed(this,Circle)
+		pr(inner_zn).radius;
+	},{
+		Destroyed(this,Circle)
 		pr(inner).immutable_midstep("Circle::radius");
 		DEBUG(if(pr(inner).body!=null && pr(inner).body.isStatic() && pr(inner).body.space!=null)
 			throw "Error: Cannot modifiy radius of Circle contained in static object once added to space";

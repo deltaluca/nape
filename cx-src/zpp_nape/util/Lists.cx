@@ -80,6 +80,12 @@ $(expand global MixDerivedList(T,ListT,IteT,defs)
 		
 		public var at_ite:IteT;
 		public var at_index:Int;
+
+		//assumes inner list has been destroyed already
+		flibmdel public inline function __destroy() {
+			inner = null;
+			at_ite = null;
+		}
 		
 		flibmdel public static inline function get(list:ListT,?immutable=false) {
 			var ret = new PR(Mix`T`List)();
@@ -294,6 +300,21 @@ $(expand global PRWrapList(T,ListT,IteT)
 		
 		//used for transparent reversal of list
 		public var reverse_flag:Bool;
+
+		//destroy public list assuming private list has been dealt with
+		flibmdel public inline function __destroy() {
+			outer.pr(inner) = null;
+			outer = null;
+			inner = null;
+			_invalidate = null;
+			_validate = null;
+			_modifiable = null;
+			adder = null;
+			post_adder = null;
+			subber = null;
+			at_ite = null;
+			push_ite = null;
+		}
 		
 		flibstaticdel(get) public static inline function get(list:ListT,?imm:Bool=false) {
 			var ret = new T`List();
@@ -379,7 +400,7 @@ $(mixin global MixListMixin(T)
 	ListMixin(
 		$(mixin _setbeg(i) next=i);
 		$(mixin _new(o) { o.inuse = true; o; });
-		$(mixin _delete(o) {});
+		$(mixin _delete(o) { o.next = null; });
 		$(mixin _delelt(o) { o.inuse = false; });
 		$(mixin _clear false);
 	,
@@ -397,6 +418,8 @@ $(mixin global ListMixin(defs,Cons,T,I)
 	public var modified:Bool;
 	public var pushmod:Bool;
 	public var mcnt:Int;
+
+	//----------------------------------------------------------------------
 
 	flibmdel public inline function set_begin(i:I) {
 		_setbeg(i);

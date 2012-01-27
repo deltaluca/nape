@@ -163,6 +163,7 @@ class Space {
 	}
 
 	keep public function shapesInShape(shape:Shape,containment:Bool=false,?filter:InteractionFilter) {
+		Destroyed(shape,Shape)
 		DEBUG(
 			if(shape==null) throw "Error: Cannot evaluate shapes in a null shapes :)";
 			if(shape.body==null) throw "Error: Query shape needs to be inside a Body to be well defined :)";
@@ -175,6 +176,7 @@ class Space {
 		return pr(inner).shapesInShape(shape.pr(inner),containment,filter == null ? null : filter.pr(inner));
 	}
 	keep public function bodiesInShape(shape:Shape,containment:Bool=false,?filter:InteractionFilter) {
+		Destroyed(shape,Shape)
 		DEBUG(
 			if(shape==null) throw "Error: Cannot evaluate bodies in a null shapes :)";
 			if(shape.body==null) throw "Error: Query shape needs to be inside a Body to be well defined :)";
@@ -211,11 +213,13 @@ class Space {
 	//----------------------------------------------------------------------------------------------
 	
 	keep public function rayCast(ray:Ray, ?inner:Bool=false, ?filter:InteractionFilter=null) {
+		Destroyed(ray,Ray)
 		DEBUG(if(ray==null) throw "Error: Cannot cast null ray :)";)
 		return pr(inner).rayCast(ray,inner,filter);
 	}
 	
 	keep public function rayMultiCast(ray:Ray, ?inner:Bool=false, ?filter:InteractionFilter=null) {
+		Destroyed(ray,Ray)
 		DEBUG(if(ray==null) throw "Error: Cannot cast null ray :)";)
 		return pr(inner).rayMultiCast(ray,inner,filter);
 	}

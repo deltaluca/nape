@@ -18,6 +18,41 @@ class PR(Polygon) extends PR(Shape) {
 	
 	flibmdel public inline function __clear() {}
 
+	flibmdel public inline function __sdestroy() {
+		outer_zn.pr(inner_zn) = null;
+		outer_zn = null;
+		validation = null;
+
+		ClearWith(x, edges, x.destroy());
+		edges = null;
+		if(wrap_edges!=null) {
+			wrap_edges.pr(inner).__destroy();
+			wrap_edges = null;
+		}
+
+		ClearWith(x, lverts, {
+			if(x.outer!=null) {
+				x.inuse = false;
+				x.outer.destroy();
+			}
+		});
+		lverts = null;
+		wrap_lverts.pr(inner).__destroy();
+		wrap_lverts = null;
+
+		ClearWith(x, gverts, {
+			if(x.outer!=null) {
+				x.inuse = false;
+				x.outer.destroy();
+			}
+		});
+		gverts = null;
+		if(wrap_gverts!=null) {
+			wrap_gverts.pr(inner).__destroy();
+			wrap_gverts = null;
+		}
+	}
+
 	//----------------------------------------------------------------------------------------------
 	
 	keep public function get_lverts() {

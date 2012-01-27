@@ -10,30 +10,49 @@ WrapList(Interactor,List(PR(Interactor)),Node(PR(Interactor)),$(mixin closure(x)
 class Interactor {
 	public var pr(inner_i):PR(Interactor);
 
-	property(id,Int,pr(inner_i).id)
+	property(id,Int,{
+		Destroyed(this,Interactor,pr(inner_i))
+		pr(inner_i).id;
+	})
 
 	public var userData:Dynamic;
 
 	//------------------------------------------------------------------------------
 
-	public inline function isShape() return pr(inner_i).ishape!=null
-	public inline function isBody () return pr(inner_i).ibody !=null
+	public inline function isShape() {
+		Destroyed(this,Interactor,pr(inner_i))
+		return pr(inner_i).ishape!=null;
+	}
+	public inline function isBody () {
+		Destroyed(this,Interactor,pr(inner_i))
+		return pr(inner_i).ibody !=null;
+	}
 
-	property(castShape,Shape,if(isShape()) pr(inner_i).ishape.outer else null)
-	property(castBody, Body, if(isBody())  pr(inner_i).ibody.outer  else null)
+	property(castShape,Shape,{
+		Destroyed(this,Interactor,pr(inner_i))
+		if(isShape()) pr(inner_i).ishape.outer else null;
+	})
+	property(castBody, Body, {
+		Destroyed(this,Interactor,pr(inner_i))
+		if(isBody())  pr(inner_i).ibody.outer  else null;
+	})
 
 	//------------------------------------------------------------------------------
 
 	property(group,InteractionGroup,{
+		Destroyed(this,Interactor,pr(inner_i))
 		if(pr(inner_i).group==null) null else pr(inner_i).group.outer;
 	},{
+		Destroyed(this,Interactor,pr(inner_i))
 		pr(inner_i).immutable_midstep("Interactor::group");
 		pr(inner_i).setGroup(group==null ? null : group.pr(inner));
 	})
 
 	property(cbType,CbType,{
+		Destroyed(this,Interactor,pr(inner_i))
 		if(pr(inner_i).cbType==null) null else pr(inner_i).cbType.wrapper();
 	},{
+		Destroyed(this,Interactor,pr(inner_i))
 		pr(inner_i).immutable_midstep("Interactor::cbType");
 		pr(inner_i).setCbType(cbType==null ? null : cbType.pr(inner));
 	})

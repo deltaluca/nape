@@ -58,6 +58,36 @@ class PR(Shape) extends PR(Interactor) {
 		else          polygon.__clear();
 	}
 
+	flibmdel public inline function __destroy() {
+		if(isCircle()) circle.__sdestroy();
+		else           polygon.__sdestroy();
+		circle = null;
+		polygon = null;
+		outer = null;
+		assert(body==null,"...body null shape destroy");
+		if(wrap_localCOM!=null) {
+			wrap_localCOM.pr(inner).inuse = false;
+			wrap_localCOM.destroy();
+		}
+		if(wrap_worldCOM!=null) {
+			wrap_worldCOM.pr(inner).inuse = false;
+			wrap_worldCOM.destroy();
+		}
+		wrap_localCOM = wrap_worldCOM = null;
+		aabb.immutable = false;
+		Free(PR(AABB),aabb);
+		aabb = null;
+		refmaterial = null; //not a public Material, no destroy needed
+		//we assume shape is not active, so no need to remove from material etc.
+		material = null;
+		filter = null;
+		fluidProperties = null;
+		assert(sweep==null,"...sweep null shape destroy");
+		assert(node==null,"...node null shape destroy");
+		//
+		__idestroy(); //Interactor
+	}
+
 	//----------------------------------------------------------------------------------------------
 	
 	public var aabb:PR(AABB); public var inv(aabb):Bool;
