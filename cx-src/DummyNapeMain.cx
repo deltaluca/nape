@@ -344,13 +344,13 @@ class Tracer {
 
 		var cnnt = 0;
 		tim.run = function() {
-			txt.text = "running: stack size="+stack.length+" cnt="+cnnt+"\n";
+			txt.text += "running: stack size="+stack.length+" cnt="+cnnt+"\n";
 
-			if(stack.length==0) { tim.run = finish; txt.text = ""; return; }
+			if(stack.length==0) { tim.run = finish; return; }
 
 			var pt = flash.Lib.getTimer();
 			while(flash.Lib.getTimer()-pt <= 50) {
-				if(stack.length==0) { tim.run = finish; txt.text = ""; return; }
+				if(stack.length==0) { tim.run = finish; return; }
 
 				var cur = stack.shift();
 				cnnt++;
@@ -397,8 +397,19 @@ class DummyNapeMain {
 		},3000);*/
 
 
-		(new haxe.Timer(400)).run = doit;
-//		Tracer.trace([c,b],txt);
+//		(new haxe.Timer(400)).run = doit;
+		var space = new Space();
+		Tracer.trace([space],txt);
+		txt.text += "\n\n";
+
+		var b = new Body(); b.shapes.add(new Circle(10)); b.space = space;
+		b.cbType = new CbType();
+		space.listeners.add(new PreListener(InteractionType.ANY, b.cbType,b.cbType, function(_) return PreFlag.IGNORE));
+		space.clear();
+		Debug.clearObjectPools();
+		haxe.Timer.delay(function() {
+		Tracer.trace([space],txt);
+		},1000);
 
 /*		for(key in (untyped __keys__(dict)).iterator()) {
 			txt.text += untyped dict[key];

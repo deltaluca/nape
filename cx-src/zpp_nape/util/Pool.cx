@@ -28,7 +28,13 @@ $(mixin global PublicMixPoolNoNext(T)
 	PUBLICPOOL(T)
 );
 
-$(mixin global Disposed(o,T) { DEBUG(if(o!=null && o.pr(disp)) throw "Error: "+$str(T)+" has been disposed and cannot be used!";) });
+$(mixin global Disposed(o,T) { DEBUG(
+	if(o!=null && o.pr(disp)) throw "Error: "+$str(T)+" has been disposed and cannot be used!";
+	Destroyed(o,T)
+)});
+$(mixin global Destroyed(o,T) { DEBUG(
+	if(o!=null && o.pr(inner)==null) throw "Error: "+$str(T)+" has been destroyed and cannot be used!";
+)});
 
 class PR(PubPool) {
 	$(expand file PUBLICPOOL(T)

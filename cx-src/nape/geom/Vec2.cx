@@ -33,6 +33,13 @@ class Vec2 {
 		PublicFree(Vec2,this);
 		Free(PR(Vec2),pr);
 	}
+
+	public inline function destroy() {
+		Disposed(this,Vec2);
+		DEBUG(if(pr(inner).inuse) throw "Error: This Vec2 is not destroyable";)
+		pr(inner).__destroy();
+		pr(inner) = null;
+	}
 	
 	public function new(?x:Float=0, ?y:Float=0) {
 		DEBUG(if(isNaN(x) || isNaN(y)) throw "Error: Vec2 components cannot be NaN";)
