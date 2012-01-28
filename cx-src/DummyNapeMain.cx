@@ -285,13 +285,13 @@ class DummyNapeMain {
 #else 
 
 typedef TracerObj = {id:Int, obj:Dynamic, refs:Array<{name:String,id:Int}>};
-typedef TracerSt = {objs:Array<Dynamic>,cont:Array<Dynamic>->Void};
+typedef TracerSt = {objs:Array<Dynamic>,cont:Array<Dynamic>->Void,str:String};
 class Tracer extends flash.text.TextField {
 	public function new() {
 		super();
 		width = flash.Lib.current.stage.stageWidth;
 		height = flash.Lib.current.stage.stageHeight;
-		defaultTextFormat = new flash.text.TextFormat(null,null,0xffffff);
+		defaultTextFormat = new flash.text.TextFormat("Courier New, Consolas",null,0xffffff);
 
 		init();
 	}
@@ -305,7 +305,13 @@ class Tracer extends flash.text.TextField {
 	var trace_stack:Array<TracerSt>;
 	public function trace(objs:Array<Dynamic>,?cont:Array<Dynamic>->Void) {
 		if(objs.length==0) return;
-		trace_stack.push({objs:objs,cont:cont});
+		trace_stack.push({objs:objs,cont:cont,str:null});
+		begin();
+	}
+
+	public function print(str:String) {
+		if(str==null) str = "null";
+		trace_stack.push({objs:null,cont:null,str:str});
 		begin();
 	}
 
@@ -344,6 +350,14 @@ class Tracer extends flash.text.TextField {
 		});
 
 		if(state==INIT) {
+			if(ctrace.str!=null) {
+				text += ctrace.str;
+				scrollV = maxScrollV;
+				state = SLEEP;
+				begin();
+				return;
+			}
+
 			stack = [];
 			idl = [];
 			dict_id = 0;
@@ -375,7 +389,7 @@ class Tracer extends flash.text.TextField {
 				}
 			}else {
 				if(fcnt >= idl.length) {
-					text += buf+"\nDONE\n";
+					text += buf+"\nDONE\n\n";
 					scrollV = maxScrollV;
 					state = SLEEP;
 					if(ctrace.cont!=null) {
@@ -383,6 +397,7 @@ class Tracer extends flash.text.TextField {
 						for(i in idl) objs.push(i.obj);
 						ctrace.cont(objs);
 					}
+					begin();
 					break;
 				}
 				var i = idl[fcnt++];
@@ -421,14 +436,21 @@ class DummyNapeMain {
 //		(new haxe.Timer(400)).run = doit;
 
 //		var v = new Circle(10, new Vec2(10,10), new Material(), new InteractionFilter());
+		tracer.print(Debug.objectPoolStats()+"\n");
 		var b = new Body();
-		var v = new Polygon(Polygon.box(10,20));
+		var v = new Polygon(Polygon.box(10,20,true));
 		v.body = b;
+		tracer.print(Debug.objectPoolStats()+"\n");
 		tracer.trace([v], function(objs) {
+			tracer.print(Debug.objectPoolStats()+"\n");
 			b.destroy();
 			v.destroy();
-			Debug.clearObjectPools();
-			tracer.trace(objs);
+			tracer.print(Debug.objectPoolStats()+"\n");
+			tracer.trace(objs, function(objs) {
+				Debug.clearObjectPools();
+				tracer.print(Debug.objectPoolStats()+"\n");
+				tracer.trace(objs);
+			});
 		});
 
 /*		for(key in (untyped __keys__(dict)).iterator()) {

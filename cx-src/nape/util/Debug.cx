@@ -22,9 +22,7 @@ class Debug {
 				T.pr(pool).next = null;
 				T.pr(pool) = nxt;
 			}
-			#if NAPE_POOL_STATS
-			    T.POOL_TOT = T.POOL_CNT = T.POOL_ADDNEW = T.POOL_ADD = T.POOL_SUB = 0;
-			#end
+			DEBUG(T.POOL_CNT = 0;)
 		});
 		$(expand global PUBCLEARPOOL(T) {
 			while(PR(PubPool).pool`T!=null) {
@@ -32,11 +30,34 @@ class Debug {
 				PR(PubPool).pool`T.pr(pool) = null;
 				PR(PubPool).pool`T = nxt;
 			}
-			#if NAPE_POOL_STATS
-			    T.POOL_TOT = T.POOL_CNT = T.POOL_ADDNEW = T.POOL_ADD = T.POOL_SUB = 0;
-			#end
+			DEBUG(ZPP_`STATS`T.POOL_CNT = 0;)
 		});
 	}
+
+	#if (!NAPE_RELEASE_BUILD)
+		public static function objectPoolStats() {
+			function pad(s:String,l:Int):String {
+				var ret = s;
+				while(ret.length<l) ret += " ";
+				return ret;
+			}
+
+			var max = 0;
+			var strs = [];
+			$(expand global POOLSTATS(T,A) {
+				if(A.POOL_CNT!=0) {
+					if($str(T).length > max) max = $str(T).length;
+					strs.push({str:$str(T),num:A.POOL_CNT});
+				}
+			});
+			var ret = "objectPoolStats::\n";
+			ret +=    "-----------------\n";
+			for(s in strs)
+				ret += pad(s.str,max)+" #"+Std.string(s.num)+"\n";
+
+			return ret;
+		}
+	#end
 
     #if NAPE_TIMES
 		static public var ltime = 0;

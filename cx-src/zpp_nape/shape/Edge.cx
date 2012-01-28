@@ -25,7 +25,6 @@ class PR(Edge) {
 
 	flibmdel public inline function destroy() {
 		assert(next==null,"destroy edge in pool?");
-		polygon = null;
 		if(outer!=null) {
 			outer.pr(inner) = null;
 			outer = null;
@@ -41,6 +40,7 @@ class PR(Edge) {
 		wrap_lnorm = wrap_gnorm = null;
 		//assumption that nothing more complex is involved for these.
 		lp0 = lp1 = gp0 = gp1 = null;
+		Free(PR(Edge),this);
 	}
 	
 	vec_new(public,lnorm); public var wrap_lnorm:Vec2;

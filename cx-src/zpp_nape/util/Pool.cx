@@ -23,7 +23,7 @@ $(mixin global PublicMixPool(T)
 	PublicMixPoolNoNext(T)
 );
 $(mixin global PublicMixPoolNoNext(T)
-	STATS(T)
+	PUBSTATS(T)
 	PUBCLEARPOOL(T)
 	PUBLICPOOL(T)
 );
@@ -59,15 +59,19 @@ $(mixin global MixPoolNoNext(T)
 	CLEARPOOL(T)
 );
 
-$(mixin STATS(T)
-	#if NAPE_POOL_STATS
+$(expand PUBSTATS(T)
+DEBUG(
+	class ZPP_`STATS`T {
 		static public var POOL_CNT:Int = 0;
-		static public var POOL_TOT:Int = 0;
-		static public var POOL_ADD:Int = 0;
-		static public var POOL_ADDNEW:Int = 0;
-		static public var POOL_SUB:Int = 0;
-		POOLSTATS(T)
-	#end
+		POOLSTATS(T,ZPP_`STATS`T)
+	}
+));
+
+$(mixin STATS(T)
+	DEBUG(
+		static public var POOL_CNT:Int = 0;
+		POOLSTATS(T,T)
+	)
 );
 
 //-------------------------------------------
@@ -75,13 +79,9 @@ $(mixin STATS(T)
 //for public API types
 $(mixin global PublicGet(T) {
 	var ret:T;
-	if(PR(PubPool).pool`T==null) {
+	if(PR(PubPool).pool`T==null)
 		ret = new T();
-		#if NAPE_POOL_STATS
-			T.POOL_TOT++;
-			T.POOL_ADDNEW++;
-		#end
-	}else {
+	else {
 		ret = PR(PubPool).pool`T;
 		PR(PubPool).pool`T = ret.pr(pool);
 		ret.pr(pool) = null;
@@ -89,30 +89,20 @@ $(mixin global PublicGet(T) {
 			if(ret==PR(PubPool).next`T)
 				PR(PubPool).next`T = null;
 		)
-		#if NAPE_POOL_STATS
-			T.POOL_CNT--;
-			T.POOL_ADD++;
-		#end
+		DEBUG(PR(STATS`T).POOL_CNT--);
 	}
 	ret;
 });
 
 $(mixin global Get(T) {
 	var ret:T;
-	if(T.pr(pool)==null) {
+	if(T.pr(pool)==null)
 		ret = new T();
-		#if NAPE_POOL_STATS
-			T.POOL_TOT++;
-			T.POOL_ADDNEW++;
-		#end
-	}else {
+	else {
 		ret = T.pr(pool);
 		T.pr(pool) = ret.next;
 		ret.next = null;
-		#if NAPE_POOL_STATS
-			T.POOL_CNT--;
-			T.POOL_ADD++;
-		#end
+		DEBUG(T.POOL_CNT--);
 	}
 	ret.alloc();
 	ret;
@@ -133,10 +123,7 @@ $(mixin global PublicFree(T,O) {
 		o.pr(pool) = PR(PubPool).pool`T;
 		PR(PubPool).pool`T = o;
 	)
-	#if NAPE_POOL_STATS
-		T.POOL_CNT++;
-		T.POOL_SUB++;
-	#end
+	DEBUG(PR(STATS`T).POOL_CNT++);
 });
 
 $(mixin global Free(T,O) {
@@ -145,38 +132,5 @@ $(mixin global Free(T,O) {
 	o.free();
 	o.next = T.pr(pool);
 	T.pr(pool) = o;
-	#if NAPE_POOL_STATS
-		T.POOL_CNT++;
-		T.POOL_SUB++;
-	#end
+	DEBUG(T.POOL_CNT++);
 });
-
-#if NAPE_POOL_STATS
-	class PR(POOL_STATS) {
-		public static inline function pad(s:String,l:Int):String {
-			var ret = s;
-			while(ret.length<l) ret += " ";
-			return ret;
-		}
-		public static function dump() {
-			var ret = "";
-			ret += pad("",30)+" #"
-			     + "Inuse/"
-				 + "Free  (+"
-				 + "Alloc("
-				 + "Heap )/-"
-				 + "Freed)\n";
-			$(expand file POOLSTATS(T) {
-				if(T.POOL_TOT!=0 || T.POOL_CNT!=0 || T.POOL_ADD!=0 || T.POOL_SUB!=0)
-					ret += pad($str(T),30)+" #"
-					     + pad(Std.string(T.POOL_TOT-T.POOL_CNT),5)+"/"
-						 + pad(Std.string(T.POOL_CNT),5)+" (+"
-						 + pad(Std.string(T.POOL_ADD),5)+"("
-						 + pad(Std.string(T.POOL_ADDNEW),5)+")/-"
-						 + pad(Std.string(T.POOL_SUB),5)+")\n";
-				T.POOL_ADD = T.POOL_SUB = T.POOL_ADDNEW = 0;
-			});
-			return ret;
-		}
-	}
-#end
