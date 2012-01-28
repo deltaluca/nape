@@ -285,6 +285,7 @@ class DummyNapeMain {
 #else 
 
 typedef TracerObj = {id:Int, obj:Dynamic, refs:Array<{name:String,id:Int}>};
+typedef TracerSt = {objs:Array<Dynamic>,cont:Array<Dynamic>->Void};
 class Tracer extends flash.text.TextField {
 	public function new() {
 		super();
@@ -301,14 +302,14 @@ class Tracer extends flash.text.TextField {
 	static inline var SLEEP = 3;
 	var state:Int;
 
-	var trace_stack:Array<{objs:Array<Dynamic>,cont:Array<Dynamic>->Void}>;
+	var trace_stack:Array<TracerSt>;
 	public function trace(objs:Array<Dynamic>,?cont:Array<Dynamic>->Void) {
 		if(objs.length==0) return;
 		trace_stack.push({objs:objs,cont:cont});
 		begin();
 	}
 
-	var ctrace:{objs:Array<Dynamic>,cont:Array<Dynamic>->Void};
+	var ctrace:TracerSt;
 	var dict_id:Int;
 	var stack:Array<TracerObj>;
 	var dict:flash.utils.Dictionary;
@@ -420,12 +421,13 @@ class DummyNapeMain {
 //		(new haxe.Timer(400)).run = doit;
 
 //		var v = new Circle(10, new Vec2(10,10), new Material(), new InteractionFilter());
+		var b = new Body();
 		var v = new Polygon(Polygon.box(10,20));
-		v.worldVerts;
-		v.edges;
+		v.body = b;
 		tracer.trace([v], function(objs) {
+			b.destroy();
 			v.destroy();
-//			Debug.clearObjectPools();
+			Debug.clearObjectPools();
 			tracer.trace(objs);
 		});
 

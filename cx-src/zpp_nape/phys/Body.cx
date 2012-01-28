@@ -553,7 +553,6 @@ class PR(Body) extends PR(Interactor) {
 
 	public function clear() {
 		DEBUG(if(space!=null) throw "Error: Cannot clear a Body if it is currently being used by a Space!";)
-		DEBUG(if(!constraints.empty()) throw "Error: Cannot clear a Body if it is currently being used by a constraint!";)
 		
 		ClearWith(s,shapes, {
 			s.removedFromBody();
@@ -584,6 +583,83 @@ class PR(Body) extends PR(Interactor) {
 
 		graphic = null;
 		graphicUpdate = null;
+	}
+
+	public function __destroy() {
+		DEBUG(if(space!=null) throw "Error: Cannot destroy a Body if it is currently being used by a Space!";)
+
+		ClearWith(s,shapes, {
+			s.removedFromBody();
+			s.body = null;
+		});
+		shapes = null;
+		wrap_shapes.pr(inner).__destroy();
+		wrap_shapes = null;
+
+		outer = null;
+		assert(arbiters.empty(),"non-empty arbiters");
+		arbiters = null;
+		if(wrap_arbiters!=null) {
+			wrap_arbiters.pr(inner).__destroy();
+			wrap_arbiters = null;
+		}
+		assert(constraints.empty(),"non-empty constraints");
+		constraints = null;
+		if(wrap_constraints!=null) {
+			wrap_constraints.pr(inner).__destroy();
+			wrap_constraints = null;
+		}
+		assert(component==null,"non-null component");
+
+		if(wrap_pos!=null) {
+			wrap_pos.pr(inner).inuse = false;
+			wrap_pos.destroy();
+			wrap_pos = null;
+		}
+		if(wrap_vel!=null) {
+			wrap_vel.pr(inner).inuse = false;
+			wrap_vel.destroy();
+			wrap_vel = null;
+		}
+		if(wrap_force!=null) {
+			wrap_force.pr(inner).inuse = false;
+			wrap_force.destroy();
+			wrap_force = null;
+		}
+		if(wrap_kinvel!=null) {
+			wrap_kinvel.pr(inner).inuse = false;
+			wrap_kinvel.destroy();
+			wrap_kinvel = null;
+		}
+		if(wrap_svel!=null) {
+			wrap_svel.pr(inner).inuse = false;
+			wrap_svel.destroy();
+			wrap_svel = null;
+		}
+		if(wrapcvel!=null) {
+/*			wrapcvel.pr(inner).inuse = false;
+			wrapcvel.destroy();*/ //Vec3
+			wrapcvel = null;
+		}
+
+		Free(PR(AABB),aabb);
+		aabb = null;
+
+		graphic = null;
+		graphicUpdate = null;
+
+		if(wrap_localCOM!=null) {
+			wrap_localCOM.pr(inner).inuse = false;
+			wrap_localCOM.destroy();
+			wrap_localCOM = null;
+		}
+		if(wrap_worldCOM!=null) {
+			wrap_worldCOM.pr(inner).inuse = false;
+			wrap_worldCOM.destroy();
+			wrap_worldCOM = null;
+		}
+
+		__idestroy(); //Interactor
 	}
 
     //----------------------------------------------------------------------------------------------
