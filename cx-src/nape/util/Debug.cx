@@ -118,6 +118,7 @@ class Debug {
     #if (flash9||nme)
 
     keep public static function createGraphic(body:Body):flash.display.Shape {
+		Destroyed(body,Body)
 		DEBUG(if(body==null) throw "Error: Cannot create debug graphic for null Body";)
 		var ret = new flash.display.Shape();
 		var graphics = ret.graphics;
@@ -262,14 +263,26 @@ $(mixin __draw(obj) {
 
 	if(pr(inner).xnull) {
 	    if  (Std.is(obj,Space))      pr(inner_zn).draw_space(cast(obj,Space     ).pr(inner), null,1.0,true);
-	    elif(Std.is(obj,Body ))      pr(inner_zn).draw_body (cast(obj,Body      ).pr(inner), null,1.0,true);
-	    elif(Std.is(obj,Shape))      pr(inner_zn).draw_shape(cast(obj,Shape     ).pr(inner), null,1.0,true);
+	    elif(Std.is(obj,Body )) {
+			Destroyed(cast(obj,Body),Body)
+			pr(inner_zn).draw_body (cast(obj,Body).pr(inner), null,1.0,true);
+		}
+	    elif(Std.is(obj,Shape)) {
+			Destroyed(cast(obj,Shape),Shape)
+			pr(inner_zn).draw_shape(cast(obj,Shape).pr(inner), null,1.0,true);
+		}
 	    elif(Std.is(obj,Constraint)) cast(obj,Constraint).pr(inner).draw(this); 
 	    DEBUG(else throw "Error: Unhandled object type for Debug draw";)
 	}else {
 	    if  (Std.is(obj,Space))      pr(inner_zn).draw_space(cast(obj,Space     ).pr(inner), pr(inner).xform,pr(inner).xdet,false);
-	    elif(Std.is(obj,Body ))      pr(inner_zn).draw_body (cast(obj,Body      ).pr(inner), pr(inner).xform,pr(inner).xdet,false);
-	    elif(Std.is(obj,Shape))      pr(inner_zn).draw_shape(cast(obj,Shape     ).pr(inner), pr(inner).xform,pr(inner).xdet,false);
+	    elif(Std.is(obj,Body)) { 
+			Destroyed(cast(obj,Body),Body)
+			pr(inner_zn).draw_body (cast(obj,Body).pr(inner), pr(inner).xform,pr(inner).xdet,false);
+		}
+	    elif(Std.is(obj,Shape)) {
+			Destroyed(cast(obj,Shape),Shape)
+			pr(inner_zn).draw_shape(cast(obj,Shape).pr(inner), pr(inner).xform,pr(inner).xdet,false);
+		}
 	    elif(Std.is(obj,Constraint)) cast(obj,Constraint).pr(inner).draw(this);
 	    DEBUG(else throw "Error: Unhandled object type for Debug draw";)
 	}

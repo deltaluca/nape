@@ -585,12 +585,13 @@ class PR(Body) extends PR(Interactor) {
 		graphicUpdate = null;
 	}
 
-	public function __destroy() {
+	public function __destroy(rec:Bool) {
 		DEBUG(if(space!=null) throw "Error: Cannot destroy a Body if it is currently being used by a Space!";)
 
 		ClearWith(s,shapes, {
 			s.removedFromBody();
 			s.body = null;
+			if(rec) s.outer.destroy(rec);
 		});
 		shapes = null;
 		wrap_shapes.pr(inner).__destroy();

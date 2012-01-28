@@ -440,17 +440,10 @@ class DummyNapeMain {
 		var b = new Body();
 		var v = new Polygon(Polygon.box(10,20,true));
 		v.body = b;
-		tracer.print(Debug.objectPoolStats()+"\n");
 		tracer.trace([v], function(objs) {
-			tracer.print(Debug.objectPoolStats()+"\n");
-			b.destroy();
-			v.destroy();
-			tracer.print(Debug.objectPoolStats()+"\n");
-			tracer.trace(objs, function(objs) {
-				Debug.clearObjectPools();
-				tracer.print(Debug.objectPoolStats()+"\n");
-				tracer.trace(objs);
-			});
+			b.destroy(true);
+			Debug.clearObjectPools();
+			tracer.trace(objs);
 		});
 
 /*		for(key in (untyped __keys__(dict)).iterator()) {

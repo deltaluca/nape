@@ -33,8 +33,10 @@ class Body extends Interactor {
 	public var pr(inner):PR(Body);
 
     property(type,BodyType,{
+		Destroyed(this,Body)
         [null,BodyType.STATIC,BodyType.DYNAMIC,BodyType.KINEMATIC][pr(inner).type];
     },{
+		Destroyed(this,Body)
 		pr(inner).immutable_midstep("Body::type");
         DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		
@@ -57,34 +59,50 @@ class Body extends Interactor {
 		}
     })
 	
-	keep public inline function isStatic   () return pr(inner).isStatic()
-	keep public inline function isDynamic  () return pr(inner).isDynamic()
-	keep public inline function isKinematic() return pr(inner).isKinematic()
+	keep public inline function isStatic   () {
+		Destroyed(this,Body)
+		return pr(inner).isStatic();
+	}
+	keep public inline function isDynamic  () {
+		Destroyed(this,Body)
+		return pr(inner).isDynamic();
+	}
+	keep public inline function isKinematic() {
+		Destroyed(this,Body)
+		return pr(inner).isKinematic();
+	}
 
 	//----------------------------------------------------------------------------------------------
 	
 	public function clear() {
+		Destroyed(this,Body)
 		pr(inner).immutable_midstep("Body::clear()");
     	DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		pr(inner).clear();
 		userData = null;
 	}
 
-	public override function destroy() {
+	public override function destroy(recursive:Bool=false) {
+		Destroyed(this,Body)
 		pr(inner).immutable_midstep("Body::clear()");
     	DEBUG(if(pr(inner).world) throw "Error: Space::world cannot be destroyed directly";)
 		userData = null;
-		pr(inner).__destroy();
+		pr(inner).__destroy(recursive);
 		pr(inner) = null;
 	}
 
 	//----------------------------------------------------------------------------------------------
 	
-    property(shapes,ShapeList,pr(inner).wrap_shapes)
+    property(shapes,ShapeList,{
+		Destroyed(this,Body)
+		pr(inner).wrap_shapes;
+	})
 
 	property(compound,Compound,{
+		Destroyed(this,Body)
 		if(pr(inner).compound==null) null else pr(inner).compound.outer;
 	},{
+		Destroyed(this,Body)
 		if(this.compound!=compound) {
 			if(this.compound!=null) this.compound.bodies.remove(this);
 			if(compound!=null) compound.bodies.add(this);
@@ -92,8 +110,10 @@ class Body extends Interactor {
 	})
 
     property(space,Space,{
+		Destroyed(this,Body)
         if(pr(inner).space==null) null else pr(inner).space.outer;
     },{
+		Destroyed(this,Body)
 		DEBUG(if(pr(inner).compound!=null) throw "Error: Cannot set the space of a Body belonging to a Compound, only the root Compound space can be set";)
 		pr(inner).immutable_midstep("Body::space");
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
@@ -109,12 +129,14 @@ class Body extends Interactor {
 	})
 		
     property(arbiters,ArbiterList,{
+		Destroyed(this,Body)
 		if(pr(inner).wrap_arbiters==null)
             pr(inner).wrap_arbiters = PR(ArbiterList).get(pr(inner).arbiters,true);
 		pr(inner).wrap_arbiters;
 	})
 	
     property(isSleeping,Bool,{
+		Destroyed(this,Body)
 		DEBUG(if(pr(inner).space==null)
 			throw "Error: isSleeping makes no sense if the object is not contained within a Space";
 		)
@@ -122,6 +144,7 @@ class Body extends Interactor {
 	})
 	
     property(constraints,ConstraintList,{
+		Destroyed(this,Body)
 		if(pr(inner).wrap_constraints==null)
             pr(inner).wrap_constraints = PR(ConstraintList).get(pr(inner).constraints,true);
 		pr(inner).wrap_constraints;
@@ -148,6 +171,7 @@ class Body extends Interactor {
 	}
 	
 	keep public function copy() {
+		Destroyed(this,Body)
 		DEBUG(if(pr(inner).world) throw "Error: Space::world cannot be copied";)
 		var ret = pr(inner).copy();
 		ret.userData = userData;
@@ -158,9 +182,11 @@ class Body extends Interactor {
 	
     $(mixin vecprop(n,wrap,setup)
         property(n,Vec2,{
+			Destroyed(this,Body)
             if(pr(inner).wrap==null) pr(inner).setup();
             pr(inner).wrap;
         },{
+			Destroyed(this,Body)
 			Destroyed(n,Vec2);
 			DEBUG(if(n==null) throw "Error: Body::"+$str(n)+" cannot be null";)
             this.n.set(n);
@@ -176,13 +202,18 @@ class Body extends Interactor {
     //----------------------------------------------------------------------------------------------
 
 	property(constraintVelocity,Vec3,{
+		Destroyed(this,Body)
 		if(pr(inner).wrapcvel==null) pr(inner).setup_cvel();
 		pr(inner).wrapcvel;
 	})
 
     //----------------------------------------------------------------------------------------------
 	
-    property(rotation,Float,pr(inner).rot,{
+    property(rotation,Float,{
+		Destroyed(this,Body)
+		pr(inner).rot;
+	},{
+		Destroyed(this,Body)
 		pr(inner).immutable_midstep("Body::rotation");
         DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		DEBUG(if(isStatic() && pr(inner).space!=null)
@@ -196,7 +227,11 @@ class Body extends Interactor {
 		}
     })
 	
-    property(angularVel,Float,pr(inner).angvel,{
+    property(angularVel,Float,{
+		Destroyed(this,Body)
+		pr(inner).angvel;
+	},{
+		Destroyed(this,Body)
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		if(this.angularVel!=angularVel) {
 			DEBUG(if(isNaN(angularVel)) throw "Error: Body::angularVel cannot be NaN";)
@@ -208,7 +243,11 @@ class Body extends Interactor {
 		}
 	})
 	
-	property(kinAngVel,Float,pr(inner).kinangvel,{
+	property(kinAngVel,Float,{
+		Destroyed(this,Body)
+		pr(inner).kinangvel;
+	},{
+		Destroyed(this,Body)
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		if(this.kinAngVel!=kinAngVel) {
 			DEBUG(if(isNaN(kinAngVel)) throw "Error: Body::kinAngVel cannot be NaN";)
@@ -217,7 +256,11 @@ class Body extends Interactor {
 		}
 	})
 
-    property(torque,Float,pr(inner).torque,{
+    property(torque,Float,{
+		Destroyed(this,Body)
+		pr(inner).torque;
+	},{
+		Destroyed(this,Body)
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		DEBUG(if(isNaN(torque)) throw "Error: Body::torqur cannot be NaN";)
 		if(this.torque!=torque) {
@@ -229,6 +272,7 @@ class Body extends Interactor {
 	//----------------------------------------------------------------------------------------------
 	
     property(bounds,AABB,{
+		Destroyed(this,Body)
 		DEBUG(if(pr(inner).world) throw "Error: Space::world has no bounds";)
 		DEBUG(if(pr(inner).shapes.empty())
 			throw "Error: Body bounds only makes sense if it contains shapes";
@@ -239,7 +283,11 @@ class Body extends Interactor {
 	//----------------------------------------------------------------------------------------------
 	
     $(mixin allowprop(n,flag,prop)
-        property(n,Bool,!pr(inner).flag,{
+        property(n,Bool,{
+			Destroyed(this,Body)
+			!pr(inner).flag;
+		},{
+			Destroyed(this,Body)
 			pr(inner).immutable_midstep("Body::"+n);
             if(this.n != n) {
                 pr(inner).flag = !n;
@@ -253,8 +301,10 @@ class Body extends Interactor {
 	//----------------------------------------------------------------------------------------------
 	
     property(massMode,MassMode,{
+		Destroyed(this,Body)
 		[MassMode.DEFAULT,MassMode.FIXED][pr(inner).massMode];
 	},{
+		Destroyed(this,Body)
 		pr(inner).immutable_midstep("Body::massMode");
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		DEBUG(if(massMode==null)
@@ -265,11 +315,13 @@ class Body extends Interactor {
 	})
 
 	property(constraintMass,Float,{
+		Destroyed(this,Body)
 		if(!pr(inner).world) pr(inner).validate_mass();
 		pr(inner).imass;
 	})
 	
     property(mass,Float,{
+		Destroyed(this,Body)
 		DEBUG(if(pr(inner).world) throw "Error: Space::world has no mass";)
 		pr(inner).validate_mass();
 		DEBUG(if(pr(inner).massMode== Flag(MassMode,DEFAULT) && pr(inner).shapes.empty())
@@ -277,6 +329,7 @@ class Body extends Interactor {
 		)
 		pr(inner).cmass;
 	},{
+		Destroyed(this,Body)
 		pr(inner).immutable_midstep("Body::mass");
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		DEBUG(
@@ -292,8 +345,10 @@ class Body extends Interactor {
 	//----------------------------------------------------------------------------------------------
 	
     property(gravMassMode,GravMassMode,{
+		Destroyed(this,Body)
 		[GravMassMode.DEFAULT,GravMassMode.FIXED,GravMassMode.SCALED][pr(inner).massMode];
 	},{
+		Destroyed(this,Body)
 		pr(inner).immutable_midstep("Body::gravMassMode");
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		DEBUG(if(gravMassMode==null) throw "Error: Cannot use null gravMassMode";)
@@ -304,6 +359,7 @@ class Body extends Interactor {
 	})
 	
     property(gravMass,Float,{
+		Destroyed(this,Body)
 		DEBUG(if(pr(inner).world) throw "Error: Space::world has no gravMass";)
 		pr(inner).validate_gravMass();
 		DEBUG(if(pr(inner).shapes.empty()) {
@@ -313,6 +369,7 @@ class Body extends Interactor {
 		})
 		pr(inner).gravMass;
 	},{
+		Destroyed(this,Body)
 		pr(inner).immutable_midstep("Body::gravMass");
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		DEBUG(if(isNaN(gravMass)) throw "Error: gravMass cannot be NaN";)
@@ -322,6 +379,7 @@ class Body extends Interactor {
 	})
 	
     property(gravMassScale,Float,{
+		Destroyed(this,Body)
 		pr(inner).validate_gravMassScale();
 		DEBUG(if(pr(inner).shapes.empty()) {
 			if(pr(inner).massMode == Flag(MassMode,DEFAULT) &&
@@ -330,6 +388,7 @@ class Body extends Interactor {
 		})
 		pr(inner).gravMassScale;
 	},{
+		Destroyed(this,Body)
 		pr(inner).immutable_midstep("Body::gravMassScale");
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		
@@ -342,8 +401,10 @@ class Body extends Interactor {
 	//----------------------------------------------------------------------------------------------
 	
     property(inertiaMode,InertiaMode,{
+		Destroyed(this,Body)
         [InertiaMode.DEFAULT,InertiaMode.FIXED][pr(inner).inertiaMode];
     },{
+		Destroyed(this,Body)
 		pr(inner).immutable_midstep("Body::inertiaMode");
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		DEBUG(if(inertiaMode==null)
@@ -354,11 +415,13 @@ class Body extends Interactor {
 	})
 
 	property(constraintInertia,Float,{
+		Destroyed(this,Body)
 		if(!pr(inner).world) pr(inner).validate_inertia();
 		pr(inner).iinertia;
 	})
 	
     property(inertia,Float,{
+		Destroyed(this,Body)
 		DEBUG(if(pr(inner).world) throw "Error: Space::world has no inertia";)
 		pr(inner).validate_inertia();
 		DEBUG(if(pr(inner).inertiaMode == Flag(InertiaMode,DEFAULT) && shapes.empty())
@@ -366,6 +429,7 @@ class Body extends Interactor {
 		)
 		pr(inner).cinertia;
 	},{
+		Destroyed(this,Body)
 		pr(inner).immutable_midstep("Body::inertia");
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		DEBUG(
@@ -380,7 +444,11 @@ class Body extends Interactor {
 	
 	//----------------------------------------------------------------------------------------------
 	
-    property(graphic,Dynamic,pr(inner).graphic,{
+    property(graphic,Dynamic,{
+		Destroyed(this,Body)
+		pr(inner).graphic;
+	},{
+		Destroyed(this,Body)
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		if(graphic!=this.graphic) {
 			if(graphic==null) {
@@ -392,7 +460,11 @@ class Body extends Interactor {
 		}
 	})
 	
-	property(graphicUpdate,Body->Void,pr(inner).graphicUpdate,{
+	property(graphicUpdate,Body->Void,{
+		Destroyed(this,Body)
+		pr(inner).graphicUpdate;
+	},{
+		Destroyed(this,Body)
 		pr(inner).graphicUpdate = graphicUpdate;
 		if(graphicUpdate!=null) pr(inner).validate_graphic();
 	})
@@ -400,6 +472,7 @@ class Body extends Interactor {
     //----------------------------------------------------------------------------------------------
 
 	keep public function crushFactor():Float {
+		Destroyed(this,Body)
 		DEBUG(if(space==null) throw "Error: Makes no sense to see how much an object not taking part in a simulation is being crushed";)
 		var msum = 0.0;
 		var jsum = new Vec2();
@@ -427,6 +500,7 @@ class Body extends Interactor {
 	keep public function localToWorld(v:Vec2,?weak:Bool=false) return relativeToWorld(localToRelative(v,true),weak)
 	keep public function worldToLocal(v:Vec2,?weak:Bool=false) return relativeToLocal(worldToRelative(v,true),weak)
 	keep public function relativeToWorld(v:Vec2,?weak:Bool=false) {
+		Destroyed(this,Body)
 		Destroyed(v,Vec2);
 		DEBUG(if(v==null) throw "Error: Cannot transform null Vec2";)
 		var ret = Vec2.get(v.x+pr(inner).posx,v.y+pr(inner).posy,weak);
@@ -434,6 +508,7 @@ class Body extends Interactor {
 		return ret;
 	}
 	keep public function worldToRelative(v:Vec2,?weak:Bool=false) {
+		Destroyed(this,Body)
 		Destroyed(v,Vec2);
 		DEBUG(if(v==null) throw "Error: Cannot transform null Vec2";)
 		var ret = Vec2.get(v.x-pr(inner).posx,v.y-pr(inner).posy,weak);
@@ -441,6 +516,7 @@ class Body extends Interactor {
 		return ret;
 	}
 	keep public function localToRelative(v:Vec2,?weak:Bool=false) {
+		Destroyed(this,Body)
 		Destroyed(v,Vec2);
 		DEBUG(if(v==null) throw "Error: Cannot transform null Vec2";)
 		pr(inner).validate_axis();
@@ -450,6 +526,7 @@ class Body extends Interactor {
 		return Vec2.get(tempx,tempy,weak);
 	}
 	keep public function relativeToLocal(v:Vec2,?weak:Bool=false) {
+		Destroyed(this,Body)
 		Destroyed(v,Vec2);
 		DEBUG(if(v==null) throw "Error: Cannot transform null Vec2";)
 		pr(inner).validate_axis();
@@ -462,6 +539,7 @@ class Body extends Interactor {
 	//----------------------------------------------------------------------------------------------
 	
 	keep public function applyLocalForce(force:Vec2,?pos:Vec2) {
+		Destroyed(this,Body)
 		Destroyed(force,Vec2);
 		Destroyed(pos,Vec2);
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
@@ -478,6 +556,7 @@ class Body extends Interactor {
 		WEAK(force);
 	}
 	keep public function applyRelativeForce(force:Vec2,?pos:Vec2) {
+		Destroyed(this,Body)
 		Destroyed(force,Vec2);
 		Destroyed(pos,Vec2);
 
@@ -492,6 +571,7 @@ class Body extends Interactor {
 		WEAK(force);
 	}
 	keep public function applyWorldForce(force:Vec2,?pos:Vec2) {
+		Destroyed(this,Body)
 		Destroyed(force,Vec2);
 		Destroyed(pos,Vec2);
 
@@ -510,6 +590,7 @@ class Body extends Interactor {
 	//----------------------------------------------------------------------------------------------
 	
 	keep public function applyLocalImpulse(impulse:Vec2,?pos:Vec2) {
+		Destroyed(this,Body)
 		Destroyed(impulse,Vec2);
 		Destroyed(pos,Vec2);
 
@@ -529,6 +610,7 @@ class Body extends Interactor {
 		WEAK(impulse);
 	}
 	keep public function applyRelativeImpulse(impulse:Vec2,?pos:Vec2) {
+		Destroyed(this,Body)
 		Destroyed(impulse,Vec2);
 		Destroyed(pos,Vec2);
 
@@ -545,6 +627,7 @@ class Body extends Interactor {
 		WEAK(impulse);
 	}
 	keep public function applyWorldImpulse(impulse:Vec2,?pos:Vec2) {
+		Destroyed(this,Body)
 		Destroyed(impulse,Vec2);
 		Destroyed(pos,Vec2);
 
@@ -565,6 +648,7 @@ class Body extends Interactor {
 	//----------------------------------------------------------------------------------------------
 	
 	keep public function translateShapes(displacement:Vec2) {
+		Destroyed(this,Body)
 		pr(inner).immutable_midstep("Body::translateShapes()");
 		Destroyed(displacement,Vec2);
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
@@ -579,18 +663,21 @@ class Body extends Interactor {
 		WEAK(displacement);
 	}
 	keep public function rotateShapes(angle:Float) {
+		Destroyed(this,Body)
 		pr(inner).immutable_midstep("Body::rotateShapes()");
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		
 		Iter(s,pr(inner).shapes,s.outer.rotate(angle));
 	}
 	keep public function scaleShapes(scalex:Float,scaley:Float) {
+		Destroyed(this,Body)
 		pr(inner).immutable_midstep("Body::scaleShapes()");
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		
 		Iter(s,pr(inner).shapes,s.outer.scale(scalex,scaley));
 	}
 	keep public function transformShapes(matrix:Mat23) {
+		Destroyed(this,Body)
 		pr(inner).immutable_midstep("Body::transformShapes()");
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		
@@ -598,6 +685,7 @@ class Body extends Interactor {
 	}
 	
 	keep public function align() {
+		Destroyed(this,Body)
 		pr(inner).immutable_midstep("Body::align()");
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		
@@ -619,6 +707,7 @@ class Body extends Interactor {
 	//----------------------------------------------------------------------------------------------
 
 	keep public function rotate(centre:Vec2,angle:Float) {
+		Destroyed(this,Body)
 		Destroyed(centre,Vec2);
 		DEBUG(if(centre==null) throw "Error: Cannot rotate about a null Vec2";)
 		DEBUG(if(isNaN(angle)) throw "Error: Cannot rotate by NaN radians";)
@@ -636,18 +725,21 @@ class Body extends Interactor {
 	//----------------------------------------------------------------------------------------------
 	
 	keep public function setShapeMaterials(material:Material) {
+		Destroyed(this,Body)
 		pr(inner).immutable_midstep("Body::setShapeMaterials()");
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		
 		Iter(s,pr(inner).shapes,s.outer.material = material);
 	}
 	keep public function setShapeFilters(filter:InteractionFilter) {
+		Destroyed(this,Body)
 		pr(inner).immutable_midstep("Body::setShapeFilters()");
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		
 		Iter(s,pr(inner).shapes,s.outer.filter = filter);
 	}
 	keep public function setShapeFluidProperties(fluidProperties:FluidProperties) {
+		Destroyed(this,Body)
 		pr(inner).immutable_midstep("Body::setShapeFluidProperties()");
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		
@@ -658,6 +750,7 @@ class Body extends Interactor {
 	
     $(mixin comprop(n)
         property(n,Vec2,{
+			Destroyed(this,Body)
             DEBUG(if(pr(inner).world) throw "Error: Space::world has no "+$str(n);)
             if(pr(inner).wrap_`n==null) {
                 pr(inner).wrap_`n = Vec2.get(pr(inner).n`x,pr(inner).n`y);
@@ -686,6 +779,7 @@ class Body extends Interactor {
 	});
 	
 	keep public function normalImpulse(?body:Body=null,?freshOnly:Bool=false,?weak:Bool=false) {
+		Destroyed(this,Body)
 		vec3_new(ret,0,0,0);
 		witharbs(COL,{
 			var imp = arb.wrapper().collisionArbiter.normalImpulse(this,freshOnly);
@@ -694,6 +788,7 @@ class Body extends Interactor {
 		return Vec2.get(retx,rety,false);
 	}
 	keep public function tangentImpulse(?body:Body=null,?freshOnly:Bool=false,?weak:Bool=false) {
+		Destroyed(this,Body)
 		vec3_new(ret,0,0,0);
 		witharbs(COL,{
 			var imp = arb.wrapper().collisionArbiter.tangentImpulse(this,freshOnly);
@@ -702,6 +797,7 @@ class Body extends Interactor {
 		return Vec2.get(retx,rety,weak);
 	}
 	keep public function totalContactsImpulse(?body:Body=null,?freshOnly:Bool=false) {
+		Destroyed(this,Body)
 		vec3_new(ret,0,0,0);
 		witharbs(COL,{
 			var imp = arb.wrapper().collisionArbiter.totalImpulse(this,freshOnly);
@@ -710,6 +806,7 @@ class Body extends Interactor {
 		return new Vec3(retx,rety,retz);
 	}
 	keep public function rollingImpulse(?body:Body=null,?freshOnly:Bool=false) {
+		Destroyed(this,Body)
 		var ret = 0.0;
 		witharbs(COL,{
 			ret += arb.wrapper().collisionArbiter.rollingImpulse(this,freshOnly);
@@ -720,6 +817,7 @@ class Body extends Interactor {
 	//--------------------------------------------------------------
 	
 	keep public function buoyancyImpulse(?body:Body=null) {
+		Destroyed(this,Body)
 		vec3_new(ret,0,0,0);
 		witharbs(FLUID,{
 			var imp = arb.wrapper().fluidArbiter.buoyancyImpulse(this);
@@ -729,6 +827,7 @@ class Body extends Interactor {
 	}
 	
 	keep public function dragImpulse(?body:Body=null) {
+		Destroyed(this,Body)
 		vec3_new(ret,0,0,0);
 		witharbs(FLUID,{
 			var imp = arb.wrapper().fluidArbiter.dragImpulse(this);
@@ -738,6 +837,7 @@ class Body extends Interactor {
 	}
 	
 	keep public function totalFluidImpulse(?body:Body=null) {
+		Destroyed(this,Body)
 		vec3_new(ret,0,0,0);
 		witharbs(FLUID,{
 			var imp = arb.wrapper().fluidArbiter.totalImpulse(this);
@@ -749,6 +849,7 @@ class Body extends Interactor {
 	//--------------------------------------------------------------
 	
 	keep public function constraintsImpulse() {
+		Destroyed(this,Body)
 		vec3_new(ret,0,0,0);
 		Iter(con,pr(inner).constraints,{
 			var imp = con.outer.bodyImpulse(this);
@@ -760,6 +861,7 @@ class Body extends Interactor {
 	//--------------------------------------------------------------
 	
 	keep public function totalImpulse(?body:Body=null,?freshOnly:Bool=false) {
+		Destroyed(this,Body)
 		vec3_new(ret,0,0,0);
 		var arbs = pr(inner).arbiters;
 
@@ -784,6 +886,7 @@ class Body extends Interactor {
 	//----------------------------------------------------------------------------------------------
 
 	keep public function contains(point:Vec2) {
+		Destroyed(this,Body)
 		Destroyed(point,Vec2);
 		DEBUG(if(point==null) throw "Error: Cannot check containment of null point";)
 		return Exists(s, pr(inner).shapes, s.outer.contains(point));
@@ -792,6 +895,7 @@ class Body extends Interactor {
 	//----------------------------------------------------------------------------------------------
 	
 	@:$keep public override function toString() {
+		Destroyed(this,Body)
 		return (pr(inner).world?"(space::world":("("+(isDynamic()?"dynamic":isStatic()?"static":"kinematic")))+")#"+id;
 	}
 }
