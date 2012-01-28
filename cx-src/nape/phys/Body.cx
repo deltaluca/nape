@@ -615,6 +615,9 @@ class Body extends Interactor {
 		DEBUG(if(centre==null) throw "Error: Cannot rotate about a null Vec2";)
 		DEBUG(if(isNaN(angle)) throw "Error: Cannot rotate by NaN radians";)
 
+		var weak = centre.pr(inner).weak;
+		centre.pr(inner).weak = false;
+
 		var del = position.sub(centre);
 		del.rotate(angle);
 		position = centre.add(del,true);
@@ -622,6 +625,7 @@ class Body extends Interactor {
 
 		rotation += angle;
 
+		centre.pr(inner).weak = weak;
 		WEAK(centre);
 	}
 	
