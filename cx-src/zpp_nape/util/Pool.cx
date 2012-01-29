@@ -89,7 +89,7 @@ $(mixin global PublicGet(T) {
 			if(ret==PR(PubPool).next`T)
 				PR(PubPool).next`T = null;
 		)
-		DEBUG(PR(STATS`T).POOL_CNT--);
+		DEBUG(PR(STATS`T).POOL_CNT--;)
 	}
 	ret;
 });
@@ -102,7 +102,7 @@ $(mixin global Get(T) {
 		ret = T.pr(pool);
 		T.pr(pool) = ret.next;
 		ret.next = null;
-		DEBUG(T.POOL_CNT--);
+		DEBUG(T.POOL_CNT--;)
 	}
 	ret.alloc();
 	ret;
@@ -123,7 +123,7 @@ $(mixin global PublicFree(T,O) {
 		o.pr(pool) = PR(PubPool).pool`T;
 		PR(PubPool).pool`T = o;
 	)
-	DEBUG(PR(STATS`T).POOL_CNT++);
+	DEBUG(PR(STATS`T).POOL_CNT++;)
 });
 
 $(mixin global Free(T,O) {
@@ -132,5 +132,5 @@ $(mixin global Free(T,O) {
 	o.free();
 	o.next = T.pr(pool);
 	T.pr(pool) = o;
-	DEBUG(T.POOL_CNT++);
+	DEBUG(T.POOL_CNT++;)
 });
