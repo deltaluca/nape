@@ -290,21 +290,25 @@ class PR(LineJoint) extends PR(Constraint) {
 		if(min==-PR(Const).POSINF) min = -1000;
 		if(max== PR(Const).POSINF) max =  1000;
 
+		var del = a2.sub(a1);
+		var pn = del.dot(dir);
+		del.dispose();
+
 		var e1 = a1.add(dir.mul(min,true));
 		var e2 = a1.add(dir.mul(max,true));
-		g.drawLine(e1,e2,0xff00);
+
+		if(pn>min)
+			g.drawLine(e1,a1.add(dir.mul(min(pn,max),true),true),0xffff00);
+		if(pn<max)
+			g.drawLine(a1.add(dir.mul(max(pn,min),true),true),e2,0xff00);
 
 		if(!stiff) {
-			var del = a2.sub(a1);
-			var pn = del.dot(dir);
-			del.dispose();
-
 			var anch = 
 			if  (pn<jointMin) e1.copy();
 			elif(pn>jointMax) e2.copy();
 			else              a1.add(dir.mul(pn,true));
 
-			g.drawSpring(anch,a2,0xff00);
+			g.drawSpring(anch,a2,0xff00ff);
 			anch.dispose();
 		}
 

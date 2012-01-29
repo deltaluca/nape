@@ -1,7 +1,7 @@
 package;
 
 import nape.space.Space;
-import nape.util.BitmapDebug;
+import nape.util.ShapeDebug;
 import nape.geom.Vec2;
 
 import nape.phys.Body;
@@ -28,7 +28,7 @@ class Constraints extends FixedStep {
 	function new() {
 		super(1/60);
 
-		var debug = new BitmapDebug(stage.stageWidth,stage.stageHeight,0x333333);
+		var debug = new ShapeDebug(stage.stageWidth,stage.stageHeight,0x333333);
 		debug.drawConstraints = true;
 		addChild(debug.display);
 
@@ -131,7 +131,7 @@ class Constraints extends FixedStep {
 		var angle = new AngleJoint(b1,b2,-Math.PI/2,Math.PI/2);
 		angle.ratio = 3;
 		angle.stiff = false;
-		angle.frequency = 2;
+		angle.frequency = 0.5;
 		angle.space = space;
 
 		description(1,0,"AngleJoint",true);
