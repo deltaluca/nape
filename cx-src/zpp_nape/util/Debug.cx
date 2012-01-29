@@ -272,6 +272,29 @@ class PR(BitmapDebug) extends PR(Debug) {
             }
         }
     }
+
+	public function __curve(u:Vec2,v:Vec2,q:Vec2,col:Int) {
+		vec_new(mq,
+			0.25*(u.x + 2*v.x + q.x),
+			0.25*(u.y + 2*v.y + q.y)
+		);
+		vec_new(ml,
+			0.5*(u.x+q.x),
+			0.5*(u.y+q.y)
+		);
+		if(vec_dsq(mq,ml)<0.3)
+			__line(fastint(u.x+0.5),fastint(u.y+0.5),fastint(q.x+0.5),fastint(q.y+0.5),col);
+		else {
+			var m1 = Vec2.get(0.5*(u.x+v.x),0.5*(u.y+v.y));
+			var m2 = Vec2.get(0.5*(q.x+v.x),0.5*(q.y+v.y));
+			var mm = Vec2.get(0.5*(m1.x+m2.x),0.5*(m1.y+m2.y));
+			__curve(u,m1,mm,col);
+			m1.dispose();
+			__curve(q,m2,mm,col);
+			m2.dispose();
+			mm.dispose();
+		}
+	}
     
     public function __tri(p0:Vec2,p1:Vec2,p2:Vec2,col:Int) {
 		if(!xnull) {
