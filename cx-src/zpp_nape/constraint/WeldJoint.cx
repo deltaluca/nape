@@ -250,8 +250,40 @@ class PR(WeldJoint) extends PR(Constraint) {
 
 	public override function draw(g:Debug) {
 		var me = outer_zn;
-		g.drawCircle(me.body1.localToWorld(me.anchor1,true), 1, 0xff);
-		g.drawCircle(me.body2.localToWorld(me.anchor2,true), 2, 0xff0000);
+		var a1 = me.body1.localToWorld(me.anchor1);
+		var a2 = me.body2.localToWorld(me.anchor2);
+
+		if(!stiff) {
+			var n = a2.sub(a1);
+			var nl = n.length;
+			if(nl!=0)
+				g.drawSpring(a1,a2,0xff00ff);
+			n.dispose();
+
+			var minrad = 10;
+			var delrad = 5/Math.PI/2;
+
+			$(mixin dobody(b,target,col) {
+				if(b!=b.space.world) {
+					var max = target;
+					var min = b.rotation;
+					if(min>max) swap(min,max);
+					$(mixin rad(ang) (minrad + (ang-min)*delrad));
+	
+					PR(AngleDraw).drawSpiralSpring(g, b.position, min,max,rad(min),rad(max), col);
+					PR(AngleDraw).indicator(g, b.position, b.rotation, rad(b.rotation), col);
+				}
+			});
+			dobody(me.body1,me.body2.rotation-me.phase,0xff0080);
+			dobody(me.body2,me.phase+me.body1.rotation,0x8000ff);
+		}
+
+		g.drawFilledCircle(a1,2,0xff);
+		g.drawFilledCircle(a2,2,0xff0000);
+
+		a1.dispose();
+		a2.dispose();
+
 	}
 }
 

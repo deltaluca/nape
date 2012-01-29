@@ -116,19 +116,19 @@ class Constraints extends FixedStep {
 		//AngleJoint --------------------------------
 		mid(1,0);
 
-		var b1 = circle(cell+cell/3,cell/4,25);
-		var b2 = circle(cell+cell*2/3,cell/4,25);
+		var b1 = circle(cell+cell/3,cell/4,35);
+		var b2 = circle(cell+cell*2/3,cell/4,35);
 		fix(b1); fix(b2);
 
-		var angle = new AngleJoint(b1,b2,-Math.PI/2,Math.PI/2);
+		var angle = new AngleJoint(b1,b2,-Math.PI,2*Math.PI);
 		angle.ratio = 3;
 		angle.space = space;
 
-		var b1 = circle(cell+cell/3,cell*3/4,25);
-		var b2 = circle(cell+cell*2/3,cell*3/4,25);
+		var b1 = circle(cell+cell/3,cell*3/4,35);
+		var b2 = circle(cell+cell*2/3,cell*3/4,35);
 		fix(b1); fix(b2);
 
-		var angle = new AngleJoint(b1,b2,-Math.PI/2,Math.PI/2);
+		var angle = new AngleJoint(b1,b2,-Math.PI,2*Math.PI);
 		angle.ratio = 3;
 		angle.stiff = false;
 		angle.frequency = 0.5;
@@ -155,13 +155,13 @@ class Constraints extends FixedStep {
 		var b1 = circle(cell*3+cell/3,cell/4,20);
 		var b2 = circle(cell*3+cell*2/3,cell/4,20);
 		
-		var dist = new DistanceJoint(b1,b2,new Vec2(20,0),new Vec2(-20,0),40,60);
+		var dist = new DistanceJoint(b1,b2,new Vec2(20,0),new Vec2(-20,0),40,80);
 		dist.space = space;
 		
 		var b1 = circle(cell*3+cell/3,cell*3/4,20);
 		var b2 = circle(cell*3+cell*2/3,cell*3/4,20);
 		
-		var dist = new DistanceJoint(b1,b2,new Vec2(20,0),new Vec2(-20,0),40,60);
+		var dist = new DistanceJoint(b1,b2,new Vec2(20,0),new Vec2(-20,0),40,80);
 		dist.stiff = false;
 		dist.frequency = 0.5;
 		dist.space = space;
@@ -206,7 +206,7 @@ class Constraints extends FixedStep {
 		var mi = new Vec2(cell+cell/2,cell+cell*3/4);
 		var pivot = new WeldJoint(b1,b2,b1.worldToLocal(mi),b2.worldToLocal(mi));
 		pivot.stiff = false;
-		pivot.frequency = 2;
+		pivot.frequency = 0.5;
 		pivot.space = space;
 
 		description(1,1,"WeldJoint",true);
