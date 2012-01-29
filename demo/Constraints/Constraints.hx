@@ -185,7 +185,7 @@ class Constraints extends FixedStep {
 		var mi = new Vec2(cell/2,cell+cell*3/4);
 		var pivot = new PivotJoint(b1,b2,b1.worldToLocal(mi),b2.worldToLocal(mi));
 		pivot.stiff = false;
-		pivot.frequency = 2;
+		pivot.frequency = 0.5;
 		pivot.space = space;
 
 		description(0,1,"PivotJoint",true);
@@ -230,7 +230,7 @@ class Constraints extends FixedStep {
 		var line = new LineJoint(b1,b2,b1.worldToLocal(mi),b2.worldToLocal(mi),
 			new Vec2(0,1),-20,20);
 		line.stiff = false;
-		line.frequency = 2;
+		line.frequency = 0.5;
 		line.space = space;
 
 		description(2,1,"LineJoint",true);

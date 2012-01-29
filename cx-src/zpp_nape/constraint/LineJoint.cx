@@ -280,28 +280,41 @@ class PR(LineJoint) extends PR(Constraint) {
 
 	public override function draw(g:Debug) {
 		var me = outer_zn;
-		var p1 = me.body1.localToWorld(me.anchor1);
+		var a1 = me.body1.localToWorld(me.anchor1);
+		var a2 = me.body2.localToWorld(me.anchor2);
 		var dir = me.body1.localToRelative(me.direction);
+		dir.muleq(1/dir.length);
 
 		var min = me.jointMin;
-		if(min==-PR(Const).POSINF) min = -1000;
 		var max = me.jointMax;
-		if(max== PR(Const).POSINF) max = 1000;
+		if(min==-PR(Const).POSINF) min = -1000;
+		if(max== PR(Const).POSINF) max =  1000;
 
-		var e1 = p1.add(dir.mul(min,true));
-		var e2 = p1.add(dir.mul(max,true));
-		dir.dispose();
+		var e1 = a1.add(dir.mul(min,true));
+		var e2 = a1.add(dir.mul(max,true));
 		g.drawLine(e1,e2,0xff00);
 
-		if(min!=-PR(Const).POSINF) g.drawCircle(e1,2,0xff00);
-		if(max!= PR(Const).POSINF) g.drawCircle(e2,2,0xff00);
+		if(!stiff) {
+			var del = a2.sub(a1);
+			var pn = del.dot(dir);
+			del.dispose();
 
+			var anch = 
+			if  (pn<jointMin) e1.copy();
+			elif(pn>jointMax) e2.copy();
+			else              a1.add(dir.mul(pn,true));
+
+			g.drawSpring(anch,a2,0xff00);
+			anch.dispose();
+		}
+
+		g.drawFilledCircle(a1,2,0xff);
+		g.drawFilledCircle(a2,2,0xff0000);
+
+		a1.dispose();
+		a2.dispose();
 		e1.dispose();
 		e2.dispose();
-		g.drawCircle(p1,1,0xff);
-		p1.dispose();
-
-		g.drawCircle(me.body2.localToWorld(me.anchor2,true),2,0xff0000);
 	}
 
 }
