@@ -163,7 +163,7 @@ class Constraints extends FixedStep {
 		
 		var dist = new DistanceJoint(b1,b2,new Vec2(20,0),new Vec2(-20,0),40,60);
 		dist.stiff = false;
-		dist.frequency = 2;
+		dist.frequency = 0.5;
 		dist.space = space;
 
 		description(3,0,"DistanceJoint",true);
