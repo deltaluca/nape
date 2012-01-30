@@ -10,13 +10,24 @@ WrapList(Compound,List(PR(Compound)),Node(PR(Compound)),$(mixin closure(x) x.out
 class Compound extends Interactor {
 	public var pr(inner):PR(Compound);
 
-	property(bodies,BodyList,pr(inner).wrap_bodies)
-	property(constraints,ConstraintList,pr(inner).wrap_constraints)
-	property(compounds,CompoundList,pr(inner).wrap_compounds)
+	property(bodies,BodyList,{
+		Destroyed(this,Compound)
+		pr(inner).wrap_bodies;
+	})
+	property(constraints,ConstraintList,{
+		Destroyed(this,Compound)
+		pr(inner).wrap_constraints;
+	})
+	property(compounds,CompoundList,{
+		Destroyed(this,Compound)
+		pr(inner).wrap_compounds;
+	})
 
 	property(compound,Compound,{
+		Destroyed(this,Compound)
 		if(pr(inner).compound==null) null else pr(inner).compound.outer;
 	},{
+		Destroyed(this,Compound)
 		pr(inner).immutable_midstep("Compound::compound");
 		if(this.compound!=compound) {
 			if(this.compound!=null) this.compound.compounds.remove(this);
@@ -25,8 +36,10 @@ class Compound extends Interactor {
 	})
 
 	property(space,Space,{
+		Destroyed(this,Compound)
 		if(pr(inner).space==null) null else pr(inner).space.outer;
 	},{
+		Destroyed(this,Compound)
 		DEBUG(if(pr(inner).compound!=null) throw "Error: Cannot set the space of an inner Compound, only the root Compound space can be set";)
 		pr(inner).immutable_midstep("Compound::space");
 		if(this.space!=space) {
@@ -46,6 +59,7 @@ class Compound extends Interactor {
 	}
 
 	@:$keep public override function toString() {
+		Destroyed(this,Compound)
 		return "Compound#"+id;
 	}
 
@@ -58,29 +72,35 @@ class Compound extends Interactor {
 	}
 
 	public function copy() {
+		Destroyed(this,Compound)
 		return pr(inner).copy();
 	}
 
 	public function breakApart() {
+		Destroyed(this,Compound)
 		pr(inner).breakApart();
 	}
 
 	public function visitBodies(lambda:Body->Void) {
+		Destroyed(this,Compound)
 		DEBUG(if(lambda==null) throw "Error: lambda cannot be null for Compound::visitBodies";)
 		for(b in bodies) lambda(b);
 		for(c in compounds) c.visitBodies(lambda);
 	}
 	public function visitConstraints(lambda:Constraint->Void) {
+		Destroyed(this,Compound)
 		DEBUG(if(lambda==null) throw "Error: lambda cannot be null for Compound::visitConstraints";)
 		for(c in constraints) lambda(c);
 		for(c in compounds) c.visitConstraints(lambda);
 	}
 	public function visitCompounds(lambda:Compound->Void) {
+		Destroyed(this,Compound)
 		DEBUG(if(lambda==null) throw "Error: lambda cannot be null for Compound::visitConstraints";)
 		for(c in compounds) lambda(c);
 	}
 
 	public function COM() {
+		Destroyed(this,Compound)
 		var ret = new Vec2();
 		var total = 0.0;
 		visitBodies(function (b) {
@@ -92,6 +112,7 @@ class Compound extends Interactor {
 	}
 
 	public function translate(translation:Vec2) {
+		Destroyed(this,Compound)
 		Destroyed(translation,Vec2);
 		DEBUG(if(translation==null) throw "Error: Cannot translate by null Vec2";)
 		var weak = translation.pr(inner).weak;
@@ -104,6 +125,7 @@ class Compound extends Interactor {
 	}
 
 	public function rotate(centre:Vec2,angle:Float) {
+		Destroyed(this,Compound)
 		Destroyed(centre,Vec2);
 		DEBUG(if(centre==null) throw "Error: Cannot rotate about a null Vec2";)
 		DEBUG(if(isNaN(angle)) throw "Error: Cannot rotate by NaN radians";)
