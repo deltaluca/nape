@@ -57,6 +57,45 @@ class PR(Compound) extends PR(Interactor) {
 
 	//----------------------------------------------------
 
+	flibmdel public inline function __destroy(rec:Bool) {
+		DEBUG(if(space!=null) throw "Error: Cannot destroy a Compound if it is currently being used in a Space!";)
+		DEBUG(if(compound!=null) throw "Error: Cannot destroy a Compound if it is alraedy part of another Compound!";)
+
+		ClearWith(b, bodies, {
+			b.compound = null;
+			if(rec) b.outer.destroy(true);
+		});
+		bodies = null;
+		if(wrap_bodies!=null) {
+			wrap_bodies.pr(inner).__destroy();
+			wrap_bodies = null;
+		}
+
+		ClearWith(c, constraints, {
+			c.compound = null;
+		});
+		constraints = null;
+		if(wrap_constraints!=null) {
+			wrap_constraints.pr(inner).__destroy();
+			wrap_constraints = null;
+		}
+
+		ClearWith(c, compounds, {
+			c.compound = null;
+			if(rec) c.outer.destroy(true);
+		});
+		compounds = null;
+		if(wrap_compounds!=null) {
+			wrap_compounds.pr(inner).__destroy();
+			wrap_compounds = null;
+		}
+		outer = null;
+
+		__idestroy(); //Interactor
+	}
+
+	//----------------------------------------------------
+
 	flibmdel public inline function breakApart() {
 		if(compound!=null) compound.compounds.remove(this);
 		if(space   !=null) space.   compounds.remove(this);

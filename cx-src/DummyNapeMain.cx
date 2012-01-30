@@ -407,7 +407,7 @@ class Tracer extends flash.text.TextField {
 				}catch(e:Dynamic) {
 					nme = Std.string(e);
 				}
-				buf += "id: "+i.id+" refs:"+Std.string(i.refs)+" = "+Type.getClassName(Type.getClass(nme))+"\n";
+				buf += "id: "+i.id+" refs:"+Std.string(i.refs)+" = "+Std.string(nme)+"\n";
 			}
 		}
 		if(state==TRACE) {
@@ -433,10 +433,10 @@ class DummyNapeMain {
 		},3000);*/
 
 
-//		(new haxe.Timer(400)).run = doit;
+		(new haxe.Timer(400)).run = doit;
 
 //		var v = new Circle(10, new Vec2(10,10), new Material(), new InteractionFilter());
-		tracer.print(Debug.objectPoolStats()+"\n");
+/*		tracer.print(Debug.objectPoolStats()+"\n");
 		var s = new Space(null,Broadphase.SWEEP_AND_PRUNE);
 		var b = new Body();
 		var v = new Polygon(Polygon.box(10,20,true));
@@ -451,36 +451,32 @@ class DummyNapeMain {
 		s.liveConstraints;
 		s.compounds;
 		s.arbiters;
+		c.bodies;
 
 		tracer.trace([v], function(objs) {
 			s.destroy(true);
 			Debug.clearObjectPools();
 			tracer.trace(objs);
 		});
-
+*/
 /*		for(key in (untyped __keys__(dict)).iterator()) {
 			txt.text += untyped dict[key];
 		}*/
 	}
 
-//	static var space = new Space();
+//	static var s = new Space();
 	static function doit() {
-		var cs = new flash.Vector<Polygon>();
+
+		var s = new Space();
 		for(i in 0...100) {
 			var c = new Polygon(Polygon.box(10,10));
-			cs.push(c);
-//			var c = new Circle(10);
-//			var b = new Body(); c.body = ib;
-//			b.position.x = Math.random()*800;
-//			b.position.y = Math.random()*600;
-//			b.space = space;
-			//c.destroy();
+			var b = new Body(); c.body = b;
+			b.space = s;
 		}
-		for(c in cs) c.destroy();
 
 //		space.step(1/60);
-//		space.clear();
-//		Debug.clearObjectPools();
+		s.destroy();
+		Debug.clearObjectPools();
 	}
 
 
