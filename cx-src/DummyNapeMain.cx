@@ -407,7 +407,7 @@ class Tracer extends flash.text.TextField {
 				}catch(e:Dynamic) {
 					nme = Std.string(e);
 				}
-				buf += "id: "+i.id+" refs:"+Std.string(i.refs)+" = "+nme+"\n";
+				buf += "id: "+i.id+" refs:"+Std.string(i.refs)+" = "+Type.getClassName(Type.getClass(nme))+"\n";
 			}
 		}
 		if(state==TRACE) {
@@ -437,11 +437,23 @@ class DummyNapeMain {
 
 //		var v = new Circle(10, new Vec2(10,10), new Material(), new InteractionFilter());
 		tracer.print(Debug.objectPoolStats()+"\n");
+		var s = new Space(null,Broadphase.SWEEP_AND_PRUNE);
 		var b = new Body();
 		var v = new Polygon(Polygon.box(10,20,true));
+		var c = new Compound();
+		b.compound = c;
 		v.body = b;
+		c.space = s;
+
+		s.bodies;
+		s.constraints;
+		s.liveBodies;
+		s.liveConstraints;
+		s.compounds;
+		s.arbiters;
+
 		tracer.trace([v], function(objs) {
-			b.destroy(true);
+			s.destroy(true);
 			Debug.clearObjectPools();
 			tracer.trace(objs);
 		});

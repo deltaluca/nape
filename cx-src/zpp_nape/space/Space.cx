@@ -180,7 +180,7 @@ class PR(Space) {
 	public var s_arbiters:List(PR(SensorArbiter));
 
 	public var map_arb:FastHash2(PR(Arbiter));
-	public var wrap_arbiters:ArbiterList;
+	public var wrap_arbiters:PR(SpaceArbiterList);
 	
 	//----------------------------------------------------------------------------------------------
 	
@@ -212,6 +212,151 @@ class PR(Space) {
 	public var callbacksets:FastHash2(PR(CallbackSet));
 	
 	//----------------------------------------------------------------------------------------------
+
+	public function destroy(rec:Bool) {
+		callbacks.clear();
+		while(!callbacks.empty()) {
+			var cb = callbacks.pop();
+			cb.alloc(); //null out shit.
+		}
+		callbacks = null;
+		if(wrap_callbacks!=null) {
+			//wrap_callbacks.pr(inner).__destroy();
+			wrap_callbacks = null;
+		}
+
+		if(wrap_gravity!=null) {
+			wrap_gravity.pr(inner).inuse = false;
+			wrap_gravity.destroy();
+			wrap_gravity = null;
+		}
+
+		//this also deals naturally with removing all callbacksets
+		ClearWith(c, listeners, remListener(c));
+		listeners = null;
+		if(wrap_listeners!=null) {
+			wrap_listeners.pr(inner).__destroy();
+			wrap_listeners = null;
+		}
+
+		listenersets.destroy();
+		listenersets = null;
+
+		callbacksets.destroy();
+		callbacksets = null;
+
+		///clear internal lists to object pools if applicable
+		//arbiters
+		ClearWith(arb, c_arbiters(true),  arb.retire());
+		ClearWith(arb, c_arbiters(false), arb.retire());
+		ClearWith(arb, s_arbiters,        arb.retire());
+		ClearWith(arb, f_arbiters,        arb.retire());
+
+		map_arb.destroy();
+		map_arb = null;
+
+		c_arbiters(true) = null;
+		c_arbiters(false) = null;
+		s_arbiters = null;
+		f_arbiters = null;
+
+		if(wrap_arbiters!=null) {
+			wrap_arbiters.pr(inner).__destroy();
+			wrap_arbiters.lengths = null;
+			wrap_arbiters.space = null;
+			wrap_arbiters = null;
+		}
+
+		__static.pr(inner).world = false;
+		__static.pr(inner).space = null;
+		__static.destroy();
+		__static = null;
+
+		//broadphase
+		bphase.destroy();
+		bphase = null;
+
+		//handle islands that exist implicitly through components.
+		$(mixin isl(comp) {
+			if(comp!=null) {
+				var i = comp.island;
+				if(i!=null) {
+					ClearWith(c,i.comps,c.reset());
+					Free(PR(Island),i);
+				}
+			}
+		});
+
+		//clear user lists
+		ClearWith(b, bodies, {
+			isl(b.component); b.removedFromSpace(); b.space = null;
+			if(rec) b.outer.destroy(rec);
+		});
+		ClearWith(c, constraints, {
+			isl(c.component); c.removedFromSpace(); c.space = null;
+		});
+		kinematics.clear();
+
+		bodies = null;
+		if(wrap_bodies!=null) {
+			wrap_bodies.pr(inner).__destroy();
+			wrap_bodies = null;
+		}
+		constraints = null;
+		if(wrap_constraints!=null) {
+			wrap_constraints.pr(inner).__destroy();
+			wrap_constraints = null;
+		}
+		kinematics = null;
+
+		if(wrap_live!=null) {
+			wrap_live.pr(inner).__destroy();
+			wrap_live = null;
+		}
+		if(wrap_livecon!=null) {
+			wrap_livecon.pr(inner).__destroy();
+			wrap_livecon = null;
+		}
+
+		var stack = new List(PR(Compound))();
+		Iter(c, compounds, stack.add(c));
+		if(wrap_compounds!=null) {
+			wrap_compounds.pr(inner).__destroy();
+			wrap_compounds = null;
+		}
+
+		while(!stack.empty()) {
+			var comp = stack.pop_unsafe();
+			comp.removedFromSpace();
+			comp.space = null;
+			Iter(b, comp.bodies, {
+				isl(b.component); b.removedFromSpace(); b.space = null;
+			});
+			Iter(c, comp.constraints, {
+				isl(c.component); c.removedFromSpace(); c.space = null;
+			});
+
+			Iterate(comp.compounds, stack.add);
+		}
+
+		ClearWith(c, compounds, if(rec) c.outer.destroy(rec));
+		compounds = null;
+
+		//islands
+		assert(islands.empty(),"islands exist... wuh?");
+		islands = null;
+
+		//other
+		staticsleep.clear(); staticsleep = null;
+		live.clear(); live = null;
+		live_constraints.clear(); live_constraints = null;
+
+		//extra shiz
+		mrca1.clear(); mrca1 = null;
+		mrca2.clear(); mrca2 = null;
+
+		outer = null;
+	}
 
 	public function clear() {
 		callbacks.clear();
