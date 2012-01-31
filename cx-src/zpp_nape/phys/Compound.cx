@@ -22,37 +22,15 @@ class PR(Compound) extends PR(Interactor) {
 
 	//----------------------------------------------------
 
-	public function __setCbType(cbType:PR(CbType)) {
-		if(this.cbType != cbType) {
-			if(space!=null && this.cbType!=null) {
-				this.cbType.remCompound(this);
-				space.nullInteractorType(this);
-			}
-
-			this.cbType = cbType;
-			if(space!=null && cbType!=null) {
-				cbType.addCompound(this);
-				space.freshInteractorType(this);
-			}
-
-			wake();
-		}
-	}
 	flibmdel public inline function __imutable_midstep(name:String) {
 		DEBUG(if(space!=null && space.midstep) throw "Error: "+name+" cannot be set during space step()";)
 	}
 
-	flibmdel public inline function wake() {
-		if(space!=null) space.wakeCompound(this);
-	}
-
 	public function addedToSpace() {
-		if(cbType!=null)
-			cbType.addCompound(this);
+		__iaddedToSpace();
 	}
 	public function removedFromSpace() {
-		if(cbType!=null)
-			cbType.remCompound(this);
+		__iremovedFromSpace();
 	}
 
 	//----------------------------------------------------
