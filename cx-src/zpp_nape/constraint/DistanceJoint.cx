@@ -274,8 +274,47 @@ class PR(DistanceJoint) extends PR(Constraint) {
 
 	public override function draw(g:Debug) {
 		var me = outer_zn;
-		g.drawCircle(me.body1.localToWorld(me.anchor1,true), 1, 0xff);
-		g.drawCircle(me.body2.localToWorld(me.anchor2,true), 2, 0xff0000);
+		var a1 = me.body1.localToWorld(me.anchor1);
+		var a2 = me.body2.localToWorld(me.anchor2);
+
+		var n = a2.sub(a1);
+		var nl = n.length;
+		if(nl!=0) {
+			n.muleq(1/nl);
+
+			var mid = a1.add(a2).muleq(0.5);
+			var min1 = mid.sub(n.mul(jointMin*0.5,true));
+			var min2 = mid.add(n.mul(jointMin*0.5,true));
+			var max1 = mid.sub(n.mul(jointMax*0.5,true));
+			var max2 = mid.add(n.mul(jointMax*0.5,true));
+
+			g.drawLine(min1,min2,0xffff00);
+			g.drawLine(max1,min1,0x00ffff);
+			g.drawLine(max2,min2,0x00ffff);
+
+			if(!stiff) {
+				if(nl>jointMax) {
+					g.drawSpring(max1,a1,0x00ffff);
+					g.drawSpring(max2,a2,0x00ffff);
+				}else if(nl<jointMin) {
+					g.drawSpring(min1,a1,0xffff00);
+					g.drawSpring(min2,a2,0xffff00);
+				}
+			}
+
+			mid.dispose();
+			min1.dispose();
+			min2.dispose();
+			max1.dispose();
+			max2.dispose();
+		}
+
+		g.drawFilledCircle(a1,2,0xff);
+		g.drawFilledCircle(a2,2,0xff0000);
+
+		a1.dispose();
+		a2.dispose();
+		n.dispose();
 	}
 }
 

@@ -243,6 +243,7 @@ class Debug {
     public function draw(object:Dynamic):Void {}
 
     public function drawLine  (start:Vec2, end:Vec2, colour:Int):Void {}
+	public function drawCurve (start:Vec2, control:Vec2, end:Vec2, colour:Int):Void {}
     public function drawCircle(position:Vec2, radius:Float, colour:Int):Void {}
     public function drawAABB  (aabb:AABB, colour:Int):Void {}
     
@@ -251,6 +252,8 @@ class Debug {
 
 	public function drawPolygon (polygon:Dynamic, colour:Int):Void {}
 	public function drawFilledPolygon (polygon:Dynamic, colour:Int):Void {}
+
+	public function drawSpring(start:Vec2,end:Vec2,colour:Int,?coils=3,?radius=3.0):Void {}
 
     #end
 }
@@ -348,6 +351,39 @@ class ShapeDebug extends Debug {
 		WEAK(start);
 		WEAK(end);
     }
+
+	public override function drawCurve (start:Vec2, control:Vec2, end:Vec2, colour:Int):Void {
+		DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
+
+		Disposed(start,Vec2);
+		Disposed(control,Vec2);
+		Disposed(end,Vec2);
+		DEBUG(
+			if(start==null) throw "Error: drawCurve::start cannot be null";
+			if(control==null) throw "Error: drawCurve::control cannot be null";
+			if(end==null) throw "Error: drawCurve::end cannot be null";
+		)
+		var g = pr(inner_zn).graphics;
+
+		g.lineStyle(0.1,colour&0xffffff,1);
+		if(pr(inner).xnull) {
+			g.moveTo(start.x,start.y);
+			g.curveTo(control.x,control.y,end.x,end.y);
+		}else {
+			var u = pr(inner).xform.outer.transform(start);
+			var v = pr(inner).xform.outer.transform(control);
+			var q = pr(inner).xform.outer.transform(end);
+			g.moveTo(u.x,u.y);
+			g.curveTo(v.x,v.y,q.x,q.y);
+			u.dispose();
+			v.dispose();
+			q.dispose();
+		}
+
+		WEAK(start);
+		WEAK(control);
+		WEAK(end);
+	}
 
     public override function drawCircle(position:Vec2, radius:Float, colour:Int) {
 		DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
@@ -503,6 +539,7 @@ class ShapeDebug extends Debug {
     ///---------------------------------------------------------------------------------------------
 
     public override function draw(object:Dynamic) __draw(object)
+	public override function drawSpring(start:Vec2,end:Vec2,colour:Int,?coils=3,?radius=3.0) __spring(start,end,colour,coils,radius)
 }
 
 #end
@@ -567,6 +604,34 @@ class BitmapDebug extends Debug {
 		WEAK(start);
 		WEAK(end);
     }
+
+	public override function drawCurve (start:Vec2, control:Vec2, end:Vec2, colour:Int):Void {
+		DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
+
+		Disposed(start,Vec2);
+		Disposed(control,Vec2);
+		Disposed(end,Vec2);
+		DEBUG(
+			if(start==null) throw "Error: drawCurve::start cannot be null";
+			if(control==null) throw "Error: drawCurve::control cannot be null";
+			if(end==null) throw "Error: drawCurve::end cannot be null";
+		)
+		if(pr(inner).xnull) {
+			pr(inner_zn).__curve(start,control,end,colour);
+		}else {
+			var u = pr(inner).xform.outer.transform(start);
+			var v = pr(inner).xform.outer.transform(control);
+			var q = pr(inner).xform.outer.transform(end);
+			pr(inner_zn).__curve(u,v,q,colour);
+			u.dispose();
+			v.dispose();
+			q.dispose();
+		}
+
+		WEAK(start);
+		WEAK(control);
+		WEAK(end);
+	}
 
     public override function drawCircle(position:Vec2, radius:Float, colour:Int) {
 		DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
@@ -751,52 +816,49 @@ class BitmapDebug extends Debug {
     ///---------------------------------------------------------------------------------------------
 
     public override function draw(object:Dynamic) __draw(object)
+
+	public override function drawSpring(start:Vec2,end:Vec2,colour:Int,?coils=3,?radius=3.0) __spring(start,end,colour,coils,radius)
 }
 
 #end
 
 ///-------------------------------------------------------------------------------------------------
 
-#if false
+$(mixin __spring(start,end,colour,coils,radius) {
+	Disposed(start,Vec2)
+	Disposed(end,Vec2)
+	DEBUG(if(start==null) throw "Error: drawCurve::start cannot be null";)
+	DEBUG(if(end==null) throw "Error: drawCurve::end cannot be null";)
+	DEBUG(if(coils<0) throw "Error: drawCurve::coils must be >= 0";)
 
-    public function linearWave(graphics:Graphics, x1:Float,y1:Float, x2:Float,y2:Float) {
-		vec_new(d, x2-x1, y2-y1);
-		vec_diveq(d,8);
-		
+	if(coils==0) drawLine(start,end,colour);
+	else {
+		vec_new(d, end.x-start.x, end.y-start.y);
+		vec_diveq(d,coils*4);
+	
 		vec_new(n); vec_set(n,d);
 		if(vec_lsq(n)<0.1) return;
-		
-		vec_normal(n); vec_muleq(n,4); //2*r
-		
-		graphics.moveTo(x1,y1);
-		graphics.curveTo(x1+dx  +nx,y1+dy  +ny, x1+dx*2,y1+dy*2);
-		graphics.curveTo(x1+dx*3-nx,y1+dy*3-ny, x1+dx*4,y1+dy*4);
-		graphics.curveTo(x1+dx*5+nx,y1+dy*5+ny, x1+dx*6,y1+dy*6);
-		graphics.curveTo(x1+dx*7-nx,y1+dy*7-ny, x2,y2);
-	}
-	public function linearSaw(graphics:Graphics, x1:Float,y1:Float, x2:Float,y2:Float) {
-		vec_new(d, x2-x1, y2-y1);
-		vec_diveq(d,8);
-		
-		vec_new(n); vec_set(n,d);
-		if(vec_lsq(n)<0.1) return;
-		
-		vec_normal(n); vec_muleq(n,2); //r
-		
-		graphics.moveTo(x1,y1);
-		graphics.lineTo(x1+dx  +nx,y1+dy  +ny);
-		
-		graphics.moveTo(x1+dx  -nx,y1+dy  -ny);
-		graphics.lineTo(x1+dx*3+nx,y1+dy*3+ny);
-		
-		graphics.moveTo(x1+dx*3-nx,y1+dy*3-ny);
-		graphics.lineTo(x1+dx*5+nx,y1+dy*5+ny);
-		
-		graphics.moveTo(x1+dx*5-nx,y1+dy*5-ny);
-		graphics.lineTo(x1+dx*7+nx,y1+dy*7+ny);
-		
-		graphics.moveTo(x1+dx*7-nx,y1+dy*7-ny);
-		graphics.lineTo(x2,y2);
+		vec_normal(n); vec_muleq(n,radius*2);
+	
+		var u = start.copy();
+		var v = Vec2.get();
+		var q = Vec2.get();
+		for(i in 0...coils) {
+			v.x = u.x + dx + nx; v.y = u.y + dy + ny;
+			q.x = u.x + dx*2;    q.y = u.y + dy*2;
+			drawCurve(u,v,q,colour);
+			u.x = q.x; u.y = q.y;
+
+			v.x = u.x + dx - nx; v.y = u.y + dy - ny;
+			q.x = u.x + dx*2;    q.y = u.y + dy*2;
+			drawCurve(u,v,q,colour);
+			u.x = q.x; u.y = q.y;
+		}
+		u.dispose();
+		v.dispose();
+		q.dispose();
 	}
 
-#end
+	WEAK(start);
+	WEAK(end);
+});

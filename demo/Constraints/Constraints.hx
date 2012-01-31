@@ -1,7 +1,7 @@
 package;
 
 import nape.space.Space;
-import nape.util.BitmapDebug;
+import nape.util.ShapeDebug;
 import nape.geom.Vec2;
 
 import nape.phys.Body;
@@ -28,7 +28,7 @@ class Constraints extends FixedStep {
 	function new() {
 		super(1/60);
 
-		var debug = new BitmapDebug(stage.stageWidth,stage.stageHeight,0x333333);
+		var debug = new ShapeDebug(stage.stageWidth,stage.stageHeight,0x333333);
 		debug.drawConstraints = true;
 		addChild(debug.display);
 
@@ -116,22 +116,22 @@ class Constraints extends FixedStep {
 		//AngleJoint --------------------------------
 		mid(1,0);
 
-		var b1 = circle(cell+cell/3,cell/4,25);
-		var b2 = circle(cell+cell*2/3,cell/4,25);
+		var b1 = circle(cell+cell/3,cell/4,35);
+		var b2 = circle(cell+cell*2/3,cell/4,35);
 		fix(b1); fix(b2);
 
-		var angle = new AngleJoint(b1,b2,-Math.PI/2,Math.PI/2);
+		var angle = new AngleJoint(b1,b2,-Math.PI,2*Math.PI);
 		angle.ratio = 3;
 		angle.space = space;
 
-		var b1 = circle(cell+cell/3,cell*3/4,25);
-		var b2 = circle(cell+cell*2/3,cell*3/4,25);
+		var b1 = circle(cell+cell/3,cell*3/4,35);
+		var b2 = circle(cell+cell*2/3,cell*3/4,35);
 		fix(b1); fix(b2);
 
-		var angle = new AngleJoint(b1,b2,-Math.PI/2,Math.PI/2);
+		var angle = new AngleJoint(b1,b2,-Math.PI,2*Math.PI);
 		angle.ratio = 3;
 		angle.stiff = false;
-		angle.frequency = 2;
+		angle.frequency = 0.5;
 		angle.space = space;
 
 		description(1,0,"AngleJoint",true);
@@ -155,15 +155,15 @@ class Constraints extends FixedStep {
 		var b1 = circle(cell*3+cell/3,cell/4,20);
 		var b2 = circle(cell*3+cell*2/3,cell/4,20);
 		
-		var dist = new DistanceJoint(b1,b2,new Vec2(20,0),new Vec2(-20,0),40,60);
+		var dist = new DistanceJoint(b1,b2,new Vec2(20,0),new Vec2(-20,0),40,80);
 		dist.space = space;
 		
 		var b1 = circle(cell*3+cell/3,cell*3/4,20);
 		var b2 = circle(cell*3+cell*2/3,cell*3/4,20);
 		
-		var dist = new DistanceJoint(b1,b2,new Vec2(20,0),new Vec2(-20,0),40,60);
+		var dist = new DistanceJoint(b1,b2,new Vec2(20,0),new Vec2(-20,0),40,80);
 		dist.stiff = false;
-		dist.frequency = 2;
+		dist.frequency = 0.5;
 		dist.space = space;
 
 		description(3,0,"DistanceJoint",true);
@@ -185,7 +185,7 @@ class Constraints extends FixedStep {
 		var mi = new Vec2(cell/2,cell+cell*3/4);
 		var pivot = new PivotJoint(b1,b2,b1.worldToLocal(mi),b2.worldToLocal(mi));
 		pivot.stiff = false;
-		pivot.frequency = 2;
+		pivot.frequency = 0.5;
 		pivot.space = space;
 
 		description(0,1,"PivotJoint",true);
@@ -206,7 +206,7 @@ class Constraints extends FixedStep {
 		var mi = new Vec2(cell+cell/2,cell+cell*3/4);
 		var pivot = new WeldJoint(b1,b2,b1.worldToLocal(mi),b2.worldToLocal(mi));
 		pivot.stiff = false;
-		pivot.frequency = 2;
+		pivot.frequency = 0.5;
 		pivot.space = space;
 
 		description(1,1,"WeldJoint",true);
@@ -230,7 +230,7 @@ class Constraints extends FixedStep {
 		var line = new LineJoint(b1,b2,b1.worldToLocal(mi),b2.worldToLocal(mi),
 			new Vec2(0,1),-20,20);
 		line.stiff = false;
-		line.frequency = 2;
+		line.frequency = 0.5;
 		line.space = space;
 
 		description(2,1,"LineJoint",true);
