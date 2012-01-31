@@ -139,6 +139,8 @@ class PR(LineJoint) extends PR(Constraint) {
 	}
 	
 	public override function validate() {
+		PRDestroyed(b1,Body)
+		PRDestroyed(b2,Body)
 		if(b1==null || b2==null) throw "Error: AngleJoint cannot be simulated null bodies";
 		if(b1==b2) throw "Error: DistanceJoint cannot be simulated with body1 == body2";
 		if(b1.space != space || b2.space != space) throw "Error: Constraints must have each body within the same space to which the constraint has been assigned";
@@ -292,7 +294,7 @@ class PR(LineJoint) extends PR(Constraint) {
 
 		var del = a2.sub(a1);
 		var pn = del.dot(dir);
-		del.dispose();
+		del.destroy();
 
 		var e1 = a1.add(dir.mul(min,true));
 		var e2 = a1.add(dir.mul(max,true));
@@ -309,16 +311,16 @@ class PR(LineJoint) extends PR(Constraint) {
 			else              a1.add(dir.mul(pn,true));
 
 			g.drawSpring(anch,a2,0xff00ff);
-			anch.dispose();
+			anch.destroy();
 		}
 
 		g.drawFilledCircle(a1,2,0xff);
 		g.drawFilledCircle(a2,2,0xff0000);
 
-		a1.dispose();
-		a2.dispose();
-		e1.dispose();
-		e2.dispose();
+		a1.destroy();
+		a2.destroy();
+		e1.destroy();
+		e2.destroy();
 	}
 
 }

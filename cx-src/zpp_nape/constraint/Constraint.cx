@@ -261,7 +261,7 @@ $(mixin global withConstraint(block)
 			pr(inner).immutable_midstep("Constraint::"+$str(B));
 			var in`B = if(B==null) null else B.pr(inner);
 			if(in`B != pr(inner_zn).b) {
-				if(pr(inner_zn).b != null) {
+				if(pr(inner_zn).b != null /*check for destroyed*/ && pr(inner_zn).b.outer != null) {
                     if(active && space!=null && new(pr(inner_zn).b)) {
 						inactive_body(pr(inner_zn).b, this.pr(inner));
 					}
@@ -285,12 +285,12 @@ $(mixin global withConstraint(block)
 
 	$(mixin active_body(b) active_body(b,this));
 	$(mixin active_body(b,this) {
-		if(b!=null) b.constraints.add(this);
+		if(b!=null /*Check for destroyed*/ && b.outer!=null) b.constraints.add(this);
 	});
 
 	$(mixin inactive_body(b) inactive_body(b,this));
 	$(mixin inactive_body(b,this) {
-		if(b!=null) b.constraints.remove(this);
+		if(b!=null /*check for destroyed*/ && b.outer!=null) b.constraints.remove(this);
 	});
 	
 	//-----------------------------------------------------------

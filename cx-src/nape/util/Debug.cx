@@ -355,9 +355,9 @@ class ShapeDebug extends Debug {
 	public override function drawCurve (start:Vec2, control:Vec2, end:Vec2, colour:Int):Void {
 		DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
 
-		Disposed(start,Vec2);
-		Disposed(control,Vec2);
-		Disposed(end,Vec2);
+		Destroyed(start,Vec2);
+		Destroyed(control,Vec2);
+		Destroyed(end,Vec2);
 		DEBUG(
 			if(start==null) throw "Error: drawCurve::start cannot be null";
 			if(control==null) throw "Error: drawCurve::control cannot be null";
@@ -375,9 +375,9 @@ class ShapeDebug extends Debug {
 			var q = pr(inner).xform.outer.transform(end);
 			g.moveTo(u.x,u.y);
 			g.curveTo(v.x,v.y,q.x,q.y);
-			u.dispose();
-			v.dispose();
-			q.dispose();
+			u.destroy();
+			v.destroy();
+			q.destroy();
 		}
 
 		WEAK(start);
@@ -608,9 +608,9 @@ class BitmapDebug extends Debug {
 	public override function drawCurve (start:Vec2, control:Vec2, end:Vec2, colour:Int):Void {
 		DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
 
-		Disposed(start,Vec2);
-		Disposed(control,Vec2);
-		Disposed(end,Vec2);
+		Destroyed(start,Vec2);
+		Destroyed(control,Vec2);
+		Destroyed(end,Vec2);
 		DEBUG(
 			if(start==null) throw "Error: drawCurve::start cannot be null";
 			if(control==null) throw "Error: drawCurve::control cannot be null";
@@ -623,9 +623,9 @@ class BitmapDebug extends Debug {
 			var v = pr(inner).xform.outer.transform(control);
 			var q = pr(inner).xform.outer.transform(end);
 			pr(inner_zn).__curve(u,v,q,colour);
-			u.dispose();
-			v.dispose();
-			q.dispose();
+			u.destroy();
+			v.destroy();
+			q.destroy();
 		}
 
 		WEAK(start);
@@ -825,8 +825,8 @@ class BitmapDebug extends Debug {
 ///-------------------------------------------------------------------------------------------------
 
 $(mixin __spring(start,end,colour,coils,radius) {
-	Disposed(start,Vec2)
-	Disposed(end,Vec2)
+	Destroyed(start,Vec2)
+	Destroyed(end,Vec2)
 	DEBUG(if(start==null) throw "Error: drawCurve::start cannot be null";)
 	DEBUG(if(end==null) throw "Error: drawCurve::end cannot be null";)
 	DEBUG(if(coils<0) throw "Error: drawCurve::coils must be >= 0";)
@@ -854,9 +854,9 @@ $(mixin __spring(start,end,colour,coils,radius) {
 			drawCurve(u,v,q,colour);
 			u.x = q.x; u.y = q.y;
 		}
-		u.dispose();
-		v.dispose();
-		q.dispose();
+		u.destroy();
+		v.destroy();
+		q.destroy();
 	}
 
 	WEAK(start);

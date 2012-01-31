@@ -435,9 +435,19 @@ class DummyNapeMain {
 
 		var space = new Space();
 		space.gravity = Vec2.weak(0,400);
-		var ceiling = new Body(BodyType.STATIC, Vec2.weak(0,-15));
+		var ceiling = new Body(Vec2.weak(0,-15));
 		ceiling.shapes.add(new Polygon(Polygon.rect(0,0,768,10,true)));
-		ceiling.destroy();
+		ceiling.space = space;
+
+		var con = new PivotJoint(space.world,ceiling, new Vec2(), new Vec2());
+		con.space = space;
+		
+		space.step(1/60);
+		space.destroy();
+
+		space = new Space();
+		con.space = space;
+		space.step(1/60);
 
 //		(new haxe.Timer(400)).run = doit;
 
