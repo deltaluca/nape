@@ -68,10 +68,6 @@ class PR(Body) extends PR(Interactor) {
 		}
 	}
 	
-	public function wake() {
-		return if(space!=null) space.wake(this) else false;
-	}
-	
 	public function refreshArbiters() {
 		Iter(arb, arbiters, arb.invalidated = true);
 	}
@@ -528,23 +524,6 @@ class PR(Body) extends PR(Interactor) {
 
     //----------------------------------------------------------------------------------------------
 
-    public function __setCbType(cbType:PR(CbType)) {
-        if(this.cbType != cbType) {
-			if(space!=null && this.cbType!=null) {
-	            this.cbType.remBody(this);
-				space.nullInteractorType(this);
-			}
-
-            this.cbType = cbType;
-			if(space!=null && cbType!=null) {
-	            cbType.addBody(this);
-				space.freshInteractorType(this);
-			}
-
-            wake();
-        }
-    }
-
 	flibmdel public inline function __immutable_midstep(name:String) {
 		DEBUG(if(space!=null && space.midstep) throw "Error: "+name+" cannot be set during a space step()";)
 	}
@@ -682,9 +661,7 @@ class PR(Body) extends PR(Interactor) {
 		component.isBody = true;
 		component.body = this;
 
-		//cbTypes only maintain list of ACTIVE bodies
-		if(cbType!=null)
-			cbType.addBody(this);
+		__iaddedToSpace();
 	}
 
 	public function removedFromSpace() {
@@ -695,10 +672,8 @@ class PR(Body) extends PR(Interactor) {
 
 		Free(PR(Component),component);
 		component = null;
-
-		//cbTypes only maintain list of ACTIVE bodies.
-		if(cbType!=null)
-			cbType.remBody(this);
+		
+		__iremovedFromSpace();
 	}
 	
 	//----------------------------------------------------------------------------------------------

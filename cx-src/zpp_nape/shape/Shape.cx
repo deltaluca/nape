@@ -206,10 +206,6 @@ class PR(Shape) extends PR(Interactor) {
 	
 	//----------------------------------------------------------------------------------------------
 	
-	public function wake() {
-		if(body!=null) body.wake();
-	}
-	
 	function new(type:Int) {
 		ishape = this;
 		super();
@@ -279,23 +275,6 @@ class PR(Shape) extends PR(Interactor) {
 		}
 	}
 
-    public function __setCbType(cbType:PR(CbType)) {
-        if(this.cbType != cbType) {
-			if(body!=null && body.space!=null && this.cbType!=null) {
-	            this.cbType.remShape(this);
-				body.space.nullInteractorType(this);
-			}
-			
-            this.cbType = cbType;
-			if(body!=null && body.space!=null && cbType!=null) {
-	            cbType.addShape(this);
-				body.space.freshInteractorType(this);
-			}
-
-            wake();
-        }
-    }
-
 	flibmdel public inline function __immutable_midstep(name:String) {
 		DEBUG(if(body!=null && body.space!=null && body.space.midstep)
 			throw "Error: "+name+" cannot be set during a space step()";
@@ -313,16 +292,14 @@ class PR(Shape) extends PR(Interactor) {
 	}
 
 	public function addedToSpace() {
-		if(cbType!=null)
-			cbType.addShape(this);
+		__iaddedToSpace();
 		material.addShape(this);
 		filter.addShape(this);
 		if(fluidProperties!=null)
 			fluidProperties.addShape(this);
 	}
 	public function removedFromSpace() {
-		if(cbType!=null)
-			cbType.remShape(this);
+		__iremovedFromSpace();
 		material.remShape(this);
 		filter.remShape(this);
 		if(fluidProperties!=null)
