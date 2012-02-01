@@ -167,7 +167,7 @@ class PortalManager {
 		}
 
 		space.listeners.add(new InteractionListener(CbEvent.END, InteractionType.ANY, PORTAL, INOUT,
-		function (_pshape:Interactor,_object:Interactor) {
+		function (_pshape:Interactor,_object:Interactor, _) {
 			var pshape = _pshape.castShape;
 			var object = _object.castShape;
 			var portal:Portal = cast pshape.userData;	
@@ -196,7 +196,7 @@ class PortalManager {
 
 		for(cb in [PORTER,INOUT]) {
 			space.listeners.add(new InteractionListener(CbEvent.BEGIN, InteractionType.ANY, PORTAL, cb,	
-			function (_pshape:Interactor,_object:Interactor) {
+			function (_pshape:Interactor,_object:Interactor, _) {
 				var pshape = _pshape.castShape; 
 				var object = _object.castShape;
 				var portal:Portal = cast pshape.userData;

@@ -163,7 +163,7 @@ class Callbacks extends FixedStep {
 
 		//setup listeners
 		function boxer(colour:Int) { 
-			return function(box1:Interactor,box2:Interactor) {
+			return function(box1:Interactor,box2:Interactor,_) {
 				//we gave the box bodies the cbType, rather than the shapes so we 'know'
 				//we need to use interactor.body and not interator.shape
 			
