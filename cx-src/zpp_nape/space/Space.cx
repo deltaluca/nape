@@ -72,6 +72,8 @@ class PR(CallbackSet) {
 	//can use a hash here and it naturally fits.
 	//but for the size of the arbiter sets
 	//it seems a waste of memory and would be sub-optimal
+	// ^^ now that this arbiters list is released to public
+	// using a hash would be ever more annoying :P
 	public var arbiters:List(PR(Arbiter));
 
 	//per-interaction type state and time-stamp
@@ -210,7 +212,7 @@ class PR(Space) {
 
 	//used in callbackset callbacks to keep track of arbiter counts for unique begin/end/pre
 	public var callbacksets:FastHash2(PR(CallbackSet));
-	
+
 	//----------------------------------------------------------------------------------------------
 
 	public function clear() {
@@ -513,6 +515,7 @@ class PR(Space) {
 								var cb = push_callback(listener,listener.handleri!=null);
 								cb.event = Flag(CbEvent,END);
 								PR(Interactor).int_callback(i1,i2,listener.cb1,cb);
+								if(!callbackset.really_empty()) cb.set = callbackset;
 							}
 						}
 
@@ -798,7 +801,7 @@ class PR(Space) {
 					o.handler(cb.constraint.outer);
 				}else if(cb.listener.type==Flag(ListenerType,INTERACTION)) {
 					var o = cb.listener.interaction;
-					o.handleri(cb.int1.outer_i,cb.int2.outer_i);
+					o.handleri(cb.int1.outer_i,cb.int2.outer_i,cb.genarbs());
 				}
 	
 				cx_ite = callbacks.splice(cb);
@@ -807,6 +810,7 @@ class PR(Space) {
 			}
 		});
 	}
+
 	
 	//----------------------------------------------------------------------------------------------
 
@@ -1471,6 +1475,7 @@ class PR(Space) {
 									var cb = push_callback(listener,listener.handleri!=null);
 									cb.event = begcb ? Flag(CbEvent,BEGIN) : Flag(CbEvent,END);
 									PR(Interactor).int_callback(i1,i2,listener.cb1,cb);
+									if(begcb) cb.arb = arb;
 								}
 							}else {
 								var callbackset = callbacksets.ordered_get(i1.id,i2.id);
@@ -1486,6 +1491,7 @@ class PR(Space) {
 											var cb = push_callback(listener,listener.handleri!=null);
 											cb.event = Flag(CbEvent,BEGIN);
 											PR(Interactor).int_callback(i1,i2,listener.cb1,cb);
+											cb.set = callbackset;
 										}
 									}
 									callbackset.add(arb);
@@ -1497,6 +1503,7 @@ class PR(Space) {
 											var cb = push_callback(listener,listener.handleri!=null);
 											cb.event = Flag(CbEvent,END);
 											PR(Interactor).int_callback(i1,i2,listener.cb1,cb);
+											if(!callbackset.really_empty()) cb.set = callbackset;
 										}
 									}
 									if(callbackset.really_empty()) {
