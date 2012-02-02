@@ -15,6 +15,7 @@ import nape.shape.Circle;
 import nape.shape.Polygon;
 
 import nape.dynamics.Arbiter;
+import nape.dynamics.Contact;
 import nape.geom.Vec2;
 
 import nape.callbacks.ConstraintListener;
@@ -96,15 +97,13 @@ class Callbacks extends FixedStep {
 				//to allow penetration, we need to both change contact penetrations,
 				//and arbiter radius by same amount.
 				var carb = arb.collisionArbiter;
-				var i = 0; while(i<carb.contacts.length) {
-					var con = carb.contacts.at(i);
-					if(con.penetration <= depth) {
-						carb.contacts.remove(con);
-						continue;
-					}else
-						con.penetration -= depth;
-					i++;
-				}
+				carb.contacts.filter(function (c:Contact):Bool {
+					//discard if not deep enough.
+					if(c.penetration <= depth) return false;
+	
+					c.penetration -= depth;
+					return true;
+				});
 				carb.radius -= depth;
 
 				//no contacts left? ignore arbiter for now.
@@ -112,7 +111,6 @@ class Callbacks extends FixedStep {
 				//modifications and checks.
 				return if(carb.contacts.length==0) PreFlag.IGNORE_ONCE;
 				       else PreFlag.ACCEPT_ONCE;
-
 			}else
 				return PreFlag.ACCEPT;
 		},
