@@ -34,6 +34,14 @@ class PR(Callback) {
 		body = null;
 		constraint = null;
 		listener = null;
+		if(wrap_arbiters!=null) {
+			if(set!=null)
+				wrap_arbiters.pr(inner).inner = null;
+			else
+				wrap_arbiters.pr(inner).inner.clear();
+		}
+		set = null;
+		arb = null;
 	}
 	
 	//----------------
@@ -41,6 +49,37 @@ class PR(Callback) {
 	//BEGIN/END
 	public var int1:PR(Interactor);
 	public var int2:PR(Interactor);
+	//for none-shape-shape interactinos
+	public var set:PR(CallbackSet);
+	//for shape-shape
+	public var arb:PR(Arbiter);
+	//for public.. could possibly improve this
+	public var wrap_arbiters:ArbiterList;
+
+	flibmdel public inline function genarbs() {
+		if(wrap_arbiters==null) {
+			if(set!=null)
+				wrap_arbiters = PR(ArbiterList).get(set.arbiters,true);
+			else {
+				wrap_arbiters = new ArbiterList();
+				wrap_arbiters.pr(inner).immutable = true;
+				if(arb!=null)
+					wrap_arbiters.pr(inner).inner.add(arb); 
+			}
+		}else {
+			if(set!=null)
+				wrap_arbiters.pr(inner).inner = set.arbiters;
+			
+			if(wrap_arbiters.pr(inner).inner==null)
+				wrap_arbiters.pr(inner).inner = new List(PR(Arbiter))(); 
+
+			if(arb!=null)
+				wrap_arbiters.pr(inner).inner.add(arb);
+		}
+		wrap_arbiters.pr(inner).inv(length) = true;
+		return wrap_arbiters;
+	}
+
 	//SLEEP/WAKE
 	public var body:PR(Body);
 	//SLEEP/WAKE/BREAK

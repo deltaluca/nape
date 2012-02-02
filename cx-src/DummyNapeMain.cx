@@ -418,7 +418,7 @@ class Tracer extends flash.text.TextField {
 }
 
 class DummyNapeMain {
-	static function main() {
+	static function mains() {
 		haxe.Log.setColor(0xffffff);
 		var tracer = new Tracer();
 		flash.Lib.current.addChild(tracer);
@@ -546,7 +546,7 @@ class DummyNapeMain {
 		});
 	}
 
-	static function man() {
+	static function main() {
 		var root = flash.Lib.current;
 		var space = new Space(Vec2.weak(0,300));
 		var debug = new BitmapDebug(800,600,0x333333);
@@ -583,27 +583,28 @@ class DummyNapeMain {
 		b1.scaleShapes(0.5,0.5);
 
 //		for(s in b1.shapes) s.cbType = cb;
-		b1.cbType = cb;
+		for(s in b1.shapes) s.cbType = cb;
 
 		}
 
-		b2.space = space;
+//		b2.space = space;
 		b2.shapes.at(0).fluidEnabled= true;
 		b2.shapes.at(0).fluidProperties.density = 3;
 
 //		for(s in b2.shapes) s.cbType = cb;
 		b2.cbType = cb;
 
-		var begin = new InteractionListener(CbEvent.BEGIN, InteractionType.ANY, cb, cb, function (x,y) {
-			trace("BEG "+x.toString()+" "+y.toString());
+		var begin = new InteractionListener(CbEvent.BEGIN, InteractionType.ANY, cb, cb, function (x,y,arbs) {
+//			trace("BEG "+x.toString()+" "+y.toString()+" arbs="+arbs.toString());
 		});
 		begin.space = space;
-		var endh = new InteractionListener(CbEvent.END, InteractionType.ANY, cb, cb, function (x,y) {
-			trace("END "+x.toString()+" "+y.toString());
+		var endh = new InteractionListener(CbEvent.END, InteractionType.ANY, cb, cb, function (x,y,arbs) {
+//			trace("END "+x.toString()+" "+y.toString()+" arbs="+arbs.toString());
 		});
 		endh.space = space;
 
-		var pre = new PreListener(InteractionType.ANY, cb, cb, function (x:Arbiter):PreFlag {
+		var pre = new PreListener(InteractionType.COLLISION, cb, cb, function (x:Arbiter):PreFlag {
+			trace("pre");
 			if(x.isCollisionArbiter()) {
 				var carb = x.collisionArbiter;
 				var i = 0;
