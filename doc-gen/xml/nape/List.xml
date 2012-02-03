@@ -7,9 +7,10 @@
 		<text class="small1">Note: In many cases a List type will be returned from a function internal to nape and will be marked internally as an 'immutable' List. This is documented in those cases; trying to modify (mutate) such a List will result in an error.</text><br/><br/>
 		<text>Iteration over these list types should be done like:</text>
 		<indent>
-			<bullet/><text>haXe:</text><code><![CDATA[for(var obj in list) {}
-//or through explicit use of iterator()]]></code><br/>
-			<bullet/><text>AS3:</text><code><![CDATA[for(var i:int = 0; i&lt;list.length; i++) {
+			<bullet/><text>haXe:</text><code><![CDATA[for(var obj in list) {}]]></code><br/>
+			<bullet/><text>AS3:</text><code><![CDATA[list.foreach(function (obj:T):void {});
+//or, if you need to be able to 'break' out of the loop:
+for(var i:int = 0; i&lt;list.length; i++) {
 	var obj:T = list.at(i);
 	//use obj
 }
@@ -97,6 +98,43 @@
 		<detail>
 			<description>
 				<text>This is a standard haXe iterator for haXe users of nape, though nothing stopping AS3 users using the iterators either. The iterator internally uses the at() operation on the list and so is subject to the same optimisation concerns</text><text class="small1">(Note: this means that performing nested iteration will only be optimised for the innermost loop)</text>
+			</description>
+		</detail>
+	</method>
+
+	<method name="foreach" const="true" return="Void">
+		<arg name="lambda" type="T->Void"/>
+		<description>Apply function to each element of the list</description>
+		<detail>
+			<description>
+				<text>Whilst perhaps of less use in haXe where we can use native iteration, in AS3 using this method will lead to cleaner code. Whilst we cannot 'break' out of this foreach loop, we can still 'continue' by returning from the lambda</text><br/><br/>
+				<code><![CDATA[list.foreach(function (elem:T) { trace(elem); });]]></code>
+			</description>
+		</detail>
+	</method>
+
+	<method name="filter" return="List[T]">
+		<arg name="lambda" type="T->Bool"/>
+		<description>Filter out unwanted elements of the list.</description>
+		<detail>
+			<description>
+				<text>Apply the argument to each element of the list, removing all elements for which the function returns false. The return value of this function is the list itself, not a new list!!</text><br/><br/>
+				<text>Compare:</text>
+				<code><![CDATA[var i = 0;
+while(i<list.length) {
+   var elem = list.at(i);
+   if(/*elem should be removed*/) {
+      list.remove(elem);
+      continue;
+   }
+   /*otherwise*/
+   i++;
+}]]></code><text>with:</text>
+				<code><![CDATA[list.filter(function(elem:T) {
+   if(/*elem should be removed*/) return false;
+   /*otherwise*/
+   return true;
+});]]></code>
 			</description>
 		</detail>
 	</method>
