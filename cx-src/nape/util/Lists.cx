@@ -318,17 +318,29 @@ $(mixin global WrapList(T,ListT,IteT, defs)
 
 		keep public function foreach(lambda:T->Void) {
 			DEBUG(if(lambda==null) throw "Error: Cannot execute null on list elements";)
-			for(x in this) lambda(x);
+			var it = iterator();
+			while(it.hasNext()) {
+				try {
+					lambda(it.next());
+				}catch(e:Dynamic) {
+					RELEASE_ITERATOR(T`Iterator,it);
+					break;
+				}
+			}
 		}
 		keep public function filter(lambda:T->Bool):T`List {
 			DEBUG(if(lambda==null) throw "Error: Cannot select elements of list with null";)
 			var i = 0;
 			while(i<length) {
 				var x = at(i);
-				if(lambda(x)) i++;
-				else {
-					remove(x);
-					i++;
+				try {
+					if(lambda(x)) i++;
+					else {
+						remove(x);
+						i++;
+					}
+				}catch(e:Dynamic) {
+					break;
 				}
 			}
 			return this;
@@ -367,6 +379,13 @@ $(mixin global WrapList(T,ListT,IteT, defs)
 			list.pr(inner).iterators.add(ret);
 			return ret;
 		}
+	
+		$(mixin file RELEASE_ITERATOR(I,i) {
+			i.pr(next) = I.pr(pool);
+			I.pr(pool) = i;
+			i.pr(inner).pr(inner).iterators.remove(i);
+			i.pr(inner) = null;
+		});
 		
 		keep public inline function hasNext() {
 			#if use_inline pr(inner).pr(inner).valmod(); #else pr(inner).pr(vm)(); #end
@@ -377,10 +396,7 @@ $(mixin global WrapList(T,ListT,IteT, defs)
 				return true;
 			} else {
 				//Free(T`Iterator,this);
-				pr(next) = pr(pool);
-				pr(pool) = this;
-				pr(inner).pr(inner).iterators.remove(this);
-				pr(inner) = null;
+				RELEASE_ITERATOR(T`Iterator,this);
 				return false;
 			}
 		}
