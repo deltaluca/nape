@@ -382,19 +382,16 @@ class DummyNapeMain {
 	static function main() {
 		haxe.Log.setColor(0xffffff);
 
-		var list = new Vec2List();
-		list.add(Vec2.get(0,10));
-		list.add(Vec2.get(0,20));
-		list.add(Vec2.get(0,30));
-		list.add(Vec2.get(0,40));
+		var space = new Space();
 
-		list.foreach(function (x) trace(x));
-		trace("---");
-		list.filter(function (x) {
-			if(x.y==20) throw null;
-			trace(x);
-			return true;
-		});
+		var b = new Body();
+		b.shapes.add(new Polygon(Polygon.box(20,20)));
+		b.position.x = 100;
+		b.space = space;
+
+		var r = new Ray(new Vec2(0,0), new Vec2(1,0));
+		r.maxDistance = 1000000;
+		trace(space.rayCast(r));
 	}
 
 	static function mains() {
