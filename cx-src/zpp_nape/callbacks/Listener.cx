@@ -181,6 +181,13 @@ class PR(ListenerSet) {
 		});
 		return ret;
 	}
+
+	flibmdel public inline function find_all(event:Int, cb:PR(InteractionListener)->Void) {
+		Iter(x, listeners, {
+			if(x.event==event)
+				cb(x);
+		});
+	}
 }
 
 //shared between public InteractionListener
@@ -288,8 +295,8 @@ class PR(InteractionListener) extends PR(Listener) {
 		DEBUG(
 			if(type == Flag(ListenerType,PRE))
 				throw "Error: PreListener event can only be PRE";
-			elif(newev != Flag(CbEvent,BEGIN) && newev != Flag(CbEvent,END))
-				throw "Error: InteractionListener event must be either BEGIN, END";
+			elif(newev != Flag(CbEvent,BEGIN) && newev != Flag(CbEvent,END) && newev != Flag(CbEvent,ONGOING))
+				throw "Error: InteractionListener event must be either BEGIN, END, ONGOING";
 		)
 		removedFromSpace(true);
 		event = newev;
