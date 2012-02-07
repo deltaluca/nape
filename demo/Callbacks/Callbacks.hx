@@ -185,7 +185,7 @@ class Callbacks extends FixedStep {
 			var link = cast(x,PivotJoint);
 			var b1 = link.body1; var b2 = link.body2;
 			b1.compound.breakApart();
-			b1.cbType = b2.cbType = paircb;
+			b1.cbType = b2.cbType = boxcb;
 		}));
 
 		//----------------------------
