@@ -523,7 +523,7 @@ class PR(Space) {
 								cb.event = Flag(CbEvent,END);
 								//use callbackset int1/int2 to keep consistency in cases of cbType1==cbType2
 								PR(Interactor).int_callback(callbackset.int1,callbackset.int2,listener.cb1,cb);
-								if(!callbackset.really_empty()) cb.set = callbackset;
+								cb.set = callbackset;
 							}
 						}
 
@@ -717,16 +717,13 @@ class PR(Space) {
         midstep = true;
         var elastic = velocityIterations>>1;
         var inelastic = velocityIterations-elastic;
-
 		stamp++;
 		#if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
 		validation();
 		#if NAPE_TIMES Debug.VALID += flash.Lib.getTimer()-pt; #end
-		
         #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end 
 		bphase.broadphase();
         #if NAPE_TIMES Debug.BROAD += flash.Lib.getTimer()-pt; #end 
-
         #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
 		doForests(deltaTime);
         #if NAPE_TIMES Debug.FOR += flash.Lib.getTimer()-pt; #end
@@ -737,7 +734,6 @@ class PR(Space) {
             Debug.CCNT = 0;
             Debug.ACCNT = 0;
         #end
-
 		#if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
         prestep(deltaTime);
         #if NAPE_TIMES Debug.PRE += flash.Lib.getTimer()-pt; #end
@@ -749,7 +745,6 @@ class PR(Space) {
 			}) lt);
 		}
 		#if NAPE_TIMES Debug.SORT += flash.Lib.getTimer()-pt; #end
-
         #if NAPE_TIEMS var pt = flash.Lib.getTimer(); #end
         iterateVel(elastic,true);
         #if NAPE_TIMES Debug.VEL += flash.Lib.getTimer()-pt; #end
@@ -769,7 +764,6 @@ class PR(Space) {
 		});
 		doit(kinematics);
 		doit(live);
-	
 		updatePos(deltaTime);
 				
         #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
@@ -798,7 +792,6 @@ class PR(Space) {
 			b.component.sleeping = true;
 		}
         midstep = false;
-
 		//generate on-going events
 		var pre = null;
 		Iter(set, callbackset_list, {
@@ -829,7 +822,6 @@ class PR(Space) {
 
 			pre = cx_ite;
 		});
-
         //process handlers
 	    IterQueue(cb,callbacks,{
 		    if(cb.handler) {
@@ -1532,7 +1524,7 @@ class PR(Space) {
 										cb.event = Flag(CbEvent,END);
 										//use callbackset int1/int2 to keep consistency in cases of cbType1==cbType2
 										PR(Interactor).int_callback(callbackset.int1,callbackset.int2,listener.cb1,cb);
-										if(!callbackset.really_empty()) cb.set = callbackset;
+										cb.set = callbackset;
 									}
 								}
 								if(callbackset.really_empty()) {
