@@ -496,8 +496,7 @@ class PR(Space) {
 				//
 				//this handles shapes/bodies being removed
 				//we only generate end callbacks when body is not being deleted
-				//and we only care for callbackset callbacks as shape-shape are dealt
-				//with automaticaly and simply.
+				//a callbackset is generated even in the shape-shape case for ongoing events.
 				//
 				//we decrement on both begin/end callback existance also pre.
 				//as in either case the callbackset exists and must be cleaned
@@ -505,9 +504,6 @@ class PR(Space) {
 					MRCA_chains(xarb.ws1,xarb.ws2);
 					Iter(i1,mrca1,{
 					Iter(i2,mrca2,{
-						// -- edit: addition of ongoing changes this!
-						//if(i1==xarb.ws1 && i2==xarb.ws2) cx_continue;
-
 						var cb1 = i1.cbType;
 						var cb2 = i2.cbType;
 						assert(cb1!=null && cb2!=null, "null cbs from MRCA_chains?");
@@ -947,10 +943,6 @@ class PR(Space) {
 					MRCA_chains(xarb.ws1,xarb.ws2);
 					Iter(i1,mrca1,{ if(i1.cbType != cb1 && i1.cbType != cb2) cx_continue;
 					Iter(i2,mrca2,{ if(i2.cbType != cb1 && i2.cbType != cb2) cx_continue;
-						//don't need shape-shape handled
-						// -- edit: addition of ongoing changes this!
-						//if(i1==xarb.ws1 && i2==xarb.ws2) cx_continue;
-
 						var callbackset = callbacksets.ordered_get(i1.id,i2.id);
 						if(callbackset!=null) {
 							callbackset.arbiters.clear();
@@ -983,9 +975,6 @@ class PR(Space) {
 				MRCA_chains(xarb.ws1,xarb.ws2);
 				Iter(i1,mrca1,{
 				Iter(i2,mrca2,{
-					//don't need shape-shape handled
-					// -- edit: addition of ongoing changes this!
-					//if(i1==xarb.ws1 && i2==xarb.ws2) cx_continue;
 					//only want to handle relevant callbacksets!
 					if(i1!=me && i2!=me) cx_continue;
 
@@ -1033,10 +1022,6 @@ class PR(Space) {
 					MRCA_chains(xarb.ws1,xarb.ws2);
 					Iter(i1,mrca1,{ if(i1.cbType != cb1 && i1.cbType != cb2) cx_continue;
 					Iter(i2,mrca2,{ if(i2.cbType != cb1 && i2.cbType != cb2) cx_continue;
-						//don't need shape-shape handled
-						// --edit: addition of ongoing changes this!
-						//if(i1==xarb.ws1 && i2==xarb.ws2) cx_continue;
-
 						var callbackset = callbacksets.ordered_get(i1.id,i2.id);
 						if(callbackset==null) {
 							callbackset = PR(CallbackSet).get(i1,i2);
@@ -1068,9 +1053,6 @@ class PR(Space) {
 				MRCA_chains(xarb.ws1,xarb.ws2);
 				Iter(i1,mrca1,{
 				Iter(i2,mrca2,{
-					//don't need shape-shape handled
-					// -- edit: addition of ongoing changes this!
-					//if(i1==xarb.ws1 && i2==xarb.ws2) cx_continue;
 					//only want to handle relevant callbacksets!
 					if(i1!=me && i2!=me) cx_continue;
 
@@ -1520,30 +1502,6 @@ class PR(Space) {
 							)
 
 
-							// -- edit: don't bother treating specially at all. no point really
-							/*
-							if(i1==arb.ws1 && i2==arb.ws2) { //shape-shape treat specially (less so since ongoing was added, but still specialy)
-								if(listener!=null) {
-									var cb = push_callback(listener,listener.handleri!=null);
-									cb.event = begcb ? Flag(CbEvent,BEGIN) : Flag(CbEvent,END);
-									PR(Interactor).int_callback(i1,i2,listener.cb1,cb);
-									if(begcb) cb.arb = arb;
-
-									if(begcb) {
-										assert(callbacksets.ordered_get(i1.id,i2.id)==null,"already cb-set between 2 shapes?");
-										var callbackset = PR(CallbackSet).get(i1,i2);
-										callbacksets.add(callbackset);
-										callbackset_list.add(callbackset);
-										callbackset.add_arb(arb);
-									}else {
-										var callbackset = callbacksets.ordered_get(i1.id,i2.id);
-										assert(callbackset!=null,"no cb-set between 2 shapes?");
-										callbacksets.remove(callbackset);
-										//defer deletion from callbackset_list and freeing for end of step
-										callbackset.arbiters.clear();
-									}
-								}
-							}else {*/
 							var callbackset = callbacksets.ordered_get(i1.id,i2.id);
 							if(begcb) {
 								if(callbackset==null) {
@@ -1583,7 +1541,6 @@ class PR(Space) {
 									//Free(PR(CallbackSet),callbackset);
 								}
 							}
-							//}
 						RELEASE(cx_break;)
 						});
 						RELEASE(if(listener!=null) cx_break;)
@@ -1807,15 +1764,14 @@ class PR(Space) {
 									RELEASE(listener = set.find(Flag(CbEvent,PRE),inttype);)
 
 									if(listener==null) cx_continue;
-									//if(!(i1==s1 && i2==s2)) { //don't need callbackset for shape-shape
-									// -- edit: addition of ongoing changes this!
+
 									callbackset = callbacksets.ordered_get(i1.id,i2.id);
 									if(callbackset==null) {
 										ncallbackset = PR(CallbackSet).get(i1,i2);
 										callbacksets.add(ncallbackset);
 										callbackset_list.add(ncallbackset);
 									}
-									//}
+
 									RELEASE(cx_break;)
 								});
 								RELEASE(if(listener!=null) cx_break;)
