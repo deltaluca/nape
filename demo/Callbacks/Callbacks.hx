@@ -236,7 +236,7 @@ class Callbacks extends FixedStep {
 			return if(dir.dot(arb.collisionArbiter.normal)>=0) PreFlag.ACCEPT else PreFlag.IGNORE;
 		}
 
-		for(cb in [hexcb,paircb])
+		for(cb in [hexcb,paircb,boxcb])
 			space.listeners.add(new PreListener(InteractionType.COLLISION, platcb,cb,oneway));
 
 		run(function (dt) {
