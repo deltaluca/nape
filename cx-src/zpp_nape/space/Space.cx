@@ -814,18 +814,7 @@ class PR(Space) {
 			}
 
 			var lset = listenersets.ordered_get(set.int1.cbType.id, set.int2.cbType.id);
-/*			//in the case that cbType/listener changes.
-			//it's possible that the callbackset will persist! (so that two interactors continue
-			//to interact in the same manner, for instance one-way platform they don't suddenly go
-			//mental) And in such a case, it's possible that the listener set will not exist
-			//but the callback set will!!
-			if(lset==null) cx_continue;
-			*/
-			if(lset==null) {
-				trace("oooh fuck "+[set.di,set.id]);
-				throw "";
-				cx_continue;
-			}
+			assert(lset!=null,"wtf");
 
 			lset.find_all(Flag(CbEvent,ONGOING), function (x:PR(InteractionListener)) {
 				if(!set.empty_arb(x.itype)) {
