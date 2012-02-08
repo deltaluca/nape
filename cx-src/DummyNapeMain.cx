@@ -418,6 +418,59 @@ class Tracer extends flash.text.TextField {
 }
 
 class DummyNapeMain {
+		static var txt = new flash.text.TextField();
+		public static function traces(t:Dynamic) {
+			txt.text += Std.string(t)+"\n";
+		}
+	static function main() {
+		haxe.Log.setColor(0xffffff);
+
+		var space = new Space();
+
+		var bcbType, ccbType;
+
+		var b = new Body();
+		b.shapes.add(new Polygon(Polygon.box(20,20)));
+		b.shapes.add(new Polygon(Polygon.box(15,20)));
+		b.shapes.add(new Polygon(Polygon.box(10,20)));
+		b.shapes.add(new Polygon(Polygon.box(5,20)));
+		b.space = space;
+		b.type = BodyType.KINEMATIC;
+		b.cbType = bcbType = new CbType();
+
+		var c = new Body();
+		c.type = BodyType.KINEMATIC;
+		c.shapes.add(new Polygon(Polygon.box(20,20)));
+		c.space = space;
+		c.cbType = ccbType = bcbType;
+
+		flash.Lib.current.addChild(txt);
+
+		space.listeners.add(new InteractionListener(CbEvent.BEGIN, InteractionType.ANY, bcbType, ccbType,
+		function (i1,i2,arbs) {
+			traces(["BEGIN",i1,i2,arbs]);
+		}));
+		space.listeners.add(new InteractionListener(CbEvent.ONGOING, InteractionType.ANY, bcbType, ccbType,
+		function (i1,i2,arbs) {
+			traces(["ONGOING",i1,i2,arbs,arbs.pr(inner).inner.size()]);
+		}));
+		space.listeners.add(new InteractionListener(CbEvent.END, InteractionType.ANY, bcbType, ccbType,
+		function (i1,i2,arbs) {
+			traces(["END",i1,i2,arbs]);
+		}));
+
+		c.position.x += 45;
+		space.step(0.001); traces("----");
+		while(c.position.x >= -5) {
+			c.position.x -= 2.5;
+			space.step(0.001);
+			space.step(0.001);
+			space.step(0.001); traces("----");
+		}
+
+		space.clear();
+	}
+
 	static function mains() {
 		haxe.Log.setColor(0xffffff);
 		var tracer = new Tracer();
@@ -546,7 +599,7 @@ class DummyNapeMain {
 		});
 	}
 
-	static function main() {
+	static function maissn() {
 		var root = flash.Lib.current;
 		var space = new Space(Vec2.weak(0,300));
 		var debug = new BitmapDebug(800,600,0x333333);

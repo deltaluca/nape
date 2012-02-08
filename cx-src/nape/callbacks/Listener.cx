@@ -38,6 +38,7 @@ class Listener {
         DEBUG(if(event==null) throw "Error: Cannot set listener event type to null";)
         if(this.event!=event) {
             var xevent = event == CbEvent.BEGIN   ? Flag(CbEvent,BEGIN)   :
+						 event == CbEvent.ONGOING ? Flag(CbEvent,ONGOING) :
                          event == CbEvent.END     ? Flag(CbEvent,END)     :
                          event == CbEvent.SLEEP   ? Flag(CbEvent,SLEEP)   :
                          event == CbEvent.WAKE    ? Flag(CbEvent,WAKE)    :
@@ -73,7 +74,7 @@ class Listener {
     ///---------------------------------------------------------------------------------------------
 
     @:$keep public function toString() {
-        var event = ["BEGIN","END","WAKE","SLEEP","BREAK","PRE"][pr(inner).event];
+        var event = ["BEGIN","END","WAKE","SLEEP","BREAK","PRE","ONGOING"][pr(inner).event];
         if(pr(inner).type == Flag(ListenerType,BODY)) {
             var body = pr(inner).body;
             return "BodyListener{"+event+"::"+body.outer_zn.cbType+"}";
@@ -222,6 +223,7 @@ class InteractionListener extends Listener {
 		var xevent = -1;
 		if     (event==CbEvent.BEGIN)   xevent = Flag(CbEvent,BEGIN);
 		else if(event==CbEvent.END)     xevent = Flag(CbEvent,END);
+		else if(event==CbEvent.ONGOING) xevent = Flag(CbEvent,ONGOING);
 		DEBUG(else throw "Error: CbEvent '"+event.toString()+"' is not a valid event type for InteractionListener";)
 		
 		DEBUG(if(cbType1==null) throw "Error: InteractionListener cbType1 cannot be null";)

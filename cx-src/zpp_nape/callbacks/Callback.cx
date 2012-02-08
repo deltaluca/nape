@@ -34,14 +34,9 @@ class PR(Callback) {
 		body = null;
 		constraint = null;
 		listener = null;
-		if(wrap_arbiters!=null) {
-			if(set!=null)
-				wrap_arbiters.pr(inner).inner = null;
-			else
-				wrap_arbiters.pr(inner).inner.clear();
-		}
+		if(wrap_arbiters!=null)
+			wrap_arbiters.pr(inner).inner = null;
 		set = null;
-		arb = null;
 	}
 	
 	//----------------
@@ -49,34 +44,22 @@ class PR(Callback) {
 	//BEGIN/END
 	public var int1:PR(Interactor);
 	public var int2:PR(Interactor);
-	//for none-shape-shape interactinos
+	//for nteractinos
 	public var set:PR(CallbackSet);
-	//for shape-shape
-	public var arb:PR(Arbiter);
 	//for public.. could possibly improve this
 	public var wrap_arbiters:ArbiterList;
 
 	flibmdel public inline function genarbs() {
-		if(wrap_arbiters==null) {
-			if(set!=null)
-				wrap_arbiters = PR(ArbiterList).get(set.arbiters,true);
-			else {
-				wrap_arbiters = new ArbiterList();
-				wrap_arbiters.pr(inner).immutable = true;
-				if(arb!=null)
-					wrap_arbiters.pr(inner).inner.add(arb); 
-			}
-		}else {
-			if(set!=null)
-				wrap_arbiters.pr(inner).inner = set.arbiters;
-			
-			if(wrap_arbiters.pr(inner).inner==null)
-				wrap_arbiters.pr(inner).inner = new List(PR(Arbiter))(); 
-
-			if(arb!=null)
-				wrap_arbiters.pr(inner).inner.add(arb);
-		}
+		assert(set!=null,"after ongoing event was added, this should never be the case");
+		if(wrap_arbiters==null)
+			wrap_arbiters = PR(ArbiterList).get(set.arbiters,true);
+		else
+			wrap_arbiters.pr(inner).inner = set.arbiters;
+		//we 'could' have arbiters track their sets and only do this if necessary
+		//but.... the fact is these lists are either ignored, or iterated from the beginning
+		//so it is really not necessary.
 		wrap_arbiters.pr(inner).inv(length) = true;
+		wrap_arbiters.pr(inner).at_ite = null;
 		return wrap_arbiters;
 	}
 

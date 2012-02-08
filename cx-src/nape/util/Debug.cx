@@ -569,8 +569,14 @@ class BitmapDebug extends Debug {
 
     ///---------------------------------------------------------------------------------------------
 
-    public override function clear() pr(inner_zn).clear()
-    public override function flush() pr(inner_zn).flush()
+    public override function clear() {
+		pr(inner_zn).prepare();
+		pr(inner_zn).clear();
+	}
+    public override function flush() {
+		pr(inner_zn).prepare();
+		pr(inner_zn).flush();
+	}
 
     ///---------------------------------------------------------------------------------------------
 
@@ -583,6 +589,7 @@ class BitmapDebug extends Debug {
             if(start==null) throw "Error: drawLine::start cannot be null";
             if(end  ==null) throw "Error: drawLine::end cannot be null";
         )
+		pr(inner_zn).prepare();
 		if(pr(inner).xnull) {
 	        var x0:Int = fastint(start.x+0.5);
 	        var y0:Int = fastint(start.y+0.5);
@@ -616,6 +623,7 @@ class BitmapDebug extends Debug {
 			if(control==null) throw "Error: drawCurve::control cannot be null";
 			if(end==null) throw "Error: drawCurve::end cannot be null";
 		)
+		pr(inner_zn).prepare();
 		if(pr(inner).xnull) {
 			pr(inner_zn).__curve(start,control,end,colour);
 		}else {
@@ -641,6 +649,7 @@ class BitmapDebug extends Debug {
             if(position==null) throw "Error: drawCircle::position cannot be null";
             if(isNaN(radius) || radius<0) throw "Error: drawCircle::radius must be >=0";
         )
+		pr(inner_zn).prepare();
 		if(pr(inner).xnull) {
 	        var x:Int = fastint(position.x+0.5);
 	        var y:Int = fastint(position.y+0.5);
@@ -662,6 +671,7 @@ class BitmapDebug extends Debug {
 		DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
 
         DEBUG(if(aabb==null) throw "Error: drawAABB::aabb cannot be null";)
+		pr(inner_zn).prepare();
 		if(pr(inner).xnull)
 	        pr(inner_zn).__aabb(aabb.pr(inner), colour);
 		else {
@@ -695,6 +705,7 @@ class BitmapDebug extends Debug {
 
 		Destroyed(p0,Vec2); Destroyed(p1,Vec2); Destroyed(p2,Vec2);
         DEBUG(if(p0==null || p1==null || p2==null) throw "Error: drawFilledTriangle can't use null points";)
+		pr(inner_zn).prepare();
         pr(inner_zn).__tri(p0,p1,p2, colour);
 
 		WEAK(p0); WEAK(p1); WEAK(p2);
@@ -708,6 +719,7 @@ class BitmapDebug extends Debug {
             if(position==null) throw "Error: drawFilledCircle::position cannot be null";
             if(isNaN(radius) || radius<0) throw "Error: drawFilledCircle::radius must be >=0";
         )
+		pr(inner_zn).prepare();
 		if(pr(inner).xnull) {
 	        var x:Int = fastint(position.x+0.5);
 	        var y:Int = fastint(position.y+0.5);
@@ -729,6 +741,7 @@ class BitmapDebug extends Debug {
 		DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
 		DEBUG(if(polygon==null) throw "Error: Cannot draw null Vec2 list";)
 
+		pr(inner_zn).prepare();
 		var col = colour|0xff000000;
 		var fst = PolyFirst(polygon);
 		var fx:Int,fy:Int;
@@ -789,6 +802,7 @@ class BitmapDebug extends Debug {
 			return;
 		}
 
+		pr(inner_zn).prepare();
 		if(!gpoly.isSimple()) {
 			var polys:GeomPolyList = gpoly.simple_decomposition();
 			for(p in polys) {
@@ -815,9 +829,15 @@ class BitmapDebug extends Debug {
 
     ///---------------------------------------------------------------------------------------------
 
-    public override function draw(object:Dynamic) __draw(object)
+    public override function draw(object:Dynamic) {
+		pr(inner_zn).prepare();
+		__draw(object);
+	}
 
-	public override function drawSpring(start:Vec2,end:Vec2,colour:Int,?coils=3,?radius=3.0) __spring(start,end,colour,coils,radius)
+	public override function drawSpring(start:Vec2,end:Vec2,colour:Int,?coils=3,?radius=3.0) {
+		pr(inner_zn).prepare();
+		__spring(start,end,colour,coils,radius);
+	}
 }
 
 #end
