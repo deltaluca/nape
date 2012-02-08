@@ -43,6 +43,24 @@ class Space {
     property(constraints,    ConstraintList,pr(inner).wrap_constraints)
     property(liveConstraints,ConstraintList,pr(inner).wrap_livecon)
 
+	public function visitBodies(lambda:Body->Void) {
+		DEBUG(if(lambda==null) throw "Error: lambda cannot be null for Space::visitBodies";)
+		for(b in bodies) lambda(b);
+		for(c in compounds) c.visitBodies(lambda);
+	}
+	public function visitConstraints(lambda:Constraint->Void) {
+		DEBUG(if(lambda==null) throw "Error: lambda cannot be null for Space::visitConstraints";)
+		for(c in constraints) lambda(c);
+		for(c in compounds) c.visitConstraints(lambda);
+	}
+	public function visitCompounds(lambda:Compound->Void) {
+		DEBUG(if(lambda==null) throw "Error: lambda cannot be null for Space::visitCompounds";)
+		for(c in compounds) {
+			lambda(c);
+			c.visitCompounds(c);
+		}
+	}
+
 	//----------------------------------------------------------------------------------------------
 	
     //for use with constraints for a world-constant anchor
