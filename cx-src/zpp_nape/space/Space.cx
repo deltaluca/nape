@@ -110,6 +110,12 @@ class PR(CallbackSet) {
 		if(!arbiters.has(x))
 			arbiters.add(x);
 	}
+	flibmdel public inline function try_remove_arb(x:PR(Arbiter)) {
+		if(arbiters.has(x)) {
+			arbiters.remove(x);
+			return true;
+		}else return false;
+	}
 	flibmdel public inline function remove_arb(x:PR(Arbiter)) arbiters.remove(x)
 
 	//type is an Interactor/Arbiter type.
@@ -807,9 +813,19 @@ class PR(Space) {
 				continue;
 			}
 
-			//TODO: store listenerset on callbackset
 			var lset = listenersets.ordered_get(set.int1.cbType.id, set.int2.cbType.id);
-			assert(lset!=null,"wtf");
+/*			//in the case that cbType/listener changes.
+			//it's possible that the callbackset will persist! (so that two interactors continue
+			//to interact in the same manner, for instance one-way platform they don't suddenly go
+			//mental) And in such a case, it's possible that the listener set will not exist
+			//but the callback set will!!
+			if(lset==null) cx_continue;
+			*/
+			if(lset==null) {
+				trace("oooh fuck "+[set.di,set.id]);
+				throw "";
+				cx_continue;
+			}
 
 			lset.find_all(Flag(CbEvent,ONGOING), function (x:PR(InteractionListener)) {
 				if(!set.empty_arb(x.itype)) {
@@ -931,7 +947,8 @@ class PR(Space) {
 				var xbody = if(intx.isBody()) intx.ibody else intx.ishape.body;
 				var xshp = if(intx.isShape()) intx.ishape else null;
 				Iter(xarb,xbody.arbiters,{
-					if(!xarb.active) cx_continue;
+					//bug-fix: see same line in nullInteractorType
+					//if(!xarb.active) cx_continue;
 					if(xshp!=null && !(xarb.ws1==xshp || xarb.ws2==xshp)) cx_continue; //short-cut
 
 					MRCA_chains(xarb.ws1,xarb.ws2);
@@ -963,7 +980,11 @@ class PR(Space) {
 			var xbody = if(intx.isBody()) intx.ibody else intx.ishape.body;
 			var xshp = if(intx.isShape()) intx.ishape else null;
 			Iter(xarb,xbody.arbiters,{
-				if(!xarb.active) cx_continue;
+				//bug-fix: need to try and remove arbiter even
+				// if inactive, can result if pre-listener removes
+				// contacts from arbiter it is still in the set
+				// and we should try and remove it
+				//if(!xarb.active) cx_continue;
 				if(xshp!=null && !(xarb.ws1==xshp || xarb.ws2==xshp)) cx_continue; //short-cut
 
 				MRCA_chains(xarb.ws1,xarb.ws2);
@@ -977,11 +998,13 @@ class PR(Space) {
 					assert(cb1!=null && cb2!=null, "null cb from MRCA_chains??");
 					var callbackset = callbacksets.ordered_get(i1.id,i2.id);
 					if(callbackset!=null) {
-						callbackset.remove_arb(xarb);
-						if(callbackset.really_empty()) {
-							callbacksets.remove(callbackset);
-							//deferred for callbackset_list
-							//Free(PR(CallbackSet),callbackset);
+						//bug-fix: we only 'try' to remove it.
+						if(callbackset.try_remove_arb(xarb)) {
+							if(callbackset.really_empty()) {
+								callbacksets.remove(callbackset);
+								//deferred for callbackset_list
+								//Free(PR(CallbackSet),callbackset);
+							}
 						}
 					}
 				});
@@ -1462,10 +1485,6 @@ class PR(Space) {
 				}
 
                 #if NAPE_TIMES Debug.ACNT++; #end
-
-				var pact = arb.active;
-				arb.active = true;
-				arb.active = pact;
 
 				if(!arb.cleared) {	
 					//callbacks
