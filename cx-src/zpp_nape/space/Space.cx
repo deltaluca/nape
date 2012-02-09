@@ -173,6 +173,11 @@ class PR(Space) {
 	public var __static:Body; //for constraint use.
 	
 	//----------------------------------------------------------------------------------------------
+
+	public var global_lin_drag:Float;
+	public var global_ang_drag:Float;
+
+	//----------------------------------------------------------------------------------------------
 	
 	public var id:Int;
 
@@ -227,6 +232,9 @@ class PR(Space) {
 	//----------------------------------------------------------------------------------------------
 
 	public function clear() {
+		global_lin_drag = PR(Config).GLOBAL_LIN_DRAG;
+		global_ang_drag = PR(Config).GLOBAL_ANG_DRAG;
+
 		callbacks.clear();
 
 		//this also deals naturally with removing all callbacksets
@@ -302,6 +310,9 @@ class PR(Space) {
 	//----------------------------------------------------------------------------------------------
 	
 	public function new(gravity:PR(Vec2),broadphase:Broadphase) {
+		global_lin_drag = PR(Config).GLOBAL_LIN_DRAG;
+		global_ang_drag = PR(Config).GLOBAL_ANG_DRAG;
+
 		id = ID(Space);
 		sortcontacts = true;
 		pre_dt = 0.0;
@@ -1404,7 +1415,7 @@ class PR(Space) {
 		var pre = null;
 		Iter(cur,live,{
 			vec_addeq(cur.force,gravity,cur.gravMass);
-			vec_addeq(cur.force,cur.vel,-PR(Config).GLOBAL_LIN_DRAG*cur.mass);
+			vec_addeq(cur.force,cur.vel,-global_lin_drag*cur.mass);
 			if(cur.smass!=0.0)
 				vec_addeq(cur.vel,cur.force,dt*cur.imass);
 			
@@ -1413,7 +1424,7 @@ class PR(Space) {
 			if(cur.sinertia!=0.0) {
 				vec_new(dp); vec_sub(cur.worldCOM,cur.pos,dp);
 				cur.torque += vec_cross(dp,gravity)*cur.gravMass;
-				cur.torque -= cur.angvel*PR(Config).GLOBAL_ANG_DRAG*cur.inertia;
+				cur.torque -= cur.angvel*global_ang_drag*cur.inertia;
 				cur.angvel += cur.torque*dt*cur.iinertia;
 			}
 			cur.torque = 0;
