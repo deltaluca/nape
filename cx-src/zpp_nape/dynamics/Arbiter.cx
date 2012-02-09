@@ -88,6 +88,12 @@ class PR(Arbiter) {
     //set when arbiter is sweffed
     public var sleeping:Bool;
 
+	//marks arbiter is active, but not 'actively' part of the simulation
+	//for instance if a pre-listener returns IGNORE
+	//or deletes it's contacts but arbiter is still existing
+	//as part of a callbackset etc.
+	public var present:Bool;
+
     ///---------------------------------------------------------------------------------------------
 
 	//used to swap between begin/ongoing style cb
@@ -188,6 +194,7 @@ class PR(Arbiter) {
 		b2.arbiters.add(this);
 		
 		active   = true;
+		present  = false;
 		cleared  = false;
 		sleeping = false;
 		fresh    = false;

@@ -517,7 +517,8 @@ class PR(Space) {
 				//
 				//we decrement on both begin/end callback existance also pre.
 				//as in either case the callbackset exists and must be cleaned
-				if(xarb.active) {
+//				if(xarb.active) {
+				if(xarb.present) {
 					MRCA_chains(xarb.ws1,xarb.ws2);
 					Iter(i1,mrca1,{
 					Iter(i2,mrca2,{
@@ -824,6 +825,8 @@ class PR(Space) {
 				continue;
 			}
 
+			trace("set exists");
+
 			var lset = listenersets.ordered_get(set.int1.cbType.id, set.int2.cbType.id);
 			assert(lset!=null,"wtf");
 
@@ -949,6 +952,8 @@ class PR(Space) {
 				Iter(xarb,xbody.arbiters,{
 					//bug-fix: see same line in nullInteractorType
 					//if(!xarb.active) cx_continue;
+					if(!xarb.present) cx_continue;
+
 					if(xshp!=null && !(xarb.ws1==xshp || xarb.ws2==xshp)) cx_continue; //short-cut
 
 					MRCA_chains(xarb.ws1,xarb.ws2);
@@ -985,6 +990,8 @@ class PR(Space) {
 				// contacts from arbiter it is still in the set
 				// and we should try and remove it
 				//if(!xarb.active) cx_continue;
+				if(!xarb.present) cx_continue;
+
 				if(xshp!=null && !(xarb.ws1==xshp || xarb.ws2==xshp)) cx_continue; //short-cut
 
 				MRCA_chains(xarb.ws1,xarb.ws2);
@@ -998,13 +1005,11 @@ class PR(Space) {
 					assert(cb1!=null && cb2!=null, "null cb from MRCA_chains??");
 					var callbackset = callbacksets.ordered_get(i1.id,i2.id);
 					if(callbackset!=null) {
-						//bug-fix: we only 'try' to remove it.
-						if(callbackset.try_remove_arb(xarb)) {
-							if(callbackset.really_empty()) {
-								callbacksets.remove(callbackset);
-								//deferred for callbackset_list
-								//Free(PR(CallbackSet),callbackset);
-							}
+						callbackset.remove_arb(xarb);
+						if(callbackset.really_empty()) {
+							callbacksets.remove(callbackset);
+							//deferred for callbackset_list
+							//Free(PR(CallbackSet),callbackset);
 						}
 					}
 				});
@@ -1033,7 +1038,10 @@ class PR(Space) {
 				var xbody = if(intx.isBody()) intx.ibody else intx.ishape.body;
 				var xshp = if(intx.isShape()) intx.ishape else null;
 				Iter(xarb,xbody.arbiters,{
-					if(!xarb.active) cx_continue;
+					//bug-fix... meh
+					//if(!xarb.active) cx_continue;
+					if(!xarb.present) cx_continue;
+
 					if(xshp!=null && !(xarb.ws1==xshp || xarb.ws2==xshp)) cx_continue; //short-cut
 
 					MRCA_chains(xarb.ws1,xarb.ws2);
@@ -1064,7 +1072,10 @@ class PR(Space) {
 			var xbody = if(intx.isBody()) intx.ibody else intx.ishape.body;
 			var xshp = if(intx.isShape()) intx.ishape else null;
 			Iter(xarb,xbody.arbiters,{
-				if(!xarb.active) cx_continue;
+				//bug-fix see nullInteractorType
+				//if(!xarb.active) cx_continue;
+				if(!xarb.present) cx_continue;
+
 				if(xshp!=null && !(xarb.ws1==xshp || xarb.ws2==xshp)) cx_continue; //short-cut
 
 				MRCA_chains(xarb.ws1,xarb.ws2);
@@ -1491,6 +1502,9 @@ class PR(Space) {
 					var endcb = arb.up_stamp==stamp-1;
 					var begcb = arb.fresh;
 					assert(!begcb || arb.up_stamp==stamp, " fresh -> active=true hasn't held :(");
+
+					if(begcb) arb.present = true;
+					if(endcb) arb.present = false;
 
 					if(begcb || endcb) {
 						var listener:PR(InteractionListener) = null;
