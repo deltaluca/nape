@@ -455,23 +455,21 @@ class ShapeDebug extends Debug {
 
 		var g = pr(inner_zn).graphics;
 		g.lineStyle(0.1,colour&0xffffff,1.0);
-		var fst = PolyFirst(polygon);
+		var fst = null;
 		var fsttime = true;
 		if(pr(inner).xnull) {
-			PolyIter(p,polygon,{ if(fsttime) g.moveTo(p.x,p.y) else g.lineTo(p.x,p.y); fsttime = false; });
+			PolyIter(p,polygon,{ if(fsttime) { fst = p; g.moveTo(p.x,p.y); } else g.lineTo(p.x,p.y); fsttime = false; });
 			g.lineTo(fst.x,fst.y);
 		}else {
 			PolyIter(p,polygon, {
 				var v = pr(inner).xform.outer.transform(p);
-				if(fsttime) g.moveTo(v.x,v.y) else g.lineTo(v.x,v.y);
+				if(fsttime) { fst = v; g.moveTo(v.x,v.y); } else g.lineTo(v.x,v.y);
+				if(!fsttime) v.dispose();
 				fsttime = false;
-				v.dispose();
 			});
-			var v = pr(inner).xform.outer.transform(fst);
-			g.lineTo(v.x,v.y);
-			v.dispose();
+			g.lineTo(fst.x,fst.y);
+			fst.dispose();
 		}
-		fst.dispose();
 		PolyWeak(polygon);
 	}
 
@@ -482,24 +480,22 @@ class ShapeDebug extends Debug {
 		var g = pr(inner_zn).graphics;
 		g.beginFill(colour&0xffffff,1.0);
 		g.lineStyle(0,0,0);
-		var fst = PolyFirst(polygon);
+		var fst = null;
 		var fsttime = true;
 		if(pr(inner).xnull) {
-			PolyIter(p,polygon,{ if(fsttime) g.moveTo(p.x,p.y) else g.lineTo(p.x,p.y); fsttime = false; });
+			PolyIter(p,polygon,{ if(fsttime) { fst = p; g.moveTo(p.x,p.y); } else g.lineTo(p.x,p.y); fsttime = false; });
 			g.lineTo(fst.x,fst.y);
 		}else {
 			PolyIter(p,polygon, {
 				var v = pr(inner).xform.outer.transform(p);
-				if(fsttime) g.moveTo(v.x,v.y) else g.lineTo(v.x,v.y);
+				if(fsttime) { fst = v; g.moveTo(v.x,v.y); } else g.lineTo(v.x,v.y);
+				if(!fsttime) v.dispose();
 				fsttime = false;
-				v.dispose();
 			});
-			var v = pr(inner).xform.outer.transform(fst);
-			g.lineTo(v.x,v.y);
-			v.dispose();
+			g.lineTo(fst.x,fst.y);
+			fst.dispose();
 		}
 		g.endFill();
-		fst.dispose();
 		PolyWeak(polygon);
 	}
     ///---------------------------------------------------------------------------------------------
@@ -709,37 +705,36 @@ class BitmapDebug extends Debug {
 
 		pr(inner_zn).prepare();
 		var col = colour|0xff000000;
-		var fst = PolyFirst(polygon);
 		var fx:Int,fy:Int;
-		if(pr(inner).xnull) {
-			fx = fastint(fst.x+0.5);
-			fy = fastint(fst.y+0.5);
-		}else {
-			var v = pr(inner).xform.outer.transform(fst);
-			fx = fastint(v.x+0.5);
-			fy = fastint(v.y+0.5);
-			v.dispose();
-		}
-		fst.dispose();
-		var fsttime = true;
-		var px = fx; var py = fy;
-		PolyIter(p,polygon,{
-			if(fsttime) { fsttime = false; continue; }
 
-			var cx:Int,cy:Int;
+		var fst = null;
+		var px:Int,py:Int;
+
+		fx = fy = px = py = 0;
+		PolyIter(p, polygon, {
+			var cx:Int, cy:Int;
+			var fsttime = fst==null;
 			if(pr(inner).xnull) {
 				cx = fastint(p.x+0.5);
 				cy = fastint(p.y+0.5);
+				if(fsttime) fst = p;
 			}else {
 				var v = pr(inner).xform.outer.transform(p);
 				cx = fastint(v.x+0.5);
 				cy = fastint(v.y+0.5);
-				v.dispose();
+				if(fsttime) fst = v;
+				else v.dispose();
 			}
-			pr(inner_zn).__line(px,py,cx,cy,col);
-			px = cx; py = cy;
+			if(fsttime) {
+				fx = px = cx;
+				fy = py = cy;
+			}else {
+				pr(inner_zn).__line(px,py,cx,cy,col);
+				px = cx; py = cy;
+			}
 		});
 		pr(inner_zn).__line(px,py,fx,fy,col);
+		if(!pr(inner).xnull) fst.dispose();
 		PolyWeak(polygon);
 	}
 
@@ -747,50 +742,65 @@ class BitmapDebug extends Debug {
 		DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
 		DEBUG(if(polygon==null) throw "Error: Cannot render null polygon";)
 
-		$(mixin render(gp) {
-			//recycle possibly cloned, otherwise decomposition results as we go
-			var p0 = gp.current().copy(); gp.shift();
-			var pre = gp.current().copy(); gp.shift();
-			while(!gp.empty()) {
-				var cur = gp.current().copy(); gp.shift();
-				drawFilledTriangle(p0,pre,cur,colour);
-				pre.dispose();
-				pre = cur;
+		var col = colour|0xff000000;
+		//render with scan lines from line intersections, avoid use of geometric utility so that it could
+		//be seperated as a module, as well as because this is more stable.
+		var miny = Math.POSITIVE_INFINITY;
+		var maxy = Math.NEGATIVE_INFINITY;
+
+		var vertices:Array<Vec2> = [];
+		PolyIter(p, polygon, {
+			var v:Vec2;
+			if(pr(inner).xnull)
+				vertices.push(v = p.copy());
+			else {
+				v = pr(inner).xform.outer.transform(p);
+				vertices.push(v);
 			}
-			pre.dispose();
-			p0.dispose();
+			if(v.y<miny) miny = v.y;
+			if(v.y>maxy) maxy = v.y;
 		});
+		PolyWeak(polygon);
 
-		var gpoly = new GeomPoly(polygon);
-		if(gpoly.size()<3) {
-			drawPolygon(gpoly,colour);
-			gpoly.clear();
-			return;
-		}
+		var y0 = fastint(miny+0.5);
+		var y1 = fastint(maxy+0.5);
+		if(y1<0 || y0>=pr(inner).height) return;
 
-		pr(inner_zn).prepare();
-		if(!gpoly.isSimple()) {
-			var polys:GeomPolyList = gpoly.simple_decomposition();
-			for(p in polys) {
-				if(p.isConvex())
-					render(p);
-				else {
-					//replace with triangulrisation
-					var qolys:GeomPolyList = p.convex_decomposition();
-					for(q in qolys) render(q);
+		if(y0<0) y0 = 0;
+		if(y1>=pr(inner).height) y1 = pr(inner).height-1;
+
+		for(y in y0...y1+1) {
+			var xs:Array<Int> = [];
+			for(i in 0...vertices.length) {
+				var q = vertices[i];
+				var p = vertices[(i+1)%vertices.length];
+
+				if ((p.y < y && q.y >= y
+				 ||  q.y < y && p.y >= y)
+				) {
+					var x = p.x + (y-p.y)/(q.y-p.y)*(q.x-p.x);
+					xs.push(fastint(x+0.5));
 				}
 			}
-		}else {
-			if(gpoly.isConvex()) 
-				render(gpoly);
-			else {
-				//replace this with triangularisation would be better.
-				//but no such util exists yet.
-				var polys:GeomPolyList = gpoly.convex_decomposition();
-				for(p in polys) render(p);
+			xs.sort(function (a,b) return a-b);
+
+			var i = 0;
+			while(i+1<xs.length) {
+				var u = xs[i++];
+				var v = xs[i++];
+				if(v<0) continue;
+				if(u>=pr(inner).width) break;
+
+				if(u<0) u = 0;
+				if(v>=pr(inner).width) v = pr(inner).width-1;
+
+				var ind = pr(inner_zn).index(u,y);
+				for(x in u...v+1)
+					pr(inner_zn).setpix(ind++,col);
 			}
 		}
-		PolyWeak(polygon);
+
+		while(vertices.length>0) vertices.pop().dispose();
 	}
 
     ///---------------------------------------------------------------------------------------------
