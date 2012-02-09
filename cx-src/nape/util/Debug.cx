@@ -458,8 +458,9 @@ class ShapeDebug extends Debug {
 		var fst = null;
 		var fsttime = true;
 		if(pr(inner).xnull) {
-			PolyIter(p,polygon,{ if(fsttime) { fst = p; g.moveTo(p.x,p.y); } else g.lineTo(p.x,p.y); fsttime = false; });
+			PolyIter(p,polygon,{ if(fsttime) { fst = p.copy(); g.moveTo(p.x,p.y); } else g.lineTo(p.x,p.y); fsttime = false; });
 			g.lineTo(fst.x,fst.y);
+			fst.dispose();
 		}else {
 			PolyIter(p,polygon, {
 				var v = pr(inner).xform.outer.transform(p);
@@ -483,8 +484,9 @@ class ShapeDebug extends Debug {
 		var fst = null;
 		var fsttime = true;
 		if(pr(inner).xnull) {
-			PolyIter(p,polygon,{ if(fsttime) { fst = p; g.moveTo(p.x,p.y); } else g.lineTo(p.x,p.y); fsttime = false; });
+			PolyIter(p,polygon,{ if(fsttime) { fst = p.copy(); g.moveTo(p.x,p.y); } else g.lineTo(p.x,p.y); fsttime = false; });
 			g.lineTo(fst.x,fst.y);
+			fst.dispose();
 		}else {
 			PolyIter(p,polygon, {
 				var v = pr(inner).xform.outer.transform(p);
@@ -717,7 +719,7 @@ class BitmapDebug extends Debug {
 			if(pr(inner).xnull) {
 				cx = fastint(p.x+0.5);
 				cy = fastint(p.y+0.5);
-				if(fsttime) fst = p;
+				if(fsttime) fst = p.copy();
 			}else {
 				var v = pr(inner).xform.outer.transform(p);
 				cx = fastint(v.x+0.5);
@@ -734,7 +736,7 @@ class BitmapDebug extends Debug {
 			}
 		});
 		pr(inner_zn).__line(px,py,fx,fy,col);
-		if(!pr(inner).xnull) fst.dispose();
+		fst.dispose();
 		PolyWeak(polygon);
 	}
 
