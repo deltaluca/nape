@@ -96,6 +96,9 @@ class PR(Arbiter) {
 	//used to mark arbiter was result of swapping a type
 	//and callbacksets may need changing
 	public var intchange:Bool;
+	//marked to say arbiter should be made part of callbacksets
+	//on freshInteractors/freshListener types
+	public var presentable:Bool;
 
     ///---------------------------------------------------------------------------------------------
 
@@ -201,6 +204,7 @@ class PR(Arbiter) {
 		cleared  = false;
 		sleeping = false;
 		fresh    = false;
+		presentable = false;
 	}
 	
     //called by sub-types on retirement.
@@ -210,7 +214,8 @@ class PR(Arbiter) {
         assert(b2!=null,"Arbiter::sup_retire");
 
 		//arbiter shouldn't be in a callbackset!!
-		assert(!present && !intchange,"Arbiter::sup_retire cbsets");
+		assert(!present,"Arbiter::sup_retire cbsets present");
+		assert(!intchange,"Arbiter::sup_retire intchange");
 
 	    if(!cleared) { //only need to remove arbiters if not prematurely cleared.
 			b1.arbiters.remove(this);

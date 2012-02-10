@@ -825,7 +825,7 @@ class PR(Space) {
 				Free(PR(CallbackSet),set);
 				continue;
 			}
-
+			trace("set exists");
 
 			var lset = listenersets.ordered_get(set.int1.cbType.id, set.int2.cbType.id);
 			assert(lset!=null,"wtf");
@@ -961,7 +961,7 @@ class PR(Space) {
 					Iter(i2,mrca2,{ if(i2.cbType != cb1 && i2.cbType != cb2) cx_continue;
 						var callbackset = callbacksets.ordered_get(i1.id,i2.id);
 						if(callbackset!=null) {
-							callbackset.arbiters.clear();
+							ClearWith(arb, callbackset.arbiters, arb.present=false);
 							callbacksets.remove(callbackset);
 							//deferred for callbackset_list
 							//Free(PR(CallbackSet),callbackset);
@@ -1005,6 +1005,7 @@ class PR(Space) {
 					assert(cb1!=null && cb2!=null, "null cb from MRCA_chains??");
 					var callbackset = callbacksets.ordered_get(i1.id,i2.id);
 					if(callbackset!=null) {
+						xarb.present = false;
 						callbackset.remove_arb(xarb);
 						if(callbackset.really_empty()) {
 							callbacksets.remove(callbackset);
@@ -1040,7 +1041,7 @@ class PR(Space) {
 				Iter(xarb,xbody.arbiters,{
 					//bug-fix... meh
 					//if(!xarb.active) cx_continue;
-					if(!xarb.present) cx_continue;
+					if(!xarb.presentable) cx_continue;
 
 					if(xshp!=null && !(xarb.ws1==xshp || xarb.ws2==xshp)) cx_continue; //short-cut
 
@@ -1048,6 +1049,7 @@ class PR(Space) {
 					Iter(i1,mrca1,{ if(i1.cbType != cb1 && i1.cbType != cb2) cx_continue;
 					Iter(i2,mrca2,{ if(i2.cbType != cb1 && i2.cbType != cb2) cx_continue;
 						var callbackset = callbacksets.ordered_get(i1.id,i2.id);
+						xarb.present = true;
 						if(callbackset==null) {
 							callbackset = PR(CallbackSet).get(i1,i2);
 							callbacksets.add(callbackset);
@@ -1074,7 +1076,7 @@ class PR(Space) {
 			Iter(xarb,xbody.arbiters,{
 				//bug-fix see nullInteractorType
 				//if(!xarb.active) cx_continue;
-				if(!xarb.present) cx_continue;
+				if(!xarb.presentable) cx_continue;
 
 				if(xshp!=null && !(xarb.ws1==xshp || xarb.ws2==xshp)) cx_continue; //short-cut
 
@@ -1088,6 +1090,7 @@ class PR(Space) {
 					var cb2 = i2.cbType;
 					assert(cb1!=null && cb2!=null, "null cb from MRCA_chain?");
 					if(listenersets.ordered_get(cb1.id,cb2.id)!=null) {
+						xarb.present = true;
 						var callbackset = callbacksets.ordered_get(i1.id,i2.id);
 						if(callbackset==null) {
 							callbackset = PR(CallbackSet).get(i1,i2);
@@ -1592,7 +1595,7 @@ class PR(Space) {
 				}
 				
 				var pact = arb.active;
-				arb.active = arb.up_stamp==stamp;
+				arb.active = arb.presentable = arb.up_stamp==stamp;
 
 				if((arb.immState&Flag(ImmState,ACCEPT)) != 0) {
 					if(!(action)) arb.active = false;
