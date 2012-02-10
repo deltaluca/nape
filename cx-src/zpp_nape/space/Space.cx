@@ -553,6 +553,7 @@ class PR(Space) {
 					});
 					});
 				}
+				xarb.present = false;
 
 				//wake connected first.
 				if(xarb.b1 != body && xarb.b1.isDynamic()) wake(xarb.b1);
@@ -825,7 +826,6 @@ class PR(Space) {
 				continue;
 			}
 
-			trace("set exists");
 
 			var lset = listenersets.ordered_get(set.int1.cbType.id, set.int2.cbType.id);
 			assert(lset!=null,"wtf");
@@ -1497,16 +1497,16 @@ class PR(Space) {
 
                 #if NAPE_TIMES Debug.ACNT++; #end
 
-				if(!arb.cleared) {	
+				//arb.present matches when arbiter was retired, but needs to be removed
+				//from it's callbacksets!
+				//deals neatly with change in interaction types at runtime
+				if(!arb.cleared || arb.present || arb.intchange) {	
 					//callbacks
-					var endcb = arb.up_stamp==stamp-1;
-					var begcb = arb.fresh;
-					assert(!begcb || arb.up_stamp==stamp, " fresh -> active=true hasn't held :(");
+					var endcb = (arb.up_stamp==stamp-1) && !arb.cleared && !arb.intchange;
+					var begcb = (arb.fresh) && !arb.cleared && !arb.intchange;
+					assert(!begcb||arb.up_stamp==stamp, " fresh -> active=true hasn't held :(");
 
-					if(begcb) arb.present = true;
-					if(endcb) arb.present = false;
-
-					if(begcb || endcb) {
+					if(begcb || endcb || arb.cleared || arb.intchange) {
 						var listener:PR(InteractionListener) = null;
 						MRCA_chains(arb.ws1,arb.ws2);
 						Iter(i1,mrca1,{
@@ -1520,8 +1520,9 @@ class PR(Space) {
 
 							DEBUG(var i)
 							RELEASE(listener)
-							= if(begcb) set.find(Flag(CbEvent,BEGIN),arb.type);
-							  else      set.find(Flag(CbEvent,END)  ,arb.type);
+							= if  (begcb) set.find(Flag(CbEvent,BEGIN),arb.type);
+							  elif(endcb) set.find(Flag(CbEvent,END)  ,arb.type);
+							  else null;
 
 							DEBUG(
 								if(i!=null && listener!=null) throw "Error: Multiple valid pairings for callbacks between possible interactor combinations descended frmo shape1="+arb.ws1.outer.toString()+" shape2="+arb.ws2.outer.toString()+". Conflict arising from listener1="+i.outer.toString()+" listener2="+listener.outer.toString();
@@ -1530,7 +1531,8 @@ class PR(Space) {
 
 
 							var callbackset = callbacksets.ordered_get(i1.id,i2.id);
-							if(begcb) {
+							if(begcb || arb.intchange) {
+								arb.present = true;
 								if(callbackset==null) {
 									callbackset = PR(CallbackSet).get(i1,i2);
 									callbacksets.add(callbackset);
@@ -1549,6 +1551,7 @@ class PR(Space) {
 								}
 								callbackset.add_arb(arb);
 							}else {
+								arb.present = false;
 								assert(callbackset!=null,"end arbiter with no callbackset");
 								callbackset.remove_arb(arb);
 								if(listener!=null) {
@@ -1574,6 +1577,7 @@ class PR(Space) {
 						});
 					}
 					arb.fresh = false;
+					arb.intchange = false;
 				}
 
 				//no need for sensor/fluid arbiters to persist after deactivation, just remove now.
@@ -1927,6 +1931,7 @@ class PR(Space) {
                         if(xarb.fluidarb==null) {
                             xarb.lazyRetire(this,null);
                             arb = Get(PR(FluidArbiter));
+							arb.intchange = true;
                             first = true;
 							swapped = true;
                         }else
@@ -1948,6 +1953,7 @@ class PR(Space) {
                         if(xarb.colarb==null) {
                             xarb.lazyRetire(this,null);
                             arb = Get(PR(ColArbiter));
+							arb.intchange = true;
                             arb.stat = stat;
                             first = true;
 							swapped = true;
@@ -1976,6 +1982,7 @@ class PR(Space) {
                         if(xarb.sensorarb==null) {
                             xarb.lazyRetire(this,null);
                             arb = Get(PR(SensorArbiter));
+							arb.intchange = true;
                             first = true;
 							swapped = true;
                         }else

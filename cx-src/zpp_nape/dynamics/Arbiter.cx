@@ -93,6 +93,9 @@ class PR(Arbiter) {
 	//or deletes it's contacts but arbiter is still existing
 	//as part of a callbackset etc.
 	public var present:Bool;
+	//used to mark arbiter was result of swapping a type
+	//and callbacksets may need changing
+	public var intchange:Bool;
 
     ///---------------------------------------------------------------------------------------------
 
@@ -206,6 +209,9 @@ class PR(Arbiter) {
         assert(b1!=null,"Arbiter::sup_retire");
         assert(b2!=null,"Arbiter::sup_retire");
 
+		//arbiter shouldn't be in a callbackset!!
+		assert(!present && !intchange,"Arbiter::sup_retire cbsets");
+
 	    if(!cleared) { //only need to remove arbiters if not prematurely cleared.
 			b1.arbiters.remove(this);
 			b2.arbiters.remove(this);
@@ -214,6 +220,7 @@ class PR(Arbiter) {
 		b1 = b2 = null;
 	
 		active = false;
+		intchange= false;
 	}
 }
 
