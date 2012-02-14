@@ -34,8 +34,6 @@ class PR(BodyListener) extends PR(Listener) {
     public function addedToSpace() {
         assert(cbType!=null,"listener added to space with no cbtype associated?");
 
-		cbType.listeners.add(this);
-
         if(event==Flag(CbEvent,WAKE))
              cbType._bodywake = this;
         else cbType._bodysleep = this;
@@ -43,8 +41,6 @@ class PR(BodyListener) extends PR(Listener) {
 
     public function removedFromSpace() {
         assert(cbType!=null,"listener removed from space with no cbtype associated?");
-
-		cbType.listeners.remove(this);
 
         if(event==Flag(CbEvent,WAKE))
              cbType._bodywake = null;
@@ -92,8 +88,6 @@ class PR(ConstraintListener) extends PR(Listener) {
     public function addedToSpace() {
         assert(cbType!=null,"listener added to space with no cbtype associated?");
 
-		cbType.listeners.add(this);
-
         if     (event==Flag(CbEvent,WAKE))  cbType._conwake = this;
         else if(event==Flag(CbEvent,SLEEP)) cbType._consleep = this;
         else cbType._break = this;
@@ -101,8 +95,6 @@ class PR(ConstraintListener) extends PR(Listener) {
 
     public function removedFromSpace() {
         assert(cbType!=null,"listener removed from space with no cbtype associated?");
-
-		cbType.listeners.remove(this);
 
         if     (event==Flag(CbEvent,WAKE))  cbType._conwake = this;
         else if(event==Flag(CbEvent,SLEEP)) cbType._consleep = this;
@@ -243,16 +235,10 @@ class PR(InteractionListener) extends PR(Listener) {
 	public function addedToSpace(?skip=false) {
 		assert(cb1!=null && cb2!=null,"listener added to space with no cbtypes associated?");
 
-		cb1.listeners.add(this);
-		if(cb2!=cb1) cb2.listeners.add(this);
-
 		if(!skip) assign();
 	}
 	public function removedFromSpace(?skip=false) {
 		assert(cb1!=null && cb2!=null,"listener added to space with no cbtypes associated?");
-
-		cb1.listeners.remove(this);
-		if(cb2!=cb1) cb2.listeners.remove(this);
 
 		if(!skip) unassign();
 	}
@@ -265,18 +251,8 @@ class PR(InteractionListener) extends PR(Listener) {
 			unassign();
 		}
 
-		$(mixin dope(dip,dat) {
-			if(space!=null) {
-				if(dip!=null && dip!=dat)
-					dip.listeners.remove(this);
-				dip = newcb;
-				if(dip!=dat)
-					dip.listeners.add(this);
-			}else dip = newcb;
-		});
-
-		if(which==1) dope(cb1,cb2);
-		else         dope(cb2,cb1);
+		if(which==1) cb1 = newcb;
+		else         cb2 = newcb;
 
 		if(cb1!=null && cb2!=null) {
 			//set hash id's
