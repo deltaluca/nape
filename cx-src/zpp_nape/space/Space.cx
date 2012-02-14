@@ -838,22 +838,22 @@ class PR(Space) {
 
 			pre = cx_ite;
 		});
+
         //process handlers
-	    IterQueue(cb,callbacks,{
 		while(!callbacks.empty()) {
 			var cb = callbacks.pop();
 			if(cb.listener.type==Flag(ListenerType,BODY)) {
 				var o = cb.listener.body;
-				o.handler(cb.body.outer);
+				o.handler(cb.wrapper_body());
 			}else if(cb.listener.type==Flag(ListenerType,CONSTRAINT)) {
 				var o = cb.listener.constraint;
-				o.handler(cb.constraint.outer);
+				o.handler(cb.wrapper_con());
 			}else if(cb.listener.type==Flag(ListenerType,INTERACTION)) {
 				var o = cb.listener.interaction;
-				o.handleri(cb.int1.outer_i,cb.int2.outer_i,cb.genarbs());
+				o.handleri(cb.wrapper_int());
 			}
 			Free(PR(Callback),cb);
-		});
+		}
 	}
 
 	

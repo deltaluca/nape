@@ -18,31 +18,12 @@ class Callback {
 	public var pr(inner):PR(Callback);
 
     property(event,CbEvent,{
-        [CbEvent.BEGIN,CbEvent.END,CbEvent.WAKE,CbEvent.SLEEP,CbEvent.BREAK][pr(inner).event];
+        [CbEvent.BEGIN,CbEvent.END,CbEvent.WAKE,CbEvent.SLEEP,CbEvent.BREAK,CbEvent.ONGOING][pr(inner).event];
     })
-
-    ///---------------------------------------------------------------------------------------------
-
-	property(int1,Interactor,pr(inner).int1==null ? null : pr(inner).int1.outer_i)
-	property(int2,Interactor,pr(inner).int2==null ? null : pr(inner).int2.outer_i)
-
-    property(body,Body,{
-        pr(inner).body == null ? null : pr(inner).body.outer;
-    })
-
-    property(constraint,Constraint,{
-        pr(inner).constraint == null ? null : pr(inner).constraint.outer;
-    })
-
-    ///---------------------------------------------------------------------------------------------
 
     property(listener,Listener,{
         pr(inner).listener.outer;
     })
-
-	property(arbiters,ArbiterList,{
-		if(event==CbEvent.BEGIN || event==CbEvent.END) pr(inner).wrap_arbiters else null;
-	})
 
     ///---------------------------------------------------------------------------------------------
 	
@@ -50,14 +31,57 @@ class Callback {
 		DEBUG(if(!PR(Callback).internal) throw "Error: Callback cannot be instantiated derp!";)
 	}
 
-    ///---------------------------------------------------------------------------------------------
+    @:$keep public function toString():String { return ""; }
+}
 
-    @:$keep public inline function toString() {
-        var ret = "Cb:";
-        ret += ["BEGIN","END","WAKE","SLEEP","BREAK","PRE", "ONGOING"][pr(inner).event];
-        if(pr(inner).event==Flag(CbEvent,WAKE) || pr(inner).event==Flag(CbEvent,SLEEP) || pr(inner).event==Flag(CbEvent,BREAK))
-            ret += ":"+(body!=null ? body.toString() : constraint.toString());
-        ret += " : listener: "+listener;
-        return ret;
-    }
+class BodyCallback extends Callback {
+	public function new() {
+		super();
+	}
+	
+    property(body,Body,pr(inner).body.outer)
+
+	@:$keep public override function toString() {
+		var ret = "Cb:";
+		ret += ["WAKE","SLEEP"][pr(inner).event-Flag(CbEvent,WAKE)];
+		ret += ":"+body.toString();
+		ret += " : listener: "+listener;
+		return ret;
+	}
+}
+
+class ConstraintCallback extends Callback {
+	public function new() {
+		super();
+	}
+	
+    property(constraint,Constraint,pr(inner).constraint.outer)
+
+	@:$keep public override function toString() {
+		var ret = "Cb:";
+		ret += ["WAKE","SLEEP","BREAK"][pr(inner).event-Flag(CbEvent,WAKE)];
+		ret += ":"+constraint.toString();
+		ret += " : listener: "+listener;
+		return ret;
+	}
+}
+
+class InteractionCallback extends Callback {
+	public function new() {
+		super();
+	}
+
+	property(int1,Interactor,pr(inner).int1.outer_i)
+	property(int2,Interactor,pr(inner).int2.outer_i)
+
+	property(arbiters,ArbiterList, pr(inner).wrap_arbiters)
+
+	@:$keep public override function toString() {
+		var ret = "Cb:";
+		ret += ["BEGIN","END","","","","","ONGOING"][pr(inner).event];
+		ret += ":"+int1.toString()+"/"+int2.toString();
+		ret += " : "+arbiters.toString();
+		ret += " : listener: "+listener;
+		return ret;
+	}
 }
