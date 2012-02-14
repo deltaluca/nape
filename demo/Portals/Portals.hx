@@ -11,6 +11,7 @@ import nape.callbacks.CbEvent;
 import nape.callbacks.PreFlag;
 import nape.callbacks.InteractionType;
 import nape.callbacks.PreListener;
+import nape.callbacks.InteractionCallback;
 import nape.callbacks.InteractionListener;
 import nape.dynamics.InteractionFilter;
 import nape.geom.Vec2;
@@ -167,9 +168,9 @@ class PortalManager {
 		}
 
 		space.listeners.add(new InteractionListener(CbEvent.END, InteractionType.ANY, PORTAL, INOUT,
-		function (_pshape:Interactor,_object:Interactor, _) {
-			var pshape = _pshape.castShape;
-			var object = _object.castShape;
+		function (cb:InteractionCallback) {
+			var pshape = cb.int1.castShape;
+			var object = cb.int2.castShape;
 			var portal:Portal = cast pshape.userData;	
 			var info = getinfo(portal,object.body);
 			var limbo = infolimbo(info,object);
@@ -196,9 +197,9 @@ class PortalManager {
 
 		for(cb in [PORTER,INOUT]) {
 			space.listeners.add(new InteractionListener(CbEvent.BEGIN, InteractionType.ANY, PORTAL, cb,	
-			function (_pshape:Interactor,_object:Interactor, _) {
-				var pshape = _pshape.castShape; 
-				var object = _object.castShape;
+			function (cb:InteractionCallback) {
+				var pshape = cb.int1.castShape; 
+				var object = cb.int2.castShape;
 				var portal:Portal = cast pshape.userData;
 
 				var info = getinfo(portal,object.body);

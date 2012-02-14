@@ -20,9 +20,14 @@ import nape.geom.Vec2;
 
 import nape.callbacks.ConstraintListener;
 import nape.callbacks.InteractionListener;
-import nape.callbacks.PreListener;
 import nape.callbacks.BodyListener;
+import nape.callbacks.PreListener;
+
+import nape.callbacks.ConstraintCallback;
+import nape.callbacks.InteractionCallback;
+import nape.callbacks.BodyCallback;
 import nape.callbacks.InteractionType;
+
 import nape.callbacks.PreFlag;
 import nape.callbacks.CbType;
 import nape.callbacks.CbEvent;
@@ -161,13 +166,13 @@ class Callbacks extends FixedStep {
 
 		//setup listeners
 		function boxer(colour:Int) { 
-			return function(box1:Interactor,box2:Interactor,_) {
+			return function(cb:InteractionCallback) {
 				//we gave the box bodies the cbType, rather than the shapes so we 'know'
 				//we need to use interactor.body and not interator.shape
 			
 				//draw thick line using a quad.
-				var p1 = box1.castBody.position;
-				var p2 = box2.castBody.position;
+				var p1 = cb.int1.castBody.position;
+				var p2 = cb.int2.castBody.position;
 				var n = p1.sub(p2);
 				n.length=1; n.angle += Math.PI/2;
 	
@@ -178,11 +183,11 @@ class Callbacks extends FixedStep {
 		space.listeners.add(new InteractionListener(CbEvent.BEGIN, InteractionType.COLLISION, boxcb,boxcb, boxer(0x00ff00)));
 		space.listeners.add(new InteractionListener(CbEvent.END,   InteractionType.COLLISION, boxcb,boxcb, boxer(0xff0000)));
 
-		space.listeners.add(new ConstraintListener(CbEvent.BREAK, concb, function (x:Constraint) {
+		space.listeners.add(new ConstraintListener(CbEvent.BREAK, concb, function (cb:ConstraintCallback) {
 			//We're going to break apart the compound containing the constraint and the two boxes
 			//we set the constraint to be removed when it broke, so we don't need to remove the constraint
 			// - When removed, it is also removed from the compound treating it as though it is completely deleted.
-			var link = cast(x,PivotJoint);
+			var link = cast(cb.constraint,PivotJoint);
 			var b1 = link.body1; var b2 = link.body2;
 			b1.compound.breakApart();
 			b1.cbType = b2.cbType = boxcb;
@@ -205,8 +210,8 @@ class Callbacks extends FixedStep {
 
 		//and set up listeners
 		function circler(colour:Int) {
-			return function(circle:Body) {
-				debug.drawFilledCircle(circle.position,circle.shapes.at(0).castCircle.radius,colour);
+			return function(cb:BodyCallback) {
+				debug.drawFilledCircle(cb.body.position,cb.body.shapes.at(0).castCircle.radius,colour);
 			}
 		}
 
