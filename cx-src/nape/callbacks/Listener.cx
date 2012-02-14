@@ -111,13 +111,18 @@ class BodyListener extends Listener {
             body.swapCbType(cbType.pr(inner));
     })
 
-    property(handler,Body->Void,pr(inner_zn).handler,pr(inner_zn).handler = handler)
+    property(handler,Body->Void,pr(inner_zn).handler,{
+		DEBUG(if(handler==null)throw "Error: BodyListener::handler cannot be null";)
+		pr(inner_zn).handler = handler;
+	})
 
     ///---------------------------------------------------------------------------------------------
 
-	flibopts(1)
-    public function new(event:CbEvent, cbType:CbType, ?handler:Body->Void=null) {
+	flibopts(0)
+    public function new(event:CbEvent, cbType:CbType, handler:Body->Void) {
         PR(Listener).internal = true; super(); PR(Listener).internal = false;
+
+		DEBUG(if(handler==null)throw "Error: BodyListener::handler cannot be null";)
 
         var xevent = -1;
         if     (event==CbEvent.WAKE)  xevent = Flag(CbEvent,WAKE);
@@ -148,13 +153,18 @@ class ConstraintListener extends Listener {
             con.swapCbType(cbType.pr(inner));
     })
 
-    property(handler,Constraint->Void,pr(inner_zn).handler,pr(inner_zn).handler = handler)
+    property(handler,Constraint->Void,pr(inner_zn).handler,{
+		DEBUG(if(handler==null)throw "Error: ConstraintListener::handler cannot be null";)
+		pr(inner_zn).handler = handler;
+	})
 
     ///---------------------------------------------------------------------------------------------
 
-	flibopts(1)
-    public function new(event:CbEvent, cbType:CbType, ?handler:Constraint->Void=null) {
+	flibopts(0)
+    public function new(event:CbEvent, cbType:CbType, handler:Constraint->Void) {
         PR(Listener).internal = true; super(); PR(Listener).internal = false;
+		
+		DEBUG(if(handler==null)throw "Error: ConstraintListener::handler cannot be null";)
 
         var xevent = -1;
         if     (event==CbEvent.WAKE)  xevent = Flag(CbEvent,WAKE);
@@ -211,13 +221,18 @@ class InteractionListener extends Listener {
         }
 	})
 
-    property(handler,Interactor->Interactor->ArbiterList->Void,pr(inner_zn).handleri,pr(inner_zn).handleri = handler)
+    property(handler,Interactor->Interactor->ArbiterList->Void,pr(inner_zn).handleri,{
+		DEBUG(if(handler==null)throw "Error: InteractionListener::handler cannot be null";)
+		pr(inner_zn).handleri = handler;
+	})
 
     ///---------------------------------------------------------------------------------------------
 
 	flibopts(1)
-	public function new(event:CbEvent, interactionType:InteractionType, cbType1:CbType, cbType2:CbType, ?handler:Interactor->Interactor->ArbiterList->Void=null) {
+	public function new(event:CbEvent, interactionType:InteractionType, cbType1:CbType, cbType2:CbType, handler:Interactor->Interactor->ArbiterList->Void) {
 		PR(Listener).internal = true; super(); PR(Listener).internal = false;
+
+		DEBUG(if(handler==null)throw "Error: InteractionListener::handler cannot be null";)
 
 		DEBUG(if(event==null) throw "Error: CbEvent cannot be null for InteractionListener";)
 		var xevent = -1;

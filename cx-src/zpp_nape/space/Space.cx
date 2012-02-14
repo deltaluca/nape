@@ -222,7 +222,6 @@ class PR(Space) {
 	public var listenersets:FastHash2(PR(ListenerSet));
 
     public var callbacks:PR(Callback); //as a deque
-    public var wrap_callbacks:CallbackQueue;
 
 	//used in callbackset callbacks to keep track of arbiter counts for unique begin/end/pre
 	public var callbacksets:FastHash2(PR(CallbackSet));
@@ -537,7 +536,7 @@ class PR(Space) {
 							var listener = set.find(Flag(CbEvent,END),xarb.type);
 							if(listener!=null
 							&& callbackset.empty_arb(listener.itype) && (listener.itype&xarb.type)!=0) {	
-								var cb = push_callback(listener,listener.handleri!=null);
+								var cb = push_callback(listener);
 								cb.event = Flag(CbEvent,END);
 								//use callbackset int1/int2 to keep consistency in cases of cbType1==cbType2
 								PR(Interactor).int_callback(callbackset.int1,callbackset.int2,listener.cb1,cb);
@@ -714,12 +713,11 @@ class PR(Space) {
 	
 	//----------------------------------------------------------------------------------------------
 
-    flibmdel public inline function push_callback(i:PR(Listener),hasHandler:Bool) {
+    flibmdel public inline function push_callback(i:PR(Listener)) {
 		assert(i!=null,"null listenere for push_callback?");
         var cb = Get(PR(Callback));
         callbacks.push(cb);
         cb.listener = i;
-        cb.handler = hasHandler;
         return cb;
     }
 
@@ -831,7 +829,7 @@ class PR(Space) {
 
 			lset.find_all(Flag(CbEvent,ONGOING), function (x:PR(InteractionListener)) {
 				if(!set.empty_arb(x.itype)) {
-					var cb = push_callback(x,x.handleri!=null);
+					var cb = push_callback(x);
 					cb.event = Flag(CbEvent,ONGOING);
 					PR(Interactor).int_callback(set.int1,set.int2,x.cb1,cb);
 					cb.set = set;
@@ -842,22 +840,19 @@ class PR(Space) {
 		});
         //process handlers
 	    IterQueue(cb,callbacks,{
-		    if(cb.handler) {
-				if(cb.listener.type==Flag(ListenerType,BODY)) {
-					var o = cb.listener.body;
-					o.handler(cb.body.outer);
-				}else if(cb.listener.type==Flag(ListenerType,CONSTRAINT)) {
-					var o = cb.listener.constraint;
-					o.handler(cb.constraint.outer);
-				}else if(cb.listener.type==Flag(ListenerType,INTERACTION)) {
-					var o = cb.listener.interaction;
-					o.handleri(cb.int1.outer_i,cb.int2.outer_i,cb.genarbs());
-				}
-	
-				cx_ite = callbacks.splice(cb);
-				Free(PR(Callback),cb);
-				continue;
+		while(!callbacks.empty()) {
+			var cb = callbacks.pop();
+			if(cb.listener.type==Flag(ListenerType,BODY)) {
+				var o = cb.listener.body;
+				o.handler(cb.body.outer);
+			}else if(cb.listener.type==Flag(ListenerType,CONSTRAINT)) {
+				var o = cb.listener.constraint;
+				o.handler(cb.constraint.outer);
+			}else if(cb.listener.type==Flag(ListenerType,INTERACTION)) {
+				var o = cb.listener.interaction;
+				o.handleri(cb.int1.outer_i,cb.int2.outer_i,cb.genarbs());
 			}
+			Free(PR(Callback),cb);
 		});
 	}
 
@@ -868,7 +863,7 @@ class PR(Space) {
         if(b.isDynamic() && b.cbType != null && b.cbType._bodywake != null) {
             if(midstep) {
 				var i = b.cbType._bodywake;
-                var cb = push_callback(i,i.handler!=null);
+                var cb = push_callback(i);
                 cb.event = Flag(CbEvent,WAKE);
                 cb.body = b;
             }else
@@ -879,7 +874,7 @@ class PR(Space) {
     flibmdel public inline function bodyCbSleep(b:PR(Body)) {
         if(b.isDynamic() && b.cbType!=null && b.cbType._bodysleep != null) {
 			var i = b.cbType._bodysleep;
-            var cb = push_callback(i,i.handler!=null);
+            var cb = push_callback(i);
             cb.event = Flag(CbEvent,SLEEP);
             cb.body = b;
         }
@@ -891,7 +886,7 @@ class PR(Space) {
         if(con.cbType != null && con.cbType._conwake != null) {
             if(midstep) {
 				var i = con.cbType._conwake;
-                var cb = push_callback(i,i.handler!=null);
+                var cb = push_callback(i);
                 cb.event = Flag(CbEvent,WAKE);
                 cb.constraint = con;
             }else
@@ -902,7 +897,7 @@ class PR(Space) {
     flibmdel public inline function constraintCbSleep(con:PR(Constraint)) {
         if(con.cbType != null && con.cbType._consleep != null) {
 			var i = con.cbType._consleep;
-            var cb = push_callback(i,i.handler!=null);
+            var cb = push_callback(i);
             cb.event = Flag(CbEvent,SLEEP);
             cb.constraint = con;
         }
@@ -911,7 +906,7 @@ class PR(Space) {
     flibmdel public inline function constraintCbBreak(con:PR(Constraint)) {
         if(con.cbType != null && con.cbType._break != null) {
 			var i = con.cbType._break;
-            var cb = push_callback(i,i.handler!=null);
+            var cb = push_callback(i);
             cb.event = Flag(CbEvent,BREAK);
             cb.constraint = con;
         }
@@ -1391,7 +1386,7 @@ class PR(Space) {
                 if(!kin) {
                     if(cur.component.woken && cur.cbType != null && cur.cbType._bodywake!=null) {
 						var i = cur.cbType._bodywake;
-                        var cb = push_callback(i,i.handler!=null);
+                        var cb = push_callback(i);
                         cb.event = Flag(CbEvent,WAKE);
                         cb.body = cur;
                     }
@@ -1413,7 +1408,7 @@ class PR(Space) {
                 DEBUG(con.validate();)
                 if(con.component.woken && con.cbType != null && con.cbType._conwake!=null) {
 					var i = con.cbType._conwake;
-                    var cb = push_callback(i,i.handler!=null);
+                    var cb = push_callback(i);
                     cb.event = Flag(CbEvent,WAKE);
                     cb.constraint = con;
                 }
@@ -1544,7 +1539,7 @@ class PR(Space) {
 								//already to prevent multiple pre-handlers
 								if(listener!=null) {
 									if(callbackset.empty_arb(listener.itype) && (listener.itype&arb.type)!=0) {
-										var cb = push_callback(listener,listener.handleri!=null);
+										var cb = push_callback(listener);
 										cb.event = Flag(CbEvent,BEGIN);
 										//use callbackset int1/int2 to keep consistency in cases of cbType1==cbType2
 										PR(Interactor).int_callback(callbackset.int1,callbackset.int2,listener.cb1,cb);
@@ -1558,7 +1553,7 @@ class PR(Space) {
 								callbackset.remove_arb(arb);
 								if(listener!=null) {
 									if(callbackset.empty_arb(listener.itype) && (listener.itype&arb.type)!=0) {
-										var cb = push_callback(listener,listener.handleri!=null);
+										var cb = push_callback(listener);
 										cb.event = Flag(CbEvent,END);
 										//use callbackset int1/int2 to keep consistency in cases of cbType1==cbType2
 										PR(Interactor).int_callback(callbackset.int1,callbackset.int2,listener.cb1,cb);
