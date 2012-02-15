@@ -445,7 +445,9 @@ class PR(Space) {
 	}
 	public function unrevoke_listener(x:PR(InteractionListener)) {
 		var set = listenersets.get(x.id,x.di);
-		if(set==null) listenersets.add(set = PR(ListenerSet).get(x));
+		if(set==null) {
+			listenersets.add(set = PR(ListenerSet).get(x));
+		}
 		set.listeners.add(x);
 	}
 
@@ -830,7 +832,7 @@ class PR(Space) {
 			}
 
 			var lset = listenersets.ordered_get(set.int1.cbType.id, set.int2.cbType.id);
-			assert(lset!=null,"wtf");
+			assert(lset!=null,"wtf "+set.int1.outer_i.toString()+" "+set.int2.outer_i.toString()+" "+set.int1.cbType.outer+" "+set.int2.cbType.outer);
 
 			lset.find_all(Flag(CbEvent,ONGOING), function (x:PR(InteractionListener)) {
 				if(!set.empty_arb(x.itype)) {
@@ -957,7 +959,7 @@ class PR(Space) {
 
 					MRCA_chains(xarb.ws1,xarb.ws2);
 					Iter(i1,mrca1,{ if(i1.cbType != cb1 && i1.cbType != cb2) cx_continue;
-					Iter(i2,mrca2,{ if(i2.cbType != cb1 && i2.cbType != cb2) cx_continue;
+					Iter(i2,mrca2,{ if((i1.cbType == cb1 && i2.cbType != cb2) || (i1.cbType == cb2 && i2.cbType != cb1)) cx_continue;
 						var callbackset = callbacksets.ordered_get(i1.id,i2.id);
 						if(callbackset!=null) {
 							ClearWith(arb, callbackset.arbiters, arb.present=false);
@@ -1046,7 +1048,7 @@ class PR(Space) {
 
 					MRCA_chains(xarb.ws1,xarb.ws2);
 					Iter(i1,mrca1,{ if(i1.cbType != cb1 && i1.cbType != cb2) cx_continue;
-					Iter(i2,mrca2,{ if(i2.cbType != cb1 && i2.cbType != cb2) cx_continue;
+					Iter(i2,mrca2,{ if((i1.cbType == cb1 && i2.cbType != cb2) || (i1.cbType == cb2 && i2.cbType != cb1)) cx_continue;
 						var callbackset = callbacksets.ordered_get(i1.id,i2.id);
 						xarb.present = true;
 						if(callbackset==null) {
