@@ -312,6 +312,11 @@ class PR(Space) {
 		global_lin_drag = PR(Config).GLOBAL_LIN_DRAG;
 		global_ang_drag = PR(Config).GLOBAL_ANG_DRAG;
 
+		PR(Callback).internal = true;
+		precb = new PreCallback();
+		precb.pr(inner) = new PR(Callback)();
+		PR(Callback).internal = false;
+
 		id = ID(Space);
 		sortcontacts = true;
 		pre_dt = 0.0;
@@ -1715,6 +1720,7 @@ class PR(Space) {
 		}
 	}
 
+	var precb:PreCallback;
 	flibmdel public inline function narrowPhase(s1:PR(Shape),s2:PR(Shape), stat:Bool, ?in_arb:PR(Arbiter)=null) {
 		#if NAPE_TIMES
 			var pt = flash.Lib.getTimer();
@@ -1773,6 +1779,7 @@ class PR(Space) {
 							var listener:PR(InteractionListener) = null;
 							var callbackset:PR(CallbackSet) = null;
 							var ncallbackset:PR(CallbackSet) = null;
+							var prei1:PR(Interactor) = null;
 
 							if(arb.fresh || (arb.immState&Flag(ImmState,ALWAYS))==0) {
 								arb.immState = Flag(ImmState,ACCEPT);
@@ -1802,6 +1809,7 @@ class PR(Space) {
 										callbacksets.add(ncallbackset);
 										callbackset_list.add(ncallbackset);
 									}
+									prei1 = i1;
 
 									RELEASE(cx_break;)
 								});
@@ -1834,7 +1842,14 @@ class PR(Space) {
 									assert(arb.wrapper().collisionArbiter.contacts.length!=0,"0 contacts BEFORE pre handler??");
 								#end
 								DEBUG(arb.makemutable();)
-								var ret = listener.handlerp(arb.wrapper());
+
+								precb.pr(inner).pre_arbiter = arb;
+								precb.pr(inner).int1 = callbackset.int1;
+								precb.pr(inner).int2 = callbackset.int2;
+								precb.pr(inner).pre_swapped = prei1 != callbackset.int1;
+
+								var ret = listener.handlerp(precb);
+
 								DEBUG(arb.makeimmutable();)
 								
 								arb.active = pact;

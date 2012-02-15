@@ -18,7 +18,7 @@ class Callback {
 	public var pr(inner):PR(Callback);
 
     property(event,CbEvent,{
-        [CbEvent.BEGIN,CbEvent.END,CbEvent.WAKE,CbEvent.SLEEP,CbEvent.BREAK,CbEvent.ONGOING][pr(inner).event];
+        [CbEvent.BEGIN,CbEvent.END,CbEvent.WAKE,CbEvent.SLEEP,CbEvent.BREAK,CbEvent.PRE,CbEvent.ONGOING][pr(inner).event];
     })
 
     property(listener,Listener,{
@@ -82,6 +82,27 @@ class InteractionCallback extends Callback {
 		ret += ":"+int1.toString()+"/"+int2.toString();
 		ret += " : "+arbiters.toString();
 		ret += " : listener: "+listener;
+		return ret;
+	}
+}
+
+class PreCallback extends Callback {
+	public function new() {
+		super();
+	}
+
+	property(arbiter,Arbiter,pr(inner).pre_arbiter.wrapper())
+
+	property(int1,Interactor,pr(inner).int1.outer_i)
+	property(int2,Interactor,pr(inner).int2.outer_i)
+
+	property(swapped,Bool,pr(inner).pre_swapped)
+
+	@:$keep public override function toString() {
+		var ret = "Cb:PRE:";
+		ret += ":"+int1.toString()+"/"+int2.toString();
+		ret += " : "+arbiter.toString();
+		ret += " : listnener: "+listener;
 		return ret;
 	}
 }

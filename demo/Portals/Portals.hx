@@ -12,6 +12,7 @@ import nape.callbacks.PreFlag;
 import nape.callbacks.InteractionType;
 import nape.callbacks.PreListener;
 import nape.callbacks.InteractionCallback;
+import nape.callbacks.PreCallback;
 import nape.callbacks.InteractionListener;
 import nape.dynamics.InteractionFilter;
 import nape.geom.Vec2;
@@ -119,7 +120,8 @@ class PortalManager {
 	public function init(space:Space) {
 		//ignore relevant contacts for shapes in limbo
 		for(cb in [OBJECT,INOUT,PORTER]) {
-			space.listeners.add(new PreListener(InteractionType.COLLISION, cb, INOUT, function(arb:Arbiter) {
+			space.listeners.add(new PreListener(InteractionType.COLLISION, cb, INOUT, function(cb:PreCallback) {
+				var arb = cb.arbiter;
 				var carb = arb.collisionArbiter;
 				function eval(ret:PreFlag, shape:Shape) {
 					if(ret==PreFlag.IGNORE_ONCE) return ret;

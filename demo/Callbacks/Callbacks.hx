@@ -26,6 +26,8 @@ import nape.callbacks.PreListener;
 import nape.callbacks.ConstraintCallback;
 import nape.callbacks.InteractionCallback;
 import nape.callbacks.BodyCallback;
+import nape.callbacks.PreCallback;
+
 import nape.callbacks.InteractionType;
 
 import nape.callbacks.PreFlag;
@@ -95,13 +97,13 @@ class Callbacks extends FixedStep {
 		// note: this is a pure function with respect to the two objects
 		//       (it's output doesn't change) so we can tell nape this and allow objects
 		//       to sleep as normal.
-		space.listeners.add(new PreListener(InteractionType.COLLISION,hexcb,hexcb,function(arb:Arbiter) {
+		space.listeners.add(new PreListener(InteractionType.COLLISION,hexcb,hexcb,function(cb:PreCallback) {
 			var depth = 15;
 
-			if(arb.isCollisionArbiter()) {
+			if(cb.arbiter.isCollisionArbiter()) {
 				//to allow penetration, we need to both change contact penetrations,
 				//and arbiter radius by same amount.
-				var carb = arb.collisionArbiter;
+				var carb = cb.arbiter.collisionArbiter;
 				carb.contacts.filter(function (c:Contact):Bool {
 					//discard if not deep enough.
 					if(c.penetration <= depth) return false;
@@ -233,12 +235,11 @@ class Callbacks extends FixedStep {
 
 		//handler to deal with one-way platforms
 		//don't have sum-types yet, so have to assign for all types we want to operate with one-way
-		function oneway(arb:Arbiter) {
-			if(!arb.isCollisionArbiter()) return PreFlag.ACCEPT;
-			var rev = arb.body2.cbType==platcb; //reverse direction logic if objects are opposite to what we expect.
-			var dir = new Vec2(0,rev ? 1 : -1);
+		function oneway(cb:PreCallback) {
+			if(!cb.arbiter.isCollisionArbiter()) return PreFlag.ACCEPT;
+			var dir = new Vec2(0,cb.swapped ? -1 : 1);
 
-			return if(dir.dot(arb.collisionArbiter.normal)>=0) PreFlag.ACCEPT else PreFlag.IGNORE;
+			return if(dir.dot(cb.arbiter.collisionArbiter.normal)>=0) PreFlag.ACCEPT else PreFlag.IGNORE;
 		}
 
 		for(cb in [hexcb,paircb])
