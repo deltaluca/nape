@@ -207,14 +207,16 @@ $(mixin global WrapList(T,ListT,IteT, defs)
 				ret = pr(inner).inner.front();
 				var retx = closure(ret);
 				if(pr(inner).subber!=null) pr(inner).subber(retx);
-				pr(inner).inner.pop();
+				if(!pr(inner).dontremove)
+					pr(inner).inner.pop();
 			}else {
 				if(pr(inner).at_ite!=null && pr(inner).at_ite.next == null) pr(inner).at_ite = null;
 				var ite = length==1 ? null : pr(inner).inner.iterator_at(length-2);
 				ret = ite == null ? pr(inner).inner.front() : ite.next.elem();
 				var retx = closure(ret);
 				if(pr(inner).subber!=null) pr(inner).subber(retx);
-				pr(inner).inner.erase(ite);
+				if(!pr(inner).dontremove)
+					pr(inner).inner.erase(ite);
 			}
 			
 			pr(inner).invalidate();
@@ -234,12 +236,14 @@ $(mixin global WrapList(T,ListT,IteT, defs)
 				ret = ite == null ? pr(inner).inner.front() : ite.next.elem();
 				var retx = closure(ret);
 				if(pr(inner).subber!=null) pr(inner).subber(retx);
-				pr(inner).inner.erase(ite);
+				if(!pr(inner).dontremove)
+					pr(inner).inner.erase(ite);
 			}else {
 				ret = pr(inner).inner.front();
 				var retx = closure(ret);
 				if(pr(inner).subber!=null) pr(inner).subber(retx);
-				pr(inner).inner.pop();
+				if(!pr(inner).dontremove)
+					pr(inner).inner.pop();
 			}
 			
 			pr(inner).invalidate();
@@ -256,7 +260,8 @@ $(mixin global WrapList(T,ListT,IteT, defs)
 			var ret = Exists(x,pr(inner).inner, x==erusolc(obj));
 			if(ret) {
 				if(pr(inner).subber!=null) pr(inner).subber(obj);
-				pr(inner).inner.remove(erusolc(obj));
+				if(!pr(inner).dontremove)
+					pr(inner).inner.remove(erusolc(obj));
 				pr(inner).invalidate();
 			}
 			return ret;

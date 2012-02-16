@@ -692,7 +692,10 @@ class PR(ColArbiter) extends PR(Arbiter) {
 		pjrAcc = 0.0;
 		assert(pair==null,"AABBNode exists on col arbiter going out of pool?"); 
 	}
-	flibmdel public inline function free() { assert(pair==null,"AABBNode exists on col arbiter going into pool?"); }
+	flibmdel public inline function free() { 
+		assert(contacts.empty(),"still has contacts on free?");
+		assert(pair==null,"AABBNode exists on col arbiter going into pool?");
+	}
 	
     public var stat:Bool; //one of the bodies is non-dynamic (different arbiter list)
 
@@ -794,13 +797,16 @@ class PR(ColArbiter) extends PR(Arbiter) {
 			DEBUG(throw "Error: Cannot add new contacts, information required is far too specific and detailed :)";)
 			return false;
 		}
+		wrap_contacts.pr(inner).dontremove = true; //!!!!
 		wrap_contacts.pr(inner).subber = function(x:Contact) {
 			var pre = null; var prei = null;
 			var cx_itei = innards.begin();
 			Iter(c, contacts, {
 				if(c==x.pr(inner)) {
-					//wrap list deals with removing from contacts
+					//dontremove true, so we will deal with removing from contacts
+					contacts.erase(pre);
 					innards.erase(prei);
+					Free(PR(Contact),c);
 					break;
 				}
 				pre = cx_ite;
