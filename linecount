@@ -2,7 +2,7 @@
 
 function count() {
 
-	FILES=`find . -type f -name "*."$1`
+	FILES=`find $2 -type f -name "*."$1`
 	COUNT=0
 
 	for file in $FILES
@@ -11,9 +11,18 @@ function count() {
 	    COUNT=$((COUNT+line))
 	done
 
-	echo $1" source = "$COUNT" lines"
+	echo $3" source = "$COUNT" lines"
 
 }
 
-count cx
-count hx
+if [ -n "$1" ]; then
+	count cx $1 ".cx"
+	count hx $1 ".hx"
+else
+	count cx cx-src "nape .cx"
+	count hx src "nape .hx"
+	count hx demo "demo .hx"
+	count cx doc-gen "doc-gen .cx"
+	count hx doc-gen "doc-gen .hx"
+fi
+
