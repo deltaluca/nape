@@ -807,12 +807,18 @@ class PR(Space) {
 		});
 		doit2(kinematics);
 		doit2(live);
-		
-		while(!staticsleep.empty()) {
-			var b = staticsleep.pop_unsafe();
+	
+		var pre = null;
+		Iter(b, staticsleep, {
 			assert(!b.isDynamic(), "step :: swef static/kinematics");
-			b.component.sleeping = true;
-		}
+			if(!b.isKinematic() || (b.velx == 0 && b.vely == 0 && b.angvel == 0)) {
+				b.component.sleeping = true;
+				cx_ite = staticsleep.erase(pre);
+				continue;
+			}
+			pre = cx_ite;
+		});
+			
         midstep = false;
 		//generate on-going events
 		var pre = null;
