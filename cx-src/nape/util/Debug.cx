@@ -742,23 +742,6 @@ class BitmapDebug extends Debug {
 		pr(inner_zn).prepare();
 		var col = colour|0xff000000;
 		var fx:Int,fy:Int;
-<<<<<<< HEAD
-		if(pr(inner).xnull) {
-			fx = fastint(fst.x+0.5);
-			fy = fastint(fst.y+0.5);
-		}else {
-			var v = pr(inner).xform.outer.transform(fst);
-			fx = fastint(v.x+0.5);
-			fy = fastint(v.y+0.5);
-			v.destroy();
-		}
-		fst.destroy();
-		var fsttime = true;
-		var px = fx; var py = fy;
-		PolyIter(p,polygon,{
-			if(fsttime) { fsttime = false; continue; }
-=======
->>>>>>> master
 
 		var fst = null;
 		var px:Int,py:Int;
@@ -775,9 +758,6 @@ class BitmapDebug extends Debug {
 				var v = pr(inner).xform.outer.transform(p);
 				cx = fastint(v.x+0.5);
 				cy = fastint(v.y+0.5);
-<<<<<<< HEAD
-				v.destroy();
-=======
 				if(fsttime) fst = v;
 				else v.destroy();
 			}
@@ -787,7 +767,6 @@ class BitmapDebug extends Debug {
 			}else {
 				pr(inner_zn).__line(px,py,cx,cy,col);
 				px = cx; py = cy;
->>>>>>> master
 			}
 		});
 		pr(inner_zn).__line(px,py,fx,fy,col);
@@ -799,20 +778,6 @@ class BitmapDebug extends Debug {
 		DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
 		DEBUG(if(polygon==null) throw "Error: Cannot render null polygon";)
 
-<<<<<<< HEAD
-		$(mixin render(gp) {
-			//recycle possibly cloned, otherwise decomposition results as we go
-			var p0 = gp.current().copy(); gp.shift();
-			var pre = gp.current().copy(); gp.shift();
-			while(!gp.empty()) {
-				var cur = gp.current().copy(); gp.shift();
-				drawFilledTriangle(p0,pre,cur,colour);
-				pre.destroy();
-				pre = cur;
-			}
-			pre.destroy();
-			p0.destroy();
-=======
 		var col = colour|0xff000000;
 		//render with scan lines from line intersections, avoid use of geometric utility so that it could
 		//be seperated as a module, as well as because this is more stable.
@@ -830,7 +795,6 @@ class BitmapDebug extends Debug {
 			}
 			if(v.y<miny) miny = v.y;
 			if(v.y>maxy) maxy = v.y;
->>>>>>> master
 		});
 		PolyWeak(polygon);
 
