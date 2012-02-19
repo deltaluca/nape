@@ -65,8 +65,8 @@ class Listener {
         if(pr(inner).space==null) null else pr(inner).space.outer;
     },{
         if(this.space!=space) {
-            if(pr(inner).space!=null) pr(inner).space.remListener(pr(inner));
-            if(space!=null) space.pr(inner).addListener(pr(inner));
+            if(pr(inner).space!=null) pr(inner).space.outer.listeners.remove(this);
+            if(space!=null) space.listeners.add(this); 
             else pr(inner).space = null;
         }
     })
@@ -111,13 +111,18 @@ class BodyListener extends Listener {
             body.swapCbType(cbType.pr(inner));
     })
 
-    property(handler,Body->Void,pr(inner_zn).handler,pr(inner_zn).handler = handler)
+    property(handler,BodyCallback->Void,pr(inner_zn).handler,{
+		DEBUG(if(handler==null)throw "Error: BodyListener::handler cannot be null";)
+		pr(inner_zn).handler = handler;
+	})
 
     ///---------------------------------------------------------------------------------------------
 
-	flibopts(1)
-    public function new(event:CbEvent, cbType:CbType, ?handler:Body->Void=null) {
+	flibopts(0)
+    public function new(event:CbEvent, cbType:CbType, handler:BodyCallback->Void) {
         PR(Listener).internal = true; super(); PR(Listener).internal = false;
+
+		DEBUG(if(handler==null)throw "Error: BodyListener::handler cannot be null";)
 
         var xevent = -1;
         if     (event==CbEvent.WAKE)  xevent = Flag(CbEvent,WAKE);
@@ -148,13 +153,18 @@ class ConstraintListener extends Listener {
             con.swapCbType(cbType.pr(inner));
     })
 
-    property(handler,Constraint->Void,pr(inner_zn).handler,pr(inner_zn).handler = handler)
+    property(handler,ConstraintCallback->Void,pr(inner_zn).handler,{
+		DEBUG(if(handler==null)throw "Error: ConstraintListener::handler cannot be null";)
+		pr(inner_zn).handler = handler;
+	})
 
     ///---------------------------------------------------------------------------------------------
 
-	flibopts(1)
-    public function new(event:CbEvent, cbType:CbType, ?handler:Constraint->Void=null) {
+	flibopts(0)
+    public function new(event:CbEvent, cbType:CbType, handler:ConstraintCallback->Void) {
         PR(Listener).internal = true; super(); PR(Listener).internal = false;
+		
+		DEBUG(if(handler==null)throw "Error: ConstraintListener::handler cannot be null";)
 
         var xevent = -1;
         if     (event==CbEvent.WAKE)  xevent = Flag(CbEvent,WAKE);
@@ -211,13 +221,18 @@ class InteractionListener extends Listener {
         }
 	})
 
-    property(handler,Interactor->Interactor->ArbiterList->Void,pr(inner_zn).handleri,pr(inner_zn).handleri = handler)
+    property(handler,InteractionCallback->Void,pr(inner_zn).handleri,{
+		DEBUG(if(handler==null)throw "Error: InteractionListener::handler cannot be null";)
+		pr(inner_zn).handleri = handler;
+	})
 
     ///---------------------------------------------------------------------------------------------
 
 	flibopts(1)
-	public function new(event:CbEvent, interactionType:InteractionType, cbType1:CbType, cbType2:CbType, ?handler:Interactor->Interactor->ArbiterList->Void=null) {
+	public function new(event:CbEvent, interactionType:InteractionType, cbType1:CbType, cbType2:CbType, handler:InteractionCallback->Void) {
 		PR(Listener).internal = true; super(); PR(Listener).internal = false;
+
+		DEBUG(if(handler==null)throw "Error: InteractionListener::handler cannot be null";)
 
 		DEBUG(if(event==null) throw "Error: CbEvent cannot be null for InteractionListener";)
 		var xevent = -1;
@@ -268,7 +283,7 @@ class PreListener extends Listener {
 	//
 	//in the case of #_ONCE, the objects are forced to stay awake (in space)
 	//and so any change to handler does not need to wake any objects already.
-	property(handler,Arbiter->PreFlag,pr(inner_zn).handlerp,{
+	property(handler,PreCallback->PreFlag,pr(inner_zn).handlerp,{
 		DEBUG(if(handler==null) throw "Error: PreListener must take a non-null handler!";)
 		pr(inner_zn).handlerp = handler;
 
@@ -309,7 +324,7 @@ class PreListener extends Listener {
     ///---------------------------------------------------------------------------------------------
 
 	flibopts(1)
-	public function new(interactionType:InteractionType, cbType1:CbType, cbType2:CbType, handler:Arbiter->PreFlag, ?pure=false) {
+	public function new(interactionType:InteractionType, cbType1:CbType, cbType2:CbType, handler:PreCallback->PreFlag, ?pure=false) {
 		PR(Listener).internal = true; super(); PR(Listener).internal = false;
 
 		DEBUG(if(cbType1==null) throw "Error: PreListener CbType1 cannot be null";)

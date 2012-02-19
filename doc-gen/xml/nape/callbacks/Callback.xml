@@ -1,39 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <data>
 
-<class package="nape.callbacks" name="CallbackQueue">
-	<file>CallbackQueue.hx</file>
-	<short>Callback queue</short>
-	<description> Queue containing deferred space callback objects </description>
-
-	<property name="size" type="Int" readonly="true">
-		<description> Number of callbacks in queue </description>
-		<detail>
-			<description> Number of callback objects currently enqueued </description>
-		</detail>
-	</property>
-
-	<method name="empty" return="Bool" const="true">
-		<description> Whether queue is empty </description>
-		<detail>
-			<description> True if callback queue is empty </description>
-		</detail>
-	</method>
-	<method name="pop" return="Callback">
-		<description> Pop callback form queue </description>
-		<detail>
-			<description> Pop callback from the front of the queue </description>
-			<throws> <code inline="true">empty()</code></throws>
-		</detail>
-	</method>
-	<method name="clear">
-		<description> Clear the queue </description>
-		<detail>
-			<description> Clear all callbacks from the queue </description>
-		</detail>
-	</method>
-</class>
-
 <class package="nape.callbacks" name="CbEvent">
 	<file>Callback.hx</file>
 	<short>Callback types</short>
@@ -95,11 +62,11 @@
 
 <class package="nape.callbacks" name="Callback">
 	<file>Callback.hx</file>
-	<short>Callback object for deferred callback handlers</short>
+	<short>Base type for Callback objects</short>
 	<description>
-		<text>Callback object for any callback handler which has not been assigned a function callback to be called instead.</text>
+		<text>Base type for all non-PRE Callback handlers.</text>
 		<br/><br/>
-		<text>Callback objects are automaticaly recycled, so you should not hold any lingering references to them when you've finished with it; this includes anything like calling space.step() whilst working on a callback object... though such code would be 'very' suspect</text>
+		<text>Callback objects are automaticaly recycled, so you should not hold any references to them escaping the event handler.</text>
 	</description>
 
 	<property name="event" type="CbEvent" readonly="true">
@@ -108,49 +75,102 @@
 			<description> Type of event this callback relates to </description>
 		</detail>
 	</property>
-
-	<property/>
-
-	<property name="int1" type="Maybe[Interactor]" readonly="true">
-		<description> First interactor for event </description>
-		<detail>
-			<description> First interactor relating to event if applicable. This value is null unless the event is a BEGIN or END type. </description>
-		</detail>
-	</property>
-	<property name="int2" type="Maybe[Interactor]" readonly="true">
-		<description> Second interactor for event </description>
-		<detail>
-			<description> Second interactor relating to event if applicable. This value is null unless the event is a BEGIN or END type. </description>
-		</detail>
-	</property>
-	<property name="arbiters" type="Maybe[ArbiterList]" readonly="true">
-		<description> Arbiters between interactors</description>
-		<detail>
-			<description> List of all arbiters between the two interactors for BEGIN/END type callbacks </description>
-		</detail>
-	</property>
-	<property name="body" type="Maybe[Body]" readonly="true">
-		<description> Body for event </description>
-		<detail>
-			<description> Body relating to event if applicable. This value is null unless the event is a WAKE or SLEEP type, and might still be null in this case if the callback is for a constraint instead. </description>
-		</detail>
-	</property>
-	<property name="constraint" type="Maybe[Constraint]" readonly="true">
-		<description> Constraint for event </description>
-		<detail>
-			<description> Constraint relating to event if applicable. This value is null unless the event is a WAKE, SLEEP or BREAK type, and might still be null in this case if the callback is for a body instead. </description>
-		</detail>
-	</property>
-
-	<property/>
-
 	<property name="listener" type="Listener" readonly="true">
 		<description> Related listener </description>
 		<detail>
 			<description> The related listener object generating this callback </description>
 		</detail>
 	</property>
+</class>
 
+<class package="nape.callbacks" name="BodyCallback" super="Callback">
+	<file>Callback.hx</file>
+	<short>Callback object for Body Listener callbacks</short>
+	<description>
+		<text>Callback object for Body listener callback handlers</text>
+	</description>
+
+	<property name="body" type="Body" readonly="true">
+		<description> Body for event </description>
+		<detail>
+			<description> Body relating to event</description>
+		</detail>
+	</property>
+</class>
+
+<class package="nape.callbacks" name="ConstraintCallback" super="Callback">
+	<file>Callback.hx</file>
+	<short>Callback object for Constraint Listener callbacks</short>
+	<description>
+		<text>Callback object for Constraint Listener callback handlers</text>
+	</description>
+
+	<property name="constraint" type="Constraint" readonly="true">
+		<description> Constraint for event </description>
+		<detail>
+			<description> Constraint relating to event</description>
+		</detail>
+	</property>
+</class>
+
+<class package="nape.callbacks" name="PreCallback" super="Callback">
+	<file>Callback.hx</file>
+	<short>Callback object for Pre Listener callbacks</short>
+	<description>
+		<text>Callback object for Pre Listener callback handlers</text>
+	</description>
+
+	<property name="int1" type="Interactor" readonly="true">
+		<description> First interactor for event </description>
+		<detail>
+			<description> First interactor relating to event, matching the first CbType in the listener.</description>
+		</detail>
+	</property>
+	<property name="int2" type="Interactor" readonly="true">
+		<description> Second interactor for event </description>
+		<detail>
+			<description> Second interactor relating to event, matching the second CbType in the listener. </description>
+		</detail>
+	</property>
+	<property name="arbiter" type="Arbiter" readonly="true">
+		<description> Arbiter for Pre handler</description>
+		<detail>
+			<description> The arbiter on which the handler must decide what to do with the interactors </description>
+		</detail>
+	</property>
+	<property name="swapped" type="Bool" readonly="true">
+		<description> Arbiter order is swapped </description>
+		<detail>
+			<description> If true, then the arbiter's shape1, body1 properties are related to the int2 Interactor, and not the int1 Interactor, and equally the normal of the arbiter will point from int2 towards int1 rather than int1 to int2 (Noting that the normal always points from arbiter's shape1/body1 to it's shape2/body2) </description>
+		</detail>
+	</property>
+</class>
+
+<class package="nape.callbacks" name="InteractionCallback" super="Callback">
+	<file>Callback.hx</file>
+	<short>Callback object for Interaction Listener callbacks</short>
+	<description>
+		<text>Callback object for Interaction Listener callback handlers</text>
+	</description>
+
+	<property name="int1" type="Interactor" readonly="true">
+		<description> First interactor for event </description>
+		<detail>
+			<description> First interactor relating to event, matching the first CbType in the listener.</description>
+		</detail>
+	</property>
+	<property name="int2" type="Interactor" readonly="true">
+		<description> Second interactor for event </description>
+		<detail>
+			<description> Second interactor relating to event, matching the second CbType in the listener. </description>
+		</detail>
+	</property>
+	<property name="arbiters" type="ArbiterList" readonly="true">
+		<description> Arbiters between interactors</description>
+		<detail>
+			<description> List of all arbiters between the two interactors. </description>
+		</detail>
+	</property>
 </class>
 
 </data>

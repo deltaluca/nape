@@ -22,9 +22,9 @@ class PR(BodyListener) extends PR(Listener) {
     public var outer_zn:BodyListener;
 
     public var cbType:PR(CbType);
-    public var handler:Body->Void;
+    public var handler:BodyCallback->Void;
 
-    public function new(event:Int, handler:Body->Void) {
+    public function new(event:Int, handler:BodyCallback->Void) {
         this.event = event;
         this.handler = handler;
         body = this;
@@ -34,8 +34,6 @@ class PR(BodyListener) extends PR(Listener) {
     public function addedToSpace() {
         assert(cbType!=null,"listener added to space with no cbtype associated?");
 
-		cbType.listeners.add(this);
-
         if(event==Flag(CbEvent,WAKE))
              cbType._bodywake = this;
         else cbType._bodysleep = this;
@@ -43,8 +41,6 @@ class PR(BodyListener) extends PR(Listener) {
 
     public function removedFromSpace() {
         assert(cbType!=null,"listener removed from space with no cbtype associated?");
-
-		cbType.listeners.remove(this);
 
         if(event==Flag(CbEvent,WAKE))
              cbType._bodywake = null;
@@ -80,9 +76,9 @@ class PR(ConstraintListener) extends PR(Listener) {
     public var outer_zn:ConstraintListener;
 
     public var cbType:PR(CbType);
-    public var handler:Constraint->Void;
+    public var handler:ConstraintCallback->Void;
 
-    public function new(event:Int, handler:Constraint->Void) {
+    public function new(event:Int, handler:ConstraintCallback->Void) {
         this.event = event;
         this.handler = handler;
         constraint = this;
@@ -92,8 +88,6 @@ class PR(ConstraintListener) extends PR(Listener) {
     public function addedToSpace() {
         assert(cbType!=null,"listener added to space with no cbtype associated?");
 
-		cbType.listeners.add(this);
-
         if     (event==Flag(CbEvent,WAKE))  cbType._conwake = this;
         else if(event==Flag(CbEvent,SLEEP)) cbType._consleep = this;
         else cbType._break = this;
@@ -101,8 +95,6 @@ class PR(ConstraintListener) extends PR(Listener) {
 
     public function removedFromSpace() {
         assert(cbType!=null,"listener removed from space with no cbtype associated?");
-
-		cbType.listeners.remove(this);
 
         if     (event==Flag(CbEvent,WAKE))  cbType._conwake = this;
         else if(event==Flag(CbEvent,SLEEP)) cbType._consleep = this;
@@ -201,10 +193,10 @@ class PR(InteractionListener) extends PR(Listener) {
     public var cb2:PR(CbType);
 
 	//for InteractionListener
-    public var handleri:Interactor->Interactor->ArbiterList->Void;
+    public var handleri:InteractionCallback->Void;
 	//for PreListener
 	public var pure:Bool;
-	public var handlerp:Arbiter->PreFlag;
+	public var handlerp:PreCallback->PreFlag;
 
 	//used in hash lookups based on cbTypes
 	public var hnext:PR(InteractionListener);
@@ -243,16 +235,10 @@ class PR(InteractionListener) extends PR(Listener) {
 	public function addedToSpace(?skip=false) {
 		assert(cb1!=null && cb2!=null,"listener added to space with no cbtypes associated?");
 
-		cb1.listeners.add(this);
-		if(cb2!=cb1) cb2.listeners.add(this);
-
 		if(!skip) assign();
 	}
 	public function removedFromSpace(?skip=false) {
 		assert(cb1!=null && cb2!=null,"listener added to space with no cbtypes associated?");
-
-		cb1.listeners.remove(this);
-		if(cb2!=cb1) cb2.listeners.remove(this);
 
 		if(!skip) unassign();
 	}
@@ -265,18 +251,8 @@ class PR(InteractionListener) extends PR(Listener) {
 			unassign();
 		}
 
-		$(mixin dope(dip,dat) {
-			if(space!=null) {
-				if(dip!=null && dip!=dat)
-					dip.listeners.remove(this);
-				dip = newcb;
-				if(dip!=dat)
-					dip.listeners.add(this);
-			}else dip = newcb;
-		});
-
-		if(which==1) dope(cb1,cb2);
-		else         dope(cb2,cb1);
+		if(which==1) cb1 = newcb;
+		else         cb2 = newcb;
 
 		if(cb1!=null && cb2!=null) {
 			//set hash id's

@@ -96,7 +96,10 @@ class Compound extends Interactor {
 	public function visitCompounds(lambda:Compound->Void) {
 		Destroyed(this,Compound)
 		DEBUG(if(lambda==null) throw "Error: lambda cannot be null for Compound::visitConstraints";)
-		for(c in compounds) lambda(c);
+		for(c in compounds) {
+			lambda(c);
+			c.visitCompounds(lambda);
+		}
 	}
 
 	public function COM() {

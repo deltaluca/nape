@@ -60,6 +60,22 @@
 			<description><text>Global acceleration due to gravity.</text><br/><text class="small1">setter is copy by value, not copy by reference and equivalent to </text><code inline="true">gravity.set(v)</code> </description>
 		</detail>
 	</property>
+
+	<property name="worldLinearDrag" type="Float" value="0.015">
+		<description>Linear drag applied to all objects</description>
+		<detail>
+			<description>Every step a force is applied to objects, such that under no outside influence, an object will lose 'worldLinearDrag' amount of its velocity per second. Note that this is purely a force applied as opposed to a fluid's drag which is implemented as a constraint in the physics</description>
+		</detail>
+	</property>
+
+	<property name="worldAngularDrag" type="Float" value="0.015">
+		<description>Angular drag applied to all objects</description>
+		<detail>
+			<description>Every step a torque is applied to objects, such that under no outside influence, an object will lose 'worldAngularDrag' amount of its angular velocity per second. Note that this is purely a torque applied as opposed to a fluid's drag which is implemented as a constraint in the physics</description>
+		</detail>
+	</property>
+
+	<property/>
 	<property name="elapsedTime" type="Float" readonly="true">
 		<description>Amount of simulated time passed</description>
 		<detail>
@@ -125,12 +141,6 @@
 			<description>Reference to the immutable list of all living, active arbiters belonging to this Space. Sleeping arbiters are not included as this would be rather messy and annoying to deal with internally! </description>
 		</detail>
 	</property>
-	<property name="callbacks" type="CallbackQueue" readonly="true">
-		<description>Unhandled callbacks queue</description>
-		<detail>
-			<description>Queue containing any Callback objects generated which were not handled via a function callback. This queue persists between calls to space.step() so be careful that you do not allow it to explode in size :P</description>
-		</detail>
-	</property>
 	<property name="listeners" type="ListenerList" readonly="true">
 		<description>Mutable listeners list</description>
 		<detail>
@@ -161,7 +171,32 @@
 	</method>
 	
 	<method/>
-	
+		<method name="visitBodies">
+		<arg name="lambda" type="Body->Void"/>
+		<description>Visitor for all bodies</description>
+		<detail>
+			<description> Apply given function to all bodies contained within the space and down the tree</description>
+		</detail>
+	</method>
+
+	<method name="visitConstraints">
+		<arg name="lambda" type="Constraint->Void"/>
+		<description>Visitor for all constraints</description>
+		<detail>
+			<description> Apply given function to all constraints contained within the space and down the tree</description>
+		</detail>
+	</method>
+
+	<method name="visitCompounds">
+		<arg name="lambda" type="Compound->Void"/>
+		<description>Visitor for all inner compounds</description>
+		<detail>
+			<description> Apply given function to all compounds contained within the space and down the tree</description>
+		</detail>
+	</method>
+
+	<method/>
+
 	<method name="shapesUnderPoint" return="ShapeList" const="true">
 		<arg name="point" type="Vec2" const="true"/>
 		<arg name="filter" type="InteractionFilter" optional="true" const="true"/>

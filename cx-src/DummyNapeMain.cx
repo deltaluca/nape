@@ -422,55 +422,6 @@ class DummyNapeMain {
 		public static function traces(t:Dynamic) {
 			txt.text += Std.string(t)+"\n";
 		}
-	static function main() {
-		haxe.Log.setColor(0xffffff);
-
-		var space = new Space();
-
-		var bcbType, ccbType;
-
-		var b = new Body();
-		b.shapes.add(new Polygon(Polygon.box(20,20)));
-		b.shapes.add(new Polygon(Polygon.box(15,20)));
-		b.shapes.add(new Polygon(Polygon.box(10,20)));
-		b.shapes.add(new Polygon(Polygon.box(5,20)));
-		b.space = space;
-		b.type = BodyType.KINEMATIC;
-		b.cbType = bcbType = new CbType();
-
-		var c = new Body();
-		c.type = BodyType.KINEMATIC;
-		c.shapes.add(new Polygon(Polygon.box(20,20)));
-		c.space = space;
-		c.cbType = ccbType = bcbType;
-
-		flash.Lib.current.addChild(txt);
-
-		space.listeners.add(new InteractionListener(CbEvent.BEGIN, InteractionType.ANY, bcbType, ccbType,
-		function (i1,i2,arbs) {
-			traces(["BEGIN",i1,i2,arbs]);
-		}));
-		space.listeners.add(new InteractionListener(CbEvent.ONGOING, InteractionType.ANY, bcbType, ccbType,
-		function (i1,i2,arbs) {
-			traces(["ONGOING",i1,i2,arbs,arbs.pr(inner).inner.size()]);
-		}));
-		space.listeners.add(new InteractionListener(CbEvent.END, InteractionType.ANY, bcbType, ccbType,
-		function (i1,i2,arbs) {
-			traces(["END",i1,i2,arbs]);
-		}));
-
-		c.position.x += 45;
-		space.step(0.001); traces("----");
-		while(c.position.x >= -5) {
-			c.position.x -= 2.5;
-			space.step(0.001);
-			space.step(0.001);
-			space.step(0.001); traces("----");
-		}
-
-		space.clear();
-	}
-
 	static function mains() {
 		haxe.Log.setColor(0xffffff);
 		var tracer = new Tracer();
@@ -549,53 +500,32 @@ class DummyNapeMain {
 	}
 
 
-	static function maisn() {
+	static function main() {
 		haxe.Log.setColor(0xffffff);
 		var stage = flash.Lib.current.stage;
 
 		var space = new Space(new Vec2(0,400)/*,Broadphase.SWEEP_AND_PRUNE*/);
 		var debug = new BitmapDebug(stage.stageWidth,stage.stageHeight,0x333333,true);
 		stage.addChild(debug.display);
-		debug.drawShapeAngleIndicators = false;
 
-		var border = new Body(BodyType.STATIC);
-		border.shapes.add(new Polygon(Polygon.rect(0,0,-50,stage.stageHeight)));
-		border.shapes.add(new Polygon(Polygon.rect(stage.stageWidth,0,50,stage.stageHeight)));
-		border.shapes.add(new Polygon(Polygon.rect(0,0,stage.stageWidth,-50)));
-		border.shapes.add(new Polygon(Polygon.rect(0,stage.stageHeight,stage.stageWidth,50)));
-		border.space = space;
-
-		var boxw = 6;
-		var boxh = 12;
-		var height = 40; //820 blocks
-
-		for(y in 1...(height+1)) {
-			for(x in 0...y) {
-				var block = new Body();
-				block.position.x = stage.stageWidth/2 - boxw*(y-1)/2 + x*boxw;
-				//we give blocks y-position so that they're already overlapping a bit
-				//since with the chain of allowed overlaps will mean 'ideal' position won't be satisfied.
-				block.position.y = stage.stageHeight - boxh/2 - boxh*(height-y)*0.97;
-				block.shapes.add(new Polygon(Polygon.box(boxw,boxh)));
-				block.space = space;
-			}
-		}		
+		var plat = new Body(BodyType.KINEMATIC);
+		plat.shapes.add(new Polygon(Polygon.box(300,100)));
+		plat.position.setxy(stage.stageWidth/2,stage.stageHeight/2);
+		plat.space = space;
+	
+		var b = new Body();
+		b.shapes.add(new Polygon(Polygon.box(50,50)));
+		b.position.setxy(stage.stageWidth/2,0);
+		b.space = space;
 
 		//----------------------------------------------------------------------------------
 		stage.addEventListener(flash.events.Event.ENTER_FRAME, function (_) {
-			haxe.Log.clear();
-			//we start of simulation with a lower timestep to help with stability as all the contact constraints 'warm up'
-			//  once the contacts are 'warm' the time-step will go to full speed and the pyramid will remain standing
-			//without this the pyramid will simply tumble before the contacts have had time to settle towards a solution
-			//  to the huge set of contact equations.
-			var dt = min(1/40, 1/200 + space.timeStamp*60*1e-5);
+			plat.velocity.y = Math.sin(space.elapsedTime)*100;
 
 			debug.clear();
-			space.step(dt,5,5);
+			space.step(1/30);
 			debug.draw(space);
 			debug.flush();
-
-//			trace(Debug.TIMES(space));
 		});
 	}
 

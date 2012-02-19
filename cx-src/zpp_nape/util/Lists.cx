@@ -214,14 +214,16 @@ $(expand global MixDerivedList(T,ListT,IteT,defs)
 				ret = inner.front();
 				var retx = closure(ret);
 				if(pr(inner).subber!=null) pr(inner).subber(retx);
-				inner.pop();
+				if(!pr(inner).dontremove)
+					inner.pop();
 			}else {
 				if(at_ite!=null && at_ite.next == null) at_ite = null;
 				var ite = length==1 ? null : inner.iterator_at(length-2);
 				ret = ite == null ? inner.front() : ite.next.elem();
 				var retx = closure(ret);
 				if(pr(inner).subber!=null) pr(inner).subber(retx);
-				inner.erase(ite);
+				if(!pr(inner).dontremove)
+					inner.erase(ite);
 			}
 			
 			pr(inner).invalidate();
@@ -241,12 +243,14 @@ $(expand global MixDerivedList(T,ListT,IteT,defs)
 				ret = ite == null ? inner.front() : ite.next.elem();
 				var retx = closure(ret);
 				if(pr(inner).subber!=null) pr(inner).subber(retx);
-				inner.erase(ite);
+				if(!pr(inner).dontremove)
+					inner.erase(ite);
 			}else {
 				ret = inner.front();
 				var retx = closure(ret);
 				if(pr(inner).subber!=null) pr(inner).subber(retx);
-				inner.pop();
+				if(!pr(inner).dontremove)
+					inner.pop();
 			}
 			
 			pr(inner).invalidate();
@@ -263,7 +267,8 @@ $(expand global MixDerivedList(T,ListT,IteT,defs)
 			var ret = Exists(x,inner,erusolc(obj)==x);
 			if(ret) {
 				if(pr(inner).subber!=null) pr(inner).subber(obj);
-				inner.remove(erusolc(obj));
+				if(!pr(inner).dontremove)
+					inner.remove(erusolc(obj));
 				pr(inner).invalidate();
 			}
 			return ret;
@@ -298,6 +303,9 @@ $(expand global PRWrapList(T,ListT,IteT)
 		//to be called when object is added/removed
 		public var adder:T->Bool; public var post_adder:T->Dynamic;
 		public var subber:T->Dynamic;
+
+		//mark that subber must deal with removing from list, not the public list.
+		public var dontremove:Bool;
 		
 		//used for transparent reversal of list
 		public var reverse_flag:Bool;

@@ -199,6 +199,8 @@ class PR(LineJoint) extends PR(Constraint) {
 		if((flag&2)!=0) jAccy = 0;
 		
 		if(!stiff) {
+			if(breakUnderError && vec_lsq(C) > maxError*maxError) return true;
+
 			var biasCoef;
 			mat2_scaleq(kMass, soft_gamma(frequency,damping,dt,gamma,biasCoef));
 			vec_set(bias,C);
@@ -228,7 +230,11 @@ class PR(LineJoint) extends PR(Constraint) {
 
 		accum2(jAcc,J,{
 			if(jAccy > 0) jAccy = 0;
-			vec_clamp(jAcc,jMax);
+			if(breakUnderForce) {
+				if(vec_lsq(jAcc) > jMax*jMax)
+					return true;
+			}else if(!stiff)
+				vec_clamp(jAcc,jMax);
 		});
 		Imp(a1rel,a2rel,nrel, J,false);
 		
@@ -244,7 +250,8 @@ class PR(LineJoint) extends PR(Constraint) {
 		vec_new(d); var scale;
 		vec_new(E);
 		Cerr(r1,r2,n,d,E);
-			
+		
+		if(breakUnderError && vec_lsq(E) > maxError*maxError) return true;	
 		if(vec_lsq(E) < PR(Config).SLOP) return false;
 		
 		vec_new(J);

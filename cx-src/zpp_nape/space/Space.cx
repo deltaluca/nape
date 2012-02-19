@@ -110,6 +110,12 @@ class PR(CallbackSet) {
 		if(!arbiters.has(x))
 			arbiters.add(x);
 	}
+	flibmdel public inline function try_remove_arb(x:PR(Arbiter)) {
+		if(arbiters.has(x)) {
+			arbiters.remove(x);
+			return true;
+		}else return false;
+	}
 	flibmdel public inline function remove_arb(x:PR(Arbiter)) arbiters.remove(x)
 
 	//type is an Interactor/Arbiter type.
@@ -167,6 +173,11 @@ class PR(Space) {
 	public var __static:Body; //for constraint use.
 	
 	//----------------------------------------------------------------------------------------------
+
+	public var global_lin_drag:Float;
+	public var global_ang_drag:Float;
+
+	//----------------------------------------------------------------------------------------------
 	
 	public var id:Int;
 
@@ -211,7 +222,6 @@ class PR(Space) {
 	public var listenersets:FastHash2(PR(ListenerSet));
 
     public var callbacks:PR(Callback); //as a deque
-    public var wrap_callbacks:CallbackQueue;
 
 	//used in callbackset callbacks to keep track of arbiter counts for unique begin/end/pre
 	public var callbacksets:FastHash2(PR(CallbackSet));
@@ -372,7 +382,8 @@ class PR(Space) {
 	}
 
 	public function clear() {
-		callbacks.clear();
+		global_lin_drag = PR(Config).GLOBAL_LIN_DRAG;
+		global_ang_drag = PR(Config).GLOBAL_ANG_DRAG;
 
 		//this also deals naturally with removing all callbacksets
 		ClearWith(c, listeners, remListener(c));
@@ -447,6 +458,14 @@ class PR(Space) {
 	//----------------------------------------------------------------------------------------------
 	
 	public function new(gravity:PR(Vec2),broadphase:Broadphase) {
+		global_lin_drag = PR(Config).GLOBAL_LIN_DRAG;
+		global_ang_drag = PR(Config).GLOBAL_ANG_DRAG;
+
+		PR(Callback).internal = true;
+		precb = new PreCallback();
+		precb.pr(inner) = new PR(Callback)();
+		PR(Callback).internal = false;
+
 		id = ID(Space);
 		sortcontacts = true;
 		pre_dt = 0.0;
@@ -575,7 +594,9 @@ class PR(Space) {
 	}
 	public function unrevoke_listener(x:PR(InteractionListener)) {
 		var set = listenersets.get(x.id,x.di);
-		if(set==null) listenersets.add(set = PR(ListenerSet).get(x));
+		if(set==null) {
+			listenersets.add(set = PR(ListenerSet).get(x));
+		}
 		set.listeners.add(x);
 	}
 
@@ -651,7 +672,8 @@ class PR(Space) {
 				//
 				//we decrement on both begin/end callback existance also pre.
 				//as in either case the callbackset exists and must be cleaned
-				if(xarb.active) {
+//				if(xarb.active) {
+				if(xarb.present) {
 					MRCA_chains(xarb.ws1,xarb.ws2);
 					Iter(i1,mrca1,{
 					Iter(i2,mrca2,{
@@ -670,7 +692,7 @@ class PR(Space) {
 							var listener = set.find(Flag(CbEvent,END),xarb.type);
 							if(listener!=null
 							&& callbackset.empty_arb(listener.itype) && (listener.itype&xarb.type)!=0) {	
-								var cb = push_callback(listener,listener.handleri!=null);
+								var cb = push_callback(listener);
 								cb.event = Flag(CbEvent,END);
 								//use callbackset int1/int2 to keep consistency in cases of cbType1==cbType2
 								PR(Interactor).int_callback(callbackset.int1,callbackset.int2,listener.cb1,cb);
@@ -686,6 +708,7 @@ class PR(Space) {
 					});
 					});
 				}
+				xarb.present = false;
 
 				//wake connected first.
 				if(xarb.b1 != body && xarb.b1.isDynamic()) wake(xarb.b1);
@@ -846,12 +869,11 @@ class PR(Space) {
 	
 	//----------------------------------------------------------------------------------------------
 
-    flibmdel public inline function push_callback(i:PR(Listener),hasHandler:Bool) {
+    flibmdel public inline function push_callback(i:PR(Listener)) {
 		assert(i!=null,"null listenere for push_callback?");
         var cb = Get(PR(Callback));
         callbacks.push(cb);
         cb.listener = i;
-        cb.handler = hasHandler;
         return cb;
     }
 
@@ -936,12 +958,18 @@ class PR(Space) {
 		});
 		doit2(kinematics);
 		doit2(live);
-		
-		while(!staticsleep.empty()) {
-			var b = staticsleep.pop_unsafe();
+	
+		var pre = null;
+		Iter(b, staticsleep, {
 			assert(!b.isDynamic(), "step :: swef static/kinematics");
-			b.component.sleeping = true;
-		}
+			if(!b.isKinematic() || (b.velx == 0 && b.vely == 0 && b.angvel == 0)) {
+				b.component.sleeping = true;
+				cx_ite = staticsleep.erase(pre);
+				continue;
+			}
+			pre = cx_ite;
+		});
+			
         midstep = false;
 		//generate on-going events
 		var pre = null;
@@ -958,13 +986,12 @@ class PR(Space) {
 				continue;
 			}
 
-			//TODO: store listenerset on callbackset
 			var lset = listenersets.ordered_get(set.int1.cbType.id, set.int2.cbType.id);
-			assert(lset!=null,"wtf");
+			assert(lset!=null,"wtf "+set.int1.outer_i.toString()+" "+set.int2.outer_i.toString()+" "+set.int1.cbType.outer+" "+set.int2.cbType.outer);
 
 			lset.find_all(Flag(CbEvent,ONGOING), function (x:PR(InteractionListener)) {
 				if(!set.empty_arb(x.itype)) {
-					var cb = push_callback(x,x.handleri!=null);
+					var cb = push_callback(x);
 					cb.event = Flag(CbEvent,ONGOING);
 					PR(Interactor).int_callback(set.int1,set.int2,x.cb1,cb);
 					cb.set = set;
@@ -973,25 +1000,22 @@ class PR(Space) {
 
 			pre = cx_ite;
 		});
+
         //process handlers
-	    IterQueue(cb,callbacks,{
-		    if(cb.handler) {
-				if(cb.listener.type==Flag(ListenerType,BODY)) {
-					var o = cb.listener.body;
-					o.handler(cb.body.outer);
-				}else if(cb.listener.type==Flag(ListenerType,CONSTRAINT)) {
-					var o = cb.listener.constraint;
-					o.handler(cb.constraint.outer);
-				}else if(cb.listener.type==Flag(ListenerType,INTERACTION)) {
-					var o = cb.listener.interaction;
-					o.handleri(cb.int1.outer_i,cb.int2.outer_i,cb.genarbs());
-				}
-	
-				cx_ite = callbacks.splice(cb);
-				Free(PR(Callback),cb);
-				continue;
+		while(!callbacks.empty()) {
+			var cb = callbacks.pop();
+			if(cb.listener.type==Flag(ListenerType,BODY)) {
+				var o = cb.listener.body;
+				o.handler(cb.wrapper_body());
+			}else if(cb.listener.type==Flag(ListenerType,CONSTRAINT)) {
+				var o = cb.listener.constraint;
+				o.handler(cb.wrapper_con());
+			}else if(cb.listener.type==Flag(ListenerType,INTERACTION)) {
+				var o = cb.listener.interaction;
+				o.handleri(cb.wrapper_int());
 			}
-		});
+			Free(PR(Callback),cb);
+		}
 	}
 
 	
@@ -1001,7 +1025,7 @@ class PR(Space) {
         if(b.isDynamic() && b.cbType != null && b.cbType._bodywake != null) {
             if(midstep) {
 				var i = b.cbType._bodywake;
-                var cb = push_callback(i,i.handler!=null);
+                var cb = push_callback(i);
                 cb.event = Flag(CbEvent,WAKE);
                 cb.body = b;
             }else
@@ -1012,7 +1036,7 @@ class PR(Space) {
     flibmdel public inline function bodyCbSleep(b:PR(Body)) {
         if(b.isDynamic() && b.cbType!=null && b.cbType._bodysleep != null) {
 			var i = b.cbType._bodysleep;
-            var cb = push_callback(i,i.handler!=null);
+            var cb = push_callback(i);
             cb.event = Flag(CbEvent,SLEEP);
             cb.body = b;
         }
@@ -1024,7 +1048,7 @@ class PR(Space) {
         if(con.cbType != null && con.cbType._conwake != null) {
             if(midstep) {
 				var i = con.cbType._conwake;
-                var cb = push_callback(i,i.handler!=null);
+                var cb = push_callback(i);
                 cb.event = Flag(CbEvent,WAKE);
                 cb.constraint = con;
             }else
@@ -1035,7 +1059,7 @@ class PR(Space) {
     flibmdel public inline function constraintCbSleep(con:PR(Constraint)) {
         if(con.cbType != null && con.cbType._consleep != null) {
 			var i = con.cbType._consleep;
-            var cb = push_callback(i,i.handler!=null);
+            var cb = push_callback(i);
             cb.event = Flag(CbEvent,SLEEP);
             cb.constraint = con;
         }
@@ -1044,7 +1068,7 @@ class PR(Space) {
     flibmdel public inline function constraintCbBreak(con:PR(Constraint)) {
         if(con.cbType != null && con.cbType._break != null) {
 			var i = con.cbType._break;
-            var cb = push_callback(i,i.handler!=null);
+            var cb = push_callback(i);
             cb.event = Flag(CbEvent,BREAK);
             cb.constraint = con;
         }
@@ -1082,15 +1106,18 @@ class PR(Space) {
 				var xbody = if(intx.isBody()) intx.ibody else intx.ishape.body;
 				var xshp = if(intx.isShape()) intx.ishape else null;
 				Iter(xarb,xbody.arbiters,{
-					if(!xarb.active) cx_continue;
+					//bug-fix: see same line in nullInteractorType
+					//if(!xarb.active) cx_continue;
+					if(!xarb.present) cx_continue;
+
 					if(xshp!=null && !(xarb.ws1==xshp || xarb.ws2==xshp)) cx_continue; //short-cut
 
 					MRCA_chains(xarb.ws1,xarb.ws2);
 					Iter(i1,mrca1,{ if(i1.cbType != cb1 && i1.cbType != cb2) cx_continue;
-					Iter(i2,mrca2,{ if(i2.cbType != cb1 && i2.cbType != cb2) cx_continue;
+					Iter(i2,mrca2,{ if((i1.cbType == cb1 && i2.cbType != cb2) || (i1.cbType == cb2 && i2.cbType != cb1)) cx_continue;
 						var callbackset = callbacksets.ordered_get(i1.id,i2.id);
 						if(callbackset!=null) {
-							callbackset.arbiters.clear();
+							ClearWith(arb, callbackset.arbiters, arb.present=false);
 							callbacksets.remove(callbackset);
 							//deferred for callbackset_list
 							//Free(PR(CallbackSet),callbackset);
@@ -1114,7 +1141,13 @@ class PR(Space) {
 			var xbody = if(intx.isBody()) intx.ibody else intx.ishape.body;
 			var xshp = if(intx.isShape()) intx.ishape else null;
 			Iter(xarb,xbody.arbiters,{
-				if(!xarb.active) cx_continue;
+				//bug-fix: need to try and remove arbiter even
+				// if inactive, can result if pre-listener removes
+				// contacts from arbiter it is still in the set
+				// and we should try and remove it
+				//if(!xarb.active) cx_continue;
+				if(!xarb.present) cx_continue;
+
 				if(xshp!=null && !(xarb.ws1==xshp || xarb.ws2==xshp)) cx_continue; //short-cut
 
 				MRCA_chains(xarb.ws1,xarb.ws2);
@@ -1128,6 +1161,7 @@ class PR(Space) {
 					assert(cb1!=null && cb2!=null, "null cb from MRCA_chains??");
 					var callbackset = callbacksets.ordered_get(i1.id,i2.id);
 					if(callbackset!=null) {
+						xarb.present = false;
 						callbackset.remove_arb(xarb);
 						if(callbackset.really_empty()) {
 							callbacksets.remove(callbackset);
@@ -1161,13 +1195,17 @@ class PR(Space) {
 				var xbody = if(intx.isBody()) intx.ibody else intx.ishape.body;
 				var xshp = if(intx.isShape()) intx.ishape else null;
 				Iter(xarb,xbody.arbiters,{
-					if(!xarb.active) cx_continue;
+					//bug-fix... meh
+					//if(!xarb.active) cx_continue;
+					if(!xarb.presentable) cx_continue;
+
 					if(xshp!=null && !(xarb.ws1==xshp || xarb.ws2==xshp)) cx_continue; //short-cut
 
 					MRCA_chains(xarb.ws1,xarb.ws2);
 					Iter(i1,mrca1,{ if(i1.cbType != cb1 && i1.cbType != cb2) cx_continue;
-					Iter(i2,mrca2,{ if(i2.cbType != cb1 && i2.cbType != cb2) cx_continue;
+					Iter(i2,mrca2,{ if((i1.cbType == cb1 && i2.cbType != cb2) || (i1.cbType == cb2 && i2.cbType != cb1)) cx_continue;
 						var callbackset = callbacksets.ordered_get(i1.id,i2.id);
+						xarb.present = true;
 						if(callbackset==null) {
 							callbackset = PR(CallbackSet).get(i1,i2);
 							callbacksets.add(callbackset);
@@ -1192,7 +1230,10 @@ class PR(Space) {
 			var xbody = if(intx.isBody()) intx.ibody else intx.ishape.body;
 			var xshp = if(intx.isShape()) intx.ishape else null;
 			Iter(xarb,xbody.arbiters,{
-				if(!xarb.active) cx_continue;
+				//bug-fix see nullInteractorType
+				//if(!xarb.active) cx_continue;
+				if(!xarb.presentable) cx_continue;
+
 				if(xshp!=null && !(xarb.ws1==xshp || xarb.ws2==xshp)) cx_continue; //short-cut
 
 				MRCA_chains(xarb.ws1,xarb.ws2);
@@ -1205,6 +1246,7 @@ class PR(Space) {
 					var cb2 = i2.cbType;
 					assert(cb1!=null && cb2!=null, "null cb from MRCA_chain?");
 					if(listenersets.ordered_get(cb1.id,cb2.id)!=null) {
+						xarb.present = true;
 						var callbackset = callbacksets.ordered_get(i1.id,i2.id);
 						if(callbackset==null) {
 							callbackset = PR(CallbackSet).get(i1,i2);
@@ -1506,7 +1548,7 @@ class PR(Space) {
                 if(!kin) {
                     if(cur.component.woken && cur.cbType != null && cur.cbType._bodywake!=null) {
 						var i = cur.cbType._bodywake;
-                        var cb = push_callback(i,i.handler!=null);
+                        var cb = push_callback(i);
                         cb.event = Flag(CbEvent,WAKE);
                         cb.body = cur;
                     }
@@ -1528,7 +1570,7 @@ class PR(Space) {
                 DEBUG(con.validate();)
                 if(con.component.woken && con.cbType != null && con.cbType._conwake!=null) {
 					var i = con.cbType._conwake;
-                    var cb = push_callback(i,i.handler!=null);
+                    var cb = push_callback(i);
                     cb.event = Flag(CbEvent,WAKE);
                     cb.constraint = con;
                 }
@@ -1543,7 +1585,7 @@ class PR(Space) {
 		var pre = null;
 		Iter(cur,live,{
 			vec_addeq(cur.force,gravity,cur.gravMass);
-			vec_addeq(cur.force,cur.vel,-PR(Config).GLOBAL_LIN_DRAG*cur.mass);
+			vec_addeq(cur.force,cur.vel,-global_lin_drag*cur.mass);
 			if(cur.smass!=0.0)
 				vec_addeq(cur.vel,cur.force,dt*cur.imass);
 			
@@ -1552,7 +1594,7 @@ class PR(Space) {
 			if(cur.sinertia!=0.0) {
 				vec_new(dp); vec_sub(cur.worldCOM,cur.pos,dp);
 				cur.torque += vec_cross(dp,gravity)*cur.gravMass;
-				cur.torque -= cur.angvel*PR(Config).GLOBAL_ANG_DRAG*cur.inertia;
+				cur.torque -= cur.angvel*global_ang_drag*cur.inertia;
 				cur.angvel += cur.torque*dt*cur.iinertia;
 			}
 			cur.torque = 0;
@@ -1614,17 +1656,16 @@ class PR(Space) {
 
                 #if NAPE_TIMES Debug.ACNT++; #end
 
-				var pact = arb.active;
-				arb.active = true;
-				arb.active = pact;
-
-				if(!arb.cleared) {	
+				//arb.present matches when arbiter was retired, but needs to be removed
+				//from it's callbacksets!
+				//deals neatly with change in interaction types at runtime
+				if(!arb.cleared || arb.present || arb.intchange) {	
 					//callbacks
-					var endcb = arb.up_stamp==stamp-1;
-					var begcb = arb.fresh;
-					assert(!begcb || arb.up_stamp==stamp, " fresh -> active=true hasn't held :(");
+					var endcb = (arb.up_stamp==stamp-1) && !arb.cleared && !arb.intchange;
+					var begcb = (arb.fresh) && !arb.cleared && !arb.intchange;
+					assert(!begcb||arb.up_stamp==stamp, " fresh -> active=true hasn't held :(");
 
-					if(begcb || endcb) {
+					if(begcb || endcb || arb.cleared || arb.intchange) {
 						var listener:PR(InteractionListener) = null;
 						MRCA_chains(arb.ws1,arb.ws2);
 						Iter(i1,mrca1,{
@@ -1638,8 +1679,9 @@ class PR(Space) {
 
 							DEBUG(var i)
 							RELEASE(listener)
-							= if(begcb) set.find(Flag(CbEvent,BEGIN),arb.type);
-							  else      set.find(Flag(CbEvent,END)  ,arb.type);
+							= if  (begcb) set.find(Flag(CbEvent,BEGIN),arb.type);
+							  elif(endcb) set.find(Flag(CbEvent,END)  ,arb.type);
+							  else null;
 
 							DEBUG(
 								if(i!=null && listener!=null) throw "Error: Multiple valid pairings for callbacks between possible interactor combinations descended frmo shape1="+arb.ws1.outer.toString()+" shape2="+arb.ws2.outer.toString()+". Conflict arising from listener1="+i.outer.toString()+" listener2="+listener.outer.toString();
@@ -1648,7 +1690,8 @@ class PR(Space) {
 
 
 							var callbackset = callbacksets.ordered_get(i1.id,i2.id);
-							if(begcb) {
+							if(begcb || arb.intchange) {
+								arb.present = true;
 								if(callbackset==null) {
 									callbackset = PR(CallbackSet).get(i1,i2);
 									callbacksets.add(callbackset);
@@ -1658,7 +1701,7 @@ class PR(Space) {
 								//already to prevent multiple pre-handlers
 								if(listener!=null) {
 									if(callbackset.empty_arb(listener.itype) && (listener.itype&arb.type)!=0) {
-										var cb = push_callback(listener,listener.handleri!=null);
+										var cb = push_callback(listener);
 										cb.event = Flag(CbEvent,BEGIN);
 										//use callbackset int1/int2 to keep consistency in cases of cbType1==cbType2
 										PR(Interactor).int_callback(callbackset.int1,callbackset.int2,listener.cb1,cb);
@@ -1667,11 +1710,12 @@ class PR(Space) {
 								}
 								callbackset.add_arb(arb);
 							}else {
+								arb.present = false;
 								assert(callbackset!=null,"end arbiter with no callbackset");
 								callbackset.remove_arb(arb);
 								if(listener!=null) {
 									if(callbackset.empty_arb(listener.itype) && (listener.itype&arb.type)!=0) {
-										var cb = push_callback(listener,listener.handleri!=null);
+										var cb = push_callback(listener);
 										cb.event = Flag(CbEvent,END);
 										//use callbackset int1/int2 to keep consistency in cases of cbType1==cbType2
 										PR(Interactor).int_callback(callbackset.int1,callbackset.int2,listener.cb1,cb);
@@ -1692,6 +1736,7 @@ class PR(Space) {
 						});
 					}
 					arb.fresh = false;
+					arb.intchange = false;
 				}
 
 				//no need for sensor/fluid arbiters to persist after deactivation, just remove now.
@@ -1706,7 +1751,7 @@ class PR(Space) {
 				}
 				
 				var pact = arb.active;
-				arb.active = arb.up_stamp==stamp;
+				arb.active = arb.presentable = arb.up_stamp==stamp;
 
 				if((arb.immState&Flag(ImmState,ACCEPT)) != 0) {
 					if(!(action)) arb.active = false;
@@ -1832,6 +1877,7 @@ class PR(Space) {
 		}
 	}
 
+	var precb:PreCallback;
 	flibmdel public inline function narrowPhase(s1:PR(Shape),s2:PR(Shape), stat:Bool, ?in_arb:PR(Arbiter)=null) {
 		#if NAPE_TIMES
 			var pt = flash.Lib.getTimer();
@@ -1890,6 +1936,7 @@ class PR(Space) {
 							var listener:PR(InteractionListener) = null;
 							var callbackset:PR(CallbackSet) = null;
 							var ncallbackset:PR(CallbackSet) = null;
+							var prei1:PR(Interactor) = null;
 
 							if(arb.fresh || (arb.immState&Flag(ImmState,ALWAYS))==0) {
 								arb.immState = Flag(ImmState,ACCEPT);
@@ -1919,6 +1966,7 @@ class PR(Space) {
 										callbacksets.add(ncallbackset);
 										callbackset_list.add(ncallbackset);
 									}
+									prei1 = i1;
 
 									RELEASE(cx_break;)
 								});
@@ -1951,7 +1999,14 @@ class PR(Space) {
 									assert(arb.wrapper().collisionArbiter.contacts.length!=0,"0 contacts BEFORE pre handler??");
 								#end
 								DEBUG(arb.makemutable();)
-								var ret = listener.handlerp(arb.wrapper());
+
+								precb.pr(inner).pre_arbiter = arb;
+								precb.pr(inner).int1 = callbackset.int1;
+								precb.pr(inner).int2 = callbackset.int2;
+								precb.pr(inner).pre_swapped = prei1 != callbackset.int1;
+
+								var ret = listener.handlerp(precb);
+
 								DEBUG(arb.makeimmutable();)
 								
 								arb.active = pact;
@@ -2045,6 +2100,7 @@ class PR(Space) {
                         if(xarb.fluidarb==null) {
                             xarb.lazyRetire(this,null);
                             arb = Get(PR(FluidArbiter));
+							arb.intchange = true;
                             first = true;
 							swapped = true;
                         }else
@@ -2066,6 +2122,7 @@ class PR(Space) {
                         if(xarb.colarb==null) {
                             xarb.lazyRetire(this,null);
                             arb = Get(PR(ColArbiter));
+							arb.intchange = true;
                             arb.stat = stat;
                             first = true;
 							swapped = true;
@@ -2094,6 +2151,7 @@ class PR(Space) {
                         if(xarb.sensorarb==null) {
                             xarb.lazyRetire(this,null);
                             arb = Get(PR(SensorArbiter));
+							arb.intchange = true;
                             first = true;
 							swapped = true;
                         }else
