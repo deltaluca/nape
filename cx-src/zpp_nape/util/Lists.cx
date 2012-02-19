@@ -302,7 +302,7 @@ $(expand global PRWrapList(T,ListT,IteT)
 		
 		//used for transparent reversal of list
 		public var reverse_flag:Bool;
-		
+
 		flibstaticdel(get) public static inline function get(list:ListT,?imm:Bool=false) {
 			var ret = new T`List();
 			ret.pr(inner).inner = list;
@@ -406,6 +406,9 @@ $(mixin global ListMixin(defs,Cons,T,I)
 	public var pushmod:Bool;
 	public var mcnt:Int;
 
+	//actual length of list, for wrapped lists wrap list length may not correspond.
+	public var length:Int;
+
 	flibmdel public inline function set_begin(i:I) {
 		_setbeg(i);
 		modified = true;
@@ -421,6 +424,7 @@ $(mixin global ListMixin(defs,Cons,T,I)
 		
 		modified=true;
 		mcnt++;
+		length++;
 		return o;
     }
 
@@ -440,6 +444,7 @@ $(mixin global ListMixin(defs,Cons,T,I)
 			
 			pushmod = modified = true;
 			mcnt++;
+			length++;
 			
             return temp;
         }
@@ -458,6 +463,7 @@ $(mixin global ListMixin(defs,Cons,T,I)
 		if(empty()) pushmod = true;
 		modified = true;
 		mcnt--;
+		length--;
     }
 
     flibmdel public inline function pop_unsafe():T {
@@ -501,6 +507,7 @@ $(mixin global ListMixin(defs,Cons,T,I)
 			modified = true;
 			if(cur==null) pushmod = true;
 			mcnt--;
+			length--;
 			
 			return cur;
 		}
@@ -538,12 +545,7 @@ $(mixin global ListMixin(defs,Cons,T,I)
 
     flibmdel public inline function empty():Bool return begin()==null
 
-    flibmdel public inline function size() {
-        var cnt = 0;
-        var cur = begin();
-        while(cur!=null) { cnt++; cur = cur.next; }
-        return cnt;
-    }
+    flibmdel public inline function size() return length
 
     flibmdel public inline function has(obj:T) {
 		assert(obj!=null,"[ListMixin("+$str(T)+"] has -> "+obj);
