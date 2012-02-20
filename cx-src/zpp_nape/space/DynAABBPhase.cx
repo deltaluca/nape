@@ -314,7 +314,6 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 	public var dtree:PR(AABBTree); //for non-static, non-sleeping objects
 
 	public var pairs:PR(AABBPair); //intrusive list
-	public var pairhash:FastHash2(PR(AABBPair));
 
 	public var syncs:PR(AABBNode); //intrusive list
 	public var moves:PR(AABBNode); //intrusice list
@@ -326,8 +325,6 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 
 		stree = new PR(AABBTree)();
 		dtree = new PR(AABBTree)();
-
-		pairhash = new FastHash2(PR(AABBPair))();
 	}
 
 	//==============================================================
@@ -381,9 +378,10 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 				if(pre==null) pairs    = nxt;
 				else          pre.next = nxt;
 
-				pairhash.remove(cur);
 				if(cur.arb!=null) cur.arb.pair = null;
 				cur.arb = null;
+				cur.n1.shape.pairs.remove(cur);
+				cur.n2.shape.pairs.remove(cur);
 				Free(PR(AABBPair),cur);
 
 				cur = nxt;
@@ -540,7 +538,19 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 							var shape = node.shape;
 							if(shape.body != lshape.body) {
 								if(ab.intersect(node.aabb)) {
-									var p = (lshape.id < shape.id ? pairhash.get(lshape.id,shape.id) : pairhash.get(shape.id,lshape.id));
+									var id:Int; var di:Int;
+									if(lshape.id < shape.id) { id = lshape.id; di = shape.id; }
+									else                     { id = shape.id; di = lshape.id; }
+									var s = if(lshape.pairs.length<shape.pairs.length) lshape else shape;
+
+									var p:PR(AABBPair) = null;
+									Iter(px, s.pairs, {
+										if(px.id == id && px.di == di) {
+											p = px;
+											break;
+										}
+									});
+	
 									if(p!=null) {
 										if(p.sleeping) {
 											p.sleeping = false;
@@ -554,12 +564,13 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 									p = Get(PR(AABBPair));
 									p.n1 = leaf;
 									p.n2 = node;
-									if(lshape.id<shape.id) { p.id = lshape.id; p.di = shape.id; }
-									else                   { p.id = shape.id; p.di = lshape.id; }
+									p.id = id; p.di = di;
 									p.next = pairs;
 									pairs = p;
-									pairhash.add(p);
 									p.first = true; //avoid bounds check in main loop.
+
+									lshape.pairs.add(p);
+									 shape.pairs.add(p);
 								}
 							}
 						}else if(ab.intersect(node.aabb)) {
@@ -584,7 +595,8 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 			if(!cur.first && !cur.n1.aabb.intersect(cur.n2.aabb)) {
 				if(pre==null) pairs = cur.next;
 				else          pre.next = cur.next;
-				pairhash.remove(cur);
+				cur.n1.shape.pairs.remove(cur);
+				cur.n2.shape.pairs.remove(cur);
 				var nxt = cur.next;
 				if(cur.arb!=null) cur.arb.pair = null;
 				cur.arb = null;
@@ -647,7 +659,6 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 			moves = next;
 		}
 
-		pairhash.clear();
 		while(pairs!=null) {
 			var nxt = pairs.next;
 			if(pairs.arb!=null) pairs.arb.pair = null;
