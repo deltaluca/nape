@@ -195,7 +195,6 @@ class PR(Space) {
 	public var f_arbiters:List(PR(FluidArbiter));
 	public var s_arbiters:List(PR(SensorArbiter));
 
-	public var map_arb:FastHash2(PR(Arbiter));
 	public var wrap_arbiters:PR(SpaceArbiterList);
 	
 	//----------------------------------------------------------------------------------------------
@@ -355,10 +354,6 @@ class PR(Space) {
 		assert(islands.empty(),"islands exist... wuh?");
 		islands = null;
 
-		//this is deferred for retirement of arbiters.
-		map_arb.destroy();
-		map_arb = null;
-
 		//other
 		staticsleep.clear(); staticsleep = null;
 		live.clear(); live = null;
@@ -388,7 +383,6 @@ class PR(Space) {
 		ClearWith(arb, c_arbiters(false), arb.retire());
 		ClearWith(arb, s_arbiters,        arb.retire());
 		ClearWith(arb, f_arbiters,        arb.retire());
-		map_arb.clear();
 
 		//broadphase
 		bphase.clear();
@@ -511,8 +505,6 @@ class PR(Space) {
 		c_arbiters(false) = new List(PR(ColArbiter))();
 		f_arbiters = new List(PR(FluidArbiter))();
 		s_arbiters = new List(PR(SensorArbiter))();
-		
-		map_arb = new FastHash2(PR(Arbiter))();
 		
 		islands = new MixList(PR(Island))();
 		
@@ -1733,8 +1725,6 @@ class PR(Space) {
 				if(arb.cleared //always retire
 			 	 || arb.up_stamp + (arb.type==PR(Arbiter).COL ? PR(Config).PERSIST : 0) < stamp //possibly delayed age-death
 				) {
-					if(!arb.cleared)
-						map_arb.remove(arb);
 					arb.retire();
 					cx_ite = arbs.erase(pre);
 					continue;
@@ -1916,7 +1906,6 @@ class PR(Space) {
 							if(first) {
 								arb.assign(s1,s2,sa.id,sb.id);
 								arbs.add(arb);
-								map_arb.add(arb);
 								arb.fresh = !swapped;
 							}else
 								arb.fresh = arb.up_stamp<stamp-1; //handler persistance
@@ -2080,8 +2069,20 @@ class PR(Space) {
 					}else null;
 				});
 
+				$(mixin arbget(s1,s2) ({
+					var ret:PR(Arbiter) = null;
+					var b = if(b1.arbiters.length < b2.arbiters.length) b1 else b2;
+					Iter(arb, b.arbiters, {
+						if(arb.id == s1 && arb.di == s2) {
+							ret = arb;
+							break;
+						}
+					});
+					ret;
+				}));
+
                 if(fcol) {
-                    var xarb = if(in_arb==null) map_arb.get(sa.id,sb.id) else in_arb;
+                    var xarb = if(in_arb==null) arbget(sa.id,sb.id) else in_arb;
                     var first = xarb==null;
 
                     var arb; var swapped = false;
@@ -2101,7 +2102,7 @@ class PR(Space) {
                 } else if(gcol) {
                     var carbs = stat ? c_arbiters(true) : c_arbiters(false);
 
-                    var xarb = if(in_arb==null) map_arb.get(sa.id,sb.id) else in_arb;
+                    var xarb = if(in_arb==null) arbget(sa.id,sb.id) else in_arb;
                     var first = xarb==null;
 						
                     var arb; var swapped = false;
@@ -2132,7 +2133,7 @@ class PR(Space) {
 
 					ret = narrowed(arb,COLLISION,PR(ColArbiter),carbs, PR(Collide).contactCollide(sa,sb,arb,reverse), true,true);
                 } else if(scol) {
-                    var xarb = if(in_arb==null) map_arb.get(sa.id,sb.id) else in_arb;
+                    var xarb = if(in_arb==null) arbget(sa.id,sb.id) else in_arb;
                     var first = xarb==null;
 						
                     var arb; var swapped = false;
