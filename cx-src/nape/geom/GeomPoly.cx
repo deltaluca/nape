@@ -263,6 +263,21 @@ class GeomPoly {
 		#end
 	}
 
+	public function cut(start:Vec2,end:Vec2, bounded_start:Bool=true, bounded_end:Bool=true):GeomPolyList {
+		DEBUG(
+			if(!isSimple())
+				throw "Error: Cut requires a truly simple polygon";
+			if(start==null || end==null)
+				throw "Error: Cannot cut with null start/end's";
+		)
+		Disposed(start,Vec2);
+		Disposed(end,Vec2);
+		var ret = PR(Cutter).run(verts,start,end,bounded_start,bounded_end);
+		WEAK(start);
+		WEAK(end);
+		return ret;
+	}
+
 mix_circular(Vertex,
 	public function transform(matrix:Mat23) {
 		DEBUG(if(matrix==null) throw "Error: Cannot transform by null matrix";)

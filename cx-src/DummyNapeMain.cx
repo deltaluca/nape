@@ -441,29 +441,11 @@ class DummyNapeMain {
 		haxe.Log.setColor(0xffffff);
 		var stage = flash.Lib.current.stage;
 
-		var space = new Space(new Vec2(0,400)/*,Broadphase.SWEEP_AND_PRUNE*/);
-		var debug = new BitmapDebug(stage.stageWidth,stage.stageHeight,0x333333,true);
-		stage.addChild(debug.display);
-
-		var plat = new Body(BodyType.KINEMATIC);
-		plat.shapes.add(new Polygon(Polygon.box(300,100)));
-		plat.position.setxy(stage.stageWidth/2,stage.stageHeight/2);
-		plat.space = space;
-	
-		var b = new Body();
-		b.shapes.add(new Polygon(Polygon.box(50,50)));
-		b.position.setxy(stage.stageWidth/2,0);
-		b.space = space;
-
-		//----------------------------------------------------------------------------------
-		stage.addEventListener(flash.events.Event.ENTER_FRAME, function (_) {
-			plat.velocity.y = Math.sin(space.elapsedTime)*100;
-
-			debug.clear();
-			space.step(1/30);
-			debug.draw(space);
-			debug.flush();
-		});
+		var poly1 = new GeomPoly([new Vec2(0,0), new Vec2(10,0), new Vec2(10,-10), new Vec2(20,-10), new Vec2(20,10), new Vec2(0,10)]);
+		var poly2 = new GeomPoly([new Vec2(0,0), new Vec2(0,10), new Vec2(20,10), new Vec2(20,-10), new Vec2(10,-10), new Vec2(10,0)]);
+		poly1.cut(new Vec2(0,0),new Vec2(10,0));
+		trace("---");
+		poly2.cut(new Vec2(0,0),new Vec2(10,0));
 	}
 }
 
