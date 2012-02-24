@@ -7,7 +7,7 @@ class PR(CutVert) {
 	vec_new(public, pos);
 	public var vert:PR(GeomVert);
 	public var value:Float;
-	public var right:Bool;
+	public var positive:Bool;
 
 	public function new() {}
 	flibmdel public inline function alloc() {}
@@ -22,9 +22,9 @@ class PR(Cutter) {
 		vec_new(d); vec_sub(_end.,p,d);
 		var min = bstart ? 0 : PR(Const).NEGINF;
 		var max = bend   ? 1 : PR(Const).POSINF;
-		var crx = -vec_cross(p,d);
+		var crx = -vec_cross(d,p);
 
-		//calculate left/right for each vertex.
+		//calculate left/positive for each vertex.
 	mix_circular(PR(GeomVert),
 		var verts = new List(PR(CutVert))();
 		var clashes = false;
@@ -32,16 +32,13 @@ class PR(Cutter) {
 			var c = Get(PR(CutVert));
 			c.vert = p;
 			vec_set(c.pos, c.vert.);
-			c.value = vec_cross(c.pos,d) + crx;
-			c.right = c.value > 0;
+			c.value = vec_cross(d,c.pos) + crx;
+			c.positive = c.value > 0;
 			if(c.value==0) clashes = true;
 			verts.add(c);
 		});
 	)
 
-		Iter(p, verts, {
-			trace([p.posx,p.posy,p.value,p.right]);
-		});
 		//resolve any ambiguity
 		if(clashes) {
 			var start:Node(PR(CutVert)) = null;
@@ -53,61 +50,41 @@ class PR(Cutter) {
 			});
 			assert(start!=null,"all vertices on line but it's simple?");
 
+			vec_new(n); vec_set(n,d); vec_normal(n);
+
 			var pre:Node(PR(CutVert)) = null;
 			IterCycleFull(p,verts,start,{
-				if(p.value!=0.0 && (pre==null || cx_ite==CycleNext(verts,pre))) {
-					pre = cx_ite; cx_continue;
-				}
-
-				var prod = pre.elem().value * p.value;
-				if(prod==0) {
+				if(p.value!=0.0
+				&& (pre==null || cx_ite==CycleNext(verts,pre))) {
+					pre = cx_ite;
 					cx_continue;
 				}
 
-				if(prod>0) {
-					//yay!!
-					IterCycle(q,verts,pre,cx_ite,{
-						q.value = pre.elem().value;
-						q.right = pre.elem().right;
-					});
-					pre = cx_ite;
-				}else{
-					//nooo!!!!
-					var a = CycleNext(verts,pre);
-					var b = CycleNext(verts,a);
+				var prod = pre.elem().value * p.value;
+				if(prod==0) cx_continue;
 
-					vec_new(mid);
-					vec_add(a.elem().pos,b.elem().pos,mid);
-					vec_muleq(mid,0.5);
+				var a = CycleNext(verts,pre);
+				var positive =
+					if(prod>0) pre.elem().positive;
+					else{
+						//nooo!!!!
+						var b = CycleNext(verts,a);
 
-					vec_new(dir);
-					vec_sub(b.elem().pos,a.elem().pos,dir);
-					trace([midx,midy,midx-diry*1e-5,diry+dirx*1e-5]);
-					if(geom(contains(P, midx - diry*1e-5, midy + dirx*1e-5))) {
-						var n = cx_ite;
-						IterCycle(q,verts,pre,n,{
-							if((CycleNext(verts,cx_ite))==n) cx_break;
-							q.value = pre.elem().value;
-							q.right = pre.elem().right;
-						});
-						pre = cx_ite;
-					}else {
-						pre = CycleNext(verts,pre);
-						pre.elem().value = p.value;
-						pre.elem().right = p.right;
-						IterCycle(q,verts,pre,cx_ite,{
-							q.value = pre.elem().value;
-							q.right = pre.elem().right;
-						});
-						pre = cx_ite;
-					}
-				}
+						vec_new(mid);
+						vec_add(a.elem().pos,b.elem().pos,mid);
+						vec_muleq(mid,0.5);
+	
+						geom(contains(P, midx+nx*1e-8, midy+ny*1e-8));
+					};
+
+				var n = cx_ite;
+				IterCycle(q,verts,a,{
+					if(cx_ite==n) cx_break;
+					q.positive = positive;
+				});
+				pre = cx_ite;
 			});
 		}
-
-		Iter(p, verts, {
-			trace([p.posx,p.posy,p.value,p.right]);
-		});
 
 		return new GeomPolyList();
 	}
