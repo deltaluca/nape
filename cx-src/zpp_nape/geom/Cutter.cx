@@ -103,15 +103,19 @@ class PR(Cutter) {
 			vec_new(n); vec_set(n,d); vec_normal(n);
 
 			var pre:PR(CutVert) = null;
-			function work(p:PR(CutVert)) {
+			$(mixin work(p) {
 				if(p.value!=0.0
 				&& (pre==null || p==pre.next)) {
 					pre = p;
-					return;
+					p = p.next;
+					continue;
 				}
 
 				var prod = pre.value * p.value;
-				if(prod==0) return;
+				if(prod==0) {
+					p = p.next;
+					continue;
+				}
 
 				var a = pre.next;
 				var positive =
@@ -129,9 +133,14 @@ class PR(Cutter) {
 
 				for_iter(q,a,p, q.positive = positive);
 				pre = p;
-			}
-			for_iter(p, start, work(p));
-			work(start);
+				p = p.next;
+			});
+			//manual iteration, more caxe bugging.
+			var p = start;
+			do work(p)
+			while(p!=start);
+			do work(p)
+			while(false);
 		}
 
 		//build paths and intersecions
@@ -248,6 +257,9 @@ class PR(Cutter) {
 			gp.pr(inner).vertices = poly.vert;
 			ret.add(gp);
 		});
+
+		ClearWith(p, paths, Free(PR(CutVert),p));
+		mixpool_circular(PR(CutVert),clear(verts));
 
 		return ret;
 	}
