@@ -4,7 +4,9 @@ $(import);
 //used both as a vertex
 //and a means of classifying the output polygons
 class PR(CutVert) {
-	MixPool(PR(CutVert))
+	MixPoolNoNext(PR(CutVert))
+	public var prev:PR(CutVert);
+	public var next:PR(CutVert);
 
 	vec_new(public, pos);
 	public var vert:PR(GeomVert);
@@ -71,27 +73,28 @@ class PR(Cutter) {
 		var max = bend   ? 1 : PR(Const).POSINF;
 		var crx = -vec_cross(d,p);
 
+	mix_circular(PR(CutVert),
 		//calculate side for each vertex.
-	mix_circular(PR(GeomVert),
-		var verts = new List(PR(CutVert))();
+		var verts:PR(CutVert) = null;
 		var clashes = false;
-		for_iter(p,P,{
+		var p = P;
+		do { //manual iteration, avoid nested mix_circular (bug in caxe at time of writing)
 			var c = Get(PR(CutVert));
 			c.vert = p;
 			vec_set(c.pos, c.vert.);
 			c.value = vec_cross(d,c.pos) + crx;
 			c.positive = c.value > 0;
 			if(c.value==0) clashes = true;
-			verts.add(c);
-		});
-	)
+			verts = push_after(verts,c);
+			p = p.next;
+		}while(p!=P);
 
 		//resolve any ambiguity
 		if(clashes) {
-			var start:Node(PR(CutVert)) = null;
-			Iter(p, verts, {
+			var start:PR(CutVert) = null;
+			for_iter(p, verts, {
 				if(p.value!=0.0) {
-					start = cx_ite;
+					start = p;
 					break;
 				}
 			});
@@ -99,54 +102,53 @@ class PR(Cutter) {
 
 			vec_new(n); vec_set(n,d); vec_normal(n);
 
-			var pre:Node(PR(CutVert)) = null;
-			IterCycleFull(p,verts,start,{
+			var pre:PR(CutVert) = null;
+			function work(p:PR(CutVert)) {
 				if(p.value!=0.0
-				&& (pre==null || cx_ite==CycleNext(verts,pre))) {
-					pre = cx_ite;
-					cx_continue;
+				&& (pre==null || p==pre.next)) {
+					pre = p;
+					return;
 				}
 
-				var prod = pre.elem().value * p.value;
-				if(prod==0) cx_continue;
+				var prod = pre.value * p.value;
+				if(prod==0) return;
 
-				var a = CycleNext(verts,pre);
+				var a = pre.next;
 				var positive =
-					if(prod>0) pre.elem().positive;
+					if(prod>0) pre.positive;
 					else{
 						//this is the situation which demands a simple polygon as input!
-						var b = CycleNext(verts,a);
+						var b = a.next;
 
 						vec_new(mid);
-						vec_add(a.elem().pos,b.elem().pos,mid);
+						vec_add(a.pos,b.pos,mid);
 						vec_muleq(mid,0.5);
 	
 						geom(contains(P, midx+nx*1e-8, midy+ny*1e-8));
 					};
 
-				var n = cx_ite;
-				IterCycle(q,verts,a,{
-					if(cx_ite==n) cx_break;
-					q.positive = positive;
-				});
-				pre = cx_ite;
-			});
+				for_iter(q,a,p, q.positive = positive);
+				pre = p;
+			}
+			for_iter(p, start, work(p));
+			work(start);
 		}
 
 		//build paths and intersecions
 		var ints = new List(PR(CutInt))();
 		var paths = new List(PR(CutVert))(); //as path reference in DSF
 
+	)
 	mixpool_circular(PR(GeomVert),
 		var start = null;
-		push_before(start,PR(GeomVert).get(verts.begin().elem().posx,verts.begin().elem().posy));
+		push_before(start,PR(GeomVert).get(verts.posx,verts.posy));
 		var origin = start;
 		var firstpath = PR(CutVert).path(start);
 		paths.add(firstpath);
 
-		Iter2(i,j,verts,{
-	//have to redo this environment inside of loop.
-	mixpool_circular(PR(GeomVert),
+		var i = verts;
+		do {
+			var j = i.next;
 			var pj = PR(GeomVert).get(j.posx,j.posy);
 			if(i.positive==j.positive) {
 				//add j to current path
@@ -204,8 +206,8 @@ class PR(Cutter) {
 					}
 				}
 			}
-	)
-		});
+			i = i.next;
+		} while(i!=verts);
 
 		//merge last and first paths
 		var endof = start.prev;
