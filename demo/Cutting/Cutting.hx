@@ -17,33 +17,40 @@ class Cutting extends flash.display.Sprite {
 
 		var handlesize = 4;
 		var segsize = 6;
+		var subsize = 2;
 
-		var poly = new GeomPoly([new Vec2(100,100),new Vec2(200,100),new Vec2(300,100),new Vec2(300,200),new Vec2(300,300),new Vec2(200,300),new Vec2(100,300),new Vec2(100,200)]);
-		var seg0 = new Vec2(50,225);
-		var seg1 = new Vec2(550,225);
+		var poly = new GeomPoly([new Vec2(100,100),new Vec2(200,150),new Vec2(300,100),new Vec2(100,300),new Vec2(200,300),new Vec2(300,300)]);
+		var seg0 = new Vec2(150,50);
+		var seg1 = new Vec2(150,225);
 
 		function render() {
 			debug.clear();
 
-			if(poly.size()>2) {
-				debug.drawFilledPolygon(poly,0x555555);
-				debug.drawPolygon(poly,0x999999);
-				for(p in poly) {
-					debug.drawFilledCircle(p,handlesize,0x666666);
-					debug.drawCircle(p,handlesize,0xaaaaaa);
-				}
+			debug.drawFilledPolygon(poly,0x555555);
+			debug.drawPolygon(poly,0x999999);
+			for(p in poly) {
+				debug.drawFilledCircle(p,handlesize,0x666666);
+				debug.drawCircle(p,handlesize,0xaaaaaa);
 			}
 
-			var polys = poly.cut(seg0,seg1,true,true);
-			for(p in polys) {
-				var above = false;
-				for(q in p) {
-					if(q.sub(seg0).cross(seg1.sub(seg0))<0) {
-						above = true;
-						break;
+			var simples = poly.simple_decomposition();
+			for(poly in simples) {
+				var polys = poly.cut(seg0,seg1,true,true);
+				var sum = 0.0;
+				for(p in polys) {
+					sum += p.area();
+					var max = 0.0;
+					for(q in p) {
+						var dot = q.sub(seg0).cross(seg1.sub(seg0));
+						if(dot*dot>max*max) max = dot;
+					}
+					debug.drawFilledPolygon(p,max >0 ? 0x55aa55 : 0xaa55aa);
+					debug.drawPolygon(p,max >0 ? 0x99ff99 : 0xff99ff);
+					for(q in p) {
+						debug.drawFilledCircle(q,subsize,max > 0 ? 0x66bb66 : 0xbb66bb);
+						debug.drawCircle(q,subsize,max > 0 ? 0xaaffaa : 0xffaaff);
 					}
 				}
-				debug.drawPolygon(p,above ? 0xff00 : 0xff00ff);
 			}
 
 			debug.drawLine(seg0,seg1,0xffffff);
