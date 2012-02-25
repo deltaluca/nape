@@ -2,8 +2,15 @@ package zpp_nape;
 $(import);
 
 class PR(Const) {
-	public static inline var POSINF = Math.POSITIVE_INFINITY;
-	public static inline var NEGINF = Math.NEGATIVE_INFINITY;
+	#if flash
+		//cannot use POSITIVE_INFINITY due to haxe bug
+		//cannot use untyped __global__["Number"].POSITIVE_INFINITY due to some strange memory consumption.
+		public static inline var POSINF =  1.79e+308;
+		public static inline var NEGINF = -1.79e+308;
+	#else
+		public static inline var POSINF = Math.POSITIVE_INFINITY;
+		public static inline var NEGINF = Math.NEGATIVE_INFINITY;
+	#end
 	public static inline var EPSILON = 1e-8;
 	public static inline var FMAX = 1e100;
 }
