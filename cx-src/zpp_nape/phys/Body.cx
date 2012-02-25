@@ -477,8 +477,14 @@ class PR(Body) extends PR(Interactor) {
 			//does not like very large values for rotations, so mudulo operation
 			//is necessary to avoid lengthy simulations causes objects to simply
 			//stop rotating visually.
-			graphic.rotation = (rot*180/Math.PI)%360.0;
-			vec_set(graphic.,pos);
+			//
+			//to avoid issue in flash player of having VERY memory expensive
+			//access to properties of dynamic values. we have this restriction
+			#if (flash9 || nme)
+				var g:flash.display.DisplayObject = graphic;
+				g.rotation = (rot*180/Math.PI)%360.0;
+				vec_set(g.,pos);
+			#end
 		}
 	}
 	
