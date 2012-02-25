@@ -15,19 +15,23 @@ class PR(Ray) {
 	//for aabbtest
 	vec_new(public,normal);
 	vec_new(public,absnormal);
-	
+
+	//previously lambdas
+	private function origin_invalidate(x:PR(Vec2)) {
+		vec_set(origin,x.);
+	}
+	private function direction_invalidate(x:PR(Vec2)) {
+		vec_set(dir,x.);
+		invalidate_dir();
+	}
+
 	public function new() {
 		origin = Vec2.get();
 		direction = Vec2.get();
 		var me = this;
-		origin.pr(inner)._invalidate = function(x:PR(Vec2)) {
-			vec_set(me.origin,x.);
-		}
+		origin.pr(inner)._invalidate = origin_invalidate;
 		vec_set(origin,0,0); //otherwise an init. origin of (0,0) leaves these as NaN
-		direction.pr(inner)._invalidate = function(x:PR(Vec2)) {
-			vec_set(me.dir,x.);
-			me.invalidate_dir();
-		}
+		direction.pr(inner)._invalidate = direction_invalidate;
 		vec_set(dir,0,0);
 		inv(dir) = false;
 	}

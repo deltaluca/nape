@@ -222,20 +222,24 @@ $(mixin global withConstraint(block)
 	$(mixin anchor_new(n,extra)
 		vec_new(public,n`local);
 		vec_new(public,n`rel);
-		
+
+		//were previously lambdas	
+		private function validate_`n() {
+			vec_set(wrap_`n.pr(inner).,n`local);
+		}
+		private function invalidate_`n() {
+			immutable_midstep("Constraint::"+$str(n));
+			vec_set(n`local,x.);
+			extra
+			wake();
+		}
+
 		public function setup_`n() {
 			var me = this;
 			wrap_`n = Vec2.get(n`localx,n`localy);
 			wrap_`n.pr(inner).inuse = true;
-			wrap_`n.pr(inner)._validate = function() {
-				vec_set(me.wrap_`n.pr(inner).,me.n`local);
-			}
-			wrap_`n.pr(inner)._invalidate = function(x:PR(Vec2)) {
-				me.immutable_midstep("Constraint::"+$str(n));
-				vec_set(me.n`local,x.);
-				extra
-				me.wake();
-			}
+			wrap_`n.pr(inner)._validate = validate_`n;
+			wrap_`n.pr(inner)._invalidate = invalidate_`n;
 		}
 		public var wrap_`n:Vec2
 	);
