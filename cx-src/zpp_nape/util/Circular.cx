@@ -63,6 +63,20 @@ $(mixin global circular(T, defs, block)
 
 	//------------------------------------------------------------------------------------
 
+	//merge two lists together
+	//  ____  ___        ____  ___
+	// |x_ V |_y |  =>  |r_ V-'   |
+	// |___| ^___|      |___,-,___|
+	//
+	$(mixin merge(x,y) {
+		x.next.prev = y.prev;
+		y.prev.next = x.next;
+		x.next = y;
+		y.prev = x;
+	});
+
+	//------------------------------------------------------------------------------------
+
 	//insert obj before node, return object.
 	//NOTE: node must be mutable and pure!!
 	$(mixin push_before(node, O) {

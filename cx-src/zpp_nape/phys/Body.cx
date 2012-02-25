@@ -99,103 +99,133 @@ class PR(Body) extends PR(Interactor) {
 		//don't wake object here, this method is called by space each step!
 	}
 
+	//--------------------------------------------------------------------
+
+	//previously were lambdas
+	private function pos_invalidate(pos:PR(Vec2)) {
+		immutable_midstep("Body::position");
+		DEBUG(if(isStatic() && space!=null)
+			throw "Error: Cannot move a static object once inside a Space";
+		)
+		if(!vec_eq(pos,pos.)) {
+			vec_set(pos,pos.);
+			invalidate_pos();
+			wake();
+		}
+	}
+	private function pos_validate() vec_set(wrap_pos.pr(inner).,pos)
+
+	//--------------------------------------------------------------------
+
+	//previously were lambdas
+	private function vel_invalidate(vel:PR(Vec2)) {
+		DEBUG(if(isStatic() && space!=null)
+			throw "Error: A static object within a space cannot be given a velocity";
+		)
+		vec_set(vel,vel.);
+		invalidate_wake();
+	}	
+	private function vel_validate() {
+		vec_set(wrap_vel.pr(inner).,vel);
+	}
+
+	//--------------------------------------------------------------------
+
+	//previously were lambdas
+	private function kinvel_invalidate(vel:PR(Vec2)) {
+		vec_set(kinvel,vel.);
+		invalidate_wake();
+	}
+	private function kinvel_validate() {
+		vec_set(wrap_kinvel.pr(inner).,kinvel);
+	}
+
+	//--------------------------------------------------------------------
+
+	//previously were lambdas
+	private function svel_invalidate(vel:PR(Vec2)) {
+		vec_set(svel,vel.);
+		invalidate_wake();
+	}	
+	private function svel_validate() {
+		vec_set(wrap_svel.pr(inner).,svel);
+	}
+
+	//--------------------------------------------------------------------
+
+	//previously were lambdas
+	private function force_invalidate(force:PR(Vec2)) {
+		vec_set(force,force.);
+		
+		if(isDynamic())
+			invalidate_wake();
+	}
+	private function force_validate() vec_set(wrap_force.pr(inner).,force)
+
+	//--------------------------------------------------------------------
+
 	public function setupPosition() {
-		var me = this;
-		me.wrap_pos = Vec2.get(posx,posy);
-		me.wrap_pos.pr(inner).inuse = true;
-		if(world) me.wrap_pos.pr(inner).immutable = true;
+		wrap_pos = Vec2.get(posx,posy);
+		wrap_pos.pr(inner).inuse = true;
+		if(world) wrap_pos.pr(inner).immutable = true;
 		else {
-			me.wrap_pos.pr(inner)._invalidate = function(pos:PR(Vec2)) {
-				me.immutable_midstep("Body::position");
-				DEBUG(if(me.isStatic() && me.space!=null)
-					throw "Error: Cannot move a static object once inside a Space";
-				)
-				if(!vec_eq(me.pos,pos.)) {
-					vec_set(me.pos,pos.);
-					me.invalidate_pos();
-					me.wake();
-				}
-			};
-			me.wrap_pos.pr(inner)._validate = function() vec_set(me.wrap_pos.pr(inner).,me.pos);
+			wrap_pos.pr(inner)._invalidate = pos_invalidate;
+			wrap_pos.pr(inner)._validate = pos_validate;
 		}
 	}
 	public function setupVelocity() {
-		var me = this;
-		me.wrap_vel = Vec2.get(velx,vely);
-		me.wrap_vel.pr(inner).inuse = true;
-		if(world) me.wrap_vel.pr(inner).immutable = true;
+		wrap_vel = Vec2.get(velx,vely);
+		wrap_vel.pr(inner).inuse = true;
+		if(world) wrap_vel.pr(inner).immutable = true;
 		else {
-			me.wrap_vel.pr(inner)._invalidate = function(vel:PR(Vec2)) {
-                DEBUG(if(me.isStatic() && me.space!=null)
-                    throw "Error: A static object within a space cannot be given a velocity";
-                )
-				vec_set(me.vel,vel.);
-                me.invalidate_wake();
-			};
-			me.wrap_vel.pr(inner)._validate = function() {
-				vec_set(me.wrap_vel.pr(inner).,me.vel);
-			};
+			wrap_vel.pr(inner)._invalidate = vel_invalidate;
+			wrap_vel.pr(inner)._validate = vel_validate;
 		}
 	}
 	public function setupkinvel() {
-		var me = this;
-		me.wrap_kinvel = Vec2.get(kinvelx,kinvely);
-		me.wrap_kinvel.pr(inner).inuse = true;
-		if(world) me.wrap_kinvel.pr(inner).immutable = true;
+		wrap_kinvel = Vec2.get(kinvelx,kinvely);
+		wrap_kinvel.pr(inner).inuse = true;
+		if(world) wrap_kinvel.pr(inner).immutable = true;
 		else {
-			me.wrap_kinvel.pr(inner)._invalidate = function(vel:PR(Vec2)) {
-				vec_set(me.kinvel,vel.);
-                me.invalidate_wake();
-			};
-			me.wrap_kinvel.pr(inner)._validate = function() {
-				vec_set(me.wrap_kinvel.pr(inner).,me.kinvel);
-			};
+			wrap_kinvel.pr(inner)._invalidate = kinvel_invalidate;
+			wrap_kinvel.pr(inner)._validate = kinvel_validate;
 		}
 	}
 	public function setupsvel() {
-		var me = this;
-		me.wrap_svel = Vec2.get(svelx,svely);
-		me.wrap_svel.pr(inner).inuse = true;
-		if(world) me.wrap_svel.pr(inner).immutable = true;
+		wrap_svel = Vec2.get(svelx,svely);
+		wrap_svel.pr(inner).inuse = true;
+		if(world) wrap_svel.pr(inner).immutable = true;
 		else {
-			me.wrap_svel.pr(inner)._invalidate = function(vel:PR(Vec2)) {
-				vec_set(me.svel,vel.);
-                me.invalidate_wake();
-			};
-			me.wrap_svel.pr(inner)._validate = function() {
-				vec_set(me.wrap_svel.pr(inner).,me.svel);
-			};
+			wrap_svel.pr(inner)._invalidate = svel_invalidate;
+			wrap_svel.pr(inner)._validate = svel_validate;
 		}
 	}
 	
 	public function setupForce() {
-		var me = this;
-		me.wrap_force = Vec2.get(forcex,forcey);
-		me.wrap_force.pr(inner).inuse = true;
-		if(world) me.wrap_force.pr(inner).immutable = true;
+		wrap_force = Vec2.get(forcex,forcey);
+		wrap_force.pr(inner).inuse = true;
+		if(world) wrap_force.pr(inner).immutable = true;
 		else {
-			me.wrap_force.pr(inner)._invalidate = function(force:PR(Vec2)) {
-				vec_set(me.force,force.);
-				
-				if(me.isDynamic())
-					me.invalidate_wake();
-			};
-			me.wrap_force.pr(inner)._validate = function() vec_set(me.wrap_force.pr(inner).,me.force);
+			wrap_force.pr(inner)._invalidate = force_invalidate;
+			wrap_force.pr(inner)._validate = force_validate;
 		}
 	}
 	
 	//----------------------------------------------------------------------------------------------
 
+	//was previous lambda
+	private function cvel_validate() {
+		wrapcvel.pr(inner).x = velx + kinvelx;
+		wrapcvel.pr(inner).y = vely + kinvely;
+		wrapcvel.pr(inner).z = angvel + kinangvel;
+	}
+
 	public var wrapcvel:Vec3;
 	public function setup_cvel() {
 		var me = this;
-		me.wrapcvel = new Vec3();
-		me.wrapcvel.pr(inner).immutable = true;
-		me.wrapcvel.pr(inner).validate = function() {
-			me.wrapcvel.pr(inner).x = me.velx + me.kinvelx;
-			me.wrapcvel.pr(inner).y = me.vely + me.kinvely;
-			me.wrapcvel.pr(inner).z = me.angvel + me.kinangvel;
-		}
+		wrapcvel = new Vec3();
+		wrapcvel.pr(inner).immutable = true;
+		wrapcvel.pr(inner).validate = cvel_validate;
 	}
 
 	//----------------------------------------------------------------------------------------------
@@ -658,6 +688,40 @@ class PR(Body) extends PR(Interactor) {
 	
     //----------------------------------------------------------------------------------------------
 
+	//was previously a lambda
+	private function aabb_validate() {
+		DEBUG(if(shapes.empty()) throw "Error: bounds only makes sense when Body has shapes";)
+		validate_aabb();
+	}
+
+	//were previously lambdas
+	private function shapes_adder(s:Shape) {
+		Detroyed(s,Shape)
+		if(s.pr(inner).body!=this) {
+			if(s.pr(inner).body!=null) s.pr(inner).body.wrap_shapes.remove(s);
+			s.pr(inner).body = this;
+			s.pr(inner).addedToBody();
+
+			if(space!=null) space.added_shape(s.pr(inner));
+			
+			return true;
+		}else return false;
+	}
+	private function shapes_subber(s:Shape) {
+		if(space!=null) space.removed_shape(s.pr(inner));
+		
+		s.pr(inner).body=null;
+		s.pr(inner).removedFromBody();
+	}
+	private function shapes_invalidate(_) {
+		invalidate_shapes();
+	}
+	DEBUG(private function shapes_modifiable() {
+		immutable_midstep("Body::shapes");
+		if(isStatic() && space!=null)
+			throw "Error: Cannot modifiy shapes of static object once added to Space";
+	})
+
 	public function new() {
 		super();
 		ibody = this;
@@ -685,10 +749,7 @@ class PR(Body) extends PR(Interactor) {
 		aabb = PR(AABB).get(0,0,0,0);
 		aabb.immutable = true;
 		var me = this;
-		aabb._validate = function() {
-			DEBUG(if(me.shapes.empty()) throw "Error: bounds only makes sense when Body has Shapes";)
-			me.validate_aabb();
-		};
+		aabb._validate = aabb_validate;
 		
 		massMode = Flag(MassMode,DEFAULT);
 		gravMassMode = Flag(GravMassMode,DEFAULT);
@@ -701,34 +762,10 @@ class PR(Body) extends PR(Interactor) {
 		
 		shapes = new List(PR(Shape))();
 		wrap_shapes = PR(ShapeList).get(shapes);
-		var me = this;
-		wrap_shapes.pr(inner).adder = function(s:Shape) {
-			Destroyed(s,Shape)
-			if(s.pr(inner).body!=me) {
-				if(s.pr(inner).body!=null) s.pr(inner).body.wrap_shapes.remove(s);
-				s.pr(inner).body = me;
-				s.pr(inner).addedToBody();
-
-				if(me.space!=null) me.space.added_shape(s.pr(inner));
-				
-				return true;
-			}else return false;
-		};
-		wrap_shapes.pr(inner).subber = function(s:Shape) {
-			if(me.space!=null) me.space.removed_shape(s.pr(inner));
-			
-			s.pr(inner).body=null;
-			s.pr(inner).removedFromBody();
-		};
-		wrap_shapes.pr(inner)._invalidate = function(_) {
-			me.invalidate_shapes();
-		};
-		
-		wrap_shapes.pr(inner)._modifiable = function() {
-			me.immutable_midstep("Body::shapes");
-			if(me.isStatic() && me.space!=null)
-				throw "Error: Cannot modifiy shapes of static object once added to Space";
-		};
+		wrap_shapes.pr(inner).adder = shapes_adder;
+		wrap_shapes.pr(inner).subber = shapes_subber;
+		wrap_shapes.pr(inner)._invalidate = shapes_invalidate;
+		DEBUG(wrap_shapes.pr(inner)._modifiable = shapes_modifiable;)
 	}
 	
 	//----------------------------------------------------------------------------------------------

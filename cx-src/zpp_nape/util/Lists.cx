@@ -695,6 +695,17 @@ $(mixin global IterIte(i,list,listite,closure) ${->
 $(mixin global Iterate(list,closure) IterateIte(list,list.begin(),closure));
 $(mixin global IterateIte(list,listite,closure) IterIte(i,list,listite,closure(i)));
 
+$(mixin global IterCycleFull(i,list,listite,closure) ${IterCycle/4->
+	IterCycle(i,list,listite,closure);
+	do {
+		var cx_ite = listite;
+		var i = cx_ite.elem();
+		$(mixin cx_continue break);
+		$(mixin cx_break break);
+		closure;
+	}while(false);
+});
+
 $(mixin global IterCycle(i,list,listite,closure) ${->
 	var beg_ite = listite;
 	var cx_ite = listite;
@@ -710,6 +721,10 @@ $(mixin global IterCycle(i,list,listite,closure) ${->
 		$(cx_continue,cx_break->closure);
 		cx_ite = cx_ite.next; if(cx_ite==null) cx_ite = list.begin();
 	}
+});
+
+$(mixin global CycleNext(list,cur) ${-> 
+	if(cur.next==null) list.begin() else cur.next;
 });
 
 //--------------------------------------------------------------------------------------------------

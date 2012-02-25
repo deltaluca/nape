@@ -51,38 +51,40 @@ class PR(Debug) {
 		tmpab = new PR(AABB)();
 	}
 
+	//previously a lambda
+	private function xform_invalidate() {
+		xdet = PR(Math).sqrt(abs(xform.outer.determinant));
+		xnull = xform.a == 1.0 && xform.b == 0.0 && xform.c == 0.0 && xform.d == 1.0
+				&& xform.tx == 0.0 && xform.ty == 0.0;
+
+		var qmat = xform.outer.inverse();
+		var q = Vec2.get();
+		var v = qmat.transform(q);
+		vec_set(iport.min,v.); vec_set(iport.max,iport.min);
+		v.dispose();
+
+		q.x = width;
+		v = qmat.transform(q);
+		iport.set_expand_point(v.x,v.y);
+		v.dispose();
+
+		q.y = height;
+		v = qmat.transform(q);
+		iport.set_expand_point(v.x,v.y);
+		v.dispose();
+
+		q.x = 0;
+		v = qmat.transform(q);
+		iport.set_expand_point(v.x,v.y);
+		v.dispose();
+		q.dispose();
+	}
+
 	public function setform() {
 		//don't bother not using wrapper since it'll exist ALWAYS.
 		xform = new Mat23().pr(inner);
 		DEBUG(xform.inuse = true;)
-		var me = this;
-		xform.__invalidate = function() {
-			me.xdet = PR(Math).sqrt(abs(me.xform.outer.determinant));
-			me.xnull = me.xform.a == 1.0 && me.xform.b == 0.0 && me.xform.c == 0.0 && me.xform.d == 1.0
-			        && me.xform.tx == 0.0 && me.xform.ty == 0.0;
-
-			var qmat = me.xform.outer.inverse();
-			var q = Vec2.get();
-			var v = qmat.transform(q);
-			vec_set(me.iport.min,v.); vec_set(me.iport.max,me.iport.min);
-			v.destroy();
-
-			q.x = me.width;
-			v = qmat.transform(q);
-			me.iport.set_expand_point(v.x,v.y);
-			v.destroy();
-
-			q.y = me.height;
-			v = qmat.transform(q);
-			me.iport.set_expand_point(v.x,v.y);
-			v.destroy();
-
-			q.x = 0;
-			v = qmat.transform(q);
-			me.iport.set_expand_point(v.x,v.y);
-			v.destroy();
-			q.destroy();
-		}
+		xform.__invalidate = xform_invalidate;
 	}
 
 	public var tmpab:PR(AABB);

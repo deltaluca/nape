@@ -311,20 +311,23 @@ class PR(FluidArbiter) extends PR(Arbiter) {
 	public var padamp:Float;
 
     ///---------------------------------------------------------------------------------------------
+
+	//previously lambads
+	private function position_validate() {
+		DEBUG(if(inactiveme()) throw "Error: Arbiter not currently in use";)
+		vec_set(wrap_position.pr(inner).,centroid);
+	}
+	private function position_invalidate(x:PR(Vec2)) {
+		vec_set(centroid,x.);
+	}
 	
 	public var wrap_position:Vec2;
 	public function getposition() {
-		var me = this;
 		wrap_position = Vec2.get();
 		wrap_position.pr(inner).inuse = true;
 		wrap_position.pr(inner).immutable = !mutable;
-		wrap_position.pr(inner)._validate = function() {
-			DEBUG(if(me.inactiveme()) throw "Error: Arbiter not currently in use";)
-			vec_set(me.wrap_position.pr(inner).,me.centroid);
-		}
-		wrap_position.pr(inner)._invalidate = function(x:PR(Vec2)) {
-			vec_set(me.centroid,x.);
-		}
+		wrap_position.pr(inner)._validate = position_validate;
+		wrap_position.pr(inner)._invalidate = position_invalidate;
 	}
 
     ///---------------------------------------------------------------------------------------------
@@ -607,20 +610,23 @@ class PR(ColArbiter) extends PR(Arbiter) {
 	vec_new(public, n); //normal (shared between contacts)
 
     ///---------------------------------------------------------------------------------------------
+
+	//previously lambdas
+	private function normal_validate() {
+		if(cleared) throw "Error: Arbiter not currently in use";
+		vec_set(wrap_normal.pr(inner).,n);
+	}
+	private function normal_invalidate(x:PR(Vec2)) {
+		vec_set(n,x.);
+	}
 	
 	public var wrap_normal:Vec2;
 	public function getnormal() {
-		var me = this;
 		wrap_normal = Vec2.get(0,0);
 		wrap_normal.pr(inner).immutable = !mutable;
 		wrap_normal.pr(inner).inuse = true;
-		wrap_normal.pr(inner)._validate = function() {
-			if(me.cleared) throw "Error: Arbiter not currently in use";
-			vec_set(me.wrap_normal.pr(inner).,me.n);
-		}
-		wrap_normal.pr(inner)._invalidate = function(x:PR(Vec2)) {
-			vec_set(me.n,x.);
-		}
+		wrap_normal.pr(inner)._validate = normal_validate;
+		wrap_normal.pr(inner)._invalidate = normal_invalidate;
 	}
 
     ///---------------------------------------------------------------------------------------------
@@ -789,30 +795,34 @@ class PR(ColArbiter) extends PR(Arbiter) {
 		if(wrap_contacts!=null) wrap_contacts.pr(inner).immutable = true;
 	}
 
+	//previously lambdas
+	private function contacts_adder(x:Contact) {
+		DEBUG(throw "Error: Cannot add new contacts, information required is far too specific and detailed :)";)
+		return false;
+	}
+	private function contacts_subber(x:Contact) {
+		var pre = null; var prei = null;
+		var cx_itei = innards.begin();
+		Iter(c, contacts, {
+			if(c==x.pr(inner)) {
+				//dontremove true, so we will deal with removing from contacts
+				contacts.erase(pre);
+				innards.erase(prei);
+				Free(PR(Contact),c);
+				break;
+			}
+			pre = cx_ite;
+			prei = cx_itei;
+			cx_itei = cx_itei.next;
+		});
+	}
+
 	public function setupcontacts() {
 		wrap_contacts = PR(ContactList).get(contacts,true);
 		wrap_contacts.pr(inner).immutable = !mutable;
-		wrap_contacts.pr(inner).adder = function(x:Contact) {
-			DEBUG(throw "Error: Cannot add new contacts, information required is far too specific and detailed :)";)
-			return false;
-		}
+		wrap_contacts.pr(inner).adder = contacts_adder;
 		wrap_contacts.pr(inner).dontremove = true; //!!!!
-		wrap_contacts.pr(inner).subber = function(x:Contact) {
-			var pre = null; var prei = null;
-			var cx_itei = innards.begin();
-			Iter(c, contacts, {
-				if(c==x.pr(inner)) {
-					//dontremove true, so we will deal with removing from contacts
-					contacts.erase(pre);
-					innards.erase(prei);
-					Free(PR(Contact),c);
-					break;
-				}
-				pre = cx_ite;
-				prei = cx_itei;
-				cx_itei = cx_itei.next;
-			});
-		}
+		wrap_contacts.pr(inner).subber = contacts_subber;
 	}
 	
 	///---------------------------------------------------------------------------------------------

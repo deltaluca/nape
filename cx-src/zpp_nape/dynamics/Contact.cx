@@ -15,6 +15,15 @@ class PR(Contact) {
 	}
 	
 	vec_new(public,p);
+
+	//previously lambdas
+	private function position_validate() {
+		DEBUG(if(inactiveme()) throw "Error: Contact not currently in use";)
+		vec_set(wrap_position.pr(inner).,p);
+	}
+	private function position_invalidate(x:PR(Vec2)) {
+		vec_set(p,x.);
+	}
 	
 	public var wrap_position:Vec2;
 	public function getposition() {
@@ -22,13 +31,8 @@ class PR(Contact) {
 		wrap_position = Vec2.get();
 		wrap_position.pr(inner).inuse = true;
 		wrap_position.pr(inner).immutable = !arbiter.colarb.mutable;
-		wrap_position.pr(inner)._validate = function() {
-			DEBUG(if(me.inactiveme()) throw "Error: Contact not currently in use";)
-			vec_set(me.wrap_position.pr(inner).,me.p);
-		}
-		wrap_position.pr(inner)._invalidate = function(x:PR(Vec2)) {
-			vec_set(me.p,x.);
-		}
+		wrap_position.pr(inner)._validate = position_validate;
+		wrap_position.pr(inner)._invalidate = position_invalidate;
 	}
 
 	//----------------------------------------------------------------------------------------------

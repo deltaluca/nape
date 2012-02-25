@@ -135,25 +135,26 @@ class PR(Space) {
 	
 	vec_new(public,gravity); public var wrap_gravity:Vec2;
 	public function getgravity() {
-		var me = this;
 		wrap_gravity = Vec2.get(gravityx,gravityy);
 		wrap_gravity.pr(inner).inuse = true;
-		wrap_gravity.pr(inner)._invalidate = function(x:PR(Vec2)) {
-			DEBUG(if(me.midstep) throw "Error: Space::gravity cannot be set during space step";)
-			vec_set(me.gravity,x.);
-
-			var stack = new List(PR(Compound))();
-			Iterate(me.bodies, me.wake);
-			Iterate(me.compounds, stack.add);
-			while(!stack.empty()) {
-				var s = stack.pop_unsafe();
-				Iterate(s.bodies, me.wake);
-				Iterate(s.compounds, stack.add);
-			}
+		wrap_gravity.pr(inner)._invalidate = gravity_invalidate;
+		wrap_gravity.pr(inner)._validate = gravity_validate;
+	}
+	private function gravity_invalidate(x:PR(Vec2)) {
+		DEBUG(if(midstep) throw "Error: Space::gravity cannot be set during space step";)
+		vec_set(gravity,x.);
+		
+		var stack = new List(PR(Compound))();
+		Iterate(bodies, wake);
+		Iterate(compounds, stack.add);
+		while(!stack.empty()) {
+			var s = stack.pop_unsafe();
+			Iterate(s.bodies, wake);
+			Iterate(s.compounds, stack.add);
 		}
-		wrap_gravity.pr(inner)._validate = function() {
-			vec_set(me.wrap_gravity.pr(inner).,me.gravity);
-		}
+	}
+	private function gravity_validate() {
+		vec_set(wrap_gravity.pr(inner).,gravity);
 	}
 	
 	//----------------------------------------------------------------------------------------------
@@ -441,6 +442,77 @@ class PR(Space) {
 
 	//----------------------------------------------------------------------------------------------
 	
+	//were previously lambdas for wrap_lists
+	private function bodies_adder(x:Body) {
+		DEBUG(if(x.pr(inner).compound!=null) throw "Error: Cannot set the space of a Body belonging to a Compound, only the root Compound space can be set";)
+		if(x.pr(inner).space!=this) {
+			if(x.pr(inner).space!=null) x.pr(inner).space.outer.bodies.remove(x);
+			addBody(x.pr(inner));
+			return true;
+		}else return false;
+	}
+	private function bodies_subber(x:Body) {
+		remBody(x.pr(inner));
+	}
+	DEBUG(private function bodies_modifiable() {
+		if(midstep) throw "Error: Space::bodies cannot be set during space step()";
+	})
+
+	//----------------------------------------------------------------------------------------------
+
+	//were previously lambdas for wrap_lists
+	private function compounds_adder(x:Compound) {
+		DEBUG(if(x.pr(inner).compound!=null) throw "Error: Cannot set the space of an inner Compound, only the root Compound space can be set";)
+		if(x.pr(inner).space!=this) {
+			if(x.pr(inner).space!=null) x.pr(inner).space.wrap_compounds.remove(x);
+			addCompound(x.pr(inner));
+			return true;
+		}else return false;
+	}
+	private function compounds_subber(x:Compound) {
+		remCompound(x.pr(inner));
+	}
+	DEBUG(private function compounds_modifiable() {
+		if(midstep) throw "Error: Space::compounds cannot be set during space step()";
+	})
+
+	//----------------------------------------------------------------------------------------------
+
+	//were previously lambdas for wrap_lists
+	private function constraints_adder(x:Constraint) {
+		DEBUG(if(x.pr(inner).compound!=null) throw "Error: Cannot set the space of a Constraint belonging to a Compound, only the root Compound space can be set";)
+		if(x.pr(inner).space!=this) {
+			if(x.pr(inner).space!=null) x.pr(inner).space.outer.constraints.remove(x);
+			this.addConstraint(x.pr(inner));
+			return true;
+		}else return false;
+	}
+	private function constraints_subber(x:Constraint) {
+		remConstraint(x.pr(inner));
+	}
+	DEBUG(private function constraints_modifiable() {
+		if(midstep) throw "Error: Space::constraints cannot be set during space step()";
+	})
+
+	//----------------------------------------------------------------------------------------------
+
+	//were previously lambdas for wrap_lists
+	private function listeners_adder(x:Listener) {
+		if(x.pr(inner).space!=this) {
+			if(x.pr(inner).space!=null) x.pr(inner).space.outer.listeners.remove(x);
+			addListener(x.pr(inner));
+			return true;
+		}else return false;
+	}
+	private function listeners_subber(x:Listener) {
+		remListener(x.pr(inner));
+	}
+	DEBUG(private function listeners_modifiable() {
+		if(midstep) throw "Error: Space::listeners cannot be set during space step()";
+	})
+
+	//----------------------------------------------------------------------------------------------
+	
 	public function new(gravity:PR(Vec2),broadphase:Broadphase) {
 		global_lin_drag = PR(Config).GLOBAL_LIN_DRAG;
 		global_ang_drag = PR(Config).GLOBAL_ANG_DRAG;
@@ -467,37 +539,15 @@ class PR(Space) {
 	
 		bodies = new List(PR(Body))();	
 		wrap_bodies = PR(BodyList).get(bodies);
-		wrap_bodies.pr(inner).adder = function(x:Body) {
-			DEBUG(if(x.pr(inner).compound!=null) throw "Error: Cannot set the space of a Body belonging to a Compound, only the root Compound space can be set";)
-			if(x.pr(inner).space!=me) {
-				if(x.pr(inner).space!=null) x.pr(inner).space.outer.bodies.remove(x);
-				me.addBody(x.pr(inner));
-				return true;
-			}else return false;
-		};
-		wrap_bodies.pr(inner).subber = function(x:Body) {
-			me.remBody(x.pr(inner));
-		};
-		DEBUG(wrap_bodies.pr(inner)._modifiable = function() {
-			if(me.midstep) throw "Error: Space::bodies cannot be set during space step()";
-		})
+		wrap_bodies.pr(inner).adder = bodies_adder;
+		wrap_bodies.pr(inner).subber = bodies_subber;
+		DEBUG(wrap_bodies.pr(inner)._modifiable = bodies_modifiable;)
 
 		compounds = new List(PR(Compound))();
 		wrap_compounds = PR(CompoundList).get(compounds);
-		wrap_compounds.pr(inner).adder = function(x:Compound) {
-			DEBUG(if(x.pr(inner).compound!=null) throw "Error: Cannot set the space of an inner Compound, only the root Compound space can be set";)
-			if(x.pr(inner).space!=me) {
-				if(x.pr(inner).space!=null) x.pr(inner).space.wrap_compounds.remove(x);
-				me.addCompound(x.pr(inner));
-				return true;
-			}else return false;
-		}
-		wrap_compounds.pr(inner).subber = function(x:Compound) {
-			me.remCompound(x.pr(inner));
-		}
-		DEBUG(wrap_compounds.pr(inner)._modifiable = function() {
-			if(me.midstep) throw "Error: Space::compounds cannot be set during space step()";
-		})
+		wrap_compounds.pr(inner).adder = compounds_adder;
+		wrap_compounds.pr(inner).subber = compounds_subber;
+		DEBUG(wrap_compounds.pr(inner)._modifiable = compounds_modifiable;)
 
 		kinematics = new List(PR(Body))();
 		
@@ -515,20 +565,9 @@ class PR(Space) {
 		
 		constraints = new List(PR(Constraint))();
 		wrap_constraints = PR(ConstraintList).get(constraints);
-		wrap_constraints.pr(inner).adder = function(x:Constraint) {
-			DEBUG(if(x.pr(inner).compound!=null) throw "Error: Cannot set the space of a Constraint belonging to a Compound, only the root Compound space can be set";)
-			if(x.pr(inner).space!=me) {
-				if(x.pr(inner).space!=null) x.pr(inner).space.outer.constraints.remove(x);
-				me.addConstraint(x.pr(inner));
-				return true;
-			}else return false;
-		};
-		wrap_constraints.pr(inner).subber = function(x:Constraint) {
-			me.remConstraint(x.pr(inner));
-		};
-		DEBUG(wrap_constraints.pr(inner)._modifiable = function() {
-			if(me.midstep) throw "Error: Space::constraints cannot be set during space step()";
-		})
+		wrap_constraints.pr(inner).adder = constraints_adder;
+		wrap_constraints.pr(inner).subber = constraints_subber;
+		DEBUG(wrap_constraints.pr(inner)._modifiable = constraints_modifiable;)
 		
 		live_constraints = new List(PR(Constraint))();
 		wrap_livecon = PR(ConstraintList).get(live_constraints,true);
@@ -541,19 +580,9 @@ class PR(Space) {
 
         listeners = new List(PR(Listener))();
         wrap_listeners = PR(ListenerList).get(listeners);
-        wrap_listeners.pr(inner).adder = function(x:Listener) {
-            if(x.pr(inner).space!=me) {
-                if(x.pr(inner).space!=null) x.pr(inner).space.outer.listeners.remove(x);
-                me.addListener(x.pr(inner));
-                return true;
-            }else return false;
-        };
-        wrap_listeners.pr(inner).subber = function(x:Listener) {
-            me.remListener(x.pr(inner));
-        };
-		DEBUG(wrap_listeners.pr(inner)._modifiable = function() {
-			if(me.midstep) throw "Error: Space::listeners cannot be set during space step()";
-		})
+        wrap_listeners.pr(inner).adder = listeners_adder;
+        wrap_listeners.pr(inner).subber = listeners_subber;
+		DEBUG(wrap_listeners.pr(inner)._modifiable = listeners_modifiable;)
 
 		listenersets = new FastHash2(PR(ListenerSet))();
 		callbacksets = new FastHash2(PR(CallbackSet))();
