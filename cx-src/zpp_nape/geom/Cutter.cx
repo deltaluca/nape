@@ -38,6 +38,7 @@ class PR(CutInt) {
 
 	public var time:Float;
 	public var virtual:Bool;
+	public var vertex:Bool;
 
 	//end of incoming path
 	public var path0:PR(CutVert);
@@ -53,7 +54,7 @@ class PR(CutInt) {
 		path0 = path1 = null;
 	}
 
-	public static inline function get(time:Float,end=null,start=null,path0=null,path1=null,virtual=false) {
+	public static inline function get(time:Float,end=null,start=null,path0=null,path1=null,virtual=false,vertex=false) {
 		var ret = Get(PR(CutInt));
 		ret.virtual = virtual;
 		ret.end = end;
@@ -61,6 +62,7 @@ class PR(CutInt) {
 		ret.path0 = path0;
 		ret.path1 = path1;
 		ret.time = time;
+		ret.vertex = vertex;
 		return ret;
 	}
 }
@@ -176,8 +178,7 @@ class PR(Cutter) {
 					//add j to current path
 					push_before(start,pj);
 				}else {
-					var t = vec_cross(pa,d)*denom;
-					if(t<=0) {
+					if(i.value==0) {
 						var endof = start.prev;
 						//start new path at i
 						start = null; push_before(start,PR(GeomVert).get(endof.x,endof.y));
@@ -186,8 +187,8 @@ class PR(Cutter) {
 						paths.add(PR(CutVert).path(start));
 						var postpath = paths.begin().elem();
 						//insert intersection shared with i
-						ints.add(PR(CutInt).get(s,endof,start,prepath,postpath));
-					}else if(t>=1) {
+						ints.add(PR(CutInt).get(s,endof,start,prepath,postpath,true));
+					}else if(j.value==0) {
 						//insert j to current path
 						push_before(start,pj);
 						var endof = start.prev;
@@ -197,8 +198,9 @@ class PR(Cutter) {
 						paths.add(PR(CutVert).path(start));
 						var postpath = paths.begin().elem();
 						//insert intersection shared with j
-						ints.add(PR(CutInt).get(s,endof,start,prepath,postpath));
+						ints.add(PR(CutInt).get(s,endof,start,prepath,postpath,true));
 					}else {
+						var t = vec_cross(pa,d)*denom;
 						vec_new(q); vec_set(q,i.pos);
 						vec_addeq(q,u,t);
 						//insert intersection to path
@@ -211,7 +213,7 @@ class PR(Cutter) {
 						paths.add(PR(CutVert).path(start));
 						var postpath = paths.begin().elem();
 						//insert intersection at q
-						ints.add(PR(CutInt).get(s,endof,start,prepath,postpath));
+						ints.add(PR(CutInt).get(s,endof,start,prepath,postpath,false));
 					}
 				}
 			}
@@ -234,12 +236,47 @@ class PR(Cutter) {
 		while(!ints.empty()) {
 			var i = ints.pop_unsafe();
 			var j = ints.pop_unsafe();
-
 			if(!i.virtual && !j.virtual) {
 				merge(i.end,j.start);
 				merge(j.end,i.start);
 				DSF(union(i.path0,j.path1));
 				DSF(union(i.path1,j.path0));
+			}else if(i.virtual && !j.virtual) {
+				j.end = pop_ret_before(j.end);
+				if(!j.vertex) {
+					//start is used in path reference, so cannot delete it. move it instead
+					//we can safely remove only one of j.start or j.end
+					if(j.end != j.path0.vert) {
+						j.start.x = j.end.x;
+						j.start.y = j.end.y;
+						j.end = pop_ret_before(j.end);
+					}else {
+						var n = j.start.next;
+						j.start.x = n.x;
+						j.start.y = n.y;
+						pop(n);
+					}
+				}
+				merge(j.end,j.start);
+				DSF(union(j.path0,j.path1));
+			}else if(j.virtual && !i.virtual) {
+				i.end = pop_ret_before(i.end);
+				if(!i.vertex) {
+					//start is used in path reference, so cannot delete it. move it instead
+					//we can safely remove only one of j.start or j.end
+					if(i.end != i.path0.vert) {
+						i.start.x = i.end.x;
+						i.start.y = i.end.y;
+						i.end = pop_ret_before(i.end);
+					}else {
+						var n = i.start.next;
+						i.start.x = n.x;
+						i.start.y = n.y;
+						pop(n);
+					}
+				}
+				merge(i.end,i.start);
+				DSF(union(i.path0,i.path1));
 			}
 		
 			Free(PR(CutInt),i);
