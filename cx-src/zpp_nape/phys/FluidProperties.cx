@@ -25,17 +25,20 @@ class PR(FluidProperties) {
 	public var density:Float;
 	vec_new(public, gravity); public var wrap_gravity:Vec2;
 
+	//previously lambdas
+	private function gravity_invalidate(x:PR(Vec2)) {
+		vec_set(gravity,x.);
+		invalidate();
+	}
+	private function gravity_validate() {
+		vec_set(wrap_gravity.pr(inner).,gravity);
+	}
+
 	public function getgravity() {
-		var me = this;
 		wrap_gravity = Vec2.get(gravityx,gravityy);
 		wrap_gravity.pr(inner).inuse = true;
-		wrap_gravity.pr(inner)._invalidate = function(x:PR(Vec2)) {
-			vec_set(me.gravity,x.);
-			me.invalidate();
-		}
-		wrap_gravity.pr(inner)._validate = function() {
-			vec_set(me.wrap_gravity.pr(inner).,me.gravity);
-		}
+		wrap_gravity.pr(inner)._invalidate = gravity_invalidate;
+		wrap_gravity.pr(inner)._validate = gravity_validate;
 	} 
 	
 	flibmdel public inline function invalidate() {

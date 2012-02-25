@@ -206,6 +206,12 @@ class PR(Shape) extends PR(Interactor) {
 	}
 	
 	//----------------------------------------------------------------------------------------------
+
+	//previously lambda
+	private function aabb_validate() {
+		DEBUG(if(body==null) throw "Error: bounds only makes sense when Shape belongs to a Body";)
+		validate_aabb();
+	}
 	
 	function new(type:Int) {
 		pairs = new List(PR(AABBPair))();
@@ -216,10 +222,7 @@ class PR(Shape) extends PR(Interactor) {
 		aabb = PR(AABB).get(0,0,0,0);
 		aabb.immutable = true;
 		var me = this;
-		aabb._validate = function() {
-			DEBUG(if(me.body==null) throw "Error: bounds only makes sense when Shape belongs to a Body";)
-			me.validate_aabb();
-		};
+		aabb._validate = aabb_validate;
 		inv(area_inertia) = inv(angDrag) = inv(localCOM) = true;
 		
 		vec_set(localCOM,0,0);
