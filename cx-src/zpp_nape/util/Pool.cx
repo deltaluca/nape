@@ -67,6 +67,8 @@ $(expand PUBSTATS(T)
 DEBUG(
 	class ZPP_`STATS`T {
 		static public var POOL_CNT:Int = 0;
+		static public var POOL_GET:Int = 0;
+		static public var POOL_FREE:Int = 0;
 		POOLSTATS(T,ZPP_`STATS`T)
 	}
 ));
@@ -74,6 +76,8 @@ DEBUG(
 $(mixin STATS(T)
 	DEBUG(
 		static public var POOL_CNT:Int = 0;
+		static public var POOL_GET:Int = 0;
+		static public var POOL_FREE:Int = 0;
 		POOLSTATS(T,T)
 	)
 );
@@ -83,6 +87,7 @@ $(mixin STATS(T)
 //for public API types
 $(mixin global PublicGet(T) {
 	var ret:T;
+	DEBUG(PR(STATS`T).POOL_GET++;)
 	if(PR(PubPool).pool`T==null)
 		ret = new T();
 	else {
@@ -100,6 +105,7 @@ $(mixin global PublicGet(T) {
 
 $(mixin global Get(T) {
 	var ret:T;
+	DEBUG(T.POOL_GET++;)
 	if(T.pr(pool)==null)
 		ret = new T();
 	else {
@@ -115,6 +121,7 @@ $(mixin global Get(T) {
 $(mixin global PublicFree(T,O) {
 	var o = O;
 	assert(o!=null, "PublicFree(in T: "+$str(T)+", in obj: "+$str(O)+")");
+	DEBUG(PR(STATS`T).POOL_FREE++;)
 	DEBUG(
 		o.pr(pool) = null;
 		if(PR(PubPool).next`T!=null)
@@ -132,6 +139,7 @@ $(mixin global PublicFree(T,O) {
 
 $(mixin global Free(T,O) {
 	var o = O;
+	DEBUG(T.POOL_FREE++;)
 	assert(o!=null, "Free(in T: "+$str(T)+", in obj: "+$str(O)+")");
 	o.free();
 	o.next = T.pr(pool);

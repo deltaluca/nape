@@ -36,24 +36,48 @@ class Debug {
 
 	#if (!NAPE_RELEASE_BUILD)
 		public static function objectPoolStats() {
-			function pad(s:String,l:Int):String {
+			function pad(s:String,l:Int,?x:String):String {
+				if(x==null) x = " ";
 				var ret = s;
-				while(ret.length<l) ret += " ";
+				while(ret.length<l) ret += x;
 				return ret;
 			}
 
-			var max = 0;
+			var max = "objectPoolStats::".length;
+			var maxcnt = "size#".length;
+			var maxget = "alloc#".length;
+			var maxfree = "free#".length;
+
 			var strs = [];
 			$(expand global POOLSTATS(T,A) {
-				if(A.POOL_CNT!=0) {
+				if(A.POOL_CNT!=0 || A.POOL_GET!=0 || A.POOL_FREE!=0) {
+
 					if($str(T).length > max) max = $str(T).length;
-					strs.push({str:$str(T),num:A.POOL_CNT});
+					var cnt  = Std.string(A.POOL_CNT);
+					var get  = Std.string(A.POOL_GET); A.POOL_GET = 0;
+					var free = Std.string(A.POOL_FREE); A.POOL_FREE = 0;
+					if(cnt.length > maxcnt) maxcnt = cnt.length;
+					if(get.length > maxget) maxget = get.length;
+					if(free.length>maxfree) maxfree=free.length;
+
+					strs.push({str:$str(T),cnt:cnt,get:get,free:free});
 				}
 			});
-			var ret = "objectPoolStats::\n";
-			ret +=    "-----------------\n";
-			for(s in strs)
-				ret += pad(s.str,max)+" #"+Std.string(s.num)+"\n";
+			var ret = pad("objectPoolStats::",max)
+			     +" "+pad("size#",maxcnt)
+				 +" "+pad("alloc#",maxget)
+				 +" "+pad("free#",maxfree)
+				 +"\n";
+
+			ret += pad("",max+1+maxcnt+1+maxfree+1,"-") + "\n";
+
+			for(s in strs) {
+				ret += pad(s.str,max)
+				  +" "+pad(s.cnt,maxcnt)
+				  +" "+pad(s.get,maxget)
+				  +" "+pad(s.free,maxfree)
+				  +"\n";
+			}
 
 			return ret;
 		}

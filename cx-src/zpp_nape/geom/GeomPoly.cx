@@ -26,6 +26,7 @@ class Vertex {
 			vec_set(this.,-10,-20);
 		#end
 		forced = false;
+		assert(prev==null && next==null, "prev/next non-null PR(GeomVert) destroy");
 	}
 	flibmdel public inline function alloc() {}
 
@@ -57,9 +58,18 @@ class Vertex {
 class PR(GeomPoly) {
 	public var outer:GeomPoly;
 	public var vertices:Vertex;
+	public var iterators:List(PR(GeomVertexIterator));
 
 	public function new(outer:GeomPoly) {
 		this.outer = outer;
+		iterators = new List(PR(GeomVertexIterator))();
+	}
+
+	flibmdel public inline function destroy() {
+		outer = null;
+		assert(vertices==null,"non-null vertices on pr geompoly destroy");
+		ClearWith(i, iterators, Free(PR(GeomVertexIterator),i));
+		iterators = null;
 	}
 }
 
@@ -68,12 +78,15 @@ class PR(GeomVertexIterator) {
 	public var start:Vertex;
 	public var first:Bool;
 	public var forward:Bool;
+	public var gpoly:PR(GeomPoly);
 
 	public var outer:GeomVertexIterator;
 	MixPool(PR(GeomVertexIterator))
 	flibmdel public inline function free() {
 		outer.pr(inner) = null;
 		ptr = start = null;
+		gpoly.iterators.remove(this);
+		gpoly = null;
 	}
 	flibmdel public inline function alloc() {}
 
@@ -84,13 +97,15 @@ class PR(GeomVertexIterator) {
 		internal = false;
 	}
 
-	public static inline function get(poly:PR(GeomVert),forward:Bool) {
+	public static inline function get(gpoly:PR(GeomPoly),poly:PR(GeomVert),forward:Bool) {
 		var ret = Get(PR(GeomVertexIterator));
 		ret.outer.pr(inner) = ret;
 		ret.ptr = poly;
 		ret.forward = forward;
 		ret.start = poly;
 		ret.first = poly!=null;
+		gpoly.iterators.add(ret);
+		ret.gpoly = gpoly;
 		return ret.outer;
 	}
 }

@@ -45,9 +45,9 @@ class GeomPoly {
 	public inline function empty() return mix_circular(Vertex,empty(verts))
 	public inline function size () return mix_circular(Vertex,size(verts))
 
-	public inline function iterator() return PR(GeomVertexIterator).get(verts,true)
-	public inline function forward_iterator  () return PR(GeomVertexIterator).get(verts,true)
-	public inline function backwards_iterator() return PR(GeomVertexIterator).get(verts,false)
+	public inline function iterator() return PR(GeomVertexIterator).get(pr(inner),verts,true)
+	public inline function forward_iterator  () return PR(GeomVertexIterator).get(pr(inner),verts,true)
+	public inline function backwards_iterator() return PR(GeomVertexIterator).get(pr(inner),verts,false)
 
 	public inline function current() {
 		DEBUG(if(empty()) throw "Error: GeomPoly is empty";)
@@ -121,9 +121,15 @@ class GeomPoly {
 		)
 	}
 
+	public function destroy() {
+		clear();
+		pr(inner).destroy();
+		pr(inner) = null;
+	}
+
 	public function clear() {
 		mix_circular(Vertex,
-			clear_with(verts, $(mixin cb(x) Free(Vertex,x)));
+			clear_with(verts, $(mixin cb(x) Free(Vertex,x)) cb);
 		)	
 	}
 
