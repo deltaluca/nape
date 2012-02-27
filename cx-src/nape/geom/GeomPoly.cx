@@ -225,44 +225,6 @@ class GeomPoly {
 		return ret;
 	}
 
-	public function convex_decomposition() {
-		DEBUG(if(isDegenerate()) throw "Error: Cannot decompose a degenerate polygon";)
-		#if (!NAPE_RELEASE_BUILD&&!NAPE_ASSERT) try { #end
-			var MPs = PR(Greene).decompose(verts);
-			var ret = new GeomPolyList();
-			Iter(MP, MPs, {
-				var x = new GeomPoly();
-				x.verts = MP;
-				ret.add(x);
-			});
-			return ret;
-		#if (!NAPE_RELEASE_BUILD&&!NAPE_ASSERT)
-			} catch(e:Dynamic) {
-				throw "Error: Cannot decompose a non-weakly simple polygon! Consider use of the simple_decomposition() routine";
-				return new GeomPolyList();
-			}
-		#end
-	}
-	public function monotone_decomposition() {
-		DEBUG(if(isDegenerate()) throw "Error: Cannot decompose a degenerate polygon";)
-		#if (!NAPE_RELEASE_BUILD&&!NAPE_ASSERT) try { #end
-			var MPs = PR(Monotone).decompose(verts);
-			var ret = new GeomPolyList();
-			Iter(MP, MPs, {
-				var x = new GeomPoly();
-				x.verts = MP;
-				ret.add(x);
-			});
-			return ret;
-		#if (!NAPE_RELEASE_BUILD&&!NAPE_ASSERT)
-			} catch(e:Dynamic) {
-				throw toString();
-				throw "Error: Cannot decompose a non-weakly simple polygon! Consider use of the simple_decomposition() routine";
-				return new GeomPolyList();
-			}
-		#end
-	}
-
 	public function cut(start:Vec2,end:Vec2, bounded_start:Bool=false, bounded_end:Bool=false):GeomPolyList {
 		DEBUG(
 			if(!isSimple())

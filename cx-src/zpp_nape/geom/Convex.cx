@@ -1,0 +1,207 @@
+package zpp_nape.geom;
+$(import);
+
+$(mixin START   0);
+$(mixin END     1);
+$(mixin MERGE   2);
+$(mixin SPLIT   3);
+$(mixin REGULAR 4);
+
+$(mixin Vertex PR(PartitionVeritex));
+$(mixin Edge Vertex);
+
+//vertex in a partitioned polygon
+//also serves as the edge (this, this.next)
+class Vertex {
+	//vertex position
+	vec_new(public,$(->));
+
+	//helper in monotone decomposition.
+	public var helper:Vertex;
+
+	MixPoolNoNext(Vertex)
+	//for circular linked list.
+	public var next:Vertex;
+	public var prev:Vertex;
+
+	public function new() {}
+	flibmdel public inline function alloc() {
+	}
+	flibmdel public inline function free() {
+		helper = null;
+	}
+
+	public static inline function get(x:PR(GeomVert)) {
+		var ret = Get(Vertex);
+		vec_set(ret.,x.);
+		return ret;
+	}
+
+	//determine right distance of vertex from edge, sign being important, magnitude not.
+	static inline function rightdistance(edge:Edge,vert:Vertex) {
+		//assume edge is not horizontal
+		var flip = edge.next.y > edge.y;
+		vec_new(u); vec_sub(edge.next.,edge., u);
+		vec_new(v); vec_sub(vert.,edge., v);
+		return (flip ? -1.0 : 1.0) * vec_cross(u,v);
+	}
+
+	//determine if edge is to the left of the vertex
+	public static inline function vert_lt(edge:Edge,vert:Vertex) {
+		return if(vert==edge || vert==edge.next) true
+		       else if(edge.y==edge.next.y) min(edge.x,edge.next.x) <= vert.x;
+		       else rightdistance(edge,vert) <= 0.0;
+	}
+
+	//for use in RBTree Set for sorted tree of edges
+	//returns true if 'this' edge should be placed to the right geometrically of 'q'
+	public var node:Set(Edge);
+	public static function edge_swap(p:Edge,q:Edge) swap(p.node,q.node)
+
+	public static function edge_lt(p:Edge,q:Edge) {
+		if(p==q && p.next==q.next) { assert(false,"Attempting to sort an edge with itself"); return false; }
+		//handle shared vertices (literal) between the two edges
+		// noting thiat p==q and p.next==q.next can never happen without above check being true.
+		// since a vertex is shared, we want to know if the other vertex of the second edge
+		// is to the right/left of the first edge.
+		if  (p==q.next) return !vert_lt(p,q);
+		elif(q==p.next) return  vert_lt(q,p);
+		//if neither vertex is shared, we still need to handle horizontal edges
+		elif(p.y==p.next.y) {
+			return
+				if(q.y==q.next.y) max(p.x,p.next.x) > max(q.x,q.next.x)
+				else rightdistance(q,p) > 0.0;
+		}else {
+			var qright = rightdistance(p,q);
+			var qisright = qright < 0.0;
+			var nextright = rightdistance(p,q.next) < 0.0;
+			return
+				if  (qisright==nextright) qisright
+				elif(q.y==q.next.y) qright > 0.0
+				else rightdistance(q,p) >= 0.0;		
+		}
+	}
+}
+
+class PR(PartitionedPoly) {
+	public var vertices:Vertex; //circular linked list.
+
+	public function new(P:PR(GeomVert)) {
+	mix_circular(Vertex,
+		//yay for nested circular environments
+		var p = P;
+		do {
+			var nv = Vertex.get(p);
+			vertices = push_after(vertices,nv);
+			p = p.next;
+		}while(p!=P);
+	)
+	}
+}
+
+//perform monotone partitionings of a polygon using a horizontal sweep line.
+//handling any weakly-simple polygon.
+class PR(Monotone) {
+	//used in ordering points when lexicographically equal
+	static inline function bisector(b:Vertex) {
+		var a = b.prev;
+		var c = b.next;
+		vec_new(u); vec_sub(b.,a.,u);
+		vec_new(v); vec_sub(c.,b.,v);
+		var ret = PR(Vec2).get(-uy-vy,ux+vx);
+		vec_normalise(ret.);
+		if(vec_cross(u,v) < 0) vec_negate(ret.);
+		return ret;
+	}
+
+	//determine if p is below q (lexicographically if required)
+	static inline function below(p:Vertex,q:Vertex) {
+		if  (p.y<q.y) return true;
+		elif(p.y>q.y) return false;
+		else {
+			if  (p.x<q.x) return true;
+			elif(p.x>q.x) return false;
+			else {
+				//in the case of equal points lexicographically
+				//we use the information to find the bisector for the polygon
+				//at the point, and compare how the points related slightly away from the vertex
+				//into the polygon to get a natuiral ordering for equal points.
+				var po = bisector(p); var qo = bisector(q);
+				vec_addeq(po.,p.); vec_addeq(qo.,q.);
+				var ret = po.x < qo.x || (po.x==qo.x && po.y<qo.y);
+				Free(PR(Vec2),po); Free(PR(Vec2),qo);
+				return ret;
+			}
+		}
+	}
+	static inline function above(p:Vertex,q:Vertex) return below(q,p)
+	
+	//returns true, if locally based on incident edges
+	//the polygon internal exists to the right of the vertex
+	static inline function left_vertex(p:Vertex) {
+		var pre = p.prev;
+		return pre.y > p.y || (pre.y==p.y && p.next.y < p.y);
+	}
+
+	public static function isMonotone(P:PR(GeomVert)) {
+	mix_circular(Vertex,
+		//find upper and lower most vertices of P
+		//we don't care about being lexicographically correct here.
+		var min = P; var max = P;
+		for_iter(p, P.next,P, {
+			if(p.y < min.y) min = p;
+			if(p.y > max.y) max = p;
+		});
+
+		var ret = true;
+		//check monotonicity on forward chain.
+		var pre = min;
+		if(max!=min.next) {
+			for_iter(p, min.next, max, {
+				if(p.y < pre.y) { ret = false; break; }
+				pre = p;
+			});
+		}
+
+		if(!ret) return false;
+
+		pre = min;
+		//check monotonicity on reverse chain
+		if(max!=min.prev) {
+			rev_iter(p, min.prev, max, {
+				if(p.y < pre.y) { ret = false; break; }
+				pre = p;
+			});
+		}
+
+		return ret;
+	)
+	}
+
+	public static function decompose(P:PR(GeomVert)) {
+	mix_circular(Vertex,
+		var poly = new PR(PartitionPoly)(P);
+		
+		//populate vertices with event types
+		//and produce list of sorted events
+		var queue = new List(Vertex)();
+		for_iter(p, poly.vertices, {
+			queue.add(p);
+			//compute event type
+			vec_new(u); vec_sub(p.next.,p., u);
+			vec_new(v); vec_sub(p.prev.,p., v);
+			var cx = vec_cross(u,v) > 0.0;
+
+			p.type =
+				if(below(p.prev,p)) {
+					if(below(p.next,p)) cx ? START : SPLIT
+					else REGULAR;
+				}else {
+					if(below(p,p.next)) cx ? END : MERGE
+					else REGULAR;
+				};
+		});
+		Sort(queue,Node(Vertex),above);
+	)
+	}
+}
