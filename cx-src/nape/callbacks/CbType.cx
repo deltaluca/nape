@@ -4,7 +4,10 @@ $(import);
 class CbType {
     public var pr(inner):PR(CbType);
 
-    property(id,Int,pr(inner).id)
+    property(id,Int,{
+		Destroyed(this,CbType);
+		pr(inner).id;
+	})
 
     public function new() {
         if(PR(CbType).internal) return;
@@ -19,13 +22,27 @@ class CbType {
 
     ///---------------------------------------------------------------------------------------------
 
+	public function clear() {
+		Destroyed(this,CbType);
+		pr(inner).clear();
+	}
+	public function destroy() {
+		Destroyed(this,CbType);
+		pr(inner).destroy();
+		pr(inner) = null;
+	}
+
+    ///---------------------------------------------------------------------------------------------
+
 	property(interactors,InteractorList,{
+		Destroyed(this,CbType);
 		if(pr(inner).wrap_interactors==null)
 			pr(inner).wrap_interactors = PR(InteractorList).get(pr(inner).interactors, true);
 		pr(inner).wrap_interactors;
 	})
 
     property(constraints,ConstraintList,{
+		Destroyed(this,CbType);
 		if(pr(inner).wrap_constraints==null)
             pr(inner).wrap_constraints = PR(ConstraintList).get(pr(inner).constraints, true);
 		pr(inner).wrap_constraints;
@@ -34,6 +51,7 @@ class CbType {
     ///---------------------------------------------------------------------------------------------
 
     @:$keep public inline function toString() {
+		Destroyed(this,CbType);
         return "CbType(#"+id+")";
     }
 }

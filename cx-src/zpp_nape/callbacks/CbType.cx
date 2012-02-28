@@ -44,6 +44,28 @@ class PR(CbType) {
 
     ///---------------------------------------------------------------------------------------------
 
+	public function clear() {
+		while(!interactors.empty()) interactors.front().outer_i.cbType = null;
+		while(!constraints.empty()) constraints.front().outer.cbType = null;
+	}
+	public function destroy() {
+		clear();
+		interactors = null;
+		constraints = null;
+		if(wrap_interactors!=null) {
+			wrap_interactors.pr(inner).__destroy();
+			wrap_interactors = null;
+		}
+		if(wrap_constraints!=null) {
+			wrap_constraints.pr(inner).__destroy();
+			wrap_constraints = null;
+		}
+		id = -1;
+		outer = null;
+	}
+
+    ///---------------------------------------------------------------------------------------------
+
     public function new() {
         id = ID(CbType);
 
