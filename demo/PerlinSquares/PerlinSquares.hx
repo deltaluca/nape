@@ -45,7 +45,7 @@ class PerlinSquares extends VariableStep {
 			
 			var polys = MarchingSquares.run(iso, bounds, cellsize, quality, gridsize, combine);
 			for(p in polys) {
-				var qs = p.triangular_decomposition();
+				var qs = p.convex_decomposition();
 				for(q in qs) debug.drawFilledPolygon(q, colour(q));
 				debug.drawPolygon(p, 0);
 			}

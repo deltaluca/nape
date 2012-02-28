@@ -5,15 +5,20 @@ $(mixin Vertex() PR(PartitionVertex));
 
 mix_circular(Vertex,
 class PR(Convex) {
+	static inline function isinner(a:Vertex,b:Vertex,c:Vertex) {
+		vec_new(u); vec_sub(a.,b.,u);
+		vec_new(v); vec_sub(c.,b.,v);
+		return vec_cross(u,v)>=0;
+	}
 	public static function optimise(P:PR(PartitionedPoly)) {
 		for_iter(p, P.vertices, p.sort());
 		for_iter(p, P.vertices,{
-			var pright = p.next;
+			var pright = p.prev;
 			var ppre = null;
 			Iter(pdiag, p.diagonals, {
-				var pleft = if(cx_ite.next==null) p.prev else cx_ite.next.elem();
+				var pleft = if(cx_ite.next==null) p.next else cx_ite.next.elem();
 				//canot remove diagonal from p side.
-				if(vec_cross(pleft.,pright.)<0) {
+				if(!isinner(pleft,p,pright)) {
 					ppre = cx_ite;
 					pright = pdiag;
 					cx_continue;
@@ -21,22 +26,23 @@ class PR(Convex) {
 
 				//now check q side
 				var removable = true;
-				var qleft = pdiag.next;
+				var q = pdiag;
+				var qright = q.prev;
 				var qpre = null;
-				Iter(qdiag, pdiag.diagonals, {
+				Iter(qdiag, q.diagonals, {
 					if(qdiag==p) {
-						var qright = if(cx_ite.next==null) pdiag.prev else cx_ite.next.elem();
-						removable = vec_cross(qleft.,qright.)>=0;
+						var qleft = if(cx_ite.next==null) q.next else cx_ite.next.elem();
+						removable = isinner(qleft,q,qright);
 						cx_break;
 					}
-					qleft = qdiag;
+					qright = qdiag;
 					qpre = cx_ite;
 				});
 
 				//and remove it if possible
 				if(removable) {
 					cx_ite = p.diagonals.erase(ppre);
-					pdiag.diagonals.erase(qpre);
+					q.diagonals.erase(qpre);
 					continue;
 				}
 

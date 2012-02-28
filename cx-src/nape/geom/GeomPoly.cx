@@ -192,6 +192,11 @@ class GeomPoly {
 		else PR(Simple).isSimple(verts);
 	}
 
+	public function isMonotone() {
+		return if(size_lt_3) true;
+		else PR(Monotone).isMonotone(verts);
+	}
+
 	public function isDegenerate() {
 		return if(size_lt_3) true;
 		else area() < PR(Const).EPSILON;
@@ -228,6 +233,7 @@ class GeomPoly {
 			var x = new GeomPoly();
 			x.verts = MP;
 			ret.add(x);
+			assert(x.isMonotone(),"monotone decomposition gave non-monotone output?");
 		});
 		return ret;
 	}
@@ -244,6 +250,7 @@ class GeomPoly {
 				var x = new GeomPoly();
 				x.verts = MQ;
 				ret.add(x);
+				assert(x.isConvex(),"convex decomposition gave non-convex output?");
 			});
 		});
 		return ret;
@@ -259,6 +266,7 @@ class GeomPoly {
 				var x = new GeomPoly();
 				x.verts = MQ;
 				ret.add(x);
+				assert(x.size()==3,"triangular decomosition gave non-triangle output?");
 			});
 		});
 		return ret;
