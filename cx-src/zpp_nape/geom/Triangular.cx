@@ -10,8 +10,8 @@ class PR(Triangular) {
 	}
 
 	inline static function right_turn(a:Vertex,b:Vertex,c:Vertex) {
-		vec_new(u); vec_sub(b.,a.,u);
-		vec_new(v); vec_sub(c.,b.,v);
+		vec_new(u); vec_sub(c.,b.,u);
+		vec_new(v); vec_sub(b.,a.,v);
 		return vec_cross(u,v) < 0;
 	}
 
@@ -52,26 +52,24 @@ class PR(Triangular) {
 					P.add_diagonal(s, p);
 				}
 				stack.add(pre);
-				stack.add(p);
 			}else {
 				var q = stack.pop_unsafe();
 				while(!stack.empty()) {
 					var s = stack.front();
-					if(!right_turn(s,q,p)) break;
+					if(p.rightchain != right_turn(s,q,p)) break;
 					P.add_diagonal(s, p);
 					q = s;
 					stack.pop();
 				}
 				stack.add(q);
-				stack.add(p);
 			}
+			stack.add(p);
 			pre = p;
 		}
-
 		//now work 'max'
 		if(!stack.empty()) {
 			stack.pop();
-			while(true) {
+			while(!stack.empty()) {
 				var s = stack.pop_unsafe();
 				if(stack.empty()) break;
 				P.add_diagonal(max,s);
