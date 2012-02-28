@@ -1,0 +1,213 @@
+package zpp_nape.geom;
+$(import);
+
+$(mixin Vertex PR(PartitionVertex));
+$(mixin Edge Vertex);
+
+//vertex in a partitioned polygon
+//also serves as the edge (this, this.next)
+class Vertex {
+	//vertex position
+	vec_new(public,$(->));
+	public var forced:Bool; //used to propogate 'fixed'ness of vertices for simplification
+
+	public var diagonals:List(Vertex);
+
+	//helper in monotone decomposition + type
+	public var type:Int;
+	public var helper:Vertex;
+	
+	//chain side in triangulation
+	public var rightchain:Bool;
+
+	MixPoolNoNext(Vertex)
+	//for circular linked list.
+	public var next:Vertex;
+	public var prev:Vertex;
+
+	public function new() {
+		diagonals = new List(Vertex)();
+	}
+	flibmdel public inline function alloc() {
+	}
+	flibmdel public inline function free() {
+		helper = null;
+		assert(diagonals.empty(),"non-empty diagonals");
+	}
+
+	public static inline function get(x:PR(GeomVert)) {
+		var ret = Get(Vertex);
+		vec_set(ret.,x.);
+		return ret;
+	}
+	public inline function copy() {
+		var ret = Get(Vertex);
+		vec_set(ret.,this.);
+		ret.forced = forced;
+		return ret;
+	}
+
+	//sort diagonals in order of processing when pulling polygons out of partitions
+	public function sort() {
+		vec_new(u); vec_new(v);
+		$(mixin orient(a,b,c) ({
+			vec_sub(a.,b.,u);
+			vec_sub(c.,b.,v);
+			var ret = vec_cross(u,v);
+			ret > 0 ? -1 : ret == 0 ? 0 : 1;
+		}));
+		var vorient = orient(prev,this,next);
+		assert(vorient!=0, "collinear edge on boundary of partitioned poly?");
+		Sort(diagonals,Node(Vertex),$(mixin lt(p,q) ({
+			var d1 = orient(prev,this,p);
+			var d2 = orient(prev,this,q);
+			if  (d1==d2) orient(p,this,q) == 1;
+			elif(d1==0)  d2 == vorient;
+			else         d1 != vorient;
+		})) lt);
+	}
+
+	//determine right distance of vertex from edge, sign being important, magnitude not.
+	static inline function rightdistance(edge:Edge,vert:Vertex) {
+		//assume edge is not horizontal
+		var flip = edge.next.y > edge.y;
+		vec_new(u); vec_sub(edge.next.,edge., u);
+		vec_new(v); vec_sub(vert.,edge., v);
+		return (flip ? -1.0 : 1.0) * vec_cross(u,v);
+	}
+
+	//determine if edge is to the left of the vertex
+	public static inline function vert_lt(edge:Edge,vert:Vertex) {
+		return if(vert==edge || vert==edge.next) true
+		       else if(edge.y==edge.next.y) min(edge.x,edge.next.x) <= vert.x;
+		       else rightdistance(edge,vert) <= 0.0;
+	}
+
+	//for use in RBTree Set for sorted tree of edges
+	//returns true if 'this' edge should be placed to the right geometrically of 'q'
+	public var node:Set(Edge);
+	public static function edge_swap(p:Edge,q:Edge) swap(p.node,q.node)
+
+	public static function edge_lt(p:Edge,q:Edge) {
+		if(p==q && p.next==q.next) { assert(false,"Attempting to sort an edge with itself"); return false; }
+		//handle shared vertices (literal) between the two edges
+		// noting thiat p==q and p.next==q.next can never happen without above check being true.
+		// since a vertex is shared, we want to know if the other vertex of the second edge
+		// is to the right/left of the first edge.
+		if  (p==q.next) return !vert_lt(p,q);
+		elif(q==p.next) return  vert_lt(q,p);
+		//if neither vertex is shared, we still need to handle horizontal edges
+		elif(p.y==p.next.y) {
+			return
+				if(q.y==q.next.y) max(p.x,p.next.x) > max(q.x,q.next.x)
+				else rightdistance(q,p) > 0.0;
+		}else {
+			var qright = rightdistance(p,q);
+			var qisright = qright < 0.0;
+			var nextright = rightdistance(p,q.next) < 0.0;
+			return
+				if  (qisright==nextright) qisright
+				elif(q.y==q.next.y) qright > 0.0
+				else rightdistance(q,p) >= 0.0;		
+		}
+	}
+}
+
+mixpool_circular(Vertex,
+class PR(PartitionedPoly) {
+	public var vertices:Vertex; //circular linked list.
+
+	flibmdel inline function eq(a:PR(GeomVert),b:PR(GeomVert)) return vec_dsq(a.,b.) < PR(Const).EPSILON
+	//we remove degenerate vertices, and collinear vertices
+	//as this was the easiest way to make the monotonic decomposition robust.
+	public function new(?P:PR(GeomVert)) {
+		if(P==null) return;
+		var cw = geom(clockwise(P));
+		var p = P;
+		do {
+			if(eq(p,p.next)) {}
+			else {
+				var pre = p.prev;
+				while(eq(pre,p) && pre!=p) pre = pre.prev;
+				if(pre==p) break;
+
+				vec_new(u); vec_sub(p.,pre.,u);
+				vec_new(v); vec_sub(p.next.,p.,v);
+				if(vec_cross(u,v)!=0.0) {
+					vertices =
+						if(cw) push_after(vertices,Vertex.get(p))
+						else  push_before(vertices,Vertex.get(p))
+						vertices.forced = p.forced;
+				}
+			}
+			p = p.next;
+		}while(p!=P);
+		DEBUG(if(size(vertices)<3) throw "Error: Degenerate poly can't be decomposed";)
+	}
+
+	public function add_diagonal(p:Vertex,q:Vertex) {
+		p.diagonals.add(q);
+		q.diagonals.add(p);
+		p.forced = q.forced = true;
+	}
+
+	//perform extraction, but into more partition polygons instead.
+	public function extract_partitions() {
+		var ret = new List(PR(PartitionedPoly))();
+		for_iter(c, vertices, c.sort());
+		pull_partitions(vertices, ret);
+		clear(vertices);
+		return ret;
+	}
+	private function pull_partitions(start:Vertex, ret:List(PR(PartitionedPoly))) {
+		var poly = new PR(PartitionedPoly)();
+		var next = start;
+		do {
+			mix_circular(PR(Vertex),
+				poly.vertices = push_after(poly.vertices, next.copy());
+				poly.vertices.forced = next.forced;
+			)
+			if(!next.diagonals.empty()) {
+				var diag = next.diagonals.pop_unsafe();
+				if(diag==start) break;
+				else next = pull_partitions(next,ret);
+			}else
+				next = next.next;
+		}while(next!=start);
+
+		ret.add(poly);
+		return next;
+	}
+	
+	//pull polygons out of the partitions
+	public function extract() {
+		var ret = new List(PR(GeomVert))();
+		for_iter(c, vertices, c.sort());
+		pull(vertices, ret);
+		clear(vertices);
+		return ret;
+	}
+	private function pull(start:Vertex, ret:List(PR(GeomVert))) {
+		var poly:PR(GeomVert) = null;
+		var next = start;
+		do {
+			mix_circular(PR(GeomVert),
+				poly = push_after(poly, PR(GeomVert).get(next.x,next.y));
+				poly.forced = next.forced;
+			)
+			if(!next.diagonals.empty()) {
+				var diag = next.diagonals.pop_unsafe();
+				if(diag==start) break;
+				else next = pull(next,ret);
+			}else
+				next = next.next;
+		}while(next!=start);
+
+		assert(geom(clockwise(poly)),"out poly is not convex :(");
+
+		if(geom(signed_area(poly))!=0)
+			ret.add(poly);
+		return next;
+	}
+}
+)

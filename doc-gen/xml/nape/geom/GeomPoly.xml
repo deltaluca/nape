@@ -256,19 +256,19 @@
 			</description>
 		</detail>
 	</method>
-	<method name="isMonotone" const="true" return="Bool">
-		<description>Monotone polygon test</description>
-		<detail>
-			<description><text>Returns true if the polygon is y-monotone. Assumes that the polygon is not self-intersecting or else a combination of isSimple() &amp;&amp; isMonotone() would be required for a full test.</text><br/><br/>
-				<text>The runtime of this algorithm is O(n)</text>
-			</description>
-		</detail>
-	</method>
 	<method name="isSimple" const="true" return="Bool">
 		<description>Simple polygon test</description>
 		<detail>
 			<description><text>Returns true if the polygon is simple (has no self-intersections).</text><br/><br/>
 				<text>The average runtime of this algorithm is O(n.log(n))</text>
+			</description>
+		</detail>
+	</method>
+	<method name="isMonotone" const="true" return="Bool">
+		<description>Monotone polygon test</description>
+		<detail>
+			<description><text>Returns true if the polygon is monotone with respect to the y-axis</text><br/><br/>
+			<text>The runtime of this algorithm is O(n)</text>
 			</description>
 		</detail>
 	</method>
@@ -321,17 +321,37 @@
 			</description>
 		</detail>
 	</method>
+
 	<method name="monotone_decomposition" const="true" return="GeomPolyList">
-		<description>Perform monotone decomposition</description>
+		<description>Perform a monotone decomposition</description>
 		<detail>
-			<description><text>Perform a y-monotone decomposition of the input polygon which is assumed to be a simple polygon. This algorithm is a robust and improved port of CGAL's y-monotone partitioning algorithm itself based on the following article: Mark de Berg, Marc van Kreveld, Mark Overmars, and Otfried Schwarzkopf. Computational Geometry: Algorithms and Applications. Springer-Verlag, Berlin, 1997. </text><br/><br/><text>The runtime of this algorithm is O(n.log(n))</text></description>
+			<description><text>Perform a monotone decomposition of a weakly-simple polygon, such as the output of a simple-decomposition. Algorithm is based on the algorithm presented in: Mark de Berg, Marc van Kreveld, Mark Overmars, and Otfried Schwarzkopf. Computational Geometry: Algorithms and Applications. Springer-Verlag, Berlin, 1997.</text><br/><br/><text>For a weakly-simple polygon, this algorithm should be 100% robust producing purely monotone polygons as defined by the isMonotone() method</text>
+			<br/><br/>
+			<text>The runtime of this algorithm is O(n.log(n))</text>
+			</description>
+			<throws>(may be able to catch it) polygon is not weakly-simple. Nothing that if isSimple() returns true, the polygon is definately weakly-simple</throws>
 		</detail>
 	</method>
+
 	<method name="convex_decomposition" const="true" return="GeomPolyList">
 		<description>Perform a convex decomposition</description>
 		<detail>
-			<description><text>Perform a convex decomposition of the input polygon which is assumed to be a simple polygon. This is a direct port of CGAL's green_approx_convex_partition algorithm itself based upon: Daniel H. Greene. The decomposition of polygons into convex parts. In Franco P. Preparata, editor, Computational Geometry, volume 1 of Adv. Comput. Res., pages 235-259. JAI Press, Greenwich, Conn., 1983.</text><br/><br/><text>This is a robust algorithm which guarantees no more than 4x the optimal number of convex partitions. It's runtime is O(n.log(n))</text>
+			<description><text>Perform a convex decomposition of a weakly-simple polygon, such as the output of a simple-decomposition. Algorithm internally first performs a triangularisation based on the triangular_decomposition method, removing unnecessary diagonals from the polygon inserted by triangular decomposition.</text><br/><br/><text>For a weakly-simple polygon, this algorithm should be 100% robust producing purely convex polygons as defined by the isConvex() method and as such are suitable for use in Nape Polygon's.</text>
+			<br/><br/>
+			<text>The runtime of this algorithm is O(n.log(n))</text>
 			</description>
+			<throws>(may be able to catch it) polygon is not weakly-simple. Nothing that if isSimple() returns true, the polygon is definately weakly-simple</throws>
+		</detail>
+	</method>
+
+	<method name="triangular_decomposition" const="true" return="GeomPolyList">
+		<description>Perform a triangularisation.</description>
+		<detail>
+			<description><text>Perform a triangularisation of a weakly-simple polygon, such as the output of a simple-decomposition. Algorithm internally first performs a monotone decomposition, followed by a simple triangularisation.</text><br/><br/><text>For a weakly-simple polygon, this algorithm should be 100% robust producing pure triangles and as such are suitable for use in Nape Polygon's; though a convex-decomposition would be preferred to use as few polygons as necessary.</text>
+			<br/><br/>
+			<text>The runtime of this algorithm is O(n.log(n))</text>
+			</description>
+			<throws>(may be able to catch it) polygon is not weakly-simple. Nothing that if isSimple() returns true, the polygon is definately weakly-simple</throws>
 		</detail>
 	</method>
 </class>

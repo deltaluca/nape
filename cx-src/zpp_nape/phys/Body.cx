@@ -85,7 +85,7 @@ class PR(Body) extends PR(Interactor) {
 	vec_new(public,svel); //surface velocity
 	public var wrap_svel:Vec2;
 	
-	flibmdel public inline function invalidate_pos() {
+	flibmdel public inline function invalidate_pos(skipgraphic=false) {
 		//dependancy checked
 		Iter(s,shapes,{
 			if(s.type==Flag(ShapeType,POLYGON)) {
@@ -95,7 +95,8 @@ class PR(Body) extends PR(Interactor) {
 			s.invalidate_worldCOM();
 		});
 		invalidate_worldCOM();
-		#if (flash9||nme) validate_graphic(); #end
+		if(!skipgraphic)
+			validate_graphic();
 		//don't wake object here, this method is called by space each step!
 	}
 
@@ -238,7 +239,7 @@ class PR(Body) extends PR(Interactor) {
 	public var pre_rot:Float;
 	
 	public var rot:Float;
-	flibmdel public inline function invalidate_rot() {
+	flibmdel public inline function invalidate_rot(?skipgraphic=false) {
 		//dual with invalidate_axis
 		//dependancy checked
 		inv(axis) = true;
@@ -250,7 +251,8 @@ class PR(Body) extends PR(Interactor) {
 			s.invalidate_worldCOM();
 		});
 		invalidate_worldCOM();
-		#if (flash9||nme) validate_graphic(); #end
+		if(!skipgraphic)
+			validate_graphic();
 		//don't wake object here, this method is called by space.step!
 	}
 	vec_new(public,axis); public var inv(axis):Bool;
@@ -467,12 +469,13 @@ class PR(Body) extends PR(Interactor) {
 	
 	//----------------------------------------------------------------------------------------------
 	
+	public var flashgraphic:Bool;
 	public var graphic:Dynamic;
 	public var graphicUpdate:Body->Void;
 		
 	flibmdel public inline function validate_graphic() {
 		if(graphicUpdate!=null) graphicUpdate(outer);
-		else if(graphic!=null) {
+		else if(graphic!=null && flashgraphic) {
 			//flash graphics API certainly (I cannot speak for NME)
 			//does not like very large values for rotations, so mudulo operation
 			//is necessary to avoid lengthy simulations causes objects to simply
