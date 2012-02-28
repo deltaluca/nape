@@ -17,6 +17,8 @@ class Vertex {
 	vec_new(public,$(->));
 	public var forced:Bool; //used to propogate 'fixed'ness of vertices for simplification
 
+	public var diagonals:List(Vertex);
+
 	//helper in monotone decomposition + type
 	public var type:Int;
 	public var helper:Vertex;
@@ -26,17 +28,40 @@ class Vertex {
 	public var next:Vertex;
 	public var prev:Vertex;
 
-	public function new() {}
+	public function new() {
+		diagonals = new List(Vertex)();
+	}
 	flibmdel public inline function alloc() {
 	}
 	flibmdel public inline function free() {
 		helper = null;
+		assert(diagonals.empty(),"non-empty diagonals");
 	}
 
 	public static inline function get(x:PR(GeomVert)) {
 		var ret = Get(Vertex);
 		vec_set(ret.,x.);
 		return ret;
+	}
+
+	//sort diagonals in order of processing when pulling polygons out of partitions
+	public function sort() {
+		vec_new(u); vec_new(v);
+		$(mixin orient(a,b,c) ({
+			vec_sub(a.,b.,u);
+			vec_sub(c.,b.,v);
+			var ret = vec_cross(u,v);
+			ret > 0 ? -1 : ret == 0 ? 0 : 1;
+		}));
+		var vorient = orient(prev,this,next);
+		assert(vorient!=0, "collinear edge on boundary of partitioned poly?");
+		Sort(diagonals,Node(Vertex),$(mixin lt(p,q) ({
+			var d1 = orient(prev,this,p);
+			var d2 = orient(prev,this,q);
+			if  (d1==d2) orient(p,this,q) == 1;
+			elif(d1==0)  d2 == vorient;
+			else         d1 != vorient;
+		})) lt);
 	}
 
 	//determine right distance of vertex from edge, sign being important, magnitude not.
@@ -85,6 +110,7 @@ class Vertex {
 	}
 }
 
+mix_circular(Vertex,
 class PR(PartitionedPoly) {
 	public var vertices:Vertex; //circular linked list.
 
@@ -92,7 +118,6 @@ class PR(PartitionedPoly) {
 	//we remove degenerate vertices, and collinear vertices
 	//as this was the easiest way to make the monotonic decomposition robust.
 	public function new(P:PR(GeomVert)) {
-	mix_circular(Vertex,
 		if(P==null) return;
 		var cw = geom(clockwise(P));
 		var p = P;
@@ -115,14 +140,49 @@ class PR(PartitionedPoly) {
 			p = p.next;
 		}while(p!=P);
 		DEBUG(if(size(vertices)<3) throw "Error: Degenerate poly can't be decomposed";)
-	)
 	}
 
 	public function add_diagonal(p:Vertex,q:Vertex) {
-		DummyNapeMain.debug.drawLine(new Vec2(p.x,p.y), new Vec2(q.x,q.y), 0xffffff);
+		p.diagonals.add(q);
+		q.diagonals.add(p);
 		p.forced = q.forced = true;
 	}
+	
+	//pull polygons out of the partitions
+	public function extract() {
+		var ret = new List(PR(GeomVert))();
+		for_iter(c, vertices, c.sort());
+		pull(vertices, ret);
+		return ret;
+	}
+	private function pull(start:Vertex, ret:List(PR(GeomVert))) {
+		var poly:PR(GeomVert) = null;
+		var next = start;
+		do {
+			mix_circular(PR(GeomVert),
+				poly = push_after(poly, PR(GeomVert).get(next.x,next.y));
+				poly.forced = next.forced;
+			)
+			if(!next.diagonals.empty()) {
+				var diag = next.diagonals.pop_unsafe();
+				if(diag==start) break;
+				else next = pull(next,ret);
+			}else {
+				var n = next.next;
+				Free(Vertex,next);
+				next = n;
+			}
+		}while(next!=start);
+
+		assert(PR(Monotone).isMonotone(poly), "output poly is not monotone :(");
+		assert(geom(clockwise(poly)),"out poly is not convex :(");
+
+		if(geom(signed_area(poly))!=0)
+			ret.add(poly);
+		return next;
+	}
 }
+)
 
 //perform monotone partitionings of a polygon using a horizontal sweep line.
 //handling any weakly-simple polygon.
@@ -286,6 +346,8 @@ class PR(Monotone) {
 				}
 			}
 		}
+
+		return poly.extract();
 	)
 	}
 }
