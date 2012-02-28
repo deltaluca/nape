@@ -819,12 +819,16 @@ class PR(Space) {
 		
 		$(mixin doit2(list) {
 			Iter(cur,list,{
-				if(!vec_eq(cur.pos,cur.pre_pos))
+				var upos = !vec_eq(cur.pos,cur.pre_pos);
+				var urot = cur.pre_rot!=cur.rot;
+				if(upos)
 					cur.invalidate_pos();
 				vec_set(cur.pre_pos,cur.pos);
-				if(cur.pre_rot!=cur.rot)
-					cur.invalidate_rot();
+				if(urot)
+					cur.invalidate_rot(upos);
 				cur.pre_rot = cur.rot;
+
+				if(urot || upos) cur.validate_graphic();
 
 		//		if(!bphase.is_sweep)
 		//			Iter(shape,cur.shapes,bphase.sync(shape))
