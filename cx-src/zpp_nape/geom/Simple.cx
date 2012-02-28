@@ -311,10 +311,15 @@ class Sweep {
 }
 
 class PR(Simple) {
-	static var sweep:Sweep = new Sweep();
-	static var inthash = new FastHash2(Hashable2(Bool))();
+	static var sweep:Sweep;
+	static var inthash:FastHash2(Hashable2(Bool));
 
 	public static function decompose(poly:PR(GeomVert)) {
+		if(sweep==null) {
+			sweep = new Sweep();
+			inthash = new FastHash2(Hashable2(Bool))();
+		}
+
 		var vertices = Get(Set(Vertex));
 		vertices.lt = Vertex.less_xy;
 		vertices.swapped = Vertex.swap_nodes;
@@ -580,6 +585,11 @@ class PR(Simple) {
 	}
 
 	public static function isSimple(poly:PR(GeomVert)) {
+		if(sweep==null) {
+			sweep = new Sweep();
+			inthash = new FastHash2(Hashable2(Bool))();
+		}
+
 		var vertices = new List(Vertex)();
 		mix_circular(PR(GeomVert),for_iter(v,poly,{
 			vertices.add(Vertex.get(v.x,v.y));

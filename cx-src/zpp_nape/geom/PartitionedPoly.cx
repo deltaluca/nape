@@ -113,7 +113,7 @@ class Vertex {
 	}
 }
 
-mix_circular(Vertex,
+mixpool_circular(Vertex,
 class PR(PartitionedPoly) {
 	public var vertices:Vertex; //circular linked list.
 
@@ -156,6 +156,7 @@ class PR(PartitionedPoly) {
 		var ret = new List(PR(PartitionedPoly))();
 		for_iter(c, vertices, c.sort());
 		pull_partitions(vertices, ret);
+		clear(vertices);
 		return ret;
 	}
 	private function pull_partitions(start:Vertex, ret:List(PR(PartitionedPoly))) {
@@ -170,11 +171,8 @@ class PR(PartitionedPoly) {
 				var diag = next.diagonals.pop_unsafe();
 				if(diag==start) break;
 				else next = pull_partitions(next,ret);
-			}else {
-				var n = next.next;
-				Free(Vertex,next);
-				next = n;
-			}
+			}else
+				next = next.next;
 		}while(next!=start);
 
 		ret.add(poly);
@@ -186,6 +184,7 @@ class PR(PartitionedPoly) {
 		var ret = new List(PR(GeomVert))();
 		for_iter(c, vertices, c.sort());
 		pull(vertices, ret);
+		clear(vertices);
 		return ret;
 	}
 	private function pull(start:Vertex, ret:List(PR(GeomVert))) {
@@ -200,11 +199,8 @@ class PR(PartitionedPoly) {
 				var diag = next.diagonals.pop_unsafe();
 				if(diag==start) break;
 				else next = pull(next,ret);
-			}else {
-				var n = next.next;
-				Free(Vertex,next);
-				next = n;
-			}
+			}else
+				next = next.next;
 		}while(next!=start);
 
 		assert(geom(clockwise(poly)),"out poly is not convex :(");

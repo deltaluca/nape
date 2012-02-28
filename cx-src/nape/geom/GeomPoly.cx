@@ -123,7 +123,7 @@ class GeomPoly {
 
 	public function clear() {
 		mix_circular(Vertex,
-			clear_with(verts, $(mixin cb(x) Free(Vertex,x)));
+			clear_with(verts, $(mixin cb(x) Free(Vertex,x)) cb);
 		)	
 	}
 
@@ -217,11 +217,12 @@ class GeomPoly {
 		DEBUG(if(size_lt_3) throw "Error: Cannot decompose a degenerate polygon";)
 		var MPs = PR(Simple).decompose(verts);
 		var ret = new GeomPolyList();
-		Iter(MP, MPs, {
+		while(!MPs.empty()) {
+			var MP = MPs.pop_unsafe();
 			var x = new GeomPoly();
 			x.verts = MP;
 			ret.add(x);
-		});
+		}
 		return ret;
 	}
 
@@ -229,12 +230,13 @@ class GeomPoly {
 		DEBUG(if(size_lt_3) throw "Error: Cannot decompose a degenerate polygon";)
 		var MPs = PR(Monotone).decompose(verts).extract();
 		var ret = new GeomPolyList();
-		Iter(MP, MPs, {
+		while(!MPs.empty()) {
+			var MP = MPs.pop_unsafe();
 			var x = new GeomPoly();
 			x.verts = MP;
 			ret.add(x);
 			assert(x.isMonotone(),"monotone decomposition gave non-monotone output?");
-		});
+		}
 		return ret;
 	}
 
@@ -242,17 +244,19 @@ class GeomPoly {
 		DEBUG(if(size_lt_3) throw "Error: Cannot decompose a degenerate polygon";)
 		var MPs = PR(Monotone).decompose(verts).extract_partitions();
 		var ret = new GeomPolyList();
-		Iter(MP,MPs, {
+		while(!MPs.empty()) {
+			var MP = MPs.pop_unsafe();
 			PR(Triangular).triangulate(MP);
 			PR(Convex).optimise(MP);
 			var MQs = MP.extract();
-			Iter(MQ, MQs, {
+			while(!MQs.empty()) {
+				var MQ = MQs.pop_unsafe();
 				var x = new GeomPoly();
 				x.verts = MQ;
 				ret.add(x);
 				assert(x.isConvex(),"convex decomposition gave non-convex output?");
-			});
-		});
+			}
+		}
 		return ret;
 	}
 
@@ -260,15 +264,17 @@ class GeomPoly {
 		DEBUG(if(size_lt_3) throw "Error: Cannot decompose a degenerate polygon";)
 		var MPs = PR(Monotone).decompose(verts).extract_partitions();
 		var ret = new GeomPolyList();
-		Iter(MP, MPs, {
+		while(!MPs.empty()) {
+			var MP = MPs.pop_unsafe();
 			var MQs = PR(Triangular).triangulate(MP).extract();
-			Iter(MQ, MQs, {
+			while(!MQs.empty()) {
+				var MQ = MQs.pop_unsafe();
 				var x = new GeomPoly();
 				x.verts = MQ;
 				ret.add(x);
 				assert(x.size()==3,"triangular decomosition gave non-triangle output?");
-			});
-		});
+			}
+		}
 		return ret;
 	}
 
