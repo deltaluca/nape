@@ -1,5 +1,49 @@
 package zpp_nape.geom;
 $(import);
 
+$(mixin Vertex() PR(PartitionVertex));
+
+mix_circular(Vertex,
 class PR(Convex) {
+	public static function optimise(P:PR(PartitionedPoly)) {
+		for_iter(p, P.vertices, p.sort());
+		for_iter(p, P.vertices,{
+			var pright = p.next;
+			var ppre = null;
+			Iter(pdiag, p.diagonals, {
+				var pleft = if(cx_ite.next==null) p.prev else cx_ite.next.elem();
+				//canot remove diagonal from p side.
+				if(vec_cross(pleft.,pright.)<0) {
+					ppre = cx_ite;
+					pright = pdiag;
+					cx_continue;
+				}
+
+				//now check q side
+				var removable = true;
+				var qleft = pdiag.next;
+				var qpre = null;
+				Iter(qdiag, pdiag.diagonals, {
+					if(qdiag==p) {
+						var qright = if(cx_ite.next==null) pdiag.prev else cx_ite.next.elem();
+						removable = vec_cross(qleft.,qright.)>=0;
+						cx_break;
+					}
+					qleft = qdiag;
+					qpre = cx_ite;
+				});
+
+				//and remove it if possible
+				if(removable) {
+					cx_ite = p.diagonals.erase(ppre);
+					pdiag.diagonals.erase(qpre);
+					continue;
+				}
+
+				pright = pdiag;
+				ppre = cx_ite;
+			});
+		});
+	}
 }
+)
