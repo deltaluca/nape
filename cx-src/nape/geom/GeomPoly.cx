@@ -220,6 +220,33 @@ class GeomPoly {
 		return ret;
 	}
 
+	public function monotone_decomposition() {
+		DEBUG(if(size_lt_3) throw "Error: Cannot decompose a degenerate polygon";)
+		var MPs = PR(Monotone).decompose(verts).extract();
+		var ret = new GeomPolyList();
+		Iter(MP, MPs, {
+			var x = new GeomPoly();
+			x.verts = MP;
+			ret.add(x);
+		});
+		return ret;
+	}
+
+	public function triangular_decomposition() {
+		DEBUG(if(size_lt_3) throw "Error: Cannot decompose a degenerate polygon";)
+		var MPs = PR(Monotone).decompose(verts).extract_partitions();
+		var ret = new GeomPolyList();
+		Iter(MP, MPs, {
+			var MQs = PR(Triangular).triangulate(MP).extract();
+			Iter(MQ, MQs, {
+				var x = new GeomPoly();
+				x.verts = MQ;
+				ret.add(x);
+			});
+		});
+		return ret;
+	}
+
 	public function cut(start:Vec2,end:Vec2, bounded_start:Bool=false, bounded_end:Bool=false):GeomPolyList {
 		DEBUG(
 			if(!isSimple())

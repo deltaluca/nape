@@ -1,0 +1,84 @@
+package zpp_nape.geom;
+$(import);
+
+$(mixin Vertex() PR(PartitionVertex));
+
+mix_circular(Vertex,
+class PR(Triangular) {
+	inline static function lt(p:Vertex,q:Vertex) {
+		return p.y<q.y || (p.y==q.y && p.x<q.x);
+	}
+
+	inline static function right_turn(a:Vertex,b:Vertex,c:Vertex) {
+		vec_new(u); vec_sub(b.,a.,u);
+		vec_new(v); vec_sub(c.,b.,v);
+		return vec_cross(u,v) < 0;
+	}
+
+	//triangulate a monotone polygon by adding partitiones
+	public static function triangulate(P:PR(PartitionedPoly)) {
+		var min = P.vertices; var max = P.vertices;
+		for_iter(p, P.vertices.next, P.vertices, {
+			if(lt(p,min)) min = p;
+			if(lt(max,p)) max = p;
+		});
+
+		var queue = new List(Vertex)();
+		//sort vertices into queue
+		//and assign left/right chain statuses
+		var rp = max.prev;
+		var lp = max.next;
+		queue.add(max);
+		while(rp!=min || lp!=min) {
+			if(rp==min || (lp!=min && lt(rp,lp)))
+				 { queue.add(lp); lp.rightchain = false; lp = lp.next; }
+			else { queue.add(rp); rp.rightchain = true;  rp = rp.prev; }
+		}
+		queue.add(min);
+
+		var stack = new List(Vertex)();
+		stack.add(queue.pop_unsafe());
+		var pre:Vertex = queue.pop_unsafe();
+		stack.add(pre);
+
+		while(true) {
+			var p = queue.pop_unsafe();
+			if(queue.empty()) break;
+
+			if(p.rightchain != stack.front().rightchain) {
+				while(true) {
+					var s = stack.pop_unsafe();
+					if(stack.empty()) break;
+					P.add_diagonal(s, p);
+				}
+				stack.add(pre);
+				stack.add(p);
+			}else {
+				var q = stack.pop_unsafe();
+				while(!stack.empty()) {
+					var s = stack.front();
+					if(!right_turn(s,q,p)) break;
+					P.add_diagonal(s, p);
+					q = s;
+					stack.pop();
+				}
+				stack.add(q);
+				stack.add(p);
+			}
+			pre = p;
+		}
+
+		//now work 'max'
+		if(!stack.empty()) {
+			stack.pop();
+			while(true) {
+				var s = stack.pop_unsafe();
+				if(stack.empty()) break;
+				P.add_diagonal(max,s);
+			}
+		}
+
+		return P;
+	}
+}
+)

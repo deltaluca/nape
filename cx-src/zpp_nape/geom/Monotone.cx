@@ -1,0 +1,179 @@
+package zpp_nape.geom;
+$(import);
+
+$(mixin START   0);
+$(mixin END     1);
+$(mixin MERGE   2);
+$(mixin SPLIT   3);
+$(mixin REGULAR 4);
+
+$(mixin Vertex PR(PartitionVertex));
+$(mixin Edge Vertex);
+
+//perform monotone partitionings of a polygon using a horizontal sweep line.
+//handling any weakly-simple polygon.
+class PR(Monotone) {
+	//used in ordering points when lexicographically equal
+	static inline function bisector(b:Vertex) {
+		var a = b.prev;
+		var c = b.next;
+		vec_new(u); vec_sub(b.,a.,u);
+		vec_new(v); vec_sub(c.,b.,v);
+		var ret = PR(Vec2).get(-uy-vy,ux+vx);
+		vec_normalise(ret.);
+		if(vec_cross(u,v) < 0) vec_negate(ret.);
+		return ret;
+	}
+
+	//determine if p is below q (lexicographically if required)
+	static inline function below(p:Vertex,q:Vertex) {
+		if  (p.y<q.y) return true;
+		elif(p.y>q.y) return false;
+		else {
+			if  (p.x<q.x) return true;
+			elif(p.x>q.x) return false;
+			else {
+				//in the case of equal points lexicographically
+				//we use the information to find the bisector for the polygon
+				//at the point, and compare how the points related slightly away from the vertex
+				//into the polygon to get a natuiral ordering for equal points.
+				var po = bisector(p); var qo = bisector(q);
+				vec_addeq(po.,p.); vec_addeq(qo.,q.);
+				var ret = po.x < qo.x || (po.x==qo.x && po.y<qo.y);
+				Free(PR(Vec2),po); Free(PR(Vec2),qo);
+				return ret;
+			}
+		}
+	}
+	static inline function above(p:Vertex,q:Vertex) return below(q,p)
+	
+	//returns true, if locally based on incident edges
+	//the polygon internal exists to the right of the vertex
+	static inline function left_vertex(p:Vertex) {
+		var pre = p.prev;
+		return pre.y > p.y || (pre.y==p.y && p.next.y < p.y);
+	}
+
+	public static function isMonotone(P:PR(GeomVert)) {
+	mix_circular(Vertex,
+		//find upper and lower most vertices of P
+		//we don't care about being lexicographically correct here.
+		var min = P; var max = P;
+		for_iter(p, P.next,P, {
+			if(p.y < min.y) min = p;
+			if(p.y > max.y) max = p;
+		});
+
+		var ret = true;
+		//check monotonicity on forward chain.
+		var pre = min;
+		if(max!=min.next) {
+			for_iter(p, min.next, max, {
+				if(p.y < pre.y) { ret = false; break; }
+				pre = p;
+			});
+		}
+
+		if(!ret) return false;
+
+		pre = min;
+		//check monotonicity on reverse chain
+		if(max!=min.prev) {
+			rev_iter(p, min.prev, max, {
+				if(p.y < pre.y) { ret = false; break; }
+				pre = p;
+			});
+		}
+
+		return ret;
+	)
+	}
+
+	public static function decompose(P:PR(GeomVert)) {
+	mix_circular(Vertex,
+		var poly = new PR(PartitionedPoly)(P);
+		
+		//populate vertices with event types
+		//and produce list of sorted events
+		var queue = new List(Vertex)();
+		for_iter(p, poly.vertices, {
+			queue.add(p);
+			//compute event type
+			vec_new(u); vec_sub(p.next.,p., u);
+			vec_new(v); vec_sub(p.prev.,p., v);
+			var cx = vec_cross(u,v) > 0.0;
+
+			p.type =
+				if(below(p.prev,p)) {
+					if(below(p.next,p)) cx ? START : SPLIT
+					else REGULAR;
+				}else {
+					if(below(p,p.next)) cx ? END : MERGE
+					else REGULAR;
+				};
+		});
+		Sort(queue,Node(Vertex),above);
+
+		//sorted list of edges based on Edge::edge_lt
+		var edges = Get(Set(Edge));
+		edges.lt = Edge.edge_lt;
+		edges.swapped = Edge.edge_swap;
+
+		//yay
+		while(!queue.empty()) {
+			var v = queue.pop_unsafe();
+			switch(v.type) {
+			case START:
+				v.helper = v;
+				v.node = edges.insert(v);
+			case END:
+				var e = v.prev;
+				DEBUG(if(e.helper==null) throw "Fatal error (1): Polygon is not weakly-simple and clockwise";)
+				if(e.helper.type==MERGE) poly.add_diagonal(v,e.helper);
+				edges.remove_node(e.node);
+				DEBUG(e.helper=null;)
+			case SPLIT:
+				var e = SetLowerBound(v,edges,Edge.vert_lt);
+				if(e!=null) {
+					DEBUG(if(e.helper==null) throw "Fatal error (2): Polygon is not weakly-simple and clockwise";)
+					poly.add_diagonal(v,e.helper);
+					e.helper = v;
+				}
+				v.node = edges.insert(v);
+				v.helper = v;
+			case MERGE:
+				var e = v.prev;
+				DEBUG(if(e.helper==null) throw "Fatal error (3): Polygon is not weakly-simple and clockwise";)
+				if(e.helper.type==MERGE) poly.add_diagonal(v,e.helper);
+				edges.remove_node(e.node);
+				DEBUG(e.helper=null;)
+
+				var e = SetLowerBound(v,edges,Edge.vert_lt);
+				if(e!=null) {
+					DEBUG(if(e.helper==null) throw "Fatal error (4): Polygon is not weakly-simple and clockwise";)
+					if(e.helper.type==MERGE) poly.add_diagonal(v,e.helper);
+					e.helper = v;
+				}
+			case REGULAR:
+				var pre = v.prev;
+				if(left_vertex(v)) {
+					DEBUG(if(pre.helper==null) throw "Fatal error (5): Polygon is not weakly-simple and clockwise";)
+					if(pre.helper.type==MERGE) poly.add_diagonal(v,pre.helper);
+					edges.remove_node(pre.node);
+					DEBUG(pre.helper=null;)
+
+					v.node = edges.insert(v);
+					v.helper = v;
+				}else {
+					var e = SetLowerBound(v,edges,Edge.vert_lt);
+					DEBUG(if(e==null || e.helper==null) throw "Fatal error (6): Polygon is not weakly-simple and clockwise";)
+					if(e.helper.type==MERGE) poly.add_diagonal(v,e.helper);
+					e.helper = v;
+				}
+			}
+		}
+
+		return poly;
+	)
+	}
+}

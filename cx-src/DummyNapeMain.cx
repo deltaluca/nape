@@ -426,12 +426,12 @@ class DummyNapeMain {
 			debug.drawPolygon(p,0xff0000);
 			for(q in p) debug.drawFilledCircle(q,2,0xff00ff);
 			if(p.size()>3 && p.isSimple()) {
-				var ps = PR(Monotone).decompose(p.pr(inner).vertices);
-				Iter(p, ps, {
-					var gp = new GeomPoly();
-					gp.pr(inner).vertices = p;
-					debug.drawPolygon(gp,Std.int(Math.random()*0xffffff));
-				});
+				var ps = p.monotone_decomposition();
+				for(p in ps) {
+					debug.drawPolygon(p, Std.int(Math.random()*0xffffff));
+					for(q in p.triangular_decomposition())
+						debug.drawFilledPolygon(q, Std.int(Math.random()*0xffffff));
+				}
 			}
 		});
 	}
