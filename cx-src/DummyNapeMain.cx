@@ -45,38 +45,14 @@ class DummyNapeMain {
 			return bd.getPixel32(Std.int(x),Std.int(y))==0 ? 1 : -1;
 		}
 
-		function invalidate2() {
-			debug.clear();
-			var polys = MarchingSquares.run(lookup, new AABB(0,0,800,600), new Vec2(15,15));
-			for(p in polys) {
-				var qs:GeomPolyList = new GeomPolyList();
-				try {
-					 qs = p.convex_decomposition();
-				}catch(e:Dynamic) {
-					var ret = "[";
-					for(v in p) {
-						if(ret!="[") ret += ",";
-						ret += "v("+v.x+","+v.y+")";
-					}
-					trace(ret+"]");
-				}
-				for(q in qs)
-					debug.drawPolygon(q,0xff0000);
-			}
-			debug.flush();
-		}
-		invalidate2();
-
 		cur.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function(_) {
 			bd.copyPixels(bd,new flash.geom.Rectangle(cur.mouseX-32,cur.mouseY-32,64,64), new flash.geom.Point(cur.mouseX-32,cur.mouseY-32), erase, new flash.geom.Point(), false);
-			invalidate2();
 		});
 
 		cur.addEventListener(flash.events.MouseEvent.MOUSE_MOVE, function(e) {
 			if(!e.buttonDown) return;
 
 			bd.copyPixels(bd,new flash.geom.Rectangle(cur.mouseX-32,cur.mouseY-32,64,64), new flash.geom.Point(cur.mouseX-32,cur.mouseY-32), erase, new flash.geom.Point(), false);
-			invalidate2();
 		});
 
 
@@ -437,12 +413,21 @@ class DummyNapeMain {
 	}
 
 
+	public static var debug:Debug;
 	static function main() {
-		trace("creating space");
-		var space = new Space();
-		trace("space created");
-		trace("verify assertion build:");
-		space.gravity.x = Math.NaN;
+		var c = flash.Lib.current;
+		var p = new GeomPoly([]);
+		var debug = new ShapeDebug(1,1);
+		c.addChild(debug.display);
+		DummyNapeMain.debug = debug;
+		c.stage.addEventListener(flash.events.MouseEvent.CLICK, function (_) {
+			p.push(new Vec2(c.mouseX,c.mouseY));
+			debug.clear();
+			debug.drawPolygon(p,0xff0000);
+			for(q in p) debug.drawFilledCircle(q,2,0xff00ff);
+			if(p.size()>3 && p.isSimple())
+				PR(Monotone).decompose(p.pr(inner).vertices);
+		});
 	}
 }
 
@@ -499,8 +484,6 @@ static function main() {
 //              if(!p2.isDegenerate()) {
 //                debug.drawPolygon(p,
                 debug.drawPolygon(p,0xff0000);
-                    var qs = p.convex_decomposition();
-                     for(q in qs) debug.drawFilledPolygon(q,colour(q));
 //              }
                 debug.drawPolygon(p,0);
             }
