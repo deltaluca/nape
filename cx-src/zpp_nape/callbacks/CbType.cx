@@ -34,11 +34,11 @@ class PR(CbType) {
 
     ///---------------------------------------------------------------------------------------------
 
-	//set of listeners using the cbType, sorted by id.
+	//set of listeners using the cbType
 	public var listeners:List(PR(InteractionListener));
 
 	flibmdel public inline function insert(x:PR(InteractionListener)) {
-		Insert(x, listeners, $(mixin lt(a,b) a.id<b.id) lt);
+		listeners.add(x);
 	}
 	flibmdel public inline function remove(x:PR(InteractionListener)) {
 		listeners.remove(x);
@@ -66,20 +66,45 @@ class PR(CbType) {
 	//----------------------------------------------------------------------------------------------
 
 	//determins if cbTypes share an interaction listener
-	//we can abuse sorted nature of listener sets
 	public static inline function empty_intersection(a:PR(CbType),b:PR(CbType)) {
-		var aite = a.listeners.begin();
-		var bite = b.listeners.begin();
-		var ret = true;
-		while(aite!=null && bite!=null) {
-			var del = aite.elem().id - bite.elem().id;
-			if  (del<0) { aite = aite.next; }
-			elif(del>0) { bite = bite.next; }
-			else {
-				ret = false;
+		var id = if(a.id<b.id) a.id else b.id;
+		var di = if(a.id<b.id) b.id else a.id;
+
+		var ret = false;
+		var lx = (a.listeners.length<b.listeners.length) ? a.listeners : b.listeners;
+		Iter(x,lx,{
+			if(x.id==id && x.di==di) { 
+				ret = true;
 				break;
 			}
-		}
+		});
+		return !ret;
+	}
+
+	public static inline function find(a:PR(CbType),b:PR(CbType), event:Int, type:Int) {
+		var id = if(a.id<b.id) a.id else b.id;
+		var di = if(a.id<b.id) b.id else a.id;
+
+		var ret:PR(InteractionListener) = null;
+		var lx = (a.listeners.length<b.listeners.length) ? a.listeners : b.listeners;
+		Iter(x,lx,{
+			if(x.id==id && x.di==di && x.event==event && (x.itype&type)!=0) {
+				DEBUG(if(ret!=null) throw "Error: multiple valid listeneres";)
+				ret = x;
+				RELEASE(break;)
+			}
+		});
 		return ret;
+	}
+
+	public static inline function find_all(a:PR(CbType),b:PR(CbType), event:Int, cb:PR(InteractionListener)->Void) {
+		var id = if(a.id<b.id) a.id else b.id;
+		var di = if(a.id<b.id) b.id else a.id;
+
+		var lx = (a.listeners.length<b.listeners.length) ? a.listeners : b.listeners;
+		Iter(x,lx,{
+			if(x.id==id && x.di==di && x.event==event)
+				cb(x);
+		});
 	}
 }

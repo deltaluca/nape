@@ -224,18 +224,16 @@ class PR(InteractionListener) extends PR(Listener) {
 	}
 
 	public function assign() {
-		//if(space.listenersets.get(id,di)==null)
 		if(PR(CbType).empty_intersection(cb1,cb2))
 			space.freshListenerType(cb1,cb2);
 
 		cb1.insert(this);
-		cb2.insert(this);
+		if(cb1!=cb2) cb2.insert(this);
 	}
 	public function unassign() {
 		cb1.remove(this);
-		cb2.remove(this);
+		if(cb1!=cb2) cb2.remove(this);
 
-		//if(space.listenersets.get(id,di)==null)
 		if(PR(CbType).empty_intersection(cb1,cb2))
 			space.nullListenerType(cb1,cb2);
 	}
