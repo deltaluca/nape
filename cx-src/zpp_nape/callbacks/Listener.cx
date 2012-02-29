@@ -123,65 +123,6 @@ class PR(ConstraintListener) extends PR(Listener) {
     }
 }
 
-//holds all listeners assigned between two cbTypes
-//that have been added to a space.
-//
-//whilst less performant than the original _begin,_end,_pre hashes
-//this genearlises the listeners to any new callback that might
-//be introduced, as well as allowing the original begin/end/pre
-//to be applied over an interaction type discriminatly.
-class PR(ListenerSet) {
-	MixPool(PR(ListenerSet))
-
-	public var cb1:PR(CbType);
-	public var cb2:PR(CbType);
-
-	//used for FastHash2
-	public var hnext:PR(ListenerSet);
-	public var id:Int; public var di:Int;
-
-	public var listeners:List(PR(InteractionListener));
-
-	//---------------------------------------------------------
-
-	public function new() {
-		listeners = new List(PR(InteractionListener))();
-	}
-
-	flibmdel public inline function alloc() {}
-	flibmdel public inline function free () {
-		assert(listeners.empty(),"non empty listener list on free");
-	}
-
-	//---------------------------------------------------------
-
-	public static inline function get(x:PR(InteractionListener)) {
-		var ret = Get(PR(ListenerSet));
-		ret.cb1 = x.cb1; ret.cb2 = x.cb2;
-		ret.id  = x.id;  ret.di  = x.di;
-		return ret;
-	}
-
-	flibmdel public inline function find(event:Int,type:Int) {
-		var ret:PR(InteractionListener) = null;
-		Iter(x, listeners, {
-			if((x.itype&type)!=0 && x.event==event) {
-				DEBUG(if(ret!=null) throw "Error: Multiple valid Pre/InteractionListener defined between the cbTypes";)
-				ret = x;
-				RELEASE(break;)
-			}
-		});
-		return ret;
-	}
-
-	flibmdel public inline function find_all(event:Int, cb:PR(InteractionListener)->Void) {
-		Iter(x, listeners, {
-			if(x.event==event)
-				cb(x);
-		});
-	}
-}
-
 //shared between public InteractionListener
 //and public PreListener
 class PR(InteractionListener) extends PR(Listener) {
