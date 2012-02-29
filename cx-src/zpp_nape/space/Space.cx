@@ -217,14 +217,8 @@ class PR(Space) {
     public var listeners:List(PR(Listener));
     public var wrap_listeners:ListenerList;
 
-	//maps each pair of cbTypes with active listeners to a record
-	//of all such listeners.
-	public var listenersets:FastHash2(PR(ListenerSet));
-
     public var callbacks:PR(Callback); //as a deque
 
-	//used in callbackset callbacks to keep track of arbiter counts for unique begin/end/pre
-	public var callbacksets:FastHash2(PR(CallbackSet));
 	//for on-going callbacks
 	public var callbackset_list:MixList(PR(CallbackSet));
 
@@ -584,8 +578,6 @@ class PR(Space) {
         wrap_listeners.pr(inner).subber = listeners_subber;
 		DEBUG(wrap_listeners.pr(inner)._modifiable = listeners_modifiable;)
 
-		listenersets = new FastHash2(PR(ListenerSet))();
-		callbacksets = new FastHash2(PR(CallbackSet))();
 		callbackset_list = new MixList(PR(CallbackSet))();
 		
 		mrca1 = new List(PR(Interactor))();
@@ -595,20 +587,8 @@ class PR(Space) {
 	//----------------------------------------------------------------------------------------------
 
 	public function revoke_listener(x:PR(InteractionListener)) {
-		var set = listenersets.get(x.id,x.di);
-		assert(set!=null,"revoke_listener with no listenerset");
-		set.listeners.remove(x);
-		if(set.listeners.empty()) {
-			listenersets.remove(set);
-			Free(PR(ListenerSet),set);
-		}
 	}
 	public function unrevoke_listener(x:PR(InteractionListener)) {
-		var set = listenersets.get(x.id,x.di);
-		if(set==null) {
-			listenersets.add(set = PR(ListenerSet).get(x));
-		}
-		set.listeners.add(x);
 	}
 
     public function addListener(x:PR(Listener)) {
@@ -633,6 +613,19 @@ class PR(Space) {
 		}
         x.space = null;
     }
+
+    //----------------------------------------------------------------------------------------------
+
+	flibmdel public inline function add_callbackset(cb:PR(CallbackSet)) {
+		cb.int1.cbsets.add(cb);
+		cb.int2.cbsets.add(cb);
+		callbackset_list.add(cb);
+	}
+
+	flibmdel public inline function remove_callbackset(cb:PR(CallbackSet)) {
+		cb.int1.cbsets.remove(cb);
+		cb.int2.cbsets.remove(cb);
+	}
 
     //----------------------------------------------------------------------------------------------
 
@@ -692,15 +685,14 @@ class PR(Space) {
 						var cb2 = i2.cbType;
 						assert(cb1!=null && cb2!=null, "null cbs from MRCA_chains?");
 
-						var set = listenersets.ordered_get(cb1.id,cb2.id);
-						if(set==null) cx_continue;
+						if(PR(CbType).empty_intersection(cb1,cb2)) cx_continue;
 
-						var callbackset = callbacksets.ordered_get(i1.id,i2.id);
+						var callbackset = PR(Interactor).get(i1,i2);
 						assert(callbackset!=null,"null callbackset on arbiter deletion?");
 						callbackset.remove_arb(xarb);
 
 						if(!deleting) {
-							var listener = set.find(Flag(CbEvent,END),xarb.type);
+							var listener = PR(CbType).find(cb1,cb2,Flag(CbEvent,END),xarb.type);
 							if(listener!=null
 							&& callbackset.empty_arb(listener.itype) && (listener.itype&xarb.type)!=0) {	
 								var cb = push_callback(listener);
@@ -712,7 +704,7 @@ class PR(Space) {
 						}
 
 						if(callbackset.really_empty()) {
-							callbacksets.remove(callbackset);
+							remove_callbackset(callbackset);
 							//deferred for callbackset_list to avoid doubly linked list.
 							//Free(PR(CallbackSet),callbackset);
 						}
@@ -1001,10 +993,8 @@ class PR(Space) {
 				continue;
 			}
 
-			var lset = listenersets.ordered_get(set.int1.cbType.id, set.int2.cbType.id);
-			assert(lset!=null,"wtf "+set.int1.outer_i.toString()+" "+set.int2.outer_i.toString()+" "+set.int1.cbType.outer+" "+set.int2.cbType.outer);
-
-			lset.find_all(Flag(CbEvent,ONGOING), function (x:PR(InteractionListener)) {
+			PR(CbType).find_all(set.int1.cbType,set.int2.cbType,Flag(CbEvent,ONGOING),
+			function (x:PR(InteractionListener)) {
 				if(!set.empty_arb(x.itype)) {
 					var cb = push_callback(x);
 					cb.event = Flag(CbEvent,ONGOING);
@@ -1130,10 +1120,10 @@ class PR(Space) {
 					MRCA_chains(xarb.ws1,xarb.ws2);
 					Iter(i1,mrca1,{ if(i1.cbType != cb1 && i1.cbType != cb2) cx_continue;
 					Iter(i2,mrca2,{ if((i1.cbType == cb1 && i2.cbType != cb2) || (i1.cbType == cb2 && i2.cbType != cb1)) cx_continue;
-						var callbackset = callbacksets.ordered_get(i1.id,i2.id);
+						var callbackset = PR(Interactor).get(i1,i2);
 						if(callbackset!=null) {
 							ClearWith(arb, callbackset.arbiters, arb.present=false);
-							callbacksets.remove(callbackset);
+							remove_callbackset(callbackset);
 							//deferred for callbackset_list
 							//Free(PR(CallbackSet),callbackset);
 						}
@@ -1174,12 +1164,12 @@ class PR(Space) {
 					var cb1 = i1.cbType;
 					var cb2 = i2.cbType;
 					assert(cb1!=null && cb2!=null, "null cb from MRCA_chains??");
-					var callbackset = callbacksets.ordered_get(i1.id,i2.id);
+					var callbackset = PR(Interactor).get(i1,i2);
 					if(callbackset!=null) {
 						xarb.present = false;
 						callbackset.remove_arb(xarb);
 						if(callbackset.really_empty()) {
-							callbacksets.remove(callbackset);
+							remove_callbackset(callbackset);
 							//deferred for callbackset_list
 							//Free(PR(CallbackSet),callbackset);
 						}
@@ -1219,12 +1209,11 @@ class PR(Space) {
 					MRCA_chains(xarb.ws1,xarb.ws2);
 					Iter(i1,mrca1,{ if(i1.cbType != cb1 && i1.cbType != cb2) cx_continue;
 					Iter(i2,mrca2,{ if((i1.cbType == cb1 && i2.cbType != cb2) || (i1.cbType == cb2 && i2.cbType != cb1)) cx_continue;
-						var callbackset = callbacksets.ordered_get(i1.id,i2.id);
+						var callbackset = PR(Interactor).get(i1,i2);
 						xarb.present = true;
 						if(callbackset==null) {
 							callbackset = PR(CallbackSet).get(i1,i2);
-							callbacksets.add(callbackset);
-							callbackset_list.add(callbackset);
+							add_callbackset(callbackset);
 						}
 						callbackset.add_arb(xarb);
 					});
@@ -1260,13 +1249,12 @@ class PR(Space) {
 					var cb1 = i1.cbType;
 					var cb2 = i2.cbType;
 					assert(cb1!=null && cb2!=null, "null cb from MRCA_chain?");
-					if(listenersets.ordered_get(cb1.id,cb2.id)!=null) {
+					if(!PR(CbType).empty_intersection(cb1,cb2)) {
 						xarb.present = true;
-						var callbackset = callbacksets.ordered_get(i1.id,i2.id);
+						var callbackset = PR(Interactor).get(i1,i2);
 						if(callbackset==null) {
 							callbackset = PR(CallbackSet).get(i1,i2);
-							callbacksets.add(callbackset);
-							callbackset_list.add(callbackset);
+							add_callbackset(callbackset);
 						}
 						callbackset.add_arb(xarb);
 					}
@@ -1689,14 +1677,15 @@ class PR(Space) {
 							var cb2 = i2.cbType;
 							assert(cb1!=null && cb2!=null, "null cb from MRCA_chains?");
 
-							var set = listenersets.ordered_get(cb1.id,cb2.id);
-							if(set==null) cx_continue;
+							if(PR(CbType).empty_intersection(cb1,cb2)) cx_continue;
 
 							DEBUG(var i)
 							RELEASE(listener)
-							= if  (begcb) set.find(Flag(CbEvent,BEGIN),arb.type);
-							  elif(endcb) set.find(Flag(CbEvent,END)  ,arb.type);
-							  else null;
+							= if(begcb||endcb) PR(CbType).find(
+								cb1,cb2,
+								begcb ? Flag(CbEvent,BEGIN) : Flag(CbEvent,END),
+								arb.type)
+							else null;
 
 							DEBUG(
 								if(i!=null && listener!=null) throw "Error: Multiple valid pairings for callbacks between possible interactor combinations descended frmo shape1="+arb.ws1.outer.toString()+" shape2="+arb.ws2.outer.toString()+". Conflict arising from listener1="+i.outer.toString()+" listener2="+listener.outer.toString();
@@ -1704,13 +1693,12 @@ class PR(Space) {
 							)
 
 
-							var callbackset = callbacksets.ordered_get(i1.id,i2.id);
+							var callbackset = PR(Interactor).get(i1,i2);
 							if(begcb || arb.intchange) {
 								arb.present = true;
 								if(callbackset==null) {
 									callbackset = PR(CallbackSet).get(i1,i2);
-									callbacksets.add(callbackset);
-									callbackset_list.add(callbackset);
+									add_callbackset(callbackset);
 								}
 								//check for empty rather than null, since it might've been created
 								//already to prevent multiple pre-handlers
@@ -1738,7 +1726,7 @@ class PR(Space) {
 									}
 								}
 								if(callbackset.really_empty()) {
-									callbacksets.remove(callbackset);
+									remove_callbackset(callbackset);
 									//removal from callbackset_list is deferred to avoid
 									//need for doubly linked list or slow removal
 									//thus so is freeing as these are mixin linked list
@@ -1960,23 +1948,21 @@ class PR(Space) {
 									var cb2 = i2.cbType;
 									assert(cb1!=null && cb2!=null, "null cb from MRCA_chains?");
 
-									var set = listenersets.ordered_get(cb1.id,cb2.id);
-									if(set==null) cx_continue;
+									if(PR(CbType).empty_intersection(cb1,cb2)) cx_continue;
 
 									DEBUG(
-										var i = set.find(Flag(CbEvent,PRE),inttype);
+										var i = PR(CbType).find(cb1,cb2,Flag(CbEvent,PRE),inttype);
 										if(i!=null && listener!=null) throw "Error: Multiple valid pre-listeners for possible interactor combinations descended from shape1="+s1.outer.toString()+" shape2="+s2.outer.toString()+". listener1="+i.outer.toString()+" listener2="+listener.outer.toString();
 										listener = i;
 									)
-									RELEASE(listener = set.find(Flag(CbEvent,PRE),inttype);)
+									RELEASE(listener = PR(CbType).find(cb1,cb2,Flag(CbEvent,PRE),inttype);)
 
 									if(listener==null) cx_continue;
 
-									callbackset = callbacksets.ordered_get(i1.id,i2.id);
+									callbackset = PR(Interactor).get(i1,i2);
 									if(callbackset==null) {
 										ncallbackset = PR(CallbackSet).get(i1,i2);
-										callbacksets.add(ncallbackset);
-										callbackset_list.add(ncallbackset);
+										add_callbackset(ncallbackset);
 									}
 									prei1 = i1;
 

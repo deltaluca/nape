@@ -34,6 +34,16 @@ class PR(CbType) {
 
     ///---------------------------------------------------------------------------------------------
 
+	//set of listeners using the cbType
+	public var listeners:List(PR(InteractionListener));
+
+	flibmdel public inline function insert(x:PR(InteractionListener)) {
+		listeners.add(x);
+	}
+	flibmdel public inline function remove(x:PR(InteractionListener)) {
+		listeners.remove(x);
+	}
+
     ///these are only assigned when listener is added to the space!
     //store actual references as these are one-one
     public var _bodywake :PR(BodyListener);
@@ -71,5 +81,52 @@ class PR(CbType) {
 
         constraints = new List(PR(Constraint))();
 		interactors = new List(PR(Interactor))();
+
+		listeners = new List(PR(InteractionListener))();
     }
+
+	//----------------------------------------------------------------------------------------------
+
+	//determins if cbTypes share an interaction listener
+	public static inline function empty_intersection(a:PR(CbType),b:PR(CbType)) {
+		var id = if(a.id<b.id) a.id else b.id;
+		var di = if(a.id<b.id) b.id else a.id;
+
+		var ret = false;
+		var lx = (a.listeners.length<b.listeners.length) ? a.listeners : b.listeners;
+		Iter(x,lx,{
+			if(x.id==id && x.di==di) { 
+				ret = true;
+				break;
+			}
+		});
+		return !ret;
+	}
+
+	public static inline function find(a:PR(CbType),b:PR(CbType), event:Int, type:Int) {
+		var id = if(a.id<b.id) a.id else b.id;
+		var di = if(a.id<b.id) b.id else a.id;
+
+		var ret:PR(InteractionListener) = null;
+		var lx = (a.listeners.length<b.listeners.length) ? a.listeners : b.listeners;
+		Iter(x,lx,{
+			if(x.id==id && x.di==di && x.event==event && (x.itype&type)!=0) {
+				DEBUG(if(ret!=null) throw "Error: multiple valid listeneres";)
+				ret = x;
+				RELEASE(break;)
+			}
+		});
+		return ret;
+	}
+
+	public static inline function find_all(a:PR(CbType),b:PR(CbType), event:Int, cb:PR(InteractionListener)->Void) {
+		var id = if(a.id<b.id) a.id else b.id;
+		var di = if(a.id<b.id) b.id else a.id;
+
+		var lx = (a.listeners.length<b.listeners.length) ? a.listeners : b.listeners;
+		Iter(x,lx,{
+			if(x.id==id && x.di==di && x.event==event)
+				cb(x);
+		});
+	}
 }
