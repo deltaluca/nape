@@ -34,6 +34,16 @@ class PR(CbType) {
 
     ///---------------------------------------------------------------------------------------------
 
+	//set of listeners using the cbType, sorted by id.
+	public var listeners:List(PR(InteractionListener));
+
+	flibmdel public inline function insert(x:PR(InteractionListener)) {
+		Insert(x, listeners, $(mixin lt(a,b) a.id<b.id) lt);
+	}
+	flibmdel public inline function remove(x:PR(InteractionListener)) {
+		listeners.remove(x);
+	}
+
     ///these are only assigned when listener is added to the space!
     //store actual references as these are one-one
     public var _bodywake :PR(BodyListener);
@@ -49,5 +59,27 @@ class PR(CbType) {
 
         constraints = new List(PR(Constraint))();
 		interactors = new List(PR(Interactor))();
+
+		listeners = new List(PR(InteractionListener))();
     }
+
+	//----------------------------------------------------------------------------------------------
+
+	//determins if cbTypes share an interaction listener
+	//we can abuse sorted nature of listener sets
+	public static inline function empty_intersection(a:PR(CbType),b:PR(CbType)) {
+		var aite = a.listeners.begin();
+		var bite = b.listeners.begin();
+		var ret = true;
+		while(aite!=null && bite!=null) {
+			var del = aite.elem().id - bite.elem().id;
+			if  (del<0) { aite = aite.next; }
+			elif(del>0) { bite = bite.next; }
+			else {
+				ret = false;
+				break;
+			}
+		}
+		return ret;
+	}
 }

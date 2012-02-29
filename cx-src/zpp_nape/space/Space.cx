@@ -556,7 +556,8 @@ class PR(Space) {
 						assert(cb1!=null && cb2!=null, "null cbs from MRCA_chains?");
 
 						var set = listenersets.ordered_get(cb1.id,cb2.id);
-						if(set==null) cx_continue;
+						if(PR(CbType).empty_intersection(cb1,cb2)) cx_continue;
+//						if(set==null) cx_continue;
 
 						var callbackset = callbacksets.ordered_get(i1.id,i2.id);
 						assert(callbackset!=null,"null callbackset on arbiter deletion?");
@@ -1123,7 +1124,8 @@ class PR(Space) {
 					var cb1 = i1.cbType;
 					var cb2 = i2.cbType;
 					assert(cb1!=null && cb2!=null, "null cb from MRCA_chain?");
-					if(listenersets.ordered_get(cb1.id,cb2.id)!=null) {
+					//if(listenersets.ordered_get(cb1.id,cb2.id)!=null) {
+					if(!PR(CbType).empty_intersection(cb1,cb2)) {
 						xarb.present = true;
 						var callbackset = callbacksets.ordered_get(i1.id,i2.id);
 						if(callbackset==null) {
@@ -1553,7 +1555,8 @@ class PR(Space) {
 							assert(cb1!=null && cb2!=null, "null cb from MRCA_chains?");
 
 							var set = listenersets.ordered_get(cb1.id,cb2.id);
-							if(set==null) cx_continue;
+							//if(set==null) cx_continue;
+							if(PR(CbType).empty_intersection(cb1,cb2)) cx_continue;
 
 							DEBUG(var i)
 							RELEASE(listener)
@@ -1824,7 +1827,8 @@ class PR(Space) {
 									assert(cb1!=null && cb2!=null, "null cb from MRCA_chains?");
 
 									var set = listenersets.ordered_get(cb1.id,cb2.id);
-									if(set==null) cx_continue;
+									//if(set==null) cx_continue;
+									if(PR(CbType).empty_intersection(cb1,cb2)) cx_continue;
 
 									DEBUG(
 										var i = set.find(Flag(CbEvent,PRE),inttype);
