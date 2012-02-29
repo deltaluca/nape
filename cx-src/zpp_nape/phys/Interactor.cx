@@ -44,6 +44,25 @@ class PR(Interactor) {
 
 	//--------------------------------------------------------------------
 
+	public var cbsets:List(PR(CallbackSet));
+
+	public static inline function get(i1:PR(Interactor),i2:PR(Interactor)) {
+		var id = if(i1.id < i2.id) i1.id else i2.id;
+		var di = if(i1.id < i2.id) i2.id else i1.id;
+
+		var xs = if(i1.cbsets.length<i2.cbsets.length) i1.cbsets else i2.cbsets;
+		var ret:PR(CallbackSet) = null;
+		Iter(x, xs, {
+			if(x.id == id && x.di==di) {
+				ret = x;
+				cx_break;
+			}
+		});
+		return ret;
+	}
+
+	//--------------------------------------------------------------------
+
 	public var group:PR(InteractionGroup);
 	public var cbType:PR(CbType);
 
@@ -100,6 +119,7 @@ class PR(Interactor) {
 
 	public function new() {
 		id = ID(Interactor);
+		cbsets = new List(PR(CallbackSet))();
 	}
 
 	//--------------------------------------------------------------------
