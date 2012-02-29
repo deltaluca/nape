@@ -789,10 +789,13 @@ class PR(Body) extends PR(Interactor) {
 		__iaddedToSpace();
 	}
 
-	public function removedFromSpace() {
+	//skipretire true when space.destroy() is called
+	//as arbiters are already retired globally.
+	public function removedFromSpace(?skipretire=false) {
 		while(!arbiters.empty()) {
 			var arb = arbiters.pop_unsafe();
-			arb.lazyRetire(space,this);
+			if(!skipretire)
+				arb.lazyRetire(space,this);
 		}
 
 		Free(PR(Component),component);
