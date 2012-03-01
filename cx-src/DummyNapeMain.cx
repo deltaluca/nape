@@ -415,39 +415,32 @@ public		static var txt = new flash.text.TextField();
 	
 	static function main() {
 		var c = flash.Lib.current;
-		var p = new GeomPoly([]);
-		var debug = new ShapeDebug(1,1);
-
-		txt.width = 600;
-		txt.height = 600;
-		txt.selectable = false;
-		txt.defaultTextFormat = new flash.text.TextFormat("Courier New",12,0xffffff);
-		c.addChild(txt);
-		
-
+		var debug = new BitmapDebug(c.stage.stageWidth,c.stage.stageHeight,0x333333);
 		c.addChild(debug.display);
 
-		c.stage.addEventListener(flash.events.MouseEvent.CLICK, function (_) {
-			p.push(new Vec2(c.mouseX,c.mouseY));
+		var space = new Space(new Vec2(0,400));
+		var b = new Body();
+		b.shapes.add(new Circle(10));
+		b.space = space;
+
+		for(i in 0...10) {
+			var b = new Body();
+			b.shapes.add(new Circle(1));
+			b.position.setxy(Math.random()*400,Math.random()*400);
+			b.space = space;
+		}
+
+		c.addEventListener(flash.events.Event.ENTER_FRAME, function (_) {
 			debug.clear();
-			debug.drawPolygon(p,0xff0000);
-			for(q in p) debug.drawFilledCircle(q,2,0xff00ff);
-				txt.text = PR(POOL_STATS).dump();
-			if(p.size()>3 && p.isSimple()) {
-				var ps = p.convex_decomposition();
-/*				for(p in ps) {
-					debug.drawPolygon(p, Std.int(Math.random()*0xffffff));
-					for(q in p.convex_decomposition())
-						debug.drawFilledPolygon(q, Std.int(Math.random()*0xffffff));
-					for(q in p.triangular_decomposition())
-						debug.drawPolygon(q, 0xff0000);
-					for(q in p.monotone_decomposition())
-						debug.drawPolygon(q, 0xffffff);
-				}*/
-				for(p in ps) p.clear();
-				ps.clear();
-				txt.text += "\n"+PR(POOL_STATS).dump();
+			for(b in space.liveBodies) {
+				if(b.position.y > 400 && Math.random()<0.1) {
+					b.position.y = 0;
+					b.velocity.y = 0;
+				}
 			}
+			space.step(1/60);
+			debug.draw(space);
+			debug.flush();
 		});
 	}
 }
