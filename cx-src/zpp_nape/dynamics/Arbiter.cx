@@ -40,7 +40,7 @@ class PR(Arbiter) {
     ///---------------------------------------------------------------------------------------------
 	//used in various parts of API
 
-	public function inactiveme() {
+	flibmdel public inline function inactiveme() {
 		return !active;
 	}
 
@@ -111,7 +111,7 @@ class PR(Arbiter) {
     ///---------------------------------------------------------------------------------------------
 
 	//called after pre-handler
-	public function pre_validate() {
+	flibmdel public inline function pre_validate() {
 		if(type==COL) colarb._pre_validate();
 	}
 
@@ -139,7 +139,7 @@ class PR(Arbiter) {
 	public var pair:PR(AABBPair);
 
 	//called from narrowphase.
-	public function swap_features() {
+	flibmdel public inline function swap_features() {
         ///assert pre-condition satisfied
         assert(type==COL,"Arbiter::swap_features");
 
@@ -233,8 +233,8 @@ class PR(Arbiter) {
 
 class PR(SensorArbiter) extends PR(Arbiter) {
 	MixPool(PR(SensorArbiter))
-	public function alloc() { assert(pair==null,"AABBNode pair exists on arb going out of pool? (sensor)"); }
-	public function free() { assert(pair==null,"AABBNode pair exists on arb going into pool? (sensor)"); }
+	flibmdel public inline function alloc() { assert(pair==null,"AABBNode pair exists on arb going out of pool? (sensor)"); }
+	flibmdel public inline function free() { assert(pair==null,"AABBNode pair exists on arb going into pool? (sensor)"); }
 	
 	public function new() {
 		super();
@@ -256,8 +256,8 @@ class PR(SensorArbiter) extends PR(Arbiter) {
     ///---------------------------------------------------------------------------------------------
 
 	//nothing to do!
-	public function makemutable() {}
-	public function makeimmutable() {}
+	flibmdel public inline function makemutable() {}
+	flibmdel public inline function makeimmutable() {}
 }
 
 ///_________________________________________________________________________________________________
@@ -266,12 +266,12 @@ class PR(SensorArbiter) extends PR(Arbiter) {
 class PR(FluidArbiter) extends PR(Arbiter) {
 	public var outer_zn:FluidArbiter;
 	MixPool(PR(FluidArbiter))
-	public function alloc() {
+	flibmdel public inline function alloc() {
 		assert(pair==null,"AABBNode pair exists on arb going out of pool? (fluid)"); 
 		vec_set(pdamp,0,0);
 		padamp = 0;
 	}
-	public function free() { assert(pair==null,"AABBNode pair exists on arb going into pool? (fluid)"); }
+	flibmdel public inline function free() { assert(pair==null,"AABBNode pair exists on arb going into pool? (fluid)"); }
 
     ///---------------------------------------------------------------------------------------------
 	
@@ -360,18 +360,18 @@ class PR(FluidArbiter) extends PR(Arbiter) {
     ///---------------------------------------------------------------------------------------------
 
 	public var mutable:Bool;
-	public function makemutable() {
+	flibmdel public inline function makemutable() {
 		mutable = true;
 		if(wrap_position!=null) wrap_position.pr(inner).immutable = false;
 	}
-	public function makeimmutable() {
+	flibmdel public inline function makeimmutable() {
 		mutable = false;
 		if(wrap_position!=null) wrap_position.pr(inner).immutable = true;
 	}
 
     ///---------------------------------------------------------------------------------------------
 
-    public function inject(area:Float,cx:Float,cy:Float) {
+    flibmdel public inline function inject(area:Float,cx:Float,cy:Float) {
 		overlap = area;
 		vec_set(centroid,c);
 	}
@@ -631,7 +631,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
 
     ///---------------------------------------------------------------------------------------------
 
-	public function _pre_validate() {
+	flibmdel public inline function _pre_validate() {
 		DEBUG(if(wrap_contacts!=null && wrap_contacts.length==0) throw "Error: CollisionArbiter must have at least one contact! If you're trying to ignore collision by deleting all contacts, just return PreFlag.IGNORE_ONCE instead.";)
 
 		var vl = vec_lsq(n);
@@ -693,11 +693,11 @@ class PR(ColArbiter) extends PR(Arbiter) {
 		type = PR(Arbiter).COL;
 		colarb = this;
 	}
-	public function alloc() {
+	flibmdel public inline function alloc() {
 		pjrAcc = 0.0;
 		assert(pair==null,"AABBNode exists on col arbiter going out of pool?"); 
 	}
-	public function free() { 
+	flibmdel public inline function free() { 
 		assert(contacts.empty(),"still has contacts on free?");
 		assert(pair==null,"AABBNode exists on col arbiter going into pool?");
 	}
@@ -784,12 +784,12 @@ class PR(ColArbiter) extends PR(Arbiter) {
     ///---------------------------------------------------------------------------------------------
 
 	public var mutable:Bool;
-	public function makemutable() {
+	flibmdel public inline function makemutable() {
 		mutable = true;
 		if(wrap_normal!=null) wrap_normal.pr(inner).immutable = false;
 		if(wrap_contacts!=null) wrap_contacts.pr(inner).immutable = false;
 	}
-	public function makeimmutable() {
+	flibmdel public inline function makeimmutable() {
 		mutable = false;
 		if(wrap_normal!=null) wrap_normal.pr(inner).immutable = true;
 		if(wrap_contacts!=null) wrap_contacts.pr(inner).immutable = true;
