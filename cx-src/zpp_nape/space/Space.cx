@@ -9,10 +9,10 @@ class PR(Island) {
 	public var sleep:Bool;
 	public var waket:Int;
 	
-	public function free() {
+	flibmdel public inline function free() {
 		waket = 0;
 	}
-	public function alloc() {}
+	flibmdel public inline function alloc() {}
 	public function new() {
 		comps = new List(PR(Component))();
 		waket = 0;
@@ -32,19 +32,19 @@ class PR(Component) {
     public var waket:Int;
     public var woken:Bool;
 
-	public function free() {
+	flibmdel public inline function free() {
 		body = null;
 		constraint = null;
 		assert(island==null,"component freeed whilst connected to an island?");
 	}
-	public function alloc() {}
+	flibmdel public inline function alloc() {}
 
 	public function new() {
         reset();
         woken = false;
     }
 
-	public function reset() {
+	flibmdel public inline function reset() {
 		sleeping = false;
 		island = null;
 		parent = this;
@@ -90,10 +90,10 @@ class PR(CallbackSet) {
 	MixListMixin(PR(CallbackSet))
 	MixPoolNoNext(PR(CallbackSet))
 
-	public function free() {
+	flibmdel public inline function free() {
 		assert(arbiters.empty(),"callbackset released with lingering arbs");
 	}
-	public function alloc() {
+	flibmdel public inline function alloc() {
 		$(expand object gentype(n)
 			n`state = Flag(PreFlag,ACCEPT);
 			n`stamp = 0;
@@ -1486,7 +1486,6 @@ class PR(Space) {
 	//----------------------------------------------------------------------------------------------
 	
 	public function prestep(dt:Float) {
-		
 		var pre = null;
 		Iter(con,live_constraints,{
 			if(con.preStep(dt)) {
@@ -1510,13 +1509,22 @@ class PR(Space) {
 			}
 			pre = cx_ite;
 		});
-		$(mixin prestep(arbs,action) {
+		$(mixin prestep(arbs,action) prestep(arbs,null,action,false));
+		$(mixin prestep(arbs0,arbs1,action,collisiontype) {
 			var pre = null;
-			Iter(arb,arbs,{
+			var arbs = arbs0;
+			var arbite = arbs.begin();
+			var fst = arbs1!=null;
+			$(mixin pre_continue() { if(fst && arbite==null) { fst = false; arbite = arbs1.begin(); arbs = arbs1; pre = null; } });
+			pre_continue;
+
+			while(arbite!=null) {
+				var arb = arbite.elem();
 				if(!arb.cleared && (arb.b1.component.sleeping && arb.b2.component.sleeping)) {
 					arb.sleep_stamp = stamp;
 					arb.sleeping = true;
-					cx_ite = arbs.inlined_erase(pre);
+					arbite = arbs.inlined_erase(pre);
+					pre_continue;
 					continue;
 				}
 
@@ -1610,7 +1618,8 @@ class PR(Space) {
 			 	 || arb.up_stamp + (arb.type==PR(Arbiter).COL ? PR(Config).PERSIST : 0) < stamp //possibly delayed age-death
 				) {
 					arb.retire();
-					cx_ite = arbs.inlined_erase(pre);
+					arbite = arbs.inlined_erase(pre);
+					pre_continue;
 					continue;
 				}
 				
@@ -1619,7 +1628,7 @@ class PR(Space) {
 
 				if((arb.immState&Flag(ImmState,ACCEPT)) != 0) {
 					if(!(action)) arb.active = false;
-				}else if($str(arbs)=="c_arbiters_true" || $str(arbs)=="c_arbiters_false") {
+				}else if(collisiontype) {
 					if(!untyped arb.cleanupContacts()) arb.active = false;
 				}
 				
@@ -1633,16 +1642,17 @@ class PR(Space) {
 					arbs.modified = true;
 				}
 				
-				pre = cx_ite;
-			});
+				pre = arbite;
+				arbite = arbite.next;
+				pre_continue;
+			}
 		});
 	
 		//still iterate non acting arbiters
 		//want to clean up contacts in collision arbiters
 		//and clean up outdated arbiters also
-		prestep(c_arbiters(true),  if(arb.active) arb.preStep(dt));
-		prestep(c_arbiters(false), if(arb.active) arb.preStep(dt));
-		prestep(f_arbiters,      { if(arb.active) arb.preStep(this,dt); true; });
+		prestep(c_arbiters(true),c_arbiters(false), if(arb.active) arb.preStep(dt), true);
+		prestep(f_arbiters,{ if(arb.active) arb.preStep(this,dt); true; });
 		prestep(s_arbiters,{true;});
 	}
 
@@ -1651,6 +1661,7 @@ class PR(Space) {
 	$(mixin IterColArbs(arb,cb) {
 		var arbi = c_arbiters(false).begin();
 		var fst = true;
+		if(arbi==null) { arbi = c_arbiters(true).begin(); fst = false; }
 		while(arbi!=null) {
 			var arb = arbi.elem();
 			{ cb; }
