@@ -253,16 +253,15 @@ class PR(Collide) {
 					vec_subeq(c0,ax.gnorm,c0d*0.5);
 					vec_subeq(c1,ax.gnorm,c1d*0.5);
 
+					if(rev) { nx = -nx; ny = -ny; }
 					if(c0d <= 0) {
-                        var con = if(rev) arb.injectContact(c0x,c0y,-nx,-ny,c0d,arb.rev ? 1 : 0)
-                                  else    arb.injectContact(c0x,c0y, nx, ny,c0d,arb.rev ? 1 : 0);
+						var con = arb.injectContact(c0x,c0y,nx,ny,c0d,arb.rev ? 1 : 0);
                         //position iterations
                         vec_subeq(c0,p2.body.pos);
                         vec_revrot(c0,p2.body.axis,con.inner.lr1);
                     }
 					if(c1d <= 0) {
-                        var con = if(rev) arb.injectContact(c1x,c1y,-nx,-ny,c1d,arb.rev ? 0 : 1);
-                                  else    arb.injectContact(c1x,c1y, nx, ny,c1d,arb.rev ? 0 : 1);
+						var con = arb.injectContact(c1x,c1y,nx,ny,c1d,arb.rev ? 0 : 1);
                         //position iterations
                         vec_subeq(c1,p2.body.pos);
                         vec_revrot(c1,p2.body.axis,con.inner.lr1);
