@@ -15,7 +15,7 @@ class PR(UserConstraint) extends PR(Constraint) {
 	public var pjAcc : ARRAY(Float);
 	public var  bias : ARRAY(Float);
 
-	flibmdel public function addBody(b:PR(Body)) {
+	public function addBody(b:PR(Body)) {
 		assert(b!=null,"addBody :: null UserConstraint");
 		var match = null;
 		for(x in bodies) { if(x.body==b) { match = x; break; } };
@@ -28,7 +28,7 @@ class PR(UserConstraint) extends PR(Constraint) {
 		else match.cnt++;
 	}
 
-	flibmdel public function remBody(b:PR(Body)) {
+	public function remBody(b:PR(Body)) {
 		assert(b!=null,"remBody :: null Userconstraint");
 		var match = null;
 		var bl = Std.int(bodies.length);
@@ -54,7 +54,7 @@ class PR(UserConstraint) extends PR(Constraint) {
 
 	//--------------------------------------------
 
-	flibmdel public function bodyImpulse(b:PR(Body)) {
+	public function bodyImpulse(b:PR(Body)) {
 		for(i in 0...dim) J[i] = pjAcc[i] + jAcc[i];
 
 		var ret = new Vec3(0,0,0);
@@ -155,12 +155,12 @@ class PR(UserConstraint) extends PR(Constraint) {
 
 	//-----------------------------------------------------------------------------
 
-	flibmdel public function lsq(v:ARRAY(Float)) {
+	public function lsq(v:ARRAY(Float)) {
 		var sum = 0.0;
 		for(i in 0...dim) sum += v[i]*v[i];
 		return sum;
 	}
-	flibmdel public function _clamp(v:ARRAY(Float),max:Float) {
+	public function _clamp(v:ARRAY(Float),max:Float) {
 		var x = lsq(v);
 		if(x>max*max) {
 			var scale = max/Math.sqrt(x);
@@ -169,7 +169,7 @@ class PR(UserConstraint) extends PR(Constraint) {
 	}
 
 	var L:ARRAY(Float);
-	flibmdel public function solve(m:ARRAY(Float)) {
+	public function solve(m:ARRAY(Float)) {
 		var ind = 0;
 		for(j in 0...dim) {
 			var sum = 0.0;
@@ -188,7 +188,7 @@ class PR(UserConstraint) extends PR(Constraint) {
 	}
 
 	var y:ARRAY(Float);
-	flibmdel public function transform(L:ARRAY(Float),x:ARRAY(Float)) {
+	public function transform(L:ARRAY(Float),x:ARRAY(Float)) {
 		for(i in 0...dim) {
 			var sum = x[i];
 			for(k in 0...i) sum -= L[i*dim+k]*y[k];

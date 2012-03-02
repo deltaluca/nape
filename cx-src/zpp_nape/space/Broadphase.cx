@@ -12,15 +12,15 @@ class PR(Broadphase) {
 	public var sweep:PR(SweepPhase);
 	public var dynab:PR(DynAABBPhase);
 
-	flibmdel public function insert(shape:PR(Shape)) {
+	public function insert(shape:PR(Shape)) {
 		if(is_sweep) sweep.__insert(shape);
 		else         dynab.__insert(shape);
 	}
-	flibmdel public function remove(shape:PR(Shape)) {
+	public function remove(shape:PR(Shape)) {
 		if(is_sweep) sweep.__remove(shape);
 		else         dynab.__remove(shape);
 	}
-	flibmdel public function sync  (shape:PR(Shape)) {
+	public function sync  (shape:PR(Shape)) {
 		//sweep broadphase doesn't sync objects here
 		//it is done more effeciently as a group within it's broadphase implementation
 		if(!is_sweep) dynab.__sync(shape);
@@ -40,7 +40,7 @@ class PR(Broadphase) {
 	//===========================================================================================================
 
 	public var aabbShape:Shape;
-	flibmdel public function updateAABBShape(aabb:PR(AABB)) {
+	public function updateAABBShape(aabb:PR(AABB)) {
 		if(aabbShape==null) {
 			var body = new Body(BodyType.STATIC);
 			body.shapes.add(aabbShape = new Polygon(Polygon.rect(aabb.minx,aabb.miny,aabb.width(),aabb.height())));
@@ -60,7 +60,7 @@ class PR(Broadphase) {
 	//===========================================================================================================
 
 	public var circShape:Shape;
-	flibmdel public function updateCircShape(x:Float,y:Float,r:Float) {
+	public function updateCircShape(x:Float,y:Float,r:Float) {
 		if(circShape==null) {
 			var body = new Body(BodyType.STATIC);
 			body.shapes.add(circShape = new Circle(r,Vec2.get(x,y)));
@@ -77,7 +77,7 @@ class PR(Broadphase) {
 
 	//===========================================================================================================
 
-	flibmdel public function validateShape(s:PR(Shape)) {
+	public function validateShape(s:PR(Shape)) {
 		if(s.isPolygon()) s.polygon.validate_gaxi();
 		s.validate_aabb();
 		s.validate_worldCOM();

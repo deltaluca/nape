@@ -14,14 +14,14 @@ class Vertex {
 
 	MixPool(Vertex)
 	public var node:Set(Vertex); //for vertices list in decomposition.
-	flibmdel public function free() {
+	public function free() {
 		links.clear();
 		Free(Set(Vertex),links);
 		links = null;
 		node = null;
 		forced = false;
 	}
-	flibmdel public function alloc() {
+	public function alloc() {
 		links = Get(Set(Vertex));
 		links.lt = less_xy;
 	}
@@ -52,7 +52,7 @@ class Segment {
 	public var id:Int;
 
 	MixPool(Segment)
-	flibmdel public function free() {
+	public function free() {
 		left = right = null;
 		prev = null;
 		node = null;
@@ -61,7 +61,7 @@ class Segment {
 		Free(Set(Vertex),vertices);
 		vertices = null;
 	}
-	flibmdel public function alloc() {
+	public function alloc() {
 		vertices = Get(Set(Vertex));
 		vertices.lt = less_xy; 
 	}
@@ -119,12 +119,12 @@ class Event {
 	}
 
 	MixPool(Event)
-	flibmdel public function free() {
+	public function free() {
 		vertex = null;
 		segment = segment2 = null;
 		node = null;
 	}
-	flibmdel public function alloc() {}
+	public function alloc() {}
 	function new() {}
 
 	public static function get(v:Vertex) {
@@ -208,11 +208,11 @@ class Sweep {
 		}
 	}
 
-	flibmdel public function clear() {
+	public function clear() {
 		tree.clear();
 	}
 
-	flibmdel public function add(e:Segment) {
+	public function add(e:Segment) {
 		e.node = tree.insert(e);
 		var nxt = tree.successor_node(e.node);
 		var pre = tree.predecessor_node(e.node);
@@ -220,7 +220,7 @@ class Sweep {
 		if(pre!=null) { e.prev = pre.data; pre.data.next = e; }
 		return e;
 	}
-	flibmdel public function remove(e:Segment) {
+	public function remove(e:Segment) {
 		var nxt = tree.successor_node(e.node);
 		var pre = tree.predecessor_node(e.node);
 		if(nxt!=null) nxt.data.prev = e.prev;
@@ -229,7 +229,7 @@ class Sweep {
 		e.node = null;
 	}
 
-	flibmdel public function intersect(p:Segment,q:Segment) {
+	public function intersect(p:Segment,q:Segment) {
 		if(p==null || q==null) return false;
 		elif(p.left==q.left
 		  || p.left==q.right

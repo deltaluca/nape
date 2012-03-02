@@ -7,15 +7,15 @@ class PR(Vec2) {
 	public var immutable:Bool;
 	public var _immutable:Void->Dynamic;
 	
-	flibmdel public function validate() {
+	public function validate() {
 		if(_validate!=null) _validate();
 	}
-	flibmdel public function invalidate() {
+	public function invalidate() {
 		if(_invalidate!=null) _invalidate(this);
 	}
 	
 	public var outer:Vec2;
-	flibmdel public function wrapper() {
+	public function wrapper() {
 		if(outer==null) {
 			outer = new Vec2(); //don't care
 			Free(PR(Vec2),outer.pr(inner));
@@ -29,7 +29,7 @@ class PR(Vec2) {
 	public var weak:Bool;
 	
 	MixPoolNoNext(PR(Vec2))
-	flibmdel public function free() {
+	public function free() {
 		if(outer!=null)
 			outer.pr(inner) = null;
 		outer = null;
@@ -38,7 +38,7 @@ class PR(Vec2) {
 		_invalidate = null;
 		weak = false;
 	}
-	flibmdel public function alloc() {}
+	public function alloc() {}
 	
 	MixListMixin(PR(Vec2))
 	vec_new(public,$(->));
@@ -53,9 +53,9 @@ class PR(Vec2) {
 		return ret;
 	}
 	
-	flibmdel public function copy() return get(x,y)
+	public function copy() return get(x,y)
 	
 	//----------------------------------------------------------------------------------------------
 	
-	flibmdel public function toString() return "{ x: "+x+" y: "+y+" }"
+	public function toString() return "{ x: "+x+" y: "+y+" }"
 }

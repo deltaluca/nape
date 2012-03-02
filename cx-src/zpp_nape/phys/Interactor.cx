@@ -13,9 +13,9 @@ class PR(Interactor) {
 	public var ibody :PR(Body);
 	public var icompound:PR(Compound);
 
-	flibmdel public function isShape() return ishape!=null
-	flibmdel public function isBody () return ibody !=null
-	flibmdel public function isCompound() return icompound != null 
+	public function isShape() return ishape!=null
+	public function isBody () return ibody !=null
+	public function isCompound() return icompound != null 
 
 	//--------------------------------------------------------------------
 
@@ -28,7 +28,7 @@ class PR(Interactor) {
 		if(group!=null) group.remInteractor(this);
 	}
 
-	flibmdel public function wake() {
+	public function wake() {
 		if(isShape()) {
 			var body = ishape.body;
 			if(body!=null && body.space!=null) body.space.wake(body);
@@ -109,7 +109,7 @@ class PR(Interactor) {
 	
 	//--------------------------------------------------------------------
 
-	flibmdel public function immutable_midstep(n:String) {
+	public function immutable_midstep(n:String) {
 		if(isBody()) ibody.__immutable_midstep(n);
 		elif(isShape()) ishape.__immutable_midstep(n);
 		else icompound.__imutable_midstep(n);
@@ -129,7 +129,7 @@ class PR(Interactor) {
 		else               { cb.int2 = o1; cb.int1 = o2; }
 	}
 
-	flibmdel public function lookup_group() {
+	public function lookup_group() {
 		var cur:PR(Interactor) = this;
 		while(cur!=null && cur.group==null) {
 			if(cur.isShape()) cur = cur.ishape.body;
@@ -141,7 +141,7 @@ class PR(Interactor) {
 
 	//-------------------------------------------------------------------
 
-	flibmdel public function copyto(ret:Interactor) {
+	public function copyto(ret:Interactor) {
 		ret.pr(inner_i).group = group;
 		ret.pr(inner_i).cbType = cbType;
 	}

@@ -9,10 +9,10 @@ class PR(Island) {
 	public var sleep:Bool;
 	public var waket:Int;
 	
-	flibmdel public function free() {
+	public function free() {
 		waket = 0;
 	}
-	flibmdel public function alloc() {}
+	public function alloc() {}
 	public function new() {
 		comps = new List(PR(Component))();
 		waket = 0;
@@ -32,19 +32,19 @@ class PR(Component) {
     public var waket:Int;
     public var woken:Bool;
 
-	flibmdel public function free() {
+	public function free() {
 		body = null;
 		constraint = null;
 		assert(island==null,"component freeed whilst connected to an island?");
 	}
-	flibmdel public function alloc() {}
+	public function alloc() {}
 
 	public function new() {
         reset();
         woken = false;
     }
 
-	flibmdel public function reset() {
+	public function reset() {
 		sleeping = false;
 		island = null;
 		parent = this;
@@ -90,10 +90,10 @@ class PR(CallbackSet) {
 	MixListMixin(PR(CallbackSet))
 	MixPoolNoNext(PR(CallbackSet))
 
-	flibmdel public function free() {
+	public function free() {
 		assert(arbiters.empty(),"callbackset released with lingering arbs");
 	}
-	flibmdel public function alloc() {
+	public function alloc() {
 		$(expand object gentype(n)
 			n`state = Flag(PreFlag,ACCEPT);
 			n`stamp = 0;
@@ -106,25 +106,25 @@ class PR(CallbackSet) {
 
 	//-------------
 
-	flibmdel public function add_arb(x:PR(Arbiter)) {
+	public function add_arb(x:PR(Arbiter)) {
 		if(!arbiters.has(x))
 			arbiters.add(x);
 	}
-	flibmdel public function try_remove_arb(x:PR(Arbiter)) {
+	public function try_remove_arb(x:PR(Arbiter)) {
 		if(arbiters.has(x)) {
 			arbiters.remove(x);
 			return true;
 		}else return false;
 	}
-	flibmdel public function remove_arb(x:PR(Arbiter)) arbiters.remove(x)
+	public function remove_arb(x:PR(Arbiter)) arbiters.remove(x)
 
 	//type is an Interactor/Arbiter type.
 	//we check that for this specific interaction type
 	//there is no arbiter in the callback set.
-	flibmdel public function empty_arb(type:Int) {
+	public function empty_arb(type:Int) {
 		return ForAll(x, arbiters, (x.type&type)==0);
 	}
-	flibmdel public function really_empty() {
+	public function really_empty() {
 		return arbiters.empty();
 	}
 }
@@ -479,13 +479,13 @@ class PR(Space) {
 
     //----------------------------------------------------------------------------------------------
 
-	flibmdel public function add_callbackset(cb:PR(CallbackSet)) {
+	public function add_callbackset(cb:PR(CallbackSet)) {
 		cb.int1.cbsets.add(cb);
 		cb.int2.cbsets.add(cb);
 		callbackset_list.add(cb);
 	}
 
-	flibmdel public function remove_callbackset(cb:PR(CallbackSet)) {
+	public function remove_callbackset(cb:PR(CallbackSet)) {
 		cb.int1.cbsets.remove(cb);
 		cb.int2.cbsets.remove(cb);
 	}
@@ -696,46 +696,46 @@ class PR(Space) {
 	
 	//----------------------------------------------------------------------------------------------
 
-	flibmdel public function shapesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)) {
+	public function shapesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)) {
 		return bphase.shapesUnderPoint(x,y,filter);
 	}
-	flibmdel public function bodiesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)) {
+	public function bodiesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)) {
 		return bphase.bodiesUnderPoint(x,y,filter);
 	}
 	
-	flibmdel public function shapesInAABB(aabb:AABB,strict:Bool,cont:Bool,filter:PR(InteractionFilter)) {
+	public function shapesInAABB(aabb:AABB,strict:Bool,cont:Bool,filter:PR(InteractionFilter)) {
 		return bphase.shapesInAABB(aabb.pr(inner),strict,cont,filter);
 	}
-	flibmdel public function bodiesInAABB(aabb:AABB,strict:Bool,cont:Bool,filter:PR(InteractionFilter)) {
+	public function bodiesInAABB(aabb:AABB,strict:Bool,cont:Bool,filter:PR(InteractionFilter)) {
    		return bphase.bodiesInAABB(aabb.pr(inner),strict,cont,filter);
 	}
 	
-	flibmdel public function shapesInCircle(pos:Vec2,rad:Float,cont:Bool,filter:PR(InteractionFilter)) {
+	public function shapesInCircle(pos:Vec2,rad:Float,cont:Bool,filter:PR(InteractionFilter)) {
 		return bphase.shapesInCircle(pos.x,pos.y,rad,cont,filter);
 	}
-	flibmdel public function bodiesInCircle(pos:Vec2,rad:Float,cont:Bool,filter:PR(InteractionFilter)) {
+	public function bodiesInCircle(pos:Vec2,rad:Float,cont:Bool,filter:PR(InteractionFilter)) {
    		return bphase.bodiesInCircle(pos.x,pos.y,rad,cont,filter);
 	}
 
-	flibmdel public function shapesInShape(shape:PR(Shape),cont:Bool,filter:PR(InteractionFilter)) {
+	public function shapesInShape(shape:PR(Shape),cont:Bool,filter:PR(InteractionFilter)) {
 		return bphase.shapesInShape(shape,cont,filter);
 	}
-	flibmdel public function bodiesInShape(shape:PR(Shape),cont:Bool,filter:PR(InteractionFilter)) {
+	public function bodiesInShape(shape:PR(Shape),cont:Bool,filter:PR(InteractionFilter)) {
 		return bphase.bodiesInShape(shape,cont,filter);
 	}
 	
 	//----------------------------------------------------------------------------------------------
 	
-	flibmdel public function rayCast(ray:Ray,inner:Bool,filter:InteractionFilter) {
+	public function rayCast(ray:Ray,inner:Bool,filter:InteractionFilter) {
    		return bphase.rayCast(ray.pr(inner),inner,filter==null ? null : filter.pr(inner));
 	}
-	flibmdel public function rayMultiCast(ray:Ray,inner:Bool,filter:InteractionFilter) {
+	public function rayMultiCast(ray:Ray,inner:Bool,filter:InteractionFilter) {
    		return bphase.rayMultiCast(ray.pr(inner),inner,filter==null ? null : filter.pr(inner));
 	}
 	
 	//----------------------------------------------------------------------------------------------
 
-    flibmdel public function push_callback(i:PR(Listener)) {
+    public function push_callback(i:PR(Listener)) {
 		assert(i!=null,"null listenere for push_callback?");
         var cb = Get(PR(Callback));
         callbacks.push(cb);
@@ -889,7 +889,7 @@ class PR(Space) {
 	
 	//----------------------------------------------------------------------------------------------
 
-    flibmdel public function bodyCbWake(b:PR(Body)) {
+    public function bodyCbWake(b:PR(Body)) {
         if(b.isDynamic() && b.cbType != null && b.cbType._bodywake != null) {
             if(midstep) {
 				var i = b.cbType._bodywake;
@@ -901,7 +901,7 @@ class PR(Space) {
         }
     }
 
-    flibmdel public function bodyCbSleep(b:PR(Body)) {
+    public function bodyCbSleep(b:PR(Body)) {
         if(b.isDynamic() && b.cbType!=null && b.cbType._bodysleep != null) {
 			var i = b.cbType._bodysleep;
             var cb = push_callback(i);
@@ -912,7 +912,7 @@ class PR(Space) {
 
     //----------------------------------------------------------------------------------------------
 
-    flibmdel public function constraintCbWake(con:PR(Constraint)) {
+    public function constraintCbWake(con:PR(Constraint)) {
         if(con.cbType != null && con.cbType._conwake != null) {
             if(midstep) {
 				var i = con.cbType._conwake;
@@ -924,7 +924,7 @@ class PR(Space) {
         }
     }
 
-    flibmdel public function constraintCbSleep(con:PR(Constraint)) {
+    public function constraintCbSleep(con:PR(Constraint)) {
         if(con.cbType != null && con.cbType._consleep != null) {
 			var i = con.cbType._consleep;
             var cb = push_callback(i);
@@ -933,7 +933,7 @@ class PR(Space) {
         }
     }
 
-    flibmdel public function constraintCbBreak(con:PR(Constraint)) {
+    public function constraintCbBreak(con:PR(Constraint)) {
         if(con.cbType != null && con.cbType._break != null) {
 			var i = con.cbType._break;
             var cb = push_callback(i);
@@ -1723,7 +1723,7 @@ class PR(Space) {
 
 	//----------------------------------------------------------------------------------------------
 
-	flibmdel public function group_ignore(s1:PR(Shape),s2:PR(Shape)) {
+	public function group_ignore(s1:PR(Shape),s2:PR(Shape)) {
 		//find closest group from interactor
 		var g1 = s1.lookup_group();
 		var g2 = s2.lookup_group();
@@ -1742,7 +1742,7 @@ class PR(Space) {
 	}
 
 	var precb:PreCallback;
-	flibmdel public function narrowPhase(s1:PR(Shape),s2:PR(Shape), stat:Bool, ?in_arb:PR(Arbiter)=null) {
+	public function narrowPhase(s1:PR(Shape),s2:PR(Shape), stat:Bool, ?in_arb:PR(Arbiter)=null) {
 		#if NAPE_TIMES
 			var pt = flash.Lib.getTimer();
 		#end
@@ -2052,7 +2052,7 @@ class PR(Space) {
 	//as a further optimisation, only interactors with non-null cbTypes are included.
 	public var mrca1:List(PR(Interactor));
 	public var mrca2:List(PR(Interactor));
-	flibmdel public function MRCA_chains(s1:PR(Shape), s2:PR(Shape)) {
+	public function MRCA_chains(s1:PR(Shape), s2:PR(Shape)) {
 		assert(s1!=s2 && s1.body!=s2.body, "MRCA chain for equal shapes, or shapes of the same body?");
 		//clear any remnants
 		mrca1.clear();

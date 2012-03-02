@@ -107,7 +107,7 @@ class PR(Debug) {
 
     ///---------------------------------------------------------------------------------------------
 
-    flibmdel public function sup_setbg(bgcol:Int) {
+    public function sup_setbg(bgcol:Int) {
         bg_r = (bgcol>>16)&0xff;
         bg_g = (bgcol>>8)&0xff;
         bg_b = (bgcol)&0xff;
@@ -133,7 +133,7 @@ class PR(ShapeDebug) extends PR(Debug) {
 		d_shape = this;
     }
 
-    flibmdel public function setbg(bgColor:Int) {
+    public function setbg(bgColor:Int) {
         sup_setbg(bgColor);
     }
 
@@ -171,7 +171,7 @@ class PR(BitmapDebug) extends PR(Debug) {
 
     ///---------------------------------------------------------------------------------------------
 
-    flibmdel public function setbg(bgColor:Int) {
+    public function setbg(bgColor:Int) {
         sup_setbg(bgColor);
         if(!transp) {
             bgbytes.position = 0;
@@ -210,17 +210,17 @@ class PR(BitmapDebug) extends PR(Debug) {
 
     ///---------------------------------------------------------------------------------------------
 
-    flibmdel public function clear() {
+    public function clear() {
         bytes.position = 0;
         bgbytes.position = 0;
         bytes.writeBytes(bgbytes);
     }
 
-	flibmdel public function prepare() {
+	public function prepare() {
 		flash.Memory.select(bytes);
 	}
 
-    flibmdel public function flush() {
+    public function flush() {
         bit.lock();
         bytes.position = 0;
         bit.setPixels(rect,bytes);
@@ -229,9 +229,9 @@ class PR(BitmapDebug) extends PR(Debug) {
 
     ///---------------------------------------------------------------------------------------------
 
-    flibmdel public function index(x:Int,y:Int) return y*width+x
-    flibmdel public function setpix(ind:Int, col:Int) flash.Memory.setI32(ind<<2,col)
-    flibmdel public function setpixel(x:Int, y:Int, col:Int) {
+    public function index(x:Int,y:Int) return y*width+x
+    public function setpix(ind:Int, col:Int) flash.Memory.setI32(ind<<2,col)
+    public function setpixel(x:Int, y:Int, col:Int) {
         if(x>=0 && x<width && y>=0 && y<height) setpix(index(x,y),col);
     }
 
@@ -440,7 +440,7 @@ class PR(BitmapDebug) extends PR(Debug) {
     public var peny:Int;
     public var colour:Int;
 
-    flibmdel public function __round(x:Float):Int return fastint(x+0.5)
+    public function __round(x:Float):Int return fastint(x+0.5)
 
     pr_debug(
         $(mixin __lineStyle(col,YY) {
@@ -550,7 +550,7 @@ $(mixin pr_debug(utils)
 	});
 
 	public var compoundstack:List(PR(Compound));
-    flibmdel public function draw_space(space:PR(Space),xform:PR(Mat23),xdet:Float,xnull:Bool) {
+    public function draw_space(space:PR(Space),xform:PR(Mat23),xdet:Float,xnull:Bool) {
 		if(outer.cullingEnabled) {
 	        if(outer.drawBodies) {
 				if(outer.drawBodyDetail) {
@@ -676,7 +676,7 @@ $(mixin pr_debug(utils)
         }
     }
 
-    flibmdel public function draw_arbiter(arb:PR(Arbiter),xform:PR(Mat23),xdet:Float,xnull:Bool) {
+    public function draw_arbiter(arb:PR(Arbiter),xform:PR(Mat23),xdet:Float,xnull:Bool) {
 		vec_new(v);
         if(arb.outer.isSensorArbiter()) {
             if(outer.drawSensorArbiters) {

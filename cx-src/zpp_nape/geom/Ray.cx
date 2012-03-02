@@ -37,10 +37,10 @@ class PR(Ray) {
 	}
 	
 	public var inv(dir):Bool;
-	flibmdel public function invalidate_dir() {
+	public function invalidate_dir() {
 		inv(dir) = true;
 	}
-	flibmdel public function validate_dir() {
+	public function validate_dir() {
 		if(inv(dir)) {
 			inv(dir) = false;
 			DEBUG(if(vec_lsq(dir)<PR(Const).EPSILON) throw "Error: Ray::direction is degenerate";)
@@ -54,7 +54,7 @@ class PR(Ray) {
 	
 	//--------------------------------------------------------------
 	
-    flibmdel public function rayAABB() {
+    public function rayAABB() {
 		//determine ray AABB
 		var x0 = originx; var x1 = x0;
 		var y0 = originy; var y1 = y0;
@@ -73,7 +73,7 @@ class PR(Ray) {
 		return rayab;
 	}
 
-	flibmdel public function aabbtest(a:PR(AABB)) {
+	public function aabbtest(a:PR(AABB)) {
 		// | dot(v, p1-c) | >= dot ( |v|, h )
 		var dot1 = normalx*(originx - 0.5*(a.minx+a.maxx))
 		         + normaly*(originy - 0.5*(a.miny+a.maxy));
@@ -82,7 +82,7 @@ class PR(Ray) {
 		return abs(dot1) < dot2;
 	}
 
-	flibmdel public function aabbsect(a:PR(AABB)) {
+	public function aabbsect(a:PR(AABB)) {
 		var cx = originx >= a.minx && originx <= a.maxx;
 		var cy = originy >= a.miny && originy <= a.maxy;
 		if(cx && cy) return 0.0; //shortcut
