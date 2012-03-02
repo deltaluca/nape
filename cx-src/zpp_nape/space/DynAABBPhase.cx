@@ -53,13 +53,13 @@ class PR(AABBNode) {
 	}
 
 	MixPool(PR(AABBNode))
-	public function alloc() {
+	flibmdel public inline function alloc() {
 		aabb = Get(PR(AABB));
 		moved = false;
 		synced = false;
 		first_sync = false;
 	}
-	public function free() {
+	flibmdel public inline function free() {
 		height = -1;
 		Free(PR(AABB),aabb);
 		child1 = child2 = parent = null;
@@ -76,7 +76,7 @@ class PR(AABBNode) {
 	public var synced:Bool; //exists in sync list.
 	public var first_sync:Bool; //to avoid unnecessary work when syncing for the first time.
 
-	public function isLeaf() return child1==null
+	flibmdel public inline function isLeaf() return child1==null
 }
 
 class PR(AABBPair) {
@@ -95,10 +95,10 @@ class PR(AABBPair) {
 
 	MixPool(PR(AABBPair))
 	public function new() {}
-	public function alloc() {
+	flibmdel public inline function alloc() {
 		assert(arb==null,"node still has an arbiter when going into pool??");
 	}
-	public function free () {
+	flibmdel public inline function free () {
 		assert(arb==null,"node still has an arbiter when going into pool??");
 		n1 = n2 = null;
 		hnext = null;
@@ -329,7 +329,7 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 
 	//==============================================================
 
-	public function dyn(shape:PR(Shape)) {
+	flibmdel public inline function dyn(shape:PR(Shape)) {
 		if(shape.body.isStatic()) return false;
 		else return !shape.body.component.sleeping;
 	}
@@ -393,7 +393,7 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 
 		Free(PR(AABBNode),node);
 	}
-	public function __sync(shape:PR(Shape)) {
+	flibmdel public inline function __sync(shape:PR(Shape)) {
 		assert(!shape.body.isStatic(),"static shape being synced?");
 	
 		var node = shape.node;

@@ -239,7 +239,7 @@ class PR(Body) extends PR(Interactor) {
 	public var pre_rot:Float;
 	
 	public var rot:Float;
-	public function invalidate_rot(?skipgraphic=false) {
+	flibmdel public inline function invalidate_rot(?skipgraphic=false) {
 		//dual with invalidate_axis
 		//dependancy checked
 		inv(axis) = true;
@@ -256,17 +256,17 @@ class PR(Body) extends PR(Interactor) {
 		//don't wake object here, this method is called by space.step!
 	}
 	vec_new(public,axis); public var inv(axis):Bool;
-	public function validate_axis() {
+	flibmdel public inline function validate_axis() {
 		//dependancy checked
 		if(inv(axis)) {
 			inv(axis) = false;
 			quick_validate_axis();			
 		}
 	}
-	public function quick_validate_axis() {
+	flibmdel public inline function quick_validate_axis() {
 		vec_set(axis,Math.sin(rot),Math.cos(rot));
 	}
-    public function delta_rot(dr:Float) {
+    flibmdel public inline function delta_rot(dr:Float) {
         rot += dr;
         //stay defensive; if dr is even remotely big; recalculate axis exactly.
         if(dr*dr>0.0001) quick_validate_axis();
@@ -450,7 +450,7 @@ class PR(Body) extends PR(Interactor) {
 	//----------------------------------------------------------------------------------------------
 	
 	public var aabb:PR(AABB); public var inv(aabb):Bool;
-	public function validate_aabb() {
+	flibmdel public inline function validate_aabb() {
 		//dependancy checked
 		if(inv(aabb)) {
 			inv(aabb) = false;
