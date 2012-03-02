@@ -251,7 +251,7 @@ $(mixin global WrapList(T,ListT,IteT, defs)
 			return retx;
 		}
 		
-		keep public inline function add(obj:T) return if(pr(inner).reverse_flag) push(obj) else unshift(obj)
+		keep public function add(obj:T) return if(pr(inner).reverse_flag) push(obj) else unshift(obj)
 		keep public function remove(obj:T):Bool {
 			DEBUG(if(pr(inner).immutable) throw "Error: "+$str(T)+"List is immutable";)
 			pr(inner).modify_test();
@@ -276,7 +276,7 @@ $(mixin global WrapList(T,ListT,IteT, defs)
             }
         }
 
-		keep public inline function empty() {
+		keep public function empty() {
 			#if use_inline
 				if(use_accept) return length==0;
 				else return pr(inner).inner.empty();
@@ -285,7 +285,7 @@ $(mixin global WrapList(T,ListT,IteT, defs)
 			#end
 		}
 		
-		keep public inline function iterator() {
+		keep public function iterator() {
 			#if use_inline pr(inner).valmod(); #else pr(vm)(); #end
 			if(pr(inner).iterators==null) pr(inner).iterators = new List(T`Iterator)();
 			
@@ -392,7 +392,7 @@ $(mixin global WrapList(T,ListT,IteT, defs)
 			i.pr(inner) = null;
 		});
 		
-		keep public inline function hasNext() {
+		keep public function hasNext() {
 			#if use_inline pr(inner).pr(inner).valmod(); #else pr(inner).pr(vm)(); #end
 			var length = pr(inner).length;
 			pr(critical) = true;
@@ -405,7 +405,7 @@ $(mixin global WrapList(T,ListT,IteT, defs)
 				return false;
 			}
 		}
-		keep public inline function next() {
+		keep public function next() {
 			pr(critical) = false;
 			return pr(inner).at(pr(i)++);
 		}

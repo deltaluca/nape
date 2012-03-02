@@ -7,15 +7,15 @@ class PR(Vec2) {
 	public var immutable:Bool;
 	public var _immutable:Void->Dynamic;
 	
-	flibmdel public inline function validate() {
+	flibmdel public function validate() {
 		if(_validate!=null) _validate();
 	}
-	flibmdel public inline function invalidate() {
+	flibmdel public function invalidate() {
 		if(_invalidate!=null) _invalidate(this);
 	}
 	
 	public var outer:Vec2;
-	flibmdel public inline function wrapper() {
+	flibmdel public function wrapper() {
 		if(outer==null) {
 			outer = new Vec2(); //don't care
 			Free(PR(Vec2),outer.pr(inner));
@@ -29,7 +29,7 @@ class PR(Vec2) {
 	public var weak:Bool;
 	
 	MixPoolNoNext(PR(Vec2))
-	flibmdel public inline function free() {
+	flibmdel public function free() {
 		if(outer!=null)
 			outer.pr(inner) = null;
 		outer = null;
@@ -38,7 +38,7 @@ class PR(Vec2) {
 		_invalidate = null;
 		weak = false;
 	}
-	flibmdel public inline function alloc() {}
+	flibmdel public function alloc() {}
 	
 	MixListMixin(PR(Vec2))
 	vec_new(public,$(->));
@@ -46,16 +46,16 @@ class PR(Vec2) {
 	//----------------------------------------------------------------------------------------------
 	
 	public function new() { weak = false; }
-	flibstaticdel(get) public inline static function get(x:Float, y:Float, ?immutable=false) {
+	flibstaticdel(get) public static function get(x:Float, y:Float, ?immutable=false) {
 		var ret = Get(PR(Vec2));
 		ret.immutable = immutable;
 		vec_set(ret.,);
 		return ret;
 	}
 	
-	flibmdel public inline function copy() return get(x,y)
+	flibmdel public function copy() return get(x,y)
 	
 	//----------------------------------------------------------------------------------------------
 	
-	flibmdel public inline function toString() return "{ x: "+x+" y: "+y+" }"
+	flibmdel public function toString() return "{ x: "+x+" y: "+y+" }"
 }

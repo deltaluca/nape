@@ -7,16 +7,16 @@ class PR(SweepData) {
 	
 	public var shape:PR(Shape);
 	public var aabb:PR(AABB); //=shape.aabb
-	flibmdel public inline function free() {
+	flibmdel public function free() {
 		prev = null;
 		shape = null;
 		aabb = null;
 	}
-	flibmdel public inline function alloc() {}
+	flibmdel public function alloc() {}
 	
 	public function new() {}
 
-	flibmdel public inline function gt(x:PR(SweepData)) {
+	flibmdel public function gt(x:PR(SweepData)) {
 		return aabb.minx > x.aabb.minx;
 	}
 }
@@ -34,7 +34,7 @@ class PR(SweepPhase) extends PR(Broadphase) {
 
 	//======================================================================================
 
-	flibmdel public inline function __insert(shape:PR(Shape)) {
+	flibmdel public function __insert(shape:PR(Shape)) {
 		assert(shape.sweep==null,"SweepPhase::insert");
 
 		var dat = Get(PR(SweepData));
@@ -46,7 +46,7 @@ class PR(SweepPhase) extends PR(Broadphase) {
 		if(list!=null) list.prev = dat;
 		list = dat;
 	}
-	flibmdel public inline function __remove(shape:PR(Shape)) {
+	flibmdel public function __remove(shape:PR(Shape)) {
 		assert(shape.sweep!=null,"SweepPhase::remove");
 
 		var dat = shape.sweep;
@@ -59,14 +59,14 @@ class PR(SweepPhase) extends PR(Broadphase) {
 
 	//======================================================================================
 
-    flibmdel public inline function sync_broadphase() {
+    flibmdel public function sync_broadphase() {
         ///TODO: make this use the invalidation system.
 		//validate shape aabb's and other properties.
         space.validation();
         sync_broadphase_fast();
     }
 
-    flibmdel public inline function sync_broadphase_fast() {
+    flibmdel public function sync_broadphase_fast() {
         //sort list.
 		var a = list.next;
 		while(a!=null) {

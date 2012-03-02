@@ -16,7 +16,7 @@ class Vertex {
 	//by simplification
 	public var forced:Bool;
 
-	flibmdel public inline function free () {
+	flibmdel public function free () {
 		if(wrap!=null) {
 			wrap.pr(inner).inuse = false;
 			wrap.dispose();
@@ -27,9 +27,9 @@ class Vertex {
 		#end
 		forced = false;
 	}
-	flibmdel public inline function alloc() {}
+	flibmdel public function alloc() {}
 
-	flibmdel public inline function wrapper() {
+	flibmdel public function wrapper() {
 		if(wrap==null) {
 			wrap = Vec2.get(x,y);
 			wrap.pr(inner).inuse = true;
@@ -46,7 +46,7 @@ class Vertex {
 		vec_set(wrap.pr(inner).,this.);
 	}
 
-	public static inline function get(x:Float,y:Float) {
+	public static function get(x:Float,y:Float) {
 		var ret = Get(Vertex);
 		vec_set(ret.,$(->));
 		return ret;
@@ -71,11 +71,11 @@ class PR(GeomVertexIterator) {
 
 	public var outer:GeomVertexIterator;
 	MixPool(PR(GeomVertexIterator))
-	flibmdel public inline function free() {
+	flibmdel public function free() {
 		outer.pr(inner) = null;
 		ptr = start = null;
 	}
-	flibmdel public inline function alloc() {}
+	flibmdel public function alloc() {}
 
 	public static var internal = false;
 	function new() {
@@ -84,7 +84,7 @@ class PR(GeomVertexIterator) {
 		internal = false;
 	}
 
-	public static inline function get(poly:PR(GeomVert),forward:Bool) {
+	public static function get(poly:PR(GeomVert),forward:Bool) {
 		var ret = Get(PR(GeomVertexIterator));
 		ret.outer.pr(inner) = ret;
 		ret.ptr = poly;

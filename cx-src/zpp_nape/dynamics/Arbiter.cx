@@ -40,7 +40,7 @@ class PR(Arbiter) {
     ///---------------------------------------------------------------------------------------------
 	//used in various parts of API
 
-	flibmdel public inline function inactiveme() {
+	flibmdel public function inactiveme() {
 		return !active;
 	}
 
@@ -111,11 +111,11 @@ class PR(Arbiter) {
     ///---------------------------------------------------------------------------------------------
 
 	//called after pre-handler
-	flibmdel public inline function pre_validate() {
+	flibmdel public function pre_validate() {
 		if(type==COL) colarb._pre_validate();
 	}
 
-	flibmdel public inline function acting() {
+	flibmdel public function acting() {
 		return active && ((immState & Flag(ImmState,ACCEPT))!=0);
 	}
 
@@ -139,7 +139,7 @@ class PR(Arbiter) {
 	public var pair:PR(AABBPair);
 
 	//called from narrowphase.
-	flibmdel public inline function swap_features() {
+	flibmdel public function swap_features() {
         ///assert pre-condition satisfied
         assert(type==COL,"Arbiter::swap_features");
 
@@ -152,9 +152,9 @@ class PR(Arbiter) {
 
 	//matches ArbiterType values.	
 	public var type:Int;
-	flibstaticdel(COL)    public static inline var COL    = 1;
-	flibstaticdel(FLUID)  public static inline var FLUID  = 4;
-	flibstaticdel(SENSOR) public static inline var SENSOR = 2;
+	flibstaticdel(COL)    public static var COL    = 1;
+	flibstaticdel(FLUID)  public static var FLUID  = 4;
+	flibstaticdel(SENSOR) public static var SENSOR = 2;
 
     //to be used in stead of runtime casting of arbiter.
     public var colarb   :PR(ColArbiter);
@@ -165,7 +165,7 @@ class PR(Arbiter) {
 	
 	//called when want to retire arbiter from objects, but let full retire wait for space.step()
 	//given argument should not have arbiter removed as is done externally
-	flibmdel public inline function lazyRetire(s:PR(Space), b:PR(Body)=null) {
+	flibmdel public function lazyRetire(s:PR(Space), b:PR(Body)=null) {
         ///at entry, arbiter should not have already been cleared.
         assert(!cleared,"Arbiter::lazyRetire");
 		cleared = true;
@@ -189,7 +189,7 @@ class PR(Arbiter) {
     ///---------------------------------------------------------------------------------------------
 	
     //called by sub-types on assignment.
-	flibmdel public inline function sup_assign(s1:PR(Shape),s2:PR(Shape),id:Int,di:Int) {
+	flibmdel public function sup_assign(s1:PR(Shape),s2:PR(Shape),id:Int,di:Int) {
 		b1 = s1.body; ws1 = s1;
 		b2 = s2.body; ws2 = s2;
 		this.id = id;
@@ -207,7 +207,7 @@ class PR(Arbiter) {
 	}
 	
     //called by sub-types on retirement.
-	flibmdel public inline function sup_retire() {
+	flibmdel public function sup_retire() {
         ///arbiter should not have been fully retired yet, check this via body existance
         assert(b1!=null,"Arbiter::sup_retire");
         assert(b2!=null,"Arbiter::sup_retire");
@@ -233,8 +233,8 @@ class PR(Arbiter) {
 
 class PR(SensorArbiter) extends PR(Arbiter) {
 	MixPool(PR(SensorArbiter))
-	flibmdel public inline function alloc() { assert(pair==null,"AABBNode pair exists on arb going out of pool? (sensor)"); }
-	flibmdel public inline function free() { assert(pair==null,"AABBNode pair exists on arb going into pool? (sensor)"); }
+	flibmdel public function alloc() { assert(pair==null,"AABBNode pair exists on arb going out of pool? (sensor)"); }
+	flibmdel public function free() { assert(pair==null,"AABBNode pair exists on arb going into pool? (sensor)"); }
 	
 	public function new() {
 		super();
@@ -244,11 +244,11 @@ class PR(SensorArbiter) extends PR(Arbiter) {
 
     ///---------------------------------------------------------------------------------------------
 	
-	flibmdel public inline function assign(s1:PR(Shape),s2:PR(Shape),id:Int,di:Int) {
+	flibmdel public function assign(s1:PR(Shape),s2:PR(Shape),id:Int,di:Int) {
 		sup_assign(s1,s2,id,di);
 	}
 	
-	flibmdel public inline function retire() {
+	flibmdel public function retire() {
 		sup_retire();
 		Free(PR(SensorArbiter),this);
 	}
@@ -256,8 +256,8 @@ class PR(SensorArbiter) extends PR(Arbiter) {
     ///---------------------------------------------------------------------------------------------
 
 	//nothing to do!
-	flibmdel public inline function makemutable() {}
-	flibmdel public inline function makeimmutable() {}
+	flibmdel public function makemutable() {}
+	flibmdel public function makeimmutable() {}
 }
 
 ///_________________________________________________________________________________________________
@@ -266,12 +266,12 @@ class PR(SensorArbiter) extends PR(Arbiter) {
 class PR(FluidArbiter) extends PR(Arbiter) {
 	public var outer_zn:FluidArbiter;
 	MixPool(PR(FluidArbiter))
-	flibmdel public inline function alloc() {
+	flibmdel public function alloc() {
 		assert(pair==null,"AABBNode pair exists on arb going out of pool? (fluid)"); 
 		vec_set(pdamp,0,0);
 		padamp = 0;
 	}
-	flibmdel public inline function free() { assert(pair==null,"AABBNode pair exists on arb going into pool? (fluid)"); }
+	flibmdel public function free() { assert(pair==null,"AABBNode pair exists on arb going into pool? (fluid)"); }
 
     ///---------------------------------------------------------------------------------------------
 	
@@ -343,7 +343,7 @@ class PR(FluidArbiter) extends PR(Arbiter) {
 
     ///---------------------------------------------------------------------------------------------
 	
-	flibmdel public inline function assign(s1:PR(Shape),s2:PR(Shape),id:Int,di:Int) {
+	flibmdel public function assign(s1:PR(Shape),s2:PR(Shape),id:Int,di:Int) {
 		sup_assign(s1,s2,id,di);
 
 		vec_set(n,0,1);
@@ -351,7 +351,7 @@ class PR(FluidArbiter) extends PR(Arbiter) {
 		adamp = 0.0;
 	}
 	
-	flibmdel public inline function retire() {
+	flibmdel public function retire() {
 		sup_retire();
 		Free(PR(FluidArbiter),this);
         pre_dt = -1.0;
@@ -360,18 +360,18 @@ class PR(FluidArbiter) extends PR(Arbiter) {
     ///---------------------------------------------------------------------------------------------
 
 	public var mutable:Bool;
-	flibmdel public inline function makemutable() {
+	flibmdel public function makemutable() {
 		mutable = true;
 		if(wrap_position!=null) wrap_position.pr(inner).immutable = false;
 	}
-	flibmdel public inline function makeimmutable() {
+	flibmdel public function makeimmutable() {
 		mutable = false;
 		if(wrap_position!=null) wrap_position.pr(inner).immutable = true;
 	}
 
     ///---------------------------------------------------------------------------------------------
 
-    flibmdel public inline function inject(area:Float,cx:Float,cy:Float) {
+    flibmdel public function inject(area:Float,cx:Float,cy:Float) {
 		overlap = area;
 		vec_set(centroid,c);
 	}
@@ -379,7 +379,7 @@ class PR(FluidArbiter) extends PR(Arbiter) {
     ///---------------------------------------------------------------------------------------------
 	
     public var pre_dt:Float;
-	flibmdel public inline function preStep(s:PR(Space), dt:Float) {
+	flibmdel public function preStep(s:PR(Space), dt:Float) {
         if(pre_dt==-1.0) pre_dt = dt;
         var dtratio = dt/pre_dt;
         pre_dt = dt;
@@ -540,7 +540,7 @@ class PR(FluidArbiter) extends PR(Arbiter) {
 
     ///---------------------------------------------------------------------------------------------
 
-    flibmdel public inline function warmStart() {
+    flibmdel public function warmStart() {
 		vec_subeq(b1.vel, damp, b1.imass);
 		vec_addeq(b2.vel, damp, b2.imass);
 		b1.angvel -= b1.iinertia*vec_cross(r1,damp);
@@ -553,7 +553,7 @@ class PR(FluidArbiter) extends PR(Arbiter) {
 		padamp = adamp;
     }
 	
-	flibmdel public inline function applyImpulseVel() {
+	flibmdel public function applyImpulseVel() {
 		if(!nodrag) {
             var w1 = b1.angvel+b1.kinangvel;
             var w2 = b2.angvel+b2.kinangvel;
@@ -631,7 +631,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
 
     ///---------------------------------------------------------------------------------------------
 
-	flibmdel public inline function _pre_validate() {
+	flibmdel public function _pre_validate() {
 		DEBUG(if(wrap_contacts!=null && wrap_contacts.length==0) throw "Error: CollisionArbiter must have at least one contact! If you're trying to ignore collision by deleting all contacts, just return PreFlag.IGNORE_ONCE instead.";)
 
 		var vl = vec_lsq(n);
@@ -693,11 +693,11 @@ class PR(ColArbiter) extends PR(Arbiter) {
 		type = PR(Arbiter).COL;
 		colarb = this;
 	}
-	flibmdel public inline function alloc() {
+	flibmdel public function alloc() {
 		pjrAcc = 0.0;
 		assert(pair==null,"AABBNode exists on col arbiter going out of pool?"); 
 	}
-	flibmdel public inline function free() { 
+	flibmdel public function free() { 
 		assert(contacts.empty(),"still has contacts on free?");
 		assert(pair==null,"AABBNode exists on col arbiter going into pool?");
 	}
@@ -706,7 +706,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
 
 	///---------------------------------------------------------------------------------------------
 	
-	flibmdel public inline function injectContact(px:Float,py:Float,nx:Float,ny:Float,dist:Float,hash:Int) {
+	flibmdel public function injectContact(px:Float,py:Float,nx:Float,ny:Float,dist:Float,hash:Int) {
 		var c:PR(Contact) = null;
 		Iter(cur,contacts, if(hash==cur.hash) { c = cur; break; });
 		if(c==null) {
@@ -733,7 +733,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
 	
 	///---------------------------------------------------------------------------------------------
 	
-	flibmdel public inline function assign(s1:PR(Shape),s2:PR(Shape),id:Int,di:Int) {
+	flibmdel public function assign(s1:PR(Shape),s2:PR(Shape),id:Int,di:Int) {
 		sup_assign(s1,s2,id,di);
 		this.s1 = s1;
 		this.s2 = s2;
@@ -743,7 +743,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
 
 	///---------------------------------------------------------------------------------------------
 	
-	flibmdel public inline function calcProperties() {
+	flibmdel public function calcProperties() {
 		if(s1.material.elasticity<=PR(Const).NEGINF || s2.material.elasticity<=PR(Const).NEGINF)
 			restitution = 0;
 		else if(s1.material.elasticity>=PR(Const).POSINF || s2.material.elasticity>=PR(Const).POSINF)
@@ -762,7 +762,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
 
     ///---------------------------------------------------------------------------------------------
 	
-	flibmdel public inline function validate_props() {
+	flibmdel public function validate_props() {
 		if(invalidated) {
 			invalidated = false;
 			calcProperties();
@@ -771,7 +771,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
 	
     ///---------------------------------------------------------------------------------------------
 	
-	flibmdel public inline function retire() {
+	flibmdel public function retire() {
 		sup_retire();
 		while(!contacts.empty()) {
 			Free(PR(Contact),contacts.pop_unsafe());
@@ -784,12 +784,12 @@ class PR(ColArbiter) extends PR(Arbiter) {
     ///---------------------------------------------------------------------------------------------
 
 	public var mutable:Bool;
-	flibmdel public inline function makemutable() {
+	flibmdel public function makemutable() {
 		mutable = true;
 		if(wrap_normal!=null) wrap_normal.pr(inner).immutable = false;
 		if(wrap_contacts!=null) wrap_contacts.pr(inner).immutable = false;
 	}
-	flibmdel public inline function makeimmutable() {
+	flibmdel public function makeimmutable() {
 		mutable = false;
 		if(wrap_normal!=null) wrap_normal.pr(inner).immutable = true;
 		if(wrap_contacts!=null) wrap_contacts.pr(inner).immutable = true;
@@ -844,7 +844,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
 	//when arbiter is accepted, this is handled in the preStep
 	//later clean up may remove the common logic if it is deemed appropriate
 	//and not a hinderance
-	flibmdel public inline function cleanupContacts() {
+	flibmdel public function cleanupContacts() {
 		var fst = true;
 		var pre = null; var prei = null;
 		var cx_itei = innards.begin();
@@ -885,7 +885,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
 	}
 	
     public var pre_dt:Float;
-	flibmdel public inline function preStep(dt:Float) {
+	flibmdel public function preStep(dt:Float) {
 		validate_props();
         #if NAPE_TIMES Debug.AACNT++; #end
 
@@ -1024,7 +1024,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
 		return !fst;
 	}
 	
-    flibmdel public inline function warmStart() {
+    flibmdel public function warmStart() {
 				appImp(c1,c1.jnAcc,c1.jtAcc);
 		if(hc2) appImp(c2,c2.jnAcc,c2.jtAcc);
 			
@@ -1053,7 +1053,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
     ///---------------------------------------------------------------------------------------------
 	
     ///very verbose in an attempt to improve performance.
-    flibmdel public inline function applyImpulseVel(bouncy:Bool) {
+    flibmdel public function applyImpulseVel(bouncy:Bool) {
         $(mixin friction(N,jnAcc) {
             dv`N`x = k`N`x + b2.velx - c`N.r2y*b2.angvel - (b1.velx - c`N.r1y*b1.angvel);
             dv`N`y = k`N`y + b2.vely + c`N.r2x*b2.angvel - (b1.vely + c`N.r1x*b1.angvel);
@@ -1147,7 +1147,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
 
     ///---------------------------------------------------------------------------------------------
 	
-    flibmdel public inline function applyImpulsePos() {
+    flibmdel public function applyImpulsePos() {
 		if(ptype==PR(ColArbiter).CIRCLE) {
 			var c = c1;
 			

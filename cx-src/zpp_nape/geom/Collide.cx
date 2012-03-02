@@ -4,33 +4,33 @@ $(import);
 class PR(Collide) {
 	
 	flibstaticdel(circleContains)
-	public static inline function circleContains(c:PR(Circle),p:PR(Vec2)) {
+	public static function circleContains(c:PR(Circle),p:PR(Vec2)) {
 		vec_new(d); vec_sub(p.,c.worldCOM,d);
 		return vec_lsq(d) < c.radius*c.radius;
 	}
 	
 	flibstaticdel(polyContains)
-	public static inline function polyContains(s:PR(Polygon),p:PR(Vec2)) {
+	public static function polyContains(s:PR(Polygon),p:PR(Vec2)) {
 		return ForAll(a, s.edges, vec_dot(a.gnorm, p.) <= a.gprojection);
 	}
 	
 	//----------------------------------------------------------------------------------------------
 
 	flibstaticdel(shapeContains)
-	public static inline function shapeContains(s:PR(Shape),p:PR(Vec2)) {
+	public static function shapeContains(s:PR(Shape),p:PR(Vec2)) {
 		return if(s.isCircle()) circleContains(s.circle,p);
 			   else             polyContains(s.polygon,p);
 	}
 	
 	flibstaticdel(bodyContains)
-	public static inline function bodyContains(b:PR(Body),p:PR(Vec2)) {
+	public static function bodyContains(b:PR(Body),p:PR(Vec2)) {
 		return Exists(s,b.shapes,shapeContains(s,p));
 	}
 	
 	//----------------------------------------------------------------------------------------------
 
 	flibstaticdel(containTest)
-	public static inline function containTest(s1:PR(Shape),s2:PR(Shape)) {
+	public static function containTest(s1:PR(Shape),s2:PR(Shape)) {
 		if(s1.aabb.contains(s2.aabb)) {
 			return if(s1.isCircle()) {
 				if(s2.isCircle()) circle2circle_contain(s1.circle,s2.circle);
@@ -44,7 +44,7 @@ class PR(Collide) {
 
 	//----------------------------------------------------------------------------------------------
 	
-	public inline static function contactCollide(s1:PR(Shape),s2:PR(Shape),arb:PR(ColArbiter), rev:Bool) {
+	public static function contactCollide(s1:PR(Shape),s2:PR(Shape),arb:PR(ColArbiter), rev:Bool) {
 		if(s2.isPolygon()) {
 			return /*if(!s1.aabb.intersect(s2.aabb)) false;
 			else */if(s1.isPolygon())
@@ -55,13 +55,13 @@ class PR(Collide) {
 	}
 
 	flibstaticdel(testCollide_safe)
-	public static inline function testCollide_safe(s1:PR(Shape),s2:PR(Shape)) {
+	public static function testCollide_safe(s1:PR(Shape),s2:PR(Shape)) {
 		if(s2.isCircle()) swap(s1,s2);
 		return testCollide(s1,s2);
 	}
 	
 	flibstaticdel(testCollide)
-	public static inline function testCollide(s1:PR(Shape),s2:PR(Shape)) {
+	public static function testCollide(s1:PR(Shape),s2:PR(Shape)) {
 		if(s2.isPolygon()) {
 			return /*if(!s1.aabb.intersect(s2.aabb)) false;
 			else */if(s1.isPolygon())
@@ -72,7 +72,7 @@ class PR(Collide) {
 	}
 	
 	flibstaticdel(flowCollide)
-	public static inline function flowCollide(s1:PR(Shape),s2:PR(Shape),arb:PR(FluidArbiter)) {
+	public static function flowCollide(s1:PR(Shape),s2:PR(Shape),arb:PR(FluidArbiter)) {
 		if(s2.isPolygon()) {
 			return /*if(!s1.aabb.intersect(s2.aabb)) false;
 			else */if(s1.isPolygon())
