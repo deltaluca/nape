@@ -9,7 +9,7 @@ $(import);
 $(mixin global isNaN(x) (x!=x));
 
 class PR(Math) {
-	flibstaticdel(sqrt) public static function sqrt(x:Float) {
+	flibstaticdel(sqrt) public static inline function sqrt(x:Float) {
 		assert(!assert_isNaN(x),"PR(Math).sqrt");
 		#if flash10
 			return if(x==0.0) 0.0 else 1/invsqrt(x);
@@ -17,7 +17,7 @@ class PR(Math) {
 			return Math.sqrt(x);
 		#end
 	}
-	flibstaticdel(invsqrt) public static function invsqrt(x:Float) {
+	flibstaticdel(invsqrt) public static inline function invsqrt(x:Float) {
 		assert(!assert_isNaN(x) && x!=0.0,"PR(Math).invsqrt");
 		#if flash10
 			Memory.setFloat(0,x);
@@ -29,16 +29,16 @@ class PR(Math) {
 		#end
 	}
 	
-	flibstaticdel(sqr) public static function sqr(x:Float) {
+	flibstaticdel(sqr) public inline static function sqr(x:Float) {
 		assert(!assert_isNaN(x),"PR(Math).sqr");
 		return x*x;
 	}
 	
-	flibstaticdel(clamp2) public static function clamp2(x:Float,a:Float) {
+	flibstaticdel(clamp2) public inline static function clamp2(x:Float,a:Float) {
 		assert(!assert_isNaN(x) && !assert_isNaN(a),"PR(Math).clamp2 -> "+x+" -> "+a);
 		return clamp(x,-a,a);
 	}
-	flibstaticdel(clamp) public static function clamp(x:Float,a:Float,b:Float) {
+	flibstaticdel(clamp) public static inline function clamp(x:Float,a:Float,b:Float) {
 		assert(!assert_isNaN(x) && !assert_isNaN(a) && !assert_isNaN(b),"PR(Math).clamp2 -> "+x+" -> "+a+" -> "+b);
 		return if(x<a) a else if(x>b) b else x;
 	}
