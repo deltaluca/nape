@@ -415,7 +415,8 @@ $(mixin global ListMixin(defs,Cons,T,I)
 		pushmod = true;
 	}
 
-    public function add(o:T) {
+	public function add(o:T) return inlined_add(o)
+    flibmdel public inline function inlined_add(o:T) {
 		assert(o!=null && !has(o),"[ListMixin("+$str(T)+"] add -> o="+o);
 		
         var temp = _new(o);
@@ -433,26 +434,29 @@ $(mixin global ListMixin(defs,Cons,T,I)
 		Iterate(x,add);
 	}
 
-    public function insert(cur:I,o:T) {
+	public function insert(cur:I,o:T) return inlined_insert(cur,o)
+	flibmdel public inline function inlined_insert(cur:I,o:T) {
 		assert(o != null && !has(o),"[ListMixin("+$str(T)+"] cur -> "+cur+" -> "+o);
 		
-        if(cur==null) { add(o); return begin(); }
-        else {
-            var temp = _new(o);
+		var temp = _new(o);
+        if(cur==null) {
+			temp.next = begin();
+			_setbeg(temp);
+		} else {
             temp.next = cur.next;
             cur.next = temp;
-			
-			pushmod = modified = true;
-			mcnt++;
-			length++;
-			
-            return temp;
         }
+
+		pushmod = modified = true;
+		mcnt++;
+		length++;
+		return temp;
     }
 
     //----------------------------------------------------------------------------------------------
 
-    public function pop():Void {
+	public function pop() inlined_pop()
+    flibmdel public inline function inlined_pop():Void {
 		assert(!empty(), "[ListMixin("+$str(T)+"] pop");
 		
         var ret = begin();
@@ -466,7 +470,8 @@ $(mixin global ListMixin(defs,Cons,T,I)
 		length--;
     }
 
-    public function pop_unsafe():T {
+	public function pop_unsafe() return inlined_pop_unsafe()
+    flibmdel public inline function inlined_pop_unsafe():T {
 		assert(!empty(), "[ListMixin("+$str(T)+"] pop_unsafe");
 		
         var ret = front();
@@ -494,23 +499,47 @@ $(mixin global ListMixin(defs,Cons,T,I)
         return ret;
     }
 
-    public function erase(pre:I):I {
+    flibmdel public inline function inlined_remove(obj:T):Bool {
+		assert(obj!=null && has(obj), "[ListMixin("+$str(T)+"] remove -> "+obj);
+		
+        var pre = null;
+        var cur = begin();
+        var ret = false;
+        while(cur!=null) {
+            if(cur.elem()==obj) {
+                inlined_erase(pre);
+                ret = true;
+                break;
+            }
+            pre = cur;
+            cur = cur.next;
+        }
+        return ret;
+    }
+
+	public function erase(pre:I):I return inlined_erase(pre)
+    flibmdel public inline function inlined_erase(pre:I):I {
 		assert(!empty(),"[ListMixin("+$str(T)+"] erase -> "+pre);
-		if(pre==null) { pop(); return begin(); }
-		else {
-			var old = pre.next;
-			var cur = old.next;
-			pre.next = cur;
-			_delelt(old.elem());
-			_delete(old);
-			
-			modified = true;
-			if(cur==null) pushmod = true;
-			mcnt--;
-			length--;
-			
-			return cur;
+		var old:I;
+		var ret:I;
+		if(pre==null) {
+	        old = begin(); ret = old.next;
+	        _setbeg(ret);
+			if(empty()) pushmod = true;
+		} else {
+			old = pre.next; ret = old.next;
+			pre.next = ret;
+			if(ret==null) pushmod = true;
 		}
+		_delelt(old.elem());
+		_delete(old);
+
+		modified = true;
+		mcnt--;
+		length--;
+		pushmod = true;
+
+		return ret;
     }
 
     public function splice(pre:I,n:Int):I {
@@ -570,8 +599,8 @@ $(mixin global ListMixin(defs,Cons,T,I)
         while(ind-->0 && ret!=null) ret = ret.next;
         return ret;
     }
-
-    public function at(ind:Int) {
+	
+	public function at(ind:Int) {
 		assert(ind>=0 && ind<size(),"[ListMixin("+$str(T)+"] at -> "+ind);
         var it = iterator_at(ind);
         return if(it!=null) it.elem() else null;

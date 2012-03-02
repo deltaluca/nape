@@ -1516,7 +1516,7 @@ class PR(Space) {
 				if(!arb.cleared && (arb.b1.component.sleeping && arb.b2.component.sleeping)) {
 					arb.sleep_stamp = stamp;
 					arb.sleeping = true;
-					cx_ite = arbs.erase(pre);
+					cx_ite = arbs.inlined_erase(pre);
 					continue;
 				}
 
@@ -1533,7 +1533,7 @@ class PR(Space) {
 
 					if(begcb || endcb || arb.cleared || arb.intchange) {
 						var listener:PR(InteractionListener) = null;
-						MRCA_chains(arb.ws1,arb.ws2);
+						inlined_MRCA_chains(arb.ws1,arb.ws2);
 						Iter(i1,mrca1,{
 						Iter(i2,mrca2,{
 							var cb1 = i1.cbType;
@@ -1610,7 +1610,7 @@ class PR(Space) {
 			 	 || arb.up_stamp + (arb.type==PR(Arbiter).COL ? PR(Config).PERSIST : 0) < stamp //possibly delayed age-death
 				) {
 					arb.retire();
-					cx_ite = arbs.erase(pre);
+					cx_ite = arbs.inlined_erase(pre);
 					continue;
 				}
 				
@@ -1647,11 +1647,21 @@ class PR(Space) {
 	}
 
 	//----------------------------------------------------------------------------------------------
+
+	$(mixin IterColArbs(arb,cb) {
+		var arbi = c_arbiters(false).begin();
+		var fst = true;
+		while(arbi!=null) {
+			var arb = arbi.elem();
+			{ cb; }
+			arbi = arbi.next;
+			if(fst && arbi==null) { arbi = c_arbiters(true).begin(); fst = false; }
+		}
+	});
 	
     public function warmStart() {
-        Iter(arb,f_arbiters,       if(arb.acting()) arb.warmStart());
-        Iter(arb,c_arbiters(false),if(arb.acting()) arb.warmStart());
-        Iter(arb,c_arbiters(true), if(arb.acting()) arb.warmStart());
+        Iter(arb,f_arbiters, if(arb.acting()) arb.warmStart());
+		IterColArbs(arb, if(arb.acting()) arb.warmStart());
         Iter(con,live_constraints, con.warmStart());
 	}
 
@@ -1683,8 +1693,7 @@ class PR(Space) {
 				pre = cx_ite;
 			});
 				
-			Iter(arb,c_arbiters(false),if(arb.acting()) arb.applyImpulseVel(bouncy));
-			Iter(arb,c_arbiters(true), if(arb.acting()) arb.applyImpulseVel(bouncy));
+			IterColArbs(arb,if(arb.acting()) arb.applyImpulseVel(bouncy));
 		}
 	}
 	public function iteratePos(times:Int) {
@@ -1716,8 +1725,7 @@ class PR(Space) {
 				pre = cx_ite;
 			});
 				
-			Iter(arb,c_arbiters(false),if(arb.acting()) arb.applyImpulsePos());
-			Iter(arb,c_arbiters(true), if(arb.acting()) arb.applyImpulsePos());
+			IterColArbs(arb,if(arb.acting()) arb.applyImpulsePos());
 		}
 	}
 
@@ -1789,7 +1797,7 @@ class PR(Space) {
 						if(cond) {
 							if(first) {
 								arb.assign(s1,s2,sa.id,sb.id);
-								arbs.add(arb);
+								arbs.inlined_add(arb);
 								arb.fresh = !swapped;
 							}else
 								arb.fresh = arb.up_stamp<stamp-1; //handler persistance
@@ -1804,7 +1812,7 @@ class PR(Space) {
 							if(arb.fresh || (arb.immState&Flag(ImmState,ALWAYS))==0) {
 								arb.immState = Flag(ImmState,ACCEPT);
 
-								MRCA_chains(s1,s2);
+								inlined_MRCA_chains(s1,s2);
 								Iter(i1, mrca1, {
 								Iter(i2, mrca2, {
 									var cb1 = i1.cbType;
@@ -1940,7 +1948,7 @@ class PR(Space) {
 
 							if(arb.sleeping) {
 								arb.sleeping = false;
-								arbs.add(arb);
+								arbs.inlined_add(arb);
 							}
 
 							arb;
@@ -2052,7 +2060,9 @@ class PR(Space) {
 	//as a further optimisation, only interactors with non-null cbTypes are included.
 	public var mrca1:List(PR(Interactor));
 	public var mrca2:List(PR(Interactor));
-	flibmdel public inline function MRCA_chains(s1:PR(Shape), s2:PR(Shape)) {
+
+	public function MRCA_chains(s1:PR(Shape),s2:PR(Shape)) inlined_MRCA_chains(s1,s2)
+	flibmdel public inline function inlined_MRCA_chains(s1:PR(Shape), s2:PR(Shape)) {
 		assert(s1!=s2 && s1.body!=s2.body, "MRCA chain for equal shapes, or shapes of the same body?");
 		//clear any remnants
 		mrca1.clear();
