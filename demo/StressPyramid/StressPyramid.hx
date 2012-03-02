@@ -91,10 +91,10 @@ class StressPyramid extends VariableStep {
 			var dt = Math.min(1/40, 1/200 + space.timeStamp*1e-5*30);
 
 			hand.anchor1.setxy(mouseX,mouseY);
-			debug.clear();
+			//debug.clear();
 			space.step(dt,5,5);
-			debug.draw(space);
-			debug.flush();
+//			debug.draw(space);
+//			debug.flush();
 		});
 	}
 }
