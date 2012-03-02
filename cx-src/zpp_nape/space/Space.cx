@@ -1293,37 +1293,37 @@ class PR(Space) {
 		
 		//build islands
 		while(!live.empty()) {
-			var o = live.pop_unsafe();
+			var o = live.inlined_pop_unsafe();
 			var oc = o.component;
 			
 			var root = DSF(find(oc));
 			if(root.island==null) {
 				root.island = Get(PR(Island));
-				islands.add(root.island);
+				islands.inlined_add(root.island);
 				root.island.sleep = true;
 			}
 			oc.island = root.island;
-			oc.island.comps.add(oc);
+			oc.island.comps.inlined_add(oc);
 			var rest = o.atRest(dt);
 			oc.island.sleep = oc.island.sleep && rest;
 			if(oc.waket > oc.island.waket) oc.island.waket = oc.waket;
 		}
 		while(!live_constraints.empty()) {
-			var o = live_constraints.pop_unsafe();
+			var o = live_constraints.inlined_pop_unsafe();
 			var oc = o.component;
 			
 			var root = DSF(find(oc));
 			assert(root.island!=null,"constraint without bodies?");
 			
 			oc.island = root.island;
-			oc.island.comps.add(oc);
+			oc.island.comps.inlined_add(oc);
             if(oc.waket > oc.island.waket) oc.island.waket = oc.waket;
 		}
 
 		//build new live lists from islands
 		//destroy waking islands, retain sleeping islands for waking later when necessary.
 		while(!islands.empty()) {
-			var i = islands.pop_unsafe();
+			var i = islands.inlined_pop_unsafe();
 			if(i.sleep) {
 				Iter(c,i.comps,{
 					if(c.isBody) {
@@ -1347,10 +1347,10 @@ class PR(Space) {
 				});
 			}else {
 				while(!i.comps.empty()) {
-					var c = i.comps.pop_unsafe();
+					var c = i.comps.inlined_pop_unsafe();
                     c.waket = i.waket;
-					if(c.isBody) live.add(c.body);
-					else         live_constraints.add(c.constraint);
+					if(c.isBody) live.inlined_add(c.body);
+					else         live_constraints.inlined_add(c.constraint);
 					c.reset();
 				}
 				Free(PR(Island),i);

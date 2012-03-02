@@ -133,7 +133,8 @@ class PR(AABBTree) {
 	}
     
     public static var tmpaabb = new PR(AABB)();
-    public function insertLeaf(leaf:PR(AABBNode)) {
+	function insertLeaf(leaf:PR(AABBNode)) inlined_insertLeaf(leaf)
+    flibmdel public inline function inlined_insertLeaf(leaf:PR(AABBNode)) {
         if(root==null) {
             root = leaf;
             root.parent = null;
@@ -215,7 +216,8 @@ class PR(AABBTree) {
         }
     }
 
-    public function removeLeaf(leaf:PR(AABBNode)) {
+	public function removeLeaf(leaf:PR(AABBNode)) inlined_removeLeaf(leaf)
+    flibmdel public inline function inlined_removeLeaf(leaf:PR(AABBNode)) {
         if(leaf==root) {
             root = null;
             return;
@@ -431,8 +433,8 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 
 		//if this isn't the node's first sync, remove from tree.
 		if(!node.first_sync) {
-			if(node.dyn) dtree.removeLeaf(node);
-			else         stree.removeLeaf(node);
+			var tree = if(node.dyn) dtree else stree;
+			tree.inlined_removeLeaf(node);
 		}else
 			node.first_sync = false;
 
@@ -454,10 +456,8 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
         if(vely<0) aabb.miny += vely; else aabb.maxy += vely;
 */
 		//and insert/re-insert
-		if(node.dyn = dyn(shape))
-			 dtree.insertLeaf(node);
-		else stree.insertLeaf(node);
-
+		var tree = if(node.dyn=dyn(shape)) dtree else stree;
+		tree.inlined_insertLeaf(node);
 		node.synced = false;
 	});
 
