@@ -32,7 +32,7 @@ class StressPyramid extends VariableStep {
 		//but not ideal since everything is moving a lot so the tree will be constantly rebuilt
 		//versus sweep and prune where things aren't moving massively fast so is okay since world
 		//is not huge.
-		var space = new Space(new Vec2(0,400),Broadphase.SWEEP_AND_PRUNE);
+		var space = new Space(new Vec2(0,400));
 		var debug = new BitmapDebug(stage.stageWidth,stage.stageHeight,0x333333);
 		addChild(debug.display);
 		debug.drawShapeAngleIndicators = false;
@@ -92,7 +92,7 @@ class StressPyramid extends VariableStep {
 
 			hand.anchor1.setxy(mouseX,mouseY);
 			debug.clear();
-			space.step(dt,8,8);
+			space.step(dt,5,5);
 			debug.draw(space);
 			debug.flush();
 		});
