@@ -510,14 +510,10 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 			while(list!=null) {
 				var leaf = ipop(list,lnext);
 
-				if($str(list)=="moves") leaf.moved = false;
-				else assert(!leaf.moved,"leaf also in move list?");
-/*
-				//this assertion should hold. If not then this 'should' suffice to resolve it
-				if($str(list)=="moves") {
-					if(leaf.moved) leaf.moved = false;
-					continue; //leaf has already been processed in syncs list.
-				}else leaf.moved = false;*/
+/*				if($str(list)=="moves") leaf.moved = false;
+				else assert(!leaf.moved,"leaf also in move list?");*/
+				if($str(list)!="moves" && leaf.moved) continue;
+				leaf.moved = false;
 
 				var lshape = leaf.shape;
 				var lbody = lshape.body;

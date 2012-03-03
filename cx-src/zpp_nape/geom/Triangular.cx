@@ -12,7 +12,7 @@ class PR(Triangular) {
 	inline static function right_turn(a:Vertex,b:Vertex,c:Vertex) {
 		vec_new(u); vec_sub(c.,b.,u);
 		vec_new(v); vec_sub(b.,a.,v);
-		return vec_cross(u,v) < 0;
+		return vec_cross(u,v);
 	}
 
 	//triangulate a monotone polygon by adding partitiones
@@ -56,7 +56,11 @@ class PR(Triangular) {
 				var q = stack.pop_unsafe();
 				while(!stack.empty()) {
 					var s = stack.front();
-					if(p.rightchain != right_turn(s,q,p)) break;
+
+					var right = right_turn(s,q,p);
+					if((p.rightchain && right>=0)
+					|| (!p.rightchain && right<=0)) break;
+
 					P.add_diagonal(s, p);
 					q = s;
 					stack.pop();
