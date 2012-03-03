@@ -44,7 +44,7 @@ class PR(Collide) {
 
 	//----------------------------------------------------------------------------------------------
 	
-	public static inline function contactCollide(s1:PR(Shape),s2:PR(Shape),arb:PR(ColArbiter), rev:Bool) {
+	public static function contactCollide(s1:PR(Shape),s2:PR(Shape),arb:PR(ColArbiter), rev:Bool) {
 		if(s2.isPolygon()) {
 			return if(s1.isPolygon())
 				poly2poly(s1.polygon,s2.polygon,arb,rev);
@@ -60,7 +60,7 @@ class PR(Collide) {
 	}
 	
 	flibstaticdel(testCollide)
-	public static inline function testCollide(s1:PR(Shape),s2:PR(Shape)) {
+	public static function testCollide(s1:PR(Shape),s2:PR(Shape)) {
 		if(s2.isPolygon()) {
 			return if(s1.isPolygon())
 				poly2poly_test(s1.polygon,s2.polygon);
@@ -70,7 +70,7 @@ class PR(Collide) {
 	}
 	
 	flibstaticdel(flowCollide)
-	public static inline function flowCollide(s1:PR(Shape),s2:PR(Shape),arb:PR(FluidArbiter)) {
+	public static function flowCollide(s1:PR(Shape),s2:PR(Shape),arb:PR(FluidArbiter)) {
 		if(s2.isPolygon()) {
 			return if(s1.isPolygon())
 				poly2poly_flow(s1.polygon,s2.polygon,arb);
@@ -211,66 +211,65 @@ class PR(Collide) {
             evalAxis2(2,p2,p1);
             if(!cont) false;
             else {
-                $(mixin findVerts(arb,p1,p2,ax,nCoef,dist,rev) {
-                    //incident edge on p2
-                    var ay:PR(Edge) = null;
-                    var min = PR(Const).FMAX;
-                    Iter(axis,p2.edges,{
-                        var k = vec_dot(ax.gnorm,axis.gnorm);
-                        if(k<min) {
-                            min = k;
-                            ay = axis;
-                        }
-                    });
+				var q1, q2, ax, scale;
+				if(maxi==1) { q1 = p1; q2 = p2; ax = axis1; scale = 1.0; }
+				else        { q1 = p2; q2 = p1; ax = axis2; scale =-1.0; } 
 
-                    vec_new(c0); vec_set(c0,ay.gp0.);
-                    vec_new(c1); vec_set(c1,ay.gp1.);
+				var ay:PR(Edge) = null;
+				var min = PR(Const).FMAX;
+				Iter(axis,q2.edges,{
+					var k = vec_dot(ax.gnorm,axis.gnorm);
+					if(k<min) {
+						min = k;
+						ay = axis;
+					}
+				});
 
-                    vec_new(dv); vec_sub(c1,c0,dv);
-                    var d0 = vec_cross(c0,ax.gnorm);
-                    var d1 = vec_cross(c1,ax.gnorm);
-                    var den = 1/(d1-d0);
-                    //clip c0
-                    var t = (-ax.tp1 - d0)*den;
-                    if(t>PR(Const).EPSILON) vec_addeq(c0,dv,t);
-                    //clip c1
-                    var t = (-ax.tp0 - d1)*den;
-                    if(t<-PR(Const).EPSILON) vec_addeq(c1,dv,t);
+				vec_new(c0); vec_set(c0,ay.gp0.);
+				vec_new(c1); vec_set(c1,ay.gp1.);
 
-                    vec_new(n); vec_mul(ax.gnorm,nCoef,n);
-                    //position iterations
-                    vec_set(arb.lnorm, ax.lnorm);
-                    arb.lproj = ax.lprojection;
-                    arb.radius = 0;
-                    arb.rev = rev != (nCoef==-1);
-                    arb.ptype = arb.rev ? PR(ColArbiter).FACE2 : PR(ColArbiter).FACE1;
+				vec_new(dv); vec_sub(c1,c0,dv);
+				var d0 = vec_cross(c0,ax.gnorm);
+				var d1 = vec_cross(c1,ax.gnorm);
+				var den = 1/(d1-d0);
+				//clip c0
+				var t = (-ax.tp1 - d0)*den;
+				if(t>PR(Const).EPSILON) vec_addeq(c0,dv,t);
+				//clip c1
+				var t = (-ax.tp0 - d1)*den;
+				if(t<-PR(Const).EPSILON) vec_addeq(c1,dv,t);
 
-					//per-contact distance, not massively important but for completeness.
-					//especcialy in light of being able to have more control over contacts
-					//with pre-handlers.
-					var c0d = vec_dot(c0,ax.gnorm)-ax.gprojection;
-					var c1d = vec_dot(c1,ax.gnorm)-ax.gprojection;
-					vec_subeq(c0,ax.gnorm,c0d*0.5);
-					vec_subeq(c1,ax.gnorm,c1d*0.5);
+				vec_new(n); vec_mul(ax.gnorm,scale,n);
+				//position iterations
+				vec_set(arb.lnorm, ax.lnorm);
+				arb.lproj = ax.lprojection;
+				arb.radius = 0;
+				arb.rev = rev != (scale==-1);
+				arb.ptype = arb.rev ? PR(ColArbiter).FACE2 : PR(ColArbiter).FACE1;
 
-					if(rev) { nx = -nx; ny = -ny; }
-					if(c0d <= 0) {
-						var con = arb.injectContact(c0x,c0y,nx,ny,c0d,arb.rev ? 1 : 0);
-                        //position iterations
-                        vec_subeq(c0,p2.body.pos);
-                        vec_revrot(c0,p2.body.axis,con.inner.lr1);
-                    }
-					if(c1d <= 0) {
-						var con = arb.injectContact(c1x,c1y,nx,ny,c1d,arb.rev ? 0 : 1);
-                        //position iterations
-                        vec_subeq(c1,p2.body.pos);
-                        vec_revrot(c1,p2.body.axis,con.inner.lr1);
-                    }
+				//per-contact distance, not massively important but for completeness.
+				//especcialy in light of being able to have more control over contacts
+				//with pre-handlers.
+				var c0d = vec_dot(c0,ax.gnorm)-ax.gprojection;
+				var c1d = vec_dot(c1,ax.gnorm)-ax.gprojection;
+				vec_subeq(c0,ax.gnorm,c0d*0.5);
+				vec_subeq(c1,ax.gnorm,c1d*0.5);
 
-					c0d <=0 || c1d <= 0;
-                });
-                if(maxi==1) findVerts(arb,p1,p2,axis1, 1,max, rev);
-                else        findVerts(arb,p2,p1,axis2,-1,max, rev);
+				if(rev) { nx = -nx; ny = -ny; }
+				if(c0d <= 0) {
+					var con = arb.injectContact(c0x,c0y,nx,ny,c0d,arb.rev ? 1 : 0);
+					//position iterations
+					vec_subeq(c0,q2.body.pos);
+					vec_revrot(c0,q2.body.axis,con.inner.lr1);
+				}
+				if(c1d <= 0) {
+					var con = arb.injectContact(c1x,c1y,nx,ny,c1d,arb.rev ? 0 : 1);
+					//position iterations
+					vec_subeq(c1,q2.body.pos);
+					vec_revrot(c1,q2.body.axis,con.inner.lr1);
+				}
+
+				c0d <=0 || c1d <= 0;
             }
         }else false;
 	});
