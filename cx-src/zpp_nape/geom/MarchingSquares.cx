@@ -16,11 +16,11 @@ class Span {
 	public var out:Bool;
 
 	MixPool(Span)
-	flibmdel public inline function free() {
+	public function free() {
 		freed = true;
 		parent = this;
 	}
-	flibmdel public inline function alloc() {
+	public function alloc() {
 		freed = false;
 		out = false;
 		rank = 0;
@@ -51,14 +51,14 @@ class VPair {
 	public var spanr:Span;
 	
 	MixPool(VPair)
-	flibmdel public inline function free() {
+	public function free() {
 		p1 = p2 = pr = pd = null;
 
 /*		if(!span1.freed) Free(Span,span1);
 		if(span2!=null && !span2.freed) Free(Span,span2);*/
 		span1 = span2 = spanr = null;
 	}
-	flibmdel public inline function alloc() {}
+	public function alloc() {}
 
 	public function new() {}
 }
@@ -283,7 +283,7 @@ class PR(MarchingSquares) {
 	//              ^^^
 	// first 3 bits are enough to classify the number of skips needed.
 	//
-	flibmdel inline function linkright(poly:Polygon,key:Int) {
+	function linkright(poly:Polygon,key:Int) {
 		var kind = key&7;
 		if  (kind==0) return poly;
 		elif(kind==3) return poly.next.next;
@@ -331,7 +331,7 @@ class PR(MarchingSquares) {
 	//                 ^
 	// first bit is enough to classify number of skips needed
 	//
-	flibmdel inline function linkleft(poly:Polygon,key:Int) {
+	function linkleft(poly:Polygon,key:Int) {
 		return if((key&1)==0) poly.prev else poly;
 	}
 
@@ -374,16 +374,16 @@ class PR(MarchingSquares) {
 	//         ^                  ^
 	// last bit is enough to classify number of skips needed
 	//
-	flibmdel inline function linkdown(poly:Polygon,key:Int) {
+	function linkdown(poly:Polygon,key:Int) {
 		return if((key&0x80)==0) poly.prev else poly.prev.prev;
 	}
 
 	// given a polygon from a VPair with it's key
 	// return vertex from start of merge in combUD.
 	// trivially, this is simply the start vertex.
-	flibmdel inline function linkup(poly:Polygon,key:Int) return poly
+	function linkup(poly:Polygon,key:Int) return poly
 	                  
-	flibmdel inline function combLR(a:VPair,b:VPair) {
+	function combLR(a:VPair,b:VPair) {
 		//set up pointers for merge
 		var ap:Polygon = linkright(a.pr,a.okeyr);
 		var bp:Polygon = linkleft (b.p1,b.okey1);
@@ -430,7 +430,7 @@ class PR(MarchingSquares) {
 		Free(Vertex,bp2);
 	}
 
-	flibmdel inline function combUD(a:VPair,b:VPair) {
+	function combUD(a:VPair,b:VPair) {
 		//determine up/down polys on a,b
 		var ad = if(a.p2!=null && a.key2==0x38) a.p2 else a.p1;
 		var bu = if(b.p2!=null && b.key2==0x0e) b.p2 else b.p1;
@@ -460,7 +460,7 @@ class PR(MarchingSquares) {
 		Free(Vertex,ap2);
 	}
 
-	flibmdel inline function combUD_virtual(a:VPair,b:VPair) {
+	function combUD_virtual(a:VPair,b:VPair) {
 		var ad = if(a.p2!=null && a.key2==0x38) a.p2 else a.p1;
 		var bu = if(b.p2!=null && b.key2==0x0e) b.p2 else b.p1;
 
@@ -475,24 +475,24 @@ class PR(MarchingSquares) {
 
 	// can combLeft if mid-left exists, or both left-vertices exist
 	// similarly for others.
-	flibmdel inline function combLeft (key:Int) {
+	function combLeft (key:Int) {
 		var flag = (key&1)|((key&0xC0)>>5);
 		return comb(flag);
 	}
-	flibmdel inline function combRight(key:Int) {
+	function combRight(key:Int) {
 		var flag = (key&0x1C)>>2;
 		return comb(flag);	
 	}
-	flibmdel inline function combUp(key:Int) {
+	function combUp(key:Int) {
 		var flag = (key&0x07);
 		return comb(flag);	
 	}
-	flibmdel inline function combDown(key:Int) {
+	function combDown(key:Int) {
 		var flag = (key&0x70)>>4;
 		return comb(flag);
 	}
 
-	flibmdel inline function comb(flag:Int) {
+	function comb(flag:Int) {
 		var cnt = 0;
 		if((flag&1)!=0) cnt++;
 		if((flag&2)!=0) cnt++;
@@ -506,7 +506,7 @@ class PR(MarchingSquares) {
 	// as we rely on the strict configurations to simplify the rest of the algorithms.
 	//
 	public static var look_march = [-1,0xE0,0x38,0xD8,0x0E,-1,0x36,0xD6,0x83,0x63,-1,0x5B,0x8D,0x6D,0xB5,0x55];
-	flibmdel inline function marchSquare(
+	function marchSquare(
 		iso:Float->Float->Float,isos:Array2<Float>,ints:Array2<Vertex>,
 		x0:Float,y0:Float,x1:Float,y1:Float,
 		xn:Int, yn:Int, fstx:Bool, fsty:Bool, sndx:Bool, sndy:Bool,
@@ -663,7 +663,7 @@ class PR(MarchingSquares) {
 		});
 	}
 
-	flibmdel inline function lerp(x0:Float,x1:Float,v0:Float,v1:Float) {
+	function lerp(x0:Float,x1:Float,v0:Float,v1:Float) {
 		if  (v0==0) return x0;
 		elif(v1==0) return x1;
 		else {
@@ -673,7 +673,7 @@ class PR(MarchingSquares) {
 			return x0 + t*(x1-x0);
 		}
 	}
-	flibmdel inline function xlerp(x0:Float,x1:Float,y:Float,v0:Float,v1:Float,iso:Float->Float->Float,quality:Int) {
+	function xlerp(x0:Float,x1:Float,y:Float,v0:Float,v1:Float,iso:Float->Float->Float,quality:Int) {
 		var xm = lerp(x0,x1,v0,v1);
 		while(quality--!=0 && x0<xm && xm<x1) {
 			var vm = iso(xm,y);
@@ -684,7 +684,7 @@ class PR(MarchingSquares) {
 		}
 		return xm;
 	}
-	flibmdel inline function ylerp(y0:Float,y1:Float,x:Float,v0:Float,v1:Float,iso:Float->Float->Float,quality:Int) {
+	function ylerp(y0:Float,y1:Float,x:Float,v0:Float,v1:Float,iso:Float->Float->Float,quality:Int) {
 		var ym = lerp(y0,y1,v0,v1);
 		while(quality--!=0 && y0<ym && ym<y1) {
 			var vm = iso(x,ym);

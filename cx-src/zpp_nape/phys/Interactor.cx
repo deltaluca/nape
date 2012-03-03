@@ -28,7 +28,7 @@ class PR(Interactor) {
 		if(group!=null) group.remInteractor(this);
 	}
 
-	flibmdel public inline function wake() {
+	public function wake() {
 		if(isShape()) {
 			var body = ishape.body;
 			if(body!=null && body.space!=null) body.space.wake(body);
@@ -46,7 +46,7 @@ class PR(Interactor) {
 
 	public var cbsets:List(PR(CallbackSet));
 
-	public static inline function get(i1:PR(Interactor),i2:PR(Interactor)) {
+	public static function get(i1:PR(Interactor),i2:PR(Interactor)) {
 		var id = if(i1.id < i2.id) i1.id else i2.id;
 		var di = if(i1.id < i2.id) i2.id else i1.id;
 
@@ -109,7 +109,7 @@ class PR(Interactor) {
 	
 	//--------------------------------------------------------------------
 
-	flibmdel public inline function immutable_midstep(n:String) {
+	public function immutable_midstep(n:String) {
 		if(isBody()) ibody.__immutable_midstep(n);
 		elif(isShape()) ishape.__immutable_midstep(n);
 		else icompound.__imutable_midstep(n);
@@ -137,7 +137,7 @@ class PR(Interactor) {
 
 	//--------------------------------------------------------------------
 
-	public static inline function int_callback(o1:PR(Interactor),o2:PR(Interactor),cb1:PR(CbType),cb:PR(Callback)) {
+	flibmdel public inline static function int_callback(o1:PR(Interactor),o2:PR(Interactor),cb1:PR(CbType),cb:PR(Callback)) {
 		if(o1.cbType==cb1) { cb.int1 = o1; cb.int2 = o2; }
 		else               { cb.int2 = o1; cb.int1 = o2; }
 	}
@@ -154,7 +154,7 @@ class PR(Interactor) {
 
 	//-------------------------------------------------------------------
 
-	flibmdel public inline function copyto(ret:Interactor) {
+	public function copyto(ret:Interactor) {
 		ret.pr(inner_i).group = group;
 		ret.pr(inner_i).cbType = cbType;
 	}

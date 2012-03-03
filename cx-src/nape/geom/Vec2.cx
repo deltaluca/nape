@@ -14,8 +14,8 @@ class Vec2 {
 	$(mixin global isWEAK(x) (x.pr(inner).weak));
 	$(mixin global WEAK(x) ({ if(isWEAK(x)) { x.destroy(); true; } else false; }));
 
-	public static inline function weak(?x:Float=0,?y:Float=0) return get(x,y,true)
-	public static inline function get(?x:Float=0,?y:Float=0,?weak:Bool=false) {
+	public static function weak(?x:Float=0,?y:Float=0) return get(x,y,true)
+	public static function get(?x:Float=0,?y:Float=0,?weak:Bool=false) {
 		DEBUG(if(isNaN(x) || isNaN(y)) throw "Error: Vec2 components cannot be NaN";)
 		var ret = PublicGet(Vec2);
 		if(ret.pr(inner)==null) ret.pr(inner) = PR(Vec2).get(x,y);
@@ -23,12 +23,10 @@ class Vec2 {
 		if(weak) ret.pr(inner).weak = true;
 		return ret;
 	}
-	public inline function destroy() {
+	public function destroy() {
 		Destroyed(this,Vec2);
 		DEBUG(if(pr(inner).inuse) throw "Error: This Vec2 is not destroyable";)
 		pr(inner).__destroy();
-		pr(inner) = null;
-		PublicFree(Vec2,this);
 	}
 
 	public function new(?x:Float=0, ?y:Float=0) {
@@ -36,7 +34,7 @@ class Vec2 {
 		pr(inner) = PR(Vec2).get(x,y);
 		pr(inner).outer = this;
 	}
-	keep public inline function copy(?weak:Bool=false) {
+	keep public function copy(?weak:Bool=false) {
 		Destroyed(this,Vec2);
 		return Vec2.get(x,y,weak); 
 	}
@@ -161,7 +159,7 @@ class Vec2 {
 		setxy(l*Math.cos(angle),l*Math.sin(angle));
 	})
 
-	keep public inline function rotate(angle:Float) {
+	keep public function rotate(angle:Float) {
 		Destroyed(this,Vec2);
 		DEBUG(if(isNaN(angle)) throw "Error: Cannot rotate Vec2 by NaN";)
 
@@ -174,7 +172,7 @@ class Vec2 {
 	
 	//----------------------------------------------------------------------------------------------
 	
-	keep public inline function add  (a:Vec2, ?weak:Bool=false) {
+	keep public function add  (a:Vec2, ?weak:Bool=false) {
 		Destroyed(this,Vec2);
 		Destroyed(a,Vec2);
 
@@ -183,7 +181,7 @@ class Vec2 {
 		WEAK(a);
 		return ret;
 	}
-	keep public inline function sub  (a:Vec2, ?weak:Bool=false) {
+	keep public function sub  (a:Vec2, ?weak:Bool=false) {
 		Destroyed(this,Vec2);
 		Destroyed(a,Vec2);
 
@@ -192,13 +190,13 @@ class Vec2 {
 		WEAK(a);
 		return ret;
 	}
-	keep public inline function mul (s:Float, ?weak:Bool=false) {
+	keep public function mul (s:Float, ?weak:Bool=false) {
 		Destroyed(this,Vec2);
 
 		DEBUG(if(isNaN(s)) throw "Error: Cannot multiply with NaN";)
 		return Vec2.get(vec_imul($(->),s),weak);
 	}
-	keep public inline function addeq(a:Vec2) {
+	keep public function addeq(a:Vec2) {
 		Destroyed(this,Vec2);
 		Destroyed(a,Vec2);
 
@@ -210,7 +208,7 @@ class Vec2 {
 		WEAK(a);
 		return ret;
 	}
-	keep public inline function subeq(a:Vec2) {
+	keep public function subeq(a:Vec2) {
 		Destroyed(this,Vec2);
 		Destroyed(a,Vec2);
 
@@ -222,7 +220,7 @@ class Vec2 {
 		WEAK(a);	
 		return ret;
 	}
-	keep public inline function muleq(s:Float) {
+	keep public function muleq(s:Float) {
 		Destroyed(this,Vec2);
 
 		DEBUG(
@@ -231,7 +229,7 @@ class Vec2 {
 		)
 		return setxy(vec_imul($(->),s));
 	}
-	keep public inline function dot  (a:Vec2) {
+	keep public function dot  (a:Vec2) {
 		Destroyed(this,Vec2);
 		Destroyed(a,Vec2);
 
@@ -240,7 +238,7 @@ class Vec2 {
 		WEAK(a);
 		return ret;
 	}
-	keep public inline function cross(a:Vec2) {
+	keep public function cross(a:Vec2) {
 		Destroyed(this,Vec2);
 		Destroyed(a,Vec2);
 
@@ -250,7 +248,7 @@ class Vec2 {
 		return ret;
 	}
 
-	keep public inline function perp(weak=false) {
+	keep public function perp(weak=false) {
 		Destroyed(this,Vec2);
 		return Vec2.get(-y,x,weak);
 	}

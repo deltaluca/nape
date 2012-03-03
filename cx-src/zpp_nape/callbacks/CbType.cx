@@ -29,7 +29,7 @@ class PR(CbType) {
     flibmdel public inline function addConstraint(con:PR(Constraint)) constraints.add(con)
 	flibmdel public inline function addInteractor(intx:PR(Interactor)) interactors.add(intx)
 	
-    flibmdel public inline function remConstraint(con:PR(Constraint)) constraints.remove(con)
+	flibmdel public inline function remConstraint(con:PR(Constraint)) constraints.remove(con)
 	flibmdel public inline function remInteractor(intx:PR(Interactor)) interactors.remove(intx)
 
     ///---------------------------------------------------------------------------------------------
@@ -37,12 +37,8 @@ class PR(CbType) {
 	//set of listeners using the cbType
 	public var listeners:List(PR(InteractionListener));
 
-	flibmdel public inline function insert(x:PR(InteractionListener)) {
-		listeners.add(x);
-	}
-	flibmdel public inline function remove(x:PR(InteractionListener)) {
-		listeners.remove(x);
-	}
+	flibmdel public inline function insert(x:PR(InteractionListener)) listeners.add(x)
+	flibmdel public inline function remove(x:PR(InteractionListener)) listeners.remove(x)
 
     ///these are only assigned when listener is added to the space!
     //store actual references as these are one-one
@@ -88,7 +84,7 @@ class PR(CbType) {
 	//----------------------------------------------------------------------------------------------
 
 	//determins if cbTypes share an interaction listener
-	public static inline function empty_intersection(a:PR(CbType),b:PR(CbType)) {
+	public static function empty_intersection(a:PR(CbType),b:PR(CbType)) {
 		var id = if(a.id<b.id) a.id else b.id;
 		var di = if(a.id<b.id) b.id else a.id;
 
@@ -103,7 +99,7 @@ class PR(CbType) {
 		return !ret;
 	}
 
-	public static inline function find(a:PR(CbType),b:PR(CbType), event:Int, type:Int) {
+	public static function find(a:PR(CbType),b:PR(CbType), event:Int, type:Int) {
 		var id = if(a.id<b.id) a.id else b.id;
 		var di = if(a.id<b.id) b.id else a.id;
 
@@ -119,7 +115,7 @@ class PR(CbType) {
 		return ret;
 	}
 
-	public static inline function find_all(a:PR(CbType),b:PR(CbType), event:Int, cb:PR(InteractionListener)->Void) {
+	public static function find_all(a:PR(CbType),b:PR(CbType), event:Int, cb:PR(InteractionListener)->Void) {
 		var id = if(a.id<b.id) a.id else b.id;
 		var di = if(a.id<b.id) b.id else a.id;
 

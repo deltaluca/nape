@@ -28,19 +28,19 @@ class Vertex {
 	public function new() {
 		diagonals = new List(Vertex)();
 	}
-	flibmdel public inline function alloc() {
+	public function alloc() {
 	}
-	flibmdel public inline function free() {
+	public function free() {
 		helper = null;
 		assert(diagonals.empty(),"non-empty diagonals");
 	}
 
-	public static inline function get(x:PR(GeomVert)) {
+	public static function get(x:PR(GeomVert)) {
 		var ret = Get(Vertex);
 		vec_set(ret.,x.);
 		return ret;
 	}
-	public inline function copy() {
+	public function copy() {
 		var ret = Get(Vertex);
 		vec_set(ret.,this.);
 		ret.forced = forced;
@@ -68,7 +68,7 @@ class Vertex {
 	}
 
 	//determine right distance of vertex from edge, sign being important, magnitude not.
-	static inline function rightdistance(edge:Edge,vert:Vertex) {
+	static function rightdistance(edge:Edge,vert:Vertex) {
 		//assume edge is not horizontal
 		var flip = edge.next.y > edge.y;
 		vec_new(u); vec_sub(edge.next.,edge., u);
@@ -77,7 +77,7 @@ class Vertex {
 	}
 
 	//determine if edge is to the left of the vertex
-	public static inline function vert_lt(edge:Edge,vert:Vertex) {
+	public static function vert_lt(edge:Edge,vert:Vertex) {
 		return if(vert==edge || vert==edge.next) true
 		       else if(edge.y==edge.next.y) min(edge.x,edge.next.x) <= vert.x;
 		       else rightdistance(edge,vert) <= 0.0;
@@ -117,7 +117,7 @@ mixpool_circular(Vertex,
 class PR(PartitionedPoly) {
 	public var vertices:Vertex; //circular linked list.
 
-	flibmdel inline function eq(a:PR(GeomVert),b:PR(GeomVert)) return vec_dsq(a.,b.) < PR(Const).EPSILON
+	function eq(a:PR(GeomVert),b:PR(GeomVert)) return vec_dsq(a.,b.) < PR(Const).EPSILON
 	//we remove degenerate vertices, and collinear vertices
 	//as this was the easiest way to make the monotonic decomposition robust.
 	public function new(?P:PR(GeomVert)) {

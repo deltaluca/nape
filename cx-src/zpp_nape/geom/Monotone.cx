@@ -14,7 +14,7 @@ $(mixin Edge Vertex);
 //handling any weakly-simple polygon.
 class PR(Monotone) {
 	//used in ordering points when lexicographically equal
-	static inline function bisector(b:Vertex) {
+	static function bisector(b:Vertex) {
 		var a = b.prev;
 		var c = b.next;
 		vec_new(u); vec_sub(b.,a.,u);
@@ -26,7 +26,7 @@ class PR(Monotone) {
 	}
 
 	//determine if p is below q (lexicographically if required)
-	static inline function below(p:Vertex,q:Vertex) {
+	static function below(p:Vertex,q:Vertex) {
 		if  (p.y<q.y) return true;
 		elif(p.y>q.y) return false;
 		else {
@@ -45,11 +45,11 @@ class PR(Monotone) {
 			}
 		}
 	}
-	static inline function above(p:Vertex,q:Vertex) return below(q,p)
+	static function above(p:Vertex,q:Vertex) return below(q,p)
 	
 	//returns true, if locally based on incident edges
 	//the polygon internal exists to the right of the vertex
-	static inline function left_vertex(p:Vertex) {
+	static function left_vertex(p:Vertex) {
 		var pre = p.prev;
 		return pre.y > p.y || (pre.y==p.y && p.next.y < p.y);
 	}

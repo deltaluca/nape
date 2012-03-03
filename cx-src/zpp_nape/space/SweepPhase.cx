@@ -34,7 +34,7 @@ class PR(SweepPhase) extends PR(Broadphase) {
 
 	//======================================================================================
 
-	flibmdel public inline function __insert(shape:PR(Shape)) {
+	public function __insert(shape:PR(Shape)) {
 		assert(shape.sweep==null,"SweepPhase::insert");
 
 		var dat = Get(PR(SweepData));
@@ -46,7 +46,7 @@ class PR(SweepPhase) extends PR(Broadphase) {
 		if(list!=null) list.prev = dat;
 		list = dat;
 	}
-	flibmdel public inline function __remove(shape:PR(Shape)) {
+	public function __remove(shape:PR(Shape)) {
 		assert(shape.sweep!=null,"SweepPhase::remove");
 
 		var dat = shape.sweep;
@@ -59,14 +59,14 @@ class PR(SweepPhase) extends PR(Broadphase) {
 
 	//======================================================================================
 
-    flibmdel public inline function sync_broadphase() {
+    public function sync_broadphase() {
         ///TODO: make this use the invalidation system.
 		//validate shape aabb's and other properties.
         space.validation();
         sync_broadphase_fast();
     }
 
-    flibmdel public inline function sync_broadphase_fast() {
+    public function sync_broadphase_fast() {
         //sort list.
 		var a = list.next;
 		while(a!=null) {

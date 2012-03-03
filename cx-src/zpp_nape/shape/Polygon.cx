@@ -16,7 +16,7 @@ class PR(Polygon) extends PR(Shape) {
 
     //----------------------------------------------------------------------------------------------
 	
-	flibmdel public inline function __clear() {}
+	public function __clear() {}
 
 	flibmdel public inline function __sdestroy() {
 		outer_zn.pr(inner_zn) = null;
@@ -174,21 +174,21 @@ class PR(Polygon) extends PR(Shape) {
 	}
 	
 	public var inv(laxi):Bool;
-	flibmdel public inline function invalidate_laxi() {
+	public function invalidate_laxi() {
 		///dependancy checked
 		invalidate_gaxi();
 		inv(laxi) = true;
 	}
 	
 	public var inv(gverts):Bool;
-	flibmdel public inline function invalidate_gverts() {
+	public function invalidate_gverts() {
 		///dependancy checked
 		invalidate_aabb();
 		inv(gverts) = true;
 	}
 	
 	public var inv(gaxi):Bool;
-	flibmdel public inline function invalidate_gaxi() {
+	public function invalidate_gaxi() {
 		///dependancy checked
 		inv(gaxi) = true;
 	}
@@ -271,7 +271,7 @@ class PR(Polygon) extends PR(Shape) {
 	
 	//----------------------------------------------------------------------------------------------
 
-	flibmdel public inline function validate_lverts() {
+	public function validate_lverts() {
 		///dependancy checked
 		///
 		///assertion on addition of splice_collinear()
@@ -416,13 +416,7 @@ class PR(Polygon) extends PR(Shape) {
 				inv(gaxi) = false;
 				validate_laxi();
 				body.validate_axis();
-				/*
-				Iter(e,edges,{
-					vec_rotate(e.lnorm, body.axis, e.gnorm);
-					e.gprojection = vec_dot(body.pos,e.gnorm) + e.lprojection;
-					if(e.wrap_gnorm!=null) vec_set(e.wrap_gnorm.pr(inner).,e.gnorm);
-				});
-				*/
+
 				var ite = edges.begin();
 				Iter2_fast(u,v, gverts, {
 					var e = ite.elem(); ite = ite.next;
@@ -521,7 +515,7 @@ class PR(Polygon) extends PR(Shape) {
 		
 		angDrag = accum/(inertia*perim);
 	}
-	public function __validate_localCOM() {
+	flibmdel public inline function __validate_localCOM() {
 		///dependancy checked
 		DEBUG(if(lverts.empty())
 			throw "Error: An empty polygon has no meaningful localCOM";

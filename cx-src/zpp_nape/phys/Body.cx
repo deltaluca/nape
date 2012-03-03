@@ -13,7 +13,7 @@ class PR(Body) extends PR(Interactor) {
 	flibmdel public inline function isDynamic  () return type == Flag(BodyType,DYNAMIC)
 	flibmdel public inline function isKinematic() return type == Flag(BodyType,KINEMATIC)
 	
-	flibmdel public inline function invalidate_type() {
+	public function invalidate_type() {
 		invalidate_mass();
 		invalidate_inertia();
 	}
@@ -25,7 +25,7 @@ class PR(Body) extends PR(Interactor) {
 	public var shapes:List(PR(Shape));
 	public var wrap_shapes:ShapeList;
 	
-	flibmdel public inline function invalidate_shapes() {
+	public function invalidate_shapes() {
 		//dependancy checked
 		invalidate_aabb();
 		invalidate_localCOM();
@@ -45,7 +45,7 @@ class PR(Body) extends PR(Interactor) {
 	
 	//----------------------------------------------------------------------------------------------
 	
-	flibmdel public inline function atRest(dt:Float) {
+	public function atRest(dt:Float) {
 		if(!isDynamic()) return component.sleeping;
 		else {
 			var cansleep =
@@ -302,13 +302,13 @@ class PR(Body) extends PR(Interactor) {
 	
 	public var nomove:Bool; //stopMovement()/allowMovement() calls
 	
-	flibmdel public inline function invalidate_mass() {
+	public function invalidate_mass() {
 		//dependancy checked
 		if(massMode==Flag(MassMode,DEFAULT))
 			inv(mass) = true;
 		invalidate_gravMass();
 	}
-	flibmdel public inline function validate_mass() {
+	public function validate_mass() {
 		//dependancy checked
 		// # changes to Material memory use (see Shape.cx)
 		var exist = false;//Exists(s,shapes,s.refmaterial.density!=s.material.density);
@@ -346,16 +346,16 @@ class PR(Body) extends PR(Interactor) {
 	public var gravMassMode:Int; //DEFAULT,FIXED,SCALED
 	public var gravMassScale:Float; public var inv(gravMassScale):Bool;
 	
-	flibmdel public inline function invalidate_gravMass() {
+	public function invalidate_gravMass() {
 		//dependancy checked
 		if(gravMassMode!=Flag(GravMassMode,FIXED))
 			inv(gravMass) = true;
 		if(gravMassMode!=Flag(GravMassMode,SCALED))
-			inv(gravMassScale) = true; //cannot recursively inline methods
+			inv(gravMassScale) = true; //cannot recursively methods
 
 		wake();
 	}
-	flibmdel public inline function validate_gravMass() {
+	public function validate_gravMass() {
 		//dependacny checked
 		if(inv(gravMass)) {
 			inv(gravMass) = false;
@@ -371,14 +371,14 @@ class PR(Body) extends PR(Interactor) {
 		}
 	}
 	
-	flibmdel public inline function invalidate_gravMassScale() {
+	public function invalidate_gravMassScale() {
 		//dependancy checked
 		if(gravMassMode!=Flag(GravMassMode,SCALED))
 			inv(gravMassScale) = true;
 		else
 			invalidate_gravMass();
 	}
-	flibmdel public inline function validate_gravMassScale() {
+	public function validate_gravMassScale() {
 		//dependancy checked
 		if(inv(gravMassScale)) {
 			inv(gravMassScale) = false;
@@ -401,12 +401,12 @@ class PR(Body) extends PR(Interactor) {
 	
 	public var norotate:Bool; //stopRotation/allowRotation() calls
 	
-	flibmdel public inline function invalidate_inertia() {
+	public function invalidate_inertia() {
 		//dependancy checked
 		if(inertiaMode!=Flag(InertiaMode,FIXED)) inv(inertia) = true;
 		wake();
 	}
-	flibmdel public inline function validate_inertia() {
+	public function validate_inertia() {
 		//dependancy checked
 		// # changes to Material memory use (see Shape.cx)
 		var exist = false;//Exists(s,shapes,s.refmaterial.density!=s.material.density);
@@ -443,7 +443,7 @@ class PR(Body) extends PR(Interactor) {
 	//----------------------------------------------------------------------------------------------
 	
 	//called when body needs waking due to a property change.
-	flibmdel public inline function invalidate_wake() {
+	public function invalidate_wake() {
 		wake();
 	}
 	
@@ -462,7 +462,7 @@ class PR(Body) extends PR(Interactor) {
 			});
 		}
 	}
-	flibmdel public inline function invalidate_aabb() {
+	public function invalidate_aabb() {
 		//dependancy checked
 		inv(aabb) = true;
 	}
@@ -473,7 +473,7 @@ class PR(Body) extends PR(Interactor) {
 	public var graphic:Dynamic;
 	public var graphicUpdate:Body->Void;
 		
-	flibmdel public inline function validate_graphic() {
+	public function validate_graphic() {
 		if(graphicUpdate!=null) graphicUpdate(outer);
 		else if(graphic!=null && flashgraphic) {
 			//flash graphics API certainly (I cannot speak for NME)
@@ -498,17 +498,17 @@ class PR(Body) extends PR(Interactor) {
 	public var wrap_localCOM:Vec2;
 	public var wrap_worldCOM:Vec2;
 	
-	flibmdel public inline function invalidate_localCOM() {
+	public function invalidate_localCOM() {
 		//dependancy checked
 		inv(localCOM) = true;
 		invalidate_worldCOM();
 	}
-	flibmdel public inline function invalidate_worldCOM() {
+	public function invalidate_worldCOM() {
 		//dependancy checked
 		inv(worldCOM) = true;
 	}
 	
-	flibmdel public inline function validate_localCOM() {
+	public function validate_localCOM() {
 		//dependancy checked
 		if(inv(localCOM)) {
 			inv(localCOM) = false;
@@ -539,7 +539,7 @@ class PR(Body) extends PR(Interactor) {
 		}
 	}
 	
-	flibmdel public inline function validate_worldCOM() {
+	public function validate_worldCOM() {
 		//dependancy checked
 		if(inv(worldCOM)) {
 			inv(worldCOM) = false;
@@ -563,7 +563,7 @@ class PR(Body) extends PR(Interactor) {
 
     //----------------------------------------------------------------------------------------------
 
-	flibmdel public inline function __immutable_midstep(name:String) {
+	public function __immutable_midstep(name:String) {
 		DEBUG(if(space!=null && space.midstep) throw "Error: "+name+" cannot be set during a space step()";)
 	}
 

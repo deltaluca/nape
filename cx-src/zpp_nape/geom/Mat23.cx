@@ -3,7 +3,7 @@ $(import);
 
 class PR(Mat23) {
 	public var outer:Mat23;
-	flibmdel public inline function wrapper() {
+	public function wrapper() {
 		if(outer==null) {
 			outer = new Mat23();
 			Free(PR(Mat23),outer.pr(inner));
@@ -18,7 +18,7 @@ class PR(Mat23) {
 	public var __invalidate:Void->Void;
 	DEBUG(public var inuse:Bool;)
 
-	flibmdel public inline function __destroy() {
+	public function __destroy() {
 		__invalidate = null;
 		outer = null;
 		assert(next==null,"Pooled Mat23 destroyed?");
@@ -26,10 +26,10 @@ class PR(Mat23) {
 	
 	//----------------------------------------------------------------------------------------------
 
-	flibmdel public inline function set(m:PR(Mat23)) {
+	public function set(m:PR(Mat23)) {
 		setas(m.a,m.b,m.c,m.d,m.tx,m.ty);
 	}
-	flibmdel public inline function setas(a:Float,b:Float,c:Float,d:Float,tx:Float,ty:Float) {
+	public function setas(a:Float,b:Float,c:Float,d:Float,tx:Float,ty:Float) {
 		vec_set(this.t,t);
 		mat_set(this.,$(->));
 	}
@@ -37,22 +37,22 @@ class PR(Mat23) {
 	//----------------------------------------------------------------------------------------------
 	
 	MixPool(PR(Mat23))
-	flibmdel public inline function free() {
+	public function free() {
 		__invalidate = null;
 		DEBUG(inuse = false;)
 	}
-	flibmdel public inline function alloc() {}
+	public function alloc() {}
 	
 	//----------------------------------------------------------------------------------------------
 	
 	public function new() {}
 	flibstaticdel(get)
-	public static inline function get() {
+	public static function get() {
 		var ret = Get(PR(Mat23));
 		return ret;
 	}
 
-	public static inline function identity() {
+	public static function identity() {
 		var ret = PR(Mat23).get();
 		vec_set(ret.t, 0,0);
 		mat_set(ret.,1,0,0,1);

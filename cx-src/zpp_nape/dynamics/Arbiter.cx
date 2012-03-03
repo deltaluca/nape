@@ -152,9 +152,9 @@ class PR(Arbiter) {
 
 	//matches ArbiterType values.	
 	public var type:Int;
-	flibstaticdel(COL)    public static inline var COL    = 1;
-	flibstaticdel(FLUID)  public static inline var FLUID  = 4;
-	flibstaticdel(SENSOR) public static inline var SENSOR = 2;
+	flibstaticdel(COL)    public static var COL    = 1;
+	flibstaticdel(FLUID)  public static var FLUID  = 4;
+	flibstaticdel(SENSOR) public static var SENSOR = 2;
 
     //to be used in stead of runtime casting of arbiter.
     public var colarb   :PR(ColArbiter);
@@ -170,13 +170,8 @@ class PR(Arbiter) {
         assert(!cleared,"Arbiter::lazyRetire");
 		cleared = true;
 
-		if(b==null) {
-			b1.arbiters.remove(this);
-			b2.arbiters.remove(this);
-		}else {
-			if(b1==b) b2.arbiters.remove(this);
-			else      b1.arbiters.remove(this);
-		}
+		if(b==null || (b2==b)) b1.arbiters.inlined_remove(this);
+		if(b==null || (b1==b)) b2.arbiters.inlined_remove(this);
 		if(pair!=null) { pair.arb = null; pair = null; }
 	
 		active = false;
@@ -195,8 +190,8 @@ class PR(Arbiter) {
 		this.id = id;
 		this.di = di;
 		
-		b1.arbiters.add(this);
-		b2.arbiters.add(this);
+		b1.arbiters.inlined_add(this);
+		b2.arbiters.inlined_add(this);
 		
 		active   = true;
 		present  = false;
@@ -217,8 +212,8 @@ class PR(Arbiter) {
 		assert(!intchange,"Arbiter::sup_retire intchange");
 
 	    if(!cleared) { //only need to remove arbiters if not prematurely cleared.
-			b1.arbiters.remove(this);
-			b2.arbiters.remove(this);
+			b1.arbiters.inlined_remove(this);
+			b2.arbiters.inlined_remove(this);
 			if(pair!=null) { pair.arb = null; pair = null; }
 		}
 		b1 = b2 = null;
@@ -718,7 +713,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
 			c.fresh = true;
 			c.arbiter = this;
 			jrAcc = 0;
-			contacts.add(c);
+			contacts.inlined_add(c);
 			innards.add(ci);
 		}else
 			c.fresh = false; //c.stamp +1 != stamp
@@ -774,8 +769,8 @@ class PR(ColArbiter) extends PR(Arbiter) {
 	flibmdel public inline function retire() {
 		sup_retire();
 		while(!contacts.empty()) {
-			Free(PR(Contact),contacts.pop_unsafe());
-			innards.pop();
+			Free(PR(Contact),contacts.inlined_pop_unsafe());
+			innards.inlined_pop();
 		}
 		Free(PR(ColArbiter),this);
         pre_dt = -1.0;
@@ -851,8 +846,8 @@ class PR(ColArbiter) extends PR(Arbiter) {
 		hc2 = false;
 		Iter(c, contacts, {
 			if(c.stamp+PR(Config).PERSIST<stamp) {
-				cx_ite = contacts.erase(pre);
-				cx_itei = innards.erase(prei);
+				cx_ite = contacts.inlined_erase(pre);
+				cx_itei = innards.inlined_erase(prei);
 				Free(PR(Contact), c);
 				continue;
 			}
@@ -902,8 +897,8 @@ class PR(ColArbiter) extends PR(Arbiter) {
 		var cx_itei = innards.begin();
 		Iter(c,contacts,{
 			if(c.stamp+PR(Config).PERSIST<stamp) {
-				cx_ite = contacts.erase(pre);
-				cx_itei = innards.erase(prei);
+				cx_ite = contacts.inlined_erase(pre);
+				cx_itei = innards.inlined_erase(prei);
 				Free(PR(Contact),c);
 				continue;
 			}
@@ -1053,35 +1048,32 @@ class PR(ColArbiter) extends PR(Arbiter) {
     ///---------------------------------------------------------------------------------------------
 	
     ///very verbose in an attempt to improve performance.
-    flibmdel public inline function applyImpulseVel(bouncy:Bool) {
-        $(mixin friction(N,jnAcc) {
-            dv`N`x = k`N`x + b2.velx - c`N.r2y*b2.angvel - (b1.velx - c`N.r1y*b1.angvel);
-            dv`N`y = k`N`y + b2.vely + c`N.r2x*b2.angvel - (b1.vely + c`N.r1x*b1.angvel);
+	flibmdel public inline function applyImpulseVel(bouncy:Float) {
+		var jx:Float; var jy:Float; var jw1:Float; var jw2:Float;
+		var j:Float; var jMax:Float; var jOld:Float; var cjAcc:Float;
 
-            var jt = (vec_cross(n,dv`N) + surfacex)*c`N.tMass;
-			var jtMax = c`N.friction * jnAcc; var jtOld = c`N.jtAcc;
-			var cjtAcc = jtOld - jt; if(cjtAcc>jtMax) cjtAcc = jtMax else if(cjtAcc<-jtMax) cjtAcc = -jtMax;
-			jt = cjtAcc - jtOld; c`N.jtAcc = cjtAcc;
+		$(mixin friction(N)
+			j = (vec_cross(n,v`N) + surfacex)*c`N.tMass;
+			jMax = c`N.friction * c`N.jnAcc; jOld = c`N.jtAcc;
+			cjAcc = jOld - j; if(cjAcc>jMax) cjAcc = jMax else if(cjAcc<-jMax) cjAcc = -jMax;
+			j = cjAcc - jOld; c`N.jtAcc = cjAcc;
 
-            //impulse
-            jx = -ny*jt; jy = nx*jt;
-            vec_addeq(b2.vel, j, b2.imass);
-            b2.angvel += b2.iinertia*rt`N`b*jt;
-            vec_subeq(b1.vel, j, b1.imass);
-            b1.angvel -= b1.iinertia*rt`N`a*jt;
-        });
+			jx -= ny*j; jy += nx*j;
+			jw2 += rt`N`b*j;
+			jw1 += rt`N`a*j;
+		);
 
-        if(hc2) {
-            ///normal
-            var dv1x = k1x + b2.velx - c1.r2y*b2.angvel - ( b1.velx - c1.r1y*b1.angvel);
-            var dv1y = k1y + b2.vely + c1.r2x*b2.angvel - ( b1.vely + c1.r1x*b1.angvel);
-            var dv2x = k2x + b2.velx - c2.r2y*b2.angvel - ( b1.velx - c2.r1y*b1.angvel);
-            var dv2y = k2y + b2.vely + c2.r2x*b2.angvel - ( b1.vely + c2.r1x*b1.angvel);
+		var v1x = k1x + b2.velx - c1.r2y*b2.angvel - (b1.velx - c1.r1y*b1.angvel);
+		var v1y = k1y + b2.vely + c1.r2x*b2.angvel - (b1.vely + c1.r1x*b1.angvel);
 
-            vec_new(a, c1.jnAcc, c2.jnAcc);
+		if(hc2) {
+			var v2x = k2x + b2.velx - c2.r2y*b2.angvel - (b1.velx - c2.r1y*b1.angvel);
+			var v2y = k2y + b2.vely + c2.r2x*b2.angvel - (b1.vely + c2.r1x*b1.angvel);
 
-            var jnx = vec_dot(dv1,n)+surfacey + (bouncy?c1.bounce:0.0) - (Ka*ax + Kb*ay);
-            var jny = vec_dot(dv2,n)+surfacey + (bouncy?c2.bounce:0.0) - (Kb*ax + Kc*ay);
+			vec_new(a, c1.jnAcc, c2.jnAcc);
+
+            var jnx = vec_dot(v1,n)+surfacey + (bouncy*c1.bounce) - (Ka*ax + Kb*ay);
+            var jny = vec_dot(v2,n)+surfacey + (bouncy*c2.bounce) - (Kb*ax + Kc*ay);
 
             var xx = -(kMassa*jnx + kMassb*jny);
             var xy = -(kMassb*jnx + kMassc*jny);
@@ -1099,51 +1091,41 @@ class PR(ColArbiter) extends PR(Arbiter) {
 
             //impulse
             var jn = jnx+jny;
-            var jx = nx*jn; var jy = ny*jn;
-            vec_addeq(b2.vel, j, b2.imass);
-            b2.angvel += b2.iinertia*(rn1b*jnx + rn2b*jny);
-            vec_subeq(b1.vel, j, b1.imass);
-            b1.angvel -= b1.iinertia*(rn1a*jnx + rn2a*jny);
+            jx = nx*jn; jy = ny*jn;
+			jw2 = rn1b*jnx + rn2b*jny;
+			jw1 = rn1a*jnx + rn2a*jny;
 
+            friction(2)	
+		}else {
+			j = (bouncy*c1.bounce + vec_dot(n,v1) + surfacey)*c1.nMass;
+			jOld = c1.jnAcc;
+			cjAcc = jOld - j; if(cjAcc<0.0) cjAcc = 0.0;
+			j = cjAcc - jOld; c1.jnAcc = cjAcc;
 
-            friction(1,xx)
-            friction(2,xy)
-        }else {
-            ///normal
-            var dv1x = k1x + b2.velx - c1.r2y*b2.angvel - (b1.velx - c1.r1y*b1.angvel);
-            var dv1y = k1y + b2.vely + c1.r2x*b2.angvel - (b1.vely + c1.r1x*b1.angvel);
-
-			var jn = ((bouncy?c1.bounce:0) + vec_dot(n,dv1) + surfacey)*c1.nMass;
-			var jnOld = c1.jnAcc;
-			var cjnAcc = jnOld - jn; if(cjnAcc<0) cjnAcc = 0;
-			jn = cjnAcc - jnOld; c1.jnAcc = cjnAcc;
-			
-            //impulse
-            var jx = nx*jn; var jy = ny*jn;
-            vec_addeq(b2.vel, j, b2.imass);
-            b2.angvel += b2.iinertia*rn1b*jn;
-            vec_subeq(b1.vel, j, b1.imass);
-            b1.angvel -= b1.iinertia*rn1a*jn;
-
-            friction(1,cjnAcc)
+			jx = nx*j; jy = ny*j;
+			jw2 = rn1b*j;
+			jw1 = rn1a*j;
 
 			//atleast one object is a circle
-			if(radius!=0) {
-				///rolling
-				var dw = b2.angvel - (b1.angvel);
-				var jr = dw*rMass;
+			if(radius!=0.0) {
+				var dw = b2.angvel - b1.angvel;
+				j = dw*rMass;
+				jMax = rfric*c1.jnAcc; jOld = jrAcc;
+				jrAcc -= j; if(jrAcc>jMax) jrAcc = jMax else if(jrAcc<-jMax) jrAcc = -jMax;
+				j = jrAcc - jOld;
 
-				var jMax = rfric*cjnAcc;
-				var jOld = jrAcc;
-				jrAcc -= jr;
-				if(jrAcc>jMax) jrAcc = jMax; if(jrAcc<-jMax) jrAcc = -jMax;
-				jr = jrAcc - jOld;
-					
-				b2.angvel += jr*b2.iinertia;
-				b1.angvel -= jr*b1.iinertia;
+				jw2 += j;
+				jw1 -= j;
 			}
 		}
-    }
+
+		friction(1)
+
+		vec_addeq(b2.vel, j, b2.imass);
+		vec_subeq(b1.vel, j, b1.imass);
+		b2.angvel += b2.iinertia*jw2;
+		b1.angvel -= b1.iinertia*jw1;
+	}
 
     ///---------------------------------------------------------------------------------------------
 	

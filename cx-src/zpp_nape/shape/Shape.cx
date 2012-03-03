@@ -110,7 +110,7 @@ class PR(Shape) extends PR(Interactor) {
 			}
 		}
 	}
-	flibmdel public inline function invalidate_aabb() {
+	public function invalidate_aabb() {
 		//dependancy checked
 		inv(aabb) = true;
 		if(body!=null) body.invalidate_aabb();
@@ -118,7 +118,7 @@ class PR(Shape) extends PR(Interactor) {
 	
 	//----------------------------------------------------------------------------------------------
 	
-	flibmdel public inline function validate_area_inertia() {
+	public function validate_area_inertia() {
 		//dependancy checked
 		if(inv(area_inertia)) {
 			inv(area_inertia) = false;
@@ -126,7 +126,7 @@ class PR(Shape) extends PR(Interactor) {
 			else           polygon.__validate_area_inertia();
 		}
 	}
-	flibmdel public inline function validate_angDrag() {
+	public function validate_angDrag() {
 		//dependancy checked
 		if(inv(angDrag)
 		// # changes mean inv(angDrag) may not be 'correct'
@@ -173,7 +173,7 @@ class PR(Shape) extends PR(Interactor) {
 	
 	//----------------------------------------------------------------------------------------------
 	
-	flibmdel public inline function invalidate_area_inertia() {
+	public function invalidate_area_inertia() {
 		//dependancy checked
 		inv(area_inertia) = true;
 		if(body!=null) {
@@ -182,11 +182,11 @@ class PR(Shape) extends PR(Interactor) {
 			body.invalidate_inertia();
 		}
 	}
-	flibmdel public inline function invalidate_angDrag() {
+	public function invalidate_angDrag() {
 		//dependancy checked
 		inv(angDrag) = true;
 	}
-	flibmdel public inline function invalidate_localCOM() {
+	public function invalidate_localCOM() {
 		//dependancy checked
 		inv(localCOM) = true;
 		invalidate_area_inertia(); //specificaly inertia
@@ -194,7 +194,7 @@ class PR(Shape) extends PR(Interactor) {
 		invalidate_worldCOM();
 		if(body!=null) body.invalidate_localCOM();
 	}
-	flibmdel public inline function invalidate_worldCOM() {
+	public function invalidate_worldCOM() {
 		//dependancy checked
 		inv(worldCOM) = true;
 		invalidate_aabb();
@@ -237,8 +237,8 @@ class PR(Shape) extends PR(Interactor) {
     // # again things like waking are still valid
 	//   as these are called for active shapes
 	//   for which wake() will have a side effect.	
-	flibmdel public inline function invalidate_filter() wake()
-	flibmdel public inline function invalidate_fluidprops() {
+	public function invalidate_filter() wake()
+	public function invalidate_fluidprops() {
 		if(fluidEnabled)
 			wake();
 	}
@@ -318,7 +318,7 @@ class PR(Shape) extends PR(Interactor) {
 		}
 	}
 
-	flibmdel public inline function __immutable_midstep(name:String) {
+	public function __immutable_midstep(name:String) {
 		DEBUG(if(body!=null && body.space!=null && body.space.midstep)
 			throw "Error: "+name+" cannot be set during a space step()";
 		)
@@ -326,12 +326,12 @@ class PR(Shape) extends PR(Interactor) {
 	
 	//----------------------------------------------------------------------------------------------
 	
-	flibmdel public inline function addedToBody() {
+	public function addedToBody() {
 		//dependancy checked
 		invalidate_worldCOM();
 		invalidate_aabb();
 	}
-	flibmdel public inline function removedFromBody() {
+	public function removedFromBody() {
 	}
 
 	public function addedToSpace() {

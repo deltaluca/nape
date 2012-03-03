@@ -55,6 +55,7 @@ demos: pre_compile
 	flib bin/release/release_nape.swc
 	unzip bin/release/release_nape.swc -x catalog.xml
 	mv library.swf bin/release/haxe_release_nape.swf	
+	du -h bin/release/release_nape.swc
 
 asserts: pre_compile
 	haxe -swf bin/release/assert_nape.swc -swf-version $(SWFV) $(ASSERT_FLAGS)

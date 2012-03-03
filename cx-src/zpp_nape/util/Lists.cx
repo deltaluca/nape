@@ -82,13 +82,13 @@ $(expand global MixDerivedList(T,ListT,IteT,defs)
 		public var at_index:Int;
 
 		//assumes inner list has been destroyed already
-		flibmdel public inline function __destroy() {
+		public function __destroy() {
 			inner = null;
 			at_ite = null;
 			pr(inner) = null;
 		}
 		
-		flibmdel public static inline function get(list:ListT,?immutable=false) {
+		public static function get(list:ListT,?immutable=false) {
 			var ret = new PR(Mix`T`List)();
 			ret.inner = list;
 			ret.pr(inner).immutable = immutable;
@@ -104,7 +104,7 @@ $(expand global MixDerivedList(T,ListT,IteT,defs)
 			_length = 0;
 		}
 		
-		public inline override function pr(gl)() {
+		public override function pr(gl)() {
 			pr(vm)();
 			
 			if(inv(length)) {
@@ -116,7 +116,7 @@ $(expand global MixDerivedList(T,ListT,IteT,defs)
 			return _length;
 		}
 		
-		public inline override function pr(vm)() {
+		public override function pr(vm)() {
 			pr(inner).validate();
 			
 			if(inner.modified) {
@@ -132,7 +132,7 @@ $(expand global MixDerivedList(T,ListT,IteT,defs)
 			}
 		}
 		
-		keep public inline override function at(index:Int):T {
+		keep public override function at(index:Int):T {
 			pr(vm)();
 			
 			DEBUG(if(index<0 || index>=length) throw "Error: Index out of bounds";)
@@ -161,7 +161,7 @@ $(expand global MixDerivedList(T,ListT,IteT,defs)
 			return closure(at_ite.elem());
 		}
 		
-		keep public override inline function push(obj:T) {
+		keep public override function push(obj:T) {
 			DEBUG(if(pr(inner).immutable) throw "Error: "+$str(T)+"List is immutable";)
 			pr(inner).modify_test();
 			
@@ -182,7 +182,7 @@ $(expand global MixDerivedList(T,ListT,IteT,defs)
 			}
 			return cont;
 		}
-		keep public override inline function unshift(obj:T) {
+		keep public override function unshift(obj:T) {
 			DEBUG(if(pr(inner).immutable) throw "Error: "+$str(T)+"List is immutable";)
 			pr(inner).modify_test();
 			
@@ -203,7 +203,7 @@ $(expand global MixDerivedList(T,ListT,IteT,defs)
 			return cont;
 		}
 		
-		keep public override inline function pop():T {
+		keep public override function pop():T {
 			DEBUG(if(pr(inner).immutable) throw "Error: "+$str(T)+"List is immutable";)
 			pr(inner).modify_test();
 			DEBUG(if(empty()) throw "Error: Cannot remove from empty list";)
@@ -230,7 +230,7 @@ $(expand global MixDerivedList(T,ListT,IteT,defs)
 			var retx = closure(ret);
 			return retx;
 		}
-		keep public override inline function shift():T {
+		keep public override function shift():T {
 			DEBUG(if(pr(inner).immutable) throw "Error: "+$str(T)+"List is immutable";)
 			pr(inner).modify_test();
 			DEBUG(if(empty()) throw "Error: Cannot remove from empty list";)
@@ -258,7 +258,7 @@ $(expand global MixDerivedList(T,ListT,IteT,defs)
 			return retx;
 		}
 		
-		keep public override inline function remove(obj:T):Bool {
+		keep public override function remove(obj:T):Bool {
 			DEBUG(if(pr(inner).immutable) throw "Error: "+$str(T)+"List is immutable";)
 			pr(inner).modify_test();
 			
@@ -274,7 +274,7 @@ $(expand global MixDerivedList(T,ListT,IteT,defs)
 			return ret;
 		}
 
-        keep public override inline function clear() {
+        keep public override function clear() {
             DEBUG(if(pr(inner).immutable) throw "Error: "+$str(T)+"List is immutable";)
             if(pr(inner).reverse_flag) {
                 while(!empty()) pop();
@@ -311,7 +311,7 @@ $(expand global PRWrapList(T,ListT,IteT)
 		public var reverse_flag:Bool;
 
 		//destroy public list assuming private list has been dealt with
-		flibmdel public inline function __destroy() {
+		public function __destroy() {
 			outer.pr(inner) = null;
 			outer = null;
 			inner = null;
@@ -331,7 +331,7 @@ $(expand global PRWrapList(T,ListT,IteT)
 			}
 		}
 		
-		flibstaticdel(get) public static inline function get(list:ListT,?imm:Bool=false) {
+		public static function get(list:ListT,?imm:Bool=false) {
 			var ret = new T`List();
 			ret.pr(inner).inner = list;
 			if(imm) ret.pr(inner).immutable = true;
@@ -339,7 +339,7 @@ $(expand global PRWrapList(T,ListT,IteT)
 			return ret;
 		}
 		
-		flibmdel public inline function valmod() {
+		public function valmod() {
 			validate();
 			if(inner.modified) {
 				DEBUG(if(iterators!=null) {
@@ -359,12 +359,12 @@ $(expand global PRWrapList(T,ListT,IteT)
 			}
 		}
 		
-		flibmdel public inline function modified() {
+		public function modified() {
 			inv(length) = true;
 			at_ite = null;
 			push_ite = null;
 		}
-		flibmdel public inline function modify_test() {
+		public function modify_test() {
 			DEBUG(
 				if(_modifiable!=null) _modifiable();
 			
@@ -376,13 +376,13 @@ $(expand global PRWrapList(T,ListT,IteT)
 			)
 		}
 		
-		flibmdel public inline function validate() {
+		public function validate() {
 			if(_invalidated) {
 				_invalidated = false;
 				if(_validate!=null) _validate();
 			}
 		}
-		flibmdel public inline function invalidate() {
+		public function invalidate() {
 			_invalidated = true;
 			if(_invalidate!=null) _invalidate(this);
 		}
@@ -444,7 +444,8 @@ $(mixin global ListMixin(defs,Cons,T,I)
 		pushmod = true;
 	}
 
-    flibmdel public inline function add(o:T) {
+	public function add(o:T) return inlined_add(o)
+    flibmdel public inline function inlined_add(o:T) {
 		assert(o!=null && !has(o),"[ListMixin("+$str(T)+"] add -> o="+o);
 		
         var temp = _new(o);
@@ -457,31 +458,34 @@ $(mixin global ListMixin(defs,Cons,T,I)
 		return o;
     }
 
-    flibmdel public inline function addAll(x:Cons) {
+    public function addAll(x:Cons) {
 		assert(x!=null,"[ListMixin("+$str(T)+"] addAll -> "+x);
 		Iterate(x,add);
 	}
 
-    flibmdel public inline function insert(cur:I,o:T) {
+	public function insert(cur:I,o:T) return inlined_insert(cur,o)
+	flibmdel public inline function inlined_insert(cur:I,o:T) {
 		assert(o != null && !has(o),"[ListMixin("+$str(T)+"] cur -> "+cur+" -> "+o);
 		
-        if(cur==null) { add(o); return begin(); }
-        else {
-            var temp = _new(o);
+		var temp = _new(o);
+        if(cur==null) {
+			temp.next = begin();
+			_setbeg(temp);
+		} else {
             temp.next = cur.next;
             cur.next = temp;
-			
-			pushmod = modified = true;
-			mcnt++;
-			length++;
-			
-            return temp;
         }
+
+		pushmod = modified = true;
+		mcnt++;
+		length++;
+		return temp;
     }
 
     //----------------------------------------------------------------------------------------------
 
-    flibmdel public inline function pop():Void {
+	public function pop() inlined_pop()
+    flibmdel public inline function inlined_pop():Void {
 		assert(!empty(), "[ListMixin("+$str(T)+"] pop");
 		
         var ret = begin();
@@ -495,7 +499,8 @@ $(mixin global ListMixin(defs,Cons,T,I)
 		length--;
     }
 
-    flibmdel public inline function pop_unsafe():T {
+	public function pop_unsafe() return inlined_pop_unsafe()
+    flibmdel public inline function inlined_pop_unsafe():T {
 		assert(!empty(), "[ListMixin("+$str(T)+"] pop_unsafe");
 		
         var ret = front();
@@ -505,7 +510,7 @@ $(mixin global ListMixin(defs,Cons,T,I)
 
     //----------------------------------------------------------------------------------------------
 
-    flibmdel public inline function remove(obj:T):Bool {
+    public function remove(obj:T):Bool {
 		assert(obj!=null && has(obj), "[ListMixin("+$str(T)+"] remove -> "+obj);
 		
         var pre = null;
@@ -523,31 +528,55 @@ $(mixin global ListMixin(defs,Cons,T,I)
         return ret;
     }
 
-    flibmdel public inline function erase(pre:I):I {
-		assert(!empty(),"[ListMixin("+$str(T)+"] erase -> "+pre);
-		if(pre==null) { pop(); return begin(); }
-		else {
-			var old = pre.next;
-			var cur = old.next;
-			pre.next = cur;
-			_delelt(old.elem());
-			_delete(old);
-			
-			modified = true;
-			if(cur==null) pushmod = true;
-			mcnt--;
-			length--;
-			
-			return cur;
-		}
+    flibmdel public inline function inlined_remove(obj:T):Bool {
+		assert(obj!=null && has(obj), "[ListMixin("+$str(T)+"] remove -> "+obj);
+		
+        var pre = null;
+        var cur = begin();
+        var ret = false;
+        while(cur!=null) {
+            if(cur.elem()==obj) {
+                inlined_erase(pre);
+                ret = true;
+                break;
+            }
+            pre = cur;
+            cur = cur.next;
+        }
+        return ret;
     }
 
-    flibmdel public inline function splice(pre:I,n:Int):I {
+	public function erase(pre:I):I return inlined_erase(pre)
+    flibmdel public inline function inlined_erase(pre:I):I {
+		assert(!empty(),"[ListMixin("+$str(T)+"] erase -> "+pre);
+		var old:I;
+		var ret:I;
+		if(pre==null) {
+	        old = begin(); ret = old.next;
+	        _setbeg(ret);
+			if(empty()) pushmod = true;
+		} else {
+			old = pre.next; ret = old.next;
+			pre.next = ret;
+			if(ret==null) pushmod = true;
+		}
+		_delelt(old.elem());
+		_delete(old);
+
+		modified = true;
+		mcnt--;
+		length--;
+		pushmod = true;
+
+		return ret;
+    }
+
+    public function splice(pre:I,n:Int):I {
         while(n-->0 && pre.next!=null) erase(pre);
         return pre.next;
     }
 
-    flibmdel public inline function clear() {
+    public function clear() {
         if(_clear) {
             while(!empty()) pop();
 			pushmod = true;
@@ -556,7 +585,7 @@ $(mixin global ListMixin(defs,Cons,T,I)
 
     //----------------------------------------------------------------------------------------------
 
-    flibmdel public inline function reverse() {
+    public function reverse() {
         var cur = begin();
         var pre = null;
         while(cur!=null) {
@@ -572,20 +601,20 @@ $(mixin global ListMixin(defs,Cons,T,I)
 
     //----------------------------------------------------------------------------------------------
 
-    flibmdel public inline function empty():Bool return begin()==null
+	flibmdel public inline function empty():Bool return begin()==null
 
-    flibmdel public inline function size() return length
+	flibmdel public inline function size() return length
 
-    flibmdel public inline function has(obj:T) {
+    public function has(obj:T) {
 		assert(obj!=null,"[ListMixin("+$str(T)+"] has -> "+obj);
 		return Exists(npite, this, npite==obj);
 	}
 
     //----------------------------------------------------------------------------------------------
 
-    flibmdel public inline function front() return begin().elem()
+	flibmdel public inline function front() return begin().elem()
 
-    flibmdel public inline function back() {
+    public function back() {
         var ret = begin();
         var cur = ret;
         while(cur!=null) { ret = cur; cur = cur.next; }
@@ -593,14 +622,14 @@ $(mixin global ListMixin(defs,Cons,T,I)
     }
 
 	//ind = -1 is valid, and gives null.
-    flibmdel public inline function iterator_at(ind:Int) {
+    public function iterator_at(ind:Int) {
 		assert(ind>=-1 && ind<size(),"[ListMixin("+$str(T)+"] iterator_at -> "+ind);
         var ret = begin();
         while(ind-->0 && ret!=null) ret = ret.next;
         return ret;
     }
-
-    flibmdel public inline function at(ind:Int) {
+	
+	public function at(ind:Int) {
 		assert(ind>=0 && ind<size(),"[ListMixin("+$str(T)+"] at -> "+ind);
         var it = iterator_at(ind);
         return if(it!=null) it.elem() else null;
