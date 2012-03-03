@@ -15,7 +15,7 @@ local:
 pre_compile:
 	rm -rf src
 	mkdir src
-	caxe -o src cx-src -tc 2 --times -x DummyNapeMain
+	caxe -o src cx-src -tc 2 --times -x DummyNapeMain.cx
 
 SWC_FLAGS = -cp src --dead-code-elimination --macro "include('nape')" --macro "include('zpp_nape')" -D flib -D swc
 
