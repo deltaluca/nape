@@ -1049,18 +1049,23 @@ class PR(ColArbiter) extends PR(Arbiter) {
 	
     ///very verbose in an attempt to improve performance.
 	flibmdel public inline function applyImpulseVel(bouncy:Float) {
-		var jx:Float; var jy:Float; var jw1:Float; var jw2:Float;
+		var jx:Float; var jy:Float;
 		var j:Float; var jMax:Float; var jOld:Float; var cjAcc:Float;
 
 		$(mixin friction(N)
+			v`N`x = k`N`x + b2.velx - c`N.r2y*b2.angvel - (b1.velx - c`N.r1y*b1.angvel);
+			v`N`y = k`N`y + b2.vely + c`N.r2x*b2.angvel - (b1.vely + c`N.r1x*b1.angvel);
+
 			j = (vec_cross(n,v`N) + surfacex)*c`N.tMass;
 			jMax = c`N.friction * c`N.jnAcc; jOld = c`N.jtAcc;
 			cjAcc = jOld - j; if(cjAcc>jMax) cjAcc = jMax else if(cjAcc<-jMax) cjAcc = -jMax;
 			j = cjAcc - jOld; c`N.jtAcc = cjAcc;
+			jx = -ny*j; jy = nx*j;
 
-			jx -= ny*j; jy += nx*j;
-			jw2 += rt`N`b*j;
-			jw1 += rt`N`a*j;
+			b2.velx += jx*b2.imass; b2.vely += jy*b2.imass;
+			b1.velx -= jx*b1.imass; b1.vely -= jy*b1.imass;
+			b2.angvel += rt`N`b*j*b2.iinertia;
+			b1.angvel -= rt`N`a*j*b1.iinertia;
 		);
 
 		var v1x = k1x + b2.velx - c1.r2y*b2.angvel - (b1.velx - c1.r1y*b1.angvel);
@@ -1081,20 +1086,24 @@ class PR(ColArbiter) extends PR(Arbiter) {
             if(xx>=0 && xy>=0) { vec_sub(x,a,jn); c1.jnAcc = xx; c2.jnAcc = xy; }
             else {
                 xx = -c1.nMass*jnx;
-                if(xx>=0 && (Kb*xx+jny)>=0) { jnx = xx-ax; jny = -ay; c1.jnAcc = xx; c2.jnAcc = xy = 0; }
+                if(xx>=0 && (Kb*xx+jny)>=0) { jnx = xx-ax; jny = -ay; c1.jnAcc = xx; c2.jnAcc = 0; }
                 else {
                     xy = -c2.nMass*jny;
-                    if(xy>=0 && (Kb*xy+jnx)>=0) { jnx = -ax; jny = xy-ay; c1.jnAcc = xx = 0; c2.jnAcc = xy; }
-                    else if(jnx>=0 && jny>=0) { jnx = -ax; jny = -ay; c1.jnAcc = c2.jnAcc = xx = xy = 0; }
+                    if(xy>=0 && (Kb*xy+jnx)>=0) { jnx = -ax; jny = xy-ay; c1.jnAcc = 0; c2.jnAcc = xy; }
+                    else if(jnx>=0 && jny>=0) { jnx = -ax; jny = -ay; c1.jnAcc = c2.jnAcc = 0; }
                 }
             }
 
             //impulse
-            var jn = jnx+jny;
-            jx = nx*jn; jy = ny*jn;
-			jw2 = rn1b*jnx + rn2b*jny;
-			jw1 = rn1a*jnx + rn2a*jny;
+            j = jnx+jny;
+            jx = nx*j; jy = ny*j;
 
+			b2.velx += jx*b2.imass; b2.vely += jy*b2.imass;
+			b1.velx -= jx*b1.imass; b1.vely -= jy*b1.imass;
+			b2.angvel += (rn1b*jnx + rn2b*jny)*b2.iinertia;
+			b1.angvel -= (rn1a*jnx + rn2a*jny)*b1.iinertia;
+
+			friction(1)
             friction(2)	
 		}else {
 			j = (bouncy*c1.bounce + vec_dot(n,v1) + surfacey)*c1.nMass;
@@ -1103,8 +1112,13 @@ class PR(ColArbiter) extends PR(Arbiter) {
 			j = cjAcc - jOld; c1.jnAcc = cjAcc;
 
 			jx = nx*j; jy = ny*j;
-			jw2 = rn1b*j;
-			jw1 = rn1a*j;
+
+			b2.velx += jx*b2.imass; b2.vely += jy*b2.imass;
+			b1.velx -= jx*b1.imass; b1.vely -= jy*b1.imass;
+			b2.angvel += rn1b*j*b2.iinertia;
+			b1.angvel -= rn1a*j*b1.iinertia;
+
+			friction(1)
 
 			//atleast one object is a circle
 			if(radius!=0.0) {
@@ -1114,17 +1128,11 @@ class PR(ColArbiter) extends PR(Arbiter) {
 				jrAcc -= j; if(jrAcc>jMax) jrAcc = jMax else if(jrAcc<-jMax) jrAcc = -jMax;
 				j = jrAcc - jOld;
 
-				jw2 += j;
-				jw1 -= j;
+				b2.angvel += j*b2.iinertia;
+				b1.angvel -= j*b1.iinertia;
 			}
 		}
 
-		friction(1)
-
-		vec_addeq(b2.vel, j, b2.imass);
-		vec_subeq(b1.vel, j, b1.imass);
-		b2.angvel += b2.iinertia*jw2;
-		b1.angvel -= b1.iinertia*jw1;
 	}
 
     ///---------------------------------------------------------------------------------------------
