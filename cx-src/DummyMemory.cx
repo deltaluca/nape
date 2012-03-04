@@ -62,7 +62,10 @@ class Graph {
 
 	public function populate(continuation:Void->Void) {
 		var stack:Array<Dynamic> = [];
-		for(o in objects) stack.push(o);
+		for(o in objects) {
+			o.references = [];
+			stack.push(o);
+		}
 
 		var tim = new haxe.Timer(0);
 		tim.run = function() {
@@ -80,64 +83,6 @@ class Graph {
 						obj.references.push({name:o, obj:ref.obj});
 						if(ref.isnew) stack.push(ref.obj);
 					}
-				}
-			}
-		}
-	}
-}
-
-class Tracer {
-	public static function trace(objs:Array<Dynamic>,?logger:String->Void) {
-		if(logger==null) logger = function(_:String) {};
-
-		var dict_id = 0;
-		var stack = [];
-		var dict = new flash.utils.Dictionary(false);
-		var idl = [];
-
-		var sdict = new Hash<Bool>();
-		var stats = [];
-
-		$(mixin pushobj(i) ({
-			if((untyped dict[i])!=null) (untyped dict[i]).id;
-			else {
-				var o = { id: dict_id++, obj:i, refs:[] };
-				untyped dict[i] = o;
-				stack.push(o);
-				idl.push(o);
-				o.id;
-			}
-		}));
-
-		for(i in objs) pushobj(i);
-		var tim = new haxe.Timer(0);
-
-		tim.run = function() {
-			if(stack.length==0) { tim.stop(); return; }
-
-			var pt = flash.Lib.getTimer();
-			while(flash.Lib.getTimer()-pt <= 50) {
-				if(stack.length==0) { tim.stop(); return; }
-
-				var cur = stack.shift();
-				var cls = Type.getClass(cur.obj);
-				for(o in Type.getInstanceFields(cls)) {
-					var field:Dynamic = Reflect.field(cur.obj, o);
-					if(field!=null && Reflect.isObject(field)) {
-						cur.refs.push({ name:o, id: pushobj(field) });
-					}
-				}
-				var nme = Type.getClassName(cls);
-				if(!sdict.exists(nme)) {
-					sdict.set(nme,true);
-					var ccur = [];
-					for(o in Type.getClassFields(cls)) {
-						var field:Dynamic = Reflect.field(cur.obj, o);
-						if(field!=null && Reflect.isObject(field)) {
-							ccur.push({ name:o, id: pushobj(field) });
-						}
-					}
-					stats.push({name:nme,refs:ccur});
 				}
 			}
 		}
