@@ -12,10 +12,11 @@ local:
 
 #------------------------------------------------------------------------------------
 
+DUMMYS = $(shell find cx-src -type f -name "Dummy*" -print | sed 's/^/-x /')
 pre_compile:
 	rm -rf src
 	mkdir src
-	caxe -o src cx-src -tc 2 --times -x DummyNapeMain.cx
+	caxe -o src cx-src -tc 2 --times $(DUMMYS)
 
 SWC_FLAGS = -cp src --dead-code-elimination --macro "include('nape')" --macro "include('zpp_nape')" -D flib -D swc
 
