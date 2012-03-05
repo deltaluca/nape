@@ -1,0 +1,24 @@
+package nape.callbacks;
+
+import nape.callbacks.Callback;
+import nape.constraint.Constraint;
+import zpp_nape.util.Flags;
+import zpp_nape.util.Names;
+
+class ConstraintCallback extends Callback {
+	public function new() {
+		super();
+	}
+	
+    property(constraint,Constraint,pr(inner).constraint.outer)
+
+	@:$keep public override function toString() {
+		var ret = "Cb:";
+		ret += ["WAKE","SLEEP","BREAK"][pr(inner).event-Flag(CbEvent,WAKE)];
+		ret += ":"+constraint.toString();
+		ret += " : listener: "+listener;
+		return ret;
+	}
+}
+
+

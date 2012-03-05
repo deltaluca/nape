@@ -36,6 +36,11 @@ $(import);
 **/
 
 $(mixin global WrapList(T,ListT,IteT, defs)
+	WrapListNew(T,ListT,IteT,defs)
+	WrapListIterator(T,ListT,IteT,defs)
+);
+
+$(mixin global WrapListNew(T,ListT,IteT, defs)
 	$(mixin accept(x) true);
 	$(mixin use_accept false);
 	
@@ -351,6 +356,21 @@ $(mixin global WrapList(T,ListT,IteT, defs)
 			return this;
 		}
 	}
+	
+	PRWrapList(T,ListT,IteT)
+);
+
+$(mixin global WrapListIterator(T,ListT,IteT, defs)
+	$(mixin accept(x) true);
+	$(mixin use_accept false);
+	
+	$(mixin inline $inline);
+	$(mixin use_inline true);
+	
+	$(mixin copy_elt(o) { DEBUG(throw "Error: "+$str(T)+" is not a copyable type"; ) null; });
+	
+	$(mixin reversal(i) (length-1-i));
+	
 	class T`Iterator {
 		public var pr(inner):T`List;
 		public var pr(i):Int;
@@ -410,6 +430,4 @@ $(mixin global WrapList(T,ListT,IteT, defs)
 			return pr(inner).at(pr(i)++);
 		}
 	}
-	
-	PRWrapList(T,ListT,IteT)
 );
