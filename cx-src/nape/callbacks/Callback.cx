@@ -1,18 +1,9 @@
 package nape.callbacks;
-$(import);
 
-Flags(CbEvent,
-	prop(BEGIN,0)
-	prop(ONGOING,6)
-	prop(END,1)
-	
-	prop(WAKE,2)
-	prop(SLEEP,3)
-	
-	prop(BREAK,4)
-
-	prop(PRE,5)
-)
+import nape.callbacks.CbEvent;
+import zpp_nape.util.Names;
+import nape.callbacks.Listener;
+import zpp_nape.callbacks.Callback;
 
 class Callback {
 	public var pr(inner):PR(Callback);
@@ -32,77 +23,4 @@ class Callback {
 	}
 
     @:$keep public function toString():String { return ""; }
-}
-
-class BodyCallback extends Callback {
-	public function new() {
-		super();
-	}
-	
-    property(body,Body,pr(inner).body.outer)
-
-	@:$keep public override function toString() {
-		var ret = "Cb:";
-		ret += ["WAKE","SLEEP"][pr(inner).event-Flag(CbEvent,WAKE)];
-		ret += ":"+body.toString();
-		ret += " : listener: "+listener;
-		return ret;
-	}
-}
-
-class ConstraintCallback extends Callback {
-	public function new() {
-		super();
-	}
-	
-    property(constraint,Constraint,pr(inner).constraint.outer)
-
-	@:$keep public override function toString() {
-		var ret = "Cb:";
-		ret += ["WAKE","SLEEP","BREAK"][pr(inner).event-Flag(CbEvent,WAKE)];
-		ret += ":"+constraint.toString();
-		ret += " : listener: "+listener;
-		return ret;
-	}
-}
-
-class InteractionCallback extends Callback {
-	public function new() {
-		super();
-	}
-
-	property(int1,Interactor,pr(inner).int1.outer_i)
-	property(int2,Interactor,pr(inner).int2.outer_i)
-
-	property(arbiters,ArbiterList, pr(inner).wrap_arbiters)
-
-	@:$keep public override function toString() {
-		var ret = "Cb:";
-		ret += ["BEGIN","END","","","","","ONGOING"][pr(inner).event];
-		ret += ":"+int1.toString()+"/"+int2.toString();
-		ret += " : "+arbiters.toString();
-		ret += " : listener: "+listener;
-		return ret;
-	}
-}
-
-class PreCallback extends Callback {
-	public function new() {
-		super();
-	}
-
-	property(arbiter,Arbiter,pr(inner).pre_arbiter.wrapper())
-
-	property(int1,Interactor,pr(inner).int1.outer_i)
-	property(int2,Interactor,pr(inner).int2.outer_i)
-
-	property(swapped,Bool,pr(inner).pre_swapped)
-
-	@:$keep public override function toString() {
-		var ret = "Cb:PRE:";
-		ret += ":"+int1.toString()+"/"+int2.toString();
-		ret += " : "+arbiter.toString();
-		ret += " : listnener: "+listener;
-		return ret;
-	}
 }

@@ -1,0 +1,99 @@
+package nape.callbacks;
+
+import nape.callbacks.Callback;
+import nape.phys.Interactor;
+import nape.dynamics.Arbiter;
+import nape.callbacks.CbType;
+import nape.callbacks.CbEvent;
+import nape.callbacks.PreFlag;
+import nape.callbacks.InteractionType;
+import zpp_nape.util.Flags;
+import zpp_nape.util.Names;
+import zpp_nape.callbacks.Listener;
+
+class PreListener extends Listener {
+	public var pr(inner_zn):PR(InteractionListener);
+
+	property(cbType1,CbType,pr(inner_zn).cb1.wrapper(),{
+		DEBUG(if(cbType1==null) throw "Error: Cannot assign null CbType to Listener";)
+
+		var con = pr(inner_zn);
+		if(con.cb1==null || con.cb1!=cbType1.pr(inner))
+			con.swapCbType(1, cbType1.pr(inner));
+	})
+	property(cbType2,CbType,pr(inner_zn).cb2.wrapper(),{
+		DEBUG(if(cbType2==null) throw "Error: Cannot assign null CbType to Listener";)
+
+		var con = pr(inner_zn);
+		if(con.cb2==null || con.cb2!=cbType1.pr(inner))
+			con.swapCbType(2, cbType2.pr(inner));
+	})
+
+	//do not need to wake bodies here!
+	//the contract of ACCEPT/IGNORE are that you hand control over to nape
+	//and have no further say, so any change to output is not in the domain of accepted behaviour
+	//
+	//in the case of #_ONCE, the objects are forced to stay awake (in space)
+	//and so any change to handler does not need to wake any objects already.
+	property(handler,PreCallback->PreFlag,pr(inner_zn).handlerp,{
+		DEBUG(if(handler==null) throw "Error: PreListener must take a non-null handler!";)
+		pr(inner_zn).handlerp = handler;
+
+		//we do not check that handler is not the same, as we want to allow this to be used
+		//to notify nape of a change to a non-pure handler that user has decided to say is pure
+		//anyways!
+
+		pr(inner_zn).wake();
+	})
+
+	//pure handlers allows nape to make optimisations, specifically allowing bodies to sleep
+	//even if there is a pre-handler returning IGNORE_ONCE or ACCEPT_ONCE where otherwise
+	//we cannot allow the bodies to sleep as the handler may change it's return.
+	property(pure,Bool,pr(inner_zn).pure,{
+		if(!pure)
+			pr(inner_zn).wake();
+		pr(inner_zn).pure = pure;
+	})
+
+	property(interactionType,InteractionType,{
+		var ret = pr(inner_zn).itype;
+		if  (ret==Flag(InteractionType,COLLISION)) InteractionType.COLLISION;
+		elif(ret==Flag(InteractionType,SENSOR))    InteractionType.SENSOR;
+		elif(ret==Flag(InteractionType,FLUID))     InteractionType.FLUID;
+		elif(ret==Flag(InteractionType,ANY))       InteractionType.ANY;
+		else null;
+	},{
+        DEBUG(if(interactionType==null) throw "Error: Cannot set listener interaction type to null";)
+        if(this.interactionType!=interactionType) {
+            var xtype = interactionType == InteractionType.COLLISION ? Flag(InteractionType,COLLISION) :
+                        interactionType == InteractionType.SENSOR    ? Flag(InteractionType,SENSOR)    :
+                        interactionType == InteractionType.FLUID     ? Flag(InteractionType,FLUID)     :
+                        Flag(InteractionType,ANY);
+			pr(inner_zn).settype(xtype);
+        }
+	})
+
+    ///---------------------------------------------------------------------------------------------
+
+	flibopts(1)
+	public function new(interactionType:InteractionType, cbType1:CbType, cbType2:CbType, handler:PreCallback->PreFlag, ?pure=false) {
+		PR(Listener).internal = true; super(); PR(Listener).internal = false;
+
+		DEBUG(if(cbType1==null) throw "Error: PreListener CbType1 cannot be null";)
+		DEBUG(if(cbType2==null) throw "Error: PreListener CbType2 cannot be null";)
+
+		DEBUG(if(handler==null) throw "Error: PreListener must take a handler!";)
+
+		pr(inner_zn) = new PR(InteractionListener)(Flag(CbEvent,PRE),Flag(ListenerType,PRE));
+		pr(inner) = pr(inner_zn);
+		pr(inner).outer = this;
+		pr(inner_zn).outer_znp = this;
+
+		pr(inner_zn).pure = pure;
+		pr(inner_zn).handlerp = handler;
+		this.cbType1 = cbType1;
+		this.cbType2 = cbType2;
+		this.interactionType = interactionType;
+	}
+}
+

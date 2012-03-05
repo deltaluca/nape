@@ -1,0 +1,49 @@
+package nape.callbacks;
+
+import nape.callbacks.Listener;
+import nape.phys.Body;
+import nape.callbacks.CbType;
+import nape.callbacks.BodyCallback;
+import zpp_nape.util.Names;
+import zpp_nape.util.Flags;
+import zpp_nape.callbacks.Listener;
+
+class BodyListener extends Listener {
+    public var pr(inner_zn):PR(BodyListener);
+
+    property(cbType,CbType,pr(inner_zn).cbType.wrapper(),{
+        DEBUG(if(cbType==null) throw "Error: Cannot assign null CbType to Listener";)
+
+        var body = pr(inner_zn);
+        if(body.cbType==null || body.cbType!=cbType.pr(inner))
+            body.swapCbType(cbType.pr(inner));
+    })
+
+    property(handler,BodyCallback->Void,pr(inner_zn).handler,{
+		DEBUG(if(handler==null)throw "Error: BodyListener::handler cannot be null";)
+		pr(inner_zn).handler = handler;
+	})
+
+    ///---------------------------------------------------------------------------------------------
+
+	flibopts(0)
+    public function new(event:CbEvent, cbType:CbType, handler:BodyCallback->Void) {
+        PR(Listener).internal = true; super(); PR(Listener).internal = false;
+
+		DEBUG(if(handler==null)throw "Error: BodyListener::handler cannot be null";)
+
+        var xevent = -1;
+        if     (event==CbEvent.WAKE)  xevent = Flag(CbEvent,WAKE);
+        else if(event==CbEvent.SLEEP) xevent = Flag(CbEvent,SLEEP);
+        DEBUG(else throw "Error: cbEvent '"+event.toString()+"' is not a valid event type for a BodyListener";)
+        DEBUG(if(cbType==null) throw "Error: BodyListener cbType cannot be null";)
+
+        pr(inner_zn) = new PR(BodyListener)(xevent,handler);
+        pr(inner) = pr(inner_zn);
+        pr(inner).outer = this;
+        pr(inner_zn).outer_zn = this;
+
+        this.cbType = cbType;
+    }
+}
+
