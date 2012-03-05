@@ -228,15 +228,20 @@ EOT
 		echo "--------------------------------------------------------------------------"
 		echo ""
 		cd src
+			read -e -p "haxelib message:
+> " haxelibmsg
 			cat > haxelib.xml << EOT
 <project name="nape" url="https://github.com/deltaluca/nape" license="BSD">
 	<user name="deltaluca"/>
 	<tag v="cross"/>
 	<tag v="game"/>
 	<description>Nape 2D Physics engine</description>
-	<version name="m$MAJOR.$MINOR-r$REVISION">...TODO</version>
+	<version name="m$MAJOR.$MINOR-r$REVISION">$haxelibmsg</version>
 </project>
 EOT
+			rm napelib.zip
+			zip -r napelib .
+			haxelib submit napelib.zip
 		cd ../
 
 		rm $WORKING
