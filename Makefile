@@ -3,19 +3,32 @@ SWFV = 11
 local:
 	rm -rf src
 	mkdir src
-	caxe -o src cx-src -tc 2 --times
+	caxe -o src cx-src -tc 2 --times \
+		-x DummyCppMain.cx # cpp only
 	haxe -cp src -main DummyNapeMain -swf bin/nape.swf -swf-version $(SWFV) --times \
 		-swf-header 800:600:60:333333 \
 		-D NAPE_ASSERT --no-inline -debug
 #		-D NAPE_RELEASE_BUILD
 	debugfp bin/nape.swf
 
+cpp:
+	rm -rf src
+	mkdir src
+	caxe -o src cx-src -tc 2 --times \
+		-x DummyMemory.cx -x DummyNapeMain.cx # flash only
+	haxe -cp src -main DummyCppMain -cpp cpp --times \
+		--remap flash:nme -lib nme \
+		-D NAPE_ASSERT --no-inline -debug
+#		-D NAPE_RELEASE_BUILD
+	
+
 #------------------------------------------------------------------------------------
 
+DUMMYS = $(shell find cx-src -type f -name "Dummy*" -print | sed 's/^/-x /')
 pre_compile:
 	rm -rf src
 	mkdir src
-	caxe -o src cx-src -tc 2 --times -x DummyNapeMain.cx
+	caxe -o src cx-src -tc 2 --times $(DUMMYS)
 
 SWC_FLAGS = -cp src --dead-code-elimination --macro "include('nape')" --macro "include('zpp_nape')" -D flib -D swc
 

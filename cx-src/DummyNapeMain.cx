@@ -1,8 +1,37 @@
 package;
 
-#if !(IGNORE_DUMMY)
-
 $(import);
+
+#if true
+
+class DummyNapeMain {
+	static function main() {
+		var txt = new flash.text.TextField();
+		txt.defaultTextFormat = new flash.text.TextFormat("Courier New",12,0xffffff);
+		txt.selectable = false;
+		txt.width = flash.Lib.current.stage.stageWidth;
+		txt.height = flash.Lib.current.stage.stageHeight;
+		flash.Lib.current.addChild(txt);
+
+		var v = new Vec2();
+		var v2 = new Vec2();
+		var graph = new Graph([v,v2]);
+		graph.populate(function () {
+			txt.text = graph.toString();
+			v.dispose();
+			v2.dispose();
+			graph.populate(function () {
+				txt.text += "\n"+graph.toString();
+				Debug.clearObjectPools();
+				graph.populate(function () {
+					txt.text += "\n"+graph.toString();
+				});
+			});
+		});
+	}
+}
+
+#else
 
 #if (cpp||neko)
 class DummyNapeMain {
@@ -809,6 +838,4 @@ class DummyNapeMains {
 }
 
 #end
-
-#else
 #end

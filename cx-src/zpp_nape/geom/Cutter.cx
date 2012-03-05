@@ -37,7 +37,7 @@ class PR(CutInt) {
 	MixPool(PR(CutInt))
 
 	public var time:Float;
-	public var virtual:Bool;
+	public var virtualint:Bool;
 	public var vertex:Bool;
 
 	//end of incoming path
@@ -54,9 +54,9 @@ class PR(CutInt) {
 		path0 = path1 = null;
 	}
 
-	public static function get(time:Float,end=null,start=null,path0=null,path1=null,virtual=false,vertex=false) {
+	public static function get(time:Float,end=null,start=null,path0=null,path1=null,virtualint=false,vertex=false) {
 		var ret = Get(PR(CutInt));
-		ret.virtual = virtual;
+		ret.virtualint = virtualint;
 		ret.end = end;
 		ret.start = start;
 		ret.path0 = path0;
@@ -236,12 +236,12 @@ class PR(Cutter) {
 		while(!ints.empty()) {
 			var i = ints.pop_unsafe();
 			var j = ints.pop_unsafe();
-			if(!i.virtual && !j.virtual) {
+			if(!i.virtualint && !j.virtualint) {
 				merge(i.end,j.start);
 				merge(j.end,i.start);
 				DSF(union(i.path0,j.path1));
 				DSF(union(i.path1,j.path0));
-			}else if(i.virtual && !j.virtual) {
+			}else if(i.virtualint && !j.virtualint) {
 				j.end = pop_ret_before(j.end);
 				if(!j.vertex) {
 					//start is used in path reference, so cannot delete it. move it instead
@@ -259,7 +259,7 @@ class PR(Cutter) {
 				}
 				merge(j.end,j.start);
 				DSF(union(j.path0,j.path1));
-			}else if(j.virtual && !i.virtual) {
+			}else if(j.virtualint && !i.virtualint) {
 				i.end = pop_ret_before(i.end);
 				if(!i.vertex) {
 					//start is used in path reference, so cannot delete it. move it instead
