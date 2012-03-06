@@ -1,6 +1,8 @@
 SWFV = 11
 
-local:
+FILES = $(shell find cx-src -type f -name "*.cx" -print)
+
+local: $(FILES)
 	rm -rf src
 	mkdir src
 	caxe -o src cx-src -tc 2 --times \
@@ -11,16 +13,16 @@ local:
 #		-D NAPE_RELEASE_BUILD
 	debugfp bin/nape.swf
 
-cpp:
+cpp: $(FILES)
 	rm -rf src
 	mkdir src
 	caxe -o src cx-src -tc 2 --times \
 		-x DummyMemory.cx -x DummyNapeMain.cx # flash only
 	haxe -cp src -main DummyCppMain -cpp cpp --times \
 		--remap flash:nme -lib nme \
-		-D NAPE_ASSERT --no-inline -debug
-#		-D NAPE_RELEASE_BUILD
-	
+		-D NAPE_RELEASE_BUILD
+#		-D NAPE_ASSERT --no-inline -debug
+	./cpp/DummyCppMain
 
 #------------------------------------------------------------------------------------
 

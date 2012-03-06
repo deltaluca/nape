@@ -3,41 +3,7 @@ $(import);
 
 $(mixin Vertex() PR(GeomVert));
 
-Flags(Winding,
-	prop(UNDEFINED,0)
-	prop(CLOCKWISE,1)
-	prop(ANTICLOCKWISE,2)
-)
-
-WrapList(GeomPoly,List(PR(GeomPoly)),Node(PR(GeomPoly)),$(mixin closure(x) x.outer) $(mixin erusolc(x) x.pr(inner)))
-
 geom(
-
-class GeomVertexIterator {
-	public var pr(inner):PR(GeomVertexIterator);
-
-	public function new() {
-		DEBUG(if(!PR(GeomVertexIterator).internal) throw "Error: Cannot instantiate GeomVertexIterator";)
-	}
-
-	public function hasNext() {
-		DEBUG(if(pr(inner)==null) throw "Error: Iterator has been disposed";)
-		var ret = pr(inner).ptr != pr(inner).start || pr(inner).first;
-		pr(inner).first = false;
-		if(!ret) 
-			Free(PR(GeomVertexIterator),pr(inner));
-		return ret;
-	}
-	public function next() {
-		DEBUG(if(pr(inner)==null) throw "Error: Iterator has been disposed";)
-		var ret = pr(inner).ptr.wrapper();
-		if(pr(inner).forward)
-			 pr(inner).ptr = pr(inner).ptr.next;
-		else pr(inner).ptr = pr(inner).ptr.prev;
-		return ret;
-	}
-}
-
 class GeomPoly {
 	$(mixin verts() pr(inner).vertices);
 	public var pr(inner):PR(GeomPoly);

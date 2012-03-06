@@ -1,0 +1,60 @@
+package nape.dynamics;
+$(import);
+
+class FluidArbiter extends Arbiter {
+	
+    property(position,Vec2, {
+		DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
+		if(pr(inner).fluidarb.wrap_position==null) pr(inner).fluidarb.getposition();
+		pr(inner).fluidarb.wrap_position;
+	},{
+		DEBUG(if(!pr(inner).fluidarb.mutable) throw "Error: Arbiter is mutable only within a pre-handler";)
+		DEBUG(if(position==null) throw "Error: FluidArbiter::position cannot be null";)
+		this.position.set(position);
+	})
+	
+	property(overlap,Float,{
+		DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
+		pr(inner).fluidarb.overlap;
+	},{
+		DEBUG(if(!pr(inner).fluidarb.mutable) throw "Error: Arbiter is mutable only within a pre-handler";)
+		DEBUG(if(isNaN(overlap)) throw "Error: FluidArbiter::overlap cannot be NaN";)
+		DEBUG(if(overlap<=0 || overlap==Math.POSITIVE_INFINITY) throw "Error: FluidArbiter::overlap must be strictly positive and non infinite";)
+		pr(inner).fluidarb.overlap = overlap;
+	})
+	
+	//----------------------------------------------------------------------------------------------
+	
+	keep public function buoyancyImpulse(?body:Body=null) {
+		DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
+		DEBUG(if(body!=null && body!=body1 && body!=body2) throw "Error: Arbiter does not relate to body";)
+		
+		var farb = pr(inner).fluidarb;
+		return new Vec3(farb.buoyx,farb.buoyy);
+	}
+	
+	keep public function dragImpulse(?body:Body=null) {
+		DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
+		DEBUG(if(body!=null && body!=body1 && body!=body2) throw "Error: Arbiter does not relate to body";)
+		
+		var farb = pr(inner).fluidarb;
+		return new Vec3(farb.dampx+farb.pdampx,farb.dampy+farb.pdampy,farb.adamp+farb.padamp);
+	}
+	
+	keep public override function totalImpulse(?body:Body=null,?freshOnly:Bool=false) {
+		DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
+		DEBUG(if(body!=null && body!=body1 && body!=body2) throw "Error: Arbiter does not relate to body";)
+		
+		var farb = pr(inner).fluidarb;
+		return new Vec3(farb.dampx+farb.pdampx+farb.buoyx,farb.dampy+farb.pdampy+farb.buoyy,farb.adamp+farb.padamp);
+	}
+	
+	//----------------------------------------------------------------------------------------------
+	
+	public function new() {
+		DEBUG(if(!PR(Arbiter).internal)
+			throw "Error: Cannot instantiate FluidArbiter derp!";
+		)
+		super();
+	}
+}
