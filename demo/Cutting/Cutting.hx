@@ -36,9 +36,7 @@ class Cutting extends flash.display.Sprite {
 			var simples = poly.simple_decomposition();
 			for(poly in simples) {
 				var polys = poly.cut(seg0,seg1,true,true);
-				var sum = 0.0;
 				for(p in polys) {
-					sum += p.area();
 					var max = 0.0;
 					for(q in p) {
 						var dot = q.sub(seg0).cross(seg1.sub(seg0));
