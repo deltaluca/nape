@@ -1,0 +1,66 @@
+package zpp_nape.dynamics;
+$(import);
+
+GENID(InteractionGroup)
+class PR(InteractionGroup) {
+	public var outer:InteractionGroup;
+
+	public var id:Int;
+
+	public var ignore:Bool;
+	public var group:PR(InteractionGroup);
+	public function setGroup(group:PR(InteractionGroup)) {
+		if(this.group!=group) {
+			if(this.group!=null) {
+				this.group.remGroup(this);
+				this.group.invalidate(true);
+			}
+			this.group = group;
+			if(group!=null) {
+				group.addGroup(this);
+				group.invalidate(true);
+			}else this.invalidate(true);
+		}
+	}
+
+	//lidyd
+	public var groups:List(PR(InteractionGroup)); public var wrap_groups:InteractionGroupList;
+	public var interactors:List(PR(Interactor)); public var wrap_interactors:InteractorList;
+
+	//improve lookup times on non-trivial MRCA calls
+	public var depth:Int;
+
+	public function invalidate(?force=false) {
+		if(!(force || ignore)) return;
+
+		Iter(b,interactors,{
+			if  (b.isBody ()) b.ibody.wake();
+			elif(b.isShape()) b.ishape.body.wake();
+			else              b.icompound.wake();
+		});
+		Iter(g,groups,g.invalidate(force));
+	}
+
+	public static var SHAPE = 1;
+	public static var BODY  = 2;
+
+	public function new() {
+		id = ID(InteractionGroup);
+		depth = 0;
+
+		groups = new List(PR(InteractionGroup))();
+		interactors = new List(PR(Interactor))();
+	}
+
+	flibmdel public inline function addGroup(group:PR(InteractionGroup)) {
+		groups.add(group);
+		group.depth = depth+1;
+	}
+	flibmdel public inline function remGroup(group:PR(InteractionGroup)) {
+		groups.remove(group);
+		group.depth = 0;
+	}
+
+	flibmdel public inline function addInteractor(intx:PR(Interactor)) interactors.add(intx)
+	flibmdel public inline function remInteractor(intx:PR(Interactor),?flag:Int=-1) interactors.remove(intx)
+}

@@ -13,7 +13,7 @@ class PR(Edge) {
 	static public var internal:Bool;
 	public var outer:Edge;
 	
-	flibmdel public inline function wrapper() {
+	public function wrapper() {
 		if(outer==null) {
 			internal = true;
 			outer = new Edge();
@@ -33,34 +33,36 @@ class PR(Edge) {
 	public var lp0:PR(Vec2); public var gp0:PR(Vec2);
 	public var lp1:PR(Vec2); public var gp1:PR(Vec2);
 	public var tp0:Float; public var tp1:Float; // normal × vertex (world coordinates)
+
+	//previously lambdas
+	private function lnorm_validate() {
+		DEBUG(if(polygon==null)
+			throw "Error: Edge not currently in use";
+		)
+		polygon.validate_laxi();
+		vec_set(wrap_lnorm.pr(inner).,lnorm);
+	}
+	private function gnorm_validate() {
+		DEBUG(
+			if(polygon==null)
+				throw "Error: Edge not currently in use";
+			if(polygon.body==null)
+				throw "Error: Edge worldNormal only makes sense if the parent Polygon is contained within a rigid body";
+		)
+			
+		polygon.validate_gaxi();
+		vec_set(wrap_gnorm.pr(inner).,gnorm);
+	}
 	
 	public function get_lnorm() {
-		var me = this;
 		wrap_lnorm = Vec2.get(lnormx,lnormy);
 		wrap_lnorm.pr(inner).immutable = true;
-		wrap_lnorm.pr(inner)._validate = function() {
-			DEBUG(if(me.polygon==null)
-				throw "Error: Edge not currently in use";
-			)
-			me.polygon.validate_laxi();
-			vec_set(me.wrap_lnorm.pr(inner).,me.lnorm);
-		}
+		wrap_lnorm.pr(inner)._validate = lnorm_validate;
 	}
 	public function get_gnorm() {
-		var me = this;
 		wrap_gnorm = Vec2.get(gnormx,gnormy);
 		wrap_gnorm.pr(inner).immutable = true;
-		wrap_gnorm.pr(inner)._validate = function() {
-			DEBUG(
-				if(me.polygon==null)
-					throw "Error: Edge not currently in use";
-				if(me.polygon.body==null)
-					throw "Error: Edge worldNormal only makes sense if the parent Polygon is contained within a rigid body";
-			)
-				
-			me.polygon.validate_gaxi();
-			vec_set(me.wrap_gnorm.pr(inner).,me.gnorm);
-		}
+		wrap_gnorm.pr(inner)._validate = gnorm_validate;
 	}
 	
 	public function new() {

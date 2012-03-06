@@ -1,0 +1,113 @@
+package nape.constraint;
+$(import);
+
+class UserConstraint extends Constraint {
+	public var pr(inner_zn):PR(UserConstraint);
+
+	//------------------------------------------------------------------------
+
+	public function bindVec2() {
+		var ret = new Vec2();
+		ret.pr(inner).inuse = true;
+		ret.pr(inner)._invalidate = pr(inner_zn).bindVec2_invalidate;
+		return ret;
+	}
+
+	 //------------------------------------------------------------------------
+
+	public function __copy():UserConstraint {
+		DEBUG(throw "Error: UserConstraint::__copy must be overriden";)
+		return null;
+	}
+	public function __destroy():Void {}
+	public function __validate():Void {}
+
+	public function __draw(debug:Debug):Void {}
+
+	//------------------------------------------------------------------------
+
+	public function __prepare() {}
+
+	public function __position(err:ARRAY(Float)) {
+		DEBUG(throw "Error: UserConstraint::__position must be overriden";)
+	}
+	public function __velocity(err:ARRAY(Float)) {
+		DEBUG(throw "Error: Userconstraint::__velocity must be overriden";)
+	}
+	public function __eff_mass(eff:ARRAY(Float)) {
+		DEBUG(throw "Error: UserConstraint::__eff_mass must be overriden";)
+	}
+
+	public function __clamp(jAcc:ARRAY(Float)) {}
+
+	//------------------------------------------------------------------------
+
+	public function __impulse(imp:ARRAY(Float),body:Body,out:Vec3) {
+		DEBUG(throw "Error: UserConstraint::__impulse must be overriden";)
+	}
+
+	//------------------------------------------------------------------------
+
+	flibopts(1)
+	public function new(dimensions:Int,velocityOnly=false) {
+		DEBUG(try { super(); } catch (e:Dynamic) {})
+		RELEASE(super();)
+
+		DEBUG(if(dimensions<1) throw "Error: Constraint dimension must be at least 1";)
+
+		pr(inner_zn) = new PR(UserConstraint)(dimensions,velocityOnly);
+		pr(inner) = pr(inner_zn);
+		pr(inner).outer = this;
+		pr(inner_zn).outer_zn = this;
+	}
+
+	//------------------------------------------------------------------------
+
+	public override function impulse() {
+		var ret = new MatMN(pr(inner_zn).dim,1);
+		for(i in 0...pr(inner_zn).dim)
+			ret.setx(i,0, pr(inner_zn).jAcc[i] + pr(inner_zn).pjAcc[i]);
+		return ret;
+	}
+
+	public override function bodyImpulse(body:Body) {
+		DEBUG(
+			if(body==null) throw "Error: Cannot evaluate impulse on null body";
+			var found = false;
+			for(b in pr(inner_zn).bodies) {
+				if(b.body==body.pr(inner)) { found = true; break; }
+			}
+			if(!found) throw "Error: Body is not linked to this constraint";
+		)
+		if(!active) return new Vec3();
+		else        return pr(inner_zn).bodyImpulse(body.pr(inner));
+	}
+
+	//------------------------------------------------------------------------
+
+	public function invalidate() {
+		pr(inner).immutable_midstep("UserConstraint::invalidate()");
+		if(active && space!=null)
+			pr(inner).wake();
+	}
+
+	public function registerBody(oldBody:Body,newBody:Body) {
+		pr(inner).immutable_midstep("UserConstraint::registerBody(..)");
+		if(oldBody!=newBody) {
+			if(oldBody!=null) {
+				if(!pr(inner_zn).remBody(oldBody.pr(inner))) {
+					DEBUG(throw "Error: oldBody is not registered to the cosntraint";)
+				}
+
+				if(active && space!=null)
+					oldBody.pr(inner).wake();
+			}
+			if(newBody!=null) pr(inner_zn).addBody(newBody.pr(inner));
+
+			pr(inner).wake();
+			if(newBody!=null) newBody.pr(inner).wake();
+		}
+		return newBody;
+	}
+
+}

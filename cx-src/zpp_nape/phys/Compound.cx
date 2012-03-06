@@ -1,0 +1,161 @@
+package zpp_nape.phys;
+$(import);
+
+class PR(Compound) extends PR(Interactor) {
+	public var outer:Compound;
+
+	//----------------------------------------------------
+
+	public var bodies:List(PR(Body)); 
+	public var constraints:List(PR(Constraint));
+	public var compounds:List(PR(Compound)); 
+
+	public var wrap_bodies:BodyList;
+	public var wrap_constraints:ConstraintList;
+	public var wrap_compounds:CompoundList;
+
+	//----------------------------------------------------
+
+	public var depth:Int;
+	public var compound:PR(Compound);
+	public var space:PR(Space);
+
+	//----------------------------------------------------
+
+	public function __imutable_midstep(name:String) {
+		DEBUG(if(space!=null && space.midstep) throw "Error: "+name+" cannot be set during space step()";)
+	}
+
+	public function addedToSpace() {
+		__iaddedToSpace();
+	}
+	public function removedFromSpace() {
+		__iremovedFromSpace();
+	}
+
+	//----------------------------------------------------
+
+	public function breakApart() {
+		if(compound!=null) compound.compounds.remove(this);
+		if(space   !=null) space.   compounds.remove(this);
+
+		ClearWith(b, bodies, {
+			if((b.compound = compound) != null) compound.bodies.add(b);
+			elif(space!=null) space.bodies.add(b);
+		});
+		ClearWith(c, constraints, {
+			if((c.compound = compound) != null) compound.constraints.add(c);
+			elif(space!=null) space.constraints.add(c);
+		});
+		ClearWith(c, compounds, {
+			if((c.compound = compound) != null) compound.compounds.add(c);
+			elif(space!=null) space.compounds.add(c);
+		});
+	
+		compound = null;
+		space    = null;
+	}
+
+	//----------------------------------------------------
+
+	$(expand object werelambdas(b,B,check,onadd,onsub)
+		private function b`_adder(x:B) {
+			check(x)
+			if(x.pr(inner).compound!=this) {
+				if(x.pr(inner).compound!=null) x.pr(inner).compound.wrap_`b.remove(x);
+				elif(x.pr(inner).space!=null) x.pr(inner).space.wrap_`b.remove(x);
+
+				x.pr(inner).compound = this;
+				onadd(x);
+
+				if(space!=null) space.add`B(x.pr(inner));
+				return true;
+			}else return false;
+		}
+		private function b`_subber(x:B) {
+			x.pr(inner).compound = null;
+			onsub(x);
+
+			if(space!=null) space.rem`B(x.pr(inner));
+		}
+		DEBUG(private function b`_modifiable() {
+			immutable_midstep("Compound::"+$str(b));
+		})
+	);
+
+	public function new() {
+		super();
+		icompound = this;
+		depth = 1; //space is taken to be depth=0
+
+		var me = this;
+		$(mixin list(b,B) list(b,B,$(mixin check(x){}) check,$(mixin onadd(x){}) onadd,$(mixin onsub(x){}) onsub));
+		$(mixin list(b,B,check,onadd,onsub)
+			werelambdas(b,B,check,onadd,onsub)
+
+			b = new List(PR(B))();
+			wrap_`b = PR(B`List).get(b);
+			wrap_`b.pr(inner).adder = b`_adder;
+			wrap_`b.pr(inner).subber = b`_subber;
+			DEBUG(wrap_`b.pr(inner)._modifiable = b`_modifiable;)
+		);
+
+		list(bodies,Body)
+		list(constraints,Constraint)
+
+		list(compounds,Compound,
+		$(mixin check(x) DEBUG(
+			var cur = this;
+			while(cur!=null && cur!=x.pr(inner)) cur = cur.compound;
+			if(cur==x.pr(inner)) {
+				throw "Error: Assignment would cause a cycle in the Compound tree: assigning "+x.toString()+".compound = "+outer.toString();
+				return false;
+		})) check,
+		$(mixin onadd(x) x.pr(inner).depth = depth+1) onadd,
+		$(mixin onsub(x) x.pr(inner).depth = 1 /*space is taken to be 0*/) onsub
+		)
+	}
+
+	//------------------------------------------
+
+	//copy compound recursively matching bodies to clones for constraint lookups
+	//and deferring any missing bodies to the todo list.
+	public function copy(?dict:Array<{id:Int,bc:Body}>,?todo:Array<{id:Int, cb:Body->Void}>):Compound {
+		var root = dict==null;
+		if(dict==null) dict = new Array<{id:Int,bc:Body}>();
+		if(todo==null) todo = new Array<{id:Int, cb:Body->Void}>();
+
+		var ret = new Compound();
+		//we first compounds, and then bodies followed by constraints
+		//in the case of no dangling constraints in an inner compound
+		//we guarantee the smallest todo list.
+		Iter(c, compounds, {
+			var cc = c.copy(dict,todo);
+			cc.compound = ret;
+		});
+		Iter(b, bodies, {
+			var bc = b.outer.copy();
+			dict.push({id:b.id,bc:bc});
+			bc.compound = ret;
+		});
+		Iter(c, constraints, {
+			var cc = c.copy(dict,todo);
+			cc.compound = ret;
+		});
+
+		if(root) {
+			while(todo.length>0) {
+				var xcb = todo.pop();
+				for(idc in dict) {
+					if(idc.id == xcb.id) {
+						xcb.cb(idc.bc);
+						break;
+					}
+				}
+			}
+		}
+
+		copyto(ret);
+		return ret;
+	}
+}

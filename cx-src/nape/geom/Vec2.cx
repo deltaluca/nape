@@ -1,11 +1,6 @@
 package nape.geom;
 $(import);
 
-//use_inline false allows sub-class PR(MixVec2List) to be defined and work transparently.
-WrapList(Vec2,List(PR(Vec2)),Node(PR(Vec2)),$(mixin closure(x) x.wrapper()) $(mixin erusolc(x) x.pr(inner)) $(mixin inline() $(->)) $(mixin use_inline false) $(mixin copy_elt(x) x.copy()))
-
-MixDerivedList(Vec2,MixList(PR(Vec2)),PR(Vec2),$(mixin closure(x) x.wrapper()) $(mixin erusolc(x) x.pr(inner)) $(mixin copy_elt(x) x.copy()))
-
 class Vec2 {
 	public var pr(inner):PR(Vec2);
 
@@ -14,8 +9,8 @@ class Vec2 {
 	$(mixin global isWEAK(x) (x.pr(inner).weak));
 	$(mixin global WEAK(x) ({ if(isWEAK(x)) { x.dispose(); true; } else false; }));
 
-	public static inline function weak(?x:Float=0,?y:Float=0) return get(x,y,true)
-	public static inline function get(?x:Float=0,?y:Float=0,?weak:Bool=false) {
+	public static function weak(?x:Float=0,?y:Float=0) return get(x,y,true)
+	public static function get(?x:Float=0,?y:Float=0,?weak:Bool=false) {
 		DEBUG(if(isNaN(x) || isNaN(y)) throw "Error: Vec2 components cannot be NaN";)
 		var ret = PublicGet(Vec2);
 		if(ret.pr(inner)==null) ret.pr(inner) = PR(Vec2).get(x,y);
@@ -23,7 +18,7 @@ class Vec2 {
 		if(weak) ret.pr(inner).weak = true;
 		return ret;
 	}
-	public inline function dispose() {
+	public function dispose() {
 		Disposed(this,Vec2);
 		DEBUG(if(pr(inner).inuse) throw "Error: This Vec2 is not disposable";)
 
@@ -39,7 +34,7 @@ class Vec2 {
 		pr(inner) = PR(Vec2).get(x,y);
 		pr(inner).outer = this;
 	}
-	keep public inline function copy(?weak:Bool=false) {
+	keep public function copy(?weak:Bool=false) {
 		Disposed(this,Vec2);
 		return Vec2.get(x,y,weak); 
 	}
@@ -163,10 +158,21 @@ class Vec2 {
 		var l = length;
 		setxy(l*Math.cos(angle),l*Math.sin(angle));
 	})
+
+	keep public function rotate(angle:Float) {
+		Disposed(this,Vec2);
+		DEBUG(if(isNaN(angle)) throw "Error: Cannot rotate Vec2 by NaN";)
+
+		var ax = Math.sin(angle);
+		var ay = Math.cos(angle);
+		vec_rotateq(pr(inner).,a);
+
+		return this;
+	}
 	
 	//----------------------------------------------------------------------------------------------
 	
-	keep public inline function add  (a:Vec2, ?weak:Bool=false) {
+	keep public function add  (a:Vec2, ?weak:Bool=false) {
 		Disposed(this,Vec2);
 		Disposed(a,Vec2);
 
@@ -175,7 +181,7 @@ class Vec2 {
 		WEAK(a);
 		return ret;
 	}
-	keep public inline function sub  (a:Vec2, ?weak:Bool=false) {
+	keep public function sub  (a:Vec2, ?weak:Bool=false) {
 		Disposed(this,Vec2);
 		Disposed(a,Vec2);
 
@@ -184,13 +190,13 @@ class Vec2 {
 		WEAK(a);
 		return ret;
 	}
-	keep public inline function mul (s:Float, ?weak:Bool=false) {
+	keep public function mul (s:Float, ?weak:Bool=false) {
 		Disposed(this,Vec2);
 
 		DEBUG(if(isNaN(s)) throw "Error: Cannot multiply with NaN";)
 		return Vec2.get(vec_imul($(->),s),weak);
 	}
-	keep public inline function addeq(a:Vec2) {
+	keep public function addeq(a:Vec2) {
 		Disposed(this,Vec2);
 		Disposed(a,Vec2);
 
@@ -202,7 +208,7 @@ class Vec2 {
 		WEAK(a);
 		return ret;
 	}
-	keep public inline function subeq(a:Vec2) {
+	keep public function subeq(a:Vec2) {
 		Disposed(this,Vec2);
 		Disposed(a,Vec2);
 
@@ -214,7 +220,7 @@ class Vec2 {
 		WEAK(a);	
 		return ret;
 	}
-	keep public inline function muleq(s:Float) {
+	keep public function muleq(s:Float) {
 		Disposed(this,Vec2);
 
 		DEBUG(
@@ -223,7 +229,7 @@ class Vec2 {
 		)
 		return setxy(vec_imul($(->),s));
 	}
-	keep public inline function dot  (a:Vec2) {
+	keep public function dot  (a:Vec2) {
 		Disposed(this,Vec2);
 		Disposed(a,Vec2);
 
@@ -232,7 +238,7 @@ class Vec2 {
 		WEAK(a);
 		return ret;
 	}
-	keep public inline function cross(a:Vec2) {
+	keep public function cross(a:Vec2) {
 		Disposed(this,Vec2);
 		Disposed(a,Vec2);
 
@@ -240,6 +246,11 @@ class Vec2 {
 		var ret = vec_cross($(->),a.);
 		WEAK(a);
 		return ret;
+	}
+
+	keep public function perp(weak=false) {
+		Disposed(this,Vec2);
+		return Vec2.get(-y,x,weak);
 	}
 	
 	//----------------------------------------------------------------------------------------------

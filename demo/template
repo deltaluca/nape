@@ -1,0 +1,74 @@
+#!/bin/bash
+
+# template name width height fps bgcol
+
+mkdir $1
+cd $1
+
+cat > Makefile << EOT
+NAPELIB = \$(NAPE)/haxe_release_nape.swf
+
+run: build
+	fp $1.swf
+
+build:
+	haxe \
+		-cp "/" -cp . -cp ../common \
+		-swf-lib \$(NAPELIB) \
+		-swf-header $2:$3:$4:$5 \
+		-swf-version 11 \
+		-main $1 \
+		-swf $1.swf
+EOT
+
+cat > $1.hx << EOT
+package;
+
+//not yet written!
+EOT
+
+cat > $1.as << EOT
+package {
+	
+	//not yet written!
+}
+EOT
+
+cat > $1.xml << EOT
+<?xml version="1.0" encoding="utf-8" ?>
+<data>
+
+<swf name="$1" package="">
+	<short>
+		
+	</short>
+	<long>
+		<br/>
+		
+		
+		<br/>
+		<br/>
+		<swf centre="true" file="$1.swf" width="$2" height="$3"/>
+		<br/>
+		<br/>
+		<link type="relative" anchor="AS3">AS3 Source</link><br/>
+		<link type="relative" anchor="haXe">haXe Source</link><br/>
+		<br/>
+		<hr/>
+		<br/>
+		<anch name="AS3"/><text class="header2">AS3 Source</text>
+		<br/>
+		<!-- executed from /doc-gen/ with .as/.hx as /doc-gen/xml/demo/ -->
+		<code file="xml/demo/$1.as"/>
+		<br/>
+		<hr/>
+		<br/>
+		<anch name="haXe"/><text class="header2">haXe Source</text>
+		<br/>
+		<code file="xml/demo/$1.hx"/>
+		<br/>
+	</long>
+</swf>
+
+</data>
+EOT

@@ -17,6 +17,8 @@ import nape.geom.AABB;
 import nape.util.BitmapDebug;
 
 import FixedStep;
+import FPS;
+
 class WaterBalls extends FixedStep {
 	static function main() {
 		new WaterBalls();
@@ -28,6 +30,8 @@ class WaterBalls extends FixedStep {
 		var debug = new BitmapDebug(800,400,0x333333);
 		debug.drawShapeAngleIndicators = false;
 		addChild(debug.display);
+
+		addChild(new FPS(800,60,0,60,0x40000000,0xffffffff,0xa0ff0000));
 
 		var space = new Space(new Vec2(0,400));
 

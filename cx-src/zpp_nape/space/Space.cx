@@ -52,51 +52,150 @@ class PR(Component) {
 	}
 }
 
+class PR(CallbackSet) {
+	//for hash
+	public var hnext:PR(CallbackSet);
+	public var id:Int; public var di:Int;
+
+	public var int1:PR(Interactor);
+	public var int2:PR(Interactor);
+
+	public static function get(i1:PR(Interactor),i2:PR(Interactor)) {
+		var ret = Get(PR(CallbackSet));
+		if(i1.id<=i2.id) { ret.int1 = i1; ret.int2 = i2; }
+		else             { ret.int1 = i2; ret.int2 = i1; }
+		ret.id = ret.int1.id;
+		ret.di = ret.int2.id;
+		return ret;
+	}
+
+	//can use a hash here and it naturally fits.
+	//but for the size of the arbiter sets
+	//it seems a waste of memory and would be sub-optimal
+	// ^^ now that this arbiters list is released to public
+	// using a hash would be ever more annoying :P
+	public var arbiters:List(PR(Arbiter));
+
+	//per-interaction type state and time-stamp
+	$(mixin type(n)
+		public var n`state:Int;
+		public var n`stamp:Int;
+		gentype(n)
+	);
+	type(COLLISION)
+	type(SENSOR)
+	type(FLUID)
+
+	//kept in list for on-going events
+	MixListMixin(PR(CallbackSet))
+	MixPoolNoNext(PR(CallbackSet))
+
+	flibmdel public inline function free() {
+		assert(arbiters.empty(),"callbackset released with lingering arbs");
+	}
+	flibmdel public inline function alloc() {
+		$(expand object gentype(n)
+			n`state = Flag(PreFlag,ACCEPT);
+			n`stamp = 0;
+		);
+	}
+
+	public function new() {
+		arbiters = new List(PR(Arbiter))();
+	}
+
+	//-------------
+
+	public function add_arb(x:PR(Arbiter)) {
+		if(!arbiters.has(x))
+			arbiters.add(x);
+	}
+	public function try_remove_arb(x:PR(Arbiter)) {
+		if(arbiters.has(x)) {
+			arbiters.remove(x);
+			return true;
+		}else return false;
+	}
+	public function remove_arb(x:PR(Arbiter)) arbiters.remove(x)
+
+	//type is an Interactor/Arbiter type.
+	//we check that for this specific interaction type
+	//there is no arbiter in the callback set.
+	public function empty_arb(type:Int) {
+		return ForAll(x, arbiters, (x.type&type)==0);
+	}
+	public function really_empty() {
+		return arbiters.empty();
+	}
+}
+
+GENID(Space)
 class PR(Space) {
 	public var outer:Space;
 	
 	vec_new(public,gravity); public var wrap_gravity:Vec2;
 	public function getgravity() {
-		var me = this;
 		wrap_gravity = Vec2.get(gravityx,gravityy);
 		wrap_gravity.pr(inner).inuse = true;
-		wrap_gravity.pr(inner)._invalidate = function(x:PR(Vec2)) {
-			vec_set(me.gravity,x.);
-			Iter(b, me.bodies, {
-				me.wake(b);
-			});
+		wrap_gravity.pr(inner)._invalidate = gravity_invalidate;
+		wrap_gravity.pr(inner)._validate = gravity_validate;
+	}
+	private function gravity_invalidate(x:PR(Vec2)) {
+		DEBUG(if(midstep) throw "Error: Space::gravity cannot be set during space step";)
+		vec_set(gravity,x.);
+		
+		var stack = new List(PR(Compound))();
+		Iterate(bodies, wake);
+		Iterate(compounds, stack.add);
+		while(!stack.empty()) {
+			var s = stack.pop_unsafe();
+			Iterate(s.bodies, wake);
+			Iterate(s.compounds, stack.add);
 		}
-		wrap_gravity.pr(inner)._validate = function() {
-			vec_set(me.wrap_gravity.pr(inner).,me.gravity);
-		}
+	}
+	private function gravity_validate() {
+		vec_set(wrap_gravity.pr(inner).,gravity);
 	}
 	
 	//----------------------------------------------------------------------------------------------
-	
-	public var bodies    :List(PR(Body)); public var wrap_bodies    :BodyList;
-	public var statics   :List(PR(Body)); public var wrap_statics   :BodyList;
-	public var dynamics  :List(PR(Body)); public var wrap_dynamics  :BodyList;
-	public var kinematics:List(PR(Body)); public var wrap_kinematics:BodyList;
-	
-	public var constraints:List(PR(Constraint));  public var wrap_constraints:ConstraintList;
+
+	//these model the public lists with the Space acting much like a Compound
+	public var bodies :List(PR(Body));     public var wrap_bodies   :BodyList;
+	public var compounds :List(PR(Compound)); public var wrap_compounds:CompoundList;
+	public var constraints:List(PR(Constraint)); public var wrap_constraints:ConstraintList;
+
+	//this list stores 'all' kinematics.
+	//we assume kinematics will never really sleep.
+	//could be improved later.
+	public var kinematics:List(PR(Body));	
 	
 	public var bphase:PR(Broadphase);
 	
 	public var __static:Body; //for constraint use.
 	
 	//----------------------------------------------------------------------------------------------
+
+	public var global_lin_drag:Float;
+	public var global_ang_drag:Float;
+
+	//----------------------------------------------------------------------------------------------
 	
+	public var id:Int;
+
+	//----------------------------------------------------------------------------------------------
+
 	public var stamp:Int;
     public var midstep:Bool;
     public var time:Float;
 	
+	public var sortcontacts:Bool;
+
 	//----------------------------------------------------------------------------------------------
 	
 	$(define global public var c_arbiters(stat):List(PR(ColArbiter)););
 	public var f_arbiters:List(PR(FluidArbiter));
 	public var s_arbiters:List(PR(SensorArbiter));
 
-	public var map_arb:FastHash2(PR(Arbiter));
 	public var wrap_arbiters:ArbiterList;
 	
 	//----------------------------------------------------------------------------------------------
@@ -119,13 +218,22 @@ class PR(Space) {
     public var wrap_listeners:ListenerList;
 
     public var callbacks:PR(Callback); //as a deque
-    public var wrap_callbacks:CallbackQueue;
-	
+
+	//for on-going callbacks
+	public var callbackset_list:MixList(PR(CallbackSet));
+
 	//----------------------------------------------------------------------------------------------
 
 	public function clear() {
-		callbacks.clear();
+		global_lin_drag = PR(Config).GLOBAL_LIN_DRAG;
+		global_ang_drag = PR(Config).GLOBAL_ANG_DRAG;
+
+		//this also deals naturally with removing all callbacksets
 		ClearWith(c, listeners, remListener(c));
+		ClearWith(c, callbackset_list, {
+			c.arbiters.clear();
+			Free(PR(CallbackSet),c);
+		});
 
 		///clear internal lists to object pools if applicable
 		//arbiters
@@ -133,19 +241,9 @@ class PR(Space) {
 		ClearWith(arb, c_arbiters(false), arb.retire());
 		ClearWith(arb, s_arbiters,        arb.retire());
 		ClearWith(arb, f_arbiters,        arb.retire());
-		map_arb.clear();
 
 		//broadphase
 		bphase.clear();
-
-		//islands
-		assert(islands.empty(),"islands exist... wuh?");
-		/*
-		while(!islands.empty()) {
-			var isl = islands.pop_unsafe();
-			ClearWith(c,isl.comps, c.reset());
-			Free(PR(Island),isl);
-		}*/
 
 		//handle islands that exist implicitly through components.
 		$(mixin isl(comp) {
@@ -159,12 +257,26 @@ class PR(Space) {
 		});
 
 		//clear user lists
-		ClearWith(b, bodies,     { isl(b.component); b.removedFromSpace(); b.space = null; });
-		statics.clear();
-		dynamics.clear();
+		ClearWith(b, bodies, { isl(b.component); b.removedFromSpace(); b.space = null; });
+		ClearWith(c, constraints, { isl(c.component); c.removedFromSpace(); c.space = null; });
 		kinematics.clear();
 
-		ClearWith(c, constraints, { isl(c.component); c.removedFromSpace(); c.space = null; });
+		var stack = new List(PR(Compound))();
+		ClearWith(c, compounds, stack.add(c));
+
+		while(!stack.empty()) {
+			var comp = stack.pop_unsafe();
+			comp.removedFromSpace();
+			comp.space = null;
+
+			Iter(b, comp.bodies, { isl(b.component); b.removedFromSpace(); b.space = null; });
+			Iter(c, comp.constraints, { isl(c.component); c.removedFromSpace(); c.space = null; });
+
+			Iterate(comp.compounds, stack.add);
+		}
+
+		//islands
+		assert(islands.empty(),"islands exist... wuh?");
 
 		//other
 		staticsleep.clear();
@@ -176,14 +288,99 @@ class PR(Space) {
 		time = 0.0;
 		vec_set(gravity,0,0);
 		#if NAPE_TIMES
-			Debug.FOR = Debug.BROAD = Debug.PRE = Debug.POS = Debug.VEL = Debug.DRAW = 0;
+			Debug.FOR = Debug.BROAD = Debug.PRE = Debug.POS = Debug.VEL = Debug.DRAW = Debug.SORT = 0;
 			Debug.ltime = 0;
 		#end
+
+		//extra shiz
+		mrca1.clear();
+		mrca2.clear();
 	}
 
 	//----------------------------------------------------------------------------------------------
 	
+	//were previously lambdas for wrap_lists
+	private function bodies_adder(x:Body) {
+		DEBUG(if(x.pr(inner).compound!=null) throw "Error: Cannot set the space of a Body belonging to a Compound, only the root Compound space can be set";)
+		if(x.pr(inner).space!=this) {
+			if(x.pr(inner).space!=null) x.pr(inner).space.outer.bodies.remove(x);
+			addBody(x.pr(inner));
+			return true;
+		}else return false;
+	}
+	private function bodies_subber(x:Body) {
+		remBody(x.pr(inner));
+	}
+	DEBUG(private function bodies_modifiable() {
+		if(midstep) throw "Error: Space::bodies cannot be set during space step()";
+	})
+
+	//----------------------------------------------------------------------------------------------
+
+	//were previously lambdas for wrap_lists
+	private function compounds_adder(x:Compound) {
+		DEBUG(if(x.pr(inner).compound!=null) throw "Error: Cannot set the space of an inner Compound, only the root Compound space can be set";)
+		if(x.pr(inner).space!=this) {
+			if(x.pr(inner).space!=null) x.pr(inner).space.wrap_compounds.remove(x);
+			addCompound(x.pr(inner));
+			return true;
+		}else return false;
+	}
+	private function compounds_subber(x:Compound) {
+		remCompound(x.pr(inner));
+	}
+	DEBUG(private function compounds_modifiable() {
+		if(midstep) throw "Error: Space::compounds cannot be set during space step()";
+	})
+
+	//----------------------------------------------------------------------------------------------
+
+	//were previously lambdas for wrap_lists
+	private function constraints_adder(x:Constraint) {
+		DEBUG(if(x.pr(inner).compound!=null) throw "Error: Cannot set the space of a Constraint belonging to a Compound, only the root Compound space can be set";)
+		if(x.pr(inner).space!=this) {
+			if(x.pr(inner).space!=null) x.pr(inner).space.outer.constraints.remove(x);
+			this.addConstraint(x.pr(inner));
+			return true;
+		}else return false;
+	}
+	private function constraints_subber(x:Constraint) {
+		remConstraint(x.pr(inner));
+	}
+	DEBUG(private function constraints_modifiable() {
+		if(midstep) throw "Error: Space::constraints cannot be set during space step()";
+	})
+
+	//----------------------------------------------------------------------------------------------
+
+	//were previously lambdas for wrap_lists
+	private function listeners_adder(x:Listener) {
+		if(x.pr(inner).space!=this) {
+			if(x.pr(inner).space!=null) x.pr(inner).space.outer.listeners.remove(x);
+			addListener(x.pr(inner));
+			return true;
+		}else return false;
+	}
+	private function listeners_subber(x:Listener) {
+		remListener(x.pr(inner));
+	}
+	DEBUG(private function listeners_modifiable() {
+		if(midstep) throw "Error: Space::listeners cannot be set during space step()";
+	})
+
+	//----------------------------------------------------------------------------------------------
+	
 	public function new(gravity:PR(Vec2),broadphase:Broadphase) {
+		global_lin_drag = PR(Config).GLOBAL_LIN_DRAG;
+		global_ang_drag = PR(Config).GLOBAL_ANG_DRAG;
+
+		PR(Callback).internal = true;
+		precb = new PreCallback();
+		precb.pr(inner) = new PR(Callback)();
+		PR(Callback).internal = false;
+
+		id = ID(Space);
+		sortcontacts = true;
 		pre_dt = 0.0;
 
 		if(broadphase==null || broadphase==Broadphase.DYNAMIC_AABB_TREE)
@@ -196,47 +393,25 @@ class PR(Space) {
 		
 		if(gravity!=null) vec_set(this.gravity,gravity.);
 		else vec_set(this.gravity,0,0);
-		
-		bodies = new List(PR(Body))();
+	
+		bodies = new List(PR(Body))();	
 		wrap_bodies = PR(BodyList).get(bodies);
-		wrap_bodies.pr(inner).adder = function(x:Body) {
-			if(x.pr(inner).space!=me) {
-				if(x.pr(inner).space!=null) x.pr(inner).space.outer.bodies.remove(x);
-				me.addBody(x.pr(inner),0);
-				return true;
-			}else return false;
-		};
-		wrap_bodies.pr(inner).subber = function(x:Body) {
-			me.removeBody(x.pr(inner),0);
-		};
-		
-		/// _invalidate method on these lists? is it needed?!
+		wrap_bodies.pr(inner).adder = bodies_adder;
+		wrap_bodies.pr(inner).subber = bodies_subber;
+		DEBUG(wrap_bodies.pr(inner)._modifiable = bodies_modifiable;)
 
-		$(mixin wrap_bodies(T,t)
-			t`s = new List(PR(Body))();
-			wrap_`t`s = PR(BodyList).get(t`s);
-			wrap_`t`s.pr(inner).adder = function(x:Body) {
-				DEBUG(if(x.type!=BodyType.T) throw "Error: Cannot add non-"+$str(t)+" Body to "+$str(t)+"s list";)
-				if(x.pr(inner).space!=me) {
-					if(x.pr(inner).space!=null) x.pr(inner).space.outer.t`s.remove(x);
-					me.addBody(x.pr(inner),Flag(BodyType,T));
-					return true;
-				}else return false;
-			}
-			wrap_`t`s.pr(inner).subber = function(x:Body) {
-				me.removeBody(x.pr(inner),Flag(BodyType,T));
-			}
-		);
-		wrap_bodies(STATIC,static)
-		wrap_bodies(DYNAMIC,dynamic)
-		wrap_bodies(KINEMATIC,kinematic)
+		compounds = new List(PR(Compound))();
+		wrap_compounds = PR(CompoundList).get(compounds);
+		wrap_compounds.pr(inner).adder = compounds_adder;
+		wrap_compounds.pr(inner).subber = compounds_subber;
+		DEBUG(wrap_compounds.pr(inner)._modifiable = compounds_modifiable;)
+
+		kinematics = new List(PR(Body))();
 		
 		c_arbiters(true) = new List(PR(ColArbiter))();
 		c_arbiters(false) = new List(PR(ColArbiter))();
 		f_arbiters = new List(PR(FluidArbiter))();
 		s_arbiters = new List(PR(SensorArbiter))();
-		
-		map_arb = new FastHash2(PR(Arbiter))();
 		
 		islands = new MixList(PR(Island))();
 		
@@ -247,16 +422,9 @@ class PR(Space) {
 		
 		constraints = new List(PR(Constraint))();
 		wrap_constraints = PR(ConstraintList).get(constraints);
-		wrap_constraints.pr(inner).adder = function(x:Constraint) {
-			if(x.pr(inner).space!=me) {
-				if(x.pr(inner).space!=null) x.pr(inner).space.outer.constraints.remove(x);
-				me.addConstraint(x.pr(inner));
-				return true;
-			}else return false;
-		};
-		wrap_constraints.pr(inner).subber = function(x:Constraint) {
-			me.remConstraint(x.pr(inner));
-		};
+		wrap_constraints.pr(inner).adder = constraints_adder;
+		wrap_constraints.pr(inner).subber = constraints_subber;
+		DEBUG(wrap_constraints.pr(inner)._modifiable = constraints_modifiable;)
 		
 		live_constraints = new List(PR(Constraint))();
 		wrap_livecon = PR(ConstraintList).get(live_constraints,true);
@@ -269,19 +437,22 @@ class PR(Space) {
 
         listeners = new List(PR(Listener))();
         wrap_listeners = PR(ListenerList).get(listeners);
-        wrap_listeners.pr(inner).adder = function(x:Listener) {
-            if(x.pr(inner).space!=me) {
-                if(x.pr(inner).space!=null) x.pr(inner).space.outer.listeners.remove(x);
-                me.addListener(x.pr(inner));
-                return true;
-            }else return false;
-        };
-        wrap_listeners.pr(inner).subber = function(x:Listener) {
-            me.remListener(x.pr(inner));
-        };
+        wrap_listeners.pr(inner).adder = listeners_adder;
+        wrap_listeners.pr(inner).subber = listeners_subber;
+		DEBUG(wrap_listeners.pr(inner)._modifiable = listeners_modifiable;)
+
+		callbackset_list = new MixList(PR(CallbackSet))();
+		
+		mrca1 = new List(PR(Interactor))();
+		mrca2 = new List(PR(Interactor))();
 	}
 	
 	//----------------------------------------------------------------------------------------------
+
+	public function revoke_listener(x:PR(InteractionListener)) {
+	}
+	public function unrevoke_listener(x:PR(InteractionListener)) {
+	}
 
     public function addListener(x:PR(Listener)) {
         x.space = this;
@@ -289,14 +460,35 @@ class PR(Space) {
             x.body.addedToSpace();
         else if(x.type==Flag(ListenerType,CONSTRAINT))
             x.constraint.addedToSpace();
+		else {
+			x.interaction.addedToSpace();
+			unrevoke_listener(x.interaction);
+		}
     }
     public function remListener(x:PR(Listener)) {
-        x.space = null;
         if(x.type==Flag(ListenerType,BODY))
             x.body.removedFromSpace();
         else if(x.type==Flag(ListenerType,CONSTRAINT))
             x.constraint.removedFromSpace();
+		else {
+			revoke_listener(x.interaction);
+			x.interaction.removedFromSpace();
+		}
+        x.space = null;
     }
+
+    //----------------------------------------------------------------------------------------------
+
+	public function add_callbackset(cb:PR(CallbackSet)) {
+		cb.int1.cbsets.add(cb);
+		cb.int2.cbsets.add(cb);
+		callbackset_list.add(cb);
+	}
+
+	public function remove_callbackset(cb:PR(CallbackSet)) {
+		cb.int1.cbsets.remove(cb);
+		cb.int2.cbsets.remove(cb);
+	}
 
     //----------------------------------------------------------------------------------------------
 
@@ -305,15 +497,13 @@ class PR(Space) {
 		//wake object
 		wake(p);
 		
-		if     (p.type == Flag(BodyType,DYNAMIC))   { dynamics.remove(p);   live.remove(p);        }
+		if     (p.type == Flag(BodyType,DYNAMIC))   { live.remove(p); }
 		else if(p.type == Flag(BodyType,KINEMATIC)) { kinematics.remove(p); staticsleep.remove(p); }
-		else if(p.type == Flag(BodyType,STATIC))    { statics.remove(p);    staticsleep.remove(p); }
+		else if(p.type == Flag(BodyType,STATIC))    { staticsleep.remove(p); }
 		
 		p.type = new_type;
 		
-		if     (p.type == Flag(BodyType,DYNAMIC))   dynamics.add(p);
-		else if(p.type == Flag(BodyType,KINEMATIC)) kinematics.add(p);
-		else if(p.type == Flag(BodyType,STATIC))    statics.add(p);
+		if(p.type == Flag(BodyType,KINEMATIC)) kinematics.add(p);
 		
 		if(p.type == Flag(BodyType,STATIC)) static_validation(p);
 		
@@ -341,6 +531,51 @@ class PR(Space) {
 		Iter(xarb,body.arbiters,{
 			var rem = xarb.ws1 == s || xarb.ws2 == s;
 			if(rem) {
+				//need to deal with callbackset callback counters!!!
+				//
+				//this handles shapes/bodies being removed
+				//we only generate end callbacks when body is not being deleted
+				//a callbackset is generated even in the shape-shape case for ongoing events.
+				//
+				//we decrement on both begin/end callback existance also pre.
+				//as in either case the callbackset exists and must be cleaned
+//				if(xarb.active) {
+				if(xarb.present) {
+					MRCA_chains(xarb.ws1,xarb.ws2);
+					Iter(i1,mrca1,{
+					Iter(i2,mrca2,{
+						var cb1 = i1.cbType;
+						var cb2 = i2.cbType;
+						assert(cb1!=null && cb2!=null, "null cbs from MRCA_chains?");
+
+						if(PR(CbType).empty_intersection(cb1,cb2)) cx_continue;
+
+						var callbackset = PR(Interactor).get(i1,i2);
+						assert(callbackset!=null,"null callbackset on arbiter deletion?");
+						callbackset.remove_arb(xarb);
+
+						if(!deleting) {
+							var listener = PR(CbType).find(cb1,cb2,Flag(CbEvent,END),xarb.type);
+							if(listener!=null
+							&& callbackset.empty_arb(listener.itype) && (listener.itype&xarb.type)!=0) {	
+								var cb = push_callback(listener);
+								cb.event = Flag(CbEvent,END);
+								//use callbackset int1/int2 to keep consistency in cases of cbType1==cbType2
+								PR(Interactor).int_callback(callbackset.int1,callbackset.int2,listener.cb1,cb);
+								cb.set = callbackset;
+							}
+						}
+
+						if(callbackset.really_empty()) {
+							remove_callbackset(callbackset);
+							//deferred for callbackset_list to avoid doubly linked list.
+							//Free(PR(CallbackSet),callbackset);
+						}
+					});
+					});
+				}
+				xarb.present = false;
+
 				//wake connected first.
 				if(xarb.b1 != body && xarb.b1.isDynamic()) wake(xarb.b1);
 				if(xarb.b2 != body && xarb.b2.isDynamic()) wake(xarb.b2);
@@ -380,6 +615,24 @@ class PR(Space) {
 	}
 	
 	//----------------------------------------------------------------------------------------------
+
+	//simple batching
+	public function addCompound(x:PR(Compound)) {
+		x.space = this;
+		x.addedToSpace();
+		Iterate(x.bodies,      addBody);
+		Iterate(x.constraints, addConstraint);
+		Iterate(x.compounds,   addCompound);
+	}
+	public function remCompound(x:PR(Compound)) {
+		Iterate(x.bodies,      remBody);
+		Iterate(x.constraints, remConstraint);
+		Iterate(x.compounds,   remCompound);
+		x.removedFromSpace();
+		x.space = null;
+	}
+
+	//----------------------------------------------------------------------------------------------
 	
 	//flag = 0 if already added to bodies list, -1 if nothing has yet been done
 	public function addBody(body:PR(Body),?flag:Int=-1) {
@@ -397,19 +650,12 @@ class PR(Space) {
 			//validation won't be done on statics later.
 			static_validation(body);
 
-			if(flag!=Flag(BodyType,STATIC)) statics.add(body);
-			if(flag!=0) bodies.add(body);
-
 			assert(staticsleep.has(body),"a2b f="+flag);
 		}else {
 			if(body.isDynamic()) {
-				if(flag!=Flag(BodyType,DYNAMIC)) dynamics.add(body);
-				if(flag!=0) bodies.add(body);
-
 				assert(live.has(body),"a4b f="+flag);
 			}else {
 				if(flag!=Flag(BodyType,KINEMATIC)) kinematics.add(body);
-				if(flag!=0) bodies.add(body);
 
 				assert(staticsleep.has(body),"a6b f="+flag);
 			}
@@ -419,13 +665,8 @@ class PR(Space) {
 	//----------------------------------------------------------------------------------------------
 	
 	//flag = 0 if already removed from bodies list, -1 if nothing has yet been done
-	public function removeBody(body:PR(Body),?flag:Int=-1) {
+	public function remBody(body:PR(Body),?flag:Int=-1) {
 		if(body.isStatic()) {
-			assert(statics.has(body)||bodies.has(body),"neither? stat="+statics.has(body));
-
-			if(flag!=Flag(BodyType,STATIC)) statics.remove(body);
-			if(flag!=0) bodies.remove(body);
-			
 			wake(body,true);
 
 			assert(!body.component.sleeping,"as3");
@@ -436,15 +677,11 @@ class PR(Space) {
 			assert(!staticsleep.has(body),"e1");
 		}else {
 			if(body.isDynamic()) {
-				if(flag!=Flag(BodyType,DYNAMIC)) dynamics.remove(body);
-				if(flag!=0) bodies.remove(body);
-				
 				wake(body,true);
 				live.remove(body);
 				assert(!live.has(body),"e3b");
 			}else {
 				if(flag!=Flag(BodyType,KINEMATIC)) kinematics.remove(body);
-				if(flag!=0) bodies.remove(body);
 				
 				wake(body,true);
 				staticsleep.remove(body);
@@ -459,52 +696,50 @@ class PR(Space) {
 	
 	//----------------------------------------------------------------------------------------------
 
-	flibmdel public inline function shapesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)) {
+	public function shapesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)) {
 		return bphase.shapesUnderPoint(x,y,filter);
 	}
-	flibmdel public inline function bodiesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)) {
+	public function bodiesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)) {
 		return bphase.bodiesUnderPoint(x,y,filter);
 	}
 	
-	flibmdel public inline function shapesInAABB(aabb:AABB,strict:Bool,cont:Bool,filter:PR(InteractionFilter)) {
+	public function shapesInAABB(aabb:AABB,strict:Bool,cont:Bool,filter:PR(InteractionFilter)) {
 		return bphase.shapesInAABB(aabb.pr(inner),strict,cont,filter);
 	}
-	flibmdel public inline function bodiesInAABB(aabb:AABB,strict:Bool,cont:Bool,filter:PR(InteractionFilter)) {
+	public function bodiesInAABB(aabb:AABB,strict:Bool,cont:Bool,filter:PR(InteractionFilter)) {
    		return bphase.bodiesInAABB(aabb.pr(inner),strict,cont,filter);
 	}
 	
-	flibmdel public inline function shapesInCircle(pos:Vec2,rad:Float,cont:Bool,filter:PR(InteractionFilter)) {
+	public function shapesInCircle(pos:Vec2,rad:Float,cont:Bool,filter:PR(InteractionFilter)) {
 		return bphase.shapesInCircle(pos.x,pos.y,rad,cont,filter);
 	}
-	flibmdel public inline function bodiesInCircle(pos:Vec2,rad:Float,cont:Bool,filter:PR(InteractionFilter)) {
+	public function bodiesInCircle(pos:Vec2,rad:Float,cont:Bool,filter:PR(InteractionFilter)) {
    		return bphase.bodiesInCircle(pos.x,pos.y,rad,cont,filter);
 	}
 
-	flibmdel public inline function shapesInShape(shape:PR(Shape),cont:Bool,filter:PR(InteractionFilter)) {
+	public function shapesInShape(shape:PR(Shape),cont:Bool,filter:PR(InteractionFilter)) {
 		return bphase.shapesInShape(shape,cont,filter);
 	}
-	flibmdel public inline function bodiesInShape(shape:PR(Shape),cont:Bool,filter:PR(InteractionFilter)) {
+	public function bodiesInShape(shape:PR(Shape),cont:Bool,filter:PR(InteractionFilter)) {
 		return bphase.bodiesInShape(shape,cont,filter);
 	}
 	
 	//----------------------------------------------------------------------------------------------
 	
-	flibmdel public inline function rayCast(ray:Ray,inner:Bool,filter:InteractionFilter) {
+	public function rayCast(ray:Ray,inner:Bool,filter:InteractionFilter) {
    		return bphase.rayCast(ray.pr(inner),inner,filter==null ? null : filter.pr(inner));
 	}
-	flibmdel public inline function rayMultiCast(ray:Ray,inner:Bool,filter:InteractionFilter) {
+	public function rayMultiCast(ray:Ray,inner:Bool,filter:InteractionFilter) {
    		return bphase.rayMultiCast(ray.pr(inner),inner,filter==null ? null : filter.pr(inner));
 	}
 	
 	//----------------------------------------------------------------------------------------------
 
-    public var any_handler:Bool; //set to true in step if any callback object needs to call a handler
-    flibmdel public inline function push_callback(i:PR(Listener),hasHandler:Bool) {
+    public function push_callback(i:PR(Listener)) {
+		assert(i!=null,"null listenere for push_callback?");
         var cb = Get(PR(Callback));
         callbacks.push(cb);
         cb.listener = i;
-        cb.handler = hasHandler;
-        any_handler = any_handler || hasHandler;
         return cb;
     }
 
@@ -512,24 +747,22 @@ class PR(Space) {
 
 	public var pre_dt:Float;	
 	public function step(deltaTime:Float, velocityIterations:Int, positionIterations:Int) {
+		DEBUG(if(midstep) throw "Error: ... REALLY?? you're going to call space.step() inside of space.step()? COME ON!!";)
+
         time += deltaTime;
 		pre_dt = deltaTime;
 
-        any_handler = false;
 
         midstep = true;
         var elastic = velocityIterations>>1;
         var inelastic = velocityIterations-elastic;
-
 		stamp++;
-	#if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
+		#if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
 		validation();
-	#if NAPE_TIMES Debug.VALID += flash.Lib.getTimer()-pt; #end
-		
-        #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
+		#if NAPE_TIMES Debug.VALID += flash.Lib.getTimer()-pt; #end
+        #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end 
 		bphase.broadphase();
-        #if NAPE_TIMES Debug.BROAD += flash.Lib.getTimer()-pt; #end
-
+        #if NAPE_TIMES Debug.BROAD += flash.Lib.getTimer()-pt; #end 
         #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
 		doForests(deltaTime);
         #if NAPE_TIMES Debug.FOR += flash.Lib.getTimer()-pt; #end
@@ -540,11 +773,17 @@ class PR(Space) {
             Debug.CCNT = 0;
             Debug.ACCNT = 0;
         #end
-
 		#if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
         prestep(deltaTime);
         #if NAPE_TIMES Debug.PRE += flash.Lib.getTimer()-pt; #end
 
+		#if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
+		if(sortcontacts) {
+			Sort(c_arbiters(false), Node(PR(ColArbiter)), $(mixin lt(a,b) {
+				if(a.active && b.active) a.oc1.dist < b.oc1.dist else true;
+			}) lt);
+		}
+		#if NAPE_TIMES Debug.SORT += flash.Lib.getTimer()-pt; #end
         #if NAPE_TIEMS var pt = flash.Lib.getTimer(); #end
         iterateVel(elastic,true);
         #if NAPE_TIMES Debug.VEL += flash.Lib.getTimer()-pt; #end
@@ -564,7 +803,6 @@ class PR(Space) {
 		});
 		doit(kinematics);
 		doit(live);
-	
 		updatePos(deltaTime);
 				
         #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
@@ -573,54 +811,89 @@ class PR(Space) {
 		
 		$(mixin doit2(list) {
 			Iter(cur,list,{
-				if(!vec_eq(cur.pos,cur.pre_pos))
+				var upos = !vec_eq(cur.pos,cur.pre_pos);
+				var urot = cur.pre_rot!=cur.rot;
+				if(upos)
 					cur.invalidate_pos();
 				vec_set(cur.pre_pos,cur.pos);
-				if(cur.pre_rot!=cur.rot)
-					cur.invalidate_rot();
+				if(urot)
+					cur.invalidate_rot(upos);
 				cur.pre_rot = cur.rot;
 
-				if(!bphase.is_sweep)
-					Iter(shape,cur.shapes,bphase.sync(shape))
+				if(urot || upos) cur.validate_graphic();
+
+		//		if(!bphase.is_sweep)
+		//			Iter(shape,cur.shapes,bphase.sync(shape))
 			});
 		});
 		doit2(kinematics);
 		doit2(live);
-		
-		while(!staticsleep.empty()) {
-			var b = staticsleep.pop_unsafe();
+	
+		var pre = null;
+		Iter(b, staticsleep, {
 			assert(!b.isDynamic(), "step :: swef static/kinematics");
-			b.component.sleeping = true;
-		}
+			if(!b.isKinematic() || (b.velx == 0 && b.vely == 0 && b.angvel == 0)) {
+				b.component.sleeping = true;
+				cx_ite = staticsleep.erase(pre);
+				continue;
+			}
+			pre = cx_ite;
+		});
+			
         midstep = false;
+		//generate on-going events
+		var pre = null;
+		Iter(set, callbackset_list, {
+			//clean up of dead sets
+			//we do not generate END callbacks here
+			//that is left to remove_shape and preStep
+			//since this occurs whether an END callback should
+			//be generated or not (for instance in the case
+			//of a listener being removed)
+			if(set.really_empty()) {
+				cx_ite = callbackset_list.erase(pre);
+				Free(PR(CallbackSet),set);
+				continue;
+			}
+
+			PR(CbType).find_all(set.int1.cbType,set.int2.cbType,Flag(CbEvent,ONGOING),
+			function (x:PR(InteractionListener)) {
+				if(!set.empty_arb(x.itype)) {
+					var cb = push_callback(x);
+					cb.event = Flag(CbEvent,ONGOING);
+					PR(Interactor).int_callback(set.int1,set.int2,x.cb1,cb);
+					cb.set = set;
+				}
+			});
+
+			pre = cx_ite;
+		});
 
         //process handlers
-        if(any_handler) {
-            IterQueue(cb,callbacks,{
-                if(cb.handler) {
-                    if(cb.listener.type==Flag(ListenerType,BODY)) {
-                        var o = cb.listener.body;
-                        o.handler(cb.body.outer);
-                    }else if(cb.listener.type==Flag(ListenerType,CONSTRAINT)) {
-                        var o = cb.listener.constraint;
-                        o.handler(cb.constraint.outer);
-                    }
-
-                    cx_ite = callbacks.splice(cb);
-                    Free(PR(Callback),cb);
-                    continue;
-                }
-            });
-        }
+		while(!callbacks.empty()) {
+			var cb = callbacks.pop();
+			if(cb.listener.type==Flag(ListenerType,BODY)) {
+				var o = cb.listener.body;
+				o.handler(cb.wrapper_body());
+			}else if(cb.listener.type==Flag(ListenerType,CONSTRAINT)) {
+				var o = cb.listener.constraint;
+				o.handler(cb.wrapper_con());
+			}else if(cb.listener.type==Flag(ListenerType,INTERACTION)) {
+				var o = cb.listener.interaction;
+				o.handleri(cb.wrapper_int());
+			}
+			Free(PR(Callback),cb);
+		}
 	}
+
 	
 	//----------------------------------------------------------------------------------------------
 
-    flibmdel public inline function bodyCbWake(b:PR(Body)) {
-        if(b.isDynamic() && b.cbType._bodywake != null) {
+    public function bodyCbWake(b:PR(Body)) {
+        if(b.isDynamic() && b.cbType != null && b.cbType._bodywake != null) {
             if(midstep) {
 				var i = b.cbType._bodywake;
-                var cb = push_callback(i,i.handler!=null);
+                var cb = push_callback(i);
                 cb.event = Flag(CbEvent,WAKE);
                 cb.body = b;
             }else
@@ -628,10 +901,10 @@ class PR(Space) {
         }
     }
 
-    flibmdel public inline function bodyCbSleep(b:PR(Body)) {
-        if(b.isDynamic() && b.cbType._bodysleep != null) {
+    public function bodyCbSleep(b:PR(Body)) {
+        if(b.isDynamic() && b.cbType!=null && b.cbType._bodysleep != null) {
 			var i = b.cbType._bodysleep;
-            var cb = push_callback(i,i.handler!=null);
+            var cb = push_callback(i);
             cb.event = Flag(CbEvent,SLEEP);
             cb.body = b;
         }
@@ -639,11 +912,11 @@ class PR(Space) {
 
     //----------------------------------------------------------------------------------------------
 
-    flibmdel public inline function constraintCbWake(con:PR(Constraint)) {
-        if(con.cbType._conwake != null) {
+    public function constraintCbWake(con:PR(Constraint)) {
+        if(con.cbType != null && con.cbType._conwake != null) {
             if(midstep) {
 				var i = con.cbType._conwake;
-                var cb = push_callback(i,i.handler!=null);
+                var cb = push_callback(i);
                 cb.event = Flag(CbEvent,WAKE);
                 cb.constraint = con;
             }else
@@ -651,25 +924,216 @@ class PR(Space) {
         }
     }
 
-    flibmdel public inline function constraintCbSleep(con:PR(Constraint)) {
-        if(con.cbType._consleep != null) {
+    public function constraintCbSleep(con:PR(Constraint)) {
+        if(con.cbType != null && con.cbType._consleep != null) {
 			var i = con.cbType._consleep;
-            var cb = push_callback(i,i.handler!=null);
+            var cb = push_callback(i);
             cb.event = Flag(CbEvent,SLEEP);
             cb.constraint = con;
         }
     }
 
-    flibmdel public inline function constraintCbBreak(con:PR(Constraint)) {
-        if(con.cbType._break != null) {
+    public function constraintCbBreak(con:PR(Constraint)) {
+        if(con.cbType != null && con.cbType._break != null) {
 			var i = con.cbType._break;
-            var cb = push_callback(i,i.handler!=null);
+            var cb = push_callback(i);
             cb.event = Flag(CbEvent,BREAK);
             cb.constraint = con;
         }
     }
 
     //----------------------------------------------------------------------------------------------
+
+	//when body/shape cbType is changed, it is nulled, then set again
+	//in these cases incb1==incb2==null and we only effect callbacksets directly related to the in type.
+	//
+	//when used as a (perhaps non-optimal) way of refreshing callbacksets when listener changes types/added etc
+	//then incb1 and incb2 are defined and we effect all callbacksets as long as the cbtypes match.
+
+	//clean up all callbacksets associated with these cbTypes
+	//pre: this is valid! (aka cb1/cb2 have no matching listener for interaction/pre)
+	public function nullListenerType(cb1:PR(CbType),cb2:PR(CbType)) {
+		//we could iterate the callbackset hash here instead to pick them out easily
+		//but iterating the hash and deleting elements isn't something currently possible
+		//at least not properly and well tested. so we'll take the dirty approach
+		//since this is a function that will not often be called.
+		//
+		//or atleast only iterate pairs of shapes once! TODO
+		var stack = new List(PR(Interactor))();	
+		Iterate(cb1.interactors, stack.add);
+		if(cb1!=cb2)
+			Iterate(cb2.interactors, stack.add);
+	
+		while(!stack.empty()) {
+			var intx = stack.pop_unsafe();
+			if(intx.isCompound()) {
+				var comp = intx.icompound;
+				Iterate(comp.bodies, stack.add);
+				Iterate(comp.compounds, stack.add);
+			}else {
+				var xbody = if(intx.isBody()) intx.ibody else intx.ishape.body;
+				var xshp = if(intx.isShape()) intx.ishape else null;
+				Iter(xarb,xbody.arbiters,{
+					//bug-fix: see same line in nullInteractorType
+					//if(!xarb.active) cx_continue;
+					if(!xarb.present) cx_continue;
+
+					if(xshp!=null && !(xarb.ws1==xshp || xarb.ws2==xshp)) cx_continue; //short-cut
+
+					MRCA_chains(xarb.ws1,xarb.ws2);
+					Iter(i1,mrca1,{ if(i1.cbType != cb1 && i1.cbType != cb2) cx_continue;
+					Iter(i2,mrca2,{ if((i1.cbType == cb1 && i2.cbType != cb2) || (i1.cbType == cb2 && i2.cbType != cb1)) cx_continue;
+						var callbackset = PR(Interactor).get(i1,i2);
+						if(callbackset!=null) {
+							ClearWith(arb, callbackset.arbiters, arb.present=false);
+							remove_callbackset(callbackset);
+							//deferred for callbackset_list
+							//Free(PR(CallbackSet),callbackset);
+						}
+					});
+					});
+				});
+			}
+		}
+	}
+	
+	//clean up all callbacksets associated with interactor	
+	public function nullInteractorType(intx:PR(Interactor),me:PR(Interactor)=null) {
+		if(me==null) me = intx;
+
+		if(intx.isCompound()) {
+			var comp = intx.icompound;
+			Iter(body, comp.bodies,    nullInteractorType(body,me));
+			Iter(comp, comp.compounds, nullInteractorType(comp,me));
+		}else {
+			var xbody = if(intx.isBody()) intx.ibody else intx.ishape.body;
+			var xshp = if(intx.isShape()) intx.ishape else null;
+			Iter(xarb,xbody.arbiters,{
+				//bug-fix: need to try and remove arbiter even
+				// if inactive, can result if pre-listener removes
+				// contacts from arbiter it is still in the set
+				// and we should try and remove it
+				//if(!xarb.active) cx_continue;
+				if(!xarb.present) cx_continue;
+
+				if(xshp!=null && !(xarb.ws1==xshp || xarb.ws2==xshp)) cx_continue; //short-cut
+
+				MRCA_chains(xarb.ws1,xarb.ws2);
+				Iter(i1,mrca1,{
+				Iter(i2,mrca2,{
+					//only want to handle relevant callbacksets!
+					if(i1!=me && i2!=me) cx_continue;
+
+					var cb1 = i1.cbType;
+					var cb2 = i2.cbType;
+					assert(cb1!=null && cb2!=null, "null cb from MRCA_chains??");
+					var callbackset = PR(Interactor).get(i1,i2);
+					if(callbackset!=null) {
+						xarb.present = false;
+						callbackset.remove_arb(xarb);
+						if(callbackset.really_empty()) {
+							remove_callbackset(callbackset);
+							//deferred for callbackset_list
+							//Free(PR(CallbackSet),callbackset);
+						}
+					}
+				});
+				});
+			});
+		}
+	}
+	
+	//create all callbacksets associated with these cbTypes
+	//pre: this is valid! (aka cb1/cb2 has only one matching listener for interaction/pre)
+	public function freshListenerType(cb1:PR(CbType),cb2:PR(CbType)) {
+		//this could be improved greatly to only consider pairs of shapes once
+		//but for now it will do: TODO
+		var stack = new List(PR(Interactor))();	
+		Iterate(cb1.interactors, stack.add);
+		if(cb1!=cb2)
+			Iterate(cb2.interactors, stack.add);
+	
+		while(!stack.empty()) {
+			var intx = stack.pop_unsafe();
+			if(intx.isCompound()) {
+				var comp = intx.icompound;
+				Iterate(comp.bodies, stack.add);
+				Iterate(comp.compounds, stack.add);
+			}else {
+				var xbody = if(intx.isBody()) intx.ibody else intx.ishape.body;
+				var xshp = if(intx.isShape()) intx.ishape else null;
+				Iter(xarb,xbody.arbiters,{
+					//bug-fix... meh
+					//if(!xarb.active) cx_continue;
+					if(!xarb.presentable) cx_continue;
+
+					if(xshp!=null && !(xarb.ws1==xshp || xarb.ws2==xshp)) cx_continue; //short-cut
+
+					MRCA_chains(xarb.ws1,xarb.ws2);
+					Iter(i1,mrca1,{ if(i1.cbType != cb1 && i1.cbType != cb2) cx_continue;
+					Iter(i2,mrca2,{ if((i1.cbType == cb1 && i2.cbType != cb2) || (i1.cbType == cb2 && i2.cbType != cb1)) cx_continue;
+						var callbackset = PR(Interactor).get(i1,i2);
+						xarb.present = true;
+						if(callbackset==null) {
+							callbackset = PR(CallbackSet).get(i1,i2);
+							add_callbackset(callbackset);
+						}
+						callbackset.add_arb(xarb);
+					});
+					});
+				});
+			}
+		}
+	}
+	
+	public function freshInteractorType(intx:PR(Interactor),me:PR(Interactor)=null) {
+		if(me==null) me = intx;
+
+		if(intx.isCompound()) {
+			var comp = intx.icompound;
+			Iter(body, comp.bodies,    freshInteractorType(body,me));
+			Iter(comp, comp.compounds, freshInteractorType(comp,me));
+		}else {
+			var xbody = if(intx.isBody()) intx.ibody else intx.ishape.body;
+			var xshp = if(intx.isShape()) intx.ishape else null;
+			Iter(xarb,xbody.arbiters,{
+				//bug-fix see nullInteractorType
+				//if(!xarb.active) cx_continue;
+				if(!xarb.presentable) cx_continue;
+
+				if(xshp!=null && !(xarb.ws1==xshp || xarb.ws2==xshp)) cx_continue; //short-cut
+
+				MRCA_chains(xarb.ws1,xarb.ws2);
+				Iter(i1,mrca1,{
+				Iter(i2,mrca2,{
+					//only want to handle relevant callbacksets!
+					if(i1!=me && i2!=me) cx_continue;
+
+					var cb1 = i1.cbType;
+					var cb2 = i2.cbType;
+					assert(cb1!=null && cb2!=null, "null cb from MRCA_chain?");
+					if(!PR(CbType).empty_intersection(cb1,cb2)) {
+						xarb.present = true;
+						var callbackset = PR(Interactor).get(i1,i2);
+						if(callbackset==null) {
+							callbackset = PR(CallbackSet).get(i1,i2);
+							add_callbackset(callbackset);
+						}
+						callbackset.add_arb(xarb);
+					}
+				});
+				});
+			});
+		}
+	}
+	
+    //----------------------------------------------------------------------------------------------
+
+	public function wakeCompound(x:PR(Compound)) {
+		Iterate(x.bodies, wake);
+		Iterate(x.constraints, wake_constraint);
+		Iterate(x.compounds, wakeCompound);
+	}
 	
 	public function wakeIsland(i:PR(Island)) {
 		assert(i.sleep,"this island is not sleeping but referenced? wtf");
@@ -756,7 +1220,11 @@ class PR(Space) {
 								else
 									s_arbiters.add(arb.sensorarb);
 							}
-                            if(arb.type != PR(Arbiter).SENSOR && !arb.cleared && arb.up_stamp==stamp) {
+							//we do not know anything about arb.active
+							//so base this on information we do know.
+							//that is to say up_stamp and immState
+                            if(arb.type != PR(Arbiter).SENSOR && !arb.cleared
+							&& arb.up_stamp==stamp && ((arb.immState&Flag(ImmState,ACCEPT))!=0)) {
 								if(arb.b1.isDynamic() && arb.b1.component.sleeping) wake(arb.b1);
 								if(arb.b2.isDynamic() && arb.b2.component.sleeping) wake(arb.b2);
 							}
@@ -805,14 +1273,18 @@ class PR(Space) {
 	
 	public function doForests(dt:Float) {
 		//build set foreset.
+		//
+		//arb.active has not yet been computed.
+		//so we base it on all currently available information
+		//that is to say, arb.up_stamp==stamp and immState.
 		Iter(arb, c_arbiters(false), {
-            if(!arb.cleared && arb.up_stamp==stamp) {
+            if(!arb.cleared && arb.up_stamp==stamp && ((arb.immState&Flag(ImmState,ACCEPT))!=0)) {
                 if(arb.b1.isDynamic() && arb.b2.isDynamic())
                     DSF(union(arb.b1.component, arb.b2.component))
             }
 		});
 		Iter(arb, f_arbiters, {
-            if(!arb.cleared && arb.up_stamp==stamp) {
+            if(!arb.cleared && arb.up_stamp==stamp && ((arb.immState&Flag(ImmState,ACCEPT))!=0)) {
                 if(arb.b1.isDynamic() && arb.b2.isDynamic())
                     DSF(union(arb.b1.component, arb.b2.component))
             }
@@ -821,37 +1293,37 @@ class PR(Space) {
 		
 		//build islands
 		while(!live.empty()) {
-			var o = live.pop_unsafe();
+			var o = live.inlined_pop_unsafe();
 			var oc = o.component;
 			
 			var root = DSF(find(oc));
 			if(root.island==null) {
 				root.island = Get(PR(Island));
-				islands.add(root.island);
+				islands.inlined_add(root.island);
 				root.island.sleep = true;
 			}
 			oc.island = root.island;
-			oc.island.comps.add(oc);
+			oc.island.comps.inlined_add(oc);
 			var rest = o.atRest(dt);
 			oc.island.sleep = oc.island.sleep && rest;
 			if(oc.waket > oc.island.waket) oc.island.waket = oc.waket;
 		}
 		while(!live_constraints.empty()) {
-			var o = live_constraints.pop_unsafe();
+			var o = live_constraints.inlined_pop_unsafe();
 			var oc = o.component;
 			
 			var root = DSF(find(oc));
 			assert(root.island!=null,"constraint without bodies?");
 			
 			oc.island = root.island;
-			oc.island.comps.add(oc);
+			oc.island.comps.inlined_add(oc);
             if(oc.waket > oc.island.waket) oc.island.waket = oc.waket;
 		}
 
 		//build new live lists from islands
 		//destroy waking islands, retain sleeping islands for waking later when necessary.
 		while(!islands.empty()) {
-			var i = islands.pop_unsafe();
+			var i = islands.inlined_pop_unsafe();
 			if(i.sleep) {
 				Iter(c,i.comps,{
 					if(c.isBody) {
@@ -875,10 +1347,10 @@ class PR(Space) {
 				});
 			}else {
 				while(!i.comps.empty()) {
-					var c = i.comps.pop_unsafe();
+					var c = i.comps.inlined_pop_unsafe();
                     c.waket = i.waket;
-					if(c.isBody) live.add(c.body);
-					else         live_constraints.add(c.constraint);
+					if(c.isBody) live.inlined_add(c.body);
+					else         live_constraints.inlined_add(c.constraint);
 					c.reset();
 				}
 				Free(PR(Island),i);
@@ -940,14 +1412,17 @@ class PR(Space) {
 
                 //wake callbacks
                 if(!kin) {
-                    if(cur.component.woken) {
+                    if(cur.component.woken && cur.cbType != null && cur.cbType._bodywake!=null) {
 						var i = cur.cbType._bodywake;
-                        var cb = push_callback(i,i.handler!=null);
+                        var cb = push_callback(i);
                         cb.event = Flag(CbEvent,WAKE);
                         cb.body = cur;
                     }
                     cur.component.woken = false;
                 }
+
+				if(!bphase.is_sweep)
+					Iter(shape,cur.shapes,bphase.sync(shape));
 			});
 		});
 		
@@ -959,9 +1434,9 @@ class PR(Space) {
         Iter(con,live_constraints,{
             if(con.active) {
                 DEBUG(con.validate();)
-                if(con.component.woken) {
+                if(con.component.woken && con.cbType != null && con.cbType._conwake!=null) {
 					var i = con.cbType._conwake;
-                    var cb = push_callback(i,i.handler!=null);
+                    var cb = push_callback(i);
                     cb.event = Flag(CbEvent,WAKE);
                     cb.constraint = con;
                 }
@@ -976,7 +1451,7 @@ class PR(Space) {
 		var pre = null;
 		Iter(cur,live,{
 			vec_addeq(cur.force,gravity,cur.gravMass);
-			vec_addeq(cur.force,cur.vel,-PR(Config).GLOBAL_LIN_DRAG*cur.mass);
+			vec_addeq(cur.force,cur.vel,-global_lin_drag*cur.mass);
 			if(cur.smass!=0.0)
 				vec_addeq(cur.vel,cur.force,dt*cur.imass);
 			
@@ -985,7 +1460,7 @@ class PR(Space) {
 			if(cur.sinertia!=0.0) {
 				vec_new(dp); vec_sub(cur.worldCOM,cur.pos,dp);
 				cur.torque += vec_cross(dp,gravity)*cur.gravMass;
-				cur.torque -= cur.angvel*PR(Config).GLOBAL_ANG_DRAG*cur.inertia;
+				cur.torque -= cur.angvel*global_ang_drag*cur.inertia;
 				cur.angvel += cur.torque*dt*cur.iinertia;
 			}
 			cur.torque = 0;
@@ -1011,7 +1486,6 @@ class PR(Space) {
 	//----------------------------------------------------------------------------------------------
 	
 	public function prestep(dt:Float) {
-		
 		var pre = null;
 		Iter(con,live_constraints,{
 			if(con.preStep(dt)) {
@@ -1019,8 +1493,13 @@ class PR(Space) {
 
                 if(con.removeOnBreak) {
                     //set sleeping to true as already removed from live list.
-                    con.component.sleeping = true; remConstraint(con);
-                    constraints.remove(con);
+                    con.component.sleeping = true;
+
+					//momentarigly 'escape' the space step() environment.
+					midstep = false;
+					if(con.compound!=null) con.compound.wrap_constraints.remove(con.outer);
+					else                   wrap_constraints.remove(con.outer);
+					midstep = true;
                 }else
                     con.active = false;
 
@@ -1030,67 +1509,177 @@ class PR(Space) {
 			}
 			pre = cx_ite;
 		});
-		$(mixin prestep(arbs,action) {
+		$(mixin prestep(arbs,action) prestep(arbs,null,action,false));
+		$(mixin prestep(arbs0,arbs1,action,collisiontype) {
 			var pre = null;
-			Iter(arb,arbs,{
+			var arbs = arbs0;
+			var arbite = arbs.begin();
+			var fst = arbs1!=null;
+			$(mixin pre_continue() { if(fst && arbite==null) { fst = false; arbite = arbs1.begin(); arbs = arbs1; pre = null; } });
+			pre_continue;
+
+			while(arbite!=null) {
+				var arb = arbite.elem();
 				if(!arb.cleared && (arb.b1.component.sleeping && arb.b2.component.sleeping)) {
 					arb.sleep_stamp = stamp;
 					arb.sleeping = true;
-					cx_ite = arbs.erase(pre);
+					arbite = arbs.inlined_erase(pre);
+					pre_continue;
 					continue;
 				}
 
                 #if NAPE_TIMES Debug.ACNT++; #end
-				
-				//if(arb.up_stamp==stamp-1)
-				//	trace("end");
-			
+
+				//arb.present matches when arbiter was retired, but needs to be removed
+				//from it's callbacksets!
+				//deals neatly with change in interaction types at runtime
+				if(!arb.cleared || arb.present || arb.intchange) {	
+					//callbacks
+					var endcb = (arb.up_stamp==stamp-1) && !arb.cleared && !arb.intchange;
+					var begcb = (arb.fresh) && !arb.cleared && !arb.intchange;
+					assert(!begcb||arb.up_stamp==stamp, " fresh -> active=true hasn't held :(");
+
+					if(begcb || endcb || arb.cleared || arb.intchange) {
+						var listener:PR(InteractionListener) = null;
+						inlined_MRCA_chains(arb.ws1,arb.ws2);
+						Iter(i1,mrca1,{
+						Iter(i2,mrca2,{
+							var cb1 = i1.cbType;
+							var cb2 = i2.cbType;
+							assert(cb1!=null && cb2!=null, "null cb from MRCA_chains?");
+
+							if(PR(CbType).empty_intersection(cb1,cb2)) cx_continue;
+
+							DEBUG(var i)
+							RELEASE(listener)
+							= if(begcb||endcb) PR(CbType).find(
+								cb1,cb2,
+								begcb ? Flag(CbEvent,BEGIN) : Flag(CbEvent,END),
+								arb.type)
+							else null;
+
+							DEBUG(
+								if(i!=null && listener!=null) throw "Error: Multiple valid pairings for callbacks between possible interactor combinations descended frmo shape1="+arb.ws1.outer.toString()+" shape2="+arb.ws2.outer.toString()+". Conflict arising from listener1="+i.outer.toString()+" listener2="+listener.outer.toString();
+								listener = i;
+							)
+
+
+							var callbackset = PR(Interactor).get(i1,i2);
+							if(begcb || arb.intchange) {
+								arb.present = true;
+								if(callbackset==null) {
+									callbackset = PR(CallbackSet).get(i1,i2);
+									add_callbackset(callbackset);
+								}
+								//check for empty rather than null, since it might've been created
+								//already to prevent multiple pre-handlers
+								if(listener!=null) {
+									if(callbackset.empty_arb(listener.itype) && (listener.itype&arb.type)!=0) {
+										var cb = push_callback(listener);
+										cb.event = Flag(CbEvent,BEGIN);
+										//use callbackset int1/int2 to keep consistency in cases of cbType1==cbType2
+										PR(Interactor).int_callback(callbackset.int1,callbackset.int2,listener.cb1,cb);
+										cb.set = callbackset;
+									}
+								}
+								callbackset.add_arb(arb);
+							}else {
+								arb.present = false;
+								assert(callbackset!=null,"end arbiter with no callbackset");
+								callbackset.remove_arb(arb);
+								if(listener!=null) {
+									if(callbackset.empty_arb(listener.itype) && (listener.itype&arb.type)!=0) {
+										var cb = push_callback(listener);
+										cb.event = Flag(CbEvent,END);
+										//use callbackset int1/int2 to keep consistency in cases of cbType1==cbType2
+										PR(Interactor).int_callback(callbackset.int1,callbackset.int2,listener.cb1,cb);
+										cb.set = callbackset;
+									}
+								}
+								if(callbackset.really_empty()) {
+									remove_callbackset(callbackset);
+									//removal from callbackset_list is deferred to avoid
+									//need for doubly linked list or slow removal
+									//thus so is freeing as these are mixin linked list
+									//Free(PR(CallbackSet),callbackset);
+								}
+							}
+						RELEASE(cx_break;)
+						});
+						RELEASE(if(listener!=null) cx_break;)
+						});
+					}
+					arb.fresh = false;
+					arb.intchange = false;
+				}
+
 				//no need for sensor/fluid arbiters to persist after deactivation, just remove now.
-				if(arb.cleared
-                 || ((arb.type==PR(Arbiter).SENSOR||arb.type==PR(Arbiter).FLUID) && arb.up_stamp<stamp)
-				 || arb.up_stamp+PR(Config).PERSIST<stamp)
-				{
-					if(!arb.cleared)
-						map_arb.remove(arb);
+				if(arb.cleared //always retire
+			 	 || arb.up_stamp + (arb.type==PR(Arbiter).COL ? PR(Config).PERSIST : 0) < stamp //possibly delayed age-death
+				) {
 					arb.retire();
-					cx_ite = arbs.erase(pre);
+					arbite = arbs.inlined_erase(pre);
+					pre_continue;
 					continue;
 				}
 				
 				var pact = arb.active;
-				arb.active = arb.up_stamp==stamp;
+				arb.active = arb.presentable = arb.up_stamp==stamp;
 
-				if(!(action)) arb.active = false;
+				if((arb.immState&Flag(ImmState,ACCEPT)) != 0) {
+					if(!(action)) arb.active = false;
+				}else if(collisiontype) {
+					if(!untyped arb.cleanupContacts()) arb.active = false;
+				}
 				
 				//necessary to notify lists of non structual changes for API
+				//
+				//we don't bother doing this for callbacksets
+				//instead, simply assuming they were modified.
 				if(pact!=arb.active) {
 					arb.b1.arbiters.modified = true;
 					arb.b2.arbiters.modified = true;
 					arbs.modified = true;
 				}
 				
-				pre = cx_ite;
-			});
+				pre = arbite;
+				arbite = arbite.next;
+				pre_continue;
+			}
 		});
-		
-		prestep(c_arbiters(true),  if(arb.active) arb.preStep(dt));
-		prestep(c_arbiters(false), if(arb.active) arb.preStep(dt));
-		prestep(f_arbiters,      { if(arb.active) arb.preStep(this,dt); true; });
+	
+		//still iterate non acting arbiters
+		//want to clean up contacts in collision arbiters
+		//and clean up outdated arbiters also
+		prestep(c_arbiters(true),c_arbiters(false), if(arb.active) arb.preStep(dt), true);
+		prestep(f_arbiters,{ if(arb.active) arb.preStep(this,dt); true; });
 		prestep(s_arbiters,{true;});
 	}
 
 	//----------------------------------------------------------------------------------------------
+
+	$(mixin IterColArbs(arb,cb) {
+		var arbi = c_arbiters(false).begin();
+		var fst = true;
+		if(arbi==null) { arbi = c_arbiters(true).begin(); fst = false; }
+		while(arbi!=null) {
+			var arb = arbi.elem();
+			{ cb; }
+			arbi = arbi.next;
+			if(fst && arbi==null) { arbi = c_arbiters(true).begin(); fst = false; }
+		}
+	});
 	
     public function warmStart() {
-        Iter(arb,f_arbiters,       if(arb.active) arb.warmStart());
-        Iter(arb,c_arbiters(false),if(arb.active) arb.warmStart());
-        Iter(arb,c_arbiters(true), if(arb.active) arb.warmStart());
+        Iter(arb,f_arbiters, if(arb.acting()) arb.warmStart());
+		IterColArbs(arb, if(arb.acting()) arb.warmStart());
         Iter(con,live_constraints, con.warmStart());
 	}
 
 	public function iterateVel(times:Int,bouncy:Bool) {
+		var bouncyval = bouncy ? 1.0 : 0.0;
 		for(i in 0...times) {
-			Iter(arb,f_arbiters,if(arb.active) arb.applyImpulseVel());
+			Iter(arb,f_arbiters,if(arb.acting()) arb.applyImpulseVel());
 			
 			var pre = null;
 			Iter(con,live_constraints, {
@@ -1099,8 +1688,12 @@ class PR(Space) {
 
 					if(con.removeOnBreak) {
                         //set sleeping to true as already removed from live list.
-                        con.component.sleeping = true; remConstraint(con);
-                        constraints.remove(con);
+                        con.component.sleeping = true;
+						//momentarigly 'escape' the space step() environment.
+						midstep = false;
+						if(con.compound!=null) con.compound.wrap_constraints.remove(con.outer);
+						else                   wrap_constraints.remove(con.outer);
+						midstep = true;
                     }else
                         con.active = false;
 
@@ -1112,8 +1705,7 @@ class PR(Space) {
 				pre = cx_ite;
 			});
 				
-			Iter(arb,c_arbiters(false),if(arb.active) arb.applyImpulseVel(bouncy));
-			Iter(arb,c_arbiters(true), if(arb.active) arb.applyImpulseVel(bouncy));
+			IterColArbs(arb,if(arb.acting()) arb.applyImpulseVel(bouncyval));
 		}
 	}
 	public function iteratePos(times:Int) {
@@ -1126,9 +1718,13 @@ class PR(Space) {
 						cx_ite = live_constraints.erase(pre);
 						
                         if(con.removeOnBreak) {
-                            //set sleeping to true as already removed from live list.
-                            con.component.sleeping = true; remConstraint(con);
-                            constraints.remove(con);
+	                        //set sleeping to true as already removed from live list.
+	                        con.component.sleeping = true;
+							//momentarigly 'escape' the space step() environment.
+							midstep = false;
+							if(con.compound!=null) con.compound.wrap_constraints.remove(con.outer);
+							else                   wrap_constraints.remove(con.outer);
+							midstep = true;
                         }else
                             con.active = false;
 
@@ -1141,23 +1737,47 @@ class PR(Space) {
 				pre = cx_ite;
 			});
 				
-			Iter(arb,c_arbiters(false),if(arb.active) arb.applyImpulsePos());
-			Iter(arb,c_arbiters(true), if(arb.active) arb.applyImpulsePos());
+			IterColArbs(arb,if(arb.acting()) arb.applyImpulsePos());
 		}
 	}
 
 	//----------------------------------------------------------------------------------------------
-	
 
-	flibmdel public inline function narrowPhase(s1:PR(Shape),s2:PR(Shape), stat:Bool, ?in_arb:PR(Arbiter)=null) {
+	flibmdel public inline function group_ignore(s1:PR(Shape),s2:PR(Shape)) {
+		//find closest group from interactor
+		var g1 = s1.lookup_group();
+		var g2 = s2.lookup_group();
+		if(g1==null || g2==null) return false;
+		else {
+			//lookup ignore on most recent shared ancestor
+			var ret = false;
+			while(g1!=null && g2!=null) {
+				if(g1==g2) { ret = g1.ignore; break; }
+				if(g1.depth<g2.depth)
+					 g2 = g2.group;
+				else g1 = g1.group;
+			}
+			return ret;
+		}
+	}
+
+	var precb:PreCallback;
+	public function narrowPhase(s1:PR(Shape),s2:PR(Shape), stat:Bool, ?in_arb:PR(Arbiter)=null) {
+		#if NAPE_TIMES
+			var pt = flash.Lib.getTimer();
+		#end
 		var ret:PR(Arbiter) = null;
 
         var b1 = s1.body;
 		var b2 = s2.body;
-
+		assert(b1!=b2,"colliding same body?");
         assert(!(b1.isStatic() && b2.isStatic()), "both objects static?");
+
         //check if constraints exists such that this should be ignored
-        if(!Exists(con, b1.constraints, con.ignore && con.pair_exists(b1.id,b2.id))) {
+		//check if the two bodies belong to a group hierarchy to be ignored.
+        if(!Exists(con, b1.constraints, con.ignore && con.pair_exists(b1.id,b2.id))
+		&& !group_ignore(s1,s2)
+		) {
 
             var gcol = s1.filter.shouldCollide(s2.filter)
                 && !(b1.imass==0 && b2.imass==0 && b1.iinertia==0 && b2.iinertia==0);
@@ -1170,7 +1790,7 @@ class PR(Space) {
                 || (s1.fluidEnabled && !b1.isDynamic() && !b2.isDynamic())
                 || (s2.fluidEnabled && !b2.isDynamic() && !b1.isDynamic())
             );
-				
+
             if(scol || gcol || fcol) {
                 var sa,sb;
                 if(s1.type > s2.type) { sa = s2; sb = s1; }
@@ -1180,53 +1800,214 @@ class PR(Space) {
                 }else { sa = s1; sb = s2; }
                 var reverse = sa == s2;
 
+				$(mixin narrowed(arb,INTTYPE,Type,arbs, cond, waking,collisions) {
+					var inttype = Flag(InteractionType,INTTYPE);
+
+					if(first || arb.stamp!=stamp) {
+						arb.stamp = stamp;
+
+						if(cond) {
+							if(first) {
+								arb.assign(s1,s2,sa.id,sb.id);
+								arbs.inlined_add(arb);
+								arb.fresh = !swapped;
+							}else
+								arb.fresh = arb.up_stamp<stamp-1; //handler persistance
+							arb.up_stamp = arb.stamp;
+
+							//search for a pre-listener or existing callbackset
+							var listener:PR(InteractionListener) = null;
+							var callbackset:PR(CallbackSet) = null;
+							var ncallbackset:PR(CallbackSet) = null;
+							var prei1:PR(Interactor) = null;
+
+							if(arb.fresh || (arb.immState&Flag(ImmState,ALWAYS))==0) {
+								arb.immState = Flag(ImmState,ACCEPT);
+
+								inlined_MRCA_chains(s1,s2);
+								Iter(i1, mrca1, {
+								Iter(i2, mrca2, {
+									var cb1 = i1.cbType;
+									var cb2 = i2.cbType;
+									assert(cb1!=null && cb2!=null, "null cb from MRCA_chains?");
+
+									if(PR(CbType).empty_intersection(cb1,cb2)) cx_continue;
+
+									DEBUG(
+										var i = PR(CbType).find(cb1,cb2,Flag(CbEvent,PRE),inttype);
+										if(i!=null && listener!=null) throw "Error: Multiple valid pre-listeners for possible interactor combinations descended from shape1="+s1.outer.toString()+" shape2="+s2.outer.toString()+". listener1="+i.outer.toString()+" listener2="+listener.outer.toString();
+										listener = i;
+									)
+									RELEASE(listener = PR(CbType).find(cb1,cb2,Flag(CbEvent,PRE),inttype);)
+
+									if(listener==null) cx_continue;
+
+									callbackset = PR(Interactor).get(i1,i2);
+									if(callbackset==null) {
+										ncallbackset = PR(CallbackSet).get(i1,i2);
+										add_callbackset(ncallbackset);
+									}
+									prei1 = i1;
+
+									RELEASE(cx_break;)
+								});
+								RELEASE(if(listener!=null) cx_break;)
+								});
+							}
+
+							if(listener!=null && (callbackset==null || (callbackset.INTTYPE`stamp!=stamp && (callbackset.INTTYPE`state&Flag(ImmState,ALWAYS)==0)))) {
+								if(ncallbackset!=null) callbackset = ncallbackset;
+								if(callbackset!=null) {
+									if(listener.itype==Flag(InteractionType,ANY)) {
+										callbackset.COLLISIONstamp = stamp;
+										callbackset.SENSORstamp = stamp;
+										callbackset.FLUIDstamp = stamp;
+									}else
+										callbackset.INTTYPE`stamp = stamp;
+								}
+
+								// arbiter (public) is not active in the situtation of a persistant
+								// collision arbiter being re-used before it was retired.
+								// so we activate it temporarily.
+
+								// we need to reset to old value so that in pre-step such an arbiter
+								// can as usual, update the public lists.
+								var pact = arb.active; arb.active = true;
+
+								#if collisions //need to do this with #if since fluid/sensor has no such method
+									//update wrapped contact list for user.
+									arb.cleanupContacts();
+									assert(arb.wrapper().collisionArbiter.contacts.length!=0,"0 contacts BEFORE pre handler??");
+								#end
+								DEBUG(arb.makemutable();)
+
+								precb.pr(inner).pre_arbiter = arb;
+								precb.pr(inner).int1 = callbackset.int1;
+								precb.pr(inner).int2 = callbackset.int2;
+								precb.pr(inner).pre_swapped = prei1 != callbackset.int1;
+
+								var ret = listener.handlerp(precb);
+
+								DEBUG(arb.makeimmutable();)
+								
+								arb.active = pact;
+
+								DEBUG(if(ret==null) throw "Error: PreListener handler should not return null >.>";)
+								arb.immState = 
+									if  (ret==PreFlag.ACCEPT)      Flag(ImmState, ACCEPT) | Flag(ImmState, ALWAYS)
+									elif(ret==PreFlag.ACCEPT_ONCE) Flag(ImmState, ACCEPT)
+									elif(ret==PreFlag.IGNORE)      Flag(ImmState, IGNORE) | Flag(ImmState, ALWAYS)
+									else                           Flag(ImmState, IGNORE);
+
+								//validate in non release mode anyways,
+								if((arb.immState&Flag(ImmState,ACCEPT))!=0) {
+									//make sure things like normals are still normalised
+									arb.pre_validate();
+								}
+								
+								if(callbackset!=null) {
+									if(listener.itype==Flag(InteractionType,ANY)) {
+										callbackset.COLLISIONstate = arb.immState;
+										callbackset.SENSORstate = arb.immState;
+										callbackset.FLUIDstate = arb.immState;
+									}else
+										callbackset.INTTYPE`state = arb.immState;
+								}
+							}else if(callbackset==null) {
+								//reset state on non-persistance
+								if((arb.immState&Flag(ImmState,ALWAYS))==0)
+									arb.immState = Flag(ImmState, ACCEPT);
+							}else {
+								arb.immState = callbackset.INTTYPE`state;
+							}
+
+							//DON'T LET THE OBJECTS GO TO SLEEP!!
+							//# we cannot assume that at some point
+							//  handler (without explicit change) will
+							//  inform nape to do something differently
+							//  which would require the objects to be woken
+							//  so we can't let the objects sleep
+							if(listener!=null && !listener.pure && (arb.immState&Flag(ImmState,ALWAYS))==0) {
+								//wake even if 'waking' false (aka sensor arbiter)
+								//to keep consistency w.r.t #_ONCE handlers
+								//
+								//we do not check that they are sleeping before waking
+								//as we want them to never sleep which would be possible
+								//if we allowed them both to go to sleep at same time.
+								//
+								//what about non-dynamics? (like below waking)
+								//    @ not sure this is important.
+								//      the only relevant cases are static/kinematic - kinematic sensor arbiters
+								//      which it would be fairly strange to use pre callbacks with.
+								//    @ it should suffice to only wake non-statics
+								//      and for non-sensor arbiters, we should be able to wake only
+								//      dynamics as usual :)  ~ note: 'waking' only true for non-sensors so we use this.
+								if(waking) {
+									if(arb.b1.isDynamic()) wake(arb.b1);
+									if(arb.b1.isDynamic()) wake(arb.b2);
+								}else {
+									if(!arb.b1.isStatic()) wake(arb.b1);
+									if(!arb.b2.isStatic()) wake(arb.b2);
+								}
+							}
+							//optimisation, none-accept arbiter need not wake it's constituents
+							if(waking && (arb.immState & Flag(ImmState, ACCEPT)) !=0) {
+								if(arb.b1.component.sleeping && arb.b1.isDynamic())
+									wake(arb.b1);
+								if(arb.b2.component.sleeping && arb.b2.isDynamic())
+									wake(arb.b2);
+							}
+
+							if(arb.sleeping) {
+								arb.sleeping = false;
+								arbs.inlined_add(arb);
+							}
+
+							arb;
+						}else if(first) {
+							Free(Type, arb);
+							null;
+						}
+					}else null;
+				});
+
+				$(mixin arbget(s1,s2) ({
+					var ret:PR(Arbiter) = null;
+					var b = if(b1.arbiters.length < b2.arbiters.length) b1 else b2;
+					Iter(arb, b.arbiters, {
+						if(arb.id == s1 && arb.di == s2) {
+							ret = arb;
+							break;
+						}
+					});
+					ret;
+				}));
+
                 if(fcol) {
-                    var xarb = if(in_arb==null) map_arb.get(sa.id,sb.id) else in_arb;
+                    var xarb = if(in_arb==null) arbget(sa.id,sb.id) else in_arb;
                     var first = xarb==null;
 
-                    var arb;
+                    var arb; var swapped = false;
                     if(first) arb = Get(PR(FluidArbiter))
                     else {
                         if(xarb.fluidarb==null) {
                             xarb.lazyRetire(this,null);
                             arb = Get(PR(FluidArbiter));
+							arb.intchange = true;
                             first = true;
+							swapped = true;
                         }else
                             arb = xarb.fluidarb;
                     }
 						
-                    if(first || arb.stamp!=stamp) {
-                        arb.stamp = stamp;
-							
-                        if(PR(Collide).flowCollide(sa,sb,arb)) {
-                            if(first) {
-                                arb.assign(s1,s2,sa.id,sb.id);
-                                f_arbiters.add(arb);
-                                map_arb.add(arb);
-                            }
-                            arb.up_stamp = arb.stamp;
-								
-                            if(arb.b1.component.sleeping && arb.b1.isDynamic())
-                                wake(arb.b1);
-                            if(arb.b2.component.sleeping && arb.b2.isDynamic())
-                                wake(arb.b2);
-								
-                            if(arb.sleeping) {
-                                arb.sleeping = false;
-                                f_arbiters.add(arb);
-                            }
-
-							ret = arb;
-                        }else if(first)
-                            Free(PR(FluidArbiter),arb);
-                    }
+					ret = narrowed(arb,FLUID,PR(FluidArbiter),f_arbiters, PR(Collide).flowCollide(sa,sb,arb), true,false);
                 } else if(gcol) {
                     var carbs = stat ? c_arbiters(true) : c_arbiters(false);
 
-                    var xarb = if(in_arb==null) map_arb.get(sa.id,sb.id) else in_arb;
+                    var xarb = if(in_arb==null) arbget(sa.id,sb.id) else in_arb;
                     var first = xarb==null;
 						
-                    var arb;
+                    var arb; var swapped = false;
                     if(first) {
                         arb = Get(PR(ColArbiter));
                         arb.stat = stat;
@@ -1234,8 +2015,10 @@ class PR(Space) {
                         if(xarb.colarb==null) {
                             xarb.lazyRetire(this,null);
                             arb = Get(PR(ColArbiter));
+							arb.intchange = true;
                             arb.stat = stat;
                             first = true;
+							swapped = true;
                         }else {
                             arb = xarb.colarb;
                             reverse = sa != arb.s1;
@@ -1250,72 +2033,65 @@ class PR(Space) {
                         }
                     }
 
-					assert(bphase.is_sweep || first || arb.stamp!=stamp, "??"+arb.stamp+":"+stamp);
-                    if(first || arb.stamp!=stamp) {
-                        arb.stamp = stamp;
-
-                        if(PR(Collide).contactCollide(sa,sb,arb,reverse)) {
-                            if(first) {
-                                arb.assign(s1,s2,sa.id,sb.id);
-                                carbs.add(arb);
-                                map_arb.add(arb);
-                            }
-                            arb.up_stamp = arb.stamp;
-
-                            if(arb.b1.component.sleeping && arb.b1.isDynamic())
-                                wake(arb.b1);
-                            if(arb.b2.component.sleeping && arb.b2.isDynamic())
-                                wake(arb.b2);
-								
-                            if(arb.sleeping) {
-                                arb.sleeping = false;
-                                carbs.add(arb);
-                            }
-								
-							ret = arb;
-                        }else{
-                            if(first)
-                                Free(PR(ColArbiter),arb);
-                        }
-                    }
+					ret = narrowed(arb,COLLISION,PR(ColArbiter),carbs, PR(Collide).contactCollide(sa,sb,arb,reverse), true,true);
                 } else if(scol) {
-                    var xarb = if(in_arb==null) map_arb.get(sa.id,sb.id) else in_arb;
+                    var xarb = if(in_arb==null) arbget(sa.id,sb.id) else in_arb;
                     var first = xarb==null;
 						
-                    var arb;
+                    var arb; var swapped = false;
                     if(first) arb = Get(PR(SensorArbiter))
                     else {
                         if(xarb.sensorarb==null) {
                             xarb.lazyRetire(this,null);
                             arb = Get(PR(SensorArbiter));
+							arb.intchange = true;
                             first = true;
+							swapped = true;
                         }else
                             arb = xarb.sensorarb;
                     }
-						
-                    if(first || arb.stamp!=stamp) {
-                        arb.stamp = stamp;
-							
-                        if(PR(Collide).testCollide(sa,sb)) {
-                            if(first) {
-                                arb.assign(s1,s2,sa.id,sb.id);
-                                s_arbiters.add(arb);
-                                map_arb.add(arb);
-                            }
-                            arb.up_stamp = arb.stamp;
-
-                            if(arb.sleeping) {
-                                arb.sleeping = false;
-                                s_arbiters.add(arb);
-                            }
-								
-							ret = arb;
-                        }else if(first)
-                            Free(PR(SensorArbiter),arb);
-                    }
+					
+					ret = narrowed(arb,SENSOR,PR(SensorArbiter),s_arbiters, PR(Collide).testCollide(sa,sb), false,false);
 				}
 			}
 		}
+		#if NAPE_TIMES
+			Debug.NARROW += flash.Lib.getTimer()-pt;
+		#end
 		return ret;
+	}
+
+	//-------------------------------------------------------------------------------------------------
+
+	//build chains of interactors from each shape up to (but not including) their MRCA (most recent common ancestor)
+	//as the shapes are in the space the MRCA is guaranteed to exist (allowing the space itself to be an ancestor at the root level)
+	//
+	//these chains are used to handle every possible pair of interactors for callbacks.
+	//assume that the chains are used and can be destroyed, perhaps a premature optimisation but what have you.
+	//
+	//as a further optimisation, only interactors with non-null cbTypes are included.
+	public var mrca1:List(PR(Interactor));
+	public var mrca2:List(PR(Interactor));
+
+	public function MRCA_chains(s1:PR(Shape),s2:PR(Shape)) inlined_MRCA_chains(s1,s2)
+	flibmdel public inline function inlined_MRCA_chains(s1:PR(Shape), s2:PR(Shape)) {
+		assert(s1!=s2 && s1.body!=s2.body, "MRCA chain for equal shapes, or shapes of the same body?");
+		//clear any remnants
+		mrca1.clear();
+		mrca2.clear();
+
+		//first part done explicitly for most common path.
+		if(s1.cbType!=null) mrca1.add(s1); if(s1.body.cbType!=null) mrca1.add(s1.body);
+		if(s2.cbType!=null) mrca2.add(s2); if(s2.body.cbType!=null) mrca2.add(s2.body);
+
+		//slower path for rest of compound chain.
+		var c1 = s1.body.compound;
+		var c2 = s2.body.compound;
+		while(c1!=c2) {
+			var d1 = if(c1==null) 0 else c1.depth;
+			var d2 = if(c2==null) 0 else c2.depth;
+			if(d1<d2) {	if(c2.cbType!=null) mrca2.add(c2); c2 = c2.compound; }
+			else      { if(c1.cbType!=null) mrca1.add(c1); c1 = c1.compound; }
+		}
 	}
 }

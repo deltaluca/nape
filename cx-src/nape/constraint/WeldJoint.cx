@@ -13,6 +13,7 @@ class WeldJoint extends Constraint {
 	wrap_anchor_new(anchor2,a2)
 	
     property(phase,Float,pr(inner_zn).phase,{
+		pr(inner).immutable_midstep("WeldJoint::phase");
 		DEBUG(if(isNaN(phase)) throw "Error: WeldJoint::phase cannot be NaN";)
 		if(this.phase != phase) {
 			pr(inner_zn).phase = phase;
@@ -20,6 +21,7 @@ class WeldJoint extends Constraint {
 		}
 	})
 	
+	flibopts(1)
 	public function new(body1:Body, body2:Body, anchor1:Vec2, anchor2:Vec2, ?phase:Float=0.0) {
 		DEBUG(try { super(); } catch (e:Dynamic) {})
 		RELEASE(super();)

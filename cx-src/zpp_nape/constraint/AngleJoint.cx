@@ -56,7 +56,7 @@ class PR(AngleJoint) extends PR(Constraint) {
 		}
 	});
 	
-	flibmdel public inline function bodyImpulse(b:PR(Body)) {
+	public function bodyImpulse(b:PR(Body)) {
 		if(stepped) {
 			if(b==b1) return new Vec3(0,0,-scale*(jAcc+pjAcc));
 			else      return new Vec3(0,0,ratio*scale*(jAcc+pjAcc));
@@ -92,6 +92,16 @@ class PR(AngleJoint) extends PR(Constraint) {
 	public var stepped:Bool;
 	
 	//---------------------------------------------------
+
+	public override function copy(?dict:Array<{id:Int,bc:Body}>,?todo:Array<{id:Int,cb:Body->Void}>):Constraint {
+		var ret = new AngleJoint(null,null,jointMin,jointMax);
+		ret.ratio = ratio;
+		copyto(ret);
+
+		copybody(ret.pr(inner_zn),b1,dict,todo);
+		copybody(ret.pr(inner_zn),b2,dict,todo);
+		return ret;
+	}
 	
 	public function new() {
 		super();
@@ -103,6 +113,7 @@ class PR(AngleJoint) extends PR(Constraint) {
 	}
 	
 	public override function validate() {
+		if(b1==null || b2==null) throw "Error: AngleJoint cannot be simulated null bodies";
 		if(b1==b2) throw "Error: AngleJoint cannot be simulated with body1 == body2";
 		if(b1.space != space || b2.space != space) throw "Error: Constraints must have each body within the same space to which the constraint has been assigned";
 		if(jointMin>jointMax) throw "Error: AngleJoint must have jointMin <= jointMax";
@@ -110,8 +121,8 @@ class PR(AngleJoint) extends PR(Constraint) {
 	}
 	
 	public override function wake_connected() {
-		if(b1.isDynamic()) b1.wake();
-		if(b2.isDynamic()) b2.wake();
+		if(b1!=null && b1.isDynamic()) b1.wake();
+		if(b2!=null && b2.isDynamic()) b2.wake();
 	}
 	
 	public override function forest() {
@@ -215,6 +226,176 @@ class PR(AngleJoint) extends PR(Constraint) {
 		
 		return false;
 	}
+
+	public override function draw(g:Debug) {
+		var me = outer_zn;
+
+		var minrad = 10;
+		var delrad = 5/Math.PI/2;
+
+		$(mixin body(b, bang, col) {
+			var min = bang(jointMin);
+			var max = bang(jointMax);
+			if(min>max) swap(min,max);
+
+			$(mixin rad(ang) (minrad + (ang-min)*delrad));
+
+			if(b.rotation>min) {
+				var dr = min(b.rotation,max);
+				PR(AngleDraw).drawSpiral(g, b.position, min,dr, rad(min), rad(dr), 0xffff00);
+			}else if(!stiff && b.rotation<min) {
+				PR(AngleDraw).drawSpiralSpring(g, b.position, b.rotation,min, rad(b.rotation),rad(min), 0xffff00);
+			}
+
+			if(b.rotation<max) {
+				var dr = max(b.rotation,min);
+				PR(AngleDraw).drawSpiral(g, b.position, dr,max, rad(dr), rad(max), 0xffff);
+			}else if(!stiff && b.rotation>max) {
+				PR(AngleDraw).drawSpiralSpring(g, b.position, b.rotation,max, rad(b.rotation),rad(max), 0xffff);
+			}
+
+			PR(AngleDraw).indicator(g, b.position, b.rotation, rad(b.rotation), col);
+		});
+
+		if(me.body1 != me.body1.space.world)
+			body(me.body1, $(mixin bang(limit) (me.ratio*me.body2.rotation - limit)) bang, 0xff);
+		if(me.body2 != me.body2.space.world)
+			body(me.body2, $(mixin bang(limit) ((limit + me.body1.rotation)/me.ratio)) bang, 0xff0000);
+	}
 }
 
 )
+
+class PR(AngleDraw) {
+	public static function indicator(g:Debug, c:Vec2, ang:Float, rad:Float, col:Int) {
+		var dir = Vec2.get(Math.cos(ang),Math.sin(ang));
+		g.drawFilledCircle(c.add(dir.mul(rad,true),true),2,col);
+		dir.dispose();
+	}
+
+	//max angle for an arc
+	static var maxarc = Math.PI/4;
+
+	//very similar to drawSpiral.
+	public static function drawSpiralSpring(g:Debug, c:Vec2, a0:Float,a1:Float, r0:Float,r1:Float, col:Int, ?coils:Int=4) {
+		if(a0>a1) {
+			swap(a0,a1);
+			swap(r0,r1);
+		}
+
+		var dr = r1-r0;
+		var da = a1-a0;
+
+		var Delta = abs(2*Math.PI*dr/da);
+		$(mixin radius(t) ({
+			var p = r0 + dr*t;
+			p + 0.75*Delta*Math.sin(2*coils*Math.PI*t);
+		}));
+		$(mixin dradius(t) ({
+			dr + 1.5*coils*Delta*Math.PI*Math.cos(2*coils*Math.PI*t);
+		}));
+
+		var dcnt = max(Math.ceil(da/maxarc*3), 4*coils);
+		var drad = dr/dcnt;
+		var dang = da/dcnt;
+		var dtime = 1/dcnt;
+
+		var c0 = Math.cos(a0); var s0 = Math.sin(a0);
+		var R0 = radius(0);
+		var p0 = Vec2.get(c.x + R0*c0, c.y + R0*s0);
+
+		var DR = dradius(0);
+		var ux = DR*c0 - R0*da*s0;
+		var uy = DR*s0 + R0*da*c0;
+
+		var p1 = Vec2.get();
+		var ct = Vec2.get();
+
+		for(i in 0...dcnt) {
+			var a1 = a0 + dang;
+			var c1 = Math.cos(a1); var s1 = Math.sin(a1);
+			var R1 = radius((i+1)*dtime);
+			p1.setxy(c.x + R1*c1, c.y + R1*s1);
+			var DR = dradius((i+1)*dtime);
+			var vx = DR*c1 - R1*da*s1;
+			var vy = DR*s1 + R1*da*c1;
+
+			var den = (ux*vy-uy*vx);
+			if(den*den<PR(Const).EPSILON || vec_dot(u,v)<=0 || vec_dot(u,v)>0.999)
+				g.drawLine(p0,p1,col);
+			else {
+				var t = ((p1.x-p0.x)*vy + (p0.y-p1.y)*vx) / den;
+				if(t<=0)
+					g.drawLine(p0,p1,col);
+				else {
+					ct.x = p0.x + ux*t;
+					ct.y = p0.y + uy*t;
+					g.drawCurve(p0,ct,p1,col);
+				}
+			}
+
+			a0 = a1;
+			c0 = c1; s0 = s1;
+			ux = vx; uy = vy;
+			p0.set(p1);
+		}
+
+		p0.dispose();
+		p1.dispose();
+		ct.dispose();
+
+	}
+
+	public static function drawSpiral(g:Debug, c:Vec2, a0:Float,a1:Float,r0:Float,r1:Float, col:Int) {
+		if(a0>a1) {
+			swap(a0,a1);
+			swap(r0,r1);
+		}
+
+		var dr = r1-r0;
+		var da = a1-a0;
+
+		var dcnt = Math.ceil(da/maxarc);
+		var drad = dr/dcnt;
+		var dang = da/dcnt;
+
+		var c0 = Math.cos(a0); var s0 = Math.sin(a0);
+		var p0 = Vec2.get(c.x + r0*c0, c.y + r0*s0);
+		var ux = dr*c0 - r0*da*s0;
+		var uy = dr*s0 + r0*da*c0;
+
+		var p1 = Vec2.get();
+		var ct = Vec2.get();
+
+		for(i in 0...dcnt) {
+			var r1 = r0 + drad; var a1 = a0 + dang;
+			var c1 = Math.cos(a1); var s1 = Math.sin(a1);
+			p1.setxy(c.x + r1*c1, c.y + r1*s1);
+			var vx = dr*c1 - r1*da*s1;
+			var vy = dr*s1 + r1*da*c1;
+
+			var den = (ux*vy-uy*vx);
+			if(den*den<PR(Const).EPSILON)
+				g.drawLine(p0,p1,col);
+			else {
+				var t = ((p1.x-p0.x)*vy + (p0.y-p1.y)*vx) / den;
+				if(t<=0)
+					g.drawLine(p0,p1,col);
+				else {
+					ct.x = p0.x + ux*t;
+					ct.y = p0.y + uy*t;
+					g.drawCurve(p0,ct,p1,col);
+				}
+			}
+
+			r0 = r1; a0 = a1;
+			c0 = c1; s0 = s1;
+			ux = vx; uy = vy;
+			p0.set(p1);
+		}
+
+		p0.dispose();
+		p1.dispose();
+		ct.dispose();
+	}
+}

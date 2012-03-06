@@ -9,6 +9,8 @@ import nape.util.ShapeDebug;
 import flash.display.StageQuality;
 
 import VariableStep;
+import FPS;
+
 class PerlinSquares extends VariableStep {
 	static function main() {
 		new PerlinSquares();
@@ -21,7 +23,7 @@ class PerlinSquares extends VariableStep {
 		var debug = new ShapeDebug(400,300,0xffffff);
 		addChild(debug.display);
 		stage.quality = StageQuality.LOW;
-	
+
 		//iso-surface function.
 		var z = 0.0;
 		var bnd = 0.0;

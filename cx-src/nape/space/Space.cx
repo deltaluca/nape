@@ -1,13 +1,11 @@
 package nape.space;
 $(import);
 
-Flags(Broadphase,
-    prop(DYNAMIC_AABB_TREE, 0)
-    prop(SWEEP_AND_PRUNE, 1)
-)
-
 class Space {
 	public var pr(inner):PR(Space);
+
+	property(id,Int,pr(inner).id)
+	public var userData:Dynamic;
 	
 	//----------------------------------------------------------------------------------------------
 	
@@ -23,20 +21,53 @@ class Space {
 	property(broadphase,Broadphase,{
 		pr(inner).bphase.is_sweep ? Broadphase.SWEEP_AND_PRUNE : Broadphase.DYNAMIC_AABB_TREE;
 	})
+
+	property(sortContacts,Bool,pr(inner).sortcontacts,{
+		pr(inner).sortcontacts = sortContacts;
+	})
 	
+	//----------------------------------------------------------------------------------------------
+
+	property(worldAngularDrag,Float,pr(inner).global_ang_drag,{
+		var d = worldAngularDrag;
+		DEBUG(if(isNaN(d)) throw "Error: Space::worldAngularDrag cannot be NaN";)
+		pr(inner).global_ang_drag = d;	
+	})
+	property(worldLinearDrag,Float,pr(inner).global_lin_drag,{
+		var d = worldLinearDrag;
+		DEBUG(if(isNaN(d)) throw "Error: Space::worldLinearDrag cannot be NaN";)
+		pr(inner).global_lin_drag = d;	
+	})
+
 	//----------------------------------------------------------------------------------------------
 	
     //bodies ]= statics,dynamics,kinematics
     //dynamics ]= liveBodies
+	property(compounds,CompoundList,pr(inner).wrap_compounds)
     property(bodies,    BodyList,pr(inner).wrap_bodies)
-    property(statics,   BodyList,pr(inner).wrap_statics)
-    property(dynamics,  BodyList,pr(inner).wrap_dynamics)
-    property(kinematics,BodyList,pr(inner).wrap_kinematics)
 	property(liveBodies,BodyList,pr(inner).wrap_live)
 
     //constraints ]= liveConstraints
     property(constraints,    ConstraintList,pr(inner).wrap_constraints)
     property(liveConstraints,ConstraintList,pr(inner).wrap_livecon)
+
+	public function visitBodies(lambda:Body->Void) {
+		DEBUG(if(lambda==null) throw "Error: lambda cannot be null for Space::visitBodies";)
+		for(b in bodies) lambda(b);
+		for(c in compounds) c.visitBodies(lambda);
+	}
+	public function visitConstraints(lambda:Constraint->Void) {
+		DEBUG(if(lambda==null) throw "Error: lambda cannot be null for Space::visitConstraints";)
+		for(c in constraints) lambda(c);
+		for(c in compounds) c.visitConstraints(lambda);
+	}
+	public function visitCompounds(lambda:Compound->Void) {
+		DEBUG(if(lambda==null) throw "Error: lambda cannot be null for Space::visitCompounds";)
+		for(c in compounds) {
+			lambda(c);
+			c.visitCompounds(lambda);
+		}
+	}
 
 	//----------------------------------------------------------------------------------------------
 	
@@ -56,22 +87,14 @@ class Space {
 	
     //----------------------------------------------------------------------------------------------
 
-    property(callbacks,CallbackQueue,{
-        if(pr(inner).wrap_callbacks==null) {
-            PR(Callback).internal = true;
-            var ret = new CallbackQueue();
-            PR(Callback).internal = false;
-            ret.pr(inner) = pr(inner).callbacks;
-            pr(inner).wrap_callbacks = ret;
-        }
-        pr(inner).wrap_callbacks;
-    })
-
     property(listeners,ListenerList,pr(inner).wrap_listeners)
 
 	//----------------------------------------------------------------------------------------------
 
-	keep public inline function clear() { pr(inner).clear(); }
+	keep public function clear() {
+		DEBUG(if(pr(inner).midstep) throw "Error: Space::clear() cannot be called during space step()";)
+		pr(inner).clear();
+	}
 
 	//----------------------------------------------------------------------------------------------
 	

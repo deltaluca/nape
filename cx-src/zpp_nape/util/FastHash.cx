@@ -2,7 +2,7 @@ package zpp_nape.util;
 $(import);
 
 //only suitable for native types.
-$(define global class Hashable2(T) {
+$(define global keep class Hashable2(T) {
 	public var value:T;
 	MixPool(Hashable2(T))
 	public var hnext:Hashable2(T);
@@ -10,16 +10,26 @@ $(define global class Hashable2(T) {
 	public var id:Int;
 	public var di:Int;
 
-	flibmdel public inline function free() {}
-	flibmdel public inline function alloc() {}
+	public function free() {}
+	public function alloc() {}
 	function new() {}
 
-	public static inline function get(id:Int,di:Int,val:T) {
-		var ret = Get(Hashable2(T));
+	public static function get(id:Int,di:Int,val:T) {
+		var ret = get_persist(id,di);
 		ret.value = val;
+		return ret;
+	}
+	public static function get_persist(id:Int,di:Int) {
+		var ret = Get(Hashable2(T));
 		ret.id = id;
 		ret.di = di;
 		return ret;
+	}
+	public static function ordered_get(id:Int,di:Int,val:T) {
+		return if(id<=di) get(id,di,val) else get(di,id,val);
+	}
+	public static function ordered_get_persist(id:Int,di:Int) {
+		return if(id<=di) get_persist(id,di); else get_persist(di,id);
 	}
 });
 
@@ -37,21 +47,25 @@ $(mixin global ClearHashWith(hash,cb) {
 	}
 });
 
-$(define global class FastHash2(T) {
+$(define global keep class FastHash2(T) {
 	public var table:ARRAY(T);
+	public var cnt:Int;
 
 	public function new() {
+		cnt = 0;
 		#if flash10
-			table = new flash.Vector<T>(0x10000,true);
+			table = new flash.Vector<T>(0x100000,true);
 		#else
 			table = new Array<T>();
-			for(i in 0...(0x10000)) table.push(null);
+			for(i in 0...(0x100000)) table.push(null);
 		#end
 	}
 
-	public inline function clear() ClearHashWith(this,$(mixin cb(x)))
+	public function empty() return cnt==0
 
-	public inline function get(id:Int,di:Int):T {
+	public function clear() ClearHashWith(this,$(mixin cb(x)))
+
+	public function get(id:Int,di:Int):T {
 		var n = table[hash(id,di)];
 		if(n==null) return null;
 		else if(n.id == id && n.di == di) return n;
@@ -62,7 +76,11 @@ $(define global class FastHash2(T) {
 		}
 	}
 
-	public inline function has(id:Int,di:Int):Bool {
+	public function ordered_get(id:Int,di:Int) {
+		return if(id<=di) get(id,di) else get(di,id);
+	}
+
+	public function has(id:Int,di:Int):Bool {
 		var n = table[hash(id,di)];
 		if(n==null) return false;
 		else if(n.id == id && n.di == di) return true;
@@ -73,7 +91,36 @@ $(define global class FastHash2(T) {
 		}
 	}
 
-	public inline function add(arb:T) {
+	public function maybeAdd(arb:T) {
+		assert(arb!=null,"cannot add null to hash2");
+		var h = hash(arb.id,arb.di);
+		var n = table[h];
+		var cont = true;
+		if(n==null) {
+			table[h] = arb;
+			arb.hnext = null;
+		}else {
+			#if NAPE_ASSERT
+				var nor = n;
+				while(n!=null) {
+					if(n.id==arb.id && n.di==arb.di) {
+						cont = false;
+						break;
+					}
+					n = n.hnext;
+				}
+				n = nor;
+			#end
+			if(cont) {
+				arb.hnext = n.hnext;
+				n.hnext = arb;
+			}
+		}
+		if(cont)
+			cnt++;
+	}
+
+	public function add(arb:T) {
 		assert(arb!=null,"cannot add null to hash2");
 		var h = hash(arb.id,arb.di);
 		var n = table[h];
@@ -98,9 +145,10 @@ $(define global class FastHash2(T) {
 		#if NAPE_TIMES
 			Debug.HASHT++;
 		#end
+		cnt++;
 	}
 
-	public inline function remove(arb:T) {
+	public function remove(arb:T) {
 		assert(arb!=null,"cannot remove null from hash2");
 		var h = hash(arb.id,arb.di);
 		var n = table[h];
@@ -114,11 +162,12 @@ $(define global class FastHash2(T) {
 			pre.hnext = n.hnext;
 		}
 		arb.hnext = null;
+		cnt--;
 	}
 
-	public inline function hash(id:Int,di:Int) return ((id*106039)+di)&0xffff
-//	public inline function hash(id:Int,di:Int) return ((~(id*106039))^di)&0xffff
-//	public inline function hash(a,b) return 0
+	public function hash(id:Int,di:Int) return ((id*106039)+di)&0xfffff
+//	public function hash(id:Int,di:Int) return ((~(id*106039))^di)&0xffff
+//	public function hash(a,b) return 0
 });
 
 $(define global class FastHash(T) {
@@ -133,9 +182,9 @@ $(define global class FastHash(T) {
         #end
     }
 
-	public inline function clear() ClearHashWith(this,$(mixin cb(x)))
+	public function clear() ClearHashWith(this,$(mixin cb(x)))
 
-    public inline function get(id:Int):T {
+    public function get(id:Int):T {
         var n = table[hash(id)];
         if(n==null) return null;
         else if(n.id == id) return n;
@@ -146,7 +195,7 @@ $(define global class FastHash(T) {
         }
     }
 
-	public inline function has(id:Int):Bool {
+	public function has(id:Int):Bool {
 		var n = table[hash(id)];
 		if(n==null) return false;
 		else if(n.id == id) return true;
@@ -157,7 +206,7 @@ $(define global class FastHash(T) {
 		}
 	}
 
-    public inline function add(arb:T) {
+    public function add(arb:T) {
 	    assert(arb!=null,"cannot add null to hash");
         var h = hash(arb.id);
         var n = table[h];
@@ -175,16 +224,10 @@ $(define global class FastHash(T) {
             #end
             arb.hnext = n.hnext;
             n.hnext = arb;
-			#if NAPE_TIMES
-				Debug.HASH++;
-			#end
         }
-		#if NAPE_TIMES
-			Debug.HASHT++;
-		#end
     }
 
-    public inline function remove(arb:T) {
+    public function remove(arb:T) {
 		assert(arb!=null,"cannot remove null from hash");
         var h = hash(arb.id);
         var n = table[h];
@@ -198,5 +241,5 @@ $(define global class FastHash(T) {
         arb.hnext = null;
     }
 
-    public inline function hash(key:Int) return (key*106039) & 0xffff
+    public function hash(key:Int) return (key*106039) & 0xffff
 });

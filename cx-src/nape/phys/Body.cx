@@ -1,42 +1,13 @@
 package nape.phys;
 $(import);
 
-Flags(MassMode,
-	prop(DEFAULT,0)
-	prop(FIXED,1)
-)
-
-Flags(GravMassMode,
-	prop(DEFAULT,0)
-	prop(FIXED,1)
-	prop(SCALED,2)
-)
-
-Flags(BodyType,
-	prop(STATIC,1)
-	prop(DYNAMIC,2)
-	prop(KINEMATIC,3)
-)
-
-Flags(InertiaMode,
-	prop(DEFAULT,0)
-	prop(FIXED,1)
-)
-
-//--------------------------------------------------------------------------------------------------
-
-WrapList(Body,List(PR(Body)),Node(PR(Body)),$(mixin closure(x) x.outer) $(mixin erusolc(x) x.pr(inner)))
-
-//--------------------------------------------------------------------------------------------------
-
-class Body {
+class Body extends Interactor {
 	public var pr(inner):PR(Body);
-
-    property(id,Int,pr(inner).id)
 
     property(type,BodyType,{
         [null,BodyType.STATIC,BodyType.DYNAMIC,BodyType.KINEMATIC][pr(inner).type];
     },{
+		pr(inner).immutable_midstep("Body::type");
         DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		
 		if(this.type!=type) {
@@ -58,29 +29,41 @@ class Body {
 		}
     })
 	
-	keep public inline function isStatic   () return pr(inner).isStatic()
-	keep public inline function isDynamic  () return pr(inner).isDynamic()
-	keep public inline function isKinematic() return pr(inner).isKinematic()
+	keep public function isStatic   () return pr(inner).isStatic()
+	keep public function isDynamic  () return pr(inner).isDynamic()
+	keep public function isKinematic() return pr(inner).isKinematic()
 
 	//----------------------------------------------------------------------------------------------
 	
-	public var userData:Dynamic;
-	
-	//----------------------------------------------------------------------------------------------
-
 	public function clear() {
+		pr(inner).immutable_midstep("Body::clear()");
     	DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		pr(inner).clear();
 		userData = null;
+
+		cbType = null;
+		group = null;
+		compound = null;
 	}
 
 	//----------------------------------------------------------------------------------------------
 	
     property(shapes,ShapeList,pr(inner).wrap_shapes)
 
+	property(compound,Compound,{
+		if(pr(inner).compound==null) null else pr(inner).compound.outer;
+	},{
+		if(this.compound!=compound) {
+			if(this.compound!=null) this.compound.bodies.remove(this);
+			if(compound!=null) compound.bodies.add(this);
+		}
+	})
+
     property(space,Space,{
         if(pr(inner).space==null) null else pr(inner).space.outer;
     },{
+		DEBUG(if(pr(inner).compound!=null) throw "Error: Cannot set the space of a Body belonging to a Compound, only the root Compound space can be set";)
+		pr(inner).immutable_midstep("Body::space");
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		
 		if(this.space!=space) {
@@ -88,9 +71,8 @@ class Body {
 			if(this.space!=null)
 	            pr(inner).component.woken = false;
 
-			if(pr(inner).space!=null) pr(inner).space.removeBody(pr(inner));
-			if(space!=null) space.pr(inner).addBody(pr(inner));
-			else pr(inner).space = null;
+			if(this.space!=null) this.space.bodies.remove(this);
+			if(space!=null) space.bodies.add(this);
 		}
 	})
 		
@@ -116,8 +98,14 @@ class Body {
 	//----------------------------------------------------------------------------------------------
 	
 	public function new(?type:BodyType,?position:Vec2) {
+		DEBUG(try { super(); } catch (e:Dynamic) {})
+		RELEASE(super();)
+
 		pr(inner) = new PR(Body)();
 		pr(inner).outer = this;
+		pr(inner).outer_i = this;
+		pr(inner_i) = pr(inner);
+
 		if(position!=null) {
 			Disposed(position,Vec2);
 			vec_set(pr(inner).pos,position.);
@@ -154,8 +142,16 @@ class Body {
     vecprop(force,       wrap_force, setupForce)
 	
     //----------------------------------------------------------------------------------------------
+
+	property(constraintVelocity,Vec3,{
+		if(pr(inner).wrapcvel==null) pr(inner).setup_cvel();
+		pr(inner).wrapcvel;
+	})
+
+    //----------------------------------------------------------------------------------------------
 	
     property(rotation,Float,pr(inner).rot,{
+		pr(inner).immutable_midstep("Body::rotation");
         DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		DEBUG(if(isStatic() && pr(inner).space!=null)
 			throw "Error: Static objects cannot be rotated once inside a Space";
@@ -212,6 +208,7 @@ class Body {
 	
     $(mixin allowprop(n,flag,prop)
         property(n,Bool,!pr(inner).flag,{
+			pr(inner).immutable_midstep("Body::"+n);
             if(this.n != n) {
                 pr(inner).flag = !n;
                 pr(inner).invalidate_`prop();
@@ -226,12 +223,18 @@ class Body {
     property(massMode,MassMode,{
 		[MassMode.DEFAULT,MassMode.FIXED][pr(inner).massMode];
 	},{
+		pr(inner).immutable_midstep("Body::massMode");
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		DEBUG(if(massMode==null)
 			throw "Error: cannot use null massMode";
 		)
 		pr(inner).massMode = massMode == MassMode.DEFAULT ? Flag(MassMode,DEFAULT) : Flag(MassMode,FIXED);
 		pr(inner).invalidate_mass();
+	})
+
+	property(constraintMass,Float,{
+		if(!pr(inner).world) pr(inner).validate_mass();
+		pr(inner).imass;
 	})
 	
     property(mass,Float,{
@@ -242,11 +245,12 @@ class Body {
 		)
 		pr(inner).cmass;
 	},{
+		pr(inner).immutable_midstep("Body::mass");
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		DEBUG(
 			if(isNaN(mass)) throw "Error: Mass cannot be NaN";
 			if(mass<=0) throw "Error: Mass must be strictly positive";
-			if(mass==PR(Const).POSINF) throw "Error: Mass cannot be infinite, use allowMovement = false instead";
+			if(mass>=PR(Const).POSINF) throw "Error: Mass cannot be infinite, use allowMovement = false instead";
 		)
 		pr(inner).massMode = Flag(MassMode,FIXED);
 		pr(inner).cmass = mass;
@@ -258,6 +262,7 @@ class Body {
     property(gravMassMode,GravMassMode,{
 		[GravMassMode.DEFAULT,GravMassMode.FIXED,GravMassMode.SCALED][pr(inner).massMode];
 	},{
+		pr(inner).immutable_midstep("Body::gravMassMode");
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		DEBUG(if(gravMassMode==null) throw "Error: Cannot use null gravMassMode";)
 		pr(inner).gravMassMode = gravMassMode == GravMassMode.SCALED ? Flag(GravMassMode,SCALED)
@@ -276,6 +281,7 @@ class Body {
 		})
 		pr(inner).gravMass;
 	},{
+		pr(inner).immutable_midstep("Body::gravMass");
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		DEBUG(if(isNaN(gravMass)) throw "Error: gravMass cannot be NaN";)
 		pr(inner).gravMassMode = Flag(GravMassMode,FIXED);
@@ -292,6 +298,7 @@ class Body {
 		})
 		pr(inner).gravMassScale;
 	},{
+		pr(inner).immutable_midstep("Body::gravMassScale");
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		
 		DEBUG(if(isNaN(gravMassScale)) throw "Error: gravMassScale cannot be NaN";)
@@ -305,12 +312,18 @@ class Body {
     property(inertiaMode,InertiaMode,{
         [InertiaMode.DEFAULT,InertiaMode.FIXED][pr(inner).inertiaMode];
     },{
+		pr(inner).immutable_midstep("Body::inertiaMode");
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		DEBUG(if(inertiaMode==null)
 			throw "Error: Cannot use null InertiaMode";
 		)
 		pr(inner).inertiaMode = inertiaMode == InertiaMode.FIXED ? Flag(InertiaMode,FIXED) : Flag(InertiaMode,DEFAULT);
 		pr(inner).invalidate_inertia();
+	})
+
+	property(constraintInertia,Float,{
+		if(!pr(inner).world) pr(inner).validate_inertia();
+		pr(inner).iinertia;
 	})
 	
     property(inertia,Float,{
@@ -321,11 +334,12 @@ class Body {
 		)
 		pr(inner).cinertia;
 	},{
+		pr(inner).immutable_midstep("Body::inertia");
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		DEBUG(
 			if(isNaN(inertia)) throw "Error: Inertia cannot be NaN";
 			if(inertia<=0) throw "Error: Inertia must be strictly positive";
-			if(inertia==PR(Const).POSINF) throw "Error: Inertia cannot be infinite, use allowRotation = false instead";
+			if(inertia>=PR(Const).POSINF) throw "Error: Inertia cannot be infinite, use allowRotation = false instead";
 		)
 		pr(inner).inertiaMode = Flag(InertiaMode,FIXED);
 		pr(inner).cinertia = inertia;
@@ -334,48 +348,48 @@ class Body {
 	
 	//----------------------------------------------------------------------------------------------
 	
-	#if (flash9||nme)
-        property(graphic,flash.display.DisplayObject,pr(inner).graphic,{
-			DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
-			if(graphic!=this.graphic) {
-				if(graphic==null) {
-					pr(inner).hasgraphic = false;
-					pr(inner).graphic = null;
-				}else {
-					pr(inner).hasgraphic = true;
-					pr(inner).graphic = graphic;
-					pr(inner).validate_graphic();
-				}
-			}
-		})
-		
-		/*public var graphic_delta_rot(flibget_graphic_delta_rot, flibset_graphic_delta_rot):Float;
-		force_inline function flibget_graphic_delta_rot() {
-			return pr(inner).grotdelta;
-		}
-		force_inline function flibset_graphic_delta_rot(delta_rot:Float) {
-			DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
-			
-			if(pr(inner).grotdelta != delta_rot) {
-				pr(inner).grotdelta = delta_rot;
+    property(graphic,Dynamic,pr(inner).graphic,{
+		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
+		if(graphic!=this.graphic) {
+			if(graphic==null) {
+				pr(inner).graphic = null;
+			}else {
+				pr(inner).graphic = graphic;
+				pr(inner).flashgraphic = Std.is(graphic,flash.display.DisplayObject);
 				pr(inner).validate_graphic();
 			}
-			return delta_rot;
-		}*/
-		
-		/*public var graphic_delta(flibget_graphic_delta,flibset_graphic_delta):Vec2;
-		force_inline function flibget_graphic_delta() {
-			return null;
 		}
-		force*/
-	#end
+	})
+	
+	property(graphicUpdate,Body->Void,pr(inner).graphicUpdate,{
+		pr(inner).graphicUpdate = graphicUpdate;
+		if(graphicUpdate!=null) pr(inner).validate_graphic();
+	})
 
     //----------------------------------------------------------------------------------------------
 
-    property(cbType,CbType,pr(inner).cbType.wrapper(),{
-        DEBUG(if(cbType==null) throw "Error: Cannot assign null CbType to Body";)
-        pr(inner).setCbType(cbType.pr(inner));
-    })
+	keep public function crushFactor():Float {
+		DEBUG(if(space==null) throw "Error: Makes no sense to see how much an object not taking part in a simulation is being crushed";)
+		var msum = 0.0;
+		var jsum = new Vec2();
+
+		for(arb in arbiters) {
+			var imp = arb.totalImpulse(this).xy();
+			jsum.addeq(imp);
+			msum += imp.length;
+			imp.dispose();
+		}
+		for(con in constraints) {
+			var imp = con.bodyImpulse(this).xy();
+			jsum.addeq(imp);
+			msum += imp.length;
+			imp.dispose();
+		}
+
+		var ret = (msum - jsum.length)*space.pr(inner).pre_dt;
+		jsum.dispose();
+		return ret;
+	}
 
     //----------------------------------------------------------------------------------------------
 	
@@ -520,6 +534,7 @@ class Body {
 	//----------------------------------------------------------------------------------------------
 	
 	keep public function translateShapes(displacement:Vec2) {
+		pr(inner).immutable_midstep("Body::translateShapes()");
 		Disposed(displacement,Vec2);
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		DEBUG(if(displacement==null) throw "Error: Cannot displace by null Vec2";)
@@ -533,22 +548,26 @@ class Body {
 		WEAK(displacement);
 	}
 	keep public function rotateShapes(angle:Float) {
+		pr(inner).immutable_midstep("Body::rotateShapes()");
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		
 		Iter(s,pr(inner).shapes,s.outer.rotate(angle));
 	}
 	keep public function scaleShapes(scalex:Float,scaley:Float) {
+		pr(inner).immutable_midstep("Body::scaleShapes()");
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		
 		Iter(s,pr(inner).shapes,s.outer.scale(scalex,scaley));
 	}
 	keep public function transformShapes(matrix:Mat23) {
+		pr(inner).immutable_midstep("Body::transformShapes()");
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		
 		Iter(s,pr(inner).shapes,s.outer.transform(matrix));
 	}
 	
 	keep public function align() {
+		pr(inner).immutable_midstep("Body::align()");
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		
 		DEBUG(if(pr(inner).shapes.empty())
@@ -560,25 +579,49 @@ class Body {
 		var dx2 = localToRelative(dx);
 		position.subeq(dx2);
 		
-		if(pr(inner).pre_posx != PR(Const).POSINF)
+		if(pr(inner).pre_posx < PR(Const).POSINF)
 			vec_subeq(pr(inner).pre_pos,dx2.);
 		dx.dispose();
 		dx2.dispose();
+	}
+
+	//----------------------------------------------------------------------------------------------
+
+	keep public function rotate(centre:Vec2,angle:Float) {
+		Disposed(centre,Vec2);
+		DEBUG(if(centre==null) throw "Error: Cannot rotate about a null Vec2";)
+		DEBUG(if(isNaN(angle)) throw "Error: Cannot rotate by NaN radians";)
+
+		var weak = centre.pr(inner).weak;
+		centre.pr(inner).weak = false;
+
+		var del = position.sub(centre);
+		del.rotate(angle);
+		position = centre.add(del,true);
+		del.dispose();
+
+		rotation += angle;
+
+		centre.pr(inner).weak = weak;
+		WEAK(centre);
 	}
 	
 	//----------------------------------------------------------------------------------------------
 	
 	keep public function setShapeMaterials(material:Material) {
+		pr(inner).immutable_midstep("Body::setShapeMaterials()");
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		
 		Iter(s,pr(inner).shapes,s.outer.material = material);
 	}
 	keep public function setShapeFilters(filter:InteractionFilter) {
+		pr(inner).immutable_midstep("Body::setShapeFilters()");
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		
 		Iter(s,pr(inner).shapes,s.outer.filter = filter);
 	}
 	keep public function setShapeFluidProperties(fluidProperties:FluidProperties) {
+		pr(inner).immutable_midstep("Body::setShapeFluidProperties()");
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		
 		Iter(s,pr(inner).shapes,s.outer.fluidProperties = fluidProperties);
@@ -721,7 +764,7 @@ class Body {
 
 	//----------------------------------------------------------------------------------------------
 	
-	@:$keep public function toString() {
+	@:$keep public override function toString() {
 		return (pr(inner).world?"(space::world":("("+(isDynamic()?"dynamic":isStatic()?"static":"kinematic")))+")#"+id;
 	}
 }

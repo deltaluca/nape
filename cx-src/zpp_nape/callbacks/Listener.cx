@@ -11,7 +11,6 @@ class PR(Listener) {
     public var body:PR(BodyListener);
     public var constraint:PR(ConstraintListener);
     public var interaction:PR(InteractionListener);
-    public var imm:PR(ImmListener);
 
     public var space:PR(Space);
 }
@@ -23,36 +22,32 @@ class PR(BodyListener) extends PR(Listener) {
     public var outer_zn:BodyListener;
 
     public var cbType:PR(CbType);
-    public var handler:Body->Void;
+    public var handler:BodyCallback->Void;
 
-    public function new(event:Int, handler:Body->Void) {
+    public function new(event:Int, handler:BodyCallback->Void) {
         this.event = event;
         this.handler = handler;
         body = this;
         type = Flag(ListenerType,BODY);
     }
 
-    flibmdel public inline function addedToSpace() {
+    public function addedToSpace() {
         assert(cbType!=null,"listener added to space with no cbtype associated?");
-
-		cbType.listeners.add(this);
 
         if(event==Flag(CbEvent,WAKE))
              cbType._bodywake = this;
         else cbType._bodysleep = this;
     }
 
-    flibmdel public inline function removedFromSpace() {
+    public function removedFromSpace() {
         assert(cbType!=null,"listener removed from space with no cbtype associated?");
-
-		cbType.listeners.remove(this);
 
         if(event==Flag(CbEvent,WAKE))
              cbType._bodywake = null;
         else cbType._bodysleep = null;
     }
 
-    flibmdel public inline function swapCbType(newcb:PR(CbType)) {
+    public function swapCbType(newcb:PR(CbType)) {
         assert(newcb!=null,"swap to null cbtype?");
 
         //handle live data.
@@ -63,7 +58,7 @@ class PR(BodyListener) extends PR(Listener) {
         }else cbType = newcb;
     }
 
-    flibmdel public inline function swapEvent(newev:Int) {
+    public function swapEvent(newev:Int) {
         DEBUG(
             if(newev != Flag(CbEvent,WAKE) && newev != Flag(CbEvent,SLEEP))
                 throw "Error: BodyListener event must be either WAKE or SLEEP only";
@@ -81,36 +76,32 @@ class PR(ConstraintListener) extends PR(Listener) {
     public var outer_zn:ConstraintListener;
 
     public var cbType:PR(CbType);
-    public var handler:Constraint->Void;
+    public var handler:ConstraintCallback->Void;
 
-    public function new(event:Int, handler:Constraint->Void) {
+    public function new(event:Int, handler:ConstraintCallback->Void) {
         this.event = event;
         this.handler = handler;
         constraint = this;
         type = Flag(ListenerType,CONSTRAINT);
     }
 
-    flibmdel public inline function addedToSpace() {
+    public function addedToSpace() {
         assert(cbType!=null,"listener added to space with no cbtype associated?");
 
-		cbType.listeners.add(this);
-
         if     (event==Flag(CbEvent,WAKE))  cbType._conwake = this;
         else if(event==Flag(CbEvent,SLEEP)) cbType._consleep = this;
         else cbType._break = this;
     }
 
-    flibmdel public inline function removedFromSpace() {
+    public function removedFromSpace() {
         assert(cbType!=null,"listener removed from space with no cbtype associated?");
 
-		cbType.listeners.remove(this);
-
         if     (event==Flag(CbEvent,WAKE))  cbType._conwake = this;
         else if(event==Flag(CbEvent,SLEEP)) cbType._consleep = this;
         else cbType._break = this;
     }
 
-    flibmdel public inline function swapCbType(newcb:PR(CbType)) {
+    public function swapCbType(newcb:PR(CbType)) {
         assert(newcb!=null,"swap to null cbtype?");
 
         //handle live data.
@@ -121,7 +112,7 @@ class PR(ConstraintListener) extends PR(Listener) {
         }else cbType = newcb;
     }
 
-    flibmdel public inline function swapEvent(newev:Int) {
+    public function swapEvent(newev:Int) {
         DEBUG(
             if(newev != Flag(CbEvent,WAKE) && newev != Flag(CbEvent,SLEEP) && newev != Flag(CbEvent,BREAK))
                 throw "Error: ConstraintListener event must be either WAKE or SLEEP only";
@@ -132,14 +123,106 @@ class PR(ConstraintListener) extends PR(Listener) {
     }
 }
 
+//shared between public InteractionListener
+//and public PreListener
 class PR(InteractionListener) extends PR(Listener) {
-    public var cb1:PR(CbType);
-    public var cb2:PR(CbType);
-    public var handler:Arbiter->Void;
-}
+	public var outer_zni:InteractionListener;
+	public var outer_znp:PreListener;
 
-class PR(ImmListener) extends PR(Listener) {
+	public var itype:Int; //InteractionType Flag
     public var cb1:PR(CbType);
     public var cb2:PR(CbType);
-    public var handler:Arbiter->ImmFlag;
+
+	//for InteractionListener
+    public var handleri:InteractionCallback->Void;
+	//for PreListener
+	public var pure:Bool;
+	public var handlerp:PreCallback->PreFlag;
+
+	//used in hash lookups based on cbTypes
+	public var hnext:PR(InteractionListener);
+	public var id:Int; public var di:Int;
+
+	public function settype(xtype:Int) {
+		itype = xtype;
+	}
+
+	public function new(event:Int,type:Int) {
+		this.type = type;
+		interaction = this;
+		this.event = event;
+	}
+
+	//for PreListener
+	public function wake() {
+		assert(type==Flag(ListenerType,PRE),"waking non-pre?");
+		//PreListener only needs ito wake the bodies.
+		//but we iterate the cb SHAPES, not the bodies
+		//as the bodies refer to Body callbacks, not Interaction/Imm callbacks
+		Iter(i, cb1.interactors, i.wake());
+		if(cb2!=cb1)
+			Iter(i, cb2.interactors, i.wake());
+	}
+
+	public function assign() {
+		if(PR(CbType).empty_intersection(cb1,cb2))
+			space.freshListenerType(cb1,cb2);
+
+		cb1.insert(this);
+		if(cb1!=cb2) cb2.insert(this);
+	}
+	public function unassign() {
+		cb1.remove(this);
+		if(cb1!=cb2) cb2.remove(this);
+
+		if(PR(CbType).empty_intersection(cb1,cb2))
+			space.nullListenerType(cb1,cb2);
+	}
+
+	public function addedToSpace(?skip=false) {
+		assert(cb1!=null && cb2!=null,"listener added to space with no cbtypes associated?");
+
+		if(!skip) assign();
+	}
+	public function removedFromSpace(?skip=false) {
+		assert(cb1!=null && cb2!=null,"listener added to space with no cbtypes associated?");
+
+		if(!skip) unassign();
+	}
+
+    public function swapCbType(which:Int, newcb:PR(CbType)) {
+        assert(newcb!=null,"swap to null cbtype?");
+
+		if(cb1!=null && cb2!=null && space!=null) {	
+			space.revoke_listener(this);
+			unassign();
+		}
+
+		if(which==1) cb1 = newcb;
+		else         cb2 = newcb;
+
+		if(cb1!=null && cb2!=null) {
+			//set hash id's
+			if(cb1.id <= cb2.id)
+				 { id = cb1.id; di = cb2.id; }
+			else { id = cb2.id; di = cb1.id; }
+
+			if(space!=null) {
+				assign();
+				space.unrevoke_listener(this);
+			}
+		}
+    }
+
+	public function swapEvent(newev:Int) {
+		DEBUG(
+			if(type == Flag(ListenerType,PRE))
+				throw "Error: PreListener event can only be PRE";
+			elif(newev != Flag(CbEvent,BEGIN) && newev != Flag(CbEvent,END) && newev != Flag(CbEvent,ONGOING))
+				throw "Error: InteractionListener event must be either BEGIN, END, ONGOING";
+		)
+		removedFromSpace(true);
+		event = newev;
+		addedToSpace(true);
+	}
 }

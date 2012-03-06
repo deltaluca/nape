@@ -2,16 +2,38 @@ package zpp_nape.callbacks;
 $(import);
 
 class PR(Callback) {
-	public var outer:Callback;
+	public var outer_body:BodyCallback;
+	public var outer_con:ConstraintCallback;
+	public var outer_int:InteractionCallback;
+
 	public static var internal = false;
-	flibmdel public inline function wrapper() {
-		if(outer==null) {
+	public function wrapper_body() {
+		if(outer_body==null) {
 			internal = true;
-			outer = new Callback();
+			outer_body = new BodyCallback();
 			internal = false;
-			outer.pr(inner) = this;
+			outer_body.pr(inner) = this;
 		}
-		return outer;
+		return outer_body;
+	}
+	public function wrapper_con() {
+		if(outer_con==null) {
+			internal = true;
+			outer_con = new ConstraintCallback();
+			internal = false;
+			outer_con.pr(inner) = this;
+		}
+		return outer_con;
+	}
+	public function wrapper_int() {
+		if(outer_int==null) {
+			internal = true;
+			outer_int = new InteractionCallback();
+			internal = false;
+			outer_int.pr(inner) = this;
+		}
+		genarbs();
+		return outer_int;
 	}
 	
 	//----------------
@@ -27,25 +49,44 @@ class PR(Callback) {
 
     //pool
     MixPoolNoNext(PR(Callback))
-    flibmdel public inline function free() {
-		// don't set to null here!
-		// as when processing callback queue
-		// CallBack's are auto gc-ed !
-		//arbiter = null;
-		//body = null;
-		//constraint = null;
-	}
-	flibmdel public inline function alloc() {
-		//do it here instead :)
-		arbiter = null;
+    public function free() {
+		int1 = int2 = null;
 		body = null;
 		constraint = null;
+		listener = null;
+		if(wrap_arbiters!=null)
+			wrap_arbiters.pr(inner).inner = null;
+		set = null;
 	}
+	flibmdel public inline function alloc() {}
 	
 	//----------------
 	
-	//BEGIN,END,ONGOING
-	public var arbiter:PR(Arbiter);
+	//BEGIN/END/ONGOING/PRE
+	public var int1:PR(Interactor);
+	public var int2:PR(Interactor);
+	//for nteractinos
+	public var set:PR(CallbackSet);
+	//for public.. could possibly improve this
+	public var wrap_arbiters:ArbiterList;
+
+	//pre:
+	public var pre_arbiter:PR(Arbiter);
+	public var pre_swapped:Bool;
+
+	flibmdel public inline function genarbs() {
+		assert(set!=null,"after ongoing event was added, this should never be the case");
+		if(wrap_arbiters==null)
+			wrap_arbiters = PR(ArbiterList).get(set.arbiters,true);
+		else
+			wrap_arbiters.pr(inner).inner = set.arbiters;
+		//we 'could' have arbiters track their sets and only do this if necessary
+		//but.... the fact is these lists are either ignored, or iterated from the beginning
+		//so it is really not necessary.
+		wrap_arbiters.pr(inner).inv(length) = true;
+		wrap_arbiters.pr(inner).at_ite = null;
+	}
+
 	//SLEEP/WAKE
 	public var body:PR(Body);
 	//SLEEP/WAKE/BREAK
@@ -53,7 +94,6 @@ class PR(Callback) {
 
     //all
     public var listener:PR(Listener);
-    public var handler:Bool;
 	
 	//----------------
 	

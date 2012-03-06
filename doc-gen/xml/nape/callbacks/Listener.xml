@@ -22,31 +22,31 @@
 
 <!-- ------------------------------------------------------------------------------------------- -->
 
-<class package="nape.callbacks" name="ImmFlag">
+<class package="nape.callbacks" name="PreFlag">
 	<file>Listener.hx</file>
-	<short>Return values for immediate listeners</short>
-	<description>(This type is not yet used). Return values for PRE_BEGIN, PRE_SOLVE immediate callback types</description>
+	<short>Return values for pre listeners</short>
+	<description>Return values for PRE immediate callback listeners</description>
 
-	<property static="true" name="ACCEPT" type="ImmFlag" readonly="true">
+	<property static="true" name="ACCEPT" type="PreFlag" readonly="true">
 		<description> Accept interaction </description>
 		<detail>
 			<description> Accept interaction for this, and all subsequent steps until end of interaction </description>
 		</detail>
 	</property>
-	<property static="true" name="IGNORE" type="ImmFlag" readonly="true">
+	<property static="true" name="IGNORE" type="PreFlag" readonly="true">
 		<description> Ignore interaction </description>
 		<detail>
 			<description> Ignore interaction for this, and all subsequent steps until end of interaction </description>
 		</detail>
 	</property>
 
-	<property static="true" name="ACCEPT_ONCE" type="ImmFlag" readonly="true">
+	<property static="true" name="ACCEPT_ONCE" type="PreFlag" readonly="true">
 		<description> Accept interaction once</description>
 		<detail>
 			<description> Accept interaction for this step, ask again next step. </description>
 		</detail>
 	</property>
-	<property static="true" name="IGNORE_ONCE" type="ImmFlag" readonly="true">
+	<property static="true" name="IGNORE_ONCE" type="PreFlag" readonly="true">
 		<description> Ignore interaction once</description>
 		<detail>
 			<description> Ignore interaction for this step, ask again next step. </description>
@@ -77,10 +77,41 @@
 			<description>Listener type for Interaction callbacks</description>
 		</detail>
 	</property>
-	<property static="true" name="IMM" type="ListenerType" readonly="true">
-		<description>Immediate interaction listener type</description>
+	<property static="true" name="PRE" type="ListenerType" readonly="true">
+		<description>Pre interaction listener type</description>
 		<detail>
-			<description>Listener type for Immediate interaction callbacks</description>
+			<description>Listener type for pre-interaction callbacks</description>
+		</detail>
+	</property>
+</class>
+
+<class package="nape.callbacks" name="InteractionType">
+	<file>Listener.hx</file>
+	<short>Interaction type for listeners</short>
+	<description>Used for Interaction and Pre listeners to define what sort of interaction they should handle</description>
+	
+	<property static="true" name="COLLISION" type="InteractionType" readonly="true">
+		<description>Collision type interaction</description>
+		<detail>
+			<description>Collision type interaction</description>
+		</detail>
+	</property>
+	<property static="true" name="SENSOR" type="InteractionType" readonly="true">
+		<description>Sensor type interaction</description>
+		<detail>
+			<description>Sensor type interaction</description>
+		</detail>
+	</property>
+	<property static="true" name="FLUID" type="InteractionType" readonly="true">
+		<description>Fluid type interaction</description>
+		<detail>
+			<description>Fluid type interaction</description>
+		</detail>
+	</property>
+	<property static="true" name="ANY" type="InteractionType" readonly="true">
+		<description>Any type of interaction</description>
+		<detail>
+			<description>Any type of interaction</description>
 		</detail>
 	</property>
 </class>
@@ -126,17 +157,17 @@
 		</detail>
 	</property>
 
-	<property name="handler" type="Body->Void">
+	<property name="handler" type="BodyCallback->Void">
 		<description> Function handler for listener </description>
 		<detail>
-			<description> Function handler for this listener. If null then a Callback object will be generated in the same Space instead. </description>
+			<description> Function handler for this listener.</description>
 		</detail>
 	</property>
 
 	<constructor>
 		<arg name="event" type="CbEvent"/>
 		<arg name="cbType" type="CbType"/>
-		<arg name="handler" type="Body->Void" default="null"/>
+		<arg name="handler" type="BodyCallback->Void"/>
 		<description>construct new BodyListener</description>
 		<detail>
 			<description>Construct new BodyListener</description>
@@ -156,10 +187,10 @@
 		</detail>
 	</property>
 
-	<property name="handler" type="Constraint->Void">
+	<property name="handler" type="ConstraintCallback->Void">
 		<description> Function handler for listener </description>
 		<detail>
-			<description> Function handler for this listener. If null then a Callback object will be generated in the same Space instead. </description>
+			<description> Function handler for this listener.</description>
 		</detail>
 	</property>
 
@@ -167,7 +198,7 @@
 	<constructor>
 		<arg name="event" type="CbEvent"/>
 		<arg name="cbType" type="CbType"/>
-		<arg name="handler" type="Constraint->Void" default="null"/>
+		<arg name="handler" type="ConstraintCallback->Void"/>
 		<description>construct new ConstraintListener</description>
 		<detail>
 			<description>Construct new ConstraintListener</description>
@@ -178,13 +209,113 @@
 <class package="nape.callbacks" name="InteractionListener" super="Listener">
 	<file>Listener.hx</file>
 	<short>Interaction event listener</short>
-	<description>(Type does not yet exist) Listener type for Interaction events. Allowed types are CbEvent.BEGIN/ONGOING/END</description>
+	<description>
+		<text>Listener type for Interaction events. Allowed types are CbEvent.BEGIN/END/ONGOING</text><br/><br/>
+		<text>These callbacks can occur between any applicable combination of Interactors, whether a Shapes, Bodys or Compounds</text>
+		<text class="bold">Example:</text>
+		<img file="../../../exgif/IntCb.png"/>
+		<text>The possible Interactor pairs for this nape world are formed by taking each valid pair of shapes (So no two shapes from the same body), finding their MRCA (most-recent common ancestor) and pairing up all the Interactors on the way. For this example we have:</text>
+		<code><![CDATA[MRCA(S1,S2) = C1   => Interactor pairs = [S1,B1] x [S2,B2,C2]
+MRCA(S1,S3) = null => Interactor pairs = [S1,B1,C1] x [S3,B3,C3]
+MRCA(S2,S3) = null => Interactor pairs = [S2,B2,C2,C1] X [S3,B3,C3]]]></code><br/>
+		<text>Of course not all of these will generate callbacks! only those for which a listener exists between the two cbType's. Presently it is infact only allowed that one such pairing from two shapes should generate a callback</text><br/><br/>
+		<text>Furthermore an Interaction type for the listener to operate upon is specified which works even in mixed cases where many type of interaction is happening at once. The listeners are at present implemented so that there cannot be more than one listener for an interaction type</text>
+	</description>
+
+	<property name="cbType1" type="CbType">
+		<description> First CbType for shapes/bodies handled by listener </description>
+		<detail>
+			<description> CbType matching the first shape/body's listener is intended for</description>
+		</detail>
+	</property>
+	<property name="cbType2" type="CbType">
+		<description> Second CbType for shapes/bodies handled by listener </description>
+		<detail>
+			<description> CbType matching the second shape/body's listener is intended for</description>
+		</detail>
+	</property>
+
+	<property name="interactionType" type="InteractionType">
+		<description> Type of interaction handled </description>
+		<detail>
+			<description> Type of interactino handled by this listener </description>
+		</detail>
+	</property>
+
+	<property name="handler" type="InteractionCallback->Void">
+		<description> Function handler for listener </description>
+		<detail>
+			<description> Function handler for this listener.</description>
+		</detail>
+	</property>
+
+	<constructor>
+		<arg name="event" type="CbEvent"/>
+		<arg name="interactionType" type="InteractionType"/>
+		<arg name="cbType1" type="CbType"/>
+		<arg name="cbType2" type="CbType"/>
+		<arg name="handler" type="InteractionCallback->Void"/>
+		<description>Construct new InteractionListener</description>
+		<detail>
+			<description>Construct new InteractorListener </description>
+		</detail>
+	</constructor>
+
 </class>
 
-<class package="nape.callbacks" name="ImmListener" super="Listener">
+<class package="nape.callbacks" name="PreListener" super="Listener">
 	<file>Listener.hx</file>
 	<short>Immediate interaction event listener</short>
-	<description>(Type does not yet exist) Listener type for immediate interaction events. Allowed types are CbEvent.PRE_BEGIN/PRE_ONGOING</description>
+	<description>
+		<text>Listener type for immediate interaction events. Allowed types are CbEvent.PRE only and as such is not an argument to the constructor.</text><br/>
+		<br/>
+		<text>For information about how interaction events work between various Interactors see the description in </text><link type="class" href="InteractionListener"><text>InteractionListener</text></link>
+	</description>
+
+	<property name="cbType1" type="CbType">
+		<description> First CbType for shapes/bodies handled by listener </description>
+		<detail>
+			<description> CbType matching the first shape/body's listener is intended for</description>
+		</detail>
+	</property>
+	<property name="cbType2" type="CbType">
+		<description> Second CbType for shapes/bodies handled by listener </description>
+		<detail>
+			<description> CbType matching the second shape/body's listener is intended for</description>
+		</detail>
+	</property>
+
+	<property name="interactionType" type="InteractionType">
+		<description> Type of interaction handled </description>
+		<detail>
+			<description> Type of interactino handled by this listener </description>
+		</detail>
+	</property>
+
+	<property name="handler" type="Arbiter->PreFlag">
+		<description> Function handler for listener </description>
+		<detail>
+			<description> Function handler (non-optional). Note that although the argument is an Arbiter (The first such arbiter to be handled internally) this action can occur between shapes/bodies. It is not guaranteed that the same arbiter will be supplied in the case of the handler returning #_ONCE.</description>
+		</detail>
+	</property>
+	<property name="pure" type="Bool">
+		<description> Marks handler as pure </description>
+		<detail>
+			<description> Marks that the handler is to be treat as pure whenever the two body/shapes remain unchanged and so allow nape to put the objects to sleep. If the handler is not pure, then nape will make no assumptions and not allow the objects to sleep when the handler returns #_ONCE. If you mark the handler as pure when it is not, then the objects may sleep when you do not expect them to and you 'can' do 'listener.handler = listener.handler' to refresh nape that the handler has infact changed even though it has been marked pure </description>
+		</detail>
+	</property>
+
+	<constructor>
+		<arg name="interactionType" type="InteractionType"/>
+		<arg name="cbType1" type="CbType"/>
+		<arg name="cbType2" type="CbType"/>
+		<arg name="handler" type="Arbiter->PreFlag"/>
+		<arg name="pure" type="Bool" optional="true" default="false"/>
+		<description>Construct new PreListener</description>
+		<detail>
+			<description>Construct new PreListener. If pure, nape will assume that the result of invoking the handler will not change whenever the two interactors are unchanged and allow the objects to go to sleep should the handler be returning IGNORE_ONCE/ACCEPT_ONCE.</description>
+		</detail>
+	</constructor>
 </class>
 
 </data>

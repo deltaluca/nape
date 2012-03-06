@@ -25,7 +25,7 @@ class FixedStep extends flash.display.Sprite {
 
 	public function run(main:Float->Void) {
 		pt = Lib.getTimer();
-		(new haxe.Timer(0)).run = function() {
+		function del() {
 			var ct = Lib.getTimer();
 			var dt = ct - pt;
 			if(dt==0) return;
@@ -41,7 +41,9 @@ class FixedStep extends flash.display.Sprite {
 
 			var delta = dt - Std.int(steps*ideal);
 			pt = ct - delta;
-		}
+		};
+		(new haxe.Timer(1)).run = del;
+		main(ideal/1000);
 	}
 
 }

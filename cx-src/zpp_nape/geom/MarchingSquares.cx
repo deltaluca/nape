@@ -16,11 +16,11 @@ class Span {
 	public var out:Bool;
 
 	MixPool(Span)
-	flibmdel public inline function free() {
+	public function free() {
 		freed = true;
 		parent = this;
 	}
-	flibmdel public inline function alloc() {
+	public function alloc() {
 		freed = false;
 		out = false;
 		rank = 0;
@@ -51,19 +51,22 @@ class VPair {
 	public var spanr:Span;
 	
 	MixPool(VPair)
-	flibmdel public inline function free() {
+	public function free() {
 		p1 = p2 = pr = pd = null;
 
 /*		if(!span1.freed) Free(Span,span1);
 		if(span2!=null && !span2.freed) Free(Span,span2);*/
 		span1 = span2 = spanr = null;
 	}
-	flibmdel public inline function alloc() {}
+	public function alloc() {}
 
 	public function new() {}
 }
 
 class PR(MarchingSquares) {
+
+	static var me:PR(MarchingSquares) = new PR(MarchingSquares)();
+	function new() {}
 
 	public static function run(iso:Float->Float->Float,bx0:Float,by0:Float,bx1:Float,by1:Float,cell:Vec2,quality:Int,combine:Bool,ret:GeomPolyList) {
 
@@ -109,7 +112,7 @@ class PR(MarchingSquares) {
 				var sndx = x==xn-1 || !combine;
 				var sndy = y==yn-1 || !combine;
 
-				var pp = marchSquare(iso,isos,ints,x0,y0,x1,y1,x,y,fstx,fsty,sndx,sndy,quality);
+				var pp = me.marchSquare(iso,isos,ints,x0,y0,x1,y1,x,y,fstx,fsty,sndx,sndy,quality);
 				if(pp==null) { pre = null; continue; }
 
 				if(combine) {
@@ -117,14 +120,14 @@ class PR(MarchingSquares) {
 					//and store down link prematurely
 					//since links are destroyed in LR comb
 					var pd = if(pp.p2!=null && pp.okey2!=14) pp.p2 else pp.p1;
-					pp.pd = linkdown(pd,pd==pp.p2 ? pp.okey2 : pp.okey1);
+					pp.pd = me.linkdown(pd,pd==pp.p2 ? pp.okey2 : pp.okey1);
 
 					map.set(x,y, pp);
 					//no longer a valid assertion due to removal of dangerously degenerate polys
 					//assert((pre!=null)==combLeft(pp.key1) || x==0, "left exists =/= can combine "+x+","+y);
-					if(pre!=null && combLeft(pp.key1)) {
-						assert(combRight(pre.keyr), "left poly cannot comb right?");
-						combLR(pre,pp);
+					if(pre!=null && me.combLeft(pp.key1)) {
+						assert(me.combRight(pre.keyr), "left poly cannot comb right?");
+						me.combLR(pre,pp);
 						pp.span1 = pre.spanr;
 					}else {
 						assert(pp.span1==null,"oops");
@@ -135,11 +138,11 @@ class PR(MarchingSquares) {
 						pp.span2 = pp.spanr = Get(Span);
 					}else pp.spanr = pp.span1;
 					
-					if(combRight(pp.keyr)) pre = pp;
+					if(me.combRight(pp.keyr)) pre = pp;
 					else pre = null;
 				}else {
-					output(ret,pp.p1);
-					if(pp.p2!=null) output(ret,pp.p2);
+					me.output(ret,pp.p1);
+					if(pp.p2!=null) me.output(ret,pp.p2);
 				}
 			}
 		}
@@ -153,7 +156,7 @@ class PR(MarchingSquares) {
 				if(b==null) { pre = null; continue; }
 
 				var bkey = if(b.p2!=null && b.okey2==0x0e) b.okey2 else b.okey1;
-				if(!combUp(bkey)) { pre = null; continue; }
+				if(!me.combUp(bkey)) { pre = null; continue; }
 
 				var a = map.get(x,y-1);
 				//no longer a valid assertion due to removal of dangeriously degenerate polys.
@@ -161,7 +164,7 @@ class PR(MarchingSquares) {
 				if(a==null) { pre = null; continue; }
 
 				var akey = if(a.p2!=null && a.okey2==0x38) a.okey2 else a.okey1;
-				if(!combDown(akey)) { pre = null; continue; }
+				if(!me.combDown(akey)) { pre = null; continue; }
 
 				//determine up/down spans on a,b
 				var ad = if(a.p2!=null && a.okey2==0x38) a.span2 else a.span1;
@@ -173,11 +176,11 @@ class PR(MarchingSquares) {
 					if(pre!=bu) {
 						//set vertices for forced inclusion
 						//in simplifications.
-						combUD_virtual(a,b);
+						me.combUD_virtual(a,b);
 					}
 				}else {
 					DSF(union(ad,bu));
-					combUD(a,b);
+					me.combUD(a,b);
 				}
 				var key = if(bu==b.span2) b.okey2 else b.okey1;
 				pre = if((key&4)!=0) bu else null;
@@ -192,14 +195,14 @@ class PR(MarchingSquares) {
 				var root = DSF(find(p.span1));
 				if(!root.out) {
 					root.out = true;
-					output(ret,p.p1);
+					me.output(ret,p.p1);
 				}
 
 				if(p.p2!=null) {
 					root = DSF(find(p.span2));
 					if(!root.out) {
 						root.out = true;
-						output(ret, p.p2);
+						me.output(ret, p.p2);
 					}
 				}
 
@@ -210,7 +213,7 @@ class PR(MarchingSquares) {
 	}
 
 	// remove redundancies from out-polygon
-	public static function output(ret:GeomPolyList,poly:Vertex) {
+	function output(ret:GeomPolyList,poly:Vertex) {
 	mix_circular(Vertex,
 		var v = poly;
 		do {
@@ -280,7 +283,7 @@ class PR(MarchingSquares) {
 	//              ^^^
 	// first 3 bits are enough to classify the number of skips needed.
 	//
-	public static inline function linkright(poly:Polygon,key:Int) {
+	function linkright(poly:Polygon,key:Int) {
 		var kind = key&7;
 		if  (kind==0) return poly;
 		elif(kind==3) return poly.next.next;
@@ -328,7 +331,7 @@ class PR(MarchingSquares) {
 	//                 ^
 	// first bit is enough to classify number of skips needed
 	//
-	public static inline function linkleft(poly:Polygon,key:Int) {
+	function linkleft(poly:Polygon,key:Int) {
 		return if((key&1)==0) poly.prev else poly;
 	}
 
@@ -371,16 +374,16 @@ class PR(MarchingSquares) {
 	//         ^                  ^
 	// last bit is enough to classify number of skips needed
 	//
-	public static inline function linkdown(poly:Polygon,key:Int) {
+	function linkdown(poly:Polygon,key:Int) {
 		return if((key&0x80)==0) poly.prev else poly.prev.prev;
 	}
 
 	// given a polygon from a VPair with it's key
 	// return vertex from start of merge in combUD.
 	// trivially, this is simply the start vertex.
-	public static inline function linkup(poly:Polygon,key:Int) return poly
+	function linkup(poly:Polygon,key:Int) return poly
 	                  
-	public static inline function combLR(a:VPair,b:VPair) {
+	function combLR(a:VPair,b:VPair) {
 		//set up pointers for merge
 		var ap:Polygon = linkright(a.pr,a.okeyr);
 		var bp:Polygon = linkleft (b.p1,b.okey1);
@@ -427,7 +430,7 @@ class PR(MarchingSquares) {
 		Free(Vertex,bp2);
 	}
 
-	public static inline function combUD(a:VPair,b:VPair) {
+	function combUD(a:VPair,b:VPair) {
 		//determine up/down polys on a,b
 		var ad = if(a.p2!=null && a.key2==0x38) a.p2 else a.p1;
 		var bu = if(b.p2!=null && b.key2==0x0e) b.p2 else b.p1;
@@ -457,7 +460,7 @@ class PR(MarchingSquares) {
 		Free(Vertex,ap2);
 	}
 
-	public static inline function combUD_virtual(a:VPair,b:VPair) {
+	function combUD_virtual(a:VPair,b:VPair) {
 		var ad = if(a.p2!=null && a.key2==0x38) a.p2 else a.p1;
 		var bu = if(b.p2!=null && b.key2==0x0e) b.p2 else b.p1;
 
@@ -472,24 +475,24 @@ class PR(MarchingSquares) {
 
 	// can combLeft if mid-left exists, or both left-vertices exist
 	// similarly for others.
-	public static inline function combLeft (key:Int) {
+	function combLeft (key:Int) {
 		var flag = (key&1)|((key&0xC0)>>5);
 		return comb(flag);
 	}
-	public static inline function combRight(key:Int) {
+	function combRight(key:Int) {
 		var flag = (key&0x1C)>>2;
 		return comb(flag);	
 	}
-	public static inline function combUp(key:Int) {
+	function combUp(key:Int) {
 		var flag = (key&0x07);
 		return comb(flag);	
 	}
-	public static inline function combDown(key:Int) {
+	function combDown(key:Int) {
 		var flag = (key&0x70)>>4;
 		return comb(flag);
 	}
 
-	public static inline function comb(flag:Int) {
+	function comb(flag:Int) {
 		var cnt = 0;
 		if((flag&1)!=0) cnt++;
 		if((flag&2)!=0) cnt++;
@@ -503,7 +506,7 @@ class PR(MarchingSquares) {
 	// as we rely on the strict configurations to simplify the rest of the algorithms.
 	//
 	public static var look_march = [-1,0xE0,0x38,0xD8,0x0E,-1,0x36,0xD6,0x83,0x63,-1,0x5B,0x8D,0x6D,0xB5,0x55];
-	public static inline function marchSquare(
+	function marchSquare(
 		iso:Float->Float->Float,isos:Array2<Float>,ints:Array2<Vertex>,
 		x0:Float,y0:Float,x1:Float,y1:Float,
 		xn:Int, yn:Int, fstx:Bool, fsty:Bool, sndx:Bool, sndy:Bool,
@@ -660,7 +663,7 @@ class PR(MarchingSquares) {
 		});
 	}
 
-	public static inline function lerp(x0:Float,x1:Float,v0:Float,v1:Float) {
+	function lerp(x0:Float,x1:Float,v0:Float,v1:Float) {
 		if  (v0==0) return x0;
 		elif(v1==0) return x1;
 		else {
@@ -670,7 +673,7 @@ class PR(MarchingSquares) {
 			return x0 + t*(x1-x0);
 		}
 	}
-	public static inline function xlerp(x0:Float,x1:Float,y:Float,v0:Float,v1:Float,iso:Float->Float->Float,quality:Int) {
+	function xlerp(x0:Float,x1:Float,y:Float,v0:Float,v1:Float,iso:Float->Float->Float,quality:Int) {
 		var xm = lerp(x0,x1,v0,v1);
 		while(quality--!=0 && x0<xm && xm<x1) {
 			var vm = iso(xm,y);
@@ -681,7 +684,7 @@ class PR(MarchingSquares) {
 		}
 		return xm;
 	}
-	public static function ylerp(y0:Float,y1:Float,x:Float,v0:Float,v1:Float,iso:Float->Float->Float,quality:Int) {
+	function ylerp(y0:Float,y1:Float,x:Float,v0:Float,v1:Float,iso:Float->Float->Float,quality:Int) {
 		var ym = lerp(y0,y1,v0,v1);
 		while(quality--!=0 && y0<ym && ym<y1) {
 			var vm = iso(x,ym);

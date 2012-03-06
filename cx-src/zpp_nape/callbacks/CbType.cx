@@ -1,11 +1,12 @@
 package zpp_nape.callbacks;
 $(import);
 
+GENID(CbType)
 class PR(CbType) {
     public var outer:CbType;
 
     static public var internal:Bool = false;
-    flibmdel public inline function wrapper() {
+    public function wrapper() {
         if(outer==null) {
             internal = true;
             outer = new CbType();
@@ -17,31 +18,29 @@ class PR(CbType) {
 
     ///---------------------------------------------------------------------------------------------
 
-    public static var nextId = 0;
     public var id:Int;
-
-    static public var map = new ARRAY(PR(CbType))();
-    static public var DEFAULT = new PR(CbType)();
 
     ///---------------------------------------------------------------------------------------------
 
 	//only ACTIVE shape/constriants/bodies are referenced to avoid memory leaks
-    public var shapes     :List(PR(Shape));      public var wrap_shapes     :ShapeList;
+	public var interactors:List(PR(Interactor)); public var wrap_interactors:InteractorList;
     public var constraints:List(PR(Constraint)); public var wrap_constraints:ConstraintList;
-    public var bodies     :List(PR(Body));       public var wrap_bodies     :BodyList;
 
-    flibmdel public inline function addShape     (shape:PR(Shape))      shapes.     add   (shape)
-    flibmdel public inline function addConstraint(con  :PR(Constraint)) constraints.add   (con)
-    flibmdel public inline function addBody      (body :PR(Body))       bodies.     add   (body)
-
-    flibmdel public inline function remShape     (shape:PR(Shape))      shapes.     remove(shape)
-    flibmdel public inline function remConstraint(con  :PR(Constraint)) constraints.remove(con)
-    flibmdel public inline function remBody      (body :PR(Body))       bodies.     remove(body)
+    flibmdel public inline function addConstraint(con:PR(Constraint)) constraints.add(con)
+	flibmdel public inline function addInteractor(intx:PR(Interactor)) interactors.add(intx)
+	
+	flibmdel public inline function remConstraint(con:PR(Constraint)) constraints.remove(con)
+	flibmdel public inline function remInteractor(intx:PR(Interactor)) interactors.remove(intx)
 
     ///---------------------------------------------------------------------------------------------
 
-    ///these are only assigned when listener is added to the space!
+	//set of listeners using the cbType
+	public var listeners:List(PR(InteractionListener));
 
+	flibmdel public inline function insert(x:PR(InteractionListener)) listeners.add(x)
+	flibmdel public inline function remove(x:PR(InteractionListener)) listeners.remove(x)
+
+    ///these are only assigned when listener is added to the space!
     //store actual references as these are one-one
     public var _bodywake :PR(BodyListener);
     public var _bodysleep:PR(BodyListener);
@@ -49,32 +48,59 @@ class PR(CbType) {
     public var _consleep :PR(ConstraintListener);
     public var _break    :PR(ConstraintListener);
 
-    //store only flags denoting there exists at least one listener referencing this type
-    //use space maps to determine if one actually exists for specific pair.
-    public var _begin  :Bool;
-    public var _ongoing:Bool;
-    public var _end    :Bool;
-
-    public var _prebegin  :Bool;
-    public var _preongoing:Bool;
-
-    public var listeners:List(PR(Listener));
-    public var wrap_listeners:ListenerList;
-
     ///---------------------------------------------------------------------------------------------
 
     public function new() {
-        id = nextId++;
-        assert(id<=0xffff,"invalid cbtype id");
-        map.push(this);
+        id = ID(CbType);
 
-        shapes = new List(PR(Shape))();
         constraints = new List(PR(Constraint))();
-        bodies = new List(PR(Body))();
+		interactors = new List(PR(Interactor))();
 
-        _begin = _ongoing = _end = false;
-        _prebegin = _preongoing = false;
-
-        listeners = new List(PR(Listener))();
+		listeners = new List(PR(InteractionListener))();
     }
+
+	//----------------------------------------------------------------------------------------------
+
+	//determins if cbTypes share an interaction listener
+	public static function empty_intersection(a:PR(CbType),b:PR(CbType)) {
+		var id = if(a.id<b.id) a.id else b.id;
+		var di = if(a.id<b.id) b.id else a.id;
+
+		var ret = false;
+		var lx = (a.listeners.length<b.listeners.length) ? a.listeners : b.listeners;
+		Iter(x,lx,{
+			if(x.id==id && x.di==di) { 
+				ret = true;
+				break;
+			}
+		});
+		return !ret;
+	}
+
+	public static function find(a:PR(CbType),b:PR(CbType), event:Int, type:Int) {
+		var id = if(a.id<b.id) a.id else b.id;
+		var di = if(a.id<b.id) b.id else a.id;
+
+		var ret:PR(InteractionListener) = null;
+		var lx = (a.listeners.length<b.listeners.length) ? a.listeners : b.listeners;
+		Iter(x,lx,{
+			if(x.id==id && x.di==di && x.event==event && (x.itype&type)!=0) {
+				DEBUG(if(ret!=null) throw "Error: multiple valid listeneres";)
+				ret = x;
+				RELEASE(break;)
+			}
+		});
+		return ret;
+	}
+
+	public static function find_all(a:PR(CbType),b:PR(CbType), event:Int, cb:PR(InteractionListener)->Void) {
+		var id = if(a.id<b.id) a.id else b.id;
+		var di = if(a.id<b.id) b.id else a.id;
+
+		var lx = (a.listeners.length<b.listeners.length) ? a.listeners : b.listeners;
+		Iter(x,lx,{
+			if(x.id==id && x.di==di && x.event==event)
+				cb(x);
+		});
+	}
 }

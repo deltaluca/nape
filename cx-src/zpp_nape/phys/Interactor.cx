@@ -1,0 +1,148 @@
+package zpp_nape.phys;
+$(import);
+
+GENID(Interactor)
+class PR(Interactor) {
+	public var outer_i:Interactor;
+
+	public var id:Int;
+
+	//--------------------------------------------------------------------
+
+	public var ishape:PR(Shape);
+	public var ibody :PR(Body);
+	public var icompound:PR(Compound);
+
+	flibmdel public inline function isShape() return ishape!=null
+	flibmdel public inline function isBody () return ibody !=null
+	flibmdel public inline function isCompound() return icompound != null 
+
+	//--------------------------------------------------------------------
+
+	public function __iaddedToSpace() {
+		if(cbType!=null) cbType.addInteractor(this);
+		if(group!=null) group.addInteractor(this);
+	}
+	public function __iremovedFromSpace() {
+		if(cbType!=null) cbType.remInteractor(this);
+		if(group!=null) group.remInteractor(this);
+	}
+
+	public function wake() {
+		if(isShape()) {
+			var body = ishape.body;
+			if(body!=null && body.space!=null) body.space.wake(body);
+			true; //isn't use in this case
+		}elif(isBody()) {
+			//return value matter
+			if(ibody.space!=null) ibody.space.wake(ibody) else false;
+		}else {
+			if(icompound.space!=null) icompound.space.wakeCompound(icompound);
+			true; //isn't use in this case
+		}
+	}
+
+	//--------------------------------------------------------------------
+
+	public var cbsets:List(PR(CallbackSet));
+
+	public static function get(i1:PR(Interactor),i2:PR(Interactor)) {
+		var id = if(i1.id < i2.id) i1.id else i2.id;
+		var di = if(i1.id < i2.id) i2.id else i1.id;
+
+		var xs = if(i1.cbsets.length<i2.cbsets.length) i1.cbsets else i2.cbsets;
+		var ret:PR(CallbackSet) = null;
+		Iter(x, xs, {
+			if(x.id == id && x.di==di) {
+				ret = x;
+				cx_break;
+			}
+		});
+		return ret;
+	}
+
+	//--------------------------------------------------------------------
+
+	public var group:PR(InteractionGroup);
+	public var cbType:PR(CbType);
+
+	public function setCbType(cbType:PR(CbType)) {
+		if(this.cbType!=cbType) {
+			var space =
+				if(isShape())  ishape.body==null ? null : ishape.body.space
+				elif(isBody()) ibody.space
+				else           icompound.space;
+
+			if(space!=null && this.cbType!=null) {
+				this.cbType.remInteractor(this);
+				space.nullInteractorType(this);
+			}
+
+			this.cbType = cbType;
+			if(space!=null && cbType!=null) {
+				cbType.addInteractor(this);
+				space.freshInteractorType(this);
+			}
+
+			wake();
+		}
+	}
+
+	public function setGroup(group:PR(InteractionGroup)) {
+		if(this.group!=group) {
+			var inspace =
+				if(isShape())  ishape.body!=null && ishape.body.space!=null
+				elif(isBody()) ibody.space!=null
+				else           icompound.space!=null;
+
+			if(inspace && this.group!=null) this.group.remInteractor(this);
+			this.group = group;
+			if(inspace && group!=null) group.addInteractor(this);
+
+			if(inspace) {
+				if(isShape())  ishape.body.wake();
+				elif(isBody()) ibody.wake();
+				else           icompound.wake();
+			}
+		}
+	}
+	
+	//--------------------------------------------------------------------
+
+	public function immutable_midstep(n:String) {
+		if(isBody()) ibody.__immutable_midstep(n);
+		elif(isShape()) ishape.__immutable_midstep(n);
+		else icompound.__imutable_midstep(n);
+	}
+
+	//--------------------------------------------------------------------
+
+	public function new() {
+		id = ID(Interactor);
+		cbsets = new List(PR(CallbackSet))();
+	}
+
+	//--------------------------------------------------------------------
+
+	flibmdel public inline static function int_callback(o1:PR(Interactor),o2:PR(Interactor),cb1:PR(CbType),cb:PR(Callback)) {
+		if(o1.cbType==cb1) { cb.int1 = o1; cb.int2 = o2; }
+		else               { cb.int2 = o1; cb.int1 = o2; }
+	}
+
+	flibmdel public inline function lookup_group() {
+		var cur:PR(Interactor) = this;
+		while(cur!=null && cur.group==null) {
+			if(cur.isShape()) cur = cur.ishape.body;
+			elif(cur.isCompound()) cur = cur.icompound.compound;
+			else cur = cur.ibody.compound;
+		}
+		return if(cur==null) null else cur.group;
+	}
+
+	//-------------------------------------------------------------------
+
+	public function copyto(ret:Interactor) {
+		ret.pr(inner_i).group = group;
+		ret.pr(inner_i).cbType = cbType;
+	}
+}

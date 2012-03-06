@@ -25,18 +25,57 @@
 		responsible for simulations in nape.
 	</description>
 
+	<property name="id" type="Int">
+		<description>Unique space id</description>
+		<detail>
+			<description>Unique id for each Space instantiated. Perhaps a bit strange to do so, but you never know!</description>
+		</detail>
+	</property>
+	<property name="userData" type="Dynamic">
+		<description>User defined data</description>
+		<detail>
+			<description>User defined data</description>
+		</detail>
+	</property>
+	<property/>
+
+
 	<property name="broadphase" type="Broadphase" readonly="true">
 		<description>Broadphase typed used by this space</description>
 		<detail>
 			<description><text>The type of broadphase being used by this space, this cannot be changed once the Space has been constructed!</text></description>
 		</detail>
 	</property>	
+	<property name="sortContacts" type="Bool" value="true">
+		<description>Control whether contacts are sorted</description>
+		<detail>
+			<description><text>If true (default), then dynamic contact arbiters are sorted based on penetration depths. Apart from making behaviour between broadphase types roughly equivalent (full sorting on all arbiter types would be needed for true equivalence), sorting arbiters in this way can help with stability of large piles/stacks at a constant cost equal to the number of arbiters active in the simulation.</text><br/><br/>
+				<text>This is left configurable as there is no speed penalty in keeping it so. The speed penalty is fairly small (For the StressPyramid demo, disabling contact sorting raises the fps (on my computer) from ~29fps to ~31fps.</text>
+			</description>
+		</detail>
+	</property>
 	<property name="gravity" type="Vec2">
 		<description>Global gravity</description>
 		<detail>
 			<description><text>Global acceleration due to gravity.</text><br/><text class="small1">setter is copy by value, not copy by reference and equivalent to </text><code inline="true">gravity.set(v)</code> </description>
 		</detail>
 	</property>
+
+	<property name="worldLinearDrag" type="Float" value="0.015">
+		<description>Linear drag applied to all objects</description>
+		<detail>
+			<description>Every step a force is applied to objects, such that under no outside influence, an object will lose 'worldLinearDrag' amount of its velocity per second. Note that this is purely a force applied as opposed to a fluid's drag which is implemented as a constraint in the physics</description>
+		</detail>
+	</property>
+
+	<property name="worldAngularDrag" type="Float" value="0.015">
+		<description>Angular drag applied to all objects</description>
+		<detail>
+			<description>Every step a torque is applied to objects, such that under no outside influence, an object will lose 'worldAngularDrag' amount of its angular velocity per second. Note that this is purely a torque applied as opposed to a fluid's drag which is implemented as a constraint in the physics</description>
+		</detail>
+	</property>
+
+	<property/>
 	<property name="elapsedTime" type="Float" readonly="true">
 		<description>Amount of simulated time passed</description>
 		<detail>
@@ -51,47 +90,31 @@
 	</property>
 	
 	<property/>
+	<property name="compounds" type="CompoundList" readonly="true">
+		<description>List of all compounds added to the space</description>
+		<detail>
+			<description>List of all compounds add to the space, note that this does 'not' include compounds that are part of some compound tree that was added to the space.</description>
+		</detail>
+	</property>
 	<property name="bodies" type="BodyList" readonly="true">
-		<description>List of all bodies in space</description>
+		<description>List of all bodies added to the space</description>
 		<detail>
-			<description>List of all bodies in space whether static, dynamic, kinematic</description>
+			<description>List of all bodies add to the space, note that this does 'not' include bodies that are part of some compound tree that was added to the space.</description>
 		</detail>
 	</property>
-	
-	<property name="statics" type="BodyList" readonly="true">
-		<description>List of all static bodies in space</description>
+	<property name="constraints" type="ConstraintList" readonly="true">
+		<description>List of all constraints added to the space</description>
 		<detail>
-			<description>List of all static rigid bodies in space</description>
+			<description>List of all constraints added to the space, note that this does 'not' include constraints that are part of some compound tree that was added to the space.</description>
 		</detail>
 	</property>
-	
-	<property name="dynamics" type="BodyList" readonly="true">
-		<description>List of all dynamic bodies in space</description>
-		<detail>
-			<description>List of all dynamic rigid bodies in space</description>
-		</detail>
-	</property>
-	
-	<property name="kinematics" type="BodyList" readonly="true">
-		<description>List of all kinematic bodies in space</description>
-		<detail>
-			<description>List of all kinematic rigid bodies in space</description>
-		</detail>
-	</property>
-	
+
+	<property/>
+
 	<property name="liveBodies" type="BodyList" readonly="true">
 		<description>Immutable list of all live bodies</description>
 		<detail>
 			<description>An immutable list of all the non-sleeping bodies currently being simulated.</description>
-		</detail>
-	</property>
-	
-	<property/>
-	
-	<property name="constraints" type="ConstraintList" readonly="true">
-		<description>List of all constraints in the space</description>
-		<detail>
-			<description>List of all constraints in the space</description>
 		</detail>
 	</property>
 	<property name="liveConstraints" type="ConstraintList" readonly="true">
@@ -100,6 +123,9 @@
 			<description>An immutable list of all constraints which are currently non-sleeping and activated.</description>
 		</detail>
 	</property>
+
+	<property/>
+
 	<property name="world" type="Body" readonly="true">
 		<description>Static reference body for constraints</description>
 		<detail>
@@ -113,12 +139,6 @@
 		<description>Immutable list of live arbiters</description>
 		<detail>
 			<description>Reference to the immutable list of all living, active arbiters belonging to this Space. Sleeping arbiters are not included as this would be rather messy and annoying to deal with internally! </description>
-		</detail>
-	</property>
-	<property name="callbacks" type="CallbackQueue" readonly="true">
-		<description>Unhandled callbacks queue</description>
-		<detail>
-			<description>Queue containing any Callback objects generated which were not handled via a function callback. This queue persists between calls to space.step() so be careful that you do not allow it to explode in size :P</description>
 		</detail>
 	</property>
 	<property name="listeners" type="ListenerList" readonly="true">
@@ -151,7 +171,32 @@
 	</method>
 	
 	<method/>
-	
+		<method name="visitBodies">
+		<arg name="lambda" type="Body->Void"/>
+		<description>Visitor for all bodies</description>
+		<detail>
+			<description> Apply given function to all bodies contained within the space and down the tree</description>
+		</detail>
+	</method>
+
+	<method name="visitConstraints">
+		<arg name="lambda" type="Constraint->Void"/>
+		<description>Visitor for all constraints</description>
+		<detail>
+			<description> Apply given function to all constraints contained within the space and down the tree</description>
+		</detail>
+	</method>
+
+	<method name="visitCompounds">
+		<arg name="lambda" type="Compound->Void"/>
+		<description>Visitor for all inner compounds</description>
+		<detail>
+			<description> Apply given function to all compounds contained within the space and down the tree</description>
+		</detail>
+	</method>
+
+	<method/>
+
 	<method name="shapesUnderPoint" return="ShapeList" const="true">
 		<arg name="point" type="Vec2" const="true"/>
 		<arg name="filter" type="InteractionFilter" optional="true" const="true"/>

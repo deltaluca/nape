@@ -16,7 +16,7 @@ class Material {
 		this.rollingFriction = rollingFriction;
 	}
 	
-	keep public inline function copy() {
+	keep public function copy() {
 		var ret = new Material(elasticity,dynamicFriction,staticFriction,density,rollingFriction);
 		ret.userData = userData;
 		return ret;
@@ -24,7 +24,7 @@ class Material {
 	
 	//----------------------------------------------------------------------------------------------
 	
-	public var userData:Bool;
+	public var userData:Dynamic;
 	
 	//----------------------------------------------------------------------------------------------
 	
@@ -35,7 +35,7 @@ class Material {
 					if(isNaN(n)) throw "Error: Material::"+$str(n)+" cannot be NaN";
 					if($str(n)!="elasticity" && n<0) throw "Error: Material::"+$str(n)+" ("+n+") must be >= 0";
 					if($str(n)=="density" && n==0) throw "Error: Material::density cannot be 0";
-					if($str(n)!="elasticity" && n==PR(Const).POSINF) throw "Error: Material::"+$str(n)+" cannot be infinite";
+					if($str(n)!="elasticity" && n>=PR(Const).POSINF) throw "Error: Material::"+$str(n)+" cannot be infinite";
 				)
 				pr(inner).n = n / ($str(n)=="density" ? 1000 : 1);
 				pr(inner).invalidate(flags);
@@ -61,7 +61,7 @@ class Material {
 	
 	//----------------------------------------------------------------------------------------------
 	
-	$(mixin mat(N,x,y,z,w,r) keep public static inline function N() return new Material(x,y,z,w,r));
+	$(mixin mat(N,x,y,z,w,r) keep public static function N() return new Material(x,y,z,w,r));
 	
 	mat(wood,   0.4,0.2, 0.38,0.7, 0.005)
 	mat(steel,  0.2,0.57,0.74,7.8, 0.001)

@@ -1,0 +1,46 @@
+package nape.phys;
+$(import);
+
+class Interactor {
+	public var pr(inner_i):PR(Interactor);
+
+	property(id,Int,pr(inner_i).id)
+
+	public var userData:Dynamic;
+
+	//------------------------------------------------------------------------------
+
+	public function isShape   () return pr(inner_i).ishape   !=null
+	public function isBody    () return pr(inner_i).ibody    !=null
+	public function isCompound() return pr(inner_i).icompound!=null
+
+	property(castShape,   Shape,   if(isShape())    pr(inner_i).ishape.outer    else null)
+	property(castBody,    Body,    if(isBody())     pr(inner_i).ibody.outer     else null)
+	property(castCompound,Compound,if(isCompound()) pr(inner_i).icompound.outer else null)
+
+	//------------------------------------------------------------------------------
+
+	property(group,InteractionGroup,{
+		if(pr(inner_i).group==null) null else pr(inner_i).group.outer;
+	},{
+		pr(inner_i).immutable_midstep("Interactor::group");
+		pr(inner_i).setGroup(group==null ? null : group.pr(inner));
+	})
+
+	property(cbType,CbType,{
+		if(pr(inner_i).cbType==null) null else pr(inner_i).cbType.wrapper();
+	},{
+		pr(inner_i).immutable_midstep("Interactor::cbType");
+		pr(inner_i).setCbType(cbType==null ? null : cbType.pr(inner));
+	})
+
+	//------------------------------------------------------------------------------
+
+	public function new() {
+		DEBUG(throw "Error: Cannot instantiate an Interactor, only Shape/Body/Compound";)
+	}
+
+	@:$keep public function toString() return ""
+}
+
+

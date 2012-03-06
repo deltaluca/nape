@@ -10,11 +10,11 @@ $(import);
 	keep - type modifier to be used on all classes/methods to avoid removal via dead-code-elimiation
 	       when building .swc files, this is done implicitly for classes.
 	
-	inline - non-critical overriding of inline keyword, marks method can be inlined but not
+	inline - non-critical overriding of keyword, marks method can bed but not
 	         necessary, can be overriden by NAPE_NO_INLINE directive
-	force_inline - critical inline keyword, even with NAPE_NO_INLINE method will still be inlined.
+	force_inline - critical keyword, even with NAPE_NO_INLINE method will still bed.
 	
-	flibmdel - mark method for physical removal (type modifier)
+	- mark method for physical removal (type modifier)
 	flibdel(n) - mark non-static field for removal
 	flibstaticdel(n) - mark static field for removal
 	
@@ -25,6 +25,8 @@ $(import);
 			
 	DEBUG(x) - perform x, unless NAPE_RELEASE_BUILD is set.
 	RELEASE(x) - otherwise
+
+	flibopts(N) - metadata for flib to denote actual optional count for constructors
 
 **/
 
@@ -39,6 +41,8 @@ $(mixin global class keep $class);
 
 $(mixin global inline #if NAPE_NO_INLINE #else $inline #end);
 $(mixin global force_inline $inline);
+
+$(mixin global flibopts(N) #if flib @:$keep function flibopts_`N(){} #end);
 
 $(mixin global flibmdel #if NAPE_NO_INLINE #elseif (flash9&&flib) @:ns("flibdel") #end);
 $(mixin global flibdel(n) #if NAPE_NO_INLINE #elseif (flash9&&flib) @:$keep var flibdel_`n:Void->Void; #end);
@@ -68,6 +72,12 @@ $(mixin global RELEASE(block)
 )
 
 $(mixin global ARRAY(T) #if flash10 flash.Vector<T> #else Array<T> #end);
+$(mixin global newARRAY(T,size) {
+	#if flash10 new flash.Vector<T>(size,true) #else new Array<T>() #end;
+});
+$(mixin global newARRAY(T) {
+	#if flash10 new flash.Vector<T>() #else new Array<T>() #end;
+});
 
 $(mixin global property(name,Type,getter,setter)
     public var $name(flibget_`name,flibset_`name):Type;

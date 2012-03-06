@@ -10,16 +10,16 @@ $(define global class Queue(T) {
     
     property(length,Int,nodes.length)
     
-    flibmdel public inline function push    (obj:T) nodes.push    (new QueueNode(T)(obj))
-    flibmdel public inline function push_rev(obj:T) nodes.push_rev(new QueueNode(T)(obj))
+    public function push    (obj:T) nodes.push    (new QueueNode(T)(obj))
+    public function push_rev(obj:T) nodes.push_rev(new QueueNode(T)(obj))
 
-    flibmdel public inline function pop    () return nodes.pop    ().elt    
-    flibmdel public inline function pop_rev() return nodes.pop_rev().elt    
+    public function pop    () return nodes.pop    ().elt    
+    public function pop_rev() return nodes.pop_rev().elt    
     
-    flibmdel public inline function empty() return nodes.empty()
+    public function empty() return nodes.empty()
     
-    flibmdel public inline function     at(i) return nodes.    at(i).elt
-    flibmdel public inline function rev_at(i) return nodes.rev_at(i).elt
+    public function     at(i) return nodes.    at(i).elt
+    public function rev_at(i) return nodes.rev_at(i).elt
     
     @:$keep public function toString() {
         var ret = "top -> ";
@@ -53,7 +53,7 @@ $(mixin global QueueMixNoNext(T)
     */
 
     //push to back of queue
-    flibmdel public inline function push(obj:T) {
+    public function push(obj:T) {
         assert(obj!=null,"push null?");
         if(prev!=null) prev.next = obj;
         else next = obj;
@@ -64,7 +64,7 @@ $(mixin global QueueMixNoNext(T)
     }
     
     //push to front of queue
-    flibmdel public inline function push_rev(obj:T) {
+    public function push_rev(obj:T) {
         assert(obj!=null,"push_rev null?");
         if(next!=null) next.prev = obj;
         else prev = obj;
@@ -75,7 +75,7 @@ $(mixin global QueueMixNoNext(T)
     }
 
     //pop from front of queue
-    flibmdel public inline function pop():T {
+    public function pop():T {
         assert(next!=null,"empty queue");
         var ret = next;
         next = ret.next;
@@ -86,7 +86,7 @@ $(mixin global QueueMixNoNext(T)
     }
     
     //pop from back of queue
-    flibmdel public inline function pop_rev():T {
+    public function pop_rev():T {
         assert(prev!=null,"empty queue");
         var ret = prev;
         prev = ret.prev;
@@ -96,11 +96,11 @@ $(mixin global QueueMixNoNext(T)
         return ret;
     }
 
-    flibmdel public inline function empty() return next==null
+    public function empty() return next==null
 
-    flibmdel public inline function clear() while(!empty()) pop()
+    public function clear() while(!empty()) pop()
 
-    flibmdel public inline function splice(o:T) {
+    public function splice(o:T) {
         var ret = o.next;
         //
         if(o.prev==null) {
@@ -117,31 +117,31 @@ $(mixin global QueueMixNoNext(T)
         return ret;
     }
     
-    flibmdel public inline function rotateL() {
+    public function rotateL() {
         push(pop());
     }
-    flibmdel public inline function rotateR() {
+    public function rotateR() {
         push_rev(pop_rev());
     }
     
-    flibmdel public inline function cycleNext(o:T) {
+    public function cycleNext(o:T) {
         assert(o!=null,"cyclNext null?");
         if(o.next==null) return next;
         else return o.next;
     }
-    flibmdel public inline function cyclePrev(o:T) {
+    public function cyclePrev(o:T) {
         assert(o!=null,"cyclPrev null?");
         if(o.prev==null) return prev;
         else return o.prev;
     }
     
-    flibmdel public inline function at(i:Int) {
+    public function at(i:Int) {
         assert(i>=0 && i<length, "at index bounds");
         var ret = next;
         while(i--!=0) ret = ret.next;
         return ret;
     }
-    flibmdel public inline function rev_at(i:Int) {
+    public function rev_at(i:Int) {
         assert(i>=0 && i<length, "rev_at index bounds");
         var ret = prev;
         while(i--!=0) ret = ret.prev;

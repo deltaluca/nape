@@ -52,12 +52,12 @@ $(mixin global Set(T)
 $(expand genSet(T) class Set(T) {
 
 	MixPoolNoNext(Set(T))
-	flibmdel public inline function free() {
+	public function free() {
 		data = null;
 		lt = null;
 		swapped = null;
 	}
-	flibmdel public inline function alloc() {}
+	public function alloc() {}
 
 	public var lt:T->T->Bool;
 	public var swapped:T->T->Void;
@@ -93,12 +93,12 @@ $(expand genSet(T) class Set(T) {
 		return true;
 	}
 
-	public inline function empty() return parent==null	
-	public inline function singular() return parent!=null && parent.prev==null && parent.next==null
-	public inline function size() { var ret = 0; SetIter(i,this,ret++); return ret; }
+	public function empty() return parent==null	
+	public function singular() return parent!=null && parent.prev==null && parent.next==null
+	public function size() { var ret = 0; SetIter(i,this,ret++); return ret; }
 
-	public inline function has(obj:T) return find(obj)!=null
-	public inline function find(obj:T) {
+	public function has(obj:T) return find(obj)!=null
+	public function find(obj:T) {
 		var cur = parent;
 		while(cur!=null && cur.data!=obj) {
 			if(lt(obj,cur.data)) cur = cur.prev;
@@ -107,18 +107,18 @@ $(expand genSet(T) class Set(T) {
 		return cur;
 	}
 
-	public inline function lower_bound(obj:T) {
+	public function lower_bound(obj:T) {
 		return SetLowerBound(obj,this,lt);
 	}
 
-	public inline function first() {
+	public function first() {
 		assert(!empty(),"first in empty");
 		var cur = parent;
 		while(cur.prev!=null) cur = cur.prev;
 		return cur.data;
 	}
 
-	public inline function pop_front() {
+	public function pop_front() {
 		assert(!empty(),"pop_front in empty");
 		var cur = parent;
 		while(cur.prev!=null) cur = cur.prev;
@@ -127,7 +127,7 @@ $(expand genSet(T) class Set(T) {
 		return ret;
 	}
 
-	public inline function remove(obj:T) {
+	public function remove(obj:T) {
 		var node = find(obj);
 		assert(node!=null,"object not in tree");
 		remove_node(node);
@@ -143,7 +143,7 @@ $(expand genSet(T) class Set(T) {
 		if(obj!=null) obj.parent = par;
 	});
 
-	public inline function successor_node(cur:Set(T)) {
+	public function successor_node(cur:Set(T)) {
 		assert(cur!=null,"null node");
 		if(cur.next!=null) {
 			cur = cur.next;
@@ -155,7 +155,7 @@ $(expand genSet(T) class Set(T) {
 		}
 		return cur;
 	}
-	public inline function predecessor_node(cur:Set(T)) {
+	public function predecessor_node(cur:Set(T)) {
 		assert(cur!=null,"null node");
 		if(cur.prev!=null) {
 			cur = cur.prev;
@@ -168,12 +168,12 @@ $(expand genSet(T) class Set(T) {
 		return cur;
 	}
 
-	public inline function successor(obj:T) {
+	public function successor(obj:T) {
 		assert(has(obj),"not in tree!");
 		var node = successor_node(find(obj));
 		return node==null ? null : node.data;
 	}
-	public inline function predecessor(obj:T) {
+	public function predecessor(obj:T) {
 		assert(has(obj),"not in tree!");
 		var node = predecessor_node(find(obj));
 		return node==null ? null : node.data;
@@ -239,7 +239,7 @@ $(expand genSet(T) class Set(T) {
 		Free(Set(T),cur);
 	}
 
-	public inline function clear() {
+	public function clear() {
 		if(parent!=null) clear_node(parent);
 		parent = null;
 		assert(next==null && prev==null && data==null,"wha?");
@@ -251,7 +251,7 @@ $(expand genSet(T) class Set(T) {
 		Free(Set(T),node);
 	}
 
-	public inline function __fix_neg_red(negred:Set(T)) {
+	public function __fix_neg_red(negred:Set(T)) {
 		var parent = negred.parent;
 
 		$(mixin DO(L,R) {
@@ -276,7 +276,7 @@ $(expand genSet(T) class Set(T) {
 		elif(child.next!=null && child.next.colour==RED) __fix_dbl_red(child.next);
 	}
 
-	public inline function __fix_dbl_red(x:Set(T)) {
+	public function __fix_dbl_red(x:Set(T)) {
 		while(true) {
 			var par = x.parent;
 			var g = par.parent;

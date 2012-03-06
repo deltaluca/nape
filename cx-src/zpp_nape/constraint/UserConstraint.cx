@@ -1,0 +1,329 @@
+package zpp_nape.constraint;
+$(import);
+
+withConstraint(
+class PR(UserConstraint) extends PR(Constraint) {
+	public var outer_zn:UserConstraint;
+	//previously a lambda in UserConstraint
+	public function bindVec2_invalidate(_) outer_zn.invalidate()
+	
+	public var bodies : ARRAY({cnt:Int,body:PR(Body)});
+
+	public var dim  : Int; //number of rows.
+
+	public var  jAcc : ARRAY(Float);
+	public var pjAcc : ARRAY(Float);
+	public var  bias : ARRAY(Float);
+
+	public function addBody(b:PR(Body)) {
+		assert(b!=null,"addBody :: null UserConstraint");
+		var match = null;
+		for(x in bodies) { if(x.body==b) { match = x; break; } };
+
+		if(match==null) {
+			 bodies.push({cnt:1,body:b});
+			 if(active && space!=null)
+				 active_body(b);
+		}
+		else match.cnt++;
+	}
+
+	public function remBody(b:PR(Body)) {
+		assert(b!=null,"remBody :: null Userconstraint");
+		var match = null;
+		var bl = Std.int(bodies.length);
+		var i = 0; while(i<bl) {
+			var x = bodies[i];
+			if(x.body==b) {
+				x.cnt--;
+				if(x.cnt==0) {
+					if(bl>0)
+						bodies[i] = bodies[bl-1];
+					bodies.pop();
+
+					if(active && space!=null)
+						inactive_body(b);
+				}
+				match=x;
+				break;
+			}
+			i++;
+		}
+		return match != null;
+	}
+
+	//--------------------------------------------
+
+	public function bodyImpulse(b:PR(Body)) {
+		for(i in 0...dim) J[i] = pjAcc[i] + jAcc[i];
+
+		var ret = new Vec3(0,0,0);
+		if(stepped) outer_zn.__impulse(J,b.outer,ret);
+		return ret;
+	}
+
+	//--------------------------------------------
+
+	public override function activeBodies() {
+		for(b in bodies) active_body(b.body);
+	}
+	public override function inactiveBodies() {
+		for(b in bodies) inactive_body(b.body);
+	}
+
+	//-------------------------------------------
+
+	public var stepped:Bool;
+
+	//-------------------------------------------
+
+	public override function copy(?dict:Array<{id:Int,bc:Body}>,?todo:Array<{id:Int,cb:Body->Void}>):Constraint {
+		var ret = outer_zn.__copy();
+		copyto(ret);
+
+		//copy to dictionary + todo?
+		throw "not done yet";
+		return ret;
+	}
+
+	public function new(dim:Int,velonly:Bool) {
+		super();
+
+		bodies = newARRAY({cnt:Int,body:PR(Body)});
+
+		this.dim = dim;
+		this.velonly = velonly;
+
+		jAcc = newARRAY(Float,dim);
+		pjAcc = newARRAY(Float,dim);
+		bias = newARRAY(Float,dim);
+
+		L = newARRAY(Float,dim*dim);
+		J = newARRAY(Float,dim);
+		jOld = newARRAY(Float,dim);
+		y = newARRAY(Float,dim);
+		Keff = newARRAY(Float,(dim*(dim+1))>>>1);
+		vec3 = new Vec3(0,0,0);
+
+		for(i in 0...dim) {
+			jAcc[i] = pjAcc[i] = bias[i] = J[i] = jOld[i] = y[i] = 0.0;
+			for(j in 0...dim) L[i*dim+j] = 0.0;
+		}
+
+		stepped = false;
+	}
+
+	public override function validate() {
+		for(b in bodies) if(b.body.space!=space) throw "Error: Constraints must have each body within the same sapce to which the constraint has been assigned";
+		outer_zn.__validate();
+	}
+
+	public override function wake_connected() {
+		for(b in bodies) { if(b.body.isDynamic()) b.body.wake(); }
+	}
+
+	public override function forest() {
+		for(b in bodies) { if(b.body.isDynamic()) DSF(union(b.body.component, component)); }
+	}
+
+	public override function pair_exists(id:Int, di:Int) {
+		var ret = false;
+		var bl = Std.int(bodies.length);
+		for(bi in 0...bl) {
+			var b = bodies[bi].body;
+			for(ci in bi+1...bl) {
+				var c = bodies[ci].body;
+				if((b.id==id && c.id==di) || (b.id==di && c.id==id)) {
+					ret = true;
+					break;
+				}
+			}
+			if(ret) break;
+		}
+		return ret;
+	}
+
+	public override function destroy() {
+		inactiveBodies();
+		outer_zn.__destroy();
+	}
+
+	public override function clearcache() {
+		for(i in 0...dim) pjAcc[i] = jAcc[i] = 0.0;
+		pre_dt = -1.0;
+	}
+
+	//-----------------------------------------------------------------------------
+
+	public function lsq(v:ARRAY(Float)) {
+		var sum = 0.0;
+		for(i in 0...dim) sum += v[i]*v[i];
+		return sum;
+	}
+	public function _clamp(v:ARRAY(Float),max:Float) {
+		var x = lsq(v);
+		if(x>max*max) {
+			var scale = max/Math.sqrt(x);
+			for(i in 0...dim) v[i] *= scale;
+		}
+	}
+
+	var L:ARRAY(Float);
+	public function solve(m:ARRAY(Float)) {
+		var ind = 0;
+		for(j in 0...dim) {
+			var sum = 0.0;
+			for(k in 1...j) sum += L[j*dim+k]*L[j*dim+k];
+			var rec = Math.sqrt(m[ind++] - sum);
+			L[j*dim+j] = rec;
+
+			rec = 1.0/rec;
+			for(i in j+1...dim) {
+				var sum = 0.0;
+				for(k in 1...j) sum += L[i*dim+j]*L[j*dim+k];
+				L[i*dim+j] = rec*(m[ind++] - sum);
+			}
+		}
+		return L;
+	}
+
+	var y:ARRAY(Float);
+	public function transform(L:ARRAY(Float),x:ARRAY(Float)) {
+		for(i in 0...dim) {
+			var sum = x[i];
+			for(k in 0...i) sum -= L[i*dim+k]*y[k];
+			y[i] = sum / L[i*dim+i];
+		}
+
+		for(ix in 0...dim) {
+			var i = dim-1-ix;
+			var sum = y[i];
+			for(k in i+1...dim) sum -= L[k*dim+i]*x[k];
+			x[i] = sum/L[i*dim+i];
+		}
+	}
+
+	//-----------------------------------------------------------------------------
+
+	public var soft:Float;
+	public var gamma:Float;
+	public var velonly:Bool;
+	public var jMax:Float;
+
+	public var Keff:ARRAY(Float);
+	public override function preStep(dt:Float) {
+		//do this here since the normal validate only happens in DEBUG mode
+		RELEASE(outer_zn.__validate();)
+
+		if(pre_dt==-1.0) pre_dt = dt;
+		var dtratio = dt/pre_dt;
+		pre_dt = dt;
+
+		stepped = true;
+
+		outer_zn.__prepare();
+
+		//effective mass
+		outer_zn.__eff_mass(Keff);
+		L = solve(Keff);
+
+		if(!stiff && !velonly) {
+			var biasCoef;
+			soft = soft_gamma(frequency,damping,dt,gamma,biasCoef);
+
+			outer_zn.__position(bias);
+			if(breakUnderError && lsq(bias) > maxError*maxError) return true;
+
+			for(i in 0...dim) bias[i] *= -dt*biasCoef;
+			_clamp(bias,maxError);
+		}else {
+			for(i in 0...dim) bias[i] = 0.0;
+			gamma = 0.0;
+			soft = 1.0;
+		}
+
+		for(i in 0...dim) jAcc[i] *= dtratio;
+		jMax = maxForce*dt;
+
+		return false;
+	}
+
+	var vec3:Vec3;
+	public override function warmStart() {
+		for(bs in bodies) {
+			var b = bs.body;
+			outer_zn.__impulse(jAcc, b.outer, vec3);
+			vec_addeq(b.vel, vec3., b.imass);
+			b.angvel += vec3.z*b.iinertia;
+		}
+
+		for(i in 0...dim) pjAcc[i] = jAcc[i];
+	}
+
+	var J:ARRAY(Float);
+	var jOld:ARRAY(Float);
+	public override function applyImpulseVel() {
+		//velocity corrections
+		outer_zn.__velocity(J);
+		for(i in 0...dim) J[i] = bias[i] - J[i];
+
+		transform(L,J);
+
+		//combine these steps
+		for(i in 0...dim) {
+			jOld[i] = jAcc[i];
+			jAcc[i] += (J[i] = (J[i]*soft - jAcc[i]*gamma));
+		}
+
+		//clamping
+		outer_zn.__clamp(jAcc);
+
+		if((breakUnderForce || !stiff) && lsq(jAcc)>jMax*jMax) {
+			if(breakUnderForce) return true;
+			else if(!stiff) _clamp(jAcc,jMax);
+		}
+
+		for(i in 0...dim) J[i] = jAcc[i] - jOld[i];
+
+		for(bs in bodies) {
+			var b = bs.body;
+			outer_zn.__impulse(J, b.outer, vec3);
+			vec_addeq(b.vel, vec3., b.imass);
+			b.angvel += vec3.z*b.iinertia;
+		}
+
+		return false;
+	}
+
+	public override function applyImpulsePos() {
+		if(velonly) return false;
+
+		outer_zn.__prepare();
+
+		outer_zn.__position(J);
+		var lj = lsq(J);
+		if(breakUnderError && lj > maxError*maxError) return true;
+		else if(lj < PR(Config).SLOP) return false;
+
+		for(i in 0...dim) J[i] *= -1;
+
+		outer_zn.__eff_mass(Keff);
+		transform(solve(Keff),J);
+
+		for(bs in bodies) {
+			var b = bs.body;
+			outer_zn.__impulse(J, b.outer, vec3);
+			vec_addeq(b.pos, vec3., b.imass);
+			b.delta_rot(vec3.z*b.iinertia);
+		}
+
+		return false;
+	}
+
+	//--------------------------------------------------
+
+	public override function draw(g:Debug) {
+		outer_zn.__draw(g);
+	}
+}
+)

@@ -1,0 +1,303 @@
+package zpp_nape.geom;
+$(import);
+
+//used both as a vertex
+//and a means of classifying the output polygons
+class PR(CutVert) {
+	MixPoolNoNext(PR(CutVert))
+	public var prev:PR(CutVert);
+	public var next:PR(CutVert);
+
+	vec_new(public, pos);
+	public var vert:PR(GeomVert);
+	public var value:Float;
+	public var positive:Bool;
+
+	DSF(Mixin(PR(CutVert)));
+	public var used:Bool;
+
+	public function new() {}
+	public function alloc() {}
+	public function free() {
+		vert = null;
+		parent = null;
+	}
+
+	public static function path(poly:PR(GeomVert)) {
+		var ret = Get(PR(CutVert));
+		ret.vert = poly;
+		ret.parent = ret;
+		ret.rank = 0;
+		ret.used = false;
+		return ret;
+	}
+}
+
+class PR(CutInt) {
+	MixPool(PR(CutInt))
+
+	public var time:Float;
+	public var virtualint:Bool;
+	public var vertex:Bool;
+
+	//end of incoming path
+	public var path0:PR(CutVert);
+	public var end  :PR(GeomVert);
+	public var start:PR(GeomVert);
+	public var path1:PR(CutVert);
+	//start of outgoing path
+
+	public function new() {}
+	public function alloc() {}
+	public function free() {
+		end = start = null;
+		path0 = path1 = null;
+	}
+
+	public static function get(time:Float,end=null,start=null,path0=null,path1=null,virtualint=false,vertex=false) {
+		var ret = Get(PR(CutInt));
+		ret.virtualint = virtualint;
+		ret.end = end;
+		ret.start = start;
+		ret.path0 = path0;
+		ret.path1 = path1;
+		ret.time = time;
+		ret.vertex = vertex;
+		return ret;
+	}
+}
+
+class PR(Cutter) {
+	public static function run(P:PR(GeomVert),_start:Vec2,_end:Vec2,bstart:Bool,bend:Bool) {
+		vec_new(p); vec_set(p,_start.);
+		vec_new(d); vec_sub(_end.,p,d);
+		var min = bstart ? 0 : PR(Const).NEGINF;
+		var max = bend   ? 1 : PR(Const).POSINF;
+		var crx = -vec_cross(d,p);
+
+	mix_circular(PR(CutVert),
+		//calculate side for each vertex.
+		var verts:PR(CutVert) = null;
+		var clashes = false;
+		var p = P;
+		do { //manual iteration, avoid nested mix_circular (bug in caxe at time of writing)
+			var c = Get(PR(CutVert));
+			c.vert = p;
+			vec_set(c.pos, c.vert.);
+			c.value = vec_cross(d,c.pos) + crx;
+			c.positive = c.value > 0;
+			if(c.value==0) clashes = true;
+			verts = push_after(verts,c);
+			p = p.next;
+		}while(p!=P);
+
+		//resolve any ambiguity
+		if(clashes) {
+			var start:PR(CutVert) = null;
+			for_iter(p, verts, {
+				if(p.value!=0.0) {
+					start = p;
+					break;
+				}
+			});
+			assert(start!=null,"all vertices on line but it's simple?");
+
+			vec_new(n); vec_set(n,d); vec_normal(n);
+
+			var pre:PR(CutVert) = null;
+			$(mixin work(p) {
+				if(p.value!=0.0
+				&& (pre==null || p==pre.next)) {
+					pre = p;
+					p = p.next;
+					continue;
+				}
+
+				var prod = pre.value * p.value;
+				if(prod==0) {
+					p = p.next;
+					continue;
+				}
+
+				var a = pre.next;
+				var positive =
+					if(prod>0) pre.positive;
+					else{
+						//this is the situation which demands a simple polygon as input!
+						var b = a.next;
+
+						vec_new(mid);
+						vec_add(a.pos,b.pos,mid);
+						vec_muleq(mid,0.5);
+	
+						geom(contains(P, midx+nx*1e-8, midy+ny*1e-8));
+					};
+
+				for_iter(q,a,p, q.positive = positive);
+				pre = p;
+				p = p.next;
+			});
+			//manual iteration, more caxe bugging.
+			var p = start;
+			do work(p)
+			while(p!=start);
+			do work(p)
+			while(false);
+		}
+
+		//build paths and intersecions
+		var ints = new List(PR(CutInt))();
+		var paths = new List(PR(CutVert))(); //as path reference in DSF
+
+	)
+	mixpool_circular(PR(GeomVert),
+		var start = null;
+		push_before(start,PR(GeomVert).get(verts.posx,verts.posy));
+		var origin = start;
+		var firstpath = PR(CutVert).path(start);
+		paths.add(firstpath);
+
+		var i = verts;
+		do {
+			var j = i.next;
+			var pj = PR(GeomVert).get(j.posx,j.posy);
+			if(i.positive==j.positive) {
+				//add j to current path
+				push_before(start,pj);
+			} else {
+				vec_new(u); vec_sub(j.pos,i.pos,u);
+				var denom = vec_cross(u,d);
+				assert(denom!=0,"0 denom in int. should have been handlded by clash resolution");
+				denom = 1/denom;
+				vec_new(pa); vec_sub(p,i.pos,pa);
+
+				var s = vec_cross(pa,u)*denom;
+				if(s<min || s>max) {
+					//insert a skip at time 's'
+					ints.add(PR(CutInt).get(s,true));
+					//add j to current path
+					push_before(start,pj);
+				}else {
+					if(i.value==0) {
+						var endof = start.prev;
+						//start new path at i
+						start = null; push_before(start,PR(GeomVert).get(endof.x,endof.y));
+						push_before(start,pj);
+						var prepath = paths.begin().elem();
+						paths.add(PR(CutVert).path(start));
+						var postpath = paths.begin().elem();
+						//insert intersection shared with i
+						ints.add(PR(CutInt).get(s,endof,start,prepath,postpath,true));
+					}else if(j.value==0) {
+						//insert j to current path
+						push_before(start,pj);
+						var endof = start.prev;
+						//start new path at j
+						start = null; push_before(start,PR(GeomVert).get(j.posx,j.posy));
+						var prepath = paths.begin().elem();
+						paths.add(PR(CutVert).path(start));
+						var postpath = paths.begin().elem();
+						//insert intersection shared with j
+						ints.add(PR(CutInt).get(s,endof,start,prepath,postpath,true));
+					}else {
+						var t = vec_cross(pa,d)*denom;
+						vec_new(q); vec_set(q,i.pos);
+						vec_addeq(q,u,t);
+						//insert intersection to path
+						push_before(start,PR(GeomVert).get(qx,qy));
+						var endof = start.prev;
+						//start new path at intersection
+						start = null; push_before(start,PR(GeomVert).get(qx,qy));
+						push_before(start,pj);
+						var prepath = paths.begin().elem();
+						paths.add(PR(CutVert).path(start));
+						var postpath = paths.begin().elem();
+						//insert intersection at q
+						ints.add(PR(CutInt).get(s,endof,start,prepath,postpath,false));
+					}
+				}
+			}
+			i = i.next;
+		} while(i!=verts);
+
+		//merge last and first paths
+		var endof = start.prev;
+		endof = pop_ret_before(endof);
+		merge(endof,origin);
+
+		//unify paths
+		var lastpath = paths.begin().elem();
+		DSF(union(firstpath,lastpath));
+
+		assert((ints.size()%2)==0,"odd number of intersections?????");
+
+		//sort intersections and final merge paths
+		Sort(ints, Node(PR(CutInt)), $(mixin lt(x,y) x.time<y.time) lt);	
+		while(!ints.empty()) {
+			var i = ints.pop_unsafe();
+			var j = ints.pop_unsafe();
+			if(!i.virtualint && !j.virtualint) {
+				merge(i.end,j.start);
+				merge(j.end,i.start);
+				DSF(union(i.path0,j.path1));
+				DSF(union(i.path1,j.path0));
+			}else if(i.virtualint && !j.virtualint) {
+				j.end = pop_ret_before(j.end);
+				if(!j.vertex) {
+					//start is used in path reference, so cannot delete it. move it instead
+					//we can safely remove only one of j.start or j.end
+					if(j.end != j.path0.vert) {
+						j.start.x = j.end.x;
+						j.start.y = j.end.y;
+						j.end = pop_ret_before(j.end);
+					}else {
+						var n = j.start.next;
+						j.start.x = n.x;
+						j.start.y = n.y;
+						pop(n);
+					}
+				}
+				merge(j.end,j.start);
+				DSF(union(j.path0,j.path1));
+			}else if(j.virtualint && !i.virtualint) {
+				i.end = pop_ret_before(i.end);
+				if(!i.vertex) {
+					//start is used in path reference, so cannot delete it. move it instead
+					//we can safely remove only one of j.start or j.end
+					if(i.end != i.path0.vert) {
+						i.start.x = i.end.x;
+						i.start.y = i.end.y;
+						i.end = pop_ret_before(i.end);
+					}else {
+						var n = i.start.next;
+						i.start.x = n.x;
+						i.start.y = n.y;
+						pop(n);
+					}
+				}
+				merge(i.end,i.start);
+				DSF(union(i.path0,i.path1));
+			}
+		
+			Free(PR(CutInt),i);
+			Free(PR(CutInt),j);
+		}
+	)
+		//sort out final list of polygons from unified paths
+		var ret = new GeomPolyList();
+		Iter(p, paths, {
+			var poly = DSF(find(p));
+			if(poly.used) cx_continue;
+
+			poly.used = true;
+			var gp = new GeomPoly();
+			gp.pr(inner).vertices = poly.vert;
+			ret.add(gp);
+		});
+
+		ClearWith(p, paths, Free(PR(CutVert),p));
+		mixpool_circular(PR(CutVert),clear(verts));
+
+		return ret;
+	}
+}

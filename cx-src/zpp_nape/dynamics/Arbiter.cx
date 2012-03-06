@@ -1,8 +1,19 @@
 package zpp_nape.dynamics;
 $(import);
 
+PRFlags(ImmState,
+	prop(ACCEPT, 1)
+	prop(IGNORE, 2)
+	prop(ALWAYS, 4)
+)
+
 class PR(Arbiter) {
 	public var outer:Arbiter;
+
+	#if NAPE_POOL_STATS
+		public var arbid:Int;
+		static var nextarbid:Int = 0;
+	#end
 
 	public static var internal = false;
 	public function wrapper() {
@@ -27,11 +38,22 @@ class PR(Arbiter) {
 	}
 
     ///---------------------------------------------------------------------------------------------
+	//used in various parts of API
+
+	flibmdel public inline function inactiveme() {
+		return !active;
+	}
+
+    ///---------------------------------------------------------------------------------------------
 
     //used in hash map
     public var hnext:PR(Arbiter);
 
-	public function new() {}
+	public function new() {
+		#if NAPE_POOL_STATS
+			arbid = nextarbid++;
+		#end
+	}
 
     ///---------------------------------------------------------------------------------------------
 
@@ -66,6 +88,37 @@ class PR(Arbiter) {
     //set when arbiter is sweffed
     public var sleeping:Bool;
 
+	//marks arbiter is active, but not necesarigly 'actively' part of the simulation
+	//for instance if a pre-listener returns IGNORE
+	//or deletes it's contacts but arbiter is still existing
+	//as part of a callbackset etc, but not only for cacheing
+	public var present:Bool;
+	//used to mark arbiter was result of swapping a type
+	//and callbacksets may need changing
+	public var intchange:Bool;
+	//marked to say arbiter should be made part of callbacksets
+	//on freshInteractors/freshListener types
+	public var presentable:Bool;
+
+    ///---------------------------------------------------------------------------------------------
+
+	//used to swap between begin/ongoing style cb
+	public var fresh:Bool;
+
+	//imm cb flag
+	public var immState:Int; //ImmState
+
+    ///---------------------------------------------------------------------------------------------
+
+	//called after pre-handler
+	flibmdel public inline function pre_validate() {
+		if(type==COL) colarb._pre_validate();
+	}
+
+	flibmdel public inline function acting() {
+		return active && ((immState & Flag(ImmState,ACCEPT))!=0);
+	}
+
     ///---------------------------------------------------------------------------------------------
 	
     //arbiter properties need to be recalculated come next pre-step
@@ -96,11 +149,12 @@ class PR(Arbiter) {
 	}
 
     ///---------------------------------------------------------------------------------------------
-	
+
+	//matches ArbiterType values.	
 	public var type:Int;
-	flibstaticdel(COL)    public static inline var COL    = 0;
-	flibstaticdel(FLUID)  public static inline var FLUID  = 1;
-	flibstaticdel(SENSOR) public static inline var SENSOR = 2;
+	flibstaticdel(COL)    public static var COL    = 1;
+	flibstaticdel(FLUID)  public static var FLUID  = 4;
+	flibstaticdel(SENSOR) public static var SENSOR = 2;
 
     //to be used in stead of runtime casting of arbiter.
     public var colarb   :PR(ColArbiter);
@@ -116,17 +170,11 @@ class PR(Arbiter) {
         assert(!cleared,"Arbiter::lazyRetire");
 		cleared = true;
 
-		if(b==null) {
-			b1.arbiters.remove(this);
-			b2.arbiters.remove(this);
-		}else {
-			if(b1==b) b2.arbiters.remove(this);
-			else      b1.arbiters.remove(this);
-		}
-		s.map_arb.remove(this);
+		if(b==null || (b2==b)) b1.arbiters.inlined_remove(this);
+		if(b==null || (b1==b)) b2.arbiters.inlined_remove(this);
 		if(pair!=null) { pair.arb = null; pair = null; }
-		
-        active = false;
+	
+		active = false;
 		//need to tell wrapped space::arbiters list about non structual changes
 		//only one of the lists needs notifiying for the changes to take place
 		//so this suffices whether this arbiter is a fluid arbiter or not.
@@ -142,12 +190,15 @@ class PR(Arbiter) {
 		this.id = id;
 		this.di = di;
 		
-		b1.arbiters.add(this);
-		b2.arbiters.add(this);
+		b1.arbiters.inlined_add(this);
+		b2.arbiters.inlined_add(this);
 		
 		active   = true;
+		present  = false;
 		cleared  = false;
 		sleeping = false;
+		fresh    = false;
+		presentable = false;
 	}
 	
     //called by sub-types on retirement.
@@ -156,14 +207,19 @@ class PR(Arbiter) {
         assert(b1!=null,"Arbiter::sup_retire");
         assert(b2!=null,"Arbiter::sup_retire");
 
-        if(!cleared) { //only need to remove arbiters if not prematurely cleared.
-			b1.arbiters.remove(this);
-			b2.arbiters.remove(this);
+		//arbiter shouldn't be in a callbackset!!
+		assert(!present,"Arbiter::sup_retire cbsets present");
+		assert(!intchange,"Arbiter::sup_retire intchange");
+
+	    if(!cleared) { //only need to remove arbiters if not prematurely cleared.
+			b1.arbiters.inlined_remove(this);
+			b2.arbiters.inlined_remove(this);
 			if(pair!=null) { pair.arb = null; pair = null; }
 		}
 		b1 = b2 = null;
-
+	
 		active = false;
+		intchange= false;
 	}
 }
 
@@ -191,6 +247,12 @@ class PR(SensorArbiter) extends PR(Arbiter) {
 		sup_retire();
 		Free(PR(SensorArbiter),this);
 	}
+
+    ///---------------------------------------------------------------------------------------------
+
+	//nothing to do!
+	flibmdel public inline function makemutable() {}
+	flibmdel public inline function makeimmutable() {}
 }
 
 ///_________________________________________________________________________________________________
@@ -244,17 +306,23 @@ class PR(FluidArbiter) extends PR(Arbiter) {
 	public var padamp:Float;
 
     ///---------------------------------------------------------------------------------------------
+
+	//previously lambads
+	private function position_validate() {
+		DEBUG(if(inactiveme()) throw "Error: Arbiter not currently in use";)
+		vec_set(wrap_position.pr(inner).,centroid);
+	}
+	private function position_invalidate(x:PR(Vec2)) {
+		vec_set(centroid,x.);
+	}
 	
 	public var wrap_position:Vec2;
 	public function getposition() {
-		var me = this;
 		wrap_position = Vec2.get();
 		wrap_position.pr(inner).inuse = true;
-		wrap_position.pr(inner).immutable = true;
-		wrap_position.pr(inner)._validate = function() {
-			DEBUG(if(me.cleared) throw "Error: Arbiter not currently in use";)
-			vec_set(me.wrap_position.pr(inner).,me.centroid);
-		}
+		wrap_position.pr(inner).immutable = !mutable;
+		wrap_position.pr(inner)._validate = position_validate;
+		wrap_position.pr(inner)._invalidate = position_invalidate;
 	}
 
     ///---------------------------------------------------------------------------------------------
@@ -282,6 +350,18 @@ class PR(FluidArbiter) extends PR(Arbiter) {
 		sup_retire();
 		Free(PR(FluidArbiter),this);
         pre_dt = -1.0;
+	}
+
+    ///---------------------------------------------------------------------------------------------
+
+	public var mutable:Bool;
+	flibmdel public inline function makemutable() {
+		mutable = true;
+		if(wrap_position!=null) wrap_position.pr(inner).immutable = false;
+	}
+	flibmdel public inline function makeimmutable() {
+		mutable = false;
+		if(wrap_position!=null) wrap_position.pr(inner).immutable = true;
 	}
 
     ///---------------------------------------------------------------------------------------------
@@ -525,17 +605,33 @@ class PR(ColArbiter) extends PR(Arbiter) {
 	vec_new(public, n); //normal (shared between contacts)
 
     ///---------------------------------------------------------------------------------------------
+
+	//previously lambdas
+	private function normal_validate() {
+		if(cleared) throw "Error: Arbiter not currently in use";
+		vec_set(wrap_normal.pr(inner).,n);
+	}
+	private function normal_invalidate(x:PR(Vec2)) {
+		vec_set(n,x.);
+	}
 	
 	public var wrap_normal:Vec2;
 	public function getnormal() {
-		var me = this;
 		wrap_normal = Vec2.get(0,0);
-		wrap_normal.pr(inner).immutable = true;
+		wrap_normal.pr(inner).immutable = !mutable;
 		wrap_normal.pr(inner).inuse = true;
-		wrap_normal.pr(inner)._validate = function() {
-			if(me.cleared) throw "Error: Arbiter not currently in use";
-			vec_set(me.wrap_normal.pr(inner).,me.n);
-		}
+		wrap_normal.pr(inner)._validate = normal_validate;
+		wrap_normal.pr(inner)._invalidate = normal_invalidate;
+	}
+
+    ///---------------------------------------------------------------------------------------------
+
+	flibmdel public inline function _pre_validate() {
+		DEBUG(if(wrap_contacts!=null && wrap_contacts.length==0) throw "Error: CollisionArbiter must have at least one contact! If you're trying to ignore collision by deleting all contacts, just return PreFlag.IGNORE_ONCE instead.";)
+
+		var vl = vec_lsq(n);
+		DEBUG(if(vl==0) throw "Error: CollisionArbiter::normal cannot be zero length";)
+		vec_muleq(n, 1/Math.sqrt(vl));
 	}
 
     ///---------------------------------------------------------------------------------------------
@@ -596,14 +692,16 @@ class PR(ColArbiter) extends PR(Arbiter) {
 		pjrAcc = 0.0;
 		assert(pair==null,"AABBNode exists on col arbiter going out of pool?"); 
 	}
-	flibmdel public inline function free() { assert(pair==null,"AABBNode exists on col arbiter going into pool?"); }
+	flibmdel public inline function free() { 
+		assert(contacts.empty(),"still has contacts on free?");
+		assert(pair==null,"AABBNode exists on col arbiter going into pool?");
+	}
 	
     public var stat:Bool; //one of the bodies is non-dynamic (different arbiter list)
 
 	///---------------------------------------------------------------------------------------------
 	
-	flibmdel
-    public inline function injectContact(px:Float,py:Float,nx:Float,ny:Float,dist:Float,hash:Int) {
+	flibmdel public inline function injectContact(px:Float,py:Float,nx:Float,ny:Float,dist:Float,hash:Int) {
 		var c:PR(Contact) = null;
 		Iter(cur,contacts, if(hash==cur.hash) { c = cur; break; });
 		if(c==null) {
@@ -615,7 +713,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
 			c.fresh = true;
 			c.arbiter = this;
 			jrAcc = 0;
-			contacts.add(c);
+			contacts.inlined_add(c);
 			innards.add(ci);
 		}else
 			c.fresh = false; //c.stamp +1 != stamp
@@ -641,9 +739,9 @@ class PR(ColArbiter) extends PR(Arbiter) {
 	///---------------------------------------------------------------------------------------------
 	
 	flibmdel public inline function calcProperties() {
-		if(s1.material.elasticity==PR(Const).NEGINF || s2.material.elasticity==PR(Const).NEGINF)
+		if(s1.material.elasticity<=PR(Const).NEGINF || s2.material.elasticity<=PR(Const).NEGINF)
 			restitution = 0;
-		else if(s1.material.elasticity==PR(Const).POSINF || s2.material.elasticity==PR(Const).POSINF)
+		else if(s1.material.elasticity>=PR(Const).POSINF || s2.material.elasticity>=PR(Const).POSINF)
 			restitution = 1;
 		else
 			restitution = (s1.material.elasticity+s2.material.elasticity)/2;
@@ -671,11 +769,55 @@ class PR(ColArbiter) extends PR(Arbiter) {
 	flibmdel public inline function retire() {
 		sup_retire();
 		while(!contacts.empty()) {
-			Free(PR(Contact),contacts.pop_unsafe());
-			innards.pop();
+			Free(PR(Contact),contacts.inlined_pop_unsafe());
+			innards.inlined_pop();
 		}
 		Free(PR(ColArbiter),this);
         pre_dt = -1.0;
+	}
+
+    ///---------------------------------------------------------------------------------------------
+
+	public var mutable:Bool;
+	flibmdel public inline function makemutable() {
+		mutable = true;
+		if(wrap_normal!=null) wrap_normal.pr(inner).immutable = false;
+		if(wrap_contacts!=null) wrap_contacts.pr(inner).immutable = false;
+	}
+	flibmdel public inline function makeimmutable() {
+		mutable = false;
+		if(wrap_normal!=null) wrap_normal.pr(inner).immutable = true;
+		if(wrap_contacts!=null) wrap_contacts.pr(inner).immutable = true;
+	}
+
+	//previously lambdas
+	private function contacts_adder(x:Contact) {
+		DEBUG(throw "Error: Cannot add new contacts, information required is far too specific and detailed :)";)
+		return false;
+	}
+	private function contacts_subber(x:Contact) {
+		var pre = null; var prei = null;
+		var cx_itei = innards.begin();
+		Iter(c, contacts, {
+			if(c==x.pr(inner)) {
+				//dontremove true, so we will deal with removing from contacts
+				contacts.erase(pre);
+				innards.erase(prei);
+				Free(PR(Contact),c);
+				break;
+			}
+			pre = cx_ite;
+			prei = cx_itei;
+			cx_itei = cx_itei.next;
+		});
+	}
+
+	public function setupcontacts() {
+		wrap_contacts = PR(ContactList).get(contacts,true);
+		wrap_contacts.pr(inner).immutable = !mutable;
+		wrap_contacts.pr(inner).adder = contacts_adder;
+		wrap_contacts.pr(inner).dontremove = true; //!!!!
+		wrap_contacts.pr(inner).subber = contacts_subber;
 	}
 	
 	///---------------------------------------------------------------------------------------------
@@ -690,6 +832,52 @@ class PR(ColArbiter) extends PR(Arbiter) {
 	});
 	
 	///---------------------------------------------------------------------------------------------
+
+	//called on an ignored arbiter to make sure arbiters are still cleaned up
+	//and so we can still determine if no more active contacts exist for cleaning up
+	//
+	//when arbiter is accepted, this is handled in the preStep
+	//later clean up may remove the common logic if it is deemed appropriate
+	//and not a hinderance
+	flibmdel public inline function cleanupContacts() {
+		var fst = true;
+		var pre = null; var prei = null;
+		var cx_itei = innards.begin();
+		hc2 = false;
+		Iter(c, contacts, {
+			if(c.stamp+PR(Config).PERSIST<stamp) {
+				cx_ite = contacts.inlined_erase(pre);
+				cx_itei = innards.inlined_erase(prei);
+				Free(PR(Contact), c);
+				continue;
+			}
+
+			var ci = c.inner;
+			var pact = c.active;
+			c.active = c.stamp==stamp;
+			//necessary to notify list of non structual changes when using accept mode for API.
+			if(pact!=c.active) contacts.modified = true;
+
+			if(c.active) {
+				if(fst) {
+					fst = false;
+					c1 = ci;
+					oc1 = c;
+				}else {
+					assert(!hc2,"arbiter has +2 contacts??");
+					hc2 = true;
+					c2 = ci;
+					oc2 = c;
+				}
+			}
+
+			pre = cx_ite;
+			prei = cx_itei;
+			cx_itei = cx_itei.next;
+		});
+
+		return !fst;
+	}
 	
     public var pre_dt:Float;
 	flibmdel public inline function preStep(dt:Float) {
@@ -709,8 +897,8 @@ class PR(ColArbiter) extends PR(Arbiter) {
 		var cx_itei = innards.begin();
 		Iter(c,contacts,{
 			if(c.stamp+PR(Config).PERSIST<stamp) {
-				cx_ite = contacts.erase(pre);
-				cx_itei = innards.erase(prei);
+				cx_ite = contacts.inlined_erase(pre);
+				cx_itei = innards.inlined_erase(prei);
 				Free(PR(Contact),c);
 				continue;
 			}
@@ -723,7 +911,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
 			c.active = c.stamp==stamp;
 			//necessary to notify list of non strutual changes when using accept mode for API.
 			if(pact!=c.active) contacts.modified = true;
-			
+		
 			if(c.active) {
                 #if NAPE_TIMES Debug.ACCNT++; #end
 
@@ -860,35 +1048,37 @@ class PR(ColArbiter) extends PR(Arbiter) {
     ///---------------------------------------------------------------------------------------------
 	
     ///very verbose in an attempt to improve performance.
-    flibmdel public inline function applyImpulseVel(bouncy:Bool) {
-        $(mixin friction(N,jnAcc) {
-            dv`N`x = k`N`x + b2.velx - c`N.r2y*b2.angvel - (b1.velx - c`N.r1y*b1.angvel);
-            dv`N`y = k`N`y + b2.vely + c`N.r2x*b2.angvel - (b1.vely + c`N.r1x*b1.angvel);
+	flibmdel public inline function applyImpulseVel(bouncy:Float) {
+		var jx:Float; var jy:Float;
+		var j:Float; var jMax:Float; var jOld:Float; var cjAcc:Float;
 
-            var jt = (vec_cross(n,dv`N) + surfacex)*c`N.tMass;
-			var jtMax = c`N.friction * jnAcc; var jtOld = c`N.jtAcc;
-			var cjtAcc = jtOld - jt; if(cjtAcc>jtMax) cjtAcc = jtMax else if(cjtAcc<-jtMax) cjtAcc = -jtMax;
-			jt = cjtAcc - jtOld; c`N.jtAcc = cjtAcc;
+		$(mixin friction(N)
+			v`N`x = k`N`x + b2.velx - c`N.r2y*b2.angvel - (b1.velx - c`N.r1y*b1.angvel);
+			v`N`y = k`N`y + b2.vely + c`N.r2x*b2.angvel - (b1.vely + c`N.r1x*b1.angvel);
 
-            //impulse
-            jx = -ny*jt; jy = nx*jt;
-            vec_addeq(b2.vel, j, b2.imass);
-            b2.angvel += b2.iinertia*rt`N`b*jt;
-            vec_subeq(b1.vel, j, b1.imass);
-            b1.angvel -= b1.iinertia*rt`N`a*jt;
-        });
+			j = (vec_cross(n,v`N) + surfacex)*c`N.tMass;
+			jMax = c`N.friction * c`N.jnAcc; jOld = c`N.jtAcc;
+			cjAcc = jOld - j; if(cjAcc>jMax) cjAcc = jMax else if(cjAcc<-jMax) cjAcc = -jMax;
+			j = cjAcc - jOld; c`N.jtAcc = cjAcc;
+			jx = -ny*j; jy = nx*j;
 
-        if(hc2) {
-            ///normal
-            var dv1x = k1x + b2.velx - c1.r2y*b2.angvel - ( b1.velx - c1.r1y*b1.angvel);
-            var dv1y = k1y + b2.vely + c1.r2x*b2.angvel - ( b1.vely + c1.r1x*b1.angvel);
-            var dv2x = k2x + b2.velx - c2.r2y*b2.angvel - ( b1.velx - c2.r1y*b1.angvel);
-            var dv2y = k2y + b2.vely + c2.r2x*b2.angvel - ( b1.vely + c2.r1x*b1.angvel);
+			b2.velx += jx*b2.imass; b2.vely += jy*b2.imass;
+			b1.velx -= jx*b1.imass; b1.vely -= jy*b1.imass;
+			b2.angvel += rt`N`b*j*b2.iinertia;
+			b1.angvel -= rt`N`a*j*b1.iinertia;
+		);
 
-            vec_new(a, c1.jnAcc, c2.jnAcc);
+		var v1x = k1x + b2.velx - c1.r2y*b2.angvel - (b1.velx - c1.r1y*b1.angvel);
+		var v1y = k1y + b2.vely + c1.r2x*b2.angvel - (b1.vely + c1.r1x*b1.angvel);
 
-            var jnx = vec_dot(dv1,n)+surfacey + (bouncy?c1.bounce:0.0) - (Ka*ax + Kb*ay);
-            var jny = vec_dot(dv2,n)+surfacey + (bouncy?c2.bounce:0.0) - (Kb*ax + Kc*ay);
+		if(hc2) {
+			var v2x = k2x + b2.velx - c2.r2y*b2.angvel - (b1.velx - c2.r1y*b1.angvel);
+			var v2y = k2y + b2.vely + c2.r2x*b2.angvel - (b1.vely + c2.r1x*b1.angvel);
+
+			vec_new(a, c1.jnAcc, c2.jnAcc);
+
+            var jnx = vec_dot(v1,n)+surfacey + (bouncy*c1.bounce) - (Ka*ax + Kb*ay);
+            var jny = vec_dot(v2,n)+surfacey + (bouncy*c2.bounce) - (Kb*ax + Kc*ay);
 
             var xx = -(kMassa*jnx + kMassb*jny);
             var xy = -(kMassb*jnx + kMassc*jny);
@@ -896,61 +1086,54 @@ class PR(ColArbiter) extends PR(Arbiter) {
             if(xx>=0 && xy>=0) { vec_sub(x,a,jn); c1.jnAcc = xx; c2.jnAcc = xy; }
             else {
                 xx = -c1.nMass*jnx;
-                if(xx>=0 && (Kb*xx+jny)>=0) { jnx = xx-ax; jny = -ay; c1.jnAcc = xx; c2.jnAcc = xy = 0; }
+                if(xx>=0 && (Kb*xx+jny)>=0) { jnx = xx-ax; jny = -ay; c1.jnAcc = xx; c2.jnAcc = 0; }
                 else {
                     xy = -c2.nMass*jny;
-                    if(xy>=0 && (Kb*xy+jnx)>=0) { jnx = -ax; jny = xy-ay; c1.jnAcc = xx = 0; c2.jnAcc = xy; }
-                    else if(jnx>=0 && jny>=0) { jnx = -ax; jny = -ay; c1.jnAcc = c2.jnAcc = xx = xy = 0; }
+                    if(xy>=0 && (Kb*xy+jnx)>=0) { jnx = -ax; jny = xy-ay; c1.jnAcc = 0; c2.jnAcc = xy; }
+                    else if(jnx>=0 && jny>=0) { jnx = -ax; jny = -ay; c1.jnAcc = c2.jnAcc = 0; }
                 }
             }
 
             //impulse
-            var jn = jnx+jny;
-            var jx = nx*jn; var jy = ny*jn;
-            vec_addeq(b2.vel, j, b2.imass);
-            b2.angvel += b2.iinertia*(rn1b*jnx + rn2b*jny);
-            vec_subeq(b1.vel, j, b1.imass);
-            b1.angvel -= b1.iinertia*(rn1a*jnx + rn2a*jny);
+            j = jnx+jny;
+            jx = nx*j; jy = ny*j;
 
+			b2.velx += jx*b2.imass; b2.vely += jy*b2.imass;
+			b1.velx -= jx*b1.imass; b1.vely -= jy*b1.imass;
+			b2.angvel += (rn1b*jnx + rn2b*jny)*b2.iinertia;
+			b1.angvel -= (rn1a*jnx + rn2a*jny)*b1.iinertia;
 
-            friction(1,xx)
-            friction(2,xy)
-        }else {
-            ///normal
-            var dv1x = k1x + b2.velx - c1.r2y*b2.angvel - (b1.velx - c1.r1y*b1.angvel);
-            var dv1y = k1y + b2.vely + c1.r2x*b2.angvel - (b1.vely + c1.r1x*b1.angvel);
+			friction(1)
+            friction(2)	
+		}else {
+			j = (bouncy*c1.bounce + vec_dot(n,v1) + surfacey)*c1.nMass;
+			jOld = c1.jnAcc;
+			cjAcc = jOld - j; if(cjAcc<0.0) cjAcc = 0.0;
+			j = cjAcc - jOld; c1.jnAcc = cjAcc;
 
-			var jn = ((bouncy?c1.bounce:0) + vec_dot(n,dv1) + surfacey)*c1.nMass;
-			var jnOld = c1.jnAcc;
-			var cjnAcc = jnOld - jn; if(cjnAcc<0) cjnAcc = 0;
-			jn = cjnAcc - jnOld; c1.jnAcc = cjnAcc;
-			
-            //impulse
-            var jx = nx*jn; var jy = ny*jn;
-            vec_addeq(b2.vel, j, b2.imass);
-            b2.angvel += b2.iinertia*rn1b*jn;
-            vec_subeq(b1.vel, j, b1.imass);
-            b1.angvel -= b1.iinertia*rn1a*jn;
+			jx = nx*j; jy = ny*j;
 
-            friction(1,cjnAcc)
+			b2.velx += jx*b2.imass; b2.vely += jy*b2.imass;
+			b1.velx -= jx*b1.imass; b1.vely -= jy*b1.imass;
+			b2.angvel += rn1b*j*b2.iinertia;
+			b1.angvel -= rn1a*j*b1.iinertia;
+
+			friction(1)
 
 			//atleast one object is a circle
-			if(radius!=0) {
-				///rolling
-				var dw = b2.angvel - (b1.angvel);
-				var jr = dw*rMass;
+			if(radius!=0.0) {
+				var dw = b2.angvel - b1.angvel;
+				j = dw*rMass;
+				jMax = rfric*c1.jnAcc; jOld = jrAcc;
+				jrAcc -= j; if(jrAcc>jMax) jrAcc = jMax else if(jrAcc<-jMax) jrAcc = -jMax;
+				j = jrAcc - jOld;
 
-				var jMax = rfric*cjnAcc;
-				var jOld = jrAcc;
-				jrAcc -= jr;
-				if(jrAcc>jMax) jrAcc = jMax; if(jrAcc<-jMax) jrAcc = -jMax;
-				jr = jrAcc - jOld;
-					
-				b2.angvel += jr*b2.iinertia;
-				b1.angvel -= jr*b1.iinertia;
+				b2.angvel += j*b2.iinertia;
+				b1.angvel -= j*b1.iinertia;
 			}
 		}
-    }
+
+	}
 
     ///---------------------------------------------------------------------------------------------
 	
@@ -1027,12 +1210,12 @@ class PR(ColArbiter) extends PR(Arbiter) {
 				}
 			}
 			
-			var err1 = vec_dot(clip1,gnorm) - gproj + radius;
+			var err1 = vec_dot(clip1,gnorm) - gproj - radius;
 			err1 += PR(Config).OVERLAP;
 
 			var err2 = 0.0;
 			if(hc2) {
-				err2 = vec_dot(clip2,gnorm) - gproj;
+				err2 = vec_dot(clip2,gnorm) - gproj - radius;
                 err2 += PR(Config).OVERLAP;
 			}
 

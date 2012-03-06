@@ -2,6 +2,7 @@ package zpp_nape.geom;
 $(import);
 
 $(mixin Vertex() PR(SimpleVert));
+GENID(Vertex)
 class Vertex {
 	//forced property to propagate to GeomVert
 	public var forced:Bool;
@@ -9,32 +10,31 @@ class Vertex {
 	vec_new(public,$(->));
 	public var links:Set(Vertex);
 
-	static var nextId:Int = 0;
 	public var id:Int;
 
 	MixPool(Vertex)
 	public var node:Set(Vertex); //for vertices list in decomposition.
-	flibmdel public inline function free() {
+	public function free() {
 		links.clear();
 		Free(Set(Vertex),links);
 		links = null;
 		node = null;
 		forced = false;
 	}
-	flibmdel public inline function alloc() {
+	public function alloc() {
 		links = Get(Set(Vertex));
 		links.lt = less_xy;
 	}
 
 	function new() {
-		id = nextId++;
+		id = ID(Vertex);
 	}
-	public static inline function less_xy(p:Vertex,q:Vertex) {
+	public static function less_xy(p:Vertex,q:Vertex) {
 		return p.y < q.y || (p.y==q.y && p.x < q.x);
 	}
-	public static inline function swap_nodes(p:Vertex,q:Vertex) swap(p.node,q.node)
+	public static function swap_nodes(p:Vertex,q:Vertex) swap(p.node,q.node)
 
-	public static inline function get(x:Float,y:Float) {
+	public static function get(x:Float,y:Float) {
 		var ret = Get(Vertex);
 		vec_set(ret.,$(->));
 		return ret;
@@ -42,17 +42,17 @@ class Vertex {
 }
 
 $(mixin Segment() PR(SimpleSeg));
+GENID(Segment)
 class Segment {
 	public var left :Vertex;
 	public var right:Vertex;
 
 	public var vertices:Set(Vertex);
 
-	static var nextId = 0;
 	public var id:Int;
 
 	MixPool(Segment)
-	flibmdel public inline function free() {
+	public function free() {
 		left = right = null;
 		prev = null;
 		node = null;
@@ -61,7 +61,7 @@ class Segment {
 		Free(Set(Vertex),vertices);
 		vertices = null;
 	}
-	flibmdel public inline function alloc() {
+	public function alloc() {
 		vertices = Get(Set(Vertex));
 		vertices.lt = less_xy; 
 	}
@@ -72,13 +72,14 @@ class Segment {
 	//node in sweep line tree
 	public var node:Set(Segment);
 
-	public inline function less_xy(a:Vertex,b:Vertex) {
+	//CANNOT BE 'flibmdel'ed.
+	public function less_xy(a:Vertex,b:Vertex) {
 		return a.x < b.x || (a.x==b.x && a.y < b.y);
 	}
 	function new() {
-		id = nextId++;
+		id = ID(Segment);
 	}
-	public static inline function get(left:Vertex,right:Vertex) {
+	public static function get(left:Vertex,right:Vertex) {
 		var ret = Get(Segment);
 		ret.left  = left;
 		ret.right = right;
@@ -106,8 +107,8 @@ class Event {
 
 	//node in tree when doing a decomposition.
 	public var node:Set(Event);
-	public static inline function swap_nodes(a:Event, b:Event) swap(a.node,b.node)
-	public static inline function less_xy(a:Event, b:Event) {
+	public static function swap_nodes(a:Event, b:Event) swap(a.node,b.node)
+	public static function less_xy(a:Event, b:Event) {
 		if  (a.vertex.x < b.vertex.x) return true;
 		elif(a.vertex.x > b.vertex.x) return false;
 		else {
@@ -118,15 +119,15 @@ class Event {
 	}
 
 	MixPool(Event)
-	flibmdel public inline function free() {
+	public function free() {
 		vertex = null;
 		segment = segment2 = null;
 		node = null;
 	}
-	flibmdel public inline function alloc() {}
+	public function alloc() {}
 	function new() {}
 
-	public static inline function get(v:Vertex) {
+	public static function get(v:Vertex) {
 		var ret = Get(Event);
 		ret.vertex = v;
 		return ret;
@@ -207,11 +208,11 @@ class Sweep {
 		}
 	}
 
-	public inline function clear() {
+	public function clear() {
 		tree.clear();
 	}
 
-	public inline function add(e:Segment) {
+	public function add(e:Segment) {
 		e.node = tree.insert(e);
 		var nxt = tree.successor_node(e.node);
 		var pre = tree.predecessor_node(e.node);
@@ -219,7 +220,7 @@ class Sweep {
 		if(pre!=null) { e.prev = pre.data; pre.data.next = e; }
 		return e;
 	}
-	public inline function remove(e:Segment) {
+	public function remove(e:Segment) {
 		var nxt = tree.successor_node(e.node);
 		var pre = tree.predecessor_node(e.node);
 		if(nxt!=null) nxt.data.prev = e.prev;
@@ -228,7 +229,7 @@ class Sweep {
 		e.node = null;
 	}
 
-	public inline function intersect(p:Segment,q:Segment) {
+	public function intersect(p:Segment,q:Segment) {
 		if(p==null || q==null) return false;
 		elif(p.left==q.left
 		  || p.left==q.right
@@ -310,10 +311,15 @@ class Sweep {
 }
 
 class PR(Simple) {
-	static var sweep:Sweep = new Sweep();
-	static var inthash = new FastHash2(Hashable2(Bool))();
+	static var sweep:Sweep;
+	static var inthash:FastHash2(Hashable2(Bool));
 
 	public static function decompose(poly:PR(GeomVert)) {
+		if(sweep==null) {
+			sweep = new Sweep();
+			inthash = new FastHash2(Hashable2(Bool))();
+		}
+
 		var vertices = Get(Set(Vertex));
 		vertices.lt = Vertex.less_xy;
 		vertices.swapped = Vertex.swap_nodes;
@@ -368,20 +374,20 @@ class PR(Simple) {
 
 			$(mixin do_intersect(high,low) {
 				if(high!=null && low!=null && !(high.id<low.id ? inthash.has(high.id,low.id) : inthash.has(low.id,high.id))) {
-					var int = sweep.intersection(high,low);
-					if(int!=null) {
-						if(int.vertex.x >= sweep.sweepx) {
-							var ex = SetFind(queue,int);
+					var intx = sweep.intersection(high,low);
+					if(intx!=null) {
+						if(intx.vertex.x >= sweep.sweepx) {
+							var ex = SetFind(queue,intx);
 							if(ex==null) {
-								var vx = SetFind(ints,int);
+								var vx = SetFind(ints,intx);
 								if(vx!=null) {
-									Free(Vertex,int.vertex);
-									int.vertex = vx.data.vertex;
-									vx.data = int;
-									queue.insert(int);
+									Free(Vertex,intx.vertex);
+									intx.vertex = vx.data.vertex;
+									vx.data = intx;
+									queue.insert(intx);
 								}else {
-									queue.insert(int);
-									ints.insert(int);
+									queue.insert(intx);
+									ints.insert(intx);
 								}
 								if(high.id<low.id)
 									 inthash.add(Hashable2(Bool).get(high.id,low.id,true));
@@ -389,15 +395,15 @@ class PR(Simple) {
 							}else {
 								var x = ex.data;
 								DEBUG(
-									if(x.segment!=int.segment || int.segment2!=x.segment2)
+									if(x.segment!=intx.segment || intx.segment2!=x.segment2)
 										throw "corner case 2, shiiiit.";
 								)
-								Free(Vertex,int.vertex);
-								Free(Event,int);
+								Free(Vertex,intx.vertex);
+								Free(Event,intx);
 							}
 						}else {
-							Free(Vertex,int.vertex);
-							Free(Event,int);
+							Free(Vertex,intx.vertex);
+							Free(Event,intx);
 						}
 					}
 				}
@@ -418,39 +424,39 @@ class PR(Simple) {
 					do_intersect(nxt,pre);
 				}
 			}else {
-				var int = e.vertex;
-				var pnull = int.node == null;
+				var intx = e.vertex;
+				var pnull = intx.node == null;
 
 				var a = e.segment; var b = e.segment2;
 				assert((a.prev==b && b.next==a) || (b.prev==a && a.next==b),"no.!!!");
 				if(b.next!=a) swap(a,b);
 
-				var anew = SetFind(a.vertices,int)==null;
-				var bnew = SetFind(b.vertices,int)==null;
+				var anew = SetFind(a.vertices,intx)==null;
+				var bnew = SetFind(b.vertices,intx)==null;
 				if(anew) {
-					var aint = a.vertices.insert(int);
-					var naleft  = int==a.left  ? int : a.vertices.predecessor_node(aint).data;
-					var naright = int==a.right ? int : a.vertices.successor_node  (aint).data;
+					var aint = a.vertices.insert(intx);
+					var naleft  = intx==a.left  ? intx : a.vertices.predecessor_node(aint).data;
+					var naright = intx==a.right ? intx : a.vertices.successor_node  (aint).data;
 					//cut segment at intersection
-					naleft .links.remove(naright); if(int!=naleft ) naleft .links.insert(int);
-					naright.links.remove(naleft);  if(int!=naright) naright.links.insert(int);
-					if(int!=naleft ) int.links.insert(naleft);
-					if(int!=naright) int.links.insert(naright);
+					naleft .links.remove(naright); if(intx!=naleft ) naleft .links.insert(intx);
+					naright.links.remove(naleft);  if(intx!=naright) naright.links.insert(intx);
+					if(intx!=naleft ) intx.links.insert(naleft);
+					if(intx!=naright) intx.links.insert(naright);
 				}
 				if(bnew) {
-					var bint = b.vertices.insert(int);
-					var nbleft  = int==b.left  ? int : b.vertices.predecessor_node(bint).data;
-					var nbright = int==b.right ? int : b.vertices.successor_node  (bint).data;
+					var bint = b.vertices.insert(intx);
+					var nbleft  = intx==b.left  ? intx : b.vertices.predecessor_node(bint).data;
+					var nbright = intx==b.right ? intx : b.vertices.successor_node  (bint).data;
 					//cut segment at intersection
-					nbleft .links.remove(nbright); if(int!=nbleft ) nbleft .links.insert(int);
-					nbright.links.remove(nbleft);  if(int!=nbright) nbright.links.insert(int);
-					if(int!=nbleft ) int.links.insert(nbleft);
-					if(int!=nbright) int.links.insert(nbright);
+					nbleft .links.remove(nbright); if(intx!=nbleft ) nbleft .links.insert(intx);
+					nbright.links.remove(nbleft);  if(intx!=nbright) nbright.links.insert(intx);
+					if(intx!=nbleft ) intx.links.insert(nbleft);
+					if(intx!=nbright) intx.links.insert(nbright);
 				}
 
-				if(pnull) int.node = vertices.insert(int);
+				if(pnull) intx.node = vertices.insert(intx);
 				//mark intersection as a forced vertex for simplifications.
-				int.forced = true;
+				intx.forced = true;
 
 				//swap edges
 				if(pnull) {
@@ -579,6 +585,11 @@ class PR(Simple) {
 	}
 
 	public static function isSimple(poly:PR(GeomVert)) {
+		if(sweep==null) {
+			sweep = new Sweep();
+			inthash = new FastHash2(Hashable2(Bool))();
+		}
+
 		var vertices = new List(Vertex)();
 		mix_circular(PR(GeomVert),for_iter(v,poly,{
 			vertices.add(Vertex.get(v.x,v.y));

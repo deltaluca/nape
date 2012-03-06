@@ -15,26 +15,32 @@ class PR(Ray) {
 	//for aabbtest
 	vec_new(public,normal);
 	vec_new(public,absnormal);
-	
+
+	//previously lambdas
+	private function origin_invalidate(x:PR(Vec2)) {
+		vec_set(origin,x.);
+	}
+	private function direction_invalidate(x:PR(Vec2)) {
+		vec_set(dir,x.);
+		invalidate_dir();
+	}
+
 	public function new() {
 		origin = Vec2.get();
 		direction = Vec2.get();
 		var me = this;
-		origin.pr(inner)._invalidate = function(x:PR(Vec2)) {
-			vec_set(me.origin,x.);
-		}
-		direction.pr(inner)._invalidate = function(x:PR(Vec2)) {
-			vec_set(me.dir,x.);
-			me.invalidate_dir();
-		}
+		origin.pr(inner)._invalidate = origin_invalidate;
+		vec_set(origin,0,0); //otherwise an init. origin of (0,0) leaves these as NaN
+		direction.pr(inner)._invalidate = direction_invalidate;
+		vec_set(dir,0,0);
 		inv(dir) = false;
 	}
 	
 	public var inv(dir):Bool;
-	flibmdel public inline function invalidate_dir() {
+	public function invalidate_dir() {
 		inv(dir) = true;
 	}
-	flibmdel public inline function validate_dir() {
+	public function validate_dir() {
 		if(inv(dir)) {
 			inv(dir) = false;
 			DEBUG(if(vec_lsq(dir)<PR(Const).EPSILON) throw "Error: Ray::direction is degenerate";)
@@ -48,15 +54,15 @@ class PR(Ray) {
 	
 	//--------------------------------------------------------------
 	
-    flibmdel public inline function rayAABB() {
+    public function rayAABB() {
 		//determine ray AABB
 		var x0 = originx; var x1 = x0;
 		var y0 = originy; var y1 = y0;
-		if(maxdist==PR(Const).POSINF) {
+		if(maxdist>=PR(Const).POSINF) {
 			if(dirx>0) x1 = PR(Const).POSINF;
-			else if(dirx<0) x1 = -PR(Const).POSINF;
+			else if(dirx<0) x1 = PR(Const).NEGINF;
 			if(diry>0) y1 = PR(Const).POSINF;
-			else if(diry<0) y1 = -PR(Const).POSINF;
+			else if(diry<0) y1 = PR(Const).NEGINF;
 		}else {
 			x1 += maxdist*dirx;
 			y1 += maxdist*diry;
@@ -67,7 +73,7 @@ class PR(Ray) {
 		return rayab;
 	}
 
-	flibmdel public inline function aabbtest(a:PR(AABB)) {
+	public function aabbtest(a:PR(AABB)) {
 		// | dot(v, p1-c) | >= dot ( |v|, h )
 		var dot1 = normalx*(originx - 0.5*(a.minx+a.maxx))
 		         + normaly*(originy - 0.5*(a.miny+a.maxy));
@@ -76,7 +82,7 @@ class PR(Ray) {
 		return abs(dot1) < dot2;
 	}
 
-	flibmdel public inline function aabbsect(a:PR(AABB)) {
+	public function aabbsect(a:PR(AABB)) {
 		var cx = originx >= a.minx && originx <= a.maxx;
 		var cy = originy >= a.miny && originy <= a.maxy;
 		if(cx && cy) return 0.0; //shortcut

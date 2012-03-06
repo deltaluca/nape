@@ -1,13 +1,11 @@
 package zpp_nape.shape;
 $(import);
 
-class PR(Shape) {
+class PR(Shape) extends PR(Interactor) {
 	public var outer:Shape;
 	public var body:PR(Body);
 	
 	public var type:Int;
-	public static var nextId = 0;
-	public var id:Int;
 	
 	flibmdel public inline function isCircle() return type==Flag(ShapeType,CIRCLE)
 	flibmdel public inline function isPolygon() return type==Flag(ShapeType,POLYGON)
@@ -46,14 +44,13 @@ class PR(Shape) {
 	
 	public var fluidEnabled:Bool;
 
-    public var cbType:PR(CbType);
-	
 	//----------------------------------------------------------------------------------------------
 	
 	//for sweep and prune
 	public var sweep:PR(SweepData);
 	//for dynamic aaabb
 	public var node:PR(AABBNode);
+	public var pairs:List(PR(AABBPair));
 	
 	//----------------------------------------------------------------------------------------------
 
@@ -75,7 +72,7 @@ class PR(Shape) {
 			}
 		}
 	}
-	flibmdel public inline function invalidate_aabb() {
+	public function invalidate_aabb() {
 		//dependancy checked
 		inv(aabb) = true;
 		if(body!=null) body.invalidate_aabb();
@@ -83,7 +80,7 @@ class PR(Shape) {
 	
 	//----------------------------------------------------------------------------------------------
 	
-	flibmdel public inline function validate_area_inertia() {
+	public function validate_area_inertia() {
 		//dependancy checked
 		if(inv(area_inertia)) {
 			inv(area_inertia) = false;
@@ -91,7 +88,7 @@ class PR(Shape) {
 			else           polygon.__validate_area_inertia();
 		}
 	}
-	flibmdel public inline function validate_angDrag() {
+	public function validate_angDrag() {
 		//dependancy checked
 		if(inv(angDrag)
 		// # changes mean inv(angDrag) may not be 'correct'
@@ -138,7 +135,7 @@ class PR(Shape) {
 	
 	//----------------------------------------------------------------------------------------------
 	
-	flibmdel public inline function invalidate_area_inertia() {
+	public function invalidate_area_inertia() {
 		//dependancy checked
 		inv(area_inertia) = true;
 		if(body!=null) {
@@ -147,11 +144,11 @@ class PR(Shape) {
 			body.invalidate_inertia();
 		}
 	}
-	flibmdel public inline function invalidate_angDrag() {
+	public function invalidate_angDrag() {
 		//dependancy checked
 		inv(angDrag) = true;
 	}
-	flibmdel public inline function invalidate_localCOM() {
+	public function invalidate_localCOM() {
 		//dependancy checked
 		inv(localCOM) = true;
 		invalidate_area_inertia(); //specificaly inertia
@@ -159,7 +156,7 @@ class PR(Shape) {
 		invalidate_worldCOM();
 		if(body!=null) body.invalidate_localCOM();
 	}
-	flibmdel public inline function invalidate_worldCOM() {
+	public function invalidate_worldCOM() {
 		//dependancy checked
 		inv(worldCOM) = true;
 		invalidate_aabb();
@@ -202,28 +199,30 @@ class PR(Shape) {
     // # again things like waking are still valid
 	//   as these are called for active shapes
 	//   for which wake() will have a side effect.	
-	flibmdel public inline function invalidate_filter() wake()
-	flibmdel public inline function invalidate_fluidprops() {
+	public function invalidate_filter() wake()
+	public function invalidate_fluidprops() {
 		if(fluidEnabled)
 			wake();
 	}
 	
 	//----------------------------------------------------------------------------------------------
-	
-	public function wake() {
-		if(body!=null) body.wake();
+
+	//previously lambda
+	private function aabb_validate() {
+		DEBUG(if(body==null) throw "Error: bounds only makes sense when Shape belongs to a Body";)
+		validate_aabb();
 	}
 	
 	function new(type:Int) {
+		pairs = new List(PR(AABBPair))();
+		ishape = this;
+		super();
+
 		this.type = type;
-		id = nextId++;
 		aabb = PR(AABB).get(0,0,0,0);
 		aabb.immutable = true;
 		var me = this;
-		aabb._validate = function() {
-			DEBUG(if(me.body==null) throw "Error: bounds only makes sense when Shape belongs to a Body";)
-			me.validate_aabb();
-		};
+		aabb._validate = aabb_validate;
 		inv(area_inertia) = inv(angDrag) = inv(localCOM) = true;
 		
 		vec_set(localCOM,0,0);
@@ -232,8 +231,6 @@ class PR(Shape) {
 		fluidEnabled = false;
 		fluidProperties = null;
 		body = null;
-
-		//cbType handled in Circle/Polygon public class constructors
 
 		// #
 		refmaterial = new PR(Material)();
@@ -283,38 +280,31 @@ class PR(Shape) {
 		}
 	}
 
-    public function setCbType(cbType:PR(CbType)) {
-        if(this.cbType != cbType) {
-			if(body!=null && body.space!=null) {
-	            if(this.cbType!=null) this.cbType.remShape(this);
-			}
-            this.cbType = cbType;
-			if(body!=null && body.space!=null)
-	            cbType.addShape(this);
-
-            wake();
-        }
-    }
+	public function __immutable_midstep(name:String) {
+		DEBUG(if(body!=null && body.space!=null && body.space.midstep)
+			throw "Error: "+name+" cannot be set during a space step()";
+		)
+	}
 	
 	//----------------------------------------------------------------------------------------------
 	
-	flibmdel public inline function addedToBody() {
+	public function addedToBody() {
 		//dependancy checked
 		invalidate_worldCOM();
 		invalidate_aabb();
 	}
-	flibmdel public inline function removedFromBody() {
+	public function removedFromBody() {
 	}
 
 	public function addedToSpace() {
-		cbType.addShape(this);
+		__iaddedToSpace();
 		material.addShape(this);
 		filter.addShape(this);
 		if(fluidProperties!=null)
 			fluidProperties.addShape(this);
 	}
 	public function removedFromSpace() {
-		cbType.remShape(this);
+		__iremovedFromSpace();
 		material.remShape(this);
 		filter.remShape(this);
 		if(fluidProperties!=null)
@@ -341,8 +331,8 @@ class PR(Shape) {
 		}else ret.invalidate_aabb();
 		
 		//copied shape has default material/filter allocated, don't need it!
-		ret.material.remShape(ret); Free(PR(Material),ret.material);
-		ret.filter.remShape(ret); Free(PR(InteractionFilter),ret.filter);
+		Free(PR(Material),ret.material);
+		Free(PR(InteractionFilter),ret.filter);
 		
 		ret.material = material;
 		ret.filter = filter;
@@ -350,8 +340,7 @@ class PR(Shape) {
 			ret.fluidProperties = fluidProperties;
 		ret.fluidEnabled = fluidEnabled;
 		
-        ret.cbType = cbType;
-
+		copyto(ret.outer);
 		return ret.outer;
 	}
 }

@@ -4,7 +4,7 @@ import haxe.io.Bytes;
 import Types;
 
 class Gen {
-	private static inline function ptrace(s:String) {
+	private static function ptrace(s:String) {
 		neko.Lib.print(s + "\n");
 	}
 	
@@ -165,35 +165,35 @@ class Gen {
 	//-----------------------------------------------------
 	
 	static public var ident:String = "";
-	static public inline function BEG_(type:String, cls:String, ext:String) {
+	static public function BEG_(type:String, cls:String, ext:String) {
 		ident += "   ";
 		return '<' + type + (if (cls.length != 0) ' class="' + cls + '"' else '') + (if(ext.length!=0) ' '+ext else '') + '>\n'+ident;
 	}
-	static public inline function END_(type:String) {
+	static public function END_(type:String) {
 		ident = ident.substr(3, ident.length);
 		return '</' + type + '>\n' + ident;
 	}
 		
 	//-----------------------------------------------------
 	
-	static public inline function BEG_DIV  (?cls:String = "", ?ext:String = "") { return BEG_('div',   cls, ext); }
-	static public inline function BEG_TABLE(?cls:String = "", ?ext:String = "") { return BEG_('table', cls, ext); }
-	static public inline function BEG_TR   (?cls:String = "", ?ext:String = "") { return BEG_('tr',    cls, ext); }
-	static public inline function BEG_TD   (?cls:String = "", ?ext:String = "") { return BEG_('td',    cls, ext); }
-	static public inline function BEG_FONT (?cls:String = "", ?ext:String = "") { return BEG_('font',  cls, ext); }
-	static public inline function BEG_SPAN (?cls:String = "", ?ext:String = "") { return BEG_('span',  cls, ext); }
+	static public function BEG_DIV  (?cls:String = "", ?ext:String = "") { return BEG_('div',   cls, ext); }
+	static public function BEG_TABLE(?cls:String = "", ?ext:String = "") { return BEG_('table', cls, ext); }
+	static public function BEG_TR   (?cls:String = "", ?ext:String = "") { return BEG_('tr',    cls, ext); }
+	static public function BEG_TD   (?cls:String = "", ?ext:String = "") { return BEG_('td',    cls, ext); }
+	static public function BEG_FONT (?cls:String = "", ?ext:String = "") { return BEG_('font',  cls, ext); }
+	static public function BEG_SPAN (?cls:String = "", ?ext:String = "") { return BEG_('span',  cls, ext); }
 	
-	static public inline function END_DIV  () { return END_('div');   }
-	static public inline function END_TABLE() { return END_('table'); }
-	static public inline function END_TR   () { return END_('tr');    }
-	static public inline function END_TD   () { return END_('td');    }
-	static public inline function END_FONT () { return END_('font');  }
-	static public inline function END_SPAN () { return END_('span');  }
+	static public function END_DIV  () { return END_('div');   }
+	static public function END_TABLE() { return END_('table'); }
+	static public function END_TR   () { return END_('tr');    }
+	static public function END_TD   () { return END_('td');    }
+	static public function END_FONT () { return END_('font');  }
+	static public function END_SPAN () { return END_('span');  }
 	
-	static public inline function NL() { return '<br/>'; }
-	static public inline function HR() { return '<hr/>'; }
+	static public function NL() { return '<br/>'; }
+	static public function HR() { return '<hr/>'; }
 	
-	static public inline function ANCHOR(n:String) { return '<a name="' + n + '"/>'; }
+	static public function ANCHOR(n:String) { return '<a name="' + n + '"/>'; }
 	
 	//-----------------------------------------------------
 	
@@ -208,7 +208,7 @@ class Gen {
 	
 	//-----------------------------------------------------
 	
-	public static inline function THROW(root:String) {
+	public static function THROW(root:String) {
 		return '<img class="imginline" src = "'+root+'/throw.gif" alt="X"/>';
 	}
 	
@@ -247,19 +247,24 @@ class Gen {
 					else           ret += BEG_DIV("code");
 					
 					ret += '<code class="prettyprint codes">';
-						if (cde.fref.length==0)
-							ret += cde.incode;
-						else {
-							var f = File.getContent(cde.fref);
-							var i = 0;
-							while (i < f.length) {
-								if (f.charAt(i) == '\n') {
-									f = f.substr(0, i) + '<br>' + f.substr(i + 1);
-									i += 3;
-								}else i++;
-							}
-							ret += f;
+						var f = if(cde.fref.length==0) cde.incode else File.getContent(cde.fref);
+						var i = 0;
+						while (i < f.length) {
+							if (f.charAt(i) == ' ') {
+								f = f.substr(0, i) + '&nbsp;' + f.substr(i+1);
+								i += 6;
+							}else if (f.charAt(i) == '\n') {
+								f = f.substr(0, i) + '<br/>' + f.substr(i + 1);
+								i += 5;
+							}else if(f.charAt(i) == '<') {
+								f = f.substr(0, i) + '&lt;' + f.substr(i+1);
+								i += 4;
+							}else if(f.charAt(i) == '>') {
+								f = f.substr(0, i) + '&gt;' + f.substr(i+1);
+								i += 4;
+							}else i++;
 						}
+						ret += f;
 					ret += '</code>';
 					
 					if (cde.inlin) ret += END_SPAN();
@@ -286,10 +291,19 @@ class Gen {
 					var style = 'style="width: ' + swf.width + 'px; height: ' + swf.height + 'px;"';
 
 					ret += BEG_DIV(if(swf.centre) "swfcontentcentre" else "swfcontent",style);
-					ret += '<object width="'+swf.width+'" height="'+swf.height+'">';
-						ret += '<param name="src" value="'+swf.swf+'">';
-						ret += '<embed src="'+swf.swf+'" width="'+swf.width+'" height="'+swf.height+'">';
-						ret += '</embed>';
+
+					ret += '<object classid="clsid:d27cdb6e-ae6d-11cf-96b8-444553540000" width="'+swf.width+'" height="'+swf.height+'">';
+					    ret += '<param name="movie" value="'+swf.swf+'"/>';
+					    ret += '<!--[if !IE]>-->';
+						    ret += '<object type="application/x-shockwave-flash" data="'+swf.swf+'" width="'+swf.width+'" height="'+swf.height+'">';
+						        ret += '<param name="movie" value="'+swf.swf+'"/>';
+					    ret += '<!--<![endif]-->';
+				        ret += '<a href="http://www.adobe.com/go/getflash">';
+				            ret += '<img src="http://www.adobe.com/images/shared/download_buttons/get_flash_player.gif" alt="Get Adobe Flash player"/>';
+				        ret += '</a>';
+					    ret += '<!--[if !IE]>-->';
+						    ret += '</object>';
+					    ret += '<!--<![endif]-->';
 					ret += '</object>';
 					
 					ret += END_DIV();

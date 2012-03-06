@@ -6,6 +6,7 @@ class Circle extends Shape {
 	
 	//----------------------------------------------------------------------------------------------
 	
+	flibopts(4)
 	public function new(radius:Float, ?localCOM:Vec2, ?material:Material, ?filter:InteractionFilter, ?cbType:CbType) {
 		DEBUG(try { super(); } catch (e:Dynamic) {})
 		RELEASE(super();)
@@ -14,6 +15,8 @@ class Circle extends Shape {
 		pr(inner_zn).outer = this;
 		pr(inner_zn).outer_zn = this;
 		pr(inner) = pr(inner_zn);
+		pr(inner_i) = pr(inner);
+		pr(inner_i).outer_i = this;
 		
 		this.radius = radius;
 		if(localCOM==null) vec_set(pr(inner).localCOM,0,0);
@@ -31,19 +34,18 @@ class Circle extends Shape {
 			pr(inner).filter = Get(PR(InteractionFilter));
 		else this.filter = filter;
 
-        if(cbType==null)
-            pr(inner).cbType = PR(CbType).DEFAULT;
-        else this.cbType = cbType;
+        this.cbType = cbType;
 	}
 	
 	keep public static function copy(circle:Circle) {
 		DEBUG(if(circle==null) throw "Error: Cannot copy null circle";)
-		return circle.pr(inner).copy().circle;
+		return circle.pr(inner).copy().castCircle;
 	}
 	
 	//----------------------------------------------------------------------------------------------
 	
     property(radius,Float,pr(inner_zn).radius,{
+		pr(inner).immutable_midstep("Circle::radius");
 		DEBUG(if(pr(inner).body!=null && pr(inner).body.isStatic() && pr(inner).body.space!=null)
 			throw "Error: Cannot modifiy radius of Circle contained in static object once added to space";
 		)

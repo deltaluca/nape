@@ -72,7 +72,7 @@ class PR(DistanceJoint) extends PR(Constraint) {
 		}
 	});
 	
-	flibmdel public inline function bodyImpulse(b:PR(Body)) {
+	public function bodyImpulse(b:PR(Body)) {
 		if(stepped) {
 			var jcc = jAcc + pjAcc;
 			if(b==b1) return new Vec3(-jcc*nx,-jcc*ny,-cx1*jcc);
@@ -109,6 +109,15 @@ class PR(DistanceJoint) extends PR(Constraint) {
 	public var stepped:Bool;
 	
 	//---------------------------------------------------
+
+	public override function copy(?dict:Array<{id:Int,bc:Body}>,?todo:Array<{id:Int,cb:Body->Void}>):Constraint {
+		var ret = new DistanceJoint(null,null,outer_zn.anchor1,outer_zn.anchor2,jointMin,jointMax);
+		copyto(ret);
+
+		copybody(ret.pr(inner_zn),b1,dict,todo);
+		copybody(ret.pr(inner_zn),b2,dict,todo);
+		return ret;
+	}
 	
 	public function new() {
 		super();
@@ -123,6 +132,7 @@ class PR(DistanceJoint) extends PR(Constraint) {
 	}
 	
 	public override function validate() {
+		if(b1==null || b2==null) throw "Error: AngleJoint cannot be simulated null bodies";
 		if(b1==b2) throw "Error: DistanceJoint cannot be simulated with body1 == body2";
 		if(b1.space != space || b2.space != space) throw "Error: Constraints must have each body within the same space to which the constraint has been assigned";
 		if(jointMin>jointMax) throw "Error: DistanceJoint must have jointMin <= jointMax";
@@ -130,8 +140,8 @@ class PR(DistanceJoint) extends PR(Constraint) {
 	}
 	
 	public override function wake_connected() {
-		if(b1.isDynamic()) b1.wake();
-		if(b2.isDynamic()) b2.wake();
+		if(b1!=null && b1.isDynamic()) b1.wake();
+		if(b2!=null && b2.isDynamic()) b2.wake();
 	}
 	
 	public override function forest() {
@@ -258,6 +268,53 @@ class PR(DistanceJoint) extends PR(Constraint) {
 		}
 		
 		return false;
+	}
+
+	//----------------------------------------------
+
+	public override function draw(g:Debug) {
+		var me = outer_zn;
+		var a1 = me.body1.localToWorld(me.anchor1);
+		var a2 = me.body2.localToWorld(me.anchor2);
+
+		var n = a2.sub(a1);
+		var nl = n.length;
+		if(nl!=0) {
+			n.muleq(1/nl);
+
+			var mid = a1.add(a2).muleq(0.5);
+			var min1 = mid.sub(n.mul(jointMin*0.5,true));
+			var min2 = mid.add(n.mul(jointMin*0.5,true));
+			var max1 = mid.sub(n.mul(jointMax*0.5,true));
+			var max2 = mid.add(n.mul(jointMax*0.5,true));
+
+			g.drawLine(min1,min2,0xffff00);
+			g.drawLine(max1,min1,0x00ffff);
+			g.drawLine(max2,min2,0x00ffff);
+
+			if(!stiff) {
+				if(nl>jointMax) {
+					g.drawSpring(max1,a1,0x00ffff);
+					g.drawSpring(max2,a2,0x00ffff);
+				}else if(nl<jointMin) {
+					g.drawSpring(min1,a1,0xffff00);
+					g.drawSpring(min2,a2,0xffff00);
+				}
+			}
+
+			mid.dispose();
+			min1.dispose();
+			min2.dispose();
+			max1.dispose();
+			max2.dispose();
+		}
+
+		g.drawFilledCircle(a1,2,0xff);
+		g.drawFilledCircle(a2,2,0xff0000);
+
+		a1.dispose();
+		a2.dispose();
+		n.dispose();
 	}
 }
 

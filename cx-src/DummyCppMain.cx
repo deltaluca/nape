@@ -1,0 +1,99 @@
+package;
+$(import);
+
+class DummyCppMain {
+	static function main() {
+		var w = 800;
+		var h = 600;
+		var fps = 200;
+		var bgColor = 0x333333;
+		var flags = 
+			nme.Lib.BORDERLESS |
+			nme.Lib.HARDWARE |
+			nme.Lib.VSYNC |
+			0;
+		var name = "Nape";
+
+		nme.Lib.create(function () { new DummyCppMain(); }, w, h, fps, bgColor, flags, name);
+	}
+
+	function new() {
+		var cur = flash.Lib.current;
+		var stage = cur.stage;
+
+		var debug = new ShapeDebug(800,600,0x333333);
+		debug.drawShapeAngleIndicators = false;
+		cur.addChild(debug.display);
+		var space = new Space(new Vec2(0,400));
+
+		var border = new Body(BodyType.STATIC);
+		border.shapes.add(new Polygon(Polygon.rect(0,0,-50,stage.stageHeight)));
+		border.shapes.add(new Polygon(Polygon.rect(stage.stageWidth,0,50,stage.stageHeight)));
+		border.shapes.add(new Polygon(Polygon.rect(0,0,stage.stageWidth,-50)));
+		border.shapes.add(new Polygon(Polygon.rect(0,stage.stageHeight,stage.stageWidth,50)));
+		border.space = space;
+
+		var boxw = 6;
+		var boxh = 12;
+		var height = 40; //820 blocks
+
+		for(y in 1...(height+1)) {
+			for(x in 0...y) {
+				var block = new Body();
+				block.position.x = stage.stageWidth/2 - boxw*(y-1)/2 + x*boxw;
+				//we give blocks y-position so that they're already overlapping a bit
+				//since with the chain of allowed overlaps will mean 'ideal' position won't be satisfied.
+				block.position.y = stage.stageHeight - boxh/2 - boxh*(height-y)*0.98;
+				block.shapes.add(new Polygon(Polygon.box(boxw,boxh)));
+				block.space = space;
+			}
+		}		
+
+		//----------------------------------------------------------------------------------
+
+		var hand = new PivotJoint(space.world,null,new Vec2(),new Vec2());
+		hand.active = false;
+		hand.stiff = false;
+		hand.space = space;
+		
+		stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function (_) {
+			var mp = new Vec2(cur.mouseX,cur.mouseY);
+			for(b in space.bodiesUnderPoint(mp)) {
+				if(!b.isDynamic()) continue;
+				hand.body2 = b;
+				hand.anchor2 = b.worldToLocal(mp);
+				hand.active = true;
+				break;
+			}
+		});
+		stage.addEventListener(flash.events.MouseEvent.MOUSE_UP, function (_) {
+			hand.active = false;
+		});
+
+		var txt = new flash.text.TextField();
+		txt.defaultTextFormat = new flash.text.TextFormat(null,14,0xffffff);
+		cur.addChild(txt);
+	
+		var fps = -1.0;
+		var pt = flash.Lib.getTimer();
+		cur.addEventListener(flash.events.Event.ENTER_FRAME, function (_) {
+			var ct = flash.Lib.getTimer();
+			var nfps = 1000/(ct-pt);
+			fps = if(fps==-1.0) nfps else fps*0.95+nfps*0.05;
+			pt = ct;
+			txt.text = Std.string(fps).substr(0,5)+"fps";
+			//we start of simulation with a lower timestep to help with stability as all the contact constraints 'warm up'
+			//  once the contacts are 'warm' the time-step will go to full speed and the pyramid will remain standing
+			//without this the pyramid will simply tumble before the contacts have had time to settle towards a solution
+			//  to the huge set of contact equations.
+			var dt = min(1/40, 1/200 + space.timeStamp*1e-5*30);
+
+			hand.anchor1.setxy(cur.mouseX,cur.mouseY);
+			debug.clear();
+			space.step(dt,8,8);
+			debug.draw(space);
+			debug.flush();
+		});
+
+	}
+}

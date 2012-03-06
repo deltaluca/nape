@@ -2,12 +2,27 @@ package nape.geom;
 $(import);
 
 class Vec3 {
-	vec3_new(public, $(->));
+	public var pr(inner):PR(Vec3);
+
+	$(mixin genprop(x)
+		property(x,Float,{
+			if(pr(inner).validate!=null) pr(inner).validate();
+			pr(inner).x;
+		},{
+			DEBUG(if(pr(inner).immutable) throw "Error: Vec3 is immutable";)
+			pr(inner).x = x;
+		})
+	);
+	genprop(x)
+	genprop(y)
+	genprop(z)
 	
 	public function new(?x:Float=0,?y:Float=0,?z:Float=0) {
+		pr(inner) = new PR(Vec3)();
+		pr(inner).outer = this;
 		vec3_set(this.,$(->));
 	}
-	keep public inline function copy() return new Vec3(x,y,z)
+	keep public function copy() return new Vec3(x,y,z)
 	
 	//------------------------
 	
@@ -19,24 +34,24 @@ class Vec3 {
 		vec3_muleq(this., length/this.length);
 	})
 	
-	keep public inline function lsq() return vec3_lsq(this.)
+	keep public function lsq() return vec3_lsq(this.)
 	
-	public inline function set(p:Vec3) {
+	public function set(p:Vec3) {
 		DEBUG(if(p==null) throw "Error: Cannot assign null Vec3";)
 		return setxyz(p.x,p.y,p.z);
 	}
-	public inline function setxyz(x:Float,y:Float,z:Float) {
+	public function setxyz(x:Float,y:Float,z:Float) {
 		vec3_set(this.,$(->));
 		return this;
 	}
 	
 	//-------------------------
 	
-	public inline function xy(?weak:Bool=false) return Vec2.get(x,y,weak)
+	public function xy(?weak:Bool=false) return Vec2.get(x,y,weak)
 	
 	//-------------------------
 	
-	@:$keep public inline function toString() {
+	@:$keep public function toString() {
 		return "{ x: "+x+" y: "+y+" z: "+z+" }";
 	}
 }

@@ -11,10 +11,20 @@ class Constraint {
 	public var userData:Dynamic;
 	
 	//---------------------------------------------------
-	
+
+	property(compound,Compound,{
+		if(pr(inner).compound==null) null else pr(inner).compound.outer;
+	},{
+		if(this.compound!=compound) {
+			if(this.compound!=null) this.compound.constraints.remove(this);
+			if(compound!=null) compound.constraints.add(this);
+		}
+	})
+
     property(space,Space,{
         if(pr(inner).space==null) null else pr(inner).space.outer;
     },{
+		DEBUG(if(pr(inner).compound!=null) throw "Error: Cannot set the space of a Constraint belonging to a Compound, only the root Compound space can be set";)
 		if(this.space!=space) {
             //prevent wake callback on adding to space.
 			if(pr(inner).component!=null)
@@ -167,9 +177,10 @@ class Constraint {
 	
     //----------------------------------------------------------------------------------------------
 
-    property(cbType,CbType,pr(inner).cbType.wrapper(),{
-        DEBUG(if(cbType==null) throw "Error: Cannot assign null CbType to Constraint";)
-        pr(inner).setCbType(cbType.pr(inner));
+    property(cbType,CbType,{
+		pr(inner).cbType==null ? null : pr(inner).cbType.wrapper();
+	},{
+        pr(inner).setCbType(cbType==null ? null : cbType.pr(inner));
     })
 
 
@@ -179,7 +190,9 @@ class Constraint {
 		DEBUG(throw "Error: Constraint cannot be instantiated derp!";)
 	}
 	
-	@:$keep public inline function toString() {
+	@:$keep public function toString() {
 		return "{Constraint}";
 	}
+
+	public function copy() return pr(inner).copy()
 }

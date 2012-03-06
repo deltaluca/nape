@@ -22,7 +22,7 @@ class PR(MotorJoint) extends PR(Constraint) {
 	    b2.angvel += ratio*b2.iinertia*j;
 	});
 	
-	flibmdel public inline function bodyImpulse(b:PR(Body)) {
+	public function bodyImpulse(b:PR(Body)) {
 		if(stepped) {
 			if(b==b1) return new Vec3(0,0,-(pjAcc+jAcc));
 			else      return new Vec3(0,0,ratio*(pjAcc+jAcc));
@@ -56,6 +56,15 @@ class PR(MotorJoint) extends PR(Constraint) {
 	
 	//---------------------------------------------------
 	
+	public override function copy(?dict:Array<{id:Int,bc:Body}>,?todo:Array<{id:Int,cb:Body->Void}>):Constraint {
+		var ret = new MotorJoint(null,null,rate,ratio);
+		copyto(ret);
+
+		copybody(ret.pr(inner_zn),b1,dict,todo);
+		copybody(ret.pr(inner_zn),b2,dict,todo);
+		return ret;
+	}
+
 	public function new() {
 		super();
 		
@@ -66,14 +75,15 @@ class PR(MotorJoint) extends PR(Constraint) {
 	}
 	
 	public override function validate() {
+		if(b1==null || b2==null) throw "Error: AngleJoint cannot be simulated null bodies";
 		if(b1==b2) throw "Error: MotorJoint cannot be simulated with body1 == body2";
 		if(b1.space != space || b2.space != space) throw "Error: Constraints must have each body within the same space to which the constraint has been assigned";
 		if(!b1.isDynamic() && !b2.isDynamic()) throw "Error: Constraints cannot have both bodies non-dynamic";
 	}
 	
 	public override function wake_connected() {
-		if(b1.isDynamic()) b1.wake();
-		if(b2.isDynamic()) b2.wake();
+		if(b1!=null && b1.isDynamic()) b1.wake();
+		if(b2!=null && b2.isDynamic()) b2.wake();
 	}
 	
 	public override function forest() {

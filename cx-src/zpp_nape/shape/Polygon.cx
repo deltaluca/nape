@@ -16,104 +16,93 @@ class PR(Polygon) extends PR(Shape) {
 
     //----------------------------------------------------------------------------------------------
 	
-	public inline function __clear() {
-/*		outer_zn.pr(inner_zn) = null;
-		outer_zn = null;
-		outer.pr(inner) = null;
-		outer = null;*/
+	public function __clear() {}
+
+	//----------------------------------------------------------------------------------------------
+
+	//previously inner lambdas lol
+	private function lverts_pa_invalidate(x:PR(Vec2)) {
+		invalidate_lverts();
+	}
+	DEBUG(private function lverts_pa_immutable() {
+		if(body!=null && body.isStatic() && body.space!=null)
+			throw "Error: Cannot modify local vertex of Polygon added to a static body whilst within a Space";
+	})
+	private function lverts_pa_validate() {
+		DEBUG(if(body==null)
+			throw "Error: World vertex only makes sense when Polygon is contained in a rigid body";
+		)
+		validate_gverts();
+	}
+
+	//previously lambdas
+	private function lverts_post_adder(x:Vec2) {
+		x.pr(inner)._invalidate = lverts_pa_invalidate;
+		DEBUG(x.pr(inner)._immutable = lverts_pa_immutable;)
+		
+		var ite:PR(Vec2) = null;
+		var ite2:Node(PR(Edge)) = null;
+		Iter(i, lverts, {
+			if(i==x.pr(inner)) cx_break;
+			else {
+				ite = ite == null ? gverts.begin() : ite.next;
+				ite2 = ite2 == null ? edges.begin() : ite2.next;
+			}
+		});
+		var vec = PR(Vec2).get(0,0,true);
+		gverts.insert(ite,vec);
+		
+		if(lverts.begin().next!=null) {
+			if(lverts.begin().next.next==null) {
+				var ed:PR(Edge) = Get(PR(Edge)); ed.polygon = this; edges.add(ed);
+				var ed:PR(Edge) = Get(PR(Edge)); ed.polygon = this; edges.add(ed);
+				edgeCnt += 2;
+			}else {
+				var ed:PR(Edge) = Get(PR(Edge)); ed.polygon = this;
+				edges.insert(ite2,ed);
+				edgeCnt++;
+			}
+		}
+		
+		vec._validate = lverts_pa_validate;
+	}
+	private function lverts_subber(x:Vec2) {
+		cleanup_lvert(x.pr(inner));
+	}
+	private function lverts_invalidate(_) {
+		invalidate_lverts();
+	}
+	private function lverts_validate() {
+		validate_lverts();
+	}
+	DEBUG(private function lverts_modifiable() {
+		immutable_midstep("Polygon::localVerts");
+		DEBUG(if(body!=null && body.isStatic() && body.space!=null)
+			throw "Error: Cannot modifiy shapes of static object once added to Space";
+		)
+	})
+
+	//----------------------------------------------------------------------------------------------
+
+	//previously lambdas
+	private function gverts_validate() {
+		validate_gverts();
+	}
+	private function edges_validate() {
+		validate_lverts();
 	}
 
 	//----------------------------------------------------------------------------------------------
-	
+
 	keep public function get_lverts() {
 		var me = this;
 		wrap_lverts = PR(MixVec2List).get(lverts);
 
-		wrap_lverts.pr(inner).post_adder = function(x:Vec2) {
-			x.pr(inner)._invalidate = function(x:PR(Vec2)) {
-				me.invalidate_lverts();
-			};
-			x.pr(inner)._immutable = function() {
-				DEBUG(if(me.body!=null && me.body.isStatic() && me.body.space!=null)
-					throw "Error: Cannot modify local vertex of Polygon added to a static body whilst within a Space";
-				)
-			};
-			
-			var ite:PR(Vec2) = null;
-			var ite2:Node(PR(Edge)) = null;
-			Iter(i, me.lverts, {
-				if(i==x.pr(inner)) cx_break;
-				else {
-					ite = ite == null ? me.gverts.begin() : ite.next;
-					ite2 = ite2 == null ? me.edges.begin() : ite2.next;
-				}
-			});
-			var vec = PR(Vec2).get(0,0,true);
-			me.gverts.insert(ite,vec);
-			
-			if(me.lverts.begin().next!=null) {
-				if(me.lverts.begin().next.next==null) {
-					var ed:PR(Edge) = Get(PR(Edge)); ed.polygon = me; me.edges.add(ed);
-					var ed:PR(Edge) = Get(PR(Edge)); ed.polygon = me; me.edges.add(ed);
-					me.edgeCnt += 2;
-				}else {
-					var ed:PR(Edge) = Get(PR(Edge)); ed.polygon = me;
-					me.edges.insert(ite2,ed);
-					me.edgeCnt++;
-				}
-			}
-			
-			vec._validate = function() {
-				DEBUG(if(me.body==null)
-					throw "Error: World vertex only makes sense when Polygon is contained in a rigid body";
-				)
-				me.validate_gverts();
-			};
-		}
-		wrap_lverts.pr(inner).subber = function(x:Vec2) {
-/*			var ite:PR(Vec2) = null;
-			var ite2:Node(PR(Edge)) = null;
-			Iter(i, me.lverts, {
-				if(i==x.pr(inner)) cx_break;
-				else {
-					ite = ite == null ? me.gverts.begin() : ite.next;
-					ite2 = ite2==null ? me.edges.begin() : ite2.next;
-				}
-			});
-			var rem = (ite==null ? me.gverts.front() : ite.next.elem());
-			me.gverts.erase(ite);
-			Free(PR(Vec2),rem);
-			
-			if(me.lverts.begin() != null) {
-				if(me.lverts.begin().next==null) {
-					Free(PR(Edge),me.edges.front());
-					me.edges.pop();
-					Free(PR(Edge),me.edges.front());
-					me.edges.pop();
-					me.edgeCnt-=2;
-				}else {
-					var rem = (ite2==null ? me.edges.front() : ite2.next.elem());
-					me.edges.erase(ite2);
-					Free(PR(Edge),rem);
-					me.edgeCnt--;
-				}
-			}*/
-			me.cleanup_lvert(x.pr(inner));
-		};
-		
-		wrap_lverts.pr(inner)._invalidate = function(_) {
-			me.invalidate_lverts();
-		};
-		wrap_lverts.pr(inner)._validate = function() {
-			me.validate_lverts();
-		};
-		
-		wrap_lverts.pr(inner)._modifiable = function() {
-			DEBUG(if(me.body!=null && me.body.isStatic() && me.body.space!=null)
-				throw "Error: Cannot modifiy shapes of static object once added to Space";
-			)
-		};
-		
+		wrap_lverts.pr(inner).post_adder = lverts_post_adder;
+		wrap_lverts.pr(inner).subber = lverts_subber;
+		wrap_lverts.pr(inner)._invalidate = lverts_invalidate;
+		wrap_lverts.pr(inner)._validate = lverts_validate;
+		DEBUG(wrap_lverts.pr(inner)._modifiable = lverts_modifiable;)
 		wrap_lverts.pr(inner).reverse_flag = reverse_flag;
 	}
 	
@@ -121,18 +110,14 @@ class PR(Polygon) extends PR(Shape) {
 		var me = this;
 		wrap_gverts = PR(MixVec2List).get(gverts,true);
 		wrap_gverts.pr(inner).reverse_flag = reverse_flag;
-		wrap_gverts.pr(inner)._validate = function() {
-			me.validate_gverts();
-		};
+		wrap_gverts.pr(inner)._validate = validate_gverts;
 	}
 	
 	public function get_edges() {
 		var me = this;
 		wrap_edges = PR(EdgeList).get(edges,true);
 		wrap_edges.pr(inner).reverse_flag = reverse_flag;
-		wrap_edges.pr(inner)._validate = function() {
-			me.validate_lverts();
-		};
+		wrap_edges.pr(inner)._validate = edges_validate;
 	}
 	
 	//----------------------------------------------------------------------------------------------
@@ -152,21 +137,21 @@ class PR(Polygon) extends PR(Shape) {
 	}
 	
 	public var inv(laxi):Bool;
-	flibmdel public inline function invalidate_laxi() {
+	public function invalidate_laxi() {
 		///dependancy checked
 		invalidate_gaxi();
 		inv(laxi) = true;
 	}
 	
 	public var inv(gverts):Bool;
-	flibmdel public inline function invalidate_gverts() {
+	public function invalidate_gverts() {
 		///dependancy checked
 		invalidate_aabb();
 		inv(gverts) = true;
 	}
 	
 	public var inv(gaxi):Bool;
-	flibmdel public inline function invalidate_gaxi() {
+	public function invalidate_gaxi() {
 		///dependancy checked
 		inv(gaxi) = true;
 	}
@@ -249,7 +234,7 @@ class PR(Polygon) extends PR(Shape) {
 	
 	//----------------------------------------------------------------------------------------------
 
-	flibmdel public inline function validate_lverts() {
+	public function validate_lverts() {
 		///dependancy checked
 		///
 		///assertion on addition of splice_collinear()
@@ -394,13 +379,7 @@ class PR(Polygon) extends PR(Shape) {
 				inv(gaxi) = false;
 				validate_laxi();
 				body.validate_axis();
-				/*
-				Iter(e,edges,{
-					vec_rotate(e.lnorm, body.axis, e.gnorm);
-					e.gprojection = vec_dot(body.pos,e.gnorm) + e.lprojection;
-					if(e.wrap_gnorm!=null) vec_set(e.wrap_gnorm.pr(inner).,e.gnorm);
-				});
-				*/
+
 				var ite = edges.begin();
 				Iter2_fast(u,v, gverts, {
 					var e = ite.elem(); ite = ite.next;
@@ -499,7 +478,7 @@ class PR(Polygon) extends PR(Shape) {
 		
 		angDrag = accum/(inertia*perim);
 	}
-	public function __validate_localCOM() {
+	flibmdel public inline function __validate_localCOM() {
 		///dependancy checked
 		DEBUG(if(lverts.empty())
 			throw "Error: An empty polygon has no meaningful localCOM";
@@ -524,20 +503,23 @@ class PR(Polygon) extends PR(Shape) {
 	}
 	
 	//----------------------------------------------------------------------------------------------
+
+	//used to be lambdas
+	private function localCOM_validate() {
+		DEBUG(if(lverts.empty())
+			throw "Error: An empty polygon does not have any meaningful localCOM";
+		)
+		validate_localCOM();
+	}
+	private function localCOM_invalidate(x:PR(Vec2)) {
+		DEBUG(throw "not done yet";) //do i ever want to allow this?
+	}	
 	
 	public function setupLocalCOM() {
-		var me = this;
 		wrap_localCOM = Vec2.get(localCOMx,localCOMy);
 		wrap_localCOM.pr(inner).inuse = true;
-		wrap_localCOM.pr(inner)._validate = function() {
-			DEBUG(if(me.lverts.empty())
-				throw "Error: An empty polygon does not have any meaningful localCOM";
-			)
-			me.validate_localCOM();
-		};
-		wrap_localCOM.pr(inner)._invalidate = function(x:PR(Vec2)) {
-			throw "not done yet"; //do i ever want to allow this?
-		};
+		wrap_localCOM.pr(inner)._validate = localCOM_validate;
+		wrap_localCOM.pr(inner)._invalidate = localCOM_invalidate;
 	}
 	
 	//----------------------------------------------------------------------------------------------

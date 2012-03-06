@@ -1,32 +1,31 @@
 package zpp_nape.phys;
 $(import);
 
-class PR(Body) {
+class PR(Body) extends PR(Interactor) {
 	public var outer:Body;
 	
 	public var world:Bool; //used for Space::static
-	
+
 	//----------------------------------------------------------------------------------------------
-	
-	static var nextId = 0;
-	public var id:Int;
 	
 	public var type:Int;
 	flibmdel public inline function isStatic   () return type == Flag(BodyType,STATIC)
 	flibmdel public inline function isDynamic  () return type == Flag(BodyType,DYNAMIC)
 	flibmdel public inline function isKinematic() return type == Flag(BodyType,KINEMATIC)
 	
-	flibmdel public inline function invalidate_type() {
+	public function invalidate_type() {
 		invalidate_mass();
 		invalidate_inertia();
 	}
 	
 	//----------------------------------------------------------------------------------------------
+
+	public var compound:PR(Compound);
 	
 	public var shapes:List(PR(Shape));
 	public var wrap_shapes:ShapeList;
 	
-	flibmdel public inline function invalidate_shapes() {
+	public function invalidate_shapes() {
 		//dependancy checked
 		invalidate_aabb();
 		invalidate_localCOM();
@@ -46,7 +45,7 @@ class PR(Body) {
 	
 	//----------------------------------------------------------------------------------------------
 	
-	flibmdel public inline function atRest(dt:Float) {
+	public function atRest(dt:Float) {
 		if(!isDynamic()) return component.sleeping;
 		else {
 			var cansleep =
@@ -69,10 +68,6 @@ class PR(Body) {
 		}
 	}
 	
-	public function wake() {
-		return if(space!=null) space.wake(this) else false;
-	}
-	
 	public function refreshArbiters() {
 		Iter(arb, arbiters, arb.invalidated = true);
 	}
@@ -90,7 +85,7 @@ class PR(Body) {
 	vec_new(public,svel); //surface velocity
 	public var wrap_svel:Vec2;
 	
-	flibmdel public inline function invalidate_pos() {
+	flibmdel public inline function invalidate_pos(skipgraphic=false) {
 		//dependancy checked
 		Iter(s,shapes,{
 			if(s.type==Flag(ShapeType,POLYGON)) {
@@ -100,94 +95,140 @@ class PR(Body) {
 			s.invalidate_worldCOM();
 		});
 		invalidate_worldCOM();
-		#if (flash9||nme) validate_graphic(); #end
+		if(!skipgraphic)
+			validate_graphic();
 		//don't wake object here, this method is called by space each step!
 	}
 
+	//--------------------------------------------------------------------
+
+	//previously were lambdas
+	private function pos_invalidate(pos:PR(Vec2)) {
+		immutable_midstep("Body::position");
+		DEBUG(if(isStatic() && space!=null)
+			throw "Error: Cannot move a static object once inside a Space";
+		)
+		if(!vec_eq(pos,pos.)) {
+			vec_set(pos,pos.);
+			invalidate_pos();
+			wake();
+		}
+	}
+	private function pos_validate() vec_set(wrap_pos.pr(inner).,pos)
+
+	//--------------------------------------------------------------------
+
+	//previously were lambdas
+	private function vel_invalidate(vel:PR(Vec2)) {
+		DEBUG(if(isStatic() && space!=null)
+			throw "Error: A static object within a space cannot be given a velocity";
+		)
+		vec_set(vel,vel.);
+		invalidate_wake();
+	}	
+	private function vel_validate() {
+		vec_set(wrap_vel.pr(inner).,vel);
+	}
+
+	//--------------------------------------------------------------------
+
+	//previously were lambdas
+	private function kinvel_invalidate(vel:PR(Vec2)) {
+		vec_set(kinvel,vel.);
+		invalidate_wake();
+	}
+	private function kinvel_validate() {
+		vec_set(wrap_kinvel.pr(inner).,kinvel);
+	}
+
+	//--------------------------------------------------------------------
+
+	//previously were lambdas
+	private function svel_invalidate(vel:PR(Vec2)) {
+		vec_set(svel,vel.);
+		invalidate_wake();
+	}	
+	private function svel_validate() {
+		vec_set(wrap_svel.pr(inner).,svel);
+	}
+
+	//--------------------------------------------------------------------
+
+	//previously were lambdas
+	private function force_invalidate(force:PR(Vec2)) {
+		vec_set(force,force.);
+		
+		if(isDynamic())
+			invalidate_wake();
+	}
+	private function force_validate() vec_set(wrap_force.pr(inner).,force)
+
+	//--------------------------------------------------------------------
+
 	public function setupPosition() {
-		var me = this;
-		me.wrap_pos = Vec2.get(posx,posy);
-		me.wrap_pos.pr(inner).inuse = true;
-		if(world) me.wrap_pos.pr(inner).immutable = true;
+		wrap_pos = Vec2.get(posx,posy);
+		wrap_pos.pr(inner).inuse = true;
+		if(world) wrap_pos.pr(inner).immutable = true;
 		else {
-			me.wrap_pos.pr(inner)._invalidate = function(pos:PR(Vec2)) {
-				DEBUG(if(me.isStatic() && me.space!=null)
-					throw "Error: Cannot move a static object once inside a Space";
-				)
-				if(!vec_eq(me.pos,pos.)) {
-					vec_set(me.pos,pos.);
-					me.invalidate_pos();
-					me.wake();
-				}
-			};
-			me.wrap_pos.pr(inner)._validate = function() vec_set(me.wrap_pos.pr(inner).,me.pos);
+			wrap_pos.pr(inner)._invalidate = pos_invalidate;
+			wrap_pos.pr(inner)._validate = pos_validate;
 		}
 	}
 	public function setupVelocity() {
-		var me = this;
-		me.wrap_vel = Vec2.get(velx,vely);
-		me.wrap_vel.pr(inner).inuse = true;
-		if(world) me.wrap_vel.pr(inner).immutable = true;
+		wrap_vel = Vec2.get(velx,vely);
+		wrap_vel.pr(inner).inuse = true;
+		if(world) wrap_vel.pr(inner).immutable = true;
 		else {
-			me.wrap_vel.pr(inner)._invalidate = function(vel:PR(Vec2)) {
-                DEBUG(if(me.isStatic() && me.space!=null)
-                    throw "Error: A static object within a space cannot be given a velocity";
-                )
-				vec_set(me.vel,vel.);
-                me.invalidate_wake();
-			};
-			me.wrap_vel.pr(inner)._validate = function() {
-				vec_set(me.wrap_vel.pr(inner).,me.vel);
-			};
+			wrap_vel.pr(inner)._invalidate = vel_invalidate;
+			wrap_vel.pr(inner)._validate = vel_validate;
 		}
 	}
 	public function setupkinvel() {
-		var me = this;
-		me.wrap_kinvel = Vec2.get(kinvelx,kinvely);
-		me.wrap_kinvel.pr(inner).inuse = true;
-		if(world) me.wrap_kinvel.pr(inner).immutable = true;
+		wrap_kinvel = Vec2.get(kinvelx,kinvely);
+		wrap_kinvel.pr(inner).inuse = true;
+		if(world) wrap_kinvel.pr(inner).immutable = true;
 		else {
-			me.wrap_kinvel.pr(inner)._invalidate = function(vel:PR(Vec2)) {
-				vec_set(me.kinvel,vel.);
-                me.invalidate_wake();
-			};
-			me.wrap_kinvel.pr(inner)._validate = function() {
-				vec_set(me.wrap_kinvel.pr(inner).,me.kinvel);
-			};
+			wrap_kinvel.pr(inner)._invalidate = kinvel_invalidate;
+			wrap_kinvel.pr(inner)._validate = kinvel_validate;
 		}
 	}
 	public function setupsvel() {
-		var me = this;
-		me.wrap_svel = Vec2.get(svelx,svely);
-		me.wrap_svel.pr(inner).inuse = true;
-		if(world) me.wrap_svel.pr(inner).immutable = true;
+		wrap_svel = Vec2.get(svelx,svely);
+		wrap_svel.pr(inner).inuse = true;
+		if(world) wrap_svel.pr(inner).immutable = true;
 		else {
-			me.wrap_svel.pr(inner)._invalidate = function(vel:PR(Vec2)) {
-				vec_set(me.svel,vel.);
-                me.invalidate_wake();
-			};
-			me.wrap_svel.pr(inner)._validate = function() {
-				vec_set(me.wrap_svel.pr(inner).,me.svel);
-			};
+			wrap_svel.pr(inner)._invalidate = svel_invalidate;
+			wrap_svel.pr(inner)._validate = svel_validate;
 		}
 	}
 	
 	public function setupForce() {
-		var me = this;
-		me.wrap_force = Vec2.get(forcex,forcey);
-		me.wrap_force.pr(inner).inuse = true;
-		if(world) me.wrap_force.pr(inner).immutable = true;
+		wrap_force = Vec2.get(forcex,forcey);
+		wrap_force.pr(inner).inuse = true;
+		if(world) wrap_force.pr(inner).immutable = true;
 		else {
-			me.wrap_force.pr(inner)._invalidate = function(force:PR(Vec2)) {
-				vec_set(me.force,force.);
-				
-				if(me.isDynamic())
-					me.invalidate_wake();
-			};
-			me.wrap_force.pr(inner)._validate = function() vec_set(me.wrap_force.pr(inner).,me.force);
+			wrap_force.pr(inner)._invalidate = force_invalidate;
+			wrap_force.pr(inner)._validate = force_validate;
 		}
 	}
 	
+	//----------------------------------------------------------------------------------------------
+
+	//was previous lambda
+	private function cvel_validate() {
+		wrapcvel.pr(inner).x = velx + kinvelx;
+		wrapcvel.pr(inner).y = vely + kinvely;
+		wrapcvel.pr(inner).z = angvel + kinangvel;
+	}
+
+	public var wrapcvel:Vec3;
+	public function setup_cvel() {
+		var me = this;
+		wrapcvel = new Vec3();
+		wrapcvel.pr(inner).immutable = true;
+		wrapcvel.pr(inner).validate = cvel_validate;
+	}
+
 	//----------------------------------------------------------------------------------------------
 	
 	public var angvel:Float;
@@ -198,7 +239,7 @@ class PR(Body) {
 	public var pre_rot:Float;
 	
 	public var rot:Float;
-	flibmdel public inline function invalidate_rot() {
+	flibmdel public inline function invalidate_rot(?skipgraphic=false) {
 		//dual with invalidate_axis
 		//dependancy checked
 		inv(axis) = true;
@@ -210,7 +251,8 @@ class PR(Body) {
 			s.invalidate_worldCOM();
 		});
 		invalidate_worldCOM();
-		#if (flash9||nme) validate_graphic(); #end
+		if(!skipgraphic)
+			validate_graphic();
 		//don't wake object here, this method is called by space.step!
 	}
 	vec_new(public,axis); public var inv(axis):Bool;
@@ -260,13 +302,13 @@ class PR(Body) {
 	
 	public var nomove:Bool; //stopMovement()/allowMovement() calls
 	
-	flibmdel public inline function invalidate_mass() {
+	public function invalidate_mass() {
 		//dependancy checked
 		if(massMode==Flag(MassMode,DEFAULT))
 			inv(mass) = true;
 		invalidate_gravMass();
 	}
-	flibmdel public inline function validate_mass() {
+	public function validate_mass() {
 		//dependancy checked
 		// # changes to Material memory use (see Shape.cx)
 		var exist = false;//Exists(s,shapes,s.refmaterial.density!=s.material.density);
@@ -304,16 +346,16 @@ class PR(Body) {
 	public var gravMassMode:Int; //DEFAULT,FIXED,SCALED
 	public var gravMassScale:Float; public var inv(gravMassScale):Bool;
 	
-	flibmdel public inline function invalidate_gravMass() {
+	public function invalidate_gravMass() {
 		//dependancy checked
 		if(gravMassMode!=Flag(GravMassMode,FIXED))
 			inv(gravMass) = true;
 		if(gravMassMode!=Flag(GravMassMode,SCALED))
-			inv(gravMassScale) = true; //cannot recursively inline methods
+			inv(gravMassScale) = true; //cannot recursively methods
 
 		wake();
 	}
-	flibmdel public inline function validate_gravMass() {
+	public function validate_gravMass() {
 		//dependacny checked
 		if(inv(gravMass)) {
 			inv(gravMass) = false;
@@ -329,14 +371,14 @@ class PR(Body) {
 		}
 	}
 	
-	flibmdel public inline function invalidate_gravMassScale() {
+	public function invalidate_gravMassScale() {
 		//dependancy checked
 		if(gravMassMode!=Flag(GravMassMode,SCALED))
 			inv(gravMassScale) = true;
 		else
 			invalidate_gravMass();
 	}
-	flibmdel public inline function validate_gravMassScale() {
+	public function validate_gravMassScale() {
 		//dependancy checked
 		if(inv(gravMassScale)) {
 			inv(gravMassScale) = false;
@@ -359,12 +401,12 @@ class PR(Body) {
 	
 	public var norotate:Bool; //stopRotation/allowRotation() calls
 	
-	flibmdel public inline function invalidate_inertia() {
+	public function invalidate_inertia() {
 		//dependancy checked
 		if(inertiaMode!=Flag(InertiaMode,FIXED)) inv(inertia) = true;
 		wake();
 	}
-	flibmdel public inline function validate_inertia() {
+	public function validate_inertia() {
 		//dependancy checked
 		// # changes to Material memory use (see Shape.cx)
 		var exist = false;//Exists(s,shapes,s.refmaterial.density!=s.material.density);
@@ -401,7 +443,7 @@ class PR(Body) {
 	//----------------------------------------------------------------------------------------------
 	
 	//called when body needs waking due to a property change.
-	flibmdel public inline function invalidate_wake() {
+	public function invalidate_wake() {
 		wake();
 	}
 	
@@ -420,34 +462,34 @@ class PR(Body) {
 			});
 		}
 	}
-	flibmdel public inline function invalidate_aabb() {
+	public function invalidate_aabb() {
 		//dependancy checked
 		inv(aabb) = true;
 	}
 	
 	//----------------------------------------------------------------------------------------------
 	
-	#if (flash9||nme)
-		public var hasgraphic:Bool;
-		public var graphic:flash.display.DisplayObject;
-		vec_new(public,gdelta); public var wrap_gdelta:Vec2;
-		public var grotdelta:Float;
+	public var flashgraphic:Bool;
+	public var graphic:Dynamic;
+	public var graphicUpdate:Body->Void;
 		
-		flibmdel public inline function validate_graphic() {
-			if(hasgraphic) {
-				//flash graphics API certainly (I cannot speak for NME)
-				//does not like very large values for rotations, so mudulo operation
-				//is necessary to avoid lengthy simulations causes objects to simply
-				//stop rotating visually.
-				graphic.rotation = ((rot + grotdelta)*180/Math.PI)%360.0;
-				
-				validate_axis();
-				vec_new(d); vec_rotate(gdelta, axis, d);
-				graphic.x = posx + dx;
-				graphic.y = posy + dy;
-			}
+	public function validate_graphic() {
+		if(graphicUpdate!=null) graphicUpdate(outer);
+		else if(graphic!=null && flashgraphic) {
+			//flash graphics API certainly (I cannot speak for NME)
+			//does not like very large values for rotations, so mudulo operation
+			//is necessary to avoid lengthy simulations causes objects to simply
+			//stop rotating visually.
+			//
+			//to avoid issue in flash player of having VERY memory expensive
+			//access to properties of dynamic values. we have this restriction
+			#if (flash9 || nme)
+				var g:flash.display.DisplayObject = graphic;
+				g.rotation = (rot*180/Math.PI)%360.0;
+				vec_set(g.,pos);
+			#end
 		}
-	#end
+	}
 	
 	//----------------------------------------------------------------------------------------------
 	
@@ -456,17 +498,17 @@ class PR(Body) {
 	public var wrap_localCOM:Vec2;
 	public var wrap_worldCOM:Vec2;
 	
-	flibmdel public inline function invalidate_localCOM() {
+	public function invalidate_localCOM() {
 		//dependancy checked
 		inv(localCOM) = true;
 		invalidate_worldCOM();
 	}
-	flibmdel public inline function invalidate_worldCOM() {
+	public function invalidate_worldCOM() {
 		//dependancy checked
 		inv(worldCOM) = true;
 	}
 	
-	flibmdel public inline function validate_localCOM() {
+	public function validate_localCOM() {
 		//dependancy checked
 		if(inv(localCOM)) {
 			inv(localCOM) = false;
@@ -497,7 +539,7 @@ class PR(Body) {
 		}
 	}
 	
-	flibmdel public inline function validate_worldCOM() {
+	public function validate_worldCOM() {
 		//dependancy checked
 		if(inv(worldCOM)) {
 			inv(worldCOM) = false;
@@ -521,20 +563,9 @@ class PR(Body) {
 
     //----------------------------------------------------------------------------------------------
 
-    public var cbType:PR(CbType);
-
-    public function setCbType(cbType:PR(CbType)) {
-        if(this.cbType != cbType) {
-			if(space!=null) {
-	            if(this.cbType!=null) this.cbType.remBody(this);
-			}
-            this.cbType = cbType;
-			if(space!=null)
-	            cbType.addBody(this);
-
-            wake();
-        }
-    }
+	public function __immutable_midstep(name:String) {
+		DEBUG(if(space!=null && space.midstep) throw "Error: "+name+" cannot be set during a space step()";)
+	}
 
     //----------------------------------------------------------------------------------------------
 
@@ -569,14 +600,8 @@ class PR(Body) {
 		norotate = false;
 		nomove = false;
 
-		#if (flash9||nme)
-			hasgraphic = false;
-			graphic = null;
-			vec_set(gdelta,0,0);
-			grotdelta = 0;
-		#end
-
-		cbType = PR(CbType).DEFAULT;
+		graphic = null;
+		graphicUpdate = null;
 	}
 
     //----------------------------------------------------------------------------------------------
@@ -594,16 +619,45 @@ class PR(Body) {
 	
     //----------------------------------------------------------------------------------------------
 
+	//was previously a lambda
+	private function aabb_validate() {
+		DEBUG(if(shapes.empty()) throw "Error: bounds only makes sense when Body has shapes";)
+		validate_aabb();
+	}
+
+	//were previously lambdas
+	private function shapes_adder(s:Shape) {
+		if(s.pr(inner).body!=this) {
+			if(s.pr(inner).body!=null) s.pr(inner).body.wrap_shapes.remove(s);
+			s.pr(inner).body = this;
+			s.pr(inner).addedToBody();
+
+			if(space!=null) space.added_shape(s.pr(inner));
+			
+			return true;
+		}else return false;
+	}
+	private function shapes_subber(s:Shape) {
+		if(space!=null) space.removed_shape(s.pr(inner));
+		
+		s.pr(inner).body=null;
+		s.pr(inner).removedFromBody();
+	}
+	private function shapes_invalidate(_) {
+		invalidate_shapes();
+	}
+	DEBUG(private function shapes_modifiable() {
+		immutable_midstep("Body::shapes");
+		if(isStatic() && space!=null)
+			throw "Error: Cannot modifiy shapes of static object once added to Space";
+	})
+
 	public function new() {
+		super();
+		ibody = this;
 		world = false;
 		
 		norotate = nomove = false;
-		
-		#if (flash9||nme)
-			vec_set(gdelta,0,0);
-			grotdelta = 0;
-			hasgraphic = false;
-		#end
 		
 		vec_set(pos,0,0);
 		rot = 0;
@@ -621,16 +675,11 @@ class PR(Body) {
 		vec_set(localCOM,0,0);
 		vec_set(worldCOM,0,0);
 		
-		id = nextId++;
-		
 		inv(aabb) = true;
 		aabb = PR(AABB).get(0,0,0,0);
 		aabb.immutable = true;
 		var me = this;
-		aabb._validate = function() {
-			DEBUG(if(me.shapes.empty()) throw "Error: bounds only makes sense when Body has Shapes";)
-			me.validate_aabb();
-		};
+		aabb._validate = aabb_validate;
 		
 		massMode = Flag(MassMode,DEFAULT);
 		gravMassMode = Flag(GravMassMode,DEFAULT);
@@ -644,33 +693,10 @@ class PR(Body) {
 		shapes = new List(PR(Shape))();
 		wrap_shapes = PR(ShapeList).get(shapes);
 		var me = this;
-		wrap_shapes.pr(inner).adder = function(s:Shape) {
-			if(s.pr(inner).body!=me) {
-				if(s.pr(inner).body!=null) s.pr(inner).body.wrap_shapes.remove(s);
-				s.pr(inner).body = me;
-				s.pr(inner).addedToBody();
-
-				if(me.space!=null) me.space.added_shape(s.pr(inner));
-				
-				return true;
-			}else return false;
-		};
-		wrap_shapes.pr(inner).subber = function(s:Shape) {
-			if(me.space!=null) me.space.removed_shape(s.pr(inner));
-			
-			s.pr(inner).body=null;
-			s.pr(inner).removedFromBody();
-		};
-		wrap_shapes.pr(inner)._invalidate = function(_) {
-			me.invalidate_shapes();
-		};
-		
-		wrap_shapes.pr(inner)._modifiable = function() {
-			if(me.isStatic() && me.space!=null)
-				throw "Error: Cannot modifiy shapes of static object once added to Space";
-		};
-		
-        cbType = PR(CbType).DEFAULT;
+		wrap_shapes.pr(inner).adder = shapes_adder;
+		wrap_shapes.pr(inner).subber = shapes_subber;
+		wrap_shapes.pr(inner)._invalidate = shapes_invalidate;
+		DEBUG(wrap_shapes.pr(inner)._modifiable = shapes_modifiable;)
 	}
 	
 	//----------------------------------------------------------------------------------------------
@@ -682,8 +708,7 @@ class PR(Body) {
 		component.isBody = true;
 		component.body = this;
 
-		//cbTypes only maintain list of ACTIVE bodies
-		cbType.addBody(this);
+		__iaddedToSpace();
 	}
 
 	public function removedFromSpace() {
@@ -694,9 +719,8 @@ class PR(Body) {
 
 		Free(PR(Component),component);
 		component = null;
-
-		//cbTypes only maintain list of ACTIVE bodies.
-		cbType.remBody(this);
+		
+		__iremovedFromSpace();
 	}
 	
 	//----------------------------------------------------------------------------------------------
@@ -714,6 +738,15 @@ class PR(Body) {
 		vec_set(ret.pos,pos);
 		vec_set(ret.vel,vel);
 		vec_set(ret.force,force);
+
+		ret.rot = rot;
+		ret.angvel = angvel;
+		ret.torque = torque;
+
+		vec_set(ret.kinvel, kinvel);
+		ret.kinangvel = kinangvel;
+
+		vec_set(ret.svel, svel);
 		
 		if(!inv(axis))
 			vec_set(ret.axis,axis);
@@ -753,8 +786,7 @@ class PR(Body) {
 			vec_set(ret.worldCOM,worldCOM);
 		else ret.invalidate_worldCOM();
 
-        ret.cbType = cbType;
-		
+		copyto(ret.outer);	
 		return ret.outer;
 	}
 }

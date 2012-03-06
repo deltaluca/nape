@@ -1,39 +1,16 @@
 package nape.callbacks;
-$(import);
 
-Flags(CbEvent,
-	prop(BEGIN,0)
-	prop(ONGOING,1)
-	prop(END,2)
-	
-	prop(WAKE,3)
-	prop(SLEEP,4)
-	
-	prop(BREAK,5)
-)
+import nape.callbacks.CbEvent;
+import zpp_nape.util.Names;
+import nape.callbacks.Listener;
+import zpp_nape.callbacks.Callback;
 
 class Callback {
 	public var pr(inner):PR(Callback);
 
     property(event,CbEvent,{
-        [CbEvent.BEGIN,CbEvent.ONGOING,CbEvent.END,CbEvent.WAKE,CbEvent.SLEEP,CbEvent.BREAK][pr(inner).event];
+        [CbEvent.BEGIN,CbEvent.END,CbEvent.WAKE,CbEvent.SLEEP,CbEvent.BREAK,CbEvent.PRE,CbEvent.ONGOING][pr(inner).event];
     })
-
-    ///---------------------------------------------------------------------------------------------
-
-    property(arbiter,Arbiter,{
-		pr(inner).arbiter == null ? null : pr(inner).arbiter.wrapper();
-    })
-
-    property(body,Body,{
-        pr(inner).body == null ? null : pr(inner).body.outer;
-    })
-
-    property(constraint,Constraint,{
-        pr(inner).constraint == null ? null : pr(inner).constraint.outer;
-    })
-
-    ///---------------------------------------------------------------------------------------------
 
     property(listener,Listener,{
         pr(inner).listener.outer;
@@ -45,14 +22,5 @@ class Callback {
 		DEBUG(if(!PR(Callback).internal) throw "Error: Callback cannot be instantiated derp!";)
 	}
 
-    ///---------------------------------------------------------------------------------------------
-
-    @:$keep public inline function toString() {
-        var ret = "Cb:";
-        ret += ["BEGIN","ONGOING","END","WAKE","SLEEP","BREAK"][pr(inner).event];
-        if(pr(inner).event==Flag(CbEvent,WAKE) || pr(inner).event==Flag(CbEvent,SLEEP))
-            ret += ":"+(body!=null ? body.toString() : constraint.toString());
-        ret += " : listener: "+listener;
-        return ret;
-    }
+    @:$keep public function toString():String { return ""; }
 }

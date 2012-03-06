@@ -45,7 +45,7 @@ class PR(WeldJoint) extends PR(Constraint) {
 		}
 	});
 	
-	flibmdel public inline function bodyImpulse(b:PR(Body)) {
+	public function bodyImpulse(b:PR(Body)) {
 		if(stepped) {
 			vec3_new(jcc);
 			vec3_add(jAcc,pjAcc,jcc);
@@ -85,6 +85,15 @@ class PR(WeldJoint) extends PR(Constraint) {
 	
 	//---------------------------------------------------
 	
+	public override function copy(?dict:Array<{id:Int,bc:Body}>,?todo:Array<{id:Int,cb:Body->Void}>):Constraint {
+		var ret = new PivotJoint(null,null,outer_zn.anchor1,outer_zn.anchor2);
+		copyto(ret);
+
+		copybody(ret.pr(inner_zn),b1,dict,todo);
+		copybody(ret.pr(inner_zn),b2,dict,todo);
+		return ret;
+	}
+
 	public function new() {
 		super();
 		
@@ -98,14 +107,15 @@ class PR(WeldJoint) extends PR(Constraint) {
 	}
 	
 	public override function validate() {
+		if(b1==null || b2==null) throw "Error: AngleJoint cannot be simulated null bodies";
 		if(b1==b2) throw "Error: WeldJoint cannot be simulated with body1 == body2";
 		if(b1.space != space || b2.space != space) throw "Error: Constraints must have each body within the same space to which the constraint has been assigned";
 		if(!b1.isDynamic() && !b2.isDynamic()) throw "Error: Constraints cannot have both bodies non-dynamic";
 	}
 	
 	public override function wake_connected() {
-		if(b1.isDynamic()) b1.wake();
-		if(b2.isDynamic()) b2.wake();
+		if(b1!=null && b1.isDynamic()) b1.wake();
+		if(b2!=null && b2.isDynamic()) b2.wake();
 	}
 	
 	public override function forest() {
@@ -234,6 +244,46 @@ class PR(WeldJoint) extends PR(Constraint) {
 		Imp(r1,r2,J,true);
 		
 		return false;
+	}
+
+	//----------------------------------------------
+
+	public override function draw(g:Debug) {
+		var me = outer_zn;
+		var a1 = me.body1.localToWorld(me.anchor1);
+		var a2 = me.body2.localToWorld(me.anchor2);
+
+		if(!stiff) {
+			var n = a2.sub(a1);
+			var nl = n.length;
+			if(nl!=0)
+				g.drawSpring(a1,a2,0xff00ff);
+			n.dispose();
+
+			var minrad = 10;
+			var delrad = 5/Math.PI/2;
+
+			$(mixin dobody(b,target,col) {
+				if(b!=b.space.world) {
+					var max = target;
+					var min = b.rotation;
+					if(min>max) swap(min,max);
+					$(mixin rad(ang) (minrad + (ang-min)*delrad));
+	
+					PR(AngleDraw).drawSpiralSpring(g, b.position, min,max,rad(min),rad(max), col);
+					PR(AngleDraw).indicator(g, b.position, b.rotation, rad(b.rotation), col);
+				}
+			});
+			dobody(me.body1,me.body2.rotation-me.phase,0xff0080);
+			dobody(me.body2,me.phase+me.body1.rotation,0x8000ff);
+		}
+
+		g.drawFilledCircle(a1,2,0xff);
+		g.drawFilledCircle(a2,2,0xff0000);
+
+		a1.dispose();
+		a2.dispose();
+
 	}
 }
 

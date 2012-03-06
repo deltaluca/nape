@@ -69,7 +69,7 @@ class PR(LineJoint) extends PR(Constraint) {
 		}
 	});
 	
-	flibmdel public inline function bodyImpulse(b:PR(Body)) {
+	public function bodyImpulse(b:PR(Body)) {
 		if(stepped) {
 			vec_new(j, scale*nrelx*(pjAccy+jAccy) - nrely*(pjAccx+jAccx), nrelx*(pjAccx+jAccx) + scale*nrely*(pjAccy+jAccy));
 			if(b==b1) return new Vec3(-jx,-jy,(scale*cx1*jy - dot1*jx));
@@ -97,8 +97,8 @@ class PR(LineJoint) extends PR(Constraint) {
 	public var b2:PR(Body); anchor_new(a2);
 	
 	public var inv(n):Bool;
-	anchor_new(n,{me.inv(n) = true;});
-	flibmdel public inline function validate_n() {
+	anchor_new(n,{inv(n) = true;});
+	public function validate_norm() {
 		if(inv(n)) {
 			inv(n) = false;
 			vec_normalise_slow(nlocal);
@@ -116,6 +116,15 @@ class PR(LineJoint) extends PR(Constraint) {
 	
 	//---------------------------------------------------
 	
+	public override function copy(?dict:Array<{id:Int,bc:Body}>,?todo:Array<{id:Int,cb:Body->Void}>):Constraint {
+		var ret = new LineJoint(null,null,outer_zn.anchor1,outer_zn.anchor2,outer_zn.direction,jointMin,jointMax);
+		copyto(ret);
+
+		copybody(ret.pr(inner_zn),b1,dict,todo);
+		copybody(ret.pr(inner_zn),b2,dict,todo);
+		return ret;
+	}
+
 	public function new() {
 		super();
 		anchor_init(a1);
@@ -130,6 +139,7 @@ class PR(LineJoint) extends PR(Constraint) {
 	}
 	
 	public override function validate() {
+		if(b1==null || b2==null) throw "Error: AngleJoint cannot be simulated null bodies";
 		if(b1==b2) throw "Error: DistanceJoint cannot be simulated with body1 == body2";
 		if(b1.space != space || b2.space != space) throw "Error: Constraints must have each body within the same space to which the constraint has been assigned";
 		if(jointMin>jointMax) throw "Error: DistanceJoint must have jointMin <= jointMax";
@@ -138,8 +148,8 @@ class PR(LineJoint) extends PR(Constraint) {
 	}
 	
 	public override function wake_connected() {
-		if(b1.isDynamic()) b1.wake();
-		if(b2.isDynamic()) b2.wake();
+		if(b1!=null && b1.isDynamic()) b1.wake();
+		if(b2!=null && b2.isDynamic()) b2.wake();
 	}
 	
 	public override function forest() {
@@ -172,7 +182,7 @@ class PR(LineJoint) extends PR(Constraint) {
 
 		stepped = true;
 		
-		validate_n();
+		validate_norm();
 		validate_anchor(b1,a1); validate_anchor(b1,n);
 		validate_anchor(b2,a2);
 		
@@ -187,6 +197,8 @@ class PR(LineJoint) extends PR(Constraint) {
 		if((flag&2)!=0) jAccy = 0;
 		
 		if(!stiff) {
+			if(breakUnderError && vec_lsq(C) > maxError*maxError) return true;
+
 			var biasCoef;
 			mat2_scaleq(kMass, soft_gamma(frequency,damping,dt,gamma,biasCoef));
 			vec_set(bias,C);
@@ -216,7 +228,11 @@ class PR(LineJoint) extends PR(Constraint) {
 
 		accum2(jAcc,J,{
 			if(jAccy > 0) jAccy = 0;
-			vec_clamp(jAcc,jMax);
+			if(breakUnderForce) {
+				if(vec_lsq(jAcc) > jMax*jMax)
+					return true;
+			}else if(!stiff)
+				vec_clamp(jAcc,jMax);
 		});
 		Imp(a1rel,a2rel,nrel, J,false);
 		
@@ -232,7 +248,8 @@ class PR(LineJoint) extends PR(Constraint) {
 		vec_new(d); var scale;
 		vec_new(E);
 		Cerr(r1,r2,n,d,E);
-			
+		
+		if(breakUnderError && vec_lsq(E) > maxError*maxError) return true;	
 		if(vec_lsq(E) < PR(Config).SLOP) return false;
 		
 		vec_new(J);
@@ -265,7 +282,52 @@ class PR(LineJoint) extends PR(Constraint) {
 		
 		return false;
 	}
-	
+
+	//----------------------------------------------
+
+	public override function draw(g:Debug) {
+		var me = outer_zn;
+		var a1 = me.body1.localToWorld(me.anchor1);
+		var a2 = me.body2.localToWorld(me.anchor2);
+		var dir = me.body1.localToRelative(me.direction);
+		dir.muleq(1/dir.length);
+
+		var min = me.jointMin;
+		var max = me.jointMax;
+		if(min<=PR(Const).NEGINF) min = -1000;
+		if(max>=PR(Const).POSINF) max =  1000;
+
+		var del = a2.sub(a1);
+		var pn = del.dot(dir);
+		del.dispose();
+
+		var e1 = a1.add(dir.mul(min,true));
+		var e2 = a1.add(dir.mul(max,true));
+
+		if(pn>min)
+			g.drawLine(e1,a1.add(dir.mul(min(pn,max),true),true),0xffff00);
+		if(pn<max)
+			g.drawLine(a1.add(dir.mul(max(pn,min),true),true),e2,0xffff);
+
+		if(!stiff) {
+			var anch = 
+			if  (pn<jointMin) e1.copy();
+			elif(pn>jointMax) e2.copy();
+			else              a1.add(dir.mul(pn,true));
+
+			g.drawSpring(anch,a2,0xff00ff);
+			anch.dispose();
+		}
+
+		g.drawFilledCircle(a1,2,0xff);
+		g.drawFilledCircle(a2,2,0xff0000);
+
+		a1.dispose();
+		a2.dispose();
+		e1.dispose();
+		e2.dispose();
+	}
+
 }
 
 )

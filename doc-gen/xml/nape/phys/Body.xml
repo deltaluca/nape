@@ -99,7 +99,7 @@
 
 <!-- ------------------------------------------------------------------------------------------- -->
 
-<class package="nape.phys" name="Body">
+<class package="nape.phys" name="Body" super="Interactor">
 	<file>Body.hx</file>
 	<short>Rigid body</short>
 	<description>Rigid body composed of Shapes</description>
@@ -113,11 +113,6 @@
 		</detail>
 	</constructor>
 	
-	<property name="id" type="Int" readonly="true">
-		<description>Unique identifier for physics object</description>
-		<detail><description>Unique per-PhysObj instance identifier</description></detail>
-	</property>
-	
 	<property name="type" type="BodyType">
 		<description>Rigid body type</description>
 		<detail>
@@ -125,7 +120,7 @@
 			<text>In conversion to kinematic, the kinematic velocity will be set to 0.</text></description>
 		</detail>
 	</property>
-	
+
 	<property/>
 	<property name="shapes" type="ShapeList" readonly="true">
 		<description>List of Body's shapes</description>
@@ -134,28 +129,50 @@
 			<text class="bold">Immutable if:</text><br/><indent><throw/><code inline="true"> isStatic() &amp;&amp; space!=null</code><br/><text>Whether implicit or explicit operations are performed on this list, an error will be thrown.</text></indent> </description>
 		</detail>
 	</property>
-	<property name="cbType" type="CbType" value="CbType.DEFAULT">
-		<description>Body callback type id</description>
-		<detail>
-			<description>Body callback type id for callback event listeners</description>
-		</detail>
-	</property>
-	<property name="userData" type="Dynamic">
-		<description>user defined data </description>
-		<detail>
-			<description>user defined data</description>
-		</detail>
-	</property>
-	
 	
 	<property/>
-	<property name="space" type="Maybe[Space]">
-		<description>Space to which Body belongs</description>
+	<property name="compound" type="Compound">
+		<description>Compuond Body belongs to</description>
 		<detail>
-			<description>Space object to which this Body belongs. This value can also be set and is equivalent to removing the body from it's present space, and adding it to the new one.</description>
+			<description>The compound this Body belongs to.</description>
+		</detail>
+	</property>	
+	<property name="space" type="Space">
+		<description>Space to which Body is contained</description>
+		<detail>
+			<description>Space the body is contained in. This value can also be set unless the Body is part of a Compound in which case only the root of the tree can have it's space modified.</description>
+			<set><code inline="true">this.compound!=null</code><text> Only the root of the tree has a mutable space property</text></set>
+		</detail>
+	</property>
+
+	<property/>
+
+	<property name="graphic" type="Dynamic">
+		<description>Assigned graphic</description>
+		<detail>
+			<description><text>A graphic that can be assigned for auto-placement by nape. Graphic is assumed to be a flash DisplayObject unless the graphicUpdate method is assigned.</text><br/><br/>
+			</description>
+		</detail>
+	</property>
+	<property name="graphicUpdate" type="Body->Void">
+		<description>Assigned graphic handler</description>
+		<detail>
+			<description><text>A function handler taking the Body who's position/rotation has changed and should be rendered.</text><br/><br/>
+				<text>This takes precedence over any handling of the 'graphic' property and so can be used either on it's own, or together with the graphic property to customise it's placement</text><br/><br/>
+				<text>For example, you could emulate how nape internally updates the graphic property with the following handler:</text>
+				<br/><code><![CDATA[body.graphic = ...;
+body.graphicUpdate = function(b:Body) {
+	b.graphic.x = b.position.x;
+	b.graphic.y = b.position.y;
+	//rotation is clamped to [-360,360] as flash doesn't like large rotation values
+	b.graphic.rotation = (b.rotation*180/Math.PI)%360;
+}]]></code>
+			</description>
 		</detail>
 	</property>
 	
+	<property/>
+
 	<property name="bounds" type="AABB" readonly="true">
 		<description>Body world bounds</description>
 		<detail>
@@ -183,7 +200,21 @@
 			<description>If true then this body has been put to sleep.</description>
 		</detail>
 	</property>
-	
+	<property name="localCOM" type="Vec2" readonly="true">
+		<description>Immutable local centre of mass</description>
+		<detail>
+			<description>Immutable Vec2 corresponding to the centre of mass of the rigid body in it's local coordinates</description>
+			<get>shapes.empty()</get>
+		</detail>
+	</property>
+	<property name="worldCOM" type="Vec2" readonly="true">
+		<description>Immutable world centre of mass</description>
+		<detail>
+			<description>Immutable Vec2 corresponding to the centre of mass of the rigid body in world/world coordinates</description>
+			<get>shapes.empty()</get>
+		</detail>
+	</property>
+		
 	<property/>
 	
 	<property/>
@@ -251,6 +282,15 @@
 			 <description><text>The surface velocity is an additional velocity used for dynamic and kinematic objects which only effects contact calculations; there is no angular version of this as the surface velocity is applied in the coordinate frame of the contact point, so that the x-value of the surface velocity effects the tangentenial velocity seen by the contact points regardless of orientation of the contact, and the y-value effects the normal velocity seen by the contact point.</text><br/><br/><text>This is best used for such things as conveyor belts, and for such things as trampolines or pinball style bouncers etc.</text></description>
 		 </detail>
 	 </property>
+
+	<property/>
+
+	<property name="constraintVelocity" type="Vec3" readonly="true">
+		<description> Velocity seen by constraints </description>
+		<detail>
+			<description><text>Property to be used when working with user-defined constraints to get the velocity of the body that should be used (Currently computes the sum of velocities and kinematic velocities)</text></description>
+		</detail>
+	</property>
 	
 	<property/>
 	<property name="allowMovement" type="Bool" value="true">
@@ -280,6 +320,12 @@
 			<description><text>Mass of body</text><br/><text>Setting this field will implicitly set </text><code inline="true">massMode = MassMode.FIXED</code> </description>
 			<set><code inline="true">mass &lt;= 0</code> </set>
 			<get><code inline="true">shapes.empty() &amp;&amp; massMode==MassMode.DEFAULT</code> </get>
+		</detail>
+	</property>
+	<property name="constraintMass" type="Float" readonly="true">
+		<description>Mass seen by constraint</description>
+		<detail>
+			<description>For use in user defined constraints, this value defines the inverse mass to be used in effective mass computations, equal to 1/mass for dynamic bodies, and 0 for statics/kinematics and space.world bodies</description>
 		</detail>
 	</property>
 	
@@ -323,23 +369,15 @@
 			<get><code inline="true">inertiaMode == InertiaMode.DEFAULT &amp;&amp; shapes.empty()</code> </get>
 		</detail>
 	</property>
-	
-	<property/>
-	<property name="localCOM" type="Vec2" readonly="true">
-		<description>Immutable local centre of mass</description>
+	<property name="constraintInertia" type="Float" readonly="true">
+		<description>Moment of inertia seen by constraint</description>
 		<detail>
-			<description>Immutable Vec2 corresponding to the centre of mass of the rigid body in it's local coordinates</description>
-			<get>shapes.empty()</get>
-		</detail>
-	</property>
-	<property name="worldCOM" type="Vec2" readonly="true">
-		<description>Immutable world centre of mass</description>
-		<detail>
-			<description>Immutable Vec2 corresponding to the centre of mass of the rigid body in world/world coordinates</description>
-			<get>shapes.empty()</get>
+			<description>For use in user defined constraints, this value defines the inverse moment of inertia to be used in effective mass computations, equal to 1/mass for dynamic bodies, and 0 for statics/kinematics and space.world bodies</description>
 		</detail>
 	</property>
 	
+
+
 	<method name="isStatic" return="Bool" const="true">
 		<description>Whether Body is static</description>
 		<detail><description>Whether Body is static</description></detail>
@@ -416,6 +454,15 @@
 		<detail>
 			<description>Applies same translation to each shape resulting in the local centre of mass being at the origin, aswell as translating the body itself so that each shape's world state is unchanged.</description>
 			<throws>shapes.empty()</throws>
+		</detail>
+	</method>
+
+	<method name="rotate">
+		<arg name="centre" type="Vec2" const="true"/>
+		<arg name="angle" type="Float"/>
+		<description>rotate body abuot a point</description>
+		<detail>
+			<description>Rotate the body about a given point in world space</description>
 		</detail>
 	</method>
 	
