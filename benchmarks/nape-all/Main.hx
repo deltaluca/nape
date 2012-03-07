@@ -3,6 +3,7 @@ package;
 import nape.space.Space;
 import nape.phys.Body;
 import nape.phys.BodyType;
+import nape.space.Broadphase;
 import nape.shape.Polygon;
 import nape.util.ShapeDebug;
 import nape.geom.Vec2;
@@ -26,7 +27,7 @@ class Main {
 		var debug = new ShapeDebug(800,600,0x333333);
 		debug.drawShapeAngleIndicators = false;
 		cur.addChild(debug.display);
-		var space = new Space(new Vec2(0,400));
+		var space = new Space(new Vec2(0,400),Broadphase.SWEEP_AND_PRUNE);
 
 		var border = new Body(BodyType.STATIC);
 		border.shapes.add(new Polygon(Polygon.rect(0,0,-50,stage.stageHeight)));

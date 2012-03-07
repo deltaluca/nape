@@ -1,11 +1,11 @@
 all:
 	echo "specify flash or cpp"
 
-flash:
+flash: Main.hx
 	haxe -cp . -main Main -swf Main.swf -lib nape -swf-header 500:500:120:333333 -swf-version 11 -D NAPE_RELEASE_BUILD
 	fp Main.swf
 
-cpp:
+cpp: Main.hx
 	haxe -cp . -main Main -cpp cpp -lib nape -lib nme --remap flash:nme -D NAPE_RELEASE_BUILD
 	cp cpp/Main Main
 	./Main
