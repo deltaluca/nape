@@ -9,16 +9,8 @@ import nape.util.ShapeDebug;
 import nape.geom.Vec2;
 
 class Main {
-	static function main() {
-		#if flash
-			new Main();
-		#elseif cpp
-			nme.Lib.create(function() { new Main(); },
-				500,500,120,0x333333,
-				nme.Lib.BORDERLESS | nme.Lib.HARDWARE,
-				"nape"
-			);
-		#end
+	public static function main() {
+		new Main();
 	}
 	function new() {
 		var cur = flash.Lib.current;

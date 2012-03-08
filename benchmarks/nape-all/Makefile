@@ -2,13 +2,15 @@ all:
 	echo "specify flash or cpp"
 
 flash: Main.hx
-	haxe -cp . -main Main -swf Main.swf -lib nape -swf-header 500:500:120:333333 -swf-version 11 -D NAPE_RELEASE_BUILD
-	fp Main.swf
+	haxelib run nme update Nape.nmml flash
+	haxelib run nme build Nape.nmml flash
+#	haxelib run nme run Nape.nmml flash
+	fp bin/flash/bin/NapeBench.swf
 
 cpp: Main.hx
-	haxe -cp . -main Main -cpp cpp -lib nape -lib nme --remap flash:nme -D NAPE_RELEASE_BUILD
-	cp cpp/Main Main
-	./Main
+	haxelib run nme update Nape.nmml linux -64
+	haxelib run nme build Nape.nmml linux -64
+	haxelib run nme run Nape.nmml linux -64
 
 clean:
 	rm -f Main.swf
