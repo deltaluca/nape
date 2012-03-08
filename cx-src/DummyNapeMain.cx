@@ -66,8 +66,9 @@ class DummyNapeMain {
 
 			for(i in 0...10) {
 				var r = new Ray(new Vec2(random()*w,random()*h), new Vec2(random()*2-1,random()*2-1));
-				var res = space.rayCast(r,false);
+				var res = space.rayMultiCast(r,false);
 				var res = space.rayCast(r,true);
+				space.bodiesUnderPoint(new Vec2(random()*w,random()*h));
 			}
 
 			var c = space.compounds.at(Std.int(random()*space.compounds.length));
@@ -100,9 +101,15 @@ class DummyNapeMain {
 			}else {
 				b.position.x = w-b.position.x;
 				b.position.y = h-b.position.y;
+				b.cbType = null;
 				var l = space.listeners.pop();
 				space.step(1/60);
+				b.cbType =new CbType();
+				space.step(1/60);
+				b.cbType = null;
 				l.space = space;
+				space.step(1/60);
+				b.cbType =new CbType();
 			}
 			}
 
