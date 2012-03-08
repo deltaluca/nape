@@ -2,7 +2,115 @@ package;
 $(import);
 
 class DummyNapeMain {
-	static function main() {
+	static function main() search_for_raycast_error()
+
+	static var x = 123456789;
+	static var y = 362436069;
+	static var z = 521288629;
+	static var w = 88675123;
+	static inline function random():Float {
+		var t = x^(x<<11);
+		x = y; y = z; z = w;
+		w = w ^ (w>>>19) ^ (t ^ (t >>> 8));
+		var r = (w%10000)/10000;
+		if(r<0) r = -r;
+		if(r>1) r = 0.999999999999;
+		return r;
+	}
+
+	static function search_for_raycast_error() {
+		var w = flash.Lib.current.stage.stageWidth;
+		var h = flash.Lib.current.stage.stageHeight;
+
+		var debug = new BitmapDebug(w,h,0x333333);
+		flash.Lib.current.addChild(debug.display);
+		var space = new Space(new Vec2(0,500));
+
+		var border = new Body(BodyType.STATIC);
+		border.shapes.add(new Polygon(Polygon.rect(0,0,-50,h)));
+		border.shapes.add(new Polygon(Polygon.rect(0,0,w,-50)));
+		border.shapes.add(new Polygon(Polygon.rect(w,0,50,h)));
+		border.shapes.add(new Polygon(Polygon.rect(0,h,w,50)));
+		border.space = space;
+
+		var cb = new CbType();
+
+		for(i in 0...20) {
+			var c = new Compound();
+			var b = new Body();
+			b.shapes.add(new Circle(10));
+			b.position.setxy(random()*w,random()*h);
+			b.velocity.setxy(random()*100-50,random()*100-50);
+			b.compound = c;
+			var b = new Body();
+			b.shapes.add(new Polygon(Polygon.box(20,20)));
+			b.shapes.add(new Polygon(Polygon.box(10,40)));
+			b.position.setxy(random()*w,random()*h);
+			b.velocity.setxy(random()*100-50,random()*100-50);
+			b.compound = c;
+			c.space = space;
+			c.cbType = cb;
+		}
+
+		space.listeners.add(new InteractionListener(CbEvent.BEGIN, InteractionType.COLLISION, cb,cb, function (cb) {
+		}));
+
+		var mat = new Material(1);
+		space.visitBodies(function (b) b.setShapeMaterials(mat));
+
+		(new haxe.Timer(0)).run = function() {
+			debug.clear();
+
+			space.step(1/60);
+			debug.draw(space);
+
+			for(i in 0...10) {
+				var r = new Ray(new Vec2(random()*w,random()*h), new Vec2(random()*2-1,random()*2-1));
+				var res = space.rayCast(r,false);
+				var res = space.rayCast(r,true);
+			}
+
+			var c = space.compounds.at(Std.int(random()*space.compounds.length));
+			var b = c.bodies.at(Std.int(c.bodies.length*Math.random()));
+			if(b.isDynamic()) {
+			if(random()<0.33) {
+				b.compound = null;
+				space.step(1/60);
+				b.position.x = w-b.position.x;
+				b.space = space;
+				b.cbType = cb;
+				space.step(1/60);
+				b.space = null;
+				b.cbType = null;
+				b.compound = c;
+			}else if(random()<0.5) {
+				b.type = BodyType.KINEMATIC;
+				space.step(1/60);
+				b.type = BodyType.STATIC;
+				space.step(1/60);
+				b.type = BodyType.DYNAMIC;
+				space.step(1/60);
+				b.shapes.at(0).fluidEnabled = true;
+				space.step(1/60);
+				b.shapes.at(0).fluidEnabled = false;
+				space.step(1/60);
+				b.shapes.at(0).filter.collisionMask = 0;
+				space.step(1/60);
+				b.shapes.at(0).filter.collisionMask = -1;
+			}else {
+				b.position.x = w-b.position.x;
+				b.position.y = h-b.position.y;
+				var l = space.listeners.pop();
+				space.step(1/60);
+				l.space = space;
+			}
+			}
+
+			debug.flush();
+		}
+	}
+
+	static function test_memory() {
 		var txt = new flash.text.TextField();
 		txt.defaultTextFormat = new flash.text.TextFormat("Courier New",12,0xffffff);
 		txt.selectable = false;
