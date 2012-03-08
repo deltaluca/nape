@@ -139,8 +139,7 @@ class PR(InteractionListener) extends PR(Listener) {
 	public var pure:Bool;
 	public var handlerp:PreCallback->PreFlag;
 
-	//used in hash lookups based on cbTypes
-	public var hnext:PR(InteractionListener);
+	//used in lookups based on cbTypes
 	public var id:Int; public var di:Int;
 
 	public function settype(xtype:Int) {
@@ -206,6 +205,7 @@ class PR(InteractionListener) extends PR(Listener) {
 			if(cb1.id <= cb2.id)
 				 { id = cb1.id; di = cb2.id; }
 			else { id = cb2.id; di = cb1.id; }
+			assert(id<di || (cb1==cb2 && id==di),"cbTypes in swapCbType of listener not well ordered");
 
 			if(space!=null) {
 				assign();

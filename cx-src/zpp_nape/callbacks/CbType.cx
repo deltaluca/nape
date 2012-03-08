@@ -65,12 +65,12 @@ class PR(CbType) {
 	public static function empty_intersection(a:PR(CbType),b:PR(CbType)) {
 		var id = if(a.id<b.id) a.id else b.id;
 		var di = if(a.id<b.id) b.id else a.id;
-		assert(id<di || a==b, "id/di in empty_intersectino not well ordered");
+		assert(id<di || (a==b && id==di), "id/di in empty_intersectino not well ordered");
 
 		var ret = false;
 		var lx = (a.listeners.length<b.listeners.length) ? a.listeners : b.listeners;
 		Iter(x,lx,{
-			assert(!(x.id==di && x.di==id),"listener id order didn't match cbtype id order??");
+			assert(!(x.id==di && x.di==id) || id==di,"listener id order didn't match cbtype id order??");
 			if(x.id==id && x.di==di) { 
 				ret = true;
 				break;
@@ -82,12 +82,12 @@ class PR(CbType) {
 	public static function find(a:PR(CbType),b:PR(CbType), event:Int, type:Int) {
 		var id = if(a.id<b.id) a.id else b.id;
 		var di = if(a.id<b.id) b.id else a.id;
-		assert(id<di || a==b, "id/di in empty_intersectino not well ordered");
+		assert(id<di || (a==b && id==di), "id/di in empty_intersectino not well ordered");
 
 		var ret:PR(InteractionListener) = null;
 		var lx = (a.listeners.length<b.listeners.length) ? a.listeners : b.listeners;
 		Iter(x,lx,{
-			assert(!(x.id==di && x.di==id),"listener id order didn't match cbtype id order??");
+			assert(!(x.id==di && x.di==id) || id==di,"listener id order didn't match cbtype id order??");
 			if(x.id==id && x.di==di && x.event==event && (x.itype&type)!=0) {
 				DEBUG(if(ret!=null) throw "Error: multiple valid listeneres";)
 				ret = x;
@@ -100,11 +100,11 @@ class PR(CbType) {
 	public static function find_all(a:PR(CbType),b:PR(CbType), event:Int, cb:PR(InteractionListener)->Void) {
 		var id = if(a.id<b.id) a.id else b.id;
 		var di = if(a.id<b.id) b.id else a.id;
-		assert(id<di || a==b, "id/di in empty_intersectino not well ordered");
+		assert(id<di || (a==b && id==di), "id/di in empty_intersectino not well ordered");
 
 		var lx = (a.listeners.length<b.listeners.length) ? a.listeners : b.listeners;
 		Iter(x,lx,{
-			assert(!(x.id==di && x.di==id),"listener id order didn't match cbtype id order??");
+			assert(!(x.id==di && x.di==id) || id==di,"listener id order didn't match cbtype id order??");
 			if(x.id==id && x.di==di && x.event==event)
 				cb(x);
 		});
