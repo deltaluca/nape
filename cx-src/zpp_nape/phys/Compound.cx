@@ -35,13 +35,23 @@ class PR(Compound) extends PR(Interactor) {
 
 	//----------------------------------------------------
 
+	//implemented so that arbiters need not be destroyed by removing compound
+	//then adding it's constituents
+	//
+	//complicated by needing to deal with callback sets that may exist!
 	public function breakApart() {
-		if(compound!=null) compound.compounds.remove(this);
-		if(space   !=null) space.   compounds.remove(this);
+		if(space!=null) {
+			__iremovedFromSpace();
+			space.nullInteractorType(this);
+		}
+
+		if  (compound!=null) compound.compounds.remove(this);
+		elif(space   !=null) space.   compounds.remove(this);
 
 		ClearWith(b, bodies, {
 			if((b.compound = compound) != null) compound.bodies.add(b);
 			elif(space!=null) space.bodies.add(b);
+			if(space!=null) space.freshInteractorType(b);
 		});
 		ClearWith(c, constraints, {
 			if((c.compound = compound) != null) compound.constraints.add(c);
@@ -50,8 +60,9 @@ class PR(Compound) extends PR(Interactor) {
 		ClearWith(c, compounds, {
 			if((c.compound = compound) != null) compound.compounds.add(c);
 			elif(space!=null) space.compounds.add(c);
+			if(space!=null) space.freshInteractorType(c);
 		});
-	
+
 		compound = null;
 		space    = null;
 	}

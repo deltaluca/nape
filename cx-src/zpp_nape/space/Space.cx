@@ -62,10 +62,12 @@ class PR(CallbackSet) {
 
 	public static function get(i1:PR(Interactor),i2:PR(Interactor)) {
 		var ret = Get(PR(CallbackSet));
-		if(i1.id<=i2.id) { ret.int1 = i1; ret.int2 = i2; }
-		else             { ret.int1 = i2; ret.int2 = i1; }
+		assert(i1!=i2,"CallbackSet between the same interactor?");
+		if(i1.id<i2.id) { ret.int1 = i1; ret.int2 = i2; }
+		else            { ret.int1 = i2; ret.int2 = i1; }
 		ret.id = ret.int1.id;
 		ret.di = ret.int2.id;
+		assert(ret.id<ret.di,"badly ordered id's in callback set?");
 		return ret;
 	}
 
@@ -1975,6 +1977,7 @@ class PR(Space) {
 					var ret:PR(Arbiter) = null;
 					var b = if(b1.arbiters.length < b2.arbiters.length) b1 else b2;
 					Iter(arb, b.arbiters, {
+						assert(!(arb.id==s2 && arb.di==s1),"arbiter id order doesn't match s1/s2 order?>");
 						if(arb.id == s1 && arb.di == s2) {
 							ret = arb;
 							break;

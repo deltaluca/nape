@@ -40,7 +40,11 @@ RELEASE_FLAGS= $(SWC_FLAGS) -D NAPE_RELEASE_BUILD
 
 #------------------------------------------------------------------------------------
 
-demos: pre_compile
+.PHONY: demos
+demos:
+	./buildlib
+
+releases: pre_compile
 	mkdir -p bin/release
 	haxe -swf bin/release/release_nape.swc $(RELEASE_FLAGS) -swf-version $(SWFV)
 	flib bin/release/release_nape.swc
