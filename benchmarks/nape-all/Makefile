@@ -13,6 +13,4 @@ cpp: Main.hx
 	haxelib run nme run Nape.nmml linux -64
 
 clean:
-	rm -f Main.swf
-	rm -f Main	
-	rm -rf cpp
+	rm -rf bin
