@@ -322,11 +322,9 @@ $(expand global PRWrapList(T,ListT,IteT)
 				
 				if(inner.pushmod) push_ite = null;
 				at_ite = null;
-				length += inner.mcnt;
 				
 				inner.modified = false;
 				inner.pushmod = false;
-				inner.mcnt = 0;
 				inv(length) = true;
 			}
 		}
@@ -364,7 +362,6 @@ $(expand global PRWrapList(T,ListT,IteT)
 		
 		public var push_ite:IteT;
 		
-		public var length:Int;
 		public var inv(length):Bool;
 		
 		public var user_length:Int; //may differ from 'real' length
@@ -404,7 +401,6 @@ $(mixin global ListMixin(defs,Cons,T,I)
 	
 	public var modified:Bool;
 	public var pushmod:Bool;
-	public var mcnt:Int;
 
 	//actual length of list, for wrapped lists wrap list length may not correspond.
 	public var length:Int;
@@ -424,7 +420,6 @@ $(mixin global ListMixin(defs,Cons,T,I)
         _setbeg(temp);
 		
 		modified=true;
-		mcnt++;
 		length++;
 		return o;
     }
@@ -448,7 +443,6 @@ $(mixin global ListMixin(defs,Cons,T,I)
         }
 
 		pushmod = modified = true;
-		mcnt++;
 		length++;
 		return temp;
     }
@@ -466,7 +460,6 @@ $(mixin global ListMixin(defs,Cons,T,I)
 		
 		if(empty()) pushmod = true;
 		modified = true;
-		mcnt--;
 		length--;
     }
 
@@ -535,7 +528,6 @@ $(mixin global ListMixin(defs,Cons,T,I)
 		_delete(old);
 
 		modified = true;
-		mcnt--;
 		length--;
 		pushmod = true;
 
