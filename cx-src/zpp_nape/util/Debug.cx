@@ -549,7 +549,7 @@ $(mixin pr_debug(utils)
 		}
 	});
 
-	public var compoundstack:List(PR(Compound));
+	public var compoundstack:ArrayList(PR(Compound));
     public function draw_space(space:PR(Space),xform:PR(Mat23),xdet:Float,xnull:Bool) {
 		if(outer.cullingEnabled) {
 	        if(outer.drawBodies) {
@@ -569,7 +569,7 @@ $(mixin pr_debug(utils)
 			}
 		}else {
 	        if(outer.drawBodies) {
-				if(compoundstack==null) compoundstack = new List(PR(Compound))();
+				if(compoundstack==null) compoundstack = new ArrayList(PR(Compound))();
 				Iter(b, space.bodies, draw_body(b,xform,xdet,xnull));
 				Iter(c, space.compounds, compoundstack.add(c));
 				while(!compoundstack.empty()) {
@@ -584,7 +584,7 @@ $(mixin pr_debug(utils)
             for(arb in space.outer.arbiters) draw_arbiter(arb.pr(inner),xform,xdet,xnull);
 
         if(outer.drawConstraints) {
-			if(compoundstack==null) compoundstack = new List(PR(Compound))();
+			if(compoundstack==null) compoundstack = new ArrayList(PR(Compound))();
 			Iter(c, space.constraints, if(c.active) c.draw(outer));
 			Iter(c, space.compounds, compoundstack.add(c));
 			while(!compoundstack.empty()) {

@@ -53,8 +53,7 @@ class PR(Component) {
 }
 
 class PR(CallbackSet) {
-	//for hash
-	public var hnext:PR(CallbackSet);
+	//for lookups on interactors
 	public var id:Int; public var di:Int;
 
 	public var int1:PR(Interactor);
@@ -88,9 +87,7 @@ class PR(CallbackSet) {
 	type(SENSOR)
 	type(FLUID)
 
-	//kept in list for on-going events
-	MixListMixin(PR(CallbackSet))
-	MixPoolNoNext(PR(CallbackSet))
+	MixPool(PR(CallbackSet))
 
 	flibmdel public inline function free() {
 		assert(arbiters.empty(),"callbackset released with lingering arbs");
@@ -162,9 +159,9 @@ class PR(Space) {
 	//----------------------------------------------------------------------------------------------
 
 	//these model the public lists with the Space acting much like a Compound
-	public var bodies :List(PR(Body));     public var wrap_bodies   :BodyList;
-	public var compounds :List(PR(Compound)); public var wrap_compounds:CompoundList;
-	public var constraints:List(PR(Constraint)); public var wrap_constraints:ConstraintList;
+	public var bodies     :ArrayList(PR(Body));       public var wrap_bodies     :BodyList;
+	public var compounds  :ArrayList(PR(Compound));   public var wrap_compounds  :CompoundList;
+	public var constraints:ArrayList(PR(Constraint)); public var wrap_constraints:ConstraintList;
 
 	//this list stores 'all' kinematics.
 	//we assume kinematics will never really sleep.
@@ -202,10 +199,10 @@ class PR(Space) {
 	
 	//----------------------------------------------------------------------------------------------
 	
-	public var live:List(PR(Body)); //live subset of dynamics.
+	public var live:ArrayList(PR(Body)); //live subset of dynamics.
 	public var wrap_live:BodyList;
 	
-	public var live_constraints:List(PR(Constraint)); //live subset of constraints
+	public var live_constraints:ArrayList(PR(Constraint)); //live subset of constraints
 	public var wrap_livecon:ConstraintList;
 	
 	//list of static/kinematics that need to be put to sleep after the next call to space.step()
@@ -216,13 +213,13 @@ class PR(Space) {
 
     //----------------------------------------------------------------------------------------------
 
-    public var listeners:List(PR(Listener));
+    public var listeners:ArrayList(PR(Listener));
     public var wrap_listeners:ListenerList;
 
     public var callbacks:PR(Callback); //as a deque
 
 	//for on-going callbacks
-	public var callbackset_list:MixList(PR(CallbackSet));
+	public var callbackset_list:ArrayList(PR(CallbackSet));
 
 	//----------------------------------------------------------------------------------------------
 
@@ -396,13 +393,13 @@ class PR(Space) {
 		if(gravity!=null) vec_set(this.gravity,gravity.);
 		else vec_set(this.gravity,0,0);
 	
-		bodies = new List(PR(Body))();	
+		bodies = new ArrayList(PR(Body))();	
 		wrap_bodies = PR(BodyList).get(bodies);
 		wrap_bodies.pr(inner).adder = bodies_adder;
 		wrap_bodies.pr(inner).subber = bodies_subber;
 		DEBUG(wrap_bodies.pr(inner)._modifiable = bodies_modifiable;)
 
-		compounds = new List(PR(Compound))();
+		compounds = new ArrayList(PR(Compound))();
 		wrap_compounds = PR(CompoundList).get(compounds);
 		wrap_compounds.pr(inner).adder = compounds_adder;
 		wrap_compounds.pr(inner).subber = compounds_subber;
@@ -417,18 +414,18 @@ class PR(Space) {
 		
 		islands = new MixList(PR(Island))();
 		
-		live = new List(PR(Body))();
+		live = new ArrayList(PR(Body))();
 		wrap_live = PR(BodyList).get(live,true);
 		
 		staticsleep = new ArrayList(PR(Body))();
 		
-		constraints = new List(PR(Constraint))();
+		constraints = new ArrayList(PR(Constraint))();
 		wrap_constraints = PR(ConstraintList).get(constraints);
 		wrap_constraints.pr(inner).adder = constraints_adder;
 		wrap_constraints.pr(inner).subber = constraints_subber;
 		DEBUG(wrap_constraints.pr(inner)._modifiable = constraints_modifiable;)
 		
-		live_constraints = new List(PR(Constraint))();
+		live_constraints = new ArrayList(PR(Constraint))();
 		wrap_livecon = PR(ConstraintList).get(live_constraints,true);
 		
 		__static = PR(Body).__static();
@@ -437,13 +434,13 @@ class PR(Space) {
         callbacks = new PR(Callback)(); //as a deque
         midstep = false;
 
-        listeners = new List(PR(Listener))();
+        listeners = new ArrayList(PR(Listener))();
         wrap_listeners = PR(ListenerList).get(listeners);
         wrap_listeners.pr(inner).adder = listeners_adder;
         wrap_listeners.pr(inner).subber = listeners_subber;
 		DEBUG(wrap_listeners.pr(inner)._modifiable = listeners_modifiable;)
 
-		callbackset_list = new MixList(PR(CallbackSet))();
+		callbackset_list = new ArrayList(PR(CallbackSet))();
 		
 		mrca1 = new ArrayList(PR(Interactor))();
 		mrca2 = new ArrayList(PR(Interactor))();
@@ -844,7 +841,7 @@ class PR(Space) {
 			
         midstep = false;
 		//generate on-going events
-		var pre = null;
+		var pre = callbackset_list.prebegin();
 		Iter(set, callbackset_list, {
 			//clean up of dead sets
 			//we do not generate END callbacks here
@@ -961,7 +958,7 @@ class PR(Space) {
 		//since this is a function that will not often be called.
 		//
 		//or atleast only iterate pairs of shapes once! TODO
-		var stack = new List(PR(Interactor))();	
+		var stack = new ArrayList(PR(Interactor))();	
 		Iterate(cb1.interactors, stack.add);
 		if(cb1!=cb2)
 			Iterate(cb2.interactors, stack.add);
@@ -1050,7 +1047,7 @@ class PR(Space) {
 	public function freshListenerType(cb1:PR(CbType),cb2:PR(CbType)) {
 		//this could be improved greatly to only consider pairs of shapes once
 		//but for now it will do: TODO
-		var stack = new List(PR(Interactor))();	
+		var stack = new ArrayList(PR(Interactor))();	
 		Iterate(cb1.interactors, stack.add);
 		if(cb1!=cb2)
 			Iterate(cb2.interactors, stack.add);
@@ -1450,7 +1447,6 @@ class PR(Space) {
 	//----------------------------------------------------------------------------------------------
 	
 	public function updateVel(dt:Float) {
-		var pre = null;
 		Iter(cur,live,{
 			vec_addeq(cur.force,gravity,cur.gravMass);
 			vec_addeq(cur.force,cur.vel,-global_lin_drag*cur.mass);
@@ -1466,8 +1462,6 @@ class PR(Space) {
 				cur.angvel += cur.torque*dt*cur.iinertia;
 			}
 			cur.torque = 0;
-			
-			pre = cx_ite;
 		});
 	}
 	
@@ -1488,7 +1482,7 @@ class PR(Space) {
 	//----------------------------------------------------------------------------------------------
 	
 	public function prestep(dt:Float) {
-		var pre = null;
+		var pre = live_constraints.prebegin();
 		Iter(con,live_constraints,{
 			if(con.preStep(dt)) {
 				cx_ite = live_constraints.erase(pre);
@@ -1683,7 +1677,7 @@ class PR(Space) {
 		for(i in 0...times) {
 			Iter(arb,f_arbiters,if(arb.acting()) arb.applyImpulseVel());
 			
-			var pre = null;
+			var pre = live_constraints.prebegin();
 			Iter(con,live_constraints, {
 				if(con.applyImpulseVel()) {
 					cx_ite = live_constraints.erase(pre);
@@ -1713,7 +1707,7 @@ class PR(Space) {
 	public function iteratePos(times:Int) {
 		for(i in 0...times) {
 			//ignore soft constraints.
-			var pre = null;
+			var pre = live_constraints.prebegin();
 			Iter(con,live_constraints, {
 				if(!con.__velocity && con.stiff) {
 					if(con.applyImpulsePos()) {
