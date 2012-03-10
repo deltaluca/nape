@@ -5,7 +5,7 @@ class PR(Island) {
 	MixPoolNoNext(PR(Island))
 	MixListMixin(PR(Island))
 	
-	public var comps:List(PR(Component));
+	public var comps:ArrayList(PR(Component));
 	public var sleep:Bool;
 	public var waket:Int;
 	
@@ -14,7 +14,7 @@ class PR(Island) {
 	}
 	flibmdel public inline function alloc() {}
 	public function new() {
-		comps = new List(PR(Component))();
+		comps = new ArrayList(PR(Component))();
 		waket = 0;
 	}
 }
@@ -146,7 +146,7 @@ class PR(Space) {
 		DEBUG(if(midstep) throw "Error: Space::gravity cannot be set during space step";)
 		vec_set(gravity,x.);
 		
-		var stack = new List(PR(Compound))();
+		var stack = new ArrayList(PR(Compound))();
 		Iterate(bodies, wake);
 		Iterate(compounds, stack.add);
 		while(!stack.empty()) {
@@ -169,7 +169,7 @@ class PR(Space) {
 	//this list stores 'all' kinematics.
 	//we assume kinematics will never really sleep.
 	//could be improved later.
-	public var kinematics:List(PR(Body));	
+	public var kinematics:ArrayList(PR(Body));	
 	
 	public var bphase:PR(Broadphase);
 	
@@ -209,7 +209,7 @@ class PR(Space) {
 	public var wrap_livecon:ConstraintList;
 	
 	//list of static/kinematics that need to be put to sleep after the next call to space.step()
-	public var staticsleep:List(PR(Body));
+	public var staticsleep:ArrayList(PR(Body));
 	
 	//used by forest method
 	public var islands:MixList(PR(Island));
@@ -408,7 +408,7 @@ class PR(Space) {
 		wrap_compounds.pr(inner).subber = compounds_subber;
 		DEBUG(wrap_compounds.pr(inner)._modifiable = compounds_modifiable;)
 
-		kinematics = new List(PR(Body))();
+		kinematics = new ArrayList(PR(Body))();
 		
 		c_arbiters(true) = new List(PR(ColArbiter))();
 		c_arbiters(false) = new List(PR(ColArbiter))();
@@ -420,7 +420,7 @@ class PR(Space) {
 		live = new List(PR(Body))();
 		wrap_live = PR(BodyList).get(live,true);
 		
-		staticsleep = new List(PR(Body))();
+		staticsleep = new ArrayList(PR(Body))();
 		
 		constraints = new List(PR(Constraint))();
 		wrap_constraints = PR(ConstraintList).get(constraints);
@@ -445,8 +445,8 @@ class PR(Space) {
 
 		callbackset_list = new MixList(PR(CallbackSet))();
 		
-		mrca1 = new List(PR(Interactor))();
-		mrca2 = new List(PR(Interactor))();
+		mrca1 = new ArrayList(PR(Interactor))();
+		mrca2 = new ArrayList(PR(Interactor))();
 	}
 	
 	//----------------------------------------------------------------------------------------------
@@ -831,7 +831,7 @@ class PR(Space) {
 		doit2(kinematics);
 		doit2(live);
 	
-		var pre = null;
+		var pre = staticsleep.prebegin();
 		Iter(b, staticsleep, {
 			assert(!b.isDynamic(), "step :: swef static/kinematics");
 			if(!b.isKinematic() || (b.velx == 0 && b.vely == 0 && b.angvel == 0)) {
@@ -2073,8 +2073,8 @@ class PR(Space) {
 	//assume that the chains are used and can be destroyed, perhaps a premature optimisation but what have you.
 	//
 	//as a further optimisation, only interactors with non-null cbTypes are included.
-	public var mrca1:List(PR(Interactor));
-	public var mrca2:List(PR(Interactor));
+	public var mrca1:ArrayList(PR(Interactor));
+	public var mrca2:ArrayList(PR(Interactor));
 
 	public function MRCA_chains(s1:PR(Shape),s2:PR(Shape)) inlined_MRCA_chains(s1,s2)
 	flibmdel public inline function inlined_MRCA_chains(s1:PR(Shape), s2:PR(Shape)) {
