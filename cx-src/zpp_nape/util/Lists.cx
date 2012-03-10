@@ -3,14 +3,32 @@ $(import);
 
 //--------------------------------------------------------------------------------------------------
 
-$(mixin global List(T) GenList(T) ZNPList_`T);
-$(expand global GenList(T)
-class List(T) {
-	public var head:Node(T);
-	public function new() {}
-	flibmdel public inline function begin() return head
+$(mixin global List(T) GenList(T,ZNPListLL_`T,false) ZNPListLL_`T);
+$(expand global GenList(T,NAMI,USE_ARRAY)
+class NAMI {
+
+	#if USE_ARRAY
+		public var elts:ARRAY(T);
+	#else
+		public var head:Node(T);
+	#end
+
+	public function new() {
+		#if USE_ARRAY
+			elts = new ARRAY(T)();
+		#end
+	}
+
+	flibmdel public inline function begin() {
+		#if USE_ARRAY
+			return 0;
+		#else
+			return head;
+		#end
+	}
 	
 	ListMixin(
+		//for LL
 		$(mixin _setbeg(i) head=i)
 		$(mixin _new   (o) {
 			var ret = Get(Node(T));
@@ -18,10 +36,11 @@ class List(T) {
 			ret;
 		})
 		$(mixin _delete(i) Free(Node(T),i))
+		//for both
 		$(mixin _delelt(o) {})
 		$(mixin _clear true)
 	,
-		List(T),T,Node(T)
+		NAMI,T,Node(T),USE_ARRAY
 	)
 });
 
@@ -399,34 +418,48 @@ $(mixin global MixList(T) T);
 //--------------------------------------------------------------------------------------------------
 
 
-$(mixin global ListMixin(defs,Cons,T,I)
+$(mixin global ListMixin(defs,Cons,T,I) ListMixin(defs,Cons,T,I,false));
+$(mixin global ListMixin(defs,Cons,T,I,USE_ARRAY)
 	defs
 	
 	public var modified:Bool;
-	public var pushmod:Bool;
+	#if !USE_ARRAY
+		public var pushmod:Bool;
+	#end
 	public var mcnt:Int;
 
-	//actual length of list, for wrapped lists wrap list length may not correspond.
-	public var length:Int;
+	#if !USE_ARRAY
+		//actual length of list, for wrapped lists wrap list length may not correspond.
+		public var _length:Int;
+	#end
 
-	flibmdel public inline function set_begin(i:I) {
-		_setbeg(i);
-		modified = true;
-		pushmod = true;
-	}
+	#if !USE_ARRAY
+		flibmdel public inline function set_begin(i:I) {
+			_setbeg(i);
+			modified = true;
+			pushmod = true;
+		}
+	#end
 
 	public function add(o:T) return inlined_add(o)
     flibmdel public inline function inlined_add(o:T) {
 		assert(o!=null && !has(o),"[ListMixin("+$str(T)+"] add -> o="+o);
-		
-        var temp = _new(o);
-        temp.next = begin();
-        _setbeg(temp);
-		
-		modified=true;
-		mcnt++;
-		length++;
-		return o;
+	
+		#if USE_ARRAY
+			elts.push(o);
+			modified = true;
+			mcnt++;
+			return o;
+		#else
+	        var temp = _new(o);
+	        temp.next = begin();
+	        _setbeg(temp);
+			
+			modified=true;
+			mcnt++;
+			_length++;
+			return o;
+		#end
     }
 
     public function addAll(x:Cons) {
@@ -437,20 +470,25 @@ $(mixin global ListMixin(defs,Cons,T,I)
 	public function insert(cur:I,o:T) return inlined_insert(cur,o)
 	flibmdel public inline function inlined_insert(cur:I,o:T) {
 		assert(o != null && !has(o),"[ListMixin("+$str(T)+"] cur -> "+cur+" -> "+o);
-		
-		var temp = _new(o);
-        if(cur==null) {
-			temp.next = begin();
-			_setbeg(temp);
-		} else {
-            temp.next = cur.next;
-            cur.next = temp;
-        }
-
-		pushmod = modified = true;
-		mcnt++;
-		length++;
-		return temp;
+	
+		#if USE_ARRAY
+			assert(false,"Array list shouldn't be using insert");
+			return -1;
+		#else	
+			var temp = _new(o);
+	        if(cur==null) {
+				temp.next = begin();
+				_setbeg(temp);
+			} else {
+	            temp.next = cur.next;
+	            cur.next = temp;
+	        }
+	
+			pushmod = modified = true;
+			mcnt++;
+			_length++;
+			return temp;
+		#end
     }
 
     //----------------------------------------------------------------------------------------------
@@ -458,123 +496,180 @@ $(mixin global ListMixin(defs,Cons,T,I)
 	public function pop() inlined_pop()
     flibmdel public inline function inlined_pop():Void {
 		assert(!empty(), "[ListMixin("+$str(T)+"] pop");
-		
-        var ret = begin();
-        _setbeg(ret.next);
-        _delelt(ret.elem());
-        _delete(ret);
-		
-		if(empty()) pushmod = true;
-		modified = true;
-		mcnt--;
-		length--;
+	
+		#if USE_ARRAY
+			elts.pop();
+			modified = true;
+			mcnt--;
+		#else
+	        var ret = begin();
+	        _setbeg(ret.next);
+	        _delelt(ret.elem());
+	        _delete(ret);
+			
+			if(empty()) pushmod = true;
+			modified = true;
+			mcnt--;
+			_length--;
+		#end
     }
 
 	public function pop_unsafe() return inlined_pop_unsafe()
     flibmdel public inline function inlined_pop_unsafe():T {
 		assert(!empty(), "[ListMixin("+$str(T)+"] pop_unsafe");
 		
-        var ret = front();
-        pop();
-        return ret;
+		#if USE_ARRAY
+			modified = true;
+			mcnt--;
+			return elts.pop();
+		#else
+	        var ret = front();
+	        pop();
+	        return ret;
+		#end
     }
 
     //----------------------------------------------------------------------------------------------
 
     public function remove(obj:T):Bool {
 		assert(obj!=null && has(obj), "[ListMixin("+$str(T)+"] remove -> "+obj);
-		
-        var pre = null;
-        var cur = begin();
-        var ret = false;
-        while(cur!=null) {
-            if(cur.elem()==obj) {
-                erase(pre);
-                ret = true;
-                break;
-            }
-            pre = cur;
-            cur = cur.next;
-        }
-        return ret;
+	
+		#if USE_ARRAY
+			return inlined_remove(obj);
+		#else
+	        var pre = null;
+	        var cur = begin();
+	        var ret = false;
+	        while(cur!=null) {
+	            if(cur.elem()==obj) {
+	                erase(pre);
+	                ret = true;
+	                break;
+	            }
+	            pre = cur;
+	            cur = cur.next;
+	        }
+	        return ret;
+		#end
     }
 
     flibmdel public inline function inlined_remove(obj:T):Bool {
 		assert(obj!=null && has(obj), "[ListMixin("+$str(T)+"] remove -> "+obj);
-		
-        var pre = null;
-        var cur = begin();
-        var ret = false;
-        while(cur!=null) {
-            if(cur.elem()==obj) {
-                inlined_erase(pre);
-                ret = true;
-                break;
-            }
-            pre = cur;
-            cur = cur.next;
-        }
-        return ret;
+	
+		#if USE_ARRAY
+			var ret = false;
+			for(i in 0...elts.length) {
+				var cur = elts[i];
+				if(cur==obj) {
+					elts[i] = elts[elts.length-1];
+					elts.pop();
+					_delelt(cur);
+					ret = true;
+					break;
+				}
+			}
+			return ret;
+		#else
+	        var pre = null;
+	        var cur = begin();
+	        var ret = false;
+	        while(cur!=null) {
+	            if(cur.elem()==obj) {
+	                inlined_erase(pre);
+	                ret = true;
+	                break;
+	            }
+	            pre = cur;
+	            cur = cur.next;
+	        }
+	        return ret;
+		#end
     }
 
 	public function erase(pre:I):I return inlined_erase(pre)
     flibmdel public inline function inlined_erase(pre:I):I {
 		assert(!empty(),"[ListMixin("+$str(T)+"] erase -> "+pre);
-		var old:I;
-		var ret:I;
-		if(pre==null) {
-	        old = begin(); ret = old.next;
-	        _setbeg(ret);
-			if(empty()) pushmod = true;
-		} else {
-			old = pre.next; ret = old.next;
-			pre.next = ret;
-			if(ret==null) pushmod = true;
-		}
-		_delelt(old.elem());
-		_delete(old);
+		#if USE_ARRAY
+			var old = elts[pre+1];
+			elts[pre+1] = elts[elts.length-1];
+			elts.pop();
+			_delelt(old);
 
-		modified = true;
-		mcnt--;
-		length--;
-		pushmod = true;
+			modified = true;
+			mcnt--;
+
+			return pre+1;
+		#else
+			var old:I;
+			var ret:I;
+			if(pre==null) {
+		        old = begin(); ret = old.next;
+		        _setbeg(ret);
+				if(empty()) pushmod = true;
+			} else {
+				old = pre.next; ret = old.next;
+				pre.next = ret;
+				if(ret==null) pushmod = true;
+			}
+			_delelt(old.elem());
+			_delete(old);
+	
+			modified = true;
+			mcnt--;
+			_length--;
+			pushmod = true;
+		#end
 
 		return ret;
     }
 
     public function splice(pre:I,n:Int):I {
-        while(n-->0 && pre.next!=null) erase(pre);
-        return pre.next;
+		#if USE_ARRAY
+			assert(false,"Array list shouldn't be using splice");
+			return -1;
+		#else
+	        while(n-->0 && pre.next!=null) erase(pre);
+	        return pre.next;
+		#end
     }
 
     public function clear() {
         if(_clear) {
             while(!empty()) pop();
-			pushmod = true;
+			#if !USE_ARRAY pushmod = true; #end
         }
     }
 
     //----------------------------------------------------------------------------------------------
 
     public function reverse() {
-        var cur = begin();
-        var pre = null;
-        while(cur!=null) {
-            var nx = cur.next;
-            cur.next = pre;
-            _setbeg(cur);
-            pre = cur;
-            cur = nx;
-        }
-		modified = true;
-		pushmod = true;
+		#if USE_ARRAY
+			assert(false,"Array list shouldn't be using reverse");
+		#else
+	        var cur = begin();
+	        var pre = null;
+	        while(cur!=null) {
+	            var nx = cur.next;
+	            cur.next = pre;
+	            _setbeg(cur);
+	            pre = cur;
+	            cur = nx;
+	        }
+			modified = true;
+			pushmod = true;
+		#end
     }
 
     //----------------------------------------------------------------------------------------------
 
-	flibmdel public inline function empty():Bool return begin()==null
-
-	flibmdel public inline function size() return length
+	flibmdel public inline function empty():Bool return size()==0
+	flibmdel public inline function size() {
+		#if USE_ARRAY
+			return elts.length;
+		#else
+			return _length;
+		#end
+	}
 
     public function has(obj:T) {
 		assert(obj!=null,"[ListMixin("+$str(T)+"] has -> "+obj);
@@ -583,34 +678,67 @@ $(mixin global ListMixin(defs,Cons,T,I)
 
     //----------------------------------------------------------------------------------------------
 
-	flibmdel public inline function front() return begin().elem()
+	flibmdel public inline function front() {
+		#if USE_ARRAY
+			return elts[0];
+		#else
+			return begin().elem();
+		#end
+	}
 
-    public function back() {
-        var ret = begin();
-        var cur = ret;
-        while(cur!=null) { ret = cur; cur = cur.next; }
-        return ret.elem();
+    #if USE_ARRAY flibmdel inline #end public function back() {
+		#if USE_ARRAY
+			return elts[elts.length-1];
+		#else
+	        var ret = begin();
+	        var cur = ret;
+	        while(cur!=null) { ret = cur; cur = cur.next; }
+	        return ret.elem();
+		#end
     }
 
 	//ind = -1 is valid, and gives null.
-    public function iterator_at(ind:Int) {
+	#if USE_ARRAY flibmdel inline #end public function iterator_at(ind:Int) {
 		assert(ind>=-1 && ind<size(),"[ListMixin("+$str(T)+"] iterator_at -> "+ind);
-        var ret = begin();
-        while(ind-->0 && ret!=null) ret = ret.next;
-        return ret;
+		#if USE_ARRAY
+			return ind;
+		#else
+	        var ret = begin();
+	        while(ind-->0 && ret!=null) ret = ret.next;
+	        return ret;
+		#end
     }
 	
-	public function at(ind:Int) {
+	#if USE_ARRAY flibmdel inline #end public function at(ind:Int) {
 		assert(ind>=0 && ind<size(),"[ListMixin("+$str(T)+"] at -> "+ind);
-        var it = iterator_at(ind);
-        return if(it!=null) it.elem() else null;
+		#if USE_ARRAY
+			return elts[ind];
+		#else
+        	var it = iterator_at(ind);
+	        return if(it!=null) it.elem() else null;
+		#end
     }
+
+    //----------------------------------------------------------------------------------------------
+
+	flibmdel public inline function getnext(i:I):I {
+		return #if USE_ARRAY i+1 #else i.next #end;
+	}
+	flibmdel public inline function getelem(i:I):T {
+		return #if USE_ARRAY elts[i] #else i.elem() #end;
+	}
+	flibmdel public inline function prebegin():I {
+		return #if USE_ARRAY -1 #else null #end;
+	}
+	flibmdel public inline function end():I {
+		return #if USE_ARRAY elts.length #else null #end;
+	}
 );
 
 //--------------------------------------------------------------------------------------------------
 
 $(mixin global Insert(i,list,less) {
-	var pre = null;
+	var pre = list.prebegin();
 	Iter(j,list,{
 		if(less(i,j))
 			cx_break;
@@ -682,14 +810,14 @@ $(mixin global ClearWith(i,list,closure) {
 $(mixin global Iter(i,list,closure) IterIte(i,list,list.begin(),closure));
 $(mixin global IterIte(i,list,listite,closure) ${->
 	var cx_ite = listite;
-	while(cx_ite != null) {
-		var i = cx_ite.elem();
+	while(cx_ite != list.end()) {
+		var i = list.getelem(cx_ite);
 		
-		$(mixin cx_continue { cx_ite = cx_ite.next; continue; });
+		$(mixin cx_continue { cx_ite = list.getnext(cx_ite); continue; });
 		$(mixin cx_break break);
 		$(cx_continue,cx_break->closure);
 
-		cx_ite = cx_ite.next;
+		cx_ite = list.getnext(cx_ite);
 	}
 });
 $(mixin global Iterate(list,closure) IterateIte(list,list.begin(),closure));
