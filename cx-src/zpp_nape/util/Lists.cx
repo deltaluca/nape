@@ -3,6 +3,13 @@ $(import);
 
 //--------------------------------------------------------------------------------------------------
 
+$(mixin global ArrayList(T) 
+	#if NAPE_ARRAYS
+		GenList(T,ZNPListAR_`T,true) ZNPListAR_`T
+	#else
+		List(T)
+	#end
+);
 $(mixin global List(T) GenList(T,ZNPListLL_`T,false) ZNPListLL_`T);
 $(expand global GenList(T,NAMI,USE_ARRAY)
 class NAMI {
@@ -40,7 +47,7 @@ class NAMI {
 		$(mixin _delelt(o) {})
 		$(mixin _clear true)
 	,
-		NAMI,T,Node(T),USE_ARRAY
+		NAMI,T,#if USE_ARRAY Int #else Node(T) #end,USE_ARRAY
 	)
 });
 
@@ -618,9 +625,8 @@ $(mixin global ListMixin(defs,Cons,T,I,USE_ARRAY)
 			mcnt--;
 			_length--;
 			pushmod = true;
+			return ret;
 		#end
-
-		return ret;
     }
 
     public function splice(pre:I,n:Int):I {
@@ -663,7 +669,7 @@ $(mixin global ListMixin(defs,Cons,T,I,USE_ARRAY)
     //----------------------------------------------------------------------------------------------
 
 	flibmdel public inline function empty():Bool return size()==0
-	flibmdel public inline function size() {
+	flibmdel public inline function size():Int {
 		#if USE_ARRAY
 			return elts.length;
 		#else
