@@ -75,7 +75,7 @@ class PR(CallbackSet) {
 	//it seems a waste of memory and would be sub-optimal
 	// ^^ now that this arbiters list is released to public
 	// using a hash would be ever more annoying :P
-	public var arbiters:List(PR(Arbiter));
+	public var arbiters:ArrayList(PR(Arbiter));
 
 	//per-interaction type state and time-stamp
 	$(mixin type(n)
@@ -100,7 +100,7 @@ class PR(CallbackSet) {
 	}
 
 	public function new() {
-		arbiters = new List(PR(Arbiter))();
+		arbiters = new ArrayList(PR(Arbiter))();
 	}
 
 	//-------------
@@ -191,9 +191,9 @@ class PR(Space) {
 
 	//----------------------------------------------------------------------------------------------
 	
-	$(define global public var c_arbiters(stat):List(PR(ColArbiter)););
-	public var f_arbiters:List(PR(FluidArbiter));
-	public var s_arbiters:List(PR(SensorArbiter));
+	$(define global public var c_arbiters(stat):ArrayList(PR(ColArbiter)););
+	public var f_arbiters:ArrayList(PR(FluidArbiter));
+	public var s_arbiters:ArrayList(PR(SensorArbiter));
 
 	public var wrap_arbiters:ArbiterList;
 	
@@ -407,10 +407,10 @@ class PR(Space) {
 
 		kinematics = new ArrayList(PR(Body))();
 		
-		c_arbiters(true) = new List(PR(ColArbiter))();
-		c_arbiters(false) = new List(PR(ColArbiter))();
-		f_arbiters = new List(PR(FluidArbiter))();
-		s_arbiters = new List(PR(SensorArbiter))();
+		c_arbiters(true) = new ArrayList(PR(ColArbiter))();
+		c_arbiters(false) = new ArrayList(PR(ColArbiter))();
+		f_arbiters = new ArrayList(PR(FluidArbiter))();
+		s_arbiters = new ArrayList(PR(SensorArbiter))();
 		
 		islands = new MixList(PR(Island))();
 		
@@ -526,7 +526,7 @@ class PR(Space) {
 			body.wake();
 		}
 		
-		var pre = null;
+		var pre = body.arbiters.prebegin();
 		Iter(xarb,body.arbiters,{
 			var rem = xarb.ws1 == s || xarb.ws2 == s;
 			if(rem) {
@@ -778,9 +778,15 @@ class PR(Space) {
 
 		#if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
 		if(sortcontacts) {
-			Sort(c_arbiters(false), Node(PR(ColArbiter)), $(mixin lt(a,b) {
-				if(a.active && b.active) a.oc1.dist < b.oc1.dist else true;
-			}) lt);
+			#if !NAPE_ARRAYS
+				Sort(c_arbiters(false), Node(PR(ColArbiter)), $(mixin lt(a,b) {
+					if(a.active && b.active) a.oc1.dist < b.oc1.dist else true;
+				}) lt);
+			#else
+				RealArraySort(c_arbiters(false), PR(ColArbiter), $(mixin lt(a,b) {
+					if(a.active && b.active) a.oc1.dist < b.oc1.dist else true;
+				}) lt);
+			#end
 		}
 		#if NAPE_TIMES Debug.SORT += flash.Lib.getTimer()-pt; #end
         #if NAPE_TIEMS var pt = flash.Lib.getTimer(); #end
@@ -1507,15 +1513,15 @@ class PR(Space) {
 		});
 		$(mixin prestep(arbs,action) prestep(arbs,null,action,false));
 		$(mixin prestep(arbs0,arbs1,action,collisiontype) {
-			var pre = null;
+			var pre = arbs0.prebegin();
 			var arbs = arbs0;
 			var arbite = arbs.begin();
 			var fst = arbs1!=null;
-			$(mixin pre_continue() { if(fst && arbite==null) { fst = false; arbite = arbs1.begin(); arbs = arbs1; pre = null; } });
+			$(mixin pre_continue() { if(fst && arbite==arbs.end()) { fst = false; arbite = arbs1.begin(); arbs = arbs1; pre = arbs1.prebegin(); } });
 			pre_continue;
 
-			while(arbite!=null) {
-				var arb = arbite.elem();
+			while(arbite!=arbs.end()) {
+				var arb = arbs.getelem(arbite);
 				if(!arb.cleared && (arb.b1.component.sleeping && arb.b2.component.sleeping)) {
 					arb.sleep_stamp = stamp;
 					arb.sleeping = true;
@@ -1639,7 +1645,7 @@ class PR(Space) {
 				}
 				
 				pre = arbite;
-				arbite = arbite.next;
+				arbite = arbs.getnext(arbite);
 				pre_continue;
 			}
 		});
@@ -1656,13 +1662,14 @@ class PR(Space) {
 
 	$(mixin IterColArbs(arb,cb) {
 		var arbi = c_arbiters(false).begin();
+		var arbs = c_arbiters(false);
 		var fst = true;
-		if(arbi==null) { arbi = c_arbiters(true).begin(); fst = false; }
-		while(arbi!=null) {
-			var arb = arbi.elem();
+		if(arbi==c_arbiters(false).end()) { arbi = c_arbiters(true).begin(); fst = false; arbs = c_arbiters(true); }
+		while(arbi!=arbs.end()) {
+			var arb = arbs.getelem(arbi);
 			{ cb; }
-			arbi = arbi.next;
-			if(fst && arbi==null) { arbi = c_arbiters(true).begin(); fst = false; }
+			arbi = arbs.getnext(arbi);
+			if(fst && arbi==arbs.end()) { arbi = c_arbiters(true).begin(); fst = false; arbs = c_arbiters(true); }
 		}
 	});
 	

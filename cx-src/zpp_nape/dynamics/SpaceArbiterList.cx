@@ -23,7 +23,7 @@ class PR(SpaceArbiterList) extends ArbiterList {
 		inv(length) = true;
 		_length = 0;
 		
-		lengths = new Array<Int>();
+		lengths = new ARRAY(Int)();
 		for(i in 0...4) lengths.push(0);
 	}
 	
@@ -50,12 +50,12 @@ class PR(SpaceArbiterList) extends ArbiterList {
 	}
 	
 	//records length of sub lists as viewed by user to make realignment of iterators faster!
-	public var lengths : Array<Int>;
+	public var lengths : ARRAY(Int);
 	
-	public var ite_0 : Node(PR(ColArbiter));
-	public var ite_1 : Node(PR(ColArbiter));
-	public var ite_2 : Node(PR(FluidArbiter));
-	public var ite_3 : Node(PR(SensorArbiter));
+	public var ite_0 : ArrayNode(PR(ColArbiter));
+	public var ite_1 : ArrayNode(PR(ColArbiter));
+	public var ite_2 : ArrayNode(PR(FluidArbiter));
+	public var ite_3 : ArrayNode(PR(SensorArbiter));
 	
 	public var at_index_0 : Int;
 	public var at_index_1 : Int;
@@ -78,8 +78,10 @@ class PR(SpaceArbiterList) extends ArbiterList {
 			inv(length) = true;
 			_length = 0;
 			
-			ite_0 = null; ite_1 = null;
-			ite_2 = null; ite_3 = null;
+			ite_0 = space.c_arbiters(true).prebegin();
+			ite_1 = space.c_arbiters(false).prebegin();
+			ite_2 = space.f_arbiters.prebegin();
+			ite_3 = space.s_arbiters.prebegin();
 		}
 	}
 	
@@ -118,25 +120,25 @@ class PR(SpaceArbiterList) extends ArbiterList {
 		$(expand method doit(ind,arbs) if(ret==null) {
 			if(index < accum_length + lengths[ind]) {
 				var offset = index - accum_length;
-				if(offset < at_index_`ind || ite_`ind == null) {
+				if(offset < at_index_`ind || ite_`ind == arbs.prebegin()) {
 					at_index_`ind = 0;
 					ite_`ind = arbs.begin();
 					while(true) {
-						var x = ite_`ind.elem();
+						var x = arbs.getelem(ite_`ind);
 						if(x.active) break;
-						ite_`ind = ite_`ind.next;
+						ite_`ind = arbs.getnext(ite_`ind);
 					}
 				}
 				while(at_index_`ind!=offset) {
 					at_index_`ind++;
-					ite_`ind = ite_`ind.next;
+					ite_`ind = arbs.getnext(ite_`ind);
 					while(true) {
-						var x = ite_`ind.elem();
+						var x = arbs.getelem(ite_`ind);
 						if(x.active) break;
-						ite_`ind = ite_`ind.next;
+						ite_`ind = arbs.getnext(ite_`ind);
 					}
 				}
-				ret = ite_`ind.elem().wrapper();
+				ret = arbs.getelem(ite_`ind).wrapper();
 			}else
 				accum_length += lengths[ind];
 		});
