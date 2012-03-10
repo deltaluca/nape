@@ -413,21 +413,49 @@ $(expand global PRWrapList(T,ListT,IteT,USE_ARRAYS)
 
 //--------------------------------------------------------------------------------------------------
 
-$(mixin global MixListMixin(T)
-	public var next:T;
-	flibmdel public inline function elem () return this
-	flibmdel public inline function begin() return next
+$(mixin global MixArrayNode(T)
+	#if NAPE_ARRAYS
+		Int
+	#else
+		T
+	#end
+);
+
+$(mixin global MixListMixin(T) MixListMixin(T,false));
+$(mixin global MixListMixin(T,USE_ARRAY)
+	#if !USE_ARRAY
+		public var next:T;
+		flibmdel public inline function elem () return this
+	#else
+		public var elts:ARRAY(T);
+	#end
+
+	flibmdel public inline function mixlist_new() {
+		#if USE_ARRAY
+			elts = new ARRAY(T)();
+		#end	
+	}
+
+	flibmdel public inline function begin() {
+		#if !USE_ARRAY
+			return next;
+		#else
+			return 0;
+		#end
+	}
 	
 	public var inuse:Bool;
 	
 	ListMixin(
+		//for LL
 		$(mixin _setbeg(i) next=i);
 		$(mixin _new(o) { o.inuse = true; o; });
 		$(mixin _delete(o) {});
+		//both
 		$(mixin _delelt(o) { o.inuse = false; });
 		$(mixin _clear false);
 	,
-		T,T,T
+		T,T,#if USE_ARRAY Int #else T #end,USE_ARRAY
 	)
 );
 $(mixin global MixList(T) T);

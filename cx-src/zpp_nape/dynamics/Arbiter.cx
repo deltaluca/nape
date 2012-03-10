@@ -685,6 +685,10 @@ class PR(ColArbiter) extends PR(Arbiter) {
 		super();
 		contacts = new MixList(PR(Contact))();
 		innards = new MixList(PR(IContact))();
+		#if NAPE_ARRAYS
+			contacts.mixlist_new();
+			innards.mixlist_new();
+		#end
 		type = PR(Arbiter).COL;
 		colarb = this;
 	}
@@ -714,7 +718,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
 			c.arbiter = this;
 			jrAcc = 0;
 			contacts.inlined_add(c);
-			innards.add(ci);
+			innards.inlined_add(ci);
 		}else
 			c.fresh = false; //c.stamp +1 != stamp
 		
@@ -796,7 +800,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
 		return false;
 	}
 	private function contacts_subber(x:Contact) {
-		var pre = null; var prei = null;
+		var pre = contacts.prebegin(); var prei = innards.prebegin();
 		var cx_itei = innards.begin();
 		Iter(c, contacts, {
 			if(c==x.pr(inner)) {
@@ -808,7 +812,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
 			}
 			pre = cx_ite;
 			prei = cx_itei;
-			cx_itei = cx_itei.next;
+			cx_itei = innards.getnext(cx_itei);
 		});
 	}
 
@@ -841,7 +845,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
 	//and not a hinderance
 	flibmdel public inline function cleanupContacts() {
 		var fst = true;
-		var pre = null; var prei = null;
+		var pre = contacts.prebegin(); var prei = innards.prebegin();
 		var cx_itei = innards.begin();
 		hc2 = false;
 		Iter(c, contacts, {
@@ -873,7 +877,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
 
 			pre = cx_ite;
 			prei = cx_itei;
-			cx_itei = cx_itei.next;
+			cx_itei = innards.getnext(cx_itei);
 		});
 
 		return !fst;
@@ -893,7 +897,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
 		var fst = true;
 
 		//remove old contacts, do per-contact calculations.
-		var pre = null; var prei = null;
+		var pre = contacts.prebegin(); var prei = innards.prebegin();
 		var cx_itei = innards.begin();
 		Iter(c,contacts,{
 			if(c.stamp+PR(Config).PERSIST<stamp) {
@@ -973,7 +977,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
 			
 			pre = cx_ite;
 			prei = cx_itei;
-			cx_itei = cx_itei.next;
+			cx_itei = innards.getnext(cx_itei);
 		});
 
         jrAcc *= dtratio;
