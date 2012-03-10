@@ -5,13 +5,22 @@ $(import);
 
 $(mixin global ArrayList(T) 
 	#if NAPE_ARRAYS
-		GenList(T,ZNPListAR_`T,true) ZNPListAR_`T
+		GenList(T,ZNPListARAR_`T,true,NAPE_ARRAYS) ZNPListARAR_`T
 	#else
-		List(T)
+		GenList(T,ZNPListARLL_`T,false,(!NAPE_ARRAYS)) ZNPListARLL_`T
 	#end
 );
-$(mixin global List(T) GenList(T,ZNPListLL_`T,false) ZNPListLL_`T);
-$(expand global GenList(T,NAMI,USE_ARRAY)
+$(mixin global ArrayNode(T)
+	#if !NAPE_ARRAYS
+		Node(T)
+	#else
+		Int
+	#end
+);
+
+$(mixin global List(T) GenList(T,ZNPListLL_`T,false,true) ZNPListLL_`T);
+$(expand global GenList(T,NAMI,USE_ARRAY,KEEPITALL)
+#if KEEPITALL
 class NAMI {
 
 	#if USE_ARRAY
@@ -49,7 +58,8 @@ class NAMI {
 	,
 		NAMI,T,#if USE_ARRAY Int #else Node(T) #end,USE_ARRAY
 	)
-});
+}
+#end);
 
 $(mixin global AllocList(T) GenAllocList(T) ZNPAllocList_`T);
 $(expand global GenAllocList(T)
@@ -304,7 +314,7 @@ $(expand global MixDerivedList(T,ListT,IteT,defs)
 	}
 );
 
-$(expand global PRWrapList(T,ListT,IteT)
+$(expand global PRWrapList(T,ListT,IteT,USE_ARRAYS)
 	class PR(T`List) {
 		public var outer:T`List;
 		
@@ -346,12 +356,12 @@ $(expand global PRWrapList(T,ListT,IteT)
 					});
 				})
 				
-				if(inner.pushmod) push_ite = null;
-				at_ite = null;
+				#if !USE_ARRAYS if(inner.pushmod) push_ite = null; #end
+				at_ite = inner.prebegin();
 				length += inner.mcnt;
 				
 				inner.modified = false;
-				inner.pushmod = false;
+				#if !USE_ARRAYS inner.pushmod = false; #end
 				inner.mcnt = 0;
 				inv(length) = true;
 			}
@@ -359,8 +369,8 @@ $(expand global PRWrapList(T,ListT,IteT)
 		
 		public function modified() {
 			inv(length) = true;
-			at_ite = null;
-			push_ite = null;
+			at_ite = inner.prebegin();
+			#if !USE_ARRAYS push_ite = null; #end
 		}
 		public function modify_test() {
 			DEBUG(
@@ -388,7 +398,7 @@ $(expand global PRWrapList(T,ListT,IteT)
 		public var at_index:Int;
 		public var at_ite:IteT;
 		
-		public var push_ite:IteT;
+		#if !USE_ARRAYS public var push_ite:IteT; #end
 		
 		public var length:Int;
 		public var inv(length):Bool;
@@ -445,6 +455,21 @@ $(mixin global ListMixin(defs,Cons,T,I,USE_ARRAY)
 			_setbeg(i);
 			modified = true;
 			pushmod = true;
+		}
+	#end
+
+	#if USE_ARRAY
+		flibmdel public inline function push(o:T) {
+			elts.push(o);
+			modified = true;
+			mcnt++;
+			return 0;
+		}
+		flibmdel public inline function unshift(o:T) {
+			elts.unshift(o);
+			modified = true;
+			mcnt++;
+			return 0;
 		}
 	#end
 

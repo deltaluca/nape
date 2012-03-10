@@ -40,7 +40,8 @@ $(mixin global WrapList(T,ListT,IteT, defs)
 	WrapListIterator(T,ListT,IteT,defs)
 );
 
-$(mixin global WrapListNew(T,ListT,IteT, defs)
+$(mixin global WrapListNew(T,ListT,IteT, defs) WrapListNew(T,ListT,IteT,defs,false));
+$(mixin global WrapListNew(T,ListT,IteT, defs, USE_ARRAYS)
 	$(mixin accept(x) true);
 	$(mixin use_accept false);
 	
@@ -130,37 +131,37 @@ $(mixin global WrapListNew(T,ListT,IteT, defs)
 			if(pr(inner).reverse_flag) index = reversal(index);
 
 			if(!use_accept) {
-				if(index<pr(inner).at_index || pr(inner).at_ite==null) {
+				if(index<pr(inner).at_index || pr(inner).at_ite==pr(inner).inner.prebegin()) {
 					pr(inner).at_index = index;
 					pr(inner).at_ite = pr(inner).inner.iterator_at(index);
 				}else {
 					while(pr(inner).at_index!=index) {
 						pr(inner).at_index++;
-						pr(inner).at_ite = pr(inner).at_ite.next;
+						pr(inner).at_ite = pr(inner).inner.getnext(pr(inner).at_ite);
 					}
 				}
 			}else {
-				if(index<pr(inner).at_index || pr(inner).at_ite==null) {
+				if(index<pr(inner).at_index || pr(inner).at_ite==pr(inner).inner.prebegin()) {
 					pr(inner).at_index = 0;
 					pr(inner).at_ite = pr(inner).inner.begin();
 					while(true) {
-						var x = pr(inner).at_ite.elem();
+						var x = pr(inner).inner.getelem(pr(inner).at_ite);
 						if(accept(x)) break;
-						pr(inner).at_ite = pr(inner).at_ite.next;
+						pr(inner).at_ite = pr(inner).inner.getnext(pr(inner).at_ite);
 					}
 				}
 				while(pr(inner).at_index!=index) {
 					pr(inner).at_index++;
-					pr(inner).at_ite = pr(inner).at_ite.next;
+					pr(inner).at_ite = pr(inner).inner.getnext(pr(inner).at_ite);
 					while(true) {
-						var x = pr(inner).at_ite.elem();
+						var x = pr(inner).inner.getelem(pr(inner).at_ite);
 						if(accept(x)) break;
-						pr(inner).at_ite = pr(inner).at_ite.next;
+						pr(inner).at_ite = pr(inner).inner.getnext(pr(inner).at_ite);
 					}
 				}
 			}
 			
-			return closure(pr(inner).at_ite.elem());
+			return closure(pr(inner).inner.getelem(pr(inner).at_ite));
 		}
 		
 		keep public function push(obj:T) {
@@ -170,12 +171,19 @@ $(mixin global WrapListNew(T,ListT,IteT, defs)
 			
 			var cont = if(pr(inner).adder!=null) pr(inner).adder(obj) else true;
 			if(cont) {
-				if(pr(inner).reverse_flag)
-					pr(inner).inner.add(erusolc(obj));
-				else {
-					if(pr(inner).push_ite==null) pr(inner).push_ite = empty() ? null : pr(inner).inner.iterator_at(length-1);
-					pr(inner).push_ite = pr(inner).inner.insert(pr(inner).push_ite,erusolc(obj));
-				}
+				#if USE_ARRAYS
+					if(pr(inner).reverse_flag)
+						pr(inner).inner.unshift(erusolc(obj));
+					else
+						pr(inner).inner.push(erusolc(obj));
+				#else if (true)
+					if(pr(inner).reverse_flag)
+						pr(inner).inner.add(erusolc(obj));
+					else {
+						if(pr(inner).push_ite==null) pr(inner).push_ite = empty() ? null : pr(inner).inner.iterator_at(length-1);
+						pr(inner).push_ite = pr(inner).inner.insert(pr(inner).push_ite,erusolc(obj));
+					}
+				#end
 				pr(inner).invalidate();
 				
 				if(pr(inner).post_adder!=null) pr(inner).post_adder(obj);
@@ -189,11 +197,18 @@ $(mixin global WrapListNew(T,ListT,IteT, defs)
 			
 			var cont = if(pr(inner).adder!=null) pr(inner).adder(obj) else true;
 			if(cont) {
-				if(pr(inner).reverse_flag) {
-					if(pr(inner).push_ite==null) pr(inner).push_ite = empty() ? null : pr(inner).inner.iterator_at(length-1);
-					pr(inner).push_ite = pr(inner).inner.insert(pr(inner).push_ite,erusolc(obj));
-				}else
-					pr(inner).inner.add(erusolc(obj));
+				#if USE_ARRAYS
+					if(pr(inner).reverse_flag)
+						pr(inner).inner.push(erusolc(obj));
+					else
+						pr(inner).inner.unshift(erusolc(obj));
+				#else if (true)
+					if(pr(inner).reverse_flag) {
+						if(pr(inner).push_ite==null) pr(inner).push_ite = empty() ? null : pr(inner).inner.iterator_at(length-1);
+						pr(inner).push_ite = pr(inner).inner.insert(pr(inner).push_ite,erusolc(obj));
+					}else
+						pr(inner).inner.add(erusolc(obj));
+				#end
 				pr(inner).invalidate();
 				
 				if(pr(inner).post_adder!=null) pr(inner).post_adder(obj);
@@ -215,9 +230,9 @@ $(mixin global WrapListNew(T,ListT,IteT, defs)
 				if(!pr(inner).dontremove)
 					pr(inner).inner.pop();
 			}else {
-				if(pr(inner).at_ite!=null && pr(inner).at_ite.next == null) pr(inner).at_ite = null;
-				var ite = length==1 ? null : pr(inner).inner.iterator_at(length-2);
-				ret = ite == null ? pr(inner).inner.front() : ite.next.elem();
+				if(pr(inner).at_ite!=pr(inner).inner.prebegin() && pr(inner).inner.getnext(pr(inner).at_ite) == pr(inner).inner.end()) pr(inner).at_ite = pr(inner).inner.prebegin();
+				var ite = length==1 ? pr(inner).inner.prebegin() : pr(inner).inner.iterator_at(length-2);
+				ret = ite == pr(inner).inner.prebegin() ? pr(inner).inner.front() : pr(inner).inner.getelem(pr(inner).inner.getnext(ite));
 				var retx = closure(ret);
 				if(pr(inner).subber!=null) pr(inner).subber(retx);
 				if(!pr(inner).dontremove)
@@ -236,9 +251,9 @@ $(mixin global WrapListNew(T,ListT,IteT, defs)
 			
 			var ret = null;
 			if(pr(inner).reverse_flag) {
-				if(pr(inner).at_ite!=null && pr(inner).at_ite.next == null) pr(inner).at_ite = null;
-				var ite = length==1 ? null : pr(inner).inner.iterator_at(length-2);
-				ret = ite == null ? pr(inner).inner.front() : ite.next.elem();
+				if(pr(inner).at_ite!=pr(inner).inner.prebegin() && pr(inner).inner.getnext(pr(inner).at_ite) == pr(inner).inner.end()) pr(inner).at_ite = pr(inner).inner.prebegin();
+				var ite = length==1 ? pr(inner).inner.prebegin() : pr(inner).inner.iterator_at(length-2);
+				ret = ite == pr(inner).inner.prebegin() ? pr(inner).inner.front() : pr(inner).inner.getelem(pr(inner).inner.getnext(ite));
 				var retx = closure(ret);
 				if(pr(inner).subber!=null) pr(inner).subber(retx);
 				if(!pr(inner).dontremove)
@@ -357,7 +372,7 @@ $(mixin global WrapListNew(T,ListT,IteT, defs)
 		}
 	}
 	
-	PRWrapList(T,ListT,IteT)
+	PRWrapList(T,ListT,IteT,USE_ARRAYS)
 );
 
 $(mixin global WrapListIterator(T,ListT,IteT, defs)
