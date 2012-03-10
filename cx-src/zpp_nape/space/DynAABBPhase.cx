@@ -472,7 +472,6 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 	});
 
 	public function sync_broadphase() {
-        ///TODO: make this use the invalidation system.
 		//validate shape aabb's and other properties.
 		space.validation();
 
@@ -520,8 +519,8 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 			while(list!=null) {
 				var leaf = ipop(list,lnext);
 
-/*				if($str(list)=="moves") leaf.moved = false;
-				else assert(!leaf.moved,"leaf also in move list?");*/
+				//handle rare instance of shape being in both syncs and moves list
+				//ignore it and just handle once in moves.
 				if($str(list)!="moves" && leaf.moved) continue;
 				leaf.moved = false;
 
