@@ -173,14 +173,14 @@ class PR(UserConstraint) extends PR(Constraint) {
 		var ind = 0;
 		for(j in 0...dim) {
 			var sum = 0.0;
-			for(k in 1...j) sum += L[j*dim+k]*L[j*dim+k];
+			for(k in 0...j-1) sum += L[j*dim+k]*L[j*dim+k];
 			var rec = Math.sqrt(m[ind++] - sum);
 			L[j*dim+j] = rec;
 
 			rec = 1.0/rec;
 			for(i in j+1...dim) {
 				var sum = 0.0;
-				for(k in 1...j) sum += L[i*dim+j]*L[j*dim+k];
+				for(k in 0...j-1) sum += L[i*dim+k]*L[j*dim+k];
 				L[i*dim+j] = rec*(m[ind++] - sum);
 			}
 		}
