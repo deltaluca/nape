@@ -8,6 +8,7 @@ def:
 
 run:
 	./bin/docs $(FILES)
+	mv doc/index.html doc/index.php
 
 clean: clean_run
 	rm -rf bin
