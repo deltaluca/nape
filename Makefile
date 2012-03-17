@@ -163,23 +163,3 @@ server-build-release9:
 	haxe -swf release_nape9.swc -swf-version 9 $(RELEASE_FLAGS)
 	flib release_nape9.swc
 	rm -rf src
-
-server-build-hx-assert:
-	unzip assert_nape.swc -x catalog.xml
-	mv library.swf haxe_assert_nape.swf
-server-build-hx-debug:
-	unzip debug_nape.swc -x catalog.xml
-	mv library.swf haxe_debug_nape.swf
-server-build-hx-release:
-	unzip release_nape.swc -x catalog.xml
-	mv library.swf haxe_release_nape.swf
-
-server-build-hx-assert9:
-	unzip assert_nape9.swc -x catalog.xml
-	mv library.swf haxe_assert_nape9.swf
-server-build-hx-debug9:
-	unzip debug_nape.swc -x catalog.xml
-	mv library.swf haxe_debug_nape9.swf
-server-build-hx-release9:
-	unzip release_nape9.swc -x catalog.xml
-	mv library.swf haxe_release_nape9.swf
