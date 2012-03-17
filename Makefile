@@ -117,7 +117,7 @@ clean:
 
 server-release:
 	rm -rf nape.tar.gz
-	tar cvfz nape.tar.gz cx-src Makefile version
+	tar cvfz nape.tar.gz cx-src Makefile version server-remotes
 	scp nape.tar.gz deltaluca.me.uk:nape.tar.gz
 	echo "ssh deltaluca.me.uk << EOT" > .nape-release
 	echo "./nape-release" >> .nape-release
@@ -126,55 +126,43 @@ server-release:
 	rm .nape-release
 
 ## --------------------------------------------
-## build targets
 
-server-targets:
-	cat > .targets <<EOT
-	cx-src     :: nape.tar.gz            :: Caxe source (.tar.gz)
-	hx-src     :: hx-src.tar.gz          :: Haxe source (.tar.gz)
-	
-	assert     :: assert_nape.swc        :: AS3 assert build (.swc)
-	debug      :: debug_nape.swc         :: AS3 debug build (.swc)
-	release    :: release_nape.swc       :: AS3 release build (.swc)
-	
-	assert9    :: assert_nape9.swc       :: AS3 assert build (.swc) for fp9
-	debug9     :: debug_nape9.swc        :: AS3 debug build (.swc) for fp9
-	release9   :: release_nape9.swc      :: AS3 release build (.swc) for fp9
-	
-	hx-assert  :: haxe_assert_nape.swf   :: Haxe assert build (.swc)
-	hx-debug   :: haxe_debug_nape.swf    :: Haxe debug build (.swc)
-	hx-release :: haxe_release_nape.swf  :: Haxe release build (.swc)
-	
-	hx-assert9 :: haxe_assert_nape9.swf  :: Haxe assert build (.swc) for fp9
-	hx-debug9  :: haxe_debug_nape9.swf   :: Haxe debug build (.swc) for fp9
-	hx-release9:: haxe_release_nape9.swf :: Haxe release build (.swc) for fp9
-	EOT
-
-.PHONY: server-build-cx-src
 server-build-cx-src:
 
 server-build-hx-src: pre_compile
 	find src -name "*.hx" -type f | xargs tar cvfz hx-src.tar.gz
 
 server-build-assert:
+	tar -xf hx-src.tar.gz
 	haxe -swf assert_nape.swc -swf-version $(SWFV) $(ASSERT_FLAGS)
 	flib assert_nape.swc
+	rm -rf src
 server-build-debug:
+	tar -xf hx-src.tar.gz
 	haxe -swf debug_nape.swc -swf-version $(SWFV) $(DEBUG_FLAGS)
 	flib debug_nape.swc
+	rm -rf src
 server-build-release:
+	tar -xf hx-src.tar.gz
 	haxe -swf release_nape.swc -swf-version $(SWFV) $(RELEASE_FLAGS)
 	flib release_nape.swc
+	rm -rf src
 
 server-build-assert9:
+	tar -xf hx-src.tar.gz
 	haxe -swf assert_nape9.swc -swf-version 9 $(ASSERT_FLAGS)
 	flib assert_nape9.swc
+	rm -rf src
 server-build-debug9:
+	tar -xf hx-src.tar.gz
 	haxe -swf debug_nape9.swc -swf-version 9 $(DEBUG_FLAGS)
 	flib debug_nape9.swc
+	rm -rf src
 server-build-release9:
+	tar -xf hx-src.tar.gz
 	haxe -swf release_nape9.swc -swf-version 9 $(RELEASE_FLAGS)
 	flib release_nape9.swc
+	rm -rf src
 
 server-build-hx-assert:
 	unzip assert_nape.swc -x catalog.xml
