@@ -111,3 +111,8 @@ clean:
 	rm -rvf cpp
 	rm -rvf src
 	rm -f bin/nape.swf
+
+server-tar:
+	rm -rf nape.tar.gz
+	tar cvfz nape.tar.gz cx-src Makefile	
+	scp nape.tar.gz deltaluca.me.uk:nape/nape.tar.gz
