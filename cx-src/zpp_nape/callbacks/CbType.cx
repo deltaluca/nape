@@ -62,6 +62,7 @@ class PR(CbType) {
 	//----------------------------------------------------------------------------------------------
 
 	//determins if cbTypes share an interaction listener
+	public static var log:Bool = false;
 	public static function empty_intersection(a:PR(CbType),b:PR(CbType)) {
 		var id = if(a.id<b.id) a.id else b.id;
 		var di = if(a.id<b.id) b.id else a.id;
@@ -69,6 +70,7 @@ class PR(CbType) {
 
 		var ret = false;
 		var lx = (a.listeners.length<b.listeners.length) ? a.listeners : b.listeners;
+	
 		Iter(x,lx,{
 			assert(!(x.id==di && x.di==id) || id==di,"listener id order didn't match cbtype id order??");
 			if(x.id==id && x.di==di) { 
@@ -76,6 +78,7 @@ class PR(CbType) {
 				break;
 			}
 		});
+		log = ret;
 		return !ret;
 	}
 
