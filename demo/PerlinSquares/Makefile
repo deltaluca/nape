@@ -1,7 +1,5 @@
-NAPELIB = $(NAPE)/haxe_release_nape.swf
-
 run: build
 	fp PerlinSquares.swf 
 
 build:
-	haxe -cp "/" -swf-lib $(NAPELIB) -swf-header 400:300:60:ffffff -swf PerlinSquares.swf -cp . -cp ../common -main PerlinSquares -swf-version 11 
+	haxe -cp "/" -lib nape -D NAPE_RELEASE_BUILD -swf-header 400:300:60:ffffff -swf PerlinSquares.swf -cp . -cp ../common -main PerlinSquares -swf-version 10  --dead-code-elimination

@@ -85,10 +85,9 @@ class PR(AABBPair) {
 	public var first:Bool;
 	public var sleeping:Bool;
 
-	//for hash
+	//for lookups in shape lists of pairs.
 	public var id:Int;
 	public var di:Int;
-	public var hnext:PR(AABBPair);
 
 	//optimisation to avoid second lookup if possible.
 	public var arb:PR(Arbiter);
@@ -101,7 +100,7 @@ class PR(AABBPair) {
 	flibmdel public inline function free () {
 		assert(arb==null,"node still has an arbiter when going into pool??");
 		n1 = n2 = null;
-		hnext = null;
+		sleeping = false;
 	}
 }
 
@@ -368,13 +367,14 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 		shape.node = null;
 
 		//remove from sync list if waiting to be synced
-		if(node.synced)	irem(syncs,node,snext);
-		if(node.moved)  irem(moves,node,mnext);
+		if(node.synced)	{ irem(syncs,node,snext); node.synced = false; }
+		if(node.moved)  { irem(moves,node,mnext); node.moved  = false; }
 
 		//remove any pairs that may exist
 		var pre = null;
 		var cur = pairs;
 		while(cur!=null) {
+			assert(!cur.sleeping,"sleeping pair in pairs");
 			var nxt = cur.next;
 			if(cur.n1 == node || cur.n2==node) {
 				if(pre==null) pairs    = nxt;
@@ -391,6 +391,16 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 			}
 			pre = cur;
 			cur = nxt;
+		}
+		//clean up shape.pairs of any sleeping pairs that still remain!
+		while(!shape.pairs.empty()) {
+			var cur = shape.pairs.pop_unsafe();
+			assert(cur.sleeping,"non-sleeping pair remaining after removing them from pairs");
+			if(cur.n1==node) cur.n2.shape.pairs.remove(cur);
+			else             cur.n1.shape.pairs.remove(cur);
+			if(cur.arb!=null) cur.arb.pair = null;
+			cur.arb = null;
+			Free(PR(AABBPair),cur);
 		}
 
 		Free(PR(AABBNode),node);
@@ -462,7 +472,6 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 	});
 
 	public function sync_broadphase() {
-        ///TODO: make this use the invalidation system.
 		//validate shape aabb's and other properties.
 		space.validation();
 
@@ -510,8 +519,8 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 			while(list!=null) {
 				var leaf = ipop(list,lnext);
 
-/*				if($str(list)=="moves") leaf.moved = false;
-				else assert(!leaf.moved,"leaf also in move list?");*/
+				//handle rare instance of shape being in both syncs and moves list
+				//ignore it and just handle once in moves.
 				if($str(list)!="moves" && leaf.moved) continue;
 				leaf.moved = false;
 
@@ -535,12 +544,15 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 							if(shape.body != lshape.body) {
 								if(ab.intersect(node.aabb)) {
 									var id:Int; var di:Int;
+									assert(lshape!=shape,"narrowphase area of dyn-aabb with same shape?");
 									if(lshape.id < shape.id) { id = lshape.id; di = shape.id; }
 									else                     { id = shape.id; di = lshape.id; }
+									assert(id<di,"id's not well ordered in dyn-aabb narrowphase");
 									var s = if(lshape.pairs.length<shape.pairs.length) lshape else shape;
 
 									var p:PR(AABBPair) = null;
 									Iter(px, s.pairs, {
+										assert(!(px.id==di && px.di==id),"dyn-pair id didn't match shape id's");
 										if(px.id == id && px.di == di) {
 											p = px;
 											break;
@@ -565,8 +577,8 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 									pairs = p;
 									p.first = true; //avoid bounds check in main loop.
 
-									lshape.pairs.add(p);
-									 shape.pairs.add(p);
+									lshape.pairs.inlined_add(p);
+									 shape.pairs.inlined_add(p);
 								}
 							}
 						}else if(ab.intersect(node.aabb)) {
@@ -588,11 +600,12 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 		var pre:PR(AABBPair) = null;
 		var cur = pairs;
 		while(cur!=null) {
+			assert(!cur.sleeping,"non-sleeping pair in pairs");
 			if(!cur.first && !cur.n1.aabb.intersect(cur.n2.aabb)) {
 				if(pre==null) pairs = cur.next;
 				else          pre.next = cur.next;
-				cur.n1.shape.pairs.remove(cur);
-				cur.n2.shape.pairs.remove(cur);
+				cur.n1.shape.pairs.inlined_remove(cur);
+				cur.n2.shape.pairs.inlined_remove(cur);
 				var nxt = cur.next;
 				if(cur.arb!=null) cur.arb.pair = null;
 				cur.arb = null;

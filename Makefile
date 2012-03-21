@@ -40,7 +40,11 @@ RELEASE_FLAGS= $(SWC_FLAGS) -D NAPE_RELEASE_BUILD
 
 #------------------------------------------------------------------------------------
 
-demos: pre_compile
+.PHONY: demos
+demos:
+	./buildlib
+
+releases: pre_compile
 	mkdir -p bin/release
 	haxe -swf bin/release/release_nape.swc $(RELEASE_FLAGS) -swf-version $(SWFV)
 	flib bin/release/release_nape.swc
@@ -107,3 +111,55 @@ clean:
 	rm -rvf cpp
 	rm -rvf src
 	rm -f bin/nape.swf
+
+# ----------------------------------------------------------------------------------
+# remotes
+
+server-release:
+	rm -rf nape.tar.gz
+	tar cvfz nape.tar.gz cx-src Makefile version server-remotes
+	scp nape.tar.gz deltaluca.me.uk:nape.tar.gz
+	echo "ssh deltaluca.me.uk << EOT" > .nape-release
+	echo "./nape-release" >> .nape-release
+	echo "EOT" >> .nape-release
+	sh .nape-release
+	rm .nape-release
+
+## --------------------------------------------
+
+server-build-cx-src:
+
+server-build-hx-src: pre_compile
+	find src -name "*.hx" -type f | xargs tar cvfz hx-src.tar.gz
+
+server-build-assert:
+	tar -xf hx-src.tar.gz
+	haxe -swf assert_nape.swc -swf-version $(SWFV) $(ASSERT_FLAGS)
+	flib assert_nape.swc
+	rm -rf src
+server-build-debug:
+	tar -xf hx-src.tar.gz
+	haxe -swf debug_nape.swc -swf-version $(SWFV) $(DEBUG_FLAGS)
+	flib debug_nape.swc
+	rm -rf src
+server-build-release:
+	tar -xf hx-src.tar.gz
+	haxe -swf release_nape.swc -swf-version $(SWFV) $(RELEASE_FLAGS)
+	flib release_nape.swc
+	rm -rf src
+
+server-build-assert9:
+	tar -xf hx-src.tar.gz
+	haxe -swf assert_nape9.swc -swf-version 9 $(ASSERT_FLAGS)
+	flib assert_nape9.swc
+	rm -rf src
+server-build-debug9:
+	tar -xf hx-src.tar.gz
+	haxe -swf debug_nape9.swc -swf-version 9 $(DEBUG_FLAGS)
+	flib debug_nape9.swc
+	rm -rf src
+server-build-release9:
+	tar -xf hx-src.tar.gz
+	haxe -swf release_nape9.swc -swf-version 9 $(RELEASE_FLAGS)
+	flib release_nape9.swc
+	rm -rf src

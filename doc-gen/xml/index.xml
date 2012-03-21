@@ -6,43 +6,144 @@
 	<text> For general development purposes, you should always use a debug build. Release builds should only be used when you are ready to release a final product to get that little bit of extra speed. Debug builds contain lots of error catching in the API to make sure that you aren't doing anything undefined or simply wrong, you'll save yourself a lot of headache using the debug build. </text>
 	<br/><br/>
 	<text> If you happen to be helping me out with some bug hunting, then I'll likely ask you to use the assert build which contains thousands of assertions throughout the internal engine for things which aren't your fault! DO NOT use these for general purpose use as they run very slowly! </text><br/><br/>
-	<text class="header3">Download: </text><!--CVERSION--><text class="small1 italic">Milestone 8.2 "r7" 05/03/12 17:17</text><!--CVERSION--><br/>
-	<indent>
-		<text class="bold">haXe </text><text class="small1">As haxelib install using </text><code inline="true">-lib nape</code><br/>
-		<indent>
-			<code inline="true">haxelib (install|upgrade) nape</code><br/>
-		</indent><br/>
-		<text class="bold">AS3 </text><text class="small1">(.swc)</text><br/>
-		<indent>
-		<code inline="true"><![CDATA[(fp10+):]]></code>
-<!--FP10--><link type="outside" href="http://deltaluca.me.uk/napenew/m8.2/r7/assert_nape.swc">assert</link><text> </text><link type="outside" href="http://deltaluca.me.uk/napenew/m8.2/r7/debug_nape.swc">debug</link><text> </text><link type="outside" href="http://deltaluca.me.uk/napenew/m8.2/r7/release_nape.swc">release</link><br/><!--FP10-->
-		<code inline="true"><![CDATA[(fp9)  :]]></code>
-<!--FP9--><link type="outside" href="http://deltaluca.me.uk/napenew/m8.2/r7/assert_nape9.swc">assert</link><text> </text><link type="outside" href="http://deltaluca.me.uk/napenew/m8.2/r7/debug_nape9.swc">debug</link><text> </text><link type="outside" href="http://deltaluca.me.uk/napenew/m8.2/r7/release_nape9.swc">release</link><br/><!--FP9-->
-		</indent>
+	<text class="header3">Download:</text><br/>
+	<text>For HaXe you can use haxelib project nape to keep up to date</text><br/>
+	<text>For AS3 users, build versions can be downloaded below:</text><br/>
 	
-		<br/>
-		<text class="bold">haXe </text><text class="small1">(.swf for use with -swf-lib compiler option)</text><br/>
-		<indent>
-		<code inline="true"><![CDATA[(fp10+):]]></code>
-<!--hFP10--><link type="outside" href="http://deltaluca.me.uk/napenew/m8.2/r7/haxe_assert_nape.swf">assert</link><text> </text><link type="outside" href="http://deltaluca.me.uk/napenew/m8.2/r7/haxe_debug_nape.swf">debug</link><text> </text><link type="outside" href="http://deltaluca.me.uk/napenew/m8.2/r7/haxe_release_nape.swf">release</link><br/><!--hFP10-->
-		<code inline="true"><![CDATA[(fp9)  :]]></code>
-<!--hFP9--><link type="outside" href="http://deltaluca.me.uk/napenew/m8.2/r7/haxe_assert_nape9.swf">assert</link><text> </text><link type="outside" href="http://deltaluca.me.uk/napenew/m8.2/r7/haxe_debug_nape9.swf">debug</link><text> </text><link type="outside" href="http://deltaluca.me.uk/napenew/m8.2/r7/haxe_release_nape9.swf">release</link><br/><!--hFP9-->
-		</indent>
+<html>
+<![CDATA[
+<script type="text/javascript">
+var revisions = [];
+var builds = [];
+<?php
+	$outs = array();
+	exec('ls ../napenew | grep "m.*" | sed "s/m//" | sort -rn', $outs);
+	foreach ($outs as $val) {
+		if($val<9) continue;
 
-		<br/>
-		<text class="bold">haXe </text><text class="small1">(.tar.gz/.zip containing compiled .hx source code)</text><br/>
-		<indent>
-<!--haxe--><link type="outside" href="http://deltaluca.me.uk/napenew/m8.2/r7/hx-src.tar.gz">.tar.gz</link><text> </text><link type="outside" href="http://deltaluca.me.uk/napenew/m8.2/r7/hx-src.zip">.zip</link><br/><!--haxe-->
-		</indent>
+		echo "revisions[\"m${val}\"] = [";
+		$fst = 1;
+		$outs2 = array();
+		exec("ls ../napenew/m${val} | grep 'r.*' | sed 's/r//' | sort -rn", $outs2);
+		foreach ($outs2 as $val2) {
+			if($fst!=1) echo ", ";
+			$fst = 0;
+			echo "\"r${val2}\"";
+		}
+		echo "];\n";
 
-		<br/>
-		<text class="bold">caXe </text><text class="small1">(.tar.gz/.zip containing the original .cx source code)</text><br/>
-		<indent>
-<!--caxe--><link type="outside" href="http://deltaluca.me.uk/napenew/m8.2/r7/nape.tar.gz">.tar.gz</link><text> </text><link type="outside" href="http://deltaluca.me.uk/napenew/m8.2/r7/nape.zip">.zip</link><br/><!--caxe-->
-		</indent>
-	</indent>
-	<br/>
-	<link type="outside" href="http://deltaluca.me.uk/napenew/">Past Versions.</link>
+		foreach ($outs2 as $val2) {
+			$builds = "builds[\"m${val}r{$val2}\"]";
+			echo "${builds} = [";
+
+			$outs3 = array();
+			exec("grep -we '^[^:]*::[^:]*::' ../napenew/m${val}/r${val2}/server-remotes",$outs3);
+
+			$fst = 1;
+			foreach ($outs3 as $val3) {
+				if($fst!=1) echo ", ";
+				$fst = 0;
+				echo "\"${val3}\"";
+			}
+
+			echo "];\n";
+		}
+	}
+?>
+function getrevisions() {
+	var revd = document.getElementById("revision_select");
+	while(revd.options.length>0) revd.remove(revd.options[0]);
+
+	var versions = document.getElementById("versions_select");
+	var cversion = versions.options[versions.selectedIndex].value;
+
+	var revs = revisions[cversion];
+	for(var i = 0; i< revs.length; i++) {
+		var node = document.createElement('option');
+		node.setAttribute('value',revs[i]);
+		node.text = revs[i];
+		revd.add(node,null);
+	}
+	revd.selectedIndex = 0;
+
+	getbuilds();
+}
+function getbuilds() {
+	var buildd = document.getElementById("build_select");
+	while(buildd.options.length>0) buildd.remove(buildd.options[0]);
+
+	var versions = document.getElementById("versions_select");
+	var cversion = versions.options[versions.selectedIndex].value;
+
+	var revisions = document.getElementById("revision_select");
+	var crevision = revisions.options[revisions.selectedIndex].value;
+
+	var bs = builds[cversion+crevision];
+	for(var i = 0; i< bs.length; i++) {
+		var node = document.createElement('option');
+		var value = bs[i].substring(0,bs[i].indexOf("::")).replace(/[ \t]+/,"");
+		node.setAttribute('value',value);
+		node.text = bs[i].substring(bs[i].lastIndexOf("::")+2).replace(/[ \t]+/,"");
+		buildd.add(node,null);
+	}
+
+	buildd.selectedIndex = 0;
+}
+function download() {
+	var versions = document.getElementById("versions_select");
+	var cversion = versions.options[versions.selectedIndex].value;
+
+	var revisions = document.getElementById("revision_select");
+	var crevision = revisions.options[revisions.selectedIndex].value;
+
+	var builds = document.getElementById("build_select");
+	var cbuild = builds.options[builds.selectedIndex].value;
+
+	window.open("nape-download.php?version=" + cversion.substring(1) + "&revision=" + crevision.substr(1) + "&build=" + cbuild, "_blank");
+}
+</script>
+
+<table>
+<tr>
+<td>
+	<form action="../">
+	<select onchange="getrevisions()" id="versions_select">
+	<?php
+		$outs = array();
+		exec('ls ../napenew | grep "m.*" | sed "s/m//" | sort -rn', $outs);
+		foreach ($outs as $val) {
+			if($val<9) continue;
+			echo "<option value=\"m${val}\">Milestone ${val}</option>";
+		}
+	?>
+	</select>
+	</form>
+</td>
+<td>
+	<form action="../">
+	<select onchange="getbuilds()" id="revision_select">
+	</select>
+	</form>
+</td>
+<td>
+	<form action="../">
+	<select onchange="" id="build_select">
+	</select>
+	</form>
+</td>
+<td style="vertical-align: top">
+	<button type="button" onclick="download()" style="padding: 0">Download</button>
+</td>
+</tr>
+</table>
+
+<script type="text/javascript">
+getrevisions();
+</script>
+]]>
+</html>	
+
+	<link type="outside" href="http://deltaluca.me.uk/napenew/">Versions prior to 9.1</link>
 	<br/>
 	<br/>
 	<text class="header3">haXe compiler options</text><br/>
@@ -54,7 +155,6 @@
 			<text>If working solely in haXe you can/should use </text><code inline="true">--no-inline</code><text> instead of </text><code inline="true">-D NAPE_NO_INLINE</code><text> as well as </text><code inline="true">-debug</code><br/>
 		</indent>
 		<text>For creating AS3 .swcs or haXe .swfs for use with -swf-lib you need to use my flib tool available on my github page aswell as specifying the additional options: </text><code inline="true">-D swc -D flib</code><br/>
-		<text>For non-flash compilations, I do not know exactly what options may be needed, certainly for compilation with hxcpp you need to disable inlining for it to pass the compilation stage</text>
 	</indent>
 	<br/>
 	<hr/>

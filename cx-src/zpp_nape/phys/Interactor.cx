@@ -47,12 +47,15 @@ class PR(Interactor) {
 	public var cbsets:List(PR(CallbackSet));
 
 	public static function get(i1:PR(Interactor),i2:PR(Interactor)) {
+		assert(i1!=i2,"trying to get cbset between interactor and itself?");
 		var id = if(i1.id < i2.id) i1.id else i2.id;
 		var di = if(i1.id < i2.id) i2.id else i1.id;
+		assert(id<di,"interactor id's not ordered well when getting cbset");
 
 		var xs = if(i1.cbsets.length<i2.cbsets.length) i1.cbsets else i2.cbsets;
 		var ret:PR(CallbackSet) = null;
 		Iter(x, xs, {
+			assert(!(x.id==di && x.di==id),"cbset order doesn't match interactor order getting cbset?");
 			if(x.id == id && x.di==di) {
 				ret = x;
 				cx_break;

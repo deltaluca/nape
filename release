@@ -69,7 +69,7 @@ then
 
 	echo ""
 	echo "------------------------------------------------------------------------------"
-	echo " >> Compiling libraries (exec 'make release') "
+	echo " >> Checking libraries compile (exec 'make release') "
 	echo "------------------------------------------------------------------------------"
 	echo ""
 
@@ -124,49 +124,6 @@ then
 		echo ""
 		cp $WORKING version
 
-		#doc page number.
-		INDEX="doc-gen/xml/index.xml"
-		TMP=".tmp.index"
-		
-		CVERSION=`echo $CVERSION | sed "s/\//\\\\\\\\\\\//g"`
-		CVERSION="<text class=\"small1 italic\">Milestone $CVERSION<\/text>"
-
-		sed "s/<!--CVERSION-->.*<!--CVERSION-->/<!--CVERSION-->$CVERSION<!--CVERSION-->/" $INDEX > $TMP
-		cp $TMP $INDEX
-		rm $TMP
-
-		#download links
-		DIR="http:\/\/deltaluca.me.uk\/napenew\/m$MAJOR.$MINOR\/r$REVISION"
-		OUT="<link type=\"outside\" href=\"$DIR\/assert_nape.swc\">assert<\/link><text> <\/text><link type=\"outside\" href=\"$DIR\/debug_nape.swc\">debug<\/link><text> <\/text><link type=\"outside\" href=\"$DIR\/release_nape.swc\">release<\/link><br\/>"
-		sed "s/<!--FP10-->.*<!--FP10-->/<!--FP10-->$OUT<!--FP10-->/" $INDEX > $TMP
-		cp $TMP $INDEX
-		rm $TMP
-
-		OUT="<link type=\"outside\" href=\"$DIR\/assert_nape9.swc\">assert<\/link><text> <\/text><link type=\"outside\" href=\"$DIR\/debug_nape9.swc\">debug<\/link><text> <\/text><link type=\"outside\" href=\"$DIR\/release_nape9.swc\">release<\/link><br\/>"
-		sed "s/<!--FP9-->.*<!--FP9-->/<!--FP9-->$OUT<!--FP9-->/" $INDEX > $TMP
-		cp $TMP $INDEX
-		rm $TMP
-
-		OUT="<link type=\"outside\" href=\"$DIR\/haxe_assert_nape.swf\">assert<\/link><text> <\/text><link type=\"outside\" href=\"$DIR\/haxe_debug_nape.swf\">debug<\/link><text> <\/text><link type=\"outside\" href=\"$DIR\/haxe_release_nape.swf\">release<\/link><br\/>"
-		sed "s/<!--hFP10-->.*<!--hFP10-->/<!--hFP10-->$OUT<!--hFP10-->/" $INDEX > $TMP
-		cp $TMP $INDEX
-		rm $TMP
-
-		OUT="<link type=\"outside\" href=\"$DIR\/haxe_assert_nape9.swf\">assert<\/link><text> <\/text><link type=\"outside\" href=\"$DIR\/haxe_debug_nape9.swf\">debug<\/link><text> <\/text><link type=\"outside\" href=\"$DIR\/haxe_release_nape9.swf\">release<\/link><br\/>"
-		sed "s/<!--hFP9-->.*<!--hFP9-->/<!--hFP9-->$OUT<!--hFP9-->/" $INDEX > $TMP
-		cp $TMP $INDEX
-		rm $TMP
-
-		OUT="<link type=\"outside\" href=\"$DIR\/hx-src.tar.gz\">.tar.gz<\/link><text> <\/text><link type=\"outside\" href=\"$DIR\/hx-src.zip\">.zip<\/link><br\/>"
-		sed "s/<!--haxe-->.*<!--haxe-->/<!--haxe-->$OUT<!--haxe-->/" $INDEX > $TMP
-		cp $TMP $INDEX
-		rm $TMP
-
-		OUT="<link type=\"outside\" href=\"$DIR\/nape.tar.gz\">.tar.gz<\/link><text> <\/text><link type=\"outside\" href=\"$DIR\/nape.zip\">.zip<\/link><br\/>"
-		sed "s/<!--caxe-->.*<!--caxe-->/<!--caxe-->$OUT<!--caxe-->/" $INDEX > $TMP
-		cp $TMP $INDEX
-		rm $TMP
-
 		#copy over demo docs stuff
 		echo ""
 		echo "------------------------------------------------------------------------------"
@@ -201,25 +158,15 @@ prompt
 cd public_html/docnew/
 lcd doc-gen/doc/
 put index.html
-
-cd ../napenew/
-mkdir m$MAJOR.$MINOR
-cd m$MAJOR.$MINOR
-mkdir r$REVISION
-cd r$REVISION
-lcd ../../bin/release
-mput *
-lcd ../../
-put nape.tar.gz
-put nape.zip
-
-cd ../../../
-cd docnew/swf
-lcd doc-gen/doc/swf
+cd swf
+lcd swf
 mput *
 
 exit
 EOT
+
+		echo " server remotes <<< "
+		make server-release
 
 		#haxelib
 		echo ""

@@ -1,260 +1,78 @@
 package;
-
 $(import);
 
-#if true
-
 class DummyNapeMain {
-	static function main() {
-		var txt = new flash.text.TextField();
-		txt.defaultTextFormat = new flash.text.TextFormat("Courier New",12,0xffffff);
-		txt.selectable = false;
-		txt.width = flash.Lib.current.stage.stageWidth;
-		txt.height = flash.Lib.current.stage.stageHeight;
-		flash.Lib.current.addChild(txt);
+	static function main() polygon_vector()
+//	static function main() search_for_raycast_error()
 
-		var v = new Vec2();
-		var v2 = new Vec2();
-		var graph = new Graph([v,v2]);
-		graph.populate(function () {
-			txt.text = graph.toString();
-			v.dispose();
-			v2.dispose();
-			graph.populate(function () {
-				txt.text += "\n"+graph.toString();
-				Debug.clearObjectPools();
-				graph.populate(function () {
-					txt.text += "\n"+graph.toString();
-				});
-			});
-		});
+	static var x = 123456789;
+	static var y = 362436069;
+	static var z = 521288629;
+	static var w = 88675123;
+	static inline function random():Float {
+		var t = x^(x<<11);
+		x = y; y = z; z = w;
+		w = w ^ (w>>>19) ^ (t ^ (t >>> 8));
+		var r = (w%10000)/10000;
+		if(r<0) r = -r;
+		if(r>1) r = 0.999999999999;
+		return r;
 	}
-}
-
-#else
-
-#if (cpp||neko)
-class DummyNapeMain {
-	static function main() {
-		var w = 800;
-		var h = 600;
-		var fps = 60;
-		var bgColor = 0x333333;
-		var flags =
-			nme.Lib.BORDERLESS |
-			nme.Lib.HARDWARE |
-			nme.Lib.VSYNC |
-			0;
-		var name = "Test Nape hxcpp/nme";
-
-		nme.Lib.create(function() { new DummyNapeMain(); },w,h,fps,bgColor,flags,name);
-	}
-
-	function new() {
-		var cur = flash.Lib.current;
-
-		var bd = new flash.display.BitmapData(800,600,true,0x0);
-		var shape = new flash.display.Shape();
-		shape.graphics.beginFill(0x999999);
-		shape.graphics.drawRect(0,300,800,500);
-		bd.draw(shape);
-
-		var erase = new flash.display.BitmapData(64,64,true,0xffffffff);
-		shape.graphics.clear();
-		shape.graphics.beginFill(0xff0000);
-		shape.graphics.drawCircle(32,32,32);
-		erase.draw(shape);
-		erase.copyChannel(erase,erase.rect,new flash.geom.Point(), flash.display.BitmapDataChannel.BLUE, flash.display.BitmapDataChannel.ALPHA);
-
-		var debug = new ShapeDebug(800,600,0x0);
-		debug.drawShapeAngleIndicators = true;
-		cur.addChild(debug.display);
-
-		function lookup(x:Float,y:Float):Float {
-			return bd.getPixel32(Std.int(x),Std.int(y))==0 ? 1 : -1;
-		}
-
-		cur.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function(_) {
-			bd.copyPixels(bd,new flash.geom.Rectangle(cur.mouseX-32,cur.mouseY-32,64,64), new flash.geom.Point(cur.mouseX-32,cur.mouseY-32), erase, new flash.geom.Point(), false);
-		});
-
-		cur.addEventListener(flash.events.MouseEvent.MOUSE_MOVE, function(e) {
-			if(!e.buttonDown) return;
-
-			bd.copyPixels(bd,new flash.geom.Rectangle(cur.mouseX-32,cur.mouseY-32,64,64), new flash.geom.Point(cur.mouseX-32,cur.mouseY-32), erase, new flash.geom.Point(), false);
-		});
-
-
-/*		var debug = new ShapeDebug(800,600);
-		debug.drawShapeAngleIndicators = false;
-		flash.Lib.current.addChild(debug.display);
-
-		var space = new Space(Vec2.weak(0,400));
-
-		var water = new Body(BodyType.STATIC);
-		var w1 = new Polygon(Polygon.rect(0,0,800,300));   w1.body = water;
-		var w2 = new Polygon(Polygon.rect(0,300,800,300)); w2.body = water;
-		w1.fluidEnabled = w2.fluidEnabled = true;
-		w1.fluidProperties.density = w2.fluidProperties.density = 4;
-		w1.fluidProperties.viscosity = w2.fluidProperties.viscosity = 5;
-		w1.fluidProperties.gravity = Vec2.weak(0,-400);
-
-		water.align();
-		water.kinAngVel = 2;
-
-		water.space = space;
 	
-		var walls = new Body(BodyType.STATIC);
-		walls.shapes.add(new Polygon(Polygon.rect(0,0,-40,600)));
-		walls.shapes.add(new Polygon(Polygon.rect(800,0,40,600)));
-		walls.shapes.add(new Polygon(Polygon.rect(0,0,800,-40)));
-		walls.shapes.add(new Polygon(Polygon.rect(0,600,800,40)));
-		walls.space = space;
+	static function polygon_vector() {
+		var vs = new flash.Vector<Vec2>();
+		vs.push(new Vec2());
+		vs.push(new Vec2(50,50));
+		vs.push(new Vec2(50,100));
+		vs.push(new Vec2(100,50));
+		var p = new Polygon(vs);
+	}
 
-		for(i in 0...1400) {
+
+	static function search_for_raycast_error() {
+		var w = flash.Lib.current.stage.stageWidth;
+		var h = flash.Lib.current.stage.stageHeight;
+
+		var debug = new BitmapDebug(w,h,0x333333);
+		flash.Lib.current.addChild(debug.display);
+		var space = new Space(new Vec2(0,500));
+
+		var border = new Body(BodyType.STATIC);
+		border.shapes.add(new Polygon(Polygon.rect(0,0,-50,h)));
+		border.shapes.add(new Polygon(Polygon.rect(0,0,w,-50)));
+		border.shapes.add(new Polygon(Polygon.rect(w,0,50,h)));
+		border.shapes.add(new Polygon(Polygon.rect(0,h,w,50)));
+		border.space = space;
+
+		var cb = new CbType();
+
+		for(i in 0...20) {
+			var c = new Compound();
 			var b = new Body();
-			b.position.setxy(Math.random()*800,Math.random()*600);
-			b.shapes.add(new Polygon(Polygon.regular(Math.random()*12+6,Math.random()*12+6,Std.int(Math.random()*1+3))));
-			b.space = space;
+			b.shapes.add(new Circle(10));
+			b.position.setxy(random()*w,random()*h);
+			b.velocity.setxy(random()*100-50,random()*100-50);
+			b.compound = c;
+			var b = new Body();
+			b.shapes.add(new Polygon(Polygon.box(20,20)));
+			b.shapes.add(new Polygon(Polygon.box(10,40)));
+			b.position.setxy(random()*w,random()*h);
+			b.velocity.setxy(random()*100-50,random()*100-50);
+			b.compound = c;
+			c.space = space;
+			c.cbType = cb;
 		}
 
-		var mcon = new PivotJoint(space.world,space.world,Vec2.weak(),Vec2.weak());
-		mcon.stiff = false;
-		mcon.space = space;
-		mcon.active = false;
-		mcon.space = space;
+		space.listeners.add(new InteractionListener(CbEvent.BEGIN, InteractionType.COLLISION, cb,cb, function (cb) {
+		}));
 
-		flash.Lib.current.stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function (_) {
-			var mx = flash.Lib.current.mouseX;	
-			var my = flash.Lib.current.mouseY;
-			var bods = space.bodiesInCircle(Vec2.weak(mx,my), 5);
-			for(b in bods) {
-				if(b.isDynamic()) {
-					mcon.body2 = b;
-					mcon.anchor2 = b.worldToLocal(Vec2.weak(mx,my),true);
-					mcon.active = true;
-				}
-			}
-		});
+		var mat = new Material(1);
+		space.visitBodies(function (b) b.setShapeMaterials(mat));
 
-		flash.Lib.current.stage.addEventListener(flash.events.MouseEvent.MOUSE_UP, function (_) {
-			mcon.active = false;
-		});
-		
 		(new haxe.Timer(0)).run = function() {
 			debug.clear();
-			mcon.anchor1.setxy(flash.Lib.current.mouseX,flash.Lib.current.mouseY);
-			space.step(1/60,6,2);
-			debug.draw(space);
-			debug.flush();
-		}
 
-*/
-
-/*        var root = nme.Lib.current;
-        Perlin3D.init_noise();
-
-        var z = 0.0;
-        var bnd = 0.0;
-        var iso = function(x:Float,y:Float) return Perlin3D.noise(x/40,y/30,z)-bnd;
-
-        var debug = new ShapeDebug(400,300,0xffffff);
-        root.addChild(debug.display);
-
-        var bounds  = new AABB(0,0,400,300);
-        var cells   = new Vec2(5,5);
-        var grid    = new Vec2(100,100);
-        var quality = 2;
-
-		var tim = new haxe.Timer(17);
-        tim.run = function () {
-            z += 1/30;
-            bnd = Math.sin(z*0.3)*0.35;
-            debug.clear();
-            var polys = MarchingSquares.run(iso, bounds, cells, quality, grid);
-            for(p in polys) {
-                var qs = p.convex_decomposition();
-                for(q in qs) debug.drawFilledPolygon(q,colour(q));
-                debug.drawPolygon(p,0);
-            }
-            debug.flush();
-        }
-
-		root.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function(_) {
-			tim.stop();
-			var space = new Space(new Vec2(0,400));
-
-			var border = new Body(BodyType.STATIC);
-			border.shapes.add(new Polygon(Polygon.rect(0,0,-20,300)));
-			border.shapes.add(new Polygon(Polygon.rect(400,0,20,300)));
-			border.shapes.add(new Polygon(Polygon.rect(0,0,400,-20)));
-			border.shapes.add(new Polygon(Polygon.rect(0,300,400,20)));
-			border.space = space;
-
-            var polys = MarchingSquares.run(iso, bounds, cells, quality, grid);
-            for(p in polys) {
-				var body = new Body();
-                var qs = p.convex_decomposition();
-                for(q in qs) {
-					body.shapes.add(new Polygon(q));
-				}
-				body.align();
-				body.space = space;
-			}
-
-			(new haxe.Timer(17)).run = function() {
-				debug.clear();
-				space.step(1/60,10,5);
-				debug.draw(space);
-				debug.flush();
-			}
-		});*/
-    }
-
-    static function colour(p:GeomPoly) {
-        //hue
-        var h = p.area()/3000*360; while(h>360) h -= 360;
-        var f = (h%60)/60;
-
-        var r:Float, g:Float, b:Float;
-        if     (h<=60 ) { r = 1; g = f; b = 0; }
-        else if(h<=120) { r = 1-f; g = 1; b = 0; }
-        else if(h<=180) { r = 0; g = 1; b = f; }
-        else if(h<=240) { r = 0; g = 1-f; b = 1; }
-        else if(h<=300) { r = f; g = 0; b = 1; }
-        else            { r = 1; g = 0; b = 1-f; }
-
-        return (Std.int(r*0xff)<<16)|(Std.int(g*0xff)<<8)|Std.int(b*0xff);
-    }
-}
-
-class Perlin3D {
-    public static function noise(x:Float, y:Float, z:Float) {
-        var X = Std.int(x); x -= X; X &= 0xff;
-        var Y = Std.int(y); y -= Y; Y &= 0xff;
-        var Z = Std.int(z); z -= Z; Z &= 0xff;
-        var u = fade(x); var v = fade(y); var w = fade(z);
-        var A = p(X)  +Y; var AA = p(A)+Z; var AB = p(A+1)+Z;
-        var B = p(X+1)+Y; var BA = p(B)+Z; var BB = p(B+1)+Z;
-        return lerp(w, lerp(v, lerp(u, grad(p(AA  ), x  , y  , z   ),
-                                       grad(p(BA  ), x-1, y  , z   )),
-                               lerp(u, grad(p(AB  ), x  , y-1, z   ),
-                                       grad(p(BB  ), x-1, y-1, z   ))),
-                       lerp(v, lerp(u, grad(p(AA+1), x  , y  , z-1 ),
-                                       grad(p(BA+1), x-1, y  , z-1 )),
-                               lerp(u, grad(p(AB+1), x  , y-1, z-1 ),
-                                       grad(p(BB+1), x-1, y-1, z-1 ))));
-    }
-
-    static function fade(t:Float) return t*t*t*(t*(t*6-15)+10)
-    static function lerp(t:Float, a:Float, b:Float) return a + t*(b-a)
-    static function grad(hash:Int, x:Float, y:Float, z:Float) {
-        var h = hash&15;
-        var u = h<8 ? x : y;
-        var v = h<4 ? y : h==12||h==14 ? x : z;
-        return ((h&1) == 0 ? u : -u) + ((h&2) == 0 ? v : -v);
-    }
-
+<<<<<<< HEAD
     static function p(i:Int) return perm[i]
     static var perm:Array<Int>;
     
@@ -414,12 +232,60 @@ class Tracer extends flash.text.TextField {
 				}
 				buf += "id: "+i.id+" refs:"+Std.string(i.refs)+" = "+Std.string(nme)+"\n";
 			}
-		}
-		if(state==TRACE) {
-			text += buf;
-			scrollV = maxScrollV;
-		}
-	}
+=======
+			space.step(1/60);
+			debug.draw(space);
+
+			for(i in 0...10) {
+				var r = new Ray(new Vec2(random()*w,random()*h), new Vec2(random()*2-1,random()*2-1));
+				var res = space.rayMultiCast(r,false);
+				var res = space.rayCast(r,true);
+				space.bodiesUnderPoint(new Vec2(random()*w,random()*h));
+			}
+
+			var c = space.compounds.at(Std.int(random()*space.compounds.length));
+			var b = c.bodies.at(Std.int(c.bodies.length*Math.random()));
+			if(b.isDynamic()) {
+			if(random()<0.33) {
+				b.compound = null;
+				space.step(1/60);
+				b.position.x = w-b.position.x;
+				b.space = space;
+				b.cbType = cb;
+				space.step(1/60);
+				b.space = null;
+				b.cbType = null;
+				b.compound = c;
+			}else if(random()<0.5) {
+				b.type = BodyType.KINEMATIC;
+				space.step(1/60);
+				b.type = BodyType.STATIC;
+				space.step(1/60);
+				b.type = BodyType.DYNAMIC;
+				space.step(1/60);
+				b.shapes.at(0).fluidEnabled = true;
+				space.step(1/60);
+				b.shapes.at(0).fluidEnabled = false;
+				space.step(1/60);
+				b.shapes.at(0).filter.collisionMask = 0;
+				space.step(1/60);
+				b.shapes.at(0).filter.collisionMask = -1;
+			}else {
+				b.position.x = w-b.position.x;
+				b.position.y = h-b.position.y;
+				b.cbType = null;
+				var l = space.listeners.pop();
+				space.step(1/60);
+				b.cbType =new CbType();
+				space.step(1/60);
+				b.cbType = null;
+				l.space = space;
+				space.step(1/60);
+				b.cbType =new CbType();
+			}
+			}
+
+			debug.flush();
 }
 
 class DummyNapeMain {
@@ -808,34 +674,5 @@ class DummyNapeMains {
 		flash.Lib.current.stage.addEventListener(flash.events.MouseEvent.MOUSE_UP, function (_) {
 			mcon.active = false;
 		});
-		
-		var x = Vec2.get();
-		var y = Vec2.get();
-
-		(new haxe.Timer(0)).run = function() {
-			debug.clear();
-			space.step(1/60,10,10);
-			debug.draw(space);
-
-			if(mcon.active) {
-/*				for(b in space.dynamics) {
-					if(b==mcon.body2) continue;
-					if(Geom.intersects(b.shapes.at(0),mcon.body2.shapes.at(0))) {
-						debug.drawLine(b.worldCOM,mcon.body2.worldCOM,0xff0000);
-					}
-					if(Geom.contains(b.shapes.at(0),mcon.body2.shapes.at(0))) {
-						debug.drawLine(b.worldCOM,mcon.body2.worldCOM,0xff00);
-					}
-					if(Geom.distance(b.shapes.at(0),mcon.body2.shapes.at(0),x,y)>=0) {
-						debug.drawLine(x,y,0xff00ff);
-					}
-				}*/			
-			}
-
-			debug.flush();
-		}
 	}
 }
-
-#end
-#end
