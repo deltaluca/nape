@@ -6,17 +6,16 @@ mkdir $1
 cd $1
 
 cat > Makefile << EOT
-NAPELIB = \$(NAPE)/haxe_release_nape.swf
-
 run: build
 	fp $1.swf
 
 build:
 	haxe \
 		-cp "/" -cp . -cp ../common \
-		-swf-lib \$(NAPELIB) \
+		-lib nape \
+		-D NAPE_RELEASE_BUILD \
 		-swf-header $2:$3:$4:$5 \
-		-swf-version 11 \
+		-swf-version 10 \
 		-main $1 \
 		-swf $1.swf
 EOT
@@ -24,7 +23,34 @@ EOT
 cat > $1.hx << EOT
 package;
 
-//not yet written!
+import nape.space.Space;
+import nape.phys.Body;
+import nape.phys.BodyType;
+import nape.shape.Circle;
+import nape.shape.Polygon;
+import nape.geom.Vec2;
+import nape.util.BitmapDebug;
+
+import FixedStep;
+
+class $1 extends FixedStep {
+	static function main() new $1()
+	function new() {
+		super(1/$4);
+
+		var space = new Space(new Vec2(0,400));
+		var debug = new BitmapDebug($2,$3,0x$5);
+		addChild(debug.display);
+
+		run(function (dt) {
+			debug.clear();
+			space.step(dt);
+			debug.draw(space);
+			debug.flush();
+		});
+	}
+}
+
 EOT
 
 cat > $1.as << EOT
