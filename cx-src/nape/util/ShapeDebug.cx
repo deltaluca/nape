@@ -49,9 +49,9 @@ class ShapeDebug extends Debug {
 	        g.lineTo(end.x,end.y);
 		}else {
 			var v = pr(inner).xform.outer.transform(start);
-			g.moveTo(v.x,v.y); v.dispose();
+			g.moveTo(v.x,v.y); v.destroy();
 			v = pr(inner).xform.outer.transform(end);
-			g.lineTo(v.x,v.y); v.dispose();
+			g.lineTo(v.x,v.y); v.destroy();
 		}
 
 		WEAK(start);
@@ -81,9 +81,9 @@ class ShapeDebug extends Debug {
 			var q = pr(inner).xform.outer.transform(end);
 			g.moveTo(u.x,u.y);
 			g.curveTo(v.x,v.y,q.x,q.y);
-			u.dispose();
-			v.dispose();
-			q.dispose();
+			u.destroy();
+			v.destroy();
+			q.destroy();
 		}
 
 		WEAK(start);
@@ -107,7 +107,7 @@ class ShapeDebug extends Debug {
 		else {
 			var v = pr(inner).xform.outer.transform(position);
 			g.drawCircle(v.x,v.y,radius*pr(inner).xdet);
-			v.dispose();
+			v.destroy();
 		}
 
 		WEAK(position);
@@ -133,9 +133,9 @@ class ShapeDebug extends Debug {
 			g.lineTo(v.x+h2.x,v.y+h2.y);
 			g.lineTo(v.x,v.y);
 
-			v.dispose();
-			w.dispose(); w2.dispose();
-			h.dispose(); h2.dispose();
+			v.destroy();
+			w.destroy(); w2.destroy();
+			h.destroy(); h2.destroy();
 		}
     }
     
@@ -155,11 +155,11 @@ class ShapeDebug extends Debug {
 	        g.lineTo(p2.x,p2.y);
 		}else {
 			var v = pr(inner).xform.outer.transform(p0);
-			g.moveTo(v.x,v.y); v.dispose();
+			g.moveTo(v.x,v.y); v.destroy();
 			v = pr(inner).xform.outer.transform(p1);
-			g.lineTo(v.x,v.y); v.dispose();
+			g.lineTo(v.x,v.y); v.destroy();
 			v = pr(inner).xform.outer.transform(p2);
-			g.lineTo(v.x,v.y); v.dispose();
+			g.lineTo(v.x,v.y); v.destroy();
 		}
         g.endFill();
 
@@ -182,7 +182,7 @@ class ShapeDebug extends Debug {
 		else {
 			var v = pr(inner).xform.outer.transform(position);
 			g.drawCircle(v.x,v.y,radius*pr(inner).xdet);
-			v.dispose();
+			v.destroy();
 		}
         g.endFill();
 
@@ -200,16 +200,16 @@ class ShapeDebug extends Debug {
 		if(pr(inner).xnull) {
 			PolyIter(p,polygon,{ if(fsttime) { fst = p.copy(); g.moveTo(p.x,p.y); } else g.lineTo(p.x,p.y); fsttime = false; });
 			g.lineTo(fst.x,fst.y);
-			fst.dispose();
+			fst.destroy();
 		}else {
 			PolyIter(p,polygon, {
 				var v = pr(inner).xform.outer.transform(p);
 				if(fsttime) { fst = v; g.moveTo(v.x,v.y); } else g.lineTo(v.x,v.y);
-				if(!fsttime) v.dispose();
+				if(!fsttime) v.destroy();
 				fsttime = false;
 			});
 			g.lineTo(fst.x,fst.y);
-			fst.dispose();
+			fst.destroy();
 		}
 		PolyWeak(polygon);
 	}
@@ -226,16 +226,16 @@ class ShapeDebug extends Debug {
 		if(pr(inner).xnull) {
 			PolyIter(p,polygon,{ if(fsttime) { fst = p.copy(); g.moveTo(p.x,p.y); } else g.lineTo(p.x,p.y); fsttime = false; });
 			g.lineTo(fst.x,fst.y);
-			fst.dispose();
+			fst.destroy();
 		}else {
 			PolyIter(p,polygon, {
 				var v = pr(inner).xform.outer.transform(p);
 				if(fsttime) { fst = v; g.moveTo(v.x,v.y); } else g.lineTo(v.x,v.y);
-				if(!fsttime) v.dispose();
+				if(!fsttime) v.destroy();
 				fsttime = false;
 			});
 			g.lineTo(fst.x,fst.y);
-			fst.dispose();
+			fst.destroy();
 		}
 		g.endFill();
 		PolyWeak(polygon);
