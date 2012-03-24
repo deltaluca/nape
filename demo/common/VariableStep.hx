@@ -17,6 +17,7 @@ class VariableStep extends flash.display.Sprite {
 
 		txt = new flash.text.TextField();
 		txt.defaultTextFormat = new flash.text.TextFormat("Courier New",null,fps_colour);
+		txt.selectable = false;
 		Lib.current.addChild(txt);
 	}
 
