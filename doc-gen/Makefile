@@ -9,6 +9,7 @@ def:
 run:
 	./bin/docs $(FILES)
 	mv doc/index.html doc/index.php
+	find doc -type f -name "*.html" -print | xargs sed -i 's/index\.html/index\.php/g'
 
 clean: clean_run
 	rm -rf bin
