@@ -1,155 +1,325 @@
 package;
-$(import);
+
+enum Scalar {
+	sName(n:String);
+	sConst(x:Float);
+	sRotation(body:Int);
+	sAngularVel(body:Int);
+}
+enum Vector {
+	vName(n:String);
+	vConst(x:Float,y:Float);
+	vPosition(body:Int);
+	vVelocity(body:Int);
+	vRelative(body:Int,n:String);
+}
+enum Matrix {
+	mConst(a:Float,b:Float,c:Float,d:Float);
+}
+
+enum Expr {
+	eMul(x:Expr,y:Expr); //scalar*T | vector*scalar
+	eNeg(x:Expr); //T
+	eAdd(x:Expr,y:Expr); //T*T
+	eDot(x:Expr,y:Expr); //vector*vector
+	eCross(x:Expr,y:Expr); //S*T
+	ePerp(x:Expr); //vector
+	eOuter(x:Expr,y:Expr); //vector*vector
+	ePerpOuter(x:Expr,y:Expr); //vector*vector
+	eMag(x:Expr); //vector
+	eInv(x:Expr); //scalar
+
+	eScalar(x:Scalar);
+	eVector(x:Vector);
+	eMatrix(m:Matrix);
+}
+
+class Printer {
+	static public function print_scalar(x:Scalar) {
+		return switch(x) {
+			case sName(n): n+".f";
+			case sConst(x): Std.string(x);
+			case sRotation(b): "b"+b+".rot";
+			case sAngularVel(b): "b"+b+".angvel";
+		}
+	}
+	static public function print_vector(x:Vector) {
+		return switch(x) {
+			case vName(n): n+".v";
+			case vConst(x,y): "<"+x+","+y+">";
+			case vPosition(b): "b"+b+".pos";
+			case vVelocity(b): "b"+b+".vel";
+			case vRelative(b,x): "b"+b+".rel("+x+")";
+		}
+	}
+	static public function print_matrix(x:Matrix) {
+		return switch(x) {
+			case mConst(a,b,c,d): "["+a+","+b+","+c+","+d+"]";
+		}
+	}
+	static public function print(e:Expr) {
+		return switch(e) {
+			case eMul(x,y): "("+print(x)+"*"+print(y)+")";
+			case eNeg(x): "(-"+print(x)+")";
+			case eAdd(x,y): "("+print(x)+"+"+print(y)+")";
+			case eDot(x,y): "("+print(x)+" dot "+print(y)+")";
+			case eCross(x,y): "("+print(x)+" crs "+print(y)+")";
+			case ePerp(x): "(perp "+print(x)+")";
+			case eOuter(x,y): "(outer "+print(x)+" "+print(y)+")";
+			case ePerpOuter(x,y): "(perpouter "+print(x)+" "+print(y)+")";
+			case eMag(x): "(mag "+print(x)+")";
+			case eInv(x): "(inv "+print(x)+")";
+
+			case eScalar(x): print_scalar(x);
+			case eVector(x): print_vector(x);
+			case eMatrix(x): print_matrix(x);
+		}
+	}
+}
+
+enum EType {
+	etScalar;
+	etVector;
+	etMatrix;
+}
+
+class Typer {
+	static public inline function sert(x:Bool,msg:String):Void {
+		if(!x) throw (msg);
+	}
+
+	static public function eq(a:EType,b:EType):Bool { return Type.enumEq(a,b); }
+
+	static public function scalar(e:Expr):Bool { return eq(typeof(e),etScalar); }
+	static public function vector(e:Expr):Bool { return eq(typeof(e),etVector); }
+	static public function matrix(e:Expr):Bool { return eq(typeof(e),etMatrix); }
+
+	static public function typeof(e:Expr):EType {
+		return switch(e) {
+			case eScalar(_): etScalar;
+			case eVector(_): etVector;
+			case eMatrix(_): etMatrix;
+
+			case eMul(x,y):
+				sert((scalar(x) || scalar(y) || matrix(x) || matrix(y)),"Mismatched types in eMul");
+				if(scalar(x)) typeof(y);
+				else if(scalar(y)) typeof(x);
+				else if(matrix(x) && matrix(y)) etMatrix;
+				else etVector;
+			case eNeg(x):
+				typeof(x);
+			case eAdd(x,y):
+				sert(eq(typeof(x),typeof(y)),"Mismatched types in eAdd");
+				typeof(x);
+			case eDot(x,y):
+				sert(vector(x) && vector(y),"Mismatched types in eDot");
+				etScalar;
+			case eCross(x,y):
+				if(vector(x) && vector(y)) etScalar else if(matrix(x) || matrix(y)) etMatrix else etVector;
+			case ePerp(x):
+				sert(vector(x),"Mismatched type in ePerp");
+				etVector;
+			case eOuter(x,y):
+				sert(vector(x) && vector(y),"Mismatched types in eOuter");
+				etMatrix;
+			case ePerpOuter(x,y):
+				sert(vector(x) && vector(y),"Mismatched types in ePerpOuter");
+				etMatrix;
+			case eMag(x):
+				sert(vector(x),"Mismatched type in eMag");
+				etScalar;
+			case eInv(x):
+				sert(scalar(x),"Mismatched type in eInv");
+				etScalar;
+		}
+	}
+
+	static public function okay(e:Expr) {
+		try { typeof(e); }
+		catch (e:Dynamic) { return false; }
+		return true;
+	}
+}
+
+class Differ {
+	static public function diff(e:Expr, ?wrt:Expr):Expr {
+		var angvelb = -1;
+		var velb = -1;
+		if(wrt!=null) {
+			switch(wrt) {
+				default: throw "Error: Cannot differentiate wrt to var";
+				case eScalar(x):
+					switch(x) {
+						case sAngularVel(b): angvelb = b;
+						default: throw "Error: Cannot differentiate wrt to var";
+					}
+				case eVector(x):
+					switch(x) {
+						case vVelocity(b): velb = b;
+						default: throw "Error: Cannot differentiate wrt to var";
+					}
+			}
+		}
+
+		return switch(e) {
+			case eScalar(x):
+				if(wrt!=null) {
+					if(angvelb!=-1) {
+						eScalar(switch(x) {
+							case sAngularVel(b):
+								if(b==angvelb) sConst(1.0) else sConst(0.0);
+							default:
+								sConst(0.0);
+						});
+					}else
+						eMatrix(mConst(0,0,0,0));
+				}else {
+					eScalar(switch(x) {
+						case sRotation(b): sAngularVel(b);
+						default: sConst(0.0);
+					});
+				}
+			case eVector(x):
+				if(velb!=-1) {
+					eMatrix(switch(x) {
+						case vVelocity(b):
+							if(b==velb) mConst(1,0,0,1) else mConst(0,0,0,0);
+						default:
+							mConst(0,0,0,0);
+					});
+				}else if(angvelb!=-1) {
+					eVector(vConst(0,0));
+				}else {
+					switch(x) {
+						case vPosition(b): eVector(vVelocity(b));
+						case vRelative(b,n): eCross(eScalar(sAngularVel(b)),eVector(vRelative(b,n)));
+						default: eVector(vConst(0,0));
+					}
+				}
+
+			case eMul(x,y):
+				eAdd(eMul(diff(x,wrt),y),eMul(x,diff(y,wrt)));
+			case eNeg(x):
+				eNeg(diff(x,wrt));
+			case eAdd(x,y):
+				eAdd(diff(x,wrt),diff(y,wrt));
+			case eDot(x,y):
+				eAdd(eDot(diff(x,wrt),y),eDot(x,diff(y,wrt)));
+			case eCross(x,y):
+				eAdd(eCross(diff(x,wrt),y),eCross(x,diff(y,wrt)));
+			case ePerp(x):
+				ePerp(diff(x,wrt));
+			case eMag(x):
+				eMul(eInv(eMag(x)),eDot(x,diff(x,wrt)));
+			case eInv(x):
+				eNeg(eMul(eInv(eMul(x,x)),diff(x,wrt)));
+
+			default: throw "not differentiable";
+		}
+	}
+}
+
+class Simple {
+	static function none(x:Expr) {
+		return switch(x) {
+			case eScalar(y): switch(y) { case sConst(z): z==-1; default: false; }
+			default: false;
+		}
+	}
+	static function one(x:Expr) {
+		return switch(x) {
+			case eScalar(y): switch(y) { case sConst(z): z==1; default: false; }
+			default: false;
+		}
+	}
+	static function zero(x:Expr) {
+		return switch(x) {
+			case eScalar(y): switch(y) { case sConst(z): z==0; default: false; }
+			case eVector(y): switch(y) { case vConst(z,w): z==w && w==0; default: false; }
+			case eMatrix(y): switch(y) { case mConst(a,b,c,d): a==b && b==c && c==d && d==0; default: false; }
+			default: false;
+		}
+	}
+	static function const(x:Expr) {
+		return switch(x) {
+			case eScalar(y): switch(y) { case sConst(_): true; default: false; }
+			case eVector(y): switch(y) { case vConst(_,_): true; default: false; }
+			case eMatrix(y): switch(y) { case mConst(_,_,_,_): true; default: false; }
+			default: false;
+		}
+	}
+	public static function simple(x:Expr) {
+		var y = __simple(x);
+		return __simple(y);
+	}
+	public static function __simple(x:Expr) {
+		return switch(x) {
+			case eAdd(inx,iny):
+				var x = simple(inx);
+				var y = simple(iny);
+				zero(x) ? y : zero(y) ? x : eAdd(x,y);
+			case eNeg(inx):
+				var x = simple(inx);
+				zero(x) ? x : !const(x) ? eNeg(x) : ({
+					switch(x) {
+						case eScalar(y): switch(y) { case sConst(z): eScalar(sConst(-z)); default: x;}
+						case eVector(y): switch(y) { case vConst(xx,y): eVector(vConst(-xx,-y)); default: x;}
+						case eMatrix(y): switch(y) { case mConst(a,b,c,d): eMatrix(mConst(-a,-b,-c,-d)); default: x;}
+						default: x;
+					}
+				});
+			case eMul(inx,iny):
+				var x = simple(inx);
+				var y = simple(iny);
+				zero(x) ? x : zero(y) ? y : ({
+					one(x) ? y : one(y) ? x : ({
+						none(x) ? eNeg(y) : none(y) ? eNeg(x) :	eMul(x,y);
+					});
+				});
+			case eDot(inx,iny):
+				var x = simple(inx);
+				var y = simple(iny);
+				zero(x) || zero(y) ? eScalar(sConst(0)) : eDot(x,y);
+			case eCross(inx,iny):
+				var x = simple(inx);
+				var y = simple(iny);
+				if(zero(x) || zero(y)) {
+					if(Typer.matrix(x) || Typer.matrix(y)) eMatrix(mConst(0,0,0,0));
+					else if(Typer.vector(x) && Typer.vector(y)) eScalar(sConst(0));
+					else eVector(vConst(0,0));
+				}else if(Typer.scalar(x))
+					eMul(x,ePerp(y));
+				else if(Typer.scalar(y))
+					eNeg(eMul(y,ePerp(x)));
+				else
+					eCross(x,y);
+			default: x;
+		}
+	}
+}
 
 class DummyNapeMain {
-	static function main() polygon_vector()
-//	static function main() search_for_raycast_error()
+	static function main() {
+		var r1 = eVector(vRelative(1,"anchor1"));
+		var r2 = eVector(vRelative(2,"anchor2"));
+		var x1 = eVector(vPosition(1));
+		var x2 = eVector(vPosition(2));
 
-	static var x = 123456789;
-	static var y = 362436069;
-	static var z = 521288629;
-	static var w = 88675123;
-	static inline function random():Float {
-		var t = x^(x<<11);
-		x = y; y = z; z = w;
-		w = w ^ (w>>>19) ^ (t ^ (t >>> 8));
-		var r = (w%10000)/10000;
-		if(r<0) r = -r;
-		if(r>1) r = 0.999999999999;
-		return r;
-	}
-	
-	static function polygon_vector() {
-		var vs = new flash.Vector<Vec2>();
-		vs.push(new Vec2());
-		vs.push(new Vec2(50,50));
-		vs.push(new Vec2(50,100));
-		vs.push(new Vec2(100,50));
-		var p = new Polygon(vs);
-	}
+		var pivot_C = eAdd(eAdd(x2,r2), eNeg(eAdd(x1,r1)));
+		trace(Printer.print(pivot_C));
+		trace(Typer.typeof(pivot_C));
 
+		var pivot_V = Differ.diff(pivot_C);
+		trace(Printer.print(pivot_V));
+		trace(Typer.typeof(pivot_V));
 
-	static function search_for_raycast_error() {
-		var w = flash.Lib.current.stage.stageWidth;
-		var h = flash.Lib.current.stage.stageHeight;
-
-		var debug = new BitmapDebug(w,h,0x333333);
-		flash.Lib.current.addChild(debug.display);
-		var space = new Space(new Vec2(0,500));
-
-		var border = new Body(BodyType.STATIC);
-		border.shapes.add(new Polygon(Polygon.rect(0,0,-50,h)));
-		border.shapes.add(new Polygon(Polygon.rect(0,0,w,-50)));
-		border.shapes.add(new Polygon(Polygon.rect(w,0,50,h)));
-		border.shapes.add(new Polygon(Polygon.rect(0,h,w,50)));
-		border.space = space;
-
-		var cb = new CbType();
-
-		for(i in 0...20) {
-			var c = new Compound();
-			var b = new Body();
-			b.shapes.add(new Circle(10));
-			b.position.setxy(random()*w,random()*h);
-			b.velocity.setxy(random()*100-50,random()*100-50);
-			b.compound = c;
-			var b = new Body();
-			b.shapes.add(new Polygon(Polygon.box(20,20)));
-			b.shapes.add(new Polygon(Polygon.box(10,40)));
-			b.position.setxy(random()*w,random()*h);
-			b.velocity.setxy(random()*100-50,random()*100-50);
-			b.compound = c;
-			c.space = space;
-			c.cbType = cb;
-		}
-
-		space.listeners.add(new InteractionListener(CbEvent.BEGIN, InteractionType.COLLISION, cb,cb, function (cb) {
-		}));
-
-		var mat = new Material(1);
-		space.visitBodies(function (b) b.setShapeMaterials(mat));
-
-		(new haxe.Timer(0)).run = function() {
-			debug.clear();
-
-			space.step(1/60);
-			debug.draw(space);
-
-			for(i in 0...10) {
-				var r = new Ray(new Vec2(random()*w,random()*h), new Vec2(random()*2-1,random()*2-1));
-				var res = space.rayMultiCast(r,false);
-				var res = space.rayCast(r,true);
-				space.bodiesUnderPoint(new Vec2(random()*w,random()*h));
-			}
-
-			var c = space.compounds.at(Std.int(random()*space.compounds.length));
-			var b = c.bodies.at(Std.int(c.bodies.length*Math.random()));
-			if(b.isDynamic()) {
-			if(random()<0.33) {
-				b.compound = null;
-				space.step(1/60);
-				b.position.x = w-b.position.x;
-				b.space = space;
-				b.cbType = cb;
-				space.step(1/60);
-				b.space = null;
-				b.cbType = null;
-				b.compound = c;
-			}else if(random()<0.5) {
-				b.type = BodyType.KINEMATIC;
-				space.step(1/60);
-				b.type = BodyType.STATIC;
-				space.step(1/60);
-				b.type = BodyType.DYNAMIC;
-				space.step(1/60);
-				b.shapes.at(0).fluidEnabled = true;
-				space.step(1/60);
-				b.shapes.at(0).fluidEnabled = false;
-				space.step(1/60);
-				b.shapes.at(0).filter.collisionMask = 0;
-				space.step(1/60);
-				b.shapes.at(0).filter.collisionMask = -1;
-			}else {
-				b.position.x = w-b.position.x;
-				b.position.y = h-b.position.y;
-				b.cbType = null;
-				var l = space.listeners.pop();
-				space.step(1/60);
-				b.cbType =new CbType();
-				space.step(1/60);
-				b.cbType = null;
-				l.space = space;
-				space.step(1/60);
-				b.cbType =new CbType();
-			}
-			}
-
-			debug.flush();
-		}
-	}
-
-	static function test_memory() {
-		var txt = new flash.text.TextField();
-		txt.defaultTextFormat = new flash.text.TextFormat("Courier New",12,0xffffff);
-		txt.selectable = false;
-		txt.width = flash.Lib.current.stage.stageWidth;
-		txt.height = flash.Lib.current.stage.stageHeight;
-		flash.Lib.current.addChild(txt);
-
-		var v = new Vec2();
-		var v2 = new Vec2();
-		var graph = new Graph([v,v2]);
-		graph.populate(function () {
-			txt.text = graph.toString();
-			v.dispose();
-			v2.dispose();
-			graph.populate(function () {
-				txt.text += "\n"+graph.toString();
-				Debug.clearObjectPools();
-				graph.populate(function () {
-					txt.text += "\n"+graph.toString();
-				});
-			});
-		});
+		var Jv1 = Simple.simple(Differ.diff(pivot_V,eVector(vVelocity(1))));
+		var Jw1 = Simple.simple(Differ.diff(pivot_V,eScalar(sAngularVel(1))));
+		var Jv2 = Simple.simple(Differ.diff(pivot_V,eVector(vVelocity(2))));
+		var Jw2 = Simple.simple(Differ.diff(pivot_V,eScalar(sAngularVel(2))));
+		trace(Printer.print(Jv1)); trace(Typer.typeof(Jv1));
+		trace(Printer.print(Jw1)); trace(Typer.typeof(Jw1));
+		trace(Printer.print(Jv2)); trace(Typer.typeof(Jv2));
+		trace(Printer.print(Jw2)); trace(Typer.typeof(Jw2));
 	}
 }
