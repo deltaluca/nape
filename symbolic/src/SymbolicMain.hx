@@ -28,6 +28,7 @@ class SymbolicMain {
 		var context = ExprUtils.emptyContext();
 		context.variableContext("anchor1",etVector);
 		context.variableContext("anchor2",etVector);
+		context.variableContext("dist",etScalar);
 		bodyContext(context,1);
 		bodyContext(context,2);
 
@@ -55,19 +56,29 @@ class SymbolicMain {
 		}
 
 		var pivot = eAdd(eAdd(eVariable("pos2"),eRelative("rot2",eVariable("anchor2"))),eMul(eScalar(-1),eAdd(eVariable("pos1"),eRelative("rot1",eVariable("anchor1")))));
+		var dist = eAdd(eMag(pivot), eMul(eScalar(-1),eVariable("dist")));
+	
+		var dist = eLet("del",pivot,eAdd(eMag(eVariable("del")),eMul(eScalar(-1),eVariable("dist"))));
+	//-------------
 
-		tracex(pivot.print());
+		var working = dist;
+		tracex(working.print());
 
-		var pivotV = pivot.diff(context);
-		
-		tracex(pivotV.print());
+		var workingV = working.diff(context);
+		tracex(workingV.print());
 
-		var pivotJv1x = pivotV.diff(context,"vel1",0);
-		tracex(pivotJv1x.print());
-		var pivotJv1y = pivotV.diff(context,"vel1",1);
-		tracex(pivotJv1y.print());
-		var pivotJw1 = pivotV.diff(context,"angvel1");
-		tracex(pivotJw1.print());
+		var workingJv1x = workingV.diff(context,"vel1",0);
+		tracex(workingJv1x.print());
+		var workingJv1y = workingV.diff(context,"vel1",1);
+		tracex(workingJv1y.print());
+		var workingJw1 = workingV.diff(context,"angvel1");
+		tracex(workingJw1.print());
+		var workingJv2x = workingV.diff(context,"vel2",0);
+		tracex(workingJv2x.print());
+		var workingJv2y = workingV.diff(context,"vel2",1);
+		tracex(workingJv2y.print());
+		var workingJw2 = workingV.diff(context,"angvel2");
+		tracex(workingJw2.print());
 	/*
 		var evalexpr = eLet(
 			"pos1",eVector(1,20),

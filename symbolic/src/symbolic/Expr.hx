@@ -132,7 +132,10 @@ class ExprUtils {
 				else context.vars.get(n).type;
 			case eLet(n,eq,within):
 				extendContext(context, n,eq);
-				var ret = etype(within,context);
+				var ret:EType = null;
+				try {
+					ret = etype(within,context);
+				}catch(e:Dynamic) {}
 				redactContext(context, n);
 				ret;
 
@@ -206,7 +209,10 @@ class ExprUtils {
 				eval(context.env.get(n)[0],context);
 			case eLet(n,eq,vin):
 				extendContext(context, n,eval(eq,context));
-				var ret = eval(vin,context);
+				var ret:Expr = null;
+				try {
+					ret = eval(vin,context);
+				}catch(e:Dynamic) {}
 				redactContext(context, n);
 				ret;
 			
@@ -303,7 +309,111 @@ class ExprUtils {
 		}	
 	}
 
-	//----------------------------------------------------------------------------
+	//---------------------------------------------------------------------------
+	//===========================================================================
+
+	//simplification
+	public static function simple(e:Expr,context:Context) {
+		return __simple(e,context);
+	}
+	static function __simple(e:Expr,context:Context) {
+		function tryeval(e:Expr) {
+			try {
+				var t = eval(e,context);
+				if(t!=null) e = t;
+			}catch(e:Dynamic) {
+			}
+			return e;
+		}
+		function _simple(e:Expr) return tryeval(simple(e,context));
+		function zero(e:Expr) {
+			return switch(e) {
+				case eScalar(x): x==0;
+				case eVector(x,y): x==y && y==0;
+				case eMatrix(x,y,z,w): x==y && y==z && z==w && w==1;
+				default: false;
+			}
+		}
+		function zerotype(e:EType) {
+			return switch(e) {
+				case etScalar: eScalar(0);
+				case etVector: eVector(0,0);
+				case etMatrix: eMatrix(0,0,0,0);
+			}
+		}
+		function one(e:Expr,?val=1.0) {
+			return switch(e) {
+				case eScalar(x): x==val;
+				case eMatrix(x,y,z,w): x==w && x==val && y==z && z==0;
+				default: false;
+			}
+		}
+
+		function depends(e:Expr,on:Expr) {
+			return switch(e) {
+				case eScalar(_): false;
+				case eVector(_,_): false;
+				case eMatrix(_,_,_,_): false;
+				default: true;
+			}
+		}
+
+		var ret = switch(e) {
+			default: e;
+			case eRelative(rot,inx): eRelative(rot,_simple(inx));
+			case eLet(n,ineq,invin):
+				var eq = _simple(ineq);
+				extendContext(context,n,eq);
+				var vin = null;
+				try {
+					vin = tryeval(simple(invin,context));
+				}catch(e:Dynamic) {}
+				redactContext(context,n);
+
+				if(depends(vin,eq)) eLet(n,eq,vin) else vin;
+			case eAdd(inx,iny):
+				var x = _simple(inx);
+				var y = _simple(iny);
+				if(zero(x)) y else if(zero(y)) x else eAdd(x,y);
+			case eMul(inx,iny):
+				var x = _simple(inx);
+				var y = _simple(iny);
+				if(zero(x) || zero(y)) zerotype(etype(eMul(x,y),context))
+				else if(one(x)) y else if(one(y)) x
+				else eMul(x,y);
+			case eDot(inx,iny):
+				var x = _simple(inx);
+				var y = _simple(iny);
+				if(zero(x) || zero(y)) zerotype(etype(eDot(x,y),context))
+				else eDot(x,y);
+			case eCross(inx,iny):
+				var x = _simple(inx);
+				var y = _simple(iny);
+				if(zero(x) || zero(y)) zerotype(etype(eCross(x,y),context))
+				else if(one(x)) ePerp(y)
+				else if(Type.enumEq(etype(x,context),etScalar))
+					 eMul(x,ePerp(y))
+				else if(Type.enumEq(etype(y,context),etScalar))
+					 eMul(eMul(y,eScalar(-1)),ePerp(x));
+				else eCross(x,y);
+			case eOuter(inx,iny):
+				var x = _simple(inx);
+				var y = _simple(iny);
+				if(zero(x) || zero(y)) zerotype(etype(eOuter(x,y),context))
+				else eOuter(x,y);
+			case ePerp(inx):
+				ePerp(_simple(inx));
+			case eMag(inx):
+				eMag(_simple(inx));
+			case eInv(inx):
+				eInv(_simple(inx));
+			case eUnit(inx):
+				eUnit(_simple(inx));
+		}
+		return tryeval(ret);
+	}
+
+	//---------------------------------------------------------------------------
 	//===========================================================================
 
 	//derivatives
@@ -311,7 +421,7 @@ class ExprUtils {
 	public static function diff(e:Expr,context:Context,?wrt:String,?elt=-1) {
 		function _diff(e:Expr) return diff(e,context,wrt,elt);
 
-		return switch(e) {
+		return simple(switch(e) {
 			default: throw "cannot differentiate "+print(e); null;
 
 			case eScalar(_): eScalar(0);
@@ -381,6 +491,6 @@ class ExprUtils {
 						eInv(eMag(x))
 					)
 				));
-		}
+		}, context);
 	}
 }
