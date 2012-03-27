@@ -35,6 +35,8 @@ enum Expr {
 	eScalar(x:Scalar);
 	eVector(x:Vector);
 	eMatrix(m:Matrix);
+
+	eLet(n:String,eq:Expr,out:Expr);
 }
 
 class Printer {
@@ -74,6 +76,7 @@ class Printer {
 			case eMag(x): "(mag "+print(x)+")";
 			case eInv(x): "(inv "+print(x)+")";
 			case eUnit(x): "(unit "+print(x)+")";
+			case eLet(n,x,y): "(let "+n+"="+print(x)+" in "+print(y)+")";
 
 			case eScalar(x): print_scalar(x);
 			case eVector(x): print_vector(x);
@@ -99,7 +102,10 @@ class Typer {
 	static public function vector(e:Expr):Bool { return eq(typeof(e),etVector); }
 	static public function matrix(e:Expr):Bool { return eq(typeof(e),etMatrix); }
 
-	static public function typeof(e:Expr):EType {
+	static public function typeof(e:Expr, ?env:Hash<Array<Expr>>):EType {
+		if(env==null) env = new Hash<Array<Expr>>();
+		function _typeof(e:Expr) return typeof(e, env);
+
 		return switch(e) {
 			case eScalar(_): etScalar;
 			case eVector(_): etVector;
@@ -107,15 +113,15 @@ class Typer {
 
 			case eMul(x,y):
 				sert((scalar(x) || scalar(y) || matrix(x) || matrix(y)),"Mismatched types in eMul");
-				if(scalar(x)) typeof(y);
-				else if(scalar(y)) typeof(x);
+				if(scalar(x)) _typeof(y);
+				else if(scalar(y)) _typeof(x);
 				else if(matrix(x) && matrix(y)) etMatrix;
 				else etVector;
 			case eNeg(x):
-				typeof(x);
+				_typeof(x);
 			case eAdd(x,y):
-				sert(eq(typeof(x),typeof(y)),"Mismatched types in eAdd");
-				typeof(x);
+				sert(eq(_typeof(x),_typeof(y)),"Mismatched types in eAdd");
+				_typeof(x);
 			case eDot(x,y):
 				sert((vector(x) && vector(y)) || (scalar(x) && scalar(y)),"Mismatched types in eDot");
 				etScalar;
@@ -136,6 +142,14 @@ class Typer {
 			case eUnit(x):
 				sert(vector(x),"Mismatched type in eUnit");
 				etVector;
+
+			case eLet(n,x,y):
+				if(!env.exists(n)) env.set(n, []);
+				env.get(n).unshift(x);
+				var ret = typeof(y, env);
+				env.get(n).shift();
+				if(env.get(n).length==0) env.remove(n);
+				ret;
 		}
 	}
 
@@ -147,7 +161,8 @@ class Typer {
 }
 
 class Differ {
-	static public function diff(e:Expr, ?wrt:Expr, ?elt:Int=-1):Expr {
+	//subs is hash of substitutions to make based on Printer.print(e) existing in hash to a 'let' variable
+	static public function diff(e:Expr, ?wrt:Expr, ?elt:Int=-1, ?subs:Hash<Expr>):Expr {
 		var angvelb = -1;
 		var velb = -1;
 		if(wrt!=null) {
@@ -166,9 +181,10 @@ class Differ {
 			}
 		}
 
-		function _diff(e:Expr) return diff(e,wrt,elt);
+		if(subs==null) subs = new Hash<Expr>();
+		function _diff(e:Expr) return diff(e,wrt,elt,subs);
 
-		return switch(e) {
+		var ret = switch(e) {
 			case eScalar(x):
 				if(wrt!=null) {
 					if(angvelb!=-1) {
@@ -233,8 +249,23 @@ class Differ {
 					)
 				);
 
+			case eLet(n,x,y):
+				var nprime = n+"__prime";
+				var dx = _diff(x);
+				var dstr = Printer.print(dx);
+				subs.set(dstr, Typer.scalar(dx) ? eScalar(sName(nprime)) : eVector(vName(nprime)));
+				var ret = eLet(n,x,
+					eLet(nprime,dx,
+						diff(y,wrt,elt,subs)
+					)
+				);
+				subs.remove(dstr);
+				ret;
 			default: throw "not differentiable";
 		}
+		var retstr = Printer.print(ret);
+		if(subs.exists(retstr)) return subs.get(retstr);
+		else return ret;
 	}
 }
 
@@ -286,6 +317,7 @@ class Simple {
 	}
 	public static function __simple(x:Expr) {
 		return switch(x) {
+			case eLet(n,x,y): eLet(n,simple(x),simple(y));
 			case eAdd(inx,iny):
 				var x = simple(inx);
 				var y = simple(iny);
@@ -566,7 +598,7 @@ class DummyNapeMain {
 			txt.text += Std.string(x)+"\n";
 		}
 
-		var r1 = eVector(vRelative(1,"anchor1"));
+/*		var r1 = eVector(vRelative(1,"anchor1"));
 		var r2 = eVector(vRelative(2,"anchor2"));
 		var x1 = eVector(vPosition(1));
 		var x2 = eVector(vPosition(2));
@@ -582,7 +614,13 @@ class DummyNapeMain {
 
 		var J = [dist_J];
 		var K = KEff.keff(J,[1,2]);
-		tracex(Lambda.map(K, Printer.print));
+		tracex(Lambda.map(K, Printer.print));*/
+
+		var expr = eLet("a",eDot(eVector(vConst(1,2)),eVector(vPosition(1))),eVector(vName("a")));
+		trace(Printer.print(expr));
+		expr = Differ.diff(expr);
+		trace(Printer.print(expr));
+
 /*
 		var pivot_C = eAdd(eAdd(x2,r2), eNeg(eAdd(x1,r1)));
 		var angle_C = eAdd(eScalar(sRotation(2)),eNeg(eScalar(sRotation(1))));
