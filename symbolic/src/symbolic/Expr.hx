@@ -5,7 +5,7 @@ enum Expr {
 	eVector(x:Float,y:Float);
 	eMatrix(a:Float,b:Float,c:Float,d:Float);
 
-	eRelative(rot:Expr,x:Expr);	
+	eRelative(rot:String,x:Expr);	
 
 	eVariable(n:String);
 	eLet(n:String,equals:Expr,within:Expr);
@@ -50,6 +50,9 @@ class ExprUtils {
 		}
 		context.vars.set(n, {type:type,del:del});
 	}
+	static public function variableRedact(context:Context,n:String) {
+		context.vars.remove(n);
+	}
 	static public function extendContext(context:Context,n:String,eq:Expr) {
 		if(!context.env.exists(n)) context.env.set(n, [eq]);
 		else context.env.get(n).unshift(eq);
@@ -59,6 +62,9 @@ class ExprUtils {
 		env.shift();
 		if(env.length==0) context.env.remove(n);
 	}
+
+	//----------------------------------------------------------------------------
+	//===========================================================================
 
 	//printing algorithm
 	static public function print_type(e:EType) {
@@ -93,10 +99,10 @@ class ExprUtils {
 			case eScalar(x): Std.string(x);
 			case eVector(x,y): "vec("+Std.string(x)+","+Std.string(y)+")";
 			case eMatrix(a,b,c,d): "mat("+Std.string(a)+","+Std.string(b)+","+Std.string(c)+","+Std.string(d)+")";
-			case eRelative(row,x): "rel("+print(row)+" of "+print(x)+")";
+			case eRelative(rot,x): "rel("+rot+" of "+print(x)+")";
 
 			case eVariable(n): "var("+n+")";
-			case eLet(n,eq,of): "let("+n+"="+print(eq)+") in "+print(of);
+			case eLet(n,eq,of): "let "+n+"="+print(eq)+" in\n   "+print(of);
 	
 			case eAdd(x,y): "("+print(x)+"+"+print(y)+")";
 			case eMul(x,y): "("+print(x)+"*"+print(y)+")";
@@ -109,6 +115,9 @@ class ExprUtils {
 			case eUnit(x): "unit("+print(x)+")";
 		}
 	}
+
+	//----------------------------------------------------------------------------
+	//===========================================================================
 
 	//typing algorithm
 	static public function etype(e:Expr,?context:Context) {
@@ -188,4 +197,91 @@ class ExprUtils {
 			case eUnit(x): etype(x,context);
 		}
 	}
+
+	//----------------------------------------------------------------------------
+	//===========================================================================
+
+	//evaluator
+	public static function eval(e:Expr,context:Context) {
+		return switch(e) {
+			default: e;
+			case eRelative(rot,x):
+				eRelative(rot,eval(x,context)); //meh
+
+			case eVariable(n):
+				eval(context.env.get(n)[0],context);
+			case eLet(n,eq,vin):
+				extendContext(context, n,eval(eq,context));
+				var ret = eval(vin,context);
+				redactContext(context, n);
+				ret;
+			
+			case eAdd(inx,iny):
+				var x = eval(inx,context);
+				var y = eval(iny,context);
+				switch(x) {
+				case eScalar(x): switch(y) { case eScalar(y): eScalar(x+y); default: null; }
+				case eVector(x1,x2): switch(y) { case eVector(y1,y2): eVector(x1+y1,x2+y2); default: null; }
+				case eMatrix(xa,xb,xc,xd): switch(y) { case eMatrix(ya,yb,yc,yd): eMatrix(xa+ya,xb+yb,xc+yc,xd+yd); default: null; }
+				case ePerp(x): switch(y) { case ePerp(y): eval(ePerp(eAdd(x,y)),context); default: null; }
+				default: null;
+				}
+
+			case eDot(inx,iny):
+				var x = eval(inx,context);
+				var y = eval(iny,context);
+				switch(x) {
+				case eScalar(x): switch(y) { case eScalar(y): eScalar(x*y); default: null; }
+				case eVector(x1,x2): switch(y) { case eVector(y1,y2): eScalar(x1*y1+x2*y2); default: null; }
+				default:null;
+				}
+
+			case eCross(inx,iny):
+				var x = eval(inx,context);
+				var y = eval(iny,context);
+				switch(x) {
+				case eScalar(x): switch(y) { case eVector(y1,y2): eVector(-y2*x,y1*x); default: null; }
+				case eVector(x1,x2): switch(y) {
+					case eVector(y1,y2): eScalar(x1*y2-x2*y1);
+					case eScalar(y): eVector(x2*y,-x1*y);
+					default: null;
+				}
+				default: null;	
+				}
+		}	
+	}
+
+	//----------------------------------------------------------------------------
+	//===========================================================================
+
+	//derivatives
+/*	public static function diff(e:Expr,context:Context,?wrt:String,?elt=-1) {
+		function _diff(e:Expr) return diff(e,context,wrt,elt);
+
+		return switch(e) {
+			case eScalar(_): eScalar(0);
+			case eVector(_,_): eVector(0,0);
+			case eMatrix(_,_,_,_): eMatrix(0,0,0,0);
+			case eRelative(rot,x):
+				if(wrt==null) eCross(eVariable(rot),x);
+				else eVector(0,0);
+			
+			case eVariable(n):
+				var vart = context.vars.get(n);
+					switch(vart.type) {
+					case etScalar:
+						if(wrt==n) eScalar(1);
+						else if(wrt==null) vart.del;
+						else eScalar(0);
+					case etColVector:
+						if(wrt==n) eVector(elt==0?1:0,elt==1?1:0);
+						else if(wrt==null) vart.del;
+						else eVector(0,0);
+					default: null;
+				}
+			case eLet(n,eq,vin):
+				
+				context.variableContext(n+"__prime",	
+		}
+	}*/
 }

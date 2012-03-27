@@ -32,21 +32,26 @@ class SymbolicMain {
 		bodyContext(context,2);
 
 		var expr = eLet(
-			"a",eDot(eVector(1,2),eVariable("pos1")),
-			eVariable("a")
+			"a",eCross(eScalar(10),eVariable("pos1")),
+			eAdd(eVariable("a"),eVariable("a"))
 		);
 
 		tracex(expr.print());
-		tracex(expr.etype().print_type());
+		
+		var evalexpr = eLet(
+			"pos1",eVector(1,20),
+			expr
+		);
+		tracex(evalexpr.print());
+		tracex(evalexpr.eval(context).print());
 	}
-}
-
-/*	static function main() {
+/*
+	static function main() {
 		var space = new nape.space.Space();
 
 		var b1 = new nape.phys.Body();
 		b1.shapes.add(new nape.shape.Circle(20));
-		var b2 = new nape.phys.Body();
+		var b2 = new nape.phys.Body(nape.phys.BodyType.KINEMATIC);
 		b2.shapes.add(new nape.shape.Circle(20));
 
 		b1.shapes.at(0).filter = new nape.dynamics.InteractionFilter(1,2);
@@ -61,3 +66,4 @@ class SymbolicMain {
 		
 		space.step(1);
 	}*/
+}
