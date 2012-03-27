@@ -125,7 +125,7 @@ clean:
 
 server-release:
 	rm -rf nape.tar.gz
-	tar cvfz nape.tar.gz cx-src Makefile version server-remotes
+	tar cvfz nape.tar.gz cx-src Makefile version server-remotes fix-remotes
 	scp nape.tar.gz deltaluca.me.uk:nape.tar.gz
 	echo "ssh deltaluca.me.uk << EOT" > .nape-release
 	echo "./nape-release" >> .nape-release
@@ -171,3 +171,12 @@ server-build-release9:
 	haxe -swf release_nape9.swc -swf-version 9 $(RELEASE_FLAGS)
 	flib release_nape9.swc
 	rm -rf src
+
+server-build-externs:
+	tar -xf hx-src.tar.gz
+	unzip release_nape.swc -x catalog.xml
+	
+	flib --externs library.swf --include nape --include zpp_nape
+	./fix-externs
+	tar -cvfz externs.tar.gz externs
+	
