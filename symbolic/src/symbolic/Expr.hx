@@ -248,6 +248,40 @@ class ExprUtils {
 				}
 				default: null;	
 				}
+			case ePerp(inx):
+				var x = eval(inx,context);
+				switch(x) {
+				case eVector(x,y): ePerp(eVector(x,y));
+				case ePerp(x): x;
+				default: null;
+				}
+			case eOuter(inx,iny):
+				var x = eval(inx,context);
+				var y = eval(iny,context);
+				switch(x) {
+				case eScalar(x): switch(y) { case eScalar(y): eScalar(x*y); default: null; }
+				case eVector(x1,x2): switch(y) { case eVector(y1,y2): eMatrix(x1*y1,x2*y1,x1*y2,x2*y2); default: null; }
+				default: null;
+				}
+			case eMag(inx):
+				var x = eval(inx,context);
+				switch(x) {
+				case eScalar(x): eScalar(Math.abs(x));
+				case eVector(x,y): eScalar(Math.sqrt(x*x+y*y));
+				default: null;
+				}	
+			case eInv(inx):
+				var x = eval(inx,context);
+				switch(x) {
+				case eScalar(x): eScalar(1/x);
+				default: null;
+				}
+			case eUnit(inx):
+				var x = eval(inx,context);
+				switch(x) {
+				case eVector(x,y): var mag = 1/Math.sqrt(x*x+y*y); eVector(x*mag,y*mag);
+				default: null;
+				}
 		}	
 	}
 

@@ -33,7 +33,7 @@ class SymbolicMain {
 
 		var expr = eLet(
 			"a",eCross(eScalar(10),eVariable("pos1")),
-			eAdd(eVariable("a"),eVariable("a"))
+			eOuter(eVariable("a"),eVariable("a"))
 		);
 
 		tracex(expr.print());
