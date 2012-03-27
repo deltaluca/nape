@@ -318,7 +318,7 @@ class ExprUtils {
 			case eVector(_,_): eVector(0,0);
 			case eMatrix(_,_,_,_): eMatrix(0,0,0,0);
 			case eRelative(rot,x):
-				if(wrt==null) eCross(eVariable(rot),x);
+				if(wrt==null) eCross(_diff(eVariable(rot)),x);
 				else eVector(0,0);
 			
 			case eVariable(n):

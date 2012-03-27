@@ -5,7 +5,7 @@ using symbolic.Expr.ExprUtils;
 
 class SymbolicMain {
 	static function bodyContext(context:Context, body:Int) {
-		context.variableContext("pos"+body,etVector,eVariable("ve1"+body));
+		context.variableContext("pos"+body,etVector,eVariable("vel"+body));
 		context.variableContext("vel"+body,etVector);
 		context.variableContext("rot"+body,etScalar,eVariable("angvel"+body));
 		context.variableContext("angvel"+body,etScalar);
@@ -31,12 +31,12 @@ class SymbolicMain {
 		bodyContext(context,1);
 		bodyContext(context,2);
 
-		var expr = eLet(
+/*		var expr = eLet(
 			"a",eCross(eScalar(10),eVariable("pos1")),
 			eOuter(eVariable("a"),eVariable("a"))
 		);
 
-		tracex(expr.print());
+		tracex(expr.print());*/
 	
 		function wrap(e:Expr) {
 			return
@@ -53,7 +53,22 @@ class SymbolicMain {
 				e
 			))))))))));
 		}
-	
+
+		var pivot = eAdd(eAdd(eVariable("pos2"),eRelative("rot2",eVariable("anchor2"))),eMul(eScalar(-1),eAdd(eVariable("pos1"),eRelative("rot1",eVariable("anchor1")))));
+
+		tracex(pivot.print());
+
+		var pivotV = pivot.diff(context);
+		
+		tracex(pivotV.print());
+
+		var pivotJv1x = pivotV.diff(context,"vel1",0);
+		tracex(pivotJv1x.print());
+		var pivotJv1y = pivotV.diff(context,"vel1",1);
+		tracex(pivotJv1y.print());
+		var pivotJw1 = pivotV.diff(context,"angvel1");
+		tracex(pivotJw1.print());
+	/*
 		var evalexpr = eLet(
 			"pos1",eVector(1,20),
 			expr
@@ -70,7 +85,7 @@ class SymbolicMain {
 		tracex(expr.print());
 		tracex(expr.diff(context).print());
 		tracex(wrap(expr).eval(context).print());
-		tracex(wrap(expr.diff(context)).eval(context).print());
+		tracex(wrap(expr.diff(context)).eval(context).print());*/
 	}
 /*
 	static function main() {
