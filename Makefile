@@ -27,6 +27,13 @@ cpp: $(FILES)
 
 #------------------------------------------------------------------------------------
 
+externs: releases
+	rm -rf externs
+	flib --externs bin/release/haxe_release_nape.swf --include nape --include zpp_nape
+	./fix-externs
+
+#------------------------------------------------------------------------------------
+
 DUMMYS = $(shell find cx-src -type f -name "Dummy*" -print | sed 's/^/-x /')
 pre_compile:
 	rm -rf src

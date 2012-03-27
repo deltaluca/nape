@@ -1,0 +1,77 @@
+#!/bin/bash
+
+DIR=externs
+for extern in $(find $DIR/nape -name "*.hx" -print); do
+	if [ `grep -c "class" $extern` -ne 1 ]; then
+		echo "$extern does not contain exactly 1 class"
+		continue
+	fi
+	original="src${extern#$DIR}"
+
+	linenumber=0	
+	while read line; do
+		linenumber=$((linenumber+1))
+		if $(echo $line | grep "Dynamic" > /dev/null); then
+			# variable or function
+			if $(echo $line | grep "var" > /dev/null); then
+				# member or properity, check based on existance of ()'s
+				if $(echo $line | grep "(" > /dev/null); then
+					propname=$(echo $line | grep -o "var [^\(]*" | awk '{print $2}')
+					oline=$(grep "var  *$propname[\(]" $original)
+					otype=$(echo $oline | grep -o ":[^;]*" | sed 's/://')
+					sed -i -e "${linenumber}s/:Dynamic/:$otype/" $extern
+				else	
+					membername=$(echo $line | grep -o "var [^:]*" | awk '{print $2}')
+					oline=$(grep "var  *$membername:" $original)
+					otype=$(echo $oline | grep -o ":[^;]*" | sed 's/://')
+					sed -i -e "${linenumber}s/:Dynamic/:$otype/" $extern
+				fi
+			elif $(echo $line | grep "function" > /dev/null); then
+				functionname=$(echo $line | grep -o "function [^\(]*" | awk '{print $2}')
+				oline=$(grep "function $functionname[\(]" $original)
+
+				#oline may contain multiple function defn's
+				index=$(awk -v a="$oline" -v b="function $functionname" 'BEGIN{print index(a,b)}')
+				oline=${oline:$((index-1))}
+				index=$(awk -v a="${oline:9}" -v b="function" 'BEGIN{print index(a,b)}')
+				if [ "$index" -ne "0" ]; then
+					oline=${oline:0:$((index+8))}
+				fi
+
+				#return type
+				returntype=$(echo $line | grep -o "[\)]:[^;]*" | sed 's/)://')
+				if $(echo $returntype | grep "Dynamic" > /dev/null); then
+					otype=$(echo $oline | grep -o '[\)]:[^ {]*' | sed 's/)://')
+					if [ "$otype" = "" ]; then
+						echo "WARNING: RETURN TYPE OF FUNCTION $oline HAS NO RETURN VALUE TYPED, BUT EXTERN HAS RETURN VALUE DYNAMIC in $extern"
+					else
+						sed -i -e "${linenumber}s/):[^;]*/):$otype/" $extern
+						line=$(echo $line | sed -e "s/):[^;]*/):$otype/")
+					fi
+				fi
+
+				#argument types
+				index=$(expr index "$line" "\)")
+				line=${line:0:$((index-1))}
+				index=$(expr index "$line" "\(")
+				line=${line:$index}
+
+				args=$(echo $line | tr "," "\n")
+				for arg in $args; do
+					if ! $(echo $arg | grep "Dynamic" > /dev/null); then
+						continue
+					fi
+
+					argname=$(echo $arg | grep -o '^[^:]*')
+					oarg=$(echo $oline | grep -o "$argname:[^\),]*")
+					if [ "$oarg" = "" ]; then
+						echo "WARNING: ARGUMENT TYPE OF FUNCTION $functionname FOR ARGUMENT $argname HAS NO TYPE, BUT EXTERN HAS TYPE DYNAMIC IN $extern"
+					else
+						otype=$(echo $oarg | grep -o ":.*" | sed 's/://')
+						sed -i -e "${linenumber}s/$arg/$argname:$otype/" $extern
+					fi
+				done
+			fi
+		fi
+	done < $extern
+done
