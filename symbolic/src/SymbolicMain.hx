@@ -5,8 +5,8 @@ using symbolic.Expr.ExprUtils;
 
 class SymbolicMain {
 	static function bodyContext(context:Context, body:Int) {
-		context.variableContext("pos"+body,etColVector,eVariable("ve1"+body));
-		context.variableContext("vel"+body,etColVector);
+		context.variableContext("pos"+body,etVector,eVariable("ve1"+body));
+		context.variableContext("vel"+body,etVector);
 		context.variableContext("rot"+body,etScalar,eVariable("angvel"+body));
 		context.variableContext("angvel"+body,etScalar);
 		context.variableContext("imass"+body,etScalar);
@@ -26,8 +26,8 @@ class SymbolicMain {
 		}
 
 		var context = ExprUtils.emptyContext();
-		context.variableContext("anchor1",etColVector);
-		context.variableContext("anchor2",etColVector);
+		context.variableContext("anchor1",etVector);
+		context.variableContext("anchor2",etVector);
 		bodyContext(context,1);
 		bodyContext(context,2);
 
@@ -37,13 +37,40 @@ class SymbolicMain {
 		);
 
 		tracex(expr.print());
-		
+	
+		function wrap(e:Expr) {
+			return
+			eLet("pos1",eVector(1,2),
+			eLet("pos2",eVector(2,1),
+			eLet("rot1",eScalar(Math.PI*0.5),
+			eLet("rot2",eScalar(Math.PI),
+			eLet("vel1",eVector(10,20),
+			eLet("vel2",eVector(20,10),
+			eLet("angvel1",eScalar(1),
+			eLet("angvel2",eScalar(-1),
+			eLet("anchor1",eVector(1,0),
+			eLet("anchor2",eVector(0,1),
+				e
+			))))))))));
+		}
+	
 		var evalexpr = eLet(
 			"pos1",eVector(1,20),
 			expr
 		);
 		tracex(evalexpr.print());
 		tracex(evalexpr.eval(context).print());
+
+		var expr = eLet(
+			"a",eRelative("rot1",eVariable("anchor1")),
+			eLet("b",eVariable("a"),
+				eOuter(eVariable("b"),eUnit(eVariable("a")))
+			)
+		);
+		tracex(expr.print());
+		tracex(expr.diff(context).print());
+		tracex(wrap(expr).eval(context).print());
+		tracex(wrap(expr.diff(context)).eval(context).print());
 	}
 /*
 	static function main() {
