@@ -9,6 +9,7 @@ local: $(FILES)
 		-x DummyCppMain.cx # cpp only
 	haxe -cp src -main DummyNapeMain -swf bin/nape.swf -swf-version $(SWFV) --times \
 		-swf-header 800:600:60:333333 \
+		-lib hscript \
 		-D NAPE_ASSERT --no-inline -debug
 #		-D NAPE_RELEASE_BUILD
 	debugfp bin/nape.swf

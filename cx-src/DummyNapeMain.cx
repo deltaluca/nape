@@ -30,6 +30,8 @@ enum Expr {
 	eMag(x:Expr); //vector
 	eInv(x:Expr); //scalar
 
+	eUnit(x:Expr); //vector
+
 	eScalar(x:Scalar);
 	eVector(x:Vector);
 	eMatrix(m:Matrix);
@@ -71,6 +73,7 @@ class Printer {
 			case eOuter(x,y): "(outer "+print(x)+" "+print(y)+")";
 			case eMag(x): "(mag "+print(x)+")";
 			case eInv(x): "(inv "+print(x)+")";
+			case eUnit(x): "(unit "+print(x)+")";
 
 			case eScalar(x): print_scalar(x);
 			case eVector(x): print_vector(x);
@@ -130,6 +133,9 @@ class Typer {
 			case eInv(x):
 				sert(scalar(x),"Mismatched type in eInv");
 				etScalar;
+			case eUnit(x):
+				sert(vector(x),"Mismatched type in eUnit");
+				etVector;
 		}
 	}
 
@@ -214,9 +220,18 @@ class Differ {
 			case ePerp(x):
 				ePerp(_diff(x));
 			case eMag(x):
-				eMul(eInv(eMag(x)),eDot(x,_diff(x)));
+				eDot(eUnit(x),_diff(x));
 			case eInv(x):
 				eNeg(eMul(eInv(eMul(x,x)),_diff(x)));
+
+			case eUnit(x):
+				eMul(
+					ePerp(eUnit(x)),
+					eMul(
+						eCross(eUnit(x),_diff(x)),
+						eInv(eMag(x))
+					)
+				);
 
 			default: throw "not differentiable";
 		}
@@ -350,6 +365,9 @@ class Simple {
 					}) :
 					zero(x) || zero(y) ? eMatrix(mConst(0,0,0,0)) : eOuter(x,y);
 				}
+			case eUnit(inx):
+				var x = simple(inx);
+				eUnit(x);
 			default: x;
 		}
 	}
@@ -400,12 +418,139 @@ class BodyImpulse {
 
 		for(ji in 0...js.length) {
 			var j = js[ji];
-			var jv = if(Typer.scalar(j[i])) eScalar(sName("__lambda:"+ji)) else eVector(vName("__lambda:"+ji));
+			var jv = if(Typer.scalar(j[i])) eScalar(sName("__lambda_"+ji)) else eVector(vName("__lambda_"+ji));
 			ret[0] = eAdd(ret[0], eDot(j[i], jv));
 			ret[1] = eAdd(ret[1], eDot(j[i+1], jv));
 			ret[2] = eAdd(ret[2], eDot(j[i+2], jv));
 		}
 		return Lambda.map(ret,Simple.simple);
+	}
+}
+
+//using hscript
+class VM {
+	static function scalar(x:Scalar) {
+		return switch(x) {
+			case sName(n): "scalar_"+n;
+			case sConst(x): Std.string(x);
+			case sRotation(b): "body_"+b+"_rotation";
+			case sAngularVel(b): "body_"+b+"_angvel";
+			case sInvInertia(b): "body_"+b+"_cinertia";
+			case sInvMass(b): "body_"+b+"_cmass";
+		}
+	}
+	static function vector(v:Vector) {
+		return switch(v) {
+			case vName(n): "vector_"+n;
+			case vConst(x,y): "["+Std.string(x)+","+Std.string(y)+"]";
+			case vPosition(b): "body_"+b+"_position";
+			case vVelocity(b): "body_"+b+"_velocity";
+			case vRelative(b,n): "body_"+b+"_relative_"+n;
+		}
+	}
+	static function matrix(m:Matrix) {
+		return switch(m) {
+			case mConst(a,b,c,d): "["+Std.string(a)+","+Std.string(b)+","+Std.string(c)+","+Std.string(d)+"]";
+		}
+	}
+
+	public static function unparse(e:Expr) {
+		return switch(e) {
+			case eScalar(x): scalar(x);
+			case eVector(x): vector(x);
+			case eMatrix(x): matrix(x);
+
+			case eMul(x,y): 
+				if(Typer.scalar(x) && Typer.scalar(y)) "("+unparse(x)+"*"+unparse(y)+")"
+				else if(Typer.scalar(x)) {
+						if(Typer.vector(y)) {
+"({
+	var t0 = "+unparse(y)+";
+	var t1 = "+unparse(x)+";
+	[t0[0]*t1,t0[1]*t1];
+})";
+						}else {
+"({
+	var t0 = "+unparse(y)+";
+	var t1 = "+unparse(x)+";
+	[t0[0]*t1,t0[1]*t1,t0[2]*t1,t0[3]*t1];
+})";
+						}
+					}
+				else {
+					Typer.sert(Typer.scalar(y),"bah");
+					unparse(eMul(y,x));
+				}
+
+			case eAdd(x,y):
+				if(Typer.scalar(x)) "("+unparse(x)+"+"+unparse(y)+")"
+				else if(Typer.vector(x)) {
+"({
+	var t0 = "+unparse(x)+";
+	var t1 = "+unparse(y)+";
+	[t0[0]+t1[0],t0[1]+t1[1]];
+})";
+				}else {
+"({
+	var t0 = "+unparse(x)+";
+	var t1 = "+unparse(y)+";
+	[t0[0]+t1[0],t0[1]+t1[1],t0[2]+t1[2],t0[3]+t1[3]];
+})";
+				}
+
+			case eNeg(x):
+				if(Typer.scalar(x)) "(-"+unparse(x)+")"
+				else if(Typer.vector(x)) {
+"({
+	var t = "+unparse(x)+";
+	[-t[0],-t[1]];
+})";
+				}else {
+"({
+	var t = "+unparse(x)+";
+	[-t[0],-t[1],-t[2],-t[3]];
+})";
+				}
+
+			case eDot(x,y):
+"({
+	var t0 = "+unparse(x)+";
+	var t1 = "+unparse(y)+";
+	t0[0]*t0[0] + t0[1]*t1[1];
+})";
+
+			case eCross(x,y):
+"({
+	var t0 = "+unparse(x)+";
+	var t1 = "+unparse(y)+";
+	t0[0]*t0[1] - t0[1]*t1[0];
+})";
+
+			case ePerp(x):
+"({
+	var t = "+unparse(x)+";
+	[-t[1],t[0]];
+})";
+
+			case eOuter(x,y):
+"({
+	var t0 = "+unparse(x)+";
+	var t1 = "+unparse(y)+";
+	[t0[0]*t1[0], t0[0]*t1[1], t0[1]*t1[0], t0[1]*t1[1]];
+})";
+
+			case eMag(x):
+"({
+	var t = "+unparse(x)+";
+	Math.sqrt(t[0]*t[0]+t[1]*t[1]);
+})";
+
+			case eInv(x): "(1.0/"+unparse(x)+")";
+
+			default:
+				throw "bah";
+				"";
+		}
 	}
 }
 
@@ -426,15 +571,32 @@ class DummyNapeMain {
 		var x1 = eVector(vPosition(1));
 		var x2 = eVector(vPosition(2));
 
+		var dist_C = eAdd(eMag(eAdd(eAdd(x2,r2), eNeg(eAdd(x1,r1)))), eNeg(eScalar(sName("length"))));
+		tracex(Printer.print(dist_C));
+
+		var dist_V = Simple.simple(Differ.diff(dist_C));
+		tracex(Printer.print(dist_V));
+
+		var dist_J = Jacobian.jacobian(dist_V,[1,2]);
+		tracex(Lambda.map(dist_J, Printer.print));
+
+		var J = [dist_J];
+		var K = KEff.keff(J,[1,2]);
+		tracex(Lambda.map(K, Printer.print));
+/*
 		var pivot_C = eAdd(eAdd(x2,r2), eNeg(eAdd(x1,r1)));
 		var angle_C = eAdd(eScalar(sRotation(2)),eNeg(eScalar(sRotation(1))));
 		tracex(Printer.print(pivot_C));
 		tracex(Printer.print(angle_C));
+		tracex(VM.unparse(pivot_C));
+		tracex(VM.unparse(angle_C));
 
 		var pivot_V = Simple.simple(Differ.diff(pivot_C));
 		var angle_V = Simple.simple(Differ.diff(angle_C));
 		tracex(Printer.print(pivot_V));
 		tracex(Printer.print(angle_V));
+		tracex(VM.unparse(pivot_V));
+		tracex(VM.unparse(angle_V));
 
 		var pivot_J = Jacobian.jacobian(pivot_V,[1,2]);
 		var angle_J = Jacobian.jacobian(angle_V,[1,2]);
@@ -444,10 +606,13 @@ class DummyNapeMain {
 		var J = [pivot_J,angle_J];
 		var K = KEff.keff(J,[1,2]);
 		tracex(Lambda.map(K, Printer.print));
+		tracex(Lambda.map(K, VM.unparse));
 
 		var body1 = BodyImpulse.bodyimpulse(J,0);
 		var body2 = BodyImpulse.bodyimpulse(J,1);
 		tracex(Lambda.map(body1, Printer.print));
+		tracex(Lambda.map(body1, VM.unparse));
 		tracex(Lambda.map(body2, Printer.print));
+		tracex(Lambda.map(body2, VM.unparse));*/
 	}
 }
