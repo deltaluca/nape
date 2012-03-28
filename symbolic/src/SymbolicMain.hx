@@ -1,6 +1,7 @@
 package;
 
 import symbolic.Expr;
+import symbolic.Parser;
 using symbolic.Expr.ExprUtils;
 
 class SymbolicMain {
