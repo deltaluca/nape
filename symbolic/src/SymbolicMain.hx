@@ -58,9 +58,9 @@ class SymbolicMain {
 
 		var dvec = eAdd(eAdd(eVariable("pos2"),eRelative("rot2",eVariable("anchor2"))),eMul(eScalar(-1),eAdd(eVariable("pos1"),eRelative("rot1",eVariable("anchor1")))));
 
-//		var dist = eAdd(eMag(dvec), eMul(eScalar(-1),eVariable("dist")));
+		var dist = eAdd(eMag(dvec), eMul(eScalar(-1),eVariable("dist")));
 	
-		var dist = eLet("dvec",dvec,eAdd(eMag(eVariable("dvec")),eMul(eScalar(-1),eVariable("dist"))));
+//		var dist = eLet("dvec",dvec,eAdd(eMag(eVariable("dvec")),eMul(eScalar(-1),eVariable("dist"))));
 
 	//-------------
 
