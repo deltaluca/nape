@@ -11,6 +11,9 @@ using com.mindrocks.functional.Functional;
 
 using com.mindrocks.macros.LazyMacro;
 
+import com.mindrocks.text.ParserMonad;
+using com.mindrocks.text.ParserMonad;
+
 using Lambda;
 
 /*
@@ -18,7 +21,7 @@ using Lambda;
 	vector values :: [scalar scalar]
 	matrix values :: [scalar scalar ; scalar scalar ]
 
-	vardecl  :: decl identifier type
+	vardecl  :: decl identifier type [-> expr]?
 	variable :: identifier (non reserved)
 	localvar :: let identifier = expr in expr
 
@@ -30,27 +33,50 @@ using Lambda;
 	precedences ; usual suspects!
 
 		unit <- highest
+		relative
 		*, /
 		dot, cross
 		outer
 		+, -
+		let
 */
 
-class ExprParser {
-	static var identifierR = ~/[a-zA-Z_][a-zA-Z0-9_]*/;
+class ConstraintParser {
+	static var identifierR = ~/[a-zA-Z_][a-zA-Z0-9_.]*/;
 	static var numberR = ~/[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?/;
 
+	//whitespace
 	static var spaceP = " ".identifier();
 	static var tabP = "\t".identifier();
 	static var retP = ("\r".identifier().or("\n".identifier()));
+
+	//comments
+	static var commentR = ~/#.*/;
 	
 	static var spacingP = [
 		spaceP.oneMany(),
 		tabP.oneMany(),
-		retP.oneMany()
-	].ors().many().lazyF();
+		retP.oneMany(),
+		commentR.regexParser().oneMany()
+	].ors().many();
 
 	static function withSpacing<T>(p:Void->Parser<String,T>) return spacingP._and(p)
+
+	//--------------------------------------------------------
+
+	//produce a left-recursive application of possible infix binary operators to 'p' parsers
+	static function chainl1<T>(p:Void->Parser<String,T>, op:Void->Parser<String,T->T->T>):Void->Parser<String,T> {
+		function rest(x:T) return ParserM.dO({
+			f <= op;
+			y <= p;
+			rest(f(x,y));
+		}).or(x.success());
+
+		return ParserM.dO({ x <= p; rest(x); });
+	}
+
+	//--------------------------------------------------------
+	//operators and key words
 
 	static var lParP     = withSpacing("(".identifier());
 	static var rParP     = withSpacing(")".identifier());
@@ -71,128 +97,161 @@ class ExprParser {
 	static var outerP    = withSpacing("outer".identifier());
 	static var unitP     = withSpacing("unit".identifier());
 	static var declP     = withSpacing("decl".identifier());
+	static var idscalarP = withSpacing("scalar".identifier());
+	static var idvectorP = withSpacing("vector".identifier());
+	static var idmatrixP = withSpacing("matrix".identifier());
+	static var delP      = withSpacing("->".identifier());
 
 	//--------------------------------------------------------
+	//value type
 
 	static var typeP = withSpacing(
-		["scalar".identifier().then(function(_) return etScalar),
-		 "vector".identifier().then(function(_) return etVector),
-		 "matrix".identifier().then(function(_) return etMatrix)].ors()
-	).tag("type name").lazyF();
+		[ParserM.dO({ idscalarP; ret(etScalar); }),
+		 ParserM.dO({ idvectorP; ret(etVector); }),
+		 ParserM.dO({ idmatrixP; ret(etMatrix); })].ors()
+	).tag("type name");
 
 	//--------------------------------------------------------
+	//atoms
 
-	static var identifierP = withSpacing(identifierR.regexParser()).tag("identifier");
-	static var numberP = withSpacing(numberR.regexParser())
-						.then(function (n) return Std.parseFloat(n))
-						.tag("number");
-
-	//--------------------------------------------------------
-
-	static var identP = identifierP.tag("identifier");
-	
-	//--------------------------------------------------------
-
-	static var scalarP = numberP.then(function (x) return eScalar(x)).tag("scalar");
-	static var vectorP = lSquareP._and(numberP.and(numberP)).and_(rSquareP)
-						.then(function (xy) return eVector(xy.a,xy.b))
-						.tag("vector");
-	static var matrixP = lSquareP._and(
-							(numberP.and(numberP))
-							.and_(semicolP)
-							.and(numberP.and(numberP))
-						).and_(rSquareP)
-						.then(function (ab_cd)
-							return eMatrix(ab_cd.a.a,ab_cd.a.b,
-							               ab_cd.b.a,ab_cd.b.b)
-						).tag("matrix");
-	static var valueP = [scalarP,vectorP,matrixP].ors().tag("value").lazyF();
+	static var identP = withSpacing(identifierR.regexParser()).tag("identifier");
+	static var numberP = withSpacing(ParserM.dO({
+		x <= numberR.regexParser();
+		ret(Std.parseFloat(x));
+	})).tag("number");
 
 	//--------------------------------------------------------
+	//value literals
 
-	static var vardeclP = typeP.and(identP)
-					 	 .then(function (nt) return { name : nt.b, type : nt.a })
-						 .tag("variable- declaration").many();
+	static var scalarP = ParserM.dO({
+		x <= numberP;
+		ret(eScalar(x));
+	}).tag("scalar");
 
-	//--------------------------------------------------------
+	static var vectorP = ParserM.dO({
+		lSquareP; x <= numberP; y <= numberP; rSquareP;
+		ret(eVector(x,y));
+	}).tag("vector");
 
-	// TODO not working
-	static var magopP = magP._and(exprP.commit()).and_(magP)
-						.then(function (e) return eMag(e))
-						.lazyF();
+	static var matrixP = ParserM.dO({
+		lSquareP; a <= numberP; b <= numberP;
+		semicolP; c <= numberP; d <= numberP; rSquareP;
+		ret(eMatrix(a,b,c,d));
+	}).tag("matrix");
 
-	static var addopP = addP.then(function (_) return function (e1,e2) return eAdd(e1,e2));
-	static var subopP = subP.then(function (_) return function (e1,e2) return eAdd(e1,eMul(eScalar(-1),e2)));
-	static var binopP = chainl1(valueExprP, [addopP,subopP].ors()).lazyF();
-
-	//--------------------------------------------------------
-
-	static var valueExprP:Void->Parser<String,Expr> = 
-					[ magopP, valueP ].ors().memo().tag("expression");
-
-	static var exprP:Void->Parser<String,Expr> =
-				    [ binopP,
-					  valueExprP
-				    ].ors().memo().tag("expression");
+	static var valueP = [scalarP,vectorP,matrixP].ors().tag("value");
 
 	//--------------------------------------------------------
+	//variable declaration
 
-	static var definitionP = vardeclP.commit().and(exprP.commit())
-							.then(function (varexp) {
-								var context = ExprUtils.emptyContext();
-								for(vard in varexp.a)
-									context.variableContext(vard.name,vard.type);
-								
-								return {context:context, constraint:varexp.b};
-							});
-
-	//--------------------------------------------------------
-
-	static function chainl1<T>(p:Void->Parser<String,T>, op:Void->Parser<String,T->T->T>):Void->Parser<String,T> {
-		function rest(x:T) {
-			return op.andThen(function (f:T->T->T) {
-				return p.andThen(function (y:T) {
-					return rest(f(x,y));
-				});
-			}).or(x.success());
-		}
-		return p.andThen(function (x:T) return rest(x));
-	}
+	static var vardeclP = ParserM.dO({
+		type <= typeP;
+		name <= identP;
+		del  <= ParserM.dO({
+			delP;
+			e <= exprP;
+			ret(e);
+		}).option();
+		ret({name:name, type:type, del:del});
+	}).tag("variable declaration");
 
 	//--------------------------------------------------------
+	//expression
 
-	static function tryParse<T>(str:String, parser:Parser<String,T>, withResult:T->Void, output:String->Void) {
-//		try {
-			var res = parser(str.reader());
-			switch(res) {
-				case Success(res, rest):
-					var remaining = rest.rest();
-					if(StringTools.trim(remaining).length==0) {
-						trace("success");
-					}else {
-						trace("failed to parse " + remaining);
-					}
-					withResult(res);
-				case Failure(err, rest, _):
-					var p = rest.textAround();
-					output(p.text);
-					output(p.indicator);
-					err.map(function (error) {
-						output("Error at " + error.pos + " : " +error.msg);
-					});
+	// ( expr ), | expr |, value, variable
+	static var expr0P = [
+		ParserM.dO({ lParP; e <= exprP; rParP; ret(e); }),
+		valueP,
+		ParserM.dO({ n <= identP; ret(eVariable(n)); }),
+		ParserM.dO({ magP; e <= exprP; magP; ret(eMag(e)); })
+	].ors();
+
+	// unit expr0 | expr0
+	static var expr1P = ParserM.dO({
+		unitP; e <= expr0P; ret(eUnit(e));
+	}).or(expr0P);
+
+	// relative n expr | expr1
+	static var expr1bP = ParserM.dO({
+		relativeP; n <= identP; e <= exprP;
+		ret(eRelative(n,e));
+	}).or(expr1P);
+
+	// chain (*,/) expr1b
+	static var mulopP = ParserM.dO({ mulP; ret(function (e1,e2) return eMul(e1,e2)); });
+	static var divopP = ParserM.dO({ divP; ret(function (e1,e2) return eMul(e1,eInv(e2))); });
+	static var expr2P = chainl1(expr1bP, [mulopP,divopP].ors());
+
+	// chain (dot,cross) expr2
+	static var dotopP = ParserM.dO({ dotP;   ret(function (e1,e2) return eDot  (e1,e2)); });
+	static var crsopP = ParserM.dO({ crossP; ret(function (e1,e2) return eCross(e1,e2)); });
+	static var expr3P = chainl1(expr2P, [dotopP,crsopP].ors());
+
+	// chain (outer) expr3
+	static var outeropP = ParserM.dO({ outerP; ret(function (e1,e2) return eOuter(e1,e2)); });
+	static var expr4P = chainl1(expr3P, outeropP);
+
+	// chain (+,-) expr4
+	static var addopP = ParserM.dO({ addP; ret(function (e1,e2) return eAdd(e1,e2)); });
+	static var subopP = ParserM.dO({ subP; ret(function (e1,e2) return eAdd(e1,eMul(eScalar(-1),e2))); });
+	static var expr5P = chainl1(expr4P, [addopP,subopP].ors());
+
+	// let expr (right associative)
+	static var exprP = ParserM.dO({
+		letP; n <= identP; equalsP; e1 <= exprP; inP; e2 <= exprP;
+		ret(eLet(n,e1,e2));
+	}).or(expr5P).tag("expression");
+
+	//--------------------------------------------------------
+	//full constraint definition
+
+	static var constraintP = ParserM.dO({
+		vars <= vardeclP.many();
+		posc <= exprP;
+		ret({
+			var context:Context = ExprUtils.emptyContext();
+			for(v in vars) {
+				var del = switch(v.del) {
+					case Some(x): x;
+					default: null;
+				}
+				context.variableContext(v.name, v.type, del);
 			}
-//		}catch(e:Dynamic) {
-//			trace("Error " + Std.string(e));
-//		}
+			{ context: context, posc : posc };
+		});
+	});
+
+	//--------------------------------------------------------
+
+	public static function parse(constraint:String):{context:Context, posc:Expr} {
+		switch(constraintP()(constraint.reader())) {
+			case Success(res,resti):
+				var rest = resti.rest();
+				if(StringTools.trim(rest).length!=0)
+					throw "Error: Parsing succeeded with res: '"+Std.string(res)+"', but remaining string: '"+rest+"' was not parsed";
+				return res;
+			case Failure(err,resti,_):
+				var rest = resti.textAround();
+				throw "Error: Failed to parse with err: '"+err+"' and remaining unparsed string: '"+rest+"'";
+		}
+		return null;
 	}
 
-	static public function test() {
+/*	static public function test() {
 		tryParse("
-			[50 60] + [70 20] - [10 20]
+			vector pos -> vel
+			vector vel
+
+			let n = [50 20] in
+			let m = [10 20] in
+
+			let q = (let r = [1 2] in r*r*n) in
+
+			pos cross q
 		",
-		exprP(),
+		constraintP(),
 		function (res) trace("Parsed " +Std.string(res)),
 		function (str) trace(str)
 		);
-	}
+	}*/
 }

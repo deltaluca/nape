@@ -5,6 +5,7 @@ import symbolic.Parser;
 using symbolic.Expr.ExprUtils;
 
 class SymbolicMain {
+/*
 	static function bodyContext(context:Context, body:Int) {
 		context.variableContext("pos"+body,etVector,eVariable("vel"+body));
 		context.variableContext("vel"+body,etVector);
@@ -12,51 +13,87 @@ class SymbolicMain {
 		context.variableContext("angvel"+body,etScalar);
 		context.variableContext("imass"+body,etScalar);
 		context.variableContext("iinertia"+body,etScalar);
-	}
+	}*/
 
-	static var txt:flash.text.TextField;
+/*	static var txt:flash.text.TextField;
 	public static function tracex(x:Dynamic) {
 		txt.text += Std.string(x)+"\n";
-	}
+	}*/
 
 	static function main() {
 		mainparser();
 	}
 	
-	static function mainparser() {
-		ExprParser.test();
+	static function bodyVariables(body:String) {
+		return "
+		vector "+body+".pos -> "+body+".vel
+		vector "+body+".vel
+		scalar "+body+".rot -> "+body+".angvel
+		scalar "+body+".angvel
+		scalar "+body+".imass
+		scalar "+body+".iinertia
+		";
 	}
 
+	static function mainparser() {
+		var pivot = 
+		    bodyVariables("b1")
+		  + bodyVariables("b2")
+		  + "
+		vector anchor1
+		vector anchor2
+
+		let r1 = relative b1.rot anchor1 in
+		let r2 = relative b2.rot anchor2 in
+	
+		(r2 + b2.pos) - (r1 + b1.pos)
+		";
+		trace(pivot);
+		
+		var pivotC = ConstraintParser.parse(pivot);
+		trace(pivotC.context.print_context());
+		trace(pivotC.posc.print());
+
+		//---------------------------------------
+
+		var angle = 
+		    bodyVariables("b1")
+		  + bodyVariables("b2")
+		  + "
+		scalar ratio
+
+		b2.rot*ratio - b1.rot
+		";
+		trace(angle);
+
+		var angleC = ConstraintParser.parse(angle);
+		trace(angleC.context.print_context());
+		trace(angleC.posc.print());
+	}
+/*
 	static function mainexpr() {
-		txt = new flash.text.TextField();
+	[MaK	txt = new flash.text.TextField();
 		var c = flash.Lib.current.stage;
 		c.addChild(txt);
-		txt.width = c.stageWidth;
+		[MaKtxt.width = c.stageWidth;
 		txt.height = c.stageHeight;
 		txt.wordWrap = true;
-
+[MaK
 
 		var context = ExprUtils.emptyContext();
-		context.variableContext("anchor1",etVector);
+	[MaK	context.variableContext("anchor1",etVector);
 		context.variableContext("anchor2",etVector);
 		context.variableContext("dist",etScalar);
-		bodyContext(context,1);
+		[MaKbodyContext(context,1);
 		bodyContext(context,2);
 
-/*		var expr = eLet(
-			"a",eCross(eScalar(10),eVariable("pos1")),
-			eOuter(eVariable("a"),eVariable("a"))
-		);
-
-		tracex(expr.print());*/
-	
 		function wrap(e:Expr) {
 			return
 			eLet("pos1",eVector(1,2),
 			eLet("pos2",eVector(2,1),
 			eLet("rot1",eScalar(Math.PI*0.5),
 			eLet("rot2",eScalar(Math.PI),
-			eLet("vel1",eVector(10,20),
+			[MaKeLet("vel1",eVector(10,20),
 			eLet("vel2",eVector(20,10),
 			eLet("angvel1",eScalar(1),
 			eLet("angvel2",eScalar(-1),
@@ -110,7 +147,7 @@ class SymbolicMain {
 		tracex(expr.diff(context).print());
 		tracex(wrap(expr).eval(context).print());
 		tracex(wrap(expr.diff(context)).eval(context).print());*/
-	}
+//	}
 /*
 	static function main() {
 		var space = new nape.space.Space();
