@@ -18,7 +18,16 @@ class SymbolicMain {
 	public static function tracex(x:Dynamic) {
 		txt.text += Std.string(x)+"\n";
 	}
+
 	static function main() {
+		mainparser();
+	}
+	
+	static function mainparser() {
+		ExprParser.test();
+	}
+
+	static function mainexpr() {
 		txt = new flash.text.TextField();
 		var c = flash.Lib.current.stage;
 		c.addChild(txt);
