@@ -35,6 +35,30 @@ class SymbolicMain {
 		";
 	}
 
+	static function test(e:String) {
+		trace(e);
+		var C = ConstraintParser.parse(e);
+		trace(C.context.print_context());
+		trace(C.posc.print());
+
+		var V = C.posc.diff(C.context);
+		trace(V.print());
+
+		var Jvx1 = V.diff(C.context,"b1.vel",0);
+		trace(Jvx1.print());
+		var Jvy1 = V.diff(C.context,"b1.vel",1);
+		trace(Jvy1.print());
+		var Jw1 = V.diff(C.context,"b1.angvel");
+		trace(Jw1.print());
+
+		var Jvx2 = V.diff(C.context,"b2.vel",0);
+		trace(Jvx2.print());
+		var Jvy2 = V.diff(C.context,"b2.vel",2);
+		trace(Jvy2.print());
+		var Jw2 = V.diff(C.context,"b2.angvel");
+		trace(Jw2.print());
+	}
+
 	static function mainparser() {
 		var pivot = 
 		    bodyVariables("b1")
@@ -48,11 +72,7 @@ class SymbolicMain {
 	
 		(r2 + b2.pos) - (r1 + b1.pos)
 		";
-		trace(pivot);
-		
-		var pivotC = ConstraintParser.parse(pivot);
-		trace(pivotC.context.print_context());
-		trace(pivotC.posc.print());
+		test(pivot);
 
 		//---------------------------------------
 
@@ -64,11 +84,7 @@ class SymbolicMain {
 
 		b2.rot*ratio - b1.rot
 		";
-		trace(angle);
-
-		var angleC = ConstraintParser.parse(angle);
-		trace(angleC.context.print_context());
-		trace(angleC.posc.print());
+		test(angle);
 
 		//---------------------------------------
 
@@ -87,11 +103,7 @@ class SymbolicMain {
 		  b2.rot - b1.rot - phase
 		}
 		";
-		trace(weld);
-
-		var weldC = ConstraintParser.parse(weld);
-		trace(weldC.context.print_context());
-		trace(weldC.posc.print());
+		test(weld);
 	}
 /*
 	static function mainexpr() {
