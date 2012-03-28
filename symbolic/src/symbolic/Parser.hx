@@ -141,7 +141,12 @@ class ConstraintParser {
 		ret(eMatrix(a,b,c,d));
 	}).tag("matrix");
 
-	static var valueP = [scalarP,vectorP,matrixP].ors().tag("value");
+	static var blockP = ParserM.dO({
+		lBraceP; xs <= exprP.many(); rBraceP;
+		ret(eBlock(xs));
+	}).tag("block");
+
+	static var valueP = [scalarP,vectorP,matrixP,blockP].ors().tag("value");
 
 	//--------------------------------------------------------
 	//variable declaration

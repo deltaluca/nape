@@ -1,5 +1,7 @@
 package symbolic;
 
+using Lambda;
+
 enum Expr {
 	eScalar(x:Float);
 	eVector(x:Float,y:Float);
@@ -19,12 +21,15 @@ enum Expr {
 	eMag(x:Expr);
 	eInv(x:Expr);
 	eUnit(x:Expr);
+
+	eBlock(xs:Array<Expr>);
 }
 
 enum EType {
 	etScalar;
 	etVector;
 	etMatrix;
+	etBlock(xs:Array<EType>);
 }
 
 typedef Context = {
@@ -44,6 +49,7 @@ class ExprUtils {
 			case etScalar: eScalar(0);
 			case etVector: eVector(0,0);
 			case etMatrix: eMatrix(0,0,0,0);
+			default: null;
 			}
 		}
 		context.vars.set(n, {type:type,del:del,let:let});
@@ -61,6 +67,12 @@ class ExprUtils {
 		if(env.length==0) context.env.remove(n);
 	}
 
+	static public function map<T,S>(xs:Array<T>,f:T->S):Array<S> {
+		var ret = [];
+		for(x in xs) ret.push(f(x));
+		return ret;
+	}
+
 	//----------------------------------------------------------------------------
 	//===========================================================================
 
@@ -70,6 +82,12 @@ class ExprUtils {
 			case etScalar: "scalar";
 			case etVector: "vector";
 			case etMatrix: "matrix";
+			case etBlock(xs):
+				var ret = "{";
+				var fst = true;
+				for(x in xs) { if(!fst) ret += " "; fst = false; ret += print_type(x); }
+				ret += "}";
+				ret;
 		}
 	}
 	static public function print_context(c:Context) {
@@ -110,6 +128,13 @@ class ExprUtils {
 			case eMag(x): "mag("+print(x)+")";
 			case eInv(x): "inv("+print(x)+")";
 			case eUnit(x): "unit("+print(x)+")";
+
+			case eBlock(xs): 
+				var ret = "{";
+				var fst = true;
+				for(x in xs) { if(!fst) ret += "\n"; fst = false; ret += print(x); }
+				ret += "}";
+				ret;
 		}
 	}
 
@@ -157,6 +182,7 @@ class ExprUtils {
 					case etMatrix: etMatrix;
 					default: null;
 					}
+				default: null;
 				}
 			case eDot(x,y): etScalar;
 			case eCross(x,y):
@@ -186,6 +212,8 @@ class ExprUtils {
 			case eMag(x): etScalar;
 			case eInv(x): etScalar;
 			case eUnit(x): etype(x,context);
+
+			case eBlock(xs): etBlock(map(xs,function (y) return etype(y,context)));
 		}
 	}
 
@@ -306,6 +334,10 @@ class ExprUtils {
 				case eVector(x,y): var mag = 1/Math.sqrt(x*x+y*y); eVector(x*mag,y*mag);
 				default: null;
 				}
+
+			case eBlock(inx):
+				var x = map(inx, function (y) return eval(y,context));
+				eBlock(x);
 		}	
 	}
 
@@ -339,6 +371,7 @@ class ExprUtils {
 				case etScalar: eScalar(0);
 				case etVector: eVector(0,0);
 				case etMatrix: eMatrix(0,0,0,0);
+				default: null;
 			}
 		}
 		function one(e:Expr,?val=1.0) {
@@ -364,6 +397,10 @@ class ExprUtils {
 				case eInv(a): countof(a,on);
 				case eUnit(a): countof(a,on);
 				case ePerp(a): countof(a,on);
+				case eBlock(xs): 
+					var c = 0;
+					for(x in xs) c += countof(x,on);
+					c;
 			}
 		}
 		function depends(e:Expr,on:String) return countof(e,on)!=0;
@@ -383,6 +420,7 @@ class ExprUtils {
 				case eInv(a): eInv(sub(a));
 				case eUnit(a): eUnit(sub(a));
 				case ePerp(a): ePerp(sub(a));
+				case eBlock(xs): eBlock(map(xs,sub));
 			}
 		}
 
@@ -438,6 +476,8 @@ class ExprUtils {
 				eInv(_simple(inx));
 			case eUnit(inx):
 				eUnit(_simple(inx));
+			case eBlock(inx):
+				eBlock(map(inx,_simple));
 		}
 		return tryeval(ret);
 	}
@@ -530,6 +570,8 @@ class ExprUtils {
 						eInv(eMag(x))
 					)
 				));
+			case eBlock(xs):
+				eBlock(map(xs,_diff));
 		}, context);
 	}
 }

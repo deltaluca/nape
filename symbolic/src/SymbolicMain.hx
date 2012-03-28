@@ -33,7 +33,7 @@ class SymbolicMain {
 		scalar "+body+".imass
 		scalar "+body+".iinertia
 		";
-	}.[MaKeLet/
+	}
 
 	static function mainparser() {
 		var pivot = 
@@ -69,6 +69,29 @@ class SymbolicMain {
 		var angleC = ConstraintParser.parse(angle);
 		trace(angleC.context.print_context());
 		trace(angleC.posc.print());
+
+		//---------------------------------------
+
+		var weld = 
+		    bodyVariables("b1")
+		  + bodyVariables("b2")
+		  + "
+		vector anchor1
+		vector anchor2
+		scalar phase
+		
+		let r1 = relative b1.rot anchor1 in
+		let r2 = relative b2.rot anchor2 in
+
+		{ (r2 + b2.pos) - (r1 + b1.pos)
+		  b2.rot - b1.rot - phase
+		}
+		";
+		trace(weld);
+
+		var weldC = ConstraintParser.parse(weld);
+		trace(weldC.context.print_context());
+		trace(weldC.posc.print());
 	}
 /*
 	static function mainexpr() {
