@@ -80,6 +80,8 @@ class ConstraintParser {
 
 	static var lParP     = withSpacing("(".identifier());
 	static var rParP     = withSpacing(")".identifier());
+	static var lBraceP   = withSpacing("{".identifier());
+	static var rBraceP   = withSpacing("}".identifier());
 	static var lSquareP  = withSpacing("[".identifier());
 	static var rSquareP  = withSpacing("]".identifier());
 	static var semicolP  = withSpacing(";".identifier());
@@ -219,7 +221,7 @@ class ConstraintParser {
 			}
 			{ context: context, posc : posc };
 		});
-	});
+	}).memo();
 
 	//--------------------------------------------------------
 

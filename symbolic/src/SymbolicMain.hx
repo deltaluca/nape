@@ -33,7 +33,7 @@ class SymbolicMain {
 		scalar "+body+".imass
 		scalar "+body+".iinertia
 		";
-	}
+	}.[MaKeLet/
 
 	static function mainparser() {
 		var pivot = 
