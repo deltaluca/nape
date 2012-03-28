@@ -29,16 +29,16 @@ enum EType {
 
 typedef Context = {
 	env  : Hash<Array<Expr>>, //let's
-	vars : Hash<{type:EType,del:Expr}> //vars
+	vars : Hash<{type:EType,del:Expr,let:Bool}> //vars
 };
 
 //-----------------------------------------------------------
 
 class ExprUtils {
 	static public function emptyContext() {
-		return { env: new Hash<Array<Expr>>(), vars : new Hash<{type:EType,del:Expr}>() };
+		return { env: new Hash<Array<Expr>>(), vars : new Hash<{type:EType,del:Expr,let:Bool}>() };
 	}
-	static public function variableContext(context:Context,n:String,type:EType,?del:Expr) {
+	static public function variableContext(context:Context,n:String,type:EType,?del:Expr,?let=false) {
 		if(del==null) {
 			del = switch(type) {
 			case etScalar: eScalar(0);
@@ -46,7 +46,7 @@ class ExprUtils {
 			case etMatrix: eMatrix(0,0,0,0);
 			}
 		}
-		context.vars.set(n, {type:type,del:del});
+		context.vars.set(n, {type:type,del:del,let:let});
 	}
 	static public function variableRedact(context:Context,n:String) {
 		context.vars.remove(n);
@@ -314,7 +314,7 @@ class ExprUtils {
 
 	//simplification
 	public static function simple(e:Expr,context:Context) {
-		return __simple(e,context);
+		return __simple(__simple(e,context),context);
 	}
 	static function __simple(e:Expr,context:Context) {
 		function tryeval(e:Expr) {
@@ -349,12 +349,40 @@ class ExprUtils {
 			}
 		}
 
-		function depends(e:Expr,on:Expr) {
+		function countof(e:Expr,on:String) {
 			return switch(e) {
-				case eScalar(_): false;
-				case eVector(_,_): false;
-				case eMatrix(_,_,_,_): false;
-				default: true;
+				default: 0;
+				case eVariable(n): n==on ? 1 : 0;
+				case eRelative(rot,x): (rot==on ? 1 : 0) + countof(x,on);
+				case eLet(_,equals,within): countof(equals,on) + countof(within,on);
+				case eAdd(a,b): countof(a,on) + countof(b,on);
+				case eMul(a,b): countof(a,on) + countof(b,on);	
+				case eCross(a,b): countof(a,on) + countof(b,on);	
+				case eDot(a,b): countof(a,on) + countof(b,on);	
+				case eOuter(a,b): countof(a,on) + countof(b,on);	
+				case eMag(a): countof(a,on);
+				case eInv(a): countof(a,on);
+				case eUnit(a): countof(a,on);
+				case ePerp(a): countof(a,on);
+			}
+		}
+		function depends(e:Expr,on:String) return countof(e,on)!=0;
+		function substitute(e:Expr,on:String,rep:Expr) {
+			function sub(e:Expr) return substitute(e,on,rep);
+			return switch(e) {
+				default: e;
+				case eVariable(n): n==on ? rep : e;
+				case eRelative(rot,x): eRelative(rot,sub(x));
+				case eLet(n,equals,within): eLet(n,sub(equals),sub(within));
+				case eAdd(a,b): eAdd(sub(a),sub(b));
+				case eMul(a,b): eMul(sub(a),sub(b));
+				case eCross(a,b): eCross(sub(a),sub(b));
+				case eDot(a,b): eDot(sub(a),sub(b));
+				case eOuter(a,b): eOuter(sub(a),sub(b));
+				case eMag(a): eMag(sub(a));
+				case eInv(a): eInv(sub(a));
+				case eUnit(a): eUnit(sub(a));
+				case ePerp(a): ePerp(sub(a));
 			}
 		}
 
@@ -370,7 +398,8 @@ class ExprUtils {
 				}catch(e:Dynamic) {}
 				redactContext(context,n);
 
-				if(depends(vin,eq)) eLet(n,eq,vin) else vin;
+				var count = countof(vin,n);
+				if(count==0) vin else if(count==1) substitute(vin,n,eq) else eLet(n,eq,vin);
 			case eAdd(inx,iny):
 				var x = _simple(inx);
 				var y = _simple(iny);
@@ -441,24 +470,34 @@ class ExprUtils {
 					}
 				}else {
 					var vart = context.vars.get(n);
+					if(vart.let) vart.del
+					else {
 						switch(vart.type) {
-						case etScalar:
-							if(wrt==n) eScalar(1);
-							else if(wrt==null) vart.del;
-							else eScalar(0);
-						case etVector:
-							if(wrt==n) eVector(elt==0?1:0,elt==1?1:0);
-							else if(wrt==null) vart.del;
-							else eVector(0,0);
-						default: throw "cannot differentiate "+print(e); null;
+							case etScalar:
+								if(wrt==n) eScalar(1);
+								else if(wrt==null) vart.del;
+								else eScalar(0);
+							case etVector:
+								if(wrt==n) eVector(elt==0?1:0,elt==1?1:0);
+								else if(wrt==null) vart.del;
+								else eVector(0,0);
+							default: throw "cannot differentiate "+print(e); null;
+						}
 					}
 				}
 			case eLet(n,eq,vin):
 				var eqd = _diff(eq);
-				variableContext(context,n,etype(eq,context),eVariable(n+"__prime"));
-				extendContext(context,n+"__prime",eqd);
-				var ret = eLet(n,eq,eLet(n+"__prime",eqd,_diff(vin)));
-				redactContext(context,n+"__prime");
+
+				var prime = n+"__diff";
+				if(wrt!=null) {
+					prime += wrt;
+					if(elt!=-1) prime += "_"+Std.string(elt);
+				}
+
+				variableContext(context,n,etype(eq,context),eVariable(prime),true);
+				extendContext(context,prime,eqd);
+				var ret = eLet(n,eq,eLet(prime,eqd,_diff(vin)));
+				redactContext(context,prime);
 				variableRedact(context,n);
 				ret;
 

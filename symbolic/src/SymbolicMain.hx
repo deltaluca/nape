@@ -13,17 +13,18 @@ class SymbolicMain {
 		context.variableContext("iinertia"+body,etScalar);
 	}
 
+	static var txt:flash.text.TextField;
+	public static function tracex(x:Dynamic) {
+		txt.text += Std.string(x)+"\n";
+	}
 	static function main() {
-		var txt = new flash.text.TextField();
+		txt = new flash.text.TextField();
 		var c = flash.Lib.current.stage;
 		c.addChild(txt);
 		txt.width = c.stageWidth;
 		txt.height = c.stageHeight;
 		txt.wordWrap = true;
 
-		function tracex(x:Dynamic) {
-			txt.text += Std.string(x)+"\n";
-		}
 
 		var context = ExprUtils.emptyContext();
 		context.variableContext("anchor1",etVector);
@@ -55,30 +56,32 @@ class SymbolicMain {
 			))))))))));
 		}
 
-		var pivot = eAdd(eAdd(eVariable("pos2"),eRelative("rot2",eVariable("anchor2"))),eMul(eScalar(-1),eAdd(eVariable("pos1"),eRelative("rot1",eVariable("anchor1")))));
-		var dist = eAdd(eMag(pivot), eMul(eScalar(-1),eVariable("dist")));
+		var dvec = eAdd(eAdd(eVariable("pos2"),eRelative("rot2",eVariable("anchor2"))),eMul(eScalar(-1),eAdd(eVariable("pos1"),eRelative("rot1",eVariable("anchor1")))));
+
+//		var dist = eAdd(eMag(dvec), eMul(eScalar(-1),eVariable("dist")));
 	
-		var dist = eLet("del",pivot,eAdd(eMag(eVariable("del")),eMul(eScalar(-1),eVariable("dist"))));
+		var dist = eLet("dvec",dvec,eAdd(eMag(eVariable("dvec")),eMul(eScalar(-1),eVariable("dist"))));
+
 	//-------------
 
 		var working = dist;
-		tracex(working.print());
+		tracex("C(.) = "+working.print());
 
 		var workingV = working.diff(context);
-		tracex(workingV.print());
+		tracex("V(.) = "+workingV.print());
 
 		var workingJv1x = workingV.diff(context,"vel1",0);
-		tracex(workingJv1x.print());
+		tracex("Jv1_x(.) = "+workingJv1x.print());
 		var workingJv1y = workingV.diff(context,"vel1",1);
-		tracex(workingJv1y.print());
+		tracex("Jv1_y(.) = "+workingJv1y.print());
 		var workingJw1 = workingV.diff(context,"angvel1");
-		tracex(workingJw1.print());
+		tracex("Jw1(.) = "+workingJw1.print());
 		var workingJv2x = workingV.diff(context,"vel2",0);
-		tracex(workingJv2x.print());
+		tracex("Jv2_x(.) = "+workingJv2x.print());
 		var workingJv2y = workingV.diff(context,"vel2",1);
-		tracex(workingJv2y.print());
+		tracex("Jv2_y(.) = "+workingJv2y.print());
 		var workingJw2 = workingV.diff(context,"angvel2");
-		tracex(workingJw2.print());
+		tracex("Jw2(.) = "+workingJw2.print());
 	/*
 		var evalexpr = eLet(
 			"pos1",eVector(1,20),
