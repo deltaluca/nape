@@ -118,7 +118,8 @@ class SymbolicMain {
 		}
 		";
 		//test(weld);
-		new symbolic.SymbolicConstraint(weld);
+		var con = new symbolic.SymbolicConstraint(weld);
+		trace(con.debug());
 	}
 /*
 	static function mainexpr() {

@@ -237,12 +237,14 @@ class ConstraintParser {
 			var context:Context = ExprUtils.emptyContext();
 			var bodies = [];
 			for(v in vars) {
-				var del = switch(v.del) {
-					case Some(x): x;
-					default: null;
-				}
 				if(v.type==null) bodies.push(v.name);
-				else context.variableContext(v.name, v.type, del);
+				else {
+					var del = switch(v.del) {
+						case Some(x): x;
+						default: null;
+					}
+					context.variableContext(v.name, v.type, del);
+				}
 			}
 			{ bodies: bodies, context: context, posc : posc };
 		});
