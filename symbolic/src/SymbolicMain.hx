@@ -102,10 +102,10 @@ class SymbolicMain {
 
 		//---------------------------------------
 
-		var weld = 
-		    bodyVariables("b1")
-		  + bodyVariables("b2")
-		  + "
+		var weld = "
+		body b1
+		body b2
+		
 		vector anchor1
 		vector anchor2
 		scalar phase
@@ -118,6 +118,7 @@ class SymbolicMain {
 		}
 		";
 		//test(weld);
+		new symbolic.SymbolicConstraint(weld);
 	}
 /*
 	static function mainexpr() {

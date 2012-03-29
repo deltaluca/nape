@@ -153,9 +153,7 @@ class ExprUtils {
 	//===========================================================================
 
 	//typing algorithm
-	static public function etype(e:Expr,?context:Context) {
-		if(context==null) context = emptyContext();
-
+	static public function etype(e:Expr,context:Context) {
 		return switch(e) {
 			case eScalar(_): etScalar;
 			case eVector(_,_): etVector;

@@ -17,6 +17,8 @@ using com.mindrocks.text.ParserMonad;
 using Lambda;
 
 /*
+	body decl :: body name
+
 	scalar values :: usual floats
 	vector values :: [scalar scalar]
 	matrix values :: [scalar scalar ; scalar scalar ]
@@ -104,6 +106,7 @@ class ConstraintParser {
 	static var idrowP    = withSpacing("rowvector".identifier());
 	static var idmatrixP = withSpacing("matrix".identifier());
 	static var delP      = withSpacing("->".identifier());
+	static var bodyP     = withSpacing("body".identifier());
 
 	//--------------------------------------------------------
 	//value type
@@ -156,7 +159,7 @@ class ConstraintParser {
 	static var valueP = [scalarP,vectorP,rowvectorP,matrixP,blockP].ors().tag("value");
 
 	//--------------------------------------------------------
-	//variable declaration
+	//variable and body declarations
 
 	static var vardeclP = ParserM.dO({
 		type <= typeP;
@@ -168,6 +171,14 @@ class ConstraintParser {
 		}).option();
 		ret({name:name, type:type, del:del});
 	}).tag("variable declaration");
+
+	static var bodydeclP = ParserM.dO({
+		bodyP;
+		name <= identP;
+		ret({name:name, type:null, del:null});
+	}).tag("body declaration");
+
+	static var declarationsP = [vardeclP, bodydeclP].ors();
 
 	//--------------------------------------------------------
 	//expression
@@ -220,18 +231,20 @@ class ConstraintParser {
 	//full constraint definition
 
 	static var constraintP = ParserM.dO({
-		vars <= vardeclP.many();
+		vars <= declarationsP.many();
 		posc <= exprP;
 		ret({
 			var context:Context = ExprUtils.emptyContext();
+			var bodies = [];
 			for(v in vars) {
 				var del = switch(v.del) {
 					case Some(x): x;
 					default: null;
 				}
-				context.variableContext(v.name, v.type, del);
+				if(v.type==null) bodies.push(v.name);
+				else context.variableContext(v.name, v.type, del);
 			}
-			{ context: context, posc : posc };
+			{ bodies: bodies, context: context, posc : posc };
 		});
 	}).memo();
 
@@ -250,22 +263,4 @@ class ConstraintParser {
 		}
 		return null;
 	}
-
-/*	static public function test() {
-		tryParse("
-			vector pos -> vel
-			vector vel
-
-			let n = [50 20] in
-			let m = [10 20] in
-
-			let q = (let r = [1 2] in r*r*n) in
-
-			pos cross q
-		",
-		constraintP(),
-		function (res) trace("Parsed " +Std.string(res)),
-		function (str) trace(str)
-		);
-	}*/
 }
