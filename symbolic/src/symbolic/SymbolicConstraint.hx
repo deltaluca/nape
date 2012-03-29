@@ -7,7 +7,7 @@ import nape.phys.Body;
 import symbolic.Expr;
 import symbolic.Parser;
 
-using ExprUtils;
+using symbolic.Expr.ExprUtils;
 
 class SymbolicConstraint extends UserConstraint {
 
@@ -17,7 +17,7 @@ class SymbolicConstraint extends UserConstraint {
 	#if flash @:protected #end private var posC:Expr;
 
 	public function new(constraint:String) {
-		var res = Parser.parse(constraint);
+		var res = ConstraintParser.parse(constraint);
 
 		context = res.context;
 		bodies = new Array<{body:Body,name:String}>();
@@ -35,7 +35,7 @@ class SymbolicConstraint extends UserConstraint {
 
 		posC = res.posc.simple(context);
 
-		var type = posC.etype();
+		var type = posC.etype(context);
 		var dim = switch(type) {
 			case etScalar: 1;
 			case etVector: 2;

@@ -250,7 +250,7 @@ class ConstraintParser {
 
 	//--------------------------------------------------------
 
-	public static function parse(constraint:String):{context:Context, posc:Expr} {
+	public static function parse(constraint:String):{context:Context, posc:Expr, bodies:Array<String>} {
 		switch(constraintP()(constraint.reader())) {
 			case Success(res,resti):
 				var rest = resti.rest();

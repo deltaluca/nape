@@ -228,6 +228,7 @@ class PR(AngleJoint) extends PR(Constraint) {
 	}
 
 	public override function draw(g:Debug) {
+	#if (flash9||nme)
 		var me = outer_zn;
 
 		var minrad = 10;
@@ -261,11 +262,13 @@ class PR(AngleJoint) extends PR(Constraint) {
 			body(me.body1, $(mixin bang(limit) (me.ratio*me.body2.rotation - limit)) bang, 0xff);
 		if(me.body2 != me.body2.space.world)
 			body(me.body2, $(mixin bang(limit) ((limit + me.body1.rotation)/me.ratio)) bang, 0xff0000);
+	#end
 	}
 }
 
 )
 
+#if (flash9||nme)
 class PR(AngleDraw) {
 	public static function indicator(g:Debug, c:Vec2, ang:Float, rad:Float, col:Int) {
 		var dir = Vec2.get(Math.cos(ang),Math.sin(ang));
@@ -399,3 +402,4 @@ class PR(AngleDraw) {
 		ct.dispose();
 	}
 }
+#end

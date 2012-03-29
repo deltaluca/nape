@@ -30,7 +30,10 @@ cpp: $(FILES)
 externs: releases
 	rm -rf externs
 	flib --externs bin/release/haxe_release_nape.swf --include nape --include zpp_nape
-	./fix-externs
+#   fix-externs doesn't actually work... hah
+#   problem in that it doesn't have fully specified types, Constraint instead of nape.constraint.Constraint for instance
+#   cba to fix it now.
+#	./fix-externs
 
 #------------------------------------------------------------------------------------
 
