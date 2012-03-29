@@ -72,6 +72,12 @@ class ExprUtils {
 		for(x in xs) ret.push(f(x));
 		return ret;
 	}
+	static public function zipWith<T,S,R>(xs:Array<T>,ys:Array<S>,f:T->S->R):Array<R> {
+		var ret = [];
+		for(i in 0...(xs.length<ys.length ? xs.length : ys.length))
+			ret.push(f(xs[i],ys[i]));
+		return ret;
+	}
 
 	//----------------------------------------------------------------------------
 	//===========================================================================
@@ -166,24 +172,28 @@ class ExprUtils {
 
 			case eAdd(x,y): etype(x,context);
 			case eMul(x,y):
-				var xt = etype(x,context);
-				var yt = etype(y,context);
-				switch(xt) {
-				case etScalar: yt;
-				case etVector:
-					switch(yt) {
-					case etScalar: etVector;
+				function eMulType(xt,yt) {
+					return switch(xt) {
+					case etBlock(xs): etBlock(map(xs, function(x) return eMulType(x,yt)));
+					case etScalar: yt;
+					case etVector:
+						switch(yt) {
+						case etBlock(ys): etBlock(map(ys, function(y) return eMulType(xt,y)));
+						case etScalar: etVector;
+						default: null;
+						}
+					case etMatrix:
+						switch(yt) {
+						case etBlock(ys): etBlock(map(ys, function(y) return eMulType(xt,y)));
+						case etScalar: etMatrix;
+						case etVector: etVector;
+						case etMatrix: etMatrix;
+						default: null;
+						}
 					default: null;
 					}
-				case etMatrix:
-					switch(yt) {
-					case etScalar: etMatrix;
-					case etVector: etVector;
-					case etMatrix: etMatrix;
-					default: null;
-					}
-				default: null;
 				}
+				eMulType(etype(x,context),etype(y,context));
 			case eDot(x,y): etScalar;
 			case eCross(x,y):
 				var xt = etype(x,context);
@@ -205,10 +215,27 @@ class ExprUtils {
 				default: null;
 				}
 			case eOuter(x,y):
-				switch(etype(x,context)) {
-				case etScalar: etScalar;
-				default: etMatrix;
+				function eOuterType(xt,yt) {
+					return switch(xt) {
+					case etBlock(xs): etBlock(map(xs, function(x) return eOuterType(x,yt)));
+					case etScalar:
+						switch(yt) {
+						case etBlock(ys): etBlock(map(ys, function(y) return eOuterType(xt,y)));
+						case etScalar: etScalar;
+						case etVector: etVector;
+						default: null;
+						}
+					case etVector:
+						switch(yt) {
+						case etBlock(ys): etBlock(map(ys, function(y) return eOuterType(xt,y)));
+						case etScalar: etVector;
+						case etVector: etMatrix;
+						default: null;
+						}
+					default: null;
+					}
 				}
+				eOuterType(etype(x,context),etype(y,context));
 			case eMag(x): etScalar;
 			case eInv(x): etScalar;
 			case eUnit(x): etype(x,context);
@@ -311,8 +338,17 @@ class ExprUtils {
 				var x = eval(inx,context);
 				var y = eval(iny,context);
 				switch(x) {
-				case eScalar(x): switch(y) { case eScalar(y): eScalar(x*y); default: null; }
-				case eVector(x1,x2): switch(y) { case eVector(y1,y2): eMatrix(x1*y1,x2*y1,x1*y2,x2*y2); default: null; }
+				case eScalar(x):
+					switch(y) {
+					case eScalar(y): eScalar(x*y);
+					default: null;
+					}
+				case eVector(x1,x2):
+					switch(y) {
+					case eScalar(y): eVector(y*x1,y*x2);
+					case eVector(y1,y2): eMatrix(x1*y1,x2*y1,x1*y2,x2*y2);
+					default: null;
+					}
 				default: null;
 				}
 			case eMag(inx):
@@ -337,7 +373,9 @@ class ExprUtils {
 
 			case eBlock(inx):
 				var x = map(inx, function (y) return eval(y,context));
-				eBlock(x);
+				var ret = eBlock(x);
+				for(xi in x) if(xi==null) ret = null;
+				ret;
 		}	
 	}
 
@@ -362,7 +400,8 @@ class ExprUtils {
 			return switch(e) {
 				case eScalar(x): x==0;
 				case eVector(x,y): x==y && y==0;
-				case eMatrix(x,y,z,w): x==y && y==z && z==w && w==1;
+				case eMatrix(x,y,z,w): x==y && y==z && z==w && w==0;
+				case eBlock(xs): !Lambda.exists(xs, function(x) return !zero(x));
 				default: false;
 			}
 		}
@@ -371,6 +410,7 @@ class ExprUtils {
 				case etScalar: eScalar(0);
 				case etVector: eVector(0,0);
 				case etMatrix: eMatrix(0,0,0,0);
+				case etBlock(xs): eBlock(map(xs,zerotype));
 				default: null;
 			}
 		}
@@ -441,13 +481,30 @@ class ExprUtils {
 			case eAdd(inx,iny):
 				var x = _simple(inx);
 				var y = _simple(iny);
-				if(zero(x)) y else if(zero(y)) x else eAdd(x,y);
+				if(zero(x)) y else if(zero(y)) x
+				else {
+					var ret = 
+					switch(x) { case eBlock(xs):
+					switch(y) { case eBlock(ys):
+						eBlock(zipWith(xs,ys,function (x,y) return eAdd(x,y)));
+					default: null; }
+					default: null; }
+					ret == null ? eAdd(x,y) : ret;
+				}
 			case eMul(inx,iny):
 				var x = _simple(inx);
 				var y = _simple(iny);
 				if(zero(x) || zero(y)) zerotype(etype(eMul(x,y),context))
 				else if(one(x)) y else if(one(y)) x
-				else eMul(x,y);
+				else {
+					switch(x) {
+					case eBlock(xs): _simple(eBlock(map(xs, function(x) return eMul(x,y))));
+					default:
+					switch(y) {
+					case eBlock(ys): _simple(eBlock(map(ys, function(y) return eMul(x,y))));
+					default: eMul(x,y);
+					}}
+				}
 			case eDot(inx,iny):
 				var x = _simple(inx);
 				var y = _simple(iny);

@@ -60,6 +60,15 @@ class SymbolicMain {
 	}
 
 	static function mainparser() {
+		var expr = eOuter(eVector(1,2),eScalar(3));
+		trace(expr.print());
+		trace(expr.simple(ExprUtils.emptyContext()).print());
+		
+		var expr = eOuter(eScalar(3),eVector(1,2));
+		trace(expr.print());
+		trace(expr.simple(ExprUtils.emptyContext()).print());
+		return;
+
 		var pivot = 
 		    bodyVariables("b1")
 		  + bodyVariables("b2")
@@ -72,7 +81,7 @@ class SymbolicMain {
 	
 		(r2 + b2.pos) - (r1 + b1.pos)
 		";
-		test(pivot);
+		//test(pivot);
 
 		//---------------------------------------
 
@@ -84,7 +93,19 @@ class SymbolicMain {
 
 		b2.rot*ratio - b1.rot
 		";
-		test(angle);
+		//test(angle);
+
+/*
+
+	[x y] outer [u v] = [ xu xv ; yu yv ]
+    a outer b = ab
+
+	{ [x y] a } outer { [u v] b } = ??
+
+    { [x y] outer { [u v] b }  a outer { [u v] b } }
+    { { [x y] outer [u v] [x y] outer b } { a outer [u v]  a outer b } }
+
+*/
 
 		//---------------------------------------
 
