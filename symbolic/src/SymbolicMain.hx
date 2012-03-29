@@ -87,6 +87,8 @@ class SymbolicMain {
 		(r2 + b2.pos) - (r1 + b1.pos)
 		";
 		//test(pivot);
+		var con = new symbolic.SymbolicConstraint(pivot);
+		trace(con.debug());
 
 		//---------------------------------------
 
@@ -118,8 +120,8 @@ class SymbolicMain {
 		}
 		";
 		//test(weld);
-		var con = new symbolic.SymbolicConstraint(weld);
-		trace(con.debug());
+		//var con = new symbolic.SymbolicConstraint(weld);
+		//trace(con.debug());
 	}
 /*
 	static function mainexpr() {

@@ -69,6 +69,13 @@ class ExprUtils {
 		env.shift();
 		if(env.length==0) context.env.remove(n);
 	}
+	static public function replaceContext(context:Context,n:String,eq:Expr) {
+		if(!context.env.exists(n)) context.env.set(n, [eq]);
+		else {
+			var ev = context.env.get(n);
+			ev[0] = eq;
+		}
+	}
 
 	static public function map<T,S>(xs:Array<T>,f:T->S):Array<S> {
 		var ret = [];

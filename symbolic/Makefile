@@ -1,5 +1,5 @@
 neko:
-	haxe -cp src -cp / -lib nape -main SymbolicMain -neko symb.n -lib Parsex --connect 9000 --dead-code-elimination
+	haxe -cp src -cp / -lib nape -main SymbolicMain -neko symb.n -lib Parsex --connect 9000 --dead-code-elimination -debug
 	neko symb.n
 
 flash:
