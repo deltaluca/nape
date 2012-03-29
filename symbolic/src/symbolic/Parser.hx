@@ -101,6 +101,7 @@ class ConstraintParser {
 	static var declP     = withSpacing("decl".identifier());
 	static var idscalarP = withSpacing("scalar".identifier());
 	static var idvectorP = withSpacing("vector".identifier());
+	static var idrowP    = withSpacing("rowvector".identifier());
 	static var idmatrixP = withSpacing("matrix".identifier());
 	static var delP      = withSpacing("->".identifier());
 
@@ -110,6 +111,7 @@ class ConstraintParser {
 	static var typeP = withSpacing(
 		[ParserM.dO({ idscalarP; ret(etScalar); }),
 		 ParserM.dO({ idvectorP; ret(etVector); }),
+		 ParserM.dO({ idrowP; ret(etRowVector); }),
 		 ParserM.dO({ idmatrixP; ret(etMatrix); })].ors()
 	).tag("type name");
 
@@ -135,6 +137,11 @@ class ConstraintParser {
 		ret(eVector(x,y));
 	}).tag("vector");
 
+	static var rowvectorP = ParserM.dO({
+		lSquareP; x <= numberP; semicolP; y <= numberP; rSquareP;
+		ret(eRowVector(x,y));
+	}).tag("rowvector");
+
 	static var matrixP = ParserM.dO({
 		lSquareP; a <= numberP; b <= numberP;
 		semicolP; c <= numberP; d <= numberP; rSquareP;
@@ -146,7 +153,7 @@ class ConstraintParser {
 		ret(eBlock(xs));
 	}).tag("block");
 
-	static var valueP = [scalarP,vectorP,matrixP,blockP].ors().tag("value");
+	static var valueP = [scalarP,vectorP,rowvectorP,matrixP,blockP].ors().tag("value");
 
 	//--------------------------------------------------------
 	//variable declaration

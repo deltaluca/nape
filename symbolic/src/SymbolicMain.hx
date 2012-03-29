@@ -35,6 +35,28 @@ class SymbolicMain {
 		";
 	}
 
+	static function jacobian(V:Expr,context:Context,bodies:Array<String>):Array<Expr> {
+		var ret = [];
+		for(b in bodies) {
+			ret.push(V.diff(context,b+".vel",0));
+			ret.push(V.diff(context,b+".vel",1));
+			ret.push(V.diff(context,b+".angvel"));
+		}
+		return ret;
+	}
+
+	static function effmass(J:Array<Expr>,context:Context,bodies:Array<String>):Expr {
+		var outexpr = null;
+		for(i in 0...J.length) {
+			var b = bodies[Std.int(i/3)];
+			var m = eVariable(b + (if((i%3)==2) ".iinertia" else ".imass"));
+			var e = eMul(m,eOuter(J[i],J[i])).simple(context);
+			if(outexpr==null) outexpr = e;
+			else outexpr = eAdd(outexpr,e);
+		}
+		return outexpr.simple(context);
+	}
+
 	static function test(e:String) {
 		trace(e);
 		var C = ConstraintParser.parse(e);
@@ -44,31 +66,14 @@ class SymbolicMain {
 		var V = C.posc.diff(C.context);
 		trace(V.print());
 
-		var Jvx1 = V.diff(C.context,"b1.vel",0);
-		trace(Jvx1.print());
-		var Jvy1 = V.diff(C.context,"b1.vel",1);
-		trace(Jvy1.print());
-		var Jw1 = V.diff(C.context,"b1.angvel");
-		trace(Jw1.print());
+		var J = jacobian(V,C.context,["b1","b2"]);
+		trace(Lambda.map(J,ExprUtils.print));
 
-		var Jvx2 = V.diff(C.context,"b2.vel",0);
-		trace(Jvx2.print());
-		var Jvy2 = V.diff(C.context,"b2.vel",2);
-		trace(Jvy2.print());
-		var Jw2 = V.diff(C.context,"b2.angvel");
-		trace(Jw2.print());
+		var K = effmass(J,C.context,["b1","b2"]);
+		trace(K.print());
 	}
 
 	static function mainparser() {
-		var expr = eOuter(eVector(1,2),eScalar(3));
-		trace(expr.print());
-		trace(expr.simple(ExprUtils.emptyContext()).print());
-		
-		var expr = eOuter(eScalar(3),eVector(1,2));
-		trace(expr.print());
-		trace(expr.simple(ExprUtils.emptyContext()).print());
-		return;
-
 		var pivot = 
 		    bodyVariables("b1")
 		  + bodyVariables("b2")
@@ -95,18 +100,6 @@ class SymbolicMain {
 		";
 		//test(angle);
 
-/*
-
-	[x y] outer [u v] = [ xu xv ; yu yv ]
-    a outer b = ab
-
-	{ [x y] a } outer { [u v] b } = ??
-
-    { [x y] outer { [u v] b }  a outer { [u v] b } }
-    { { [x y] outer [u v] [x y] outer b } { a outer [u v]  a outer b } }
-
-*/
-
 		//---------------------------------------
 
 		var weld = 
@@ -124,7 +117,7 @@ class SymbolicMain {
 		  b2.rot - b1.rot - phase
 		}
 		";
-		test(weld);
+		//test(weld);
 	}
 /*
 	static function mainexpr() {

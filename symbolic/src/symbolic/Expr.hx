@@ -4,6 +4,7 @@ using Lambda;
 
 enum Expr {
 	eScalar(x:Float);
+	eRowVector(x:Float,y:Float);
 	eVector(x:Float,y:Float);
 	eMatrix(a:Float,b:Float,c:Float,d:Float);
 
@@ -30,6 +31,7 @@ enum EType {
 	etVector;
 	etMatrix;
 	etBlock(xs:Array<EType>);
+	etRowVector;
 }
 
 typedef Context = {
@@ -48,6 +50,7 @@ class ExprUtils {
 			del = switch(type) {
 			case etScalar: eScalar(0);
 			case etVector: eVector(0,0);
+			case etRowVector: eRowVector(0,0);
 			case etMatrix: eMatrix(0,0,0,0);
 			default: null;
 			}
@@ -87,6 +90,7 @@ class ExprUtils {
 		return switch(e) {
 			case etScalar: "scalar";
 			case etVector: "vector";
+			case etRowVector: "rowvector";
 			case etMatrix: "matrix";
 			case etBlock(xs):
 				var ret = "{";
@@ -119,6 +123,7 @@ class ExprUtils {
 		return switch(e) {
 			case eScalar(x): Std.string(x);
 			case eVector(x,y): "vec("+Std.string(x)+","+Std.string(y)+")";
+			case eRowVector(x,y): "rowvec("+Std.string(x)+","+Std.string(y)+")";
 			case eMatrix(a,b,c,d): "mat("+Std.string(a)+","+Std.string(b)+","+Std.string(c)+","+Std.string(d)+")";
 			case eRelative(rot,x): "rel("+rot+" of "+print(x)+")";
 
@@ -154,6 +159,7 @@ class ExprUtils {
 		return switch(e) {
 			case eScalar(_): etScalar;
 			case eVector(_,_): etVector;
+			case eRowVector(_,_): etRowVector;
 			case eMatrix(_,_,_,_): etMatrix;
 			case eRelative(_,_): etVector;
 	
@@ -176,10 +182,19 @@ class ExprUtils {
 					return switch(xt) {
 					case etBlock(xs): etBlock(map(xs, function(x) return eMulType(x,yt)));
 					case etScalar: yt;
+					case etRowVector:
+						switch(yt) {
+						case etBlock(ys): etBlock(map(ys, function(y) return eMulType(xt,y)));
+						case etScalar: etRowVector;
+						case etVector: etScalar;
+						case etMatrix: etRowVector;
+						default: null;
+						}
 					case etVector:
 						switch(yt) {
 						case etBlock(ys): etBlock(map(ys, function(y) return eMulType(xt,y)));
 						case etScalar: etVector;
+						case etRowVector: etMatrix;
 						default: null;
 						}
 					case etMatrix:
@@ -222,7 +237,7 @@ class ExprUtils {
 						switch(yt) {
 						case etBlock(ys): etBlock(map(ys, function(y) return eOuterType(xt,y)));
 						case etScalar: etScalar;
-						case etVector: etVector;
+						case etVector: etRowVector;
 						default: null;
 						}
 					case etVector:
@@ -230,6 +245,13 @@ class ExprUtils {
 						case etBlock(ys): etBlock(map(ys, function(y) return eOuterType(xt,y)));
 						case etScalar: etVector;
 						case etVector: etMatrix;
+						default: null;
+						}
+					case etRowVector:
+						switch(yt) {
+						case etBlock(ys): etBlock(map(ys, function(y) return eOuterType(xt,y)));
+						case etScalar: etRowVector;
+						case etRowVector: etScalar;
 						default: null;
 						}
 					default: null;
@@ -289,12 +311,21 @@ class ExprUtils {
 					switch(y) {
 					case eScalar(y): eScalar(x*y);
 					case eVector(y1,y2): eVector(x*y1,x*y2);
+					case eRowVector(y1,y2): eRowVector(x*y1,x*y2);
 					case eMatrix(a,b,c,d): eMatrix(x*a,x*b,x*c,x*d);
 					default: null;
 					}
 				case eVector(x1,x2):
 					switch(y) {
 					case eScalar(y): eVector(y*x1,y*x2);
+					case eRowVector(y1,y2): eval(eOuter(x,eVector(y1,y2)),context);
+					default: null;
+					}
+				case eRowVector(x1,x2):
+					switch(y) {
+					case eScalar(y): eRowVector(x1*y,x2*y);
+					case eVector(y1,y2): eScalar(x1*y1+x2*y2);
+					case eMatrix(a,b,c,d): eRowVector(x1*a+x2*c,x1*b+x2*d);
 					default: null;
 					}
 				case eMatrix(a,b,c,d):
@@ -341,12 +372,20 @@ class ExprUtils {
 				case eScalar(x):
 					switch(y) {
 					case eScalar(y): eScalar(x*y);
+					case eVector(y1,y2): eRowVector(x*y1,x*y2);
+					case eRowVector(y1,y2): eRowVector(x*y1,x*y2);
 					default: null;
 					}
 				case eVector(x1,x2):
 					switch(y) {
 					case eScalar(y): eVector(y*x1,y*x2);
 					case eVector(y1,y2): eMatrix(x1*y1,x2*y1,x1*y2,x2*y2);
+					default: null;
+					}
+				case eRowVector(x1,x2):
+					switch(y) {
+					case eScalar(y): eRowVector(y*x1,y*x2);
+					case eRowVector(y1,y2): eScalar(x1*y1+x2*y2);
 					default: null;
 					}
 				default: null;
@@ -356,6 +395,7 @@ class ExprUtils {
 				switch(x) {
 				case eScalar(x): eScalar(Math.abs(x));
 				case eVector(x,y): eScalar(Math.sqrt(x*x+y*y));
+				case eRowVector(x,y): eScalar(Math.sqrt(x*x+y*y));
 				default: null;
 				}	
 			case eInv(inx):
@@ -368,6 +408,7 @@ class ExprUtils {
 				var x = eval(inx,context);
 				switch(x) {
 				case eVector(x,y): var mag = 1/Math.sqrt(x*x+y*y); eVector(x*mag,y*mag);
+				case eRowVector(x,y): var mag = 1/Math.sqrt(x*x+y*y); eRowVector(x*mag,y*mag);
 				default: null;
 				}
 
@@ -400,6 +441,7 @@ class ExprUtils {
 			return switch(e) {
 				case eScalar(x): x==0;
 				case eVector(x,y): x==y && y==0;
+				case eRowVector(x,y): x==y && y==0;
 				case eMatrix(x,y,z,w): x==y && y==z && z==w && w==0;
 				case eBlock(xs): !Lambda.exists(xs, function(x) return !zero(x));
 				default: false;
@@ -409,9 +451,9 @@ class ExprUtils {
 			return switch(e) {
 				case etScalar: eScalar(0);
 				case etVector: eVector(0,0);
+				case etRowVector: eRowVector(0,0);
 				case etMatrix: eMatrix(0,0,0,0);
 				case etBlock(xs): eBlock(map(xs,zerotype));
-				default: null;
 			}
 		}
 		function one(e:Expr,?val=1.0) {
@@ -524,7 +566,15 @@ class ExprUtils {
 				var x = _simple(inx);
 				var y = _simple(iny);
 				if(zero(x) || zero(y)) zerotype(etype(eOuter(x,y),context))
-				else eOuter(x,y);
+				else {
+					switch(x) {
+					case eBlock(xs): _simple(eBlock(map(xs, function(x) return eOuter(x,y))));
+					default:
+					switch(y) {
+					case eBlock(ys): _simple(eBlock(map(ys, function(y) return eOuter(x,y))));
+					default: eOuter(x,y);
+					}}
+				}
 			case ePerp(inx):
 				ePerp(_simple(inx));
 			case eMag(inx):
