@@ -10,6 +10,16 @@ class SymbolicMain {
 	}
 
 	static function mainparser() {
+		var space = new nape.space.Space();
+		var debug = new nape.util.ShapeDebug(1,1);
+		flash.Lib.current.addChild(debug.display);
+
+		var b1 = new nape.phys.Body(); b1.shapes.add(new nape.shape.Circle(30));
+		var b2 = new nape.phys.Body(); b2.shapes.add(new nape.shape.Circle(30));
+		b1.space = space; b2.space = space;
+		b1.position.setxy(150,150);
+		b2.position.setxy(250,150);
+
 		var pivot = " 
 		body b1
 		body b2
@@ -22,9 +32,10 @@ class SymbolicMain {
 	
 		(r2 + b2.pos) - (r1 + b1.pos)
 		";
-		//test(pivot);
-		//var con = new symbolic.SymbolicConstraint(pivot);
-		//trace(con.debug());
+		/*var con = new symbolic.SymbolicConstraint(pivot);
+		con.setVector("anchor1", new nape.geom.Vec2(50,0));
+		con.setVector("anchor2", new nape.geom.Vec2(-50,0));
+		b2.angularVel = 5;*/
 
 		//---------------------------------------
 
@@ -42,12 +53,13 @@ class SymbolicMain {
 
 		let del = (r2 + b2.pos) - (r1 + b1.pos) in
 
-		{ del dot dir
-		  del cross dir
-		}
+		del cross dir
 		";
-		//var con = new symbolic.SymbolicConstraint(line);
-		//trace(con.debug());
+		var con = new symbolic.SymbolicConstraint(line);
+		con.setVector("direction", new nape.geom.Vec2(1,0));
+		con.setVector("anchor1", new nape.geom.Vec2(30,0));
+		con.setVector("anchor2", new nape.geom.Vec2(-30,0));
+		b2.angularVel = 5;
 
 		//---------------------------------------
 
@@ -64,8 +76,12 @@ class SymbolicMain {
 		
 		| (b2.pos + r2) - (b1.pos + r1) | - dist
 		";
-		//var con = new symbolic.SymbolicConstraint(dist);
-		//trace(con.debug());
+/*		var con = new symbolic.SymbolicConstraint(dist);
+		con.setScalar("dist",50);
+		con.setVector("anchor1", new nape.geom.Vec2(30,0));
+		con.setVector("anchor2", new nape.geom.Vec2(-30,0));
+		b2.angularVel = 5;*/
+
 
 		//---------------------------------------
 
@@ -77,9 +93,9 @@ class SymbolicMain {
 
 		b2.rot*ratio - b1.rot
 		";
-		//var con = new symbolic.SymbolicConstraint(angle);
-		//con.setScalar("ratio", 2);
-		//test(con);
+		/*var con = new symbolic.SymbolicConstraint(angle);
+		con.setScalar("ratio", 1);
+		b2.angularVel = 5;*/
 
 		//---------------------------------------
 
@@ -98,10 +114,23 @@ class SymbolicMain {
 		  b2.rot - b1.rot - phase
 		}
 		";
-		var con = new symbolic.SymbolicConstraint(weld);
+		/*var con = new symbolic.SymbolicConstraint(weld);
 		con.setScalar("phase",0);
-		con.setVector("anchor1", new nape.geom.Vec2(10,20));
-		con.setVector("anchor2", new nape.geom.Vec2(1,2));
-		test(con);
+		con.setVector("anchor1", new nape.geom.Vec2(30,0));
+		con.setVector("anchor2", new nape.geom.Vec2(-30,0));
+		b2.angularVel = 5;*/
+
+		//------------------------------------------
+
+		trace(con.debug());
+		con.space = space;
+		con.setBody("b1",b1);
+		con.setBody("b2",b2);
+
+		(new haxe.Timer(0)).run = function() {
+			space.step(1/60);
+			debug.clear();
+			debug.draw(space);
+		};
 	}
 }
