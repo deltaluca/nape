@@ -183,9 +183,10 @@ class ConstraintParser {
 	//--------------------------------------------------------
 	//expression
 
-	// ( expr ), | expr |, value, variable
+	// ( expr ), | expr |, [ expr ], value, variable
 	static var expr0P = [
 		ParserM.dO({ lParP; e <= exprP; rParP; ret(e); }),
+		ParserM.dO({ lSquareP; e <= exprP; rSquareP; ret(ePerp(e)); }),
 		valueP,
 		ParserM.dO({ n <= identP; ret(eVariable(n)); }),
 		ParserM.dO({ magP; e <= exprP; magP; ret(eMag(e)); })

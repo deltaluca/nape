@@ -17,7 +17,8 @@ class SymbolicConstraint extends UserConstraint {
 	#if flash @:protected #end private var context:Context;
 
 	#if flash @:protected #end private var variables:Hash<{type:EType,value:Dynamic}>;
-	#if flash @:protected #end private var bodies:Hash<Body>;
+	#if flash @:protected #end private var bodies:Hash<Body>; //map body name to real body
+	#if flash @:protected #end private var bindices:Array<String>; //map body index to body name
 
 	#if flash @:protected #end private var posC:Expr;
 	#if flash @:protected #end private var velC:Expr;
@@ -70,7 +71,9 @@ class SymbolicConstraint extends UserConstraint {
 			variables.set(v, {type:type, value:def});
 		}
 
+		bindices = [];
 		for(b in res.bodies) {
+			bindices.push(b);
 			context.variableContext(b+".pos",etVector,eVariable(b+".vel"));
 			context.variableContext(b+".vel",etVector);
 			context.variableContext(b+".rot",etScalar,eVariable(b+".angvel"));
@@ -184,7 +187,7 @@ class SymbolicConstraint extends UserConstraint {
 		}
 	}
 
-	#if flash @:protected #end private function setvec(e:Expr,vec:ARRAY<Float>,?off:Int=0) {
+	/*#if flash @:protected #end */private function setvec(e:Expr,vec:ARRAY<Float>,?off:Int=0) {
 		switch(e) {
 			case eScalar(x): vec[off++] = x;
 			case eVector(x,y): vec[off++] = x; vec[off++] = y;
@@ -208,26 +211,67 @@ class SymbolicConstraint extends UserConstraint {
 		setvec(velC.eval(context), err);
 	}
 
-	public override function __eff_mass(eff:ARRAY<Float>) {
+	//takes literal expression and flattens into 2D array of floats.
+	/*#if flash @:protected #end */private function flatten(e:Expr,vert=true):Array<Array<Float>> {
+		return switch(e) {
+			case eScalar(x): [[x]];
+			case eVector(x,y): [[x],[y]];
+			case eRowVector(x,y): [[x,y]];
+			case eMatrix(a,b,c,d): [[a,b],[c,d]];
+			case eBlock(xs):
+				var ys = ExprUtils.map(xs, function(x) return flatten(x,!vert));
+				//stack vertically/horizontally
+				var out:Array<Array<Float>> = null;
+				if(!vert) {
+					out = [];
+					for(y in 0...ys.length) {
+						var row = [];
+						for(e in ys) row = row.concat(e[y]);
+						out.push(row);
+					}
+				}else {
+					out = [];
+					for(e in ys) out = out.concat(e);
+				}
+				out;
+			default: null;
+		}
+	}
+
+	public override function __eff_mass(out:ARRAY<Float>) {
 		var eff = effK.eval(context);
 
-		//assuming a normal constraint, we will either have:
-		// eScalar  for  1 dim constraint
-/*		var x = 0; var y = 0;
-		function coord() return ((2*dim*y - y*y + y)>>>1) + (x-y);
+		//take eff; and produce a full matrix
+		var K = flatten(eff);
 
-		function setmat(e:Expr,col:Bool) {
-			switch(e) {
-				case eScalar(a): eff[coord()] = a; if(col) y++ else x++;
-				case eMatrix(a,b,_,d): eff[0] = a; eff[1] = b; eff[2] = c;
-				case eBlock(xs):
+		//populate out array based on full eff-mass
+		var i = 0;
+		for(y in 0...K.length) {
+			for(x in y...K.length) {
+				out[i++] = K[y][x];
 			}
 		}
-
-		setmat(eff);*/
 	}
 
 	public override function __impulse(imp:ARRAY<Float>,body:Body,out:Vec3) {
-		out.x = out.y = out.z = 0;
+		var bname = "";
+		for(n in bodies.keys()) { if(bodies.get(n)==body) { bname = n; break; } }
+		var bind = -1;
+		for(i in 0...bindices.length) { if(bindices[i]==bname) { bind = i; break; } }
+
+		//these should all be column vectors like [[j0],[j1]...[j(dim-1)]]
+		var Jx = flatten(J[bind*3+0].eval(context));
+		var Jy = flatten(J[bind*3+1].eval(context));
+		var Jz = flatten(J[bind*3+2].eval(context));
+	
+		function dot(a:Array<Array<Float>>,b:ARRAY<Float>) {
+			var ret = 0.0;
+			for(i in 0...dim) ret += a[i][0]*b[i];
+			return ret;
+		}
+	
+		out.x = dot(Jx, imp);
+		out.y = dot(Jy, imp);
+		out.z = dot(Jz, imp);
 	}
 }

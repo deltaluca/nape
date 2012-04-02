@@ -111,7 +111,7 @@ class ExprUtils {
 		var ret = "";
 		for(n in c.vars.keys()) {
 			var v = c.vars.get(n);
-			ret += n+":"+print_type(v.type)+" -> "+print(v.del)+"\n";
+			ret += print_type(v.type)+" "+n+" -> "+print(v.del)+"\n";
 		}
 		for(n in c.env.keys()) {
 			var let = c.env.get(n);
@@ -129,23 +129,23 @@ class ExprUtils {
 	static public function print(e:Expr) {
 		return switch(e) {
 			case eScalar(x): Std.string(x);
-			case eVector(x,y): "vec("+Std.string(x)+","+Std.string(y)+")";
-			case eRowVector(x,y): "rowvec("+Std.string(x)+","+Std.string(y)+")";
-			case eMatrix(a,b,c,d): "mat("+Std.string(a)+","+Std.string(b)+","+Std.string(c)+","+Std.string(d)+")";
-			case eRelative(rot,x): "rel("+rot+" of "+print(x)+")";
+			case eVector(x,y): "["+Std.string(x)+" "+Std.string(y)+"]";
+			case eRowVector(x,y): "(1 outer ["+Std.string(x)+" "+Std.string(y)+"])";
+			case eMatrix(a,b,c,d): "["+Std.string(a)+" "+Std.string(b)+" ; "+Std.string(c)+" "+Std.string(d)+"]";
+			case eRelative(rot,x): "(relative "+rot+" "+print(x)+")";
 
-			case eVariable(n): "var("+n+")";
-			case eLet(n,eq,of): "let "+n+"="+print(eq)+" in\n   "+print(of);
+			case eVariable(n): n;
+			case eLet(n,eq,of): "let "+n+"="+print(eq)+" in\n"+print(of);
 	
 			case eAdd(x,y): "("+print(x)+"+"+print(y)+")";
 			case eMul(x,y): "("+print(x)+"*"+print(y)+")";
 			case eDot(x,y): "("+print(x)+" dot "+print(y)+")";
-			case eCross(x,y): "("+print(x)+" x "+print(y)+")";
-			case ePerp(x): "perp("+print(x)+")";
-			case eOuter(x,y): "outer("+print(x)+","+print(y)+")";
-			case eMag(x): "mag("+print(x)+")";
-			case eInv(x): "inv("+print(x)+")";
-			case eUnit(x): "unit("+print(x)+")";
+			case eCross(x,y): "("+print(x)+" cross "+print(y)+")";
+			case ePerp(x): "["+print(x)+"]";
+			case eOuter(x,y): "("+print(x)+" outer "+print(y)+")";
+			case eMag(x): "|"+print(x)+"|";
+			case eInv(x): "(1/"+print(x)+")";
+			case eUnit(x): "(unit "+print(x)+")";
 
 			case eBlock(xs): 
 				var ret = "{";
@@ -640,10 +640,10 @@ class ExprUtils {
 			case eLet(n,eq,vin):
 				var eqd = _diff(eq);
 
-				var prime = n+"__diff";
+				var prime = n+"'";
 				if(wrt!=null) {
 					prime += wrt;
-					if(elt!=-1) prime += "_"+Std.string(elt);
+					if(elt!=-1) prime += Std.string(elt);
 				}
 
 				variableContext(context,n,etype(eq,context),eVariable(prime),true);

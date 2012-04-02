@@ -57,27 +57,47 @@ class SymbolicMain {
 		return outexpr.simple(context);
 	}
 
-	static function test(e:String) {
-		trace(e);
-		var C = ConstraintParser.parse(e);
-		trace(C.context.print_context());
-		trace(C.posc.print());
+	static function test(con:symbolic.SymbolicConstraint) {
+		trace(con.debug());
 
-		var V = C.posc.diff(C.context);
-		trace(V.print());
+		var b1 = new nape.phys.Body(); b1.shapes.add(new nape.shape.Circle(10)); b1.position.setxy(10,10);
+		var b2 = new nape.phys.Body(); b2.shapes.add(new nape.shape.Circle(10));
+		b1.velocity.setxy(10,20);
+		b2.velocity.setxy(-10,10);
+		b1.angularVel = 4;
+		b2.angularVel = -2;
+		b1.rotation = 4;
+		b2.rotation = -2;
 
-		var J = jacobian(V,C.context,["b1","b2"]);
-		trace(Lambda.map(J,ExprUtils.print));
+		con.setBody("b1",b1);
+		con.setBody("b2",b2);
 
-		var K = effmass(J,C.context,["b1","b2"]);
-		trace(K.print());
+		con.__validate();
+		con.__prepare();
+
+		#if flash
+			var vec:flash.Vector<Float> = new flash.Vector<Float>();
+			for(i in 0...4) vec.push(0.0);
+			var K:flash.Vector<Float> = new flash.Vector<Float>();
+			for(i in 0...4*4) K.push(0.0);
+		#else
+			var vec:Array<Float> = cast [0,0,0,0,0,0,0,0,0,0];
+			var K:Array<Float> = cast [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+		#end
+
+		con.__position(vec);
+		trace(vec);
+		con.__velocity(vec);
+		trace(vec);
+		con.__eff_mass(K);
+		trace(K);
 	}
 
 	static function mainparser() {
-		var pivot = 
-		    bodyVariables("b1")
-		  + bodyVariables("b2")
-		  + "
+		var pivot = " 
+		body b1
+		body b2
+
 		vector anchor1
 		vector anchor2
 
@@ -92,15 +112,58 @@ class SymbolicMain {
 
 		//---------------------------------------
 
-		var angle = 
-		    bodyVariables("b1")
-		  + bodyVariables("b2")
-		  + "
+		var line = "
+		body b1
+		body b2
+	
+		vector anchor1
+		vector anchor2
+		vector direction
+
+		let r1 = relative b1.rot anchor1 in
+		let r2 = relative b2.rot anchor2 in
+		let dir = relative b1.rot direction in
+
+		let del = (r2 + b2.pos) - (r1 + b1.pos) in
+
+		{ del dot dir
+		  del cross dir
+		}
+		";
+		//var con = new symbolic.SymbolicConstraint(line);
+		//trace(con.debug());
+
+		//---------------------------------------
+
+		var dist = "
+		body b1
+		body b2
+
+		vector anchor1
+		vector anchor2
+		scalar dist
+		
+		let r1 = relative b1.rot anchor1 in
+		let r2 = relative b2.rot anchor2 in
+		
+		| (b2.pos + r2) - (b1.pos + r1) | - dist
+		";
+		//var con = new symbolic.SymbolicConstraint(dist);
+		//trace(con.debug());
+
+		//---------------------------------------
+
+		var angle = "
+		body b1
+		body b2
+
 		scalar ratio
 
 		b2.rot*ratio - b1.rot
 		";
-		//test(angle);
+		//var con = new symbolic.SymbolicConstraint(angle);
+		//con.setScalar("ratio", 2);
+		//test(con);
 
 		//---------------------------------------
 
@@ -119,9 +182,11 @@ class SymbolicMain {
 		  b2.rot - b1.rot - phase
 		}
 		";
-		//test(weld);
 		var con = new symbolic.SymbolicConstraint(weld);
-		trace(con.debug());
+		con.setScalar("phase",0);
+		con.setVector("anchor1", new nape.geom.Vec2(10,20));
+		con.setVector("anchor2", new nape.geom.Vec2(1,2));
+		test(con);
 	}
 /*
 	static function mainexpr() {
