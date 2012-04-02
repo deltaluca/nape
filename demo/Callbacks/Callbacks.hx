@@ -178,7 +178,7 @@ class Callbacks extends FixedStep {
 				var n = p1.sub(p2);
 				n.length=1; n.angle += Math.PI/2;
 	
-				debug.drawFilledPolygon([p1.sub(n),p2.sub(n),p2.add(n),p1.add(n)],colour);
+				debug.drawFilledPolygon([p1.sub(n,true),p2.sub(n,true),p2.add(n,true),p1.add(n,true)],colour);
 			};
 		}
 
