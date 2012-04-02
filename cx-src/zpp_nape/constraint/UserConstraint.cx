@@ -177,12 +177,15 @@ class PR(UserConstraint) extends PR(Constraint) {
 			var rec = Math.sqrt(m[ind++] - sum);
 			L[j*dim+j] = rec;
 
-			rec = 1.0/rec;
-			for(i in j+1...dim) {
-				var sum = 0.0;
-				for(k in 0...j-1) sum += L[i*dim+k]*L[j*dim+k];
-				L[i*dim+j] = rec*(m[ind++] - sum);
-			}
+			if(rec!=0) {
+				rec = 1.0/rec;
+				for(i in j+1...dim) {
+					var sum = 0.0;
+					for(k in 0...j-1) sum += L[i*dim+k]*L[j*dim+k];
+					L[i*dim+j] = rec*(m[ind++] - sum);
+				}
+			}else
+				for(i in j+1...dim) L[i*dim+j] = 0.0;
 		}
 		return L;
 	}
@@ -191,15 +194,21 @@ class PR(UserConstraint) extends PR(Constraint) {
 	public function transform(L:ARRAY(Float),x:ARRAY(Float)) {
 		for(i in 0...dim) {
 			var sum = x[i];
-			for(k in 0...i) sum -= L[i*dim+k]*y[k];
-			y[i] = sum / L[i*dim+i];
+			var lii = L[i*dim+i];
+			if(lii!=0) {
+				for(k in 0...i) sum -= L[i*dim+k]*y[k];
+				y[i] = sum / lii;
+			}else y[i] = 0.0;
 		}
 
 		for(ix in 0...dim) {
 			var i = dim-1-ix;
-			var sum = y[i];
-			for(k in i+1...dim) sum -= L[k*dim+i]*x[k];
-			x[i] = sum/L[i*dim+i];
+			var lii = L[i*dim+i];
+			if(lii!=0) {
+				var sum = y[i];
+				for(k in i+1...dim) sum -= L[k*dim+i]*x[k];
+				x[i] = sum / lii;
+			}else x[i] = 0.0;
 		}
 	}
 

@@ -55,11 +55,11 @@ class SymbolicMain {
 
 		del cross dir
 		";
-		var con = new symbolic.SymbolicConstraint(line);
+		/*var con = new symbolic.SymbolicConstraint(line);
 		con.setVector("direction", new nape.geom.Vec2(1,0));
 		con.setVector("anchor1", new nape.geom.Vec2(30,0));
 		con.setVector("anchor2", new nape.geom.Vec2(-30,0));
-		b2.angularVel = 5;
+		b2.angularVel = 5;*/
 
 		//---------------------------------------
 
@@ -91,11 +91,11 @@ class SymbolicMain {
 
 		scalar ratio
 
-		b2.rot*ratio - b1.rot
+		{ b2.rot*ratio - b1.rot 0 0}
 		";
-		/*var con = new symbolic.SymbolicConstraint(angle);
+		var con = new symbolic.SymbolicConstraint(angle);
 		con.setScalar("ratio", 1);
-		b2.angularVel = 5;*/
+		b2.angularVel = 5;
 
 		//---------------------------------------
 
