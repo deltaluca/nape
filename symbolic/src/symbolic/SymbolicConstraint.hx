@@ -44,7 +44,6 @@ class SymbolicConstraint extends UserConstraint {
 		ret += "# jacobians\n";
 		ret += "# ---------\n";
 		for(j in J) ret += j.print()+"\n\n";
-		ret += "\n";
 		ret += "# effective-mass matrix\n";
 		ret += "# ---------------------\n";
 		ret += effK.print();
@@ -124,7 +123,8 @@ class SymbolicConstraint extends UserConstraint {
 		for(i in 0...J.length) {
 			var b = res.bodies[Std.int(i/3)];
 			var m = eVariable(b + (if((i%3)==2) ".iinertia" else ".imass"));
-			var e = eMul(m,eOuter(J[i],J[i])).simple(context);
+			var e = eLet("$J",J[i],eMul(m,eOuter(eVariable("$J"),eVariable("$J")))).simple(context);
+//			var e = eMul(m,eOuter(J[i],J[i])).simple(context);
 			if(effK==null) effK = e;
 			else effK = eAdd(effK,e);
 		}

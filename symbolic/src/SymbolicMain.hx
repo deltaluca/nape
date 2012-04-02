@@ -21,31 +21,24 @@ class SymbolicMain {
 		b2.position.setxy(250,150);
 
 		var pivot = " 
-		body b1
-		body b2
-
-		vector anchor1
-		vector anchor2
+		body b1, b2
+		vector anchor1, anchor2
 
 		let r1 = relative b1.rot anchor1 in
 		let r2 = relative b2.rot anchor2 in
 	
 		(r2 + b2.pos) - (r1 + b1.pos)
 		";
-		/*var con = new symbolic.SymbolicConstraint(pivot);
+		var con = new symbolic.SymbolicConstraint(pivot);
 		con.setVector("anchor1", new nape.geom.Vec2(50,0));
 		con.setVector("anchor2", new nape.geom.Vec2(-50,0));
-		b2.angularVel = 5;*/
+		b2.angularVel = 5;
 
 		//---------------------------------------
 
 		var line = "
-		body b1
-		body b2
-	
-		vector anchor1
-		vector anchor2
-		vector direction
+		body b1, b2
+		vector anchor1, anchor2, direction
 
 		let r1 = relative b1.rot anchor1 in
 		let r2 = relative b2.rot anchor2 in
@@ -64,11 +57,8 @@ class SymbolicMain {
 		//---------------------------------------
 
 		var dist = "
-		body b1
-		body b2
-
-		vector anchor1
-		vector anchor2
+		body b1, b2
+		vector anchor1, anchor2
 		scalar dist
 		
 		let r1 = relative b1.rot anchor1 in
@@ -86,25 +76,20 @@ class SymbolicMain {
 		//---------------------------------------
 
 		var angle = "
-		body b1
-		body b2
-
+		body b1, b2
 		scalar ratio
 
-		{ b2.rot*ratio - b1.rot 0 0}
+		b2.rot*ratio - b1.rot
 		";
-		var con = new symbolic.SymbolicConstraint(angle);
+		/*var con = new symbolic.SymbolicConstraint(angle);
 		con.setScalar("ratio", 1);
-		b2.angularVel = 5;
+		b2.angularVel = 5;*/
 
 		//---------------------------------------
 
 		var weld = "
-		body b1
-		body b2
-		
-		vector anchor1
-		vector anchor2
+		body b1, b2
+		vector anchor1, anchor2
 		scalar phase
 		
 		let r1 = relative b1.rot anchor1 in

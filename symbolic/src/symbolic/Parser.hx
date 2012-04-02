@@ -23,7 +23,7 @@ using Lambda;
 	vector values :: [scalar scalar]
 	matrix values :: [scalar scalar ; scalar scalar ]
 
-	vardecl  :: decl identifier type [-> expr]?
+	vardecl  :: type (identifier [-> expr]?)+
 	variable :: identifier (non reserved)
 	localvar :: let identifier = expr in expr
 
@@ -77,6 +77,16 @@ class ConstraintParser {
 		return ParserM.dO({ x <= p; rest(x); });
 	}
 
+	static function plussep<T,D>(p:Void->Parser<String,T>, sep:Void->Parser<String,D>):Void->Parser<String,Array<T>> {
+		function rest(x:Array<T>) return ParserM.dO({
+			_ <= sep;
+			y <= p;
+			rest(x.concat([y]));
+		}).or(x.success());
+	
+		return ParserM.dO({ x <= p; rest([x]); });
+	}
+
 	//--------------------------------------------------------
 	//operators and key words
 
@@ -87,6 +97,7 @@ class ConstraintParser {
 	static var lSquareP  = withSpacing("[".identifier());
 	static var rSquareP  = withSpacing("]".identifier());
 	static var semicolP  = withSpacing(";".identifier());
+	static var commaP    = withSpacing(",".identifier());
 	static var equalsP   = withSpacing("=".identifier());
 	static var addP      = withSpacing("+".identifier());
 	static var subP      = withSpacing("-".identifier());
@@ -163,19 +174,25 @@ class ConstraintParser {
 
 	static var vardeclP = ParserM.dO({
 		type <= typeP;
-		name <= identP;
-		del  <= ParserM.dO({
-			delP;
-			e <= exprP;
-			ret(e);
-		}).option();
-		ret({name:name, type:type, del:del});
+		decls <= plussep(ParserM.dO({
+			name <= identP;
+			del  <= ParserM.dO({
+				delP;
+				e <= exprP;
+				ret(e);
+			}).option();
+			ret({name:name, type:type, del:del});
+		}), commaP);
+		ret(decls);
 	}).tag("variable declaration");
 
 	static var bodydeclP = ParserM.dO({
 		bodyP;
-		name <= identP;
-		ret({name:name, type:null, del:null});
+		names <= plussep(ParserM.dO({
+			name <= identP;
+			ret({name:name, type:null, del:null});
+		}), commaP);
+		ret(names);
 	}).tag("body declaration");
 
 	static var declarationsP = [vardeclP, bodydeclP].ors();
@@ -237,7 +254,7 @@ class ConstraintParser {
 		ret({
 			var context:Context = ExprUtils.emptyContext();
 			var bodies = [];
-			for(v in vars) {
+			for(vs in vars) { for(v in vs) {
 				if(v.type==null) bodies.push(v.name);
 				else {
 					var del = switch(v.del) {
@@ -246,7 +263,7 @@ class ConstraintParser {
 					}
 					context.variableContext(v.name, v.type, del);
 				}
-			}
+			} }
 			{ bodies: bodies, context: context, posc : posc };
 		});
 	}).memo();
