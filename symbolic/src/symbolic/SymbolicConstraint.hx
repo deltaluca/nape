@@ -221,16 +221,14 @@ class SymbolicConstraint extends UserConstraint {
 			case eBlock(xs):
 				var ys = ExprUtils.map(xs, function(x) return flatten(x,!vert));
 				//stack vertically/horizontally
-				var out:Array<Array<Float>> = null;
+				var out:Array<Array<Float>> = [];
 				if(!vert) {
-					out = [];
-					for(y in 0...ys.length) {
+					for(y in 0...ys[0].length) {
 						var row = [];
 						for(e in ys) row = row.concat(e[y]);
 						out.push(row);
 					}
 				}else {
-					out = [];
 					for(e in ys) out = out.concat(e);
 				}
 				out;
@@ -266,7 +264,7 @@ class SymbolicConstraint extends UserConstraint {
 	
 		function dot(a:Array<Array<Float>>,b:ARRAY<Float>) {
 			var ret = 0.0;
-			for(i in 0...dim) ret += a[i][0]*b[i];
+			for(i in 0...a.length) ret += a[i][0]*b[i];
 			return ret;
 		}
 	
