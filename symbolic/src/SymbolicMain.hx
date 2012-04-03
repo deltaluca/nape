@@ -21,18 +21,18 @@ class SymbolicMain {
 		b2.position.setxy(250,150);
 
 		var pivot = " 
-		body b1, b2
+		body body1, body2
 		vector anchor1, anchor2
 
-		let r1 = relative b1.rot anchor1 in
-		let r2 = relative b2.rot anchor2 in
-	
-		(r2 + b2.pos) - (r1 + b1.pos)
+		constraint
+			let r1 = relative body1.rotation anchor1 in
+			let r2 = relative body2.rotation anchor2 in
+			(r2 + body2.position) - (r1 + body1.position)
 		";
-		var con = new symbolic.SymbolicConstraint(pivot);
+		/*var con = new symbolic.SymbolicConstraint(pivot);
 		con.setVector("anchor1", new nape.geom.Vec2(50,0));
 		con.setVector("anchor2", new nape.geom.Vec2(-50,0));
-		b2.angularVel = 5;
+		b2.angularVel = 5;*/
 
 		//---------------------------------------
 
@@ -57,32 +57,42 @@ class SymbolicMain {
 		//---------------------------------------
 
 		var dist = "
-		body b1, b2
+		body body1, body2
 		vector anchor1, anchor2
-		scalar dist
+		scalar jointMin, jointMax
+
+		limit jointMin 0 jointMax
 		
-		let r1 = relative b1.rot anchor1 in
-		let r2 = relative b2.rot anchor2 in
-		
-		| (b2.pos + r2) - (b1.pos + r1) | - dist
+		constraint
+			let r1 = relative body1.rotation anchor1 in
+			let r2 = relative body2.rotation anchor2 in	
+			| (body2.position + r2) - (body1.position + r1) |
+	
+		limit constraint jointMin jointMax
 		";
-/*		var con = new symbolic.SymbolicConstraint(dist);
-		con.setScalar("dist",50);
+		var con = new symbolic.SymbolicConstraint(dist);
 		con.setVector("anchor1", new nape.geom.Vec2(30,0));
 		con.setVector("anchor2", new nape.geom.Vec2(-30,0));
-		b2.angularVel = 5;*/
+		con.setScalar("jointMin",20);
+		con.setScalar("jointMax",60);
+		b2.angularVel = 5;
 
 
 		//---------------------------------------
 
 		var angle = "
-		body b1, b2
+		body body1, body2
 		scalar ratio
+		scalar jointMin, jointMax
 
-		b2.rot*ratio - b1.rot
+		limit jointMin (-inf) jointMax
+
+		constraint body2.rotation*ratio - body1.rotation
+		limit constraint jointMin jointMax
 		";
-		/*var con = new symbolic.SymbolicConstraint(angle);
+/*		var con = new symbolic.SymbolicConstraint(angle);
 		con.setScalar("ratio", 1);
+		con.setScalar("jointMax",Math.PI*2);
 		b2.angularVel = 5;*/
 
 		//---------------------------------------
@@ -109,8 +119,8 @@ class SymbolicMain {
 
 		trace(con.debug());
 		con.space = space;
-		con.setBody("b1",b1);
-		con.setBody("b2",b2);
+		con.setBody("body1",b1);
+		con.setBody("body2",b2);
 
 		(new haxe.Timer(0)).run = function() {
 			space.step(1/60);

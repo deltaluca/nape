@@ -17,31 +17,95 @@ using com.mindrocks.text.ParserMonad;
 using Lambda;
 
 /*
-	body decl :: body name
+	# this is a comment
+	# body declarations
+	body name (, name)*
+	
+	# variable declarations
+	scalar|vector name (= default-literal) (-> time-derivative)? # and many allowed
+	
+	# constraint expression
+	# should either be expression of positions, or of velocities
+	# if you have some freaky constraint which is a functino of 'both' types
+	# of property, it will only be 'able' to functino as a soft constraint
+	constraint expression
 
-	scalar values :: usual floats
-	vector values :: [scalar scalar]
-	matrix values :: [scalar scalar ; scalar scalar ]
+	# constraint/variable limits (optional; default 0's)
+	# the types of min-expression max-expressino must
+	#     match the variable|constraint, with <= >=
+	#     done on seperate values of non-scalars
+	# limits for variables checked in verify() step of constraint
+	limit expression min-expression max-expression
+	
+	# expression may be:
+	# a literal
+	inf
+	eps
+	scalar
+	[ scalar scalar]
+	[ scalar scalar ; scalar scalar ]
+	[ scalar ; scalar ]
+	
+	# a block expression
+	{ expression* }
 
-	vardecl  :: type (identifier [-> expr]?)+
-	variable :: identifier (non reserved)
-	localvar :: let identifier = expr in expr
+	# a let expression
+	let name = expression in expression
 
-	relative vector :: relative variable expr
-
-	operators :: x + y, x * y,x dot y, x cross y, [x], x outer y, |x|, unit x
-	emulated operators :: x - y, x / y
-
-	precedences ; usual suspects!
-
-		unit <- highest
-		relative
-		*, /
-		dot, cross
-		outer
-		+, -
-		let
+	# with operators (defined in order of highest precedence to lowest)
+	| expression | # magnitude (of a vector/scalar)
+    [ expression ] # perpendicular-vector (of a vector)
+    unit expression # unit of a vector/scalar (sign function on scalar)
+    relative variable expression # define vector-expression as being in a local coordinate system who's rotation is defined by the given variable
+	a * b, a / b # multiplication, division
+	a dot b, a cross b # dot product and cross product defined like a dot b = tranpose(a)*b, a cross b = a dot [b]
+	a outer b # outer product, defined like a outer b = a*transpose(b)
+    a + b, a - b # addition, subtraction
+    let name = a in expression # scoped dependent variable
 */
+
+/* eg: Nape's DistanceJoint
+
+	body body1, body2
+	vector anchor1, anchor2
+	scalar jointMin, jointMax
+
+	limit jointMin 0 jointMax
+
+	constraint 
+		let r1 = relative body1.rotation anchor1 in
+		let r2 = relative body2.rotation anchor2 in
+		| (body2.position + r2) - (body1.position + r1) |
+
+	limit constraint jointMin jointMax
+*/
+
+/* eg: Nape's LineJoint
+
+	body body1, body2
+	vector anchor1, anchor2, direction
+	scalar jointMin, jointMax
+
+	limit jointMin (-inf) jointMax
+	limit | direction | eps inf
+
+	constraint 
+		let r1 = relative body1.rotation anchor1 in
+		let r2 = relative body2.rotation anchor2 in
+		let dir = unit (relative body1.rotation direction) in
+		let del = (body2.position + r2) - (body1.position + r1) in
+		{ del dot dir
+		  del cross dir }
+
+	limit constraint { jointMin 0 } { jointMax 0 }
+*/
+
+enum Atom {
+	aBodies(names:Array<String>);
+	aVariables(vars:Array<{name:String,type:EType,def:Expr,del:Expr}>);
+	aLimit(expr:Expr,lower:Expr,upper:Expr); //expr=null denotes constraint
+	aConstraint(expr:Expr);
+}
 
 class ConstraintParser {
 	static var identifierR = ~/[a-zA-Z_][a-zA-Z0-9_.]*/;
@@ -118,6 +182,8 @@ class ConstraintParser {
 	static var idmatrixP = withSpacing("matrix".identifier());
 	static var delP      = withSpacing("->".identifier());
 	static var bodyP     = withSpacing("body".identifier());
+	static var constrP   =withSpacing("constraint".identifier());
+	static var limitP    = withSpacing("limit".identifier());
 
 	//--------------------------------------------------------
 	//value type
@@ -176,26 +242,48 @@ class ConstraintParser {
 		type <= typeP;
 		decls <= plussep(ParserM.dO({
 			name <= identP;
+			def  <= ParserM.dO({
+				equalsP;
+				e <= exprP;
+				ret(e);
+			}).option();
 			del  <= ParserM.dO({
 				delP;
 				e <= exprP;
 				ret(e);
 			}).option();
-			ret({name:name, type:type, del:del});
+			ret({ name: name, type: type,
+				  del: switch(del) { case Some(x): x; default: null; },
+				  def: switch(def) { case Some(x): x; default: null; }
+			});
 		}), commaP);
-		ret(decls);
+		ret(aVariables(decls));
 	}).tag("variable declaration");
 
 	static var bodydeclP = ParserM.dO({
 		bodyP;
 		names <= plussep(ParserM.dO({
 			name <= identP;
-			ret({name:name, type:null, del:null});
+			ret(name);
 		}), commaP);
-		ret(names);
+		ret(aBodies(names));
 	}).tag("body declaration");
 
-	static var declarationsP = [vardeclP, bodydeclP].ors();
+	static var limitdeclP = ParserM.dO({
+		limitP;
+		e <= ParserM.dO({ constrP; ret(null); }).or(ParserM.dO({ e <= exprP; ret(e); }));
+		lower <= exprP;
+		upper <= exprP;
+		ret(aLimit(e,lower,upper));
+	}).tag("limit declaration");
+
+	static var constraintdeclP = ParserM.dO({
+		constrP;
+		e <= exprP;
+		ret(aConstraint(e));
+	}).tag("constraint declaration");
+
+	static var declarationsP = [vardeclP, bodydeclP, limitdeclP, constraintdeclP].ors();
 
 	//--------------------------------------------------------
 	//expression
@@ -206,7 +294,8 @@ class ConstraintParser {
 		ParserM.dO({ lSquareP; e <= exprP; rSquareP; ret(ePerp(e)); }),
 		valueP,
 		ParserM.dO({ n <= identP; ret(eVariable(n)); }),
-		ParserM.dO({ magP; e <= exprP; magP; ret(eMag(e)); })
+		ParserM.dO({ magP; e <= exprP; magP; ret(eMag(e)); }),
+		ParserM.dO({ subP; e <= exprP; ret(eMul(eScalar(-1),e)); })
 	].ors();
 
 	// unit expr0 | expr0
@@ -248,29 +337,11 @@ class ConstraintParser {
 	//--------------------------------------------------------
 	//full constraint definition
 
-	static var constraintP = ParserM.dO({
-		vars <= declarationsP.many();
-		posc <= exprP;
-		ret({
-			var context:Context = ExprUtils.emptyContext();
-			var bodies = [];
-			for(vs in vars) { for(v in vs) {
-				if(v.type==null) bodies.push(v.name);
-				else {
-					var del = switch(v.del) {
-						case Some(x): x;
-						default: null;
-					}
-					context.variableContext(v.name, v.type, del);
-				}
-			} }
-			{ bodies: bodies, context: context, posc : posc };
-		});
-	}).memo();
+	static var constraintP = declarationsP.many().memo();
 
 	//--------------------------------------------------------
 
-	public static function parse(constraint:String):{context:Context, posc:Expr, bodies:Array<String>} {
+	public static function parse(constraint:String):Array<Atom> {
 		switch(constraintP()(constraint.reader())) {
 			case Success(res,resti):
 				var rest = resti.rest();

@@ -19,12 +19,16 @@ class SymbolicConstraint extends UserConstraint {
 	#if flash @:protected #end private var variables:Hash<{type:EType,value:Dynamic}>;
 	#if flash @:protected #end private var bodies:Hash<Body>; //map body name to real body
 	#if flash @:protected #end private var bindices:Array<String>; //map body index to body name
+	#if flash @:protected #end private var limits:Array<{limit:Expr,lower:Expr,upper:Expr}>;
 
 	#if flash @:protected #end private var posC:Expr;
 	#if flash @:protected #end private var velC:Expr;
 	#if flash @:protected #end private var J:Array<Expr>;
 	#if flash @:protected #end private var effK:Expr;
 	#if flash @:protected #end private var dim:Int;
+	#if flash @:protected #end private var lower:Expr;
+	#if flash @:protected #end private var upper:Expr;
+	#if flash @:protected #end private var scale:Array<Float>;
 
 	//-----------------------------------------------------------------------------
 
@@ -33,6 +37,10 @@ class SymbolicConstraint extends UserConstraint {
 		ret += "# constraint context\n";
 		ret += "# ------------------\n";
 		ret += context.print_context()+"\n";
+		ret += "# limits\n";
+		ret += "# ------\n";
+		for(l in limits) ret += "limit "+l.limit.print()+" "+l.lower.print()+" "+l.upper.print()+"\n";
+		ret += "limit constraint "+(lower==null?"#def":lower.print())+" "+(upper==null?"#def":upper.print())+"\n";
 		ret += "\n";
 		ret += "# positional constraint\n";
 		ret += "# ---------------------\n";
@@ -53,38 +61,70 @@ class SymbolicConstraint extends UserConstraint {
 	//-----------------------------------------------------------------------------
 
 	public function new(constraint:String) {
-		var res = ConstraintParser.parse(constraint);
-
-		context = res.context;
+		var atoms = ConstraintParser.parse(constraint);
+		context = ExprUtils.emptyContext();
 		variables = new Hash<{type:EType,value:Dynamic}>();
 		bodies = new Hash<Body>();
-
-		for(v in context.vars.keys()) {
-			var type = context.vars.get(v).type;
-			var def:Dynamic = null;
-			switch(type) {
-				case etScalar: def = 0;
-				case etVector: def = null;
-				default: 
-			}
-			variables.set(v, {type:type, value:def});
-		}
-
+		limits = new Array<{limit:Expr,lower:Expr,upper:Expr}>();
 		bindices = [];
-		for(b in res.bodies) {
-			bindices.push(b);
-			context.variableContext(b+".pos",etVector,eVariable(b+".vel"));
-			context.variableContext(b+".vel",etVector);
-			context.variableContext(b+".rot",etScalar,eVariable(b+".angvel"));
-			context.variableContext(b+".angvel",etScalar);
-			context.variableContext(b+".imass",etScalar);
-			context.variableContext(b+".iinertia",etScalar);
+	
+		for(a in atoms) {
+		switch(a) {
+			case aVariables(vars):
+				for(v in vars)
+					context.variableContext(v.name, v.type, v.del);
+			case aBodies(names):
+				for(b in names) {
+					bindices.push(b);
+					context.variableContext(b+".position",etVector,eVariable(b+".velocity"));
+					context.variableContext(b+".velocity",etVector);
+					context.variableContext(b+".rotation",etScalar,eVariable(b+".angularVel"));
+					context.variableContext(b+".angularVel",etScalar);
+					context.variableContext(b+"#imass",etScalar);
+					context.variableContext(b+"#iinertia",etScalar);
+					bodies.set(b, null);
+				}
+			default:
+		}}
 
-			bodies.set(b,null);
-		}
+		context.extendContext("inf",eScalar(Math.POSITIVE_INFINITY));
+		context.extendContext("eps",eScalar(1e-10));
 
-		//simplified positional constraint
-		posC = res.posc.simple(context);
+		for(a in atoms) {
+		switch(a) {
+			case aVariables(vars):
+				for(v in vars) {
+					var def:Dynamic = null;
+					if(v.def==null) {
+						switch(v.type) {
+						case etScalar: def = 0;
+						case etVector: def = Vec2.get();
+						default:
+						}
+					}else {
+						switch(v.def.simple(context)) {
+						case eScalar(x): def = x;
+						case eVector(x,y): def = Vec2.get(x,y);
+						default:
+						}
+					}
+					variables.set(v.name, {type:v.type, value:def});
+				}
+			case aConstraint(expr):
+				posC = expr.simple(context);
+			case aLimit(expr,lower,upper):
+				if(expr!=null) limits.push({
+					limit:expr.simple(context),
+					lower:lower.simple(context),
+					upper:upper.simple(context)
+				}) else {
+					this.lower = lower.simple(context);
+					this.upper = upper.simple(context);
+				}
+			default:
+		}}
+
+		posC = posC.simple(context);
 
 		//get dimensino of constraint from type
 		var type = posC.etype(context);
@@ -105,6 +145,9 @@ class SymbolicConstraint extends UserConstraint {
 				dim;
 		}
 
+		scale = [];
+		for(i in 0...dim) scale.push(0.0);
+
 		super(dim);	
 
 		//velocity constraint
@@ -112,19 +155,19 @@ class SymbolicConstraint extends UserConstraint {
 
 		//jacobian
 		J = [];
-		for(b in res.bodies) {
-			J.push(velC.diff(context,b+".vel",0));
-			J.push(velC.diff(context,b+".vel",1));
-			J.push(velC.diff(context,b+".angvel"));
+		for(b in bindices) {
+			J.push(velC.diff(context,b+".velocity",0));
+			J.push(velC.diff(context,b+".velocity",1));
+			J.push(velC.diff(context,b+".angularVel"));
 		}
 
 		//effective mass
 		effK = null;
 		for(i in 0...J.length) {
-			var b = res.bodies[Std.int(i/3)];
-			var m = eVariable(b + (if((i%3)==2) ".iinertia" else ".imass"));
-			var e = eLet("$J",J[i],eMul(m,eOuter(eVariable("$J"),eVariable("$J")))).simple(context);
-//			var e = eMul(m,eOuter(J[i],J[i])).simple(context);
+			var b = bindices[Std.int(i/3)];
+			var m = eVariable(b + (if((i%3)==2) "#iinertia" else "#imass"));
+			var e = eLet("#J",J[i],eMul(m,eOuter(eVariable("#J"),eVariable("#J")))).simple(context);
+
 			if(effK==null) effK = e;
 			else effK = eAdd(effK,e);
 		}
@@ -156,6 +199,16 @@ class SymbolicConstraint extends UserConstraint {
 
 	//-----------------------------------------------------------------------------
 
+	private function less(a:Expr,b:Expr) {
+		return switch(a) {
+			case eScalar(x): switch(b) { case eScalar(y): x < y; default: false; }
+			case eVector(x1,y1): switch(b) { case eVector(x2,y2): x1 < x2 || y1 < y2; default: false; }
+			default: false;
+		}
+	}
+
+	//-----------------------------------------------------------------------------
+
 	public override function __validate() {
 		//should check for null bodies here.
 
@@ -173,8 +226,17 @@ class SymbolicConstraint extends UserConstraint {
 		//set body parameters in context that remain fixed
 		for(n in bodies.keys()) {
 			var b = bodies.get(n);
-			context.replaceContext(n+".imass",   eScalar(b.constraintMass));
-			context.replaceContext(n+".iinertia",eScalar(b.constraintInertia));
+			context.replaceContext(n+"#imass",   eScalar(b.constraintMass));
+			context.replaceContext(n+"#iinertia",eScalar(b.constraintInertia));
+		}
+
+		//check limits
+		//TODO: Ensure any body-variables in limits used are set in context
+		for(l in limits) {
+			var limit = l.limit.eval(context);
+			var lower = l.lower.eval(context);
+			var upper = l.upper.eval(context);
+			if(less(limit,lower) || less(upper,limit)) throw "Error: Limit not satisfied on "+l.limit.print()+"="+limit.print()+" and lower="+lower.print()+" and upper="+upper.print();	
 		}
 	}
 
@@ -182,8 +244,8 @@ class SymbolicConstraint extends UserConstraint {
 		//set body parameters remaining fixed in velocity iterations
 		for(n in bodies.keys()) {
 			var b = bodies.get(n);
-			context.replaceContext(n+".pos", eVector(b.position.x,b.position.y));
-			context.replaceContext(n+".rot", eScalar(b.rotation));
+			context.replaceContext(n+".position", eVector(b.position.x,b.position.y));
+			context.replaceContext(n+".rotation", eScalar(b.rotation));
 		}
 	}
 
@@ -198,17 +260,39 @@ class SymbolicConstraint extends UserConstraint {
 		return off;
 	}
 
-	public override function __position(err:ARRAY<Float>)
-		setvec(posC.eval(context), err)
+	public override function __position(err:ARRAY<Float>) {
+		setvec(posC.eval(context), err);
+
+		//inequality bounding.
+		var bounds = [];
+		var lowerv = if(lower==null) null else flatten(lower.eval(context));
+		var upperv = if(upper==null) null else flatten(upper.eval(context));
+		for(i in 0...err.length) {
+			var low  = if(lowerv ==null) 0.0 else lowerv[i][0];
+			var high = if(upperv==null) 0.0 else upperv[i][0];
+			if(low==high) {
+				err[i] -= low;
+				scale[i] = 1.0;
+			}else if(err[i]<low) {
+				err[i] = low - err[i];
+				scale[i] = -1.0;
+			}else if(err[i]>high) {
+				err[i] -= high;
+				scale[i] = 1.0;
+			}else
+				err[i] = scale[i] = 0.0;
+		}
+	}
 	
 	public override function __velocity(err:ARRAY<Float>) {
 		//set body parameters changing in velocity iterations
 		for(n in bodies.keys()) {
 			var b = bodies.get(n);
-			context.replaceContext(n+".vel", eVector(b.velocity.x,b.velocity.y));
-			context.replaceContext(n+".angvel", eScalar(b.angularVel));
+			context.replaceContext(n+".velocity", eVector(b.constraintVelocity.x,b.constraintVelocity.y));
+			context.replaceContext(n+".angularVel", eScalar(b.constraintVelocity.z));
 		}
 		setvec(velC.eval(context), err);
+		for(i in 0...err.length) err[i] *= scale[i];
 	}
 
 	//takes literal expression and flattens into 2D array of floats.
@@ -245,12 +329,17 @@ class SymbolicConstraint extends UserConstraint {
 		//populate out array based on full eff-mass
 		var i = 0;
 		for(y in 0...K.length) {
-			for(x in y...K.length) {
-				out[i++] = K[y][x];
-			}
+			for(x in y...K.length)
+				out[i++] = (scale[x]*scale[y])*K[y][x];
 		}
 	}
 
+	private function dot(a:Array<Array<Float>>,b:ARRAY<Float>) {
+		var ret = 0.0;
+		for(i in 0...a.length) ret += a[i][0]*b[i]*scale[i];
+		return ret;
+	}
+	
 	public override function __impulse(imp:ARRAY<Float>,body:Body,out:Vec3) {
 		var bname = "";
 		for(n in bodies.keys()) { if(bodies.get(n)==body) { bname = n; break; } }
@@ -261,12 +350,6 @@ class SymbolicConstraint extends UserConstraint {
 		var Jx = flatten(J[bind*3+0].eval(context));
 		var Jy = flatten(J[bind*3+1].eval(context));
 		var Jz = flatten(J[bind*3+2].eval(context));
-	
-		function dot(a:Array<Array<Float>>,b:ARRAY<Float>) {
-			var ret = 0.0;
-			for(i in 0...a.length) ret += a[i][0]*b[i];
-			return ret;
-		}
 	
 		out.x = dot(Jx, imp);
 		out.y = dot(Jy, imp);

@@ -276,6 +276,15 @@ class ExprUtils {
 	//===========================================================================
 
 	//evaluator
+	public static function tryeval(e:Expr,context:Context) {
+		try {
+			var t = eval(e,context);
+			if(t!=null) e = t;
+		}catch(e:Dynamic) {
+		}
+		return e;
+	}
+
 	public static function eval(e:Expr,context:Context) {
 		return switch(e) {
 			default: e;
@@ -289,7 +298,8 @@ class ExprUtils {
 				} default: throw "Error: eRelative(r!=eScalar,_)"; null; }
 
 			case eVariable(n):
-				eval(context.env.get(n)[0],context);
+				if(!context.env.exists(n)) null;
+				else eval(context.env.get(n)[0],context);
 			case eLet(n,eq,vin):
 				extendContext(context, n,eval(eq,context));
 				var ret:Expr = null;
@@ -435,15 +445,7 @@ class ExprUtils {
 		return __simple(__simple(e,context),context);
 	}
 	static function __simple(e:Expr,context:Context) {
-		function tryeval(e:Expr) {
-			try {
-				var t = eval(e,context);
-				if(t!=null) e = t;
-			}catch(e:Dynamic) {
-			}
-			return e;
-		}
-		function _simple(e:Expr) return tryeval(simple(e,context));
+		function _simple(e:Expr) return tryeval(simple(e,context),context);
 		function zero(e:Expr) {
 			return switch(e) {
 				case eScalar(x): x==0;
@@ -521,7 +523,7 @@ class ExprUtils {
 				extendContext(context,n,eq);
 				var vin = null;
 				try {
-					vin = tryeval(simple(invin,context));
+					vin = tryeval(simple(invin,context),context);
 				}catch(e:Dynamic) {}
 				redactContext(context,n);
 
@@ -593,7 +595,7 @@ class ExprUtils {
 			case eBlock(inx):
 				eBlock(map(inx,_simple));
 		}
-		return tryeval(ret);
+		return tryeval(ret,context);
 	}
 
 	//---------------------------------------------------------------------------
