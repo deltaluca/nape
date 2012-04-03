@@ -342,7 +342,7 @@ class SymbolicConstraint extends UserConstraint {
 	}
 
 	public override function __clamp(imp:ARRAY<Float>) {
-		for(i in 0...imp.length) if(!equal[i] && imp[i]>0) imp[i] = 0;
+		for(i in 0...imp.length) if(!equal[i] && imp[i]>0 || scale[i]==0) imp[i] = 0;
 	}
 	
 	public override function __impulse(imp:ARRAY<Float>,body:Body,out:Vec3) {

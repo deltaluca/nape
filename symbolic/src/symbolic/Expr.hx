@@ -174,7 +174,10 @@ class ExprUtils {
 			case eVariable(n): 
 				if(context.env.exists(n))
 					 etype(context.env.get(n)[0],context);
-				else context.vars.get(n).type;
+				else {
+					if(!context.vars.exists(n)) throw "TypeError: Variable '"+n+"' has no type in context";
+					context.vars.get(n).type;
+				}
 			case eLet(n,eq,within):
 				extendContext(context, n,eq);
 				var ret:EType = null;
@@ -345,7 +348,7 @@ class ExprUtils {
 				case eVector(x1,x2):
 					switch(y) {
 					case eScalar(y): eVector(y*x1,y*x2);
-					case eRowVector(y1,y2): eval(eOuter(x,eVector(y1,y2)),context);
+					case eRowVector(y1,y2): eMatrix(x1*y1,x1*y2,x2*y1,x2*y2);
 					case eBlock(ys): eBlock(map(ys, function(y) return eval(eMul(x,y),context)));
 					default: throw "Error: eMul(x=eVector,y!=value)"; null;
 					}
@@ -374,7 +377,7 @@ class ExprUtils {
 				switch(x) {
 				case eScalar(x): switch(y) { case eScalar(y): eScalar(x*y); default: throw "Error: eDot(eScalar,¬eScalar)"; null; }
 				case eVector(x1,x2): switch(y) { case eVector(y1,y2): eScalar(x1*y1+x2*y2); default: throw "Error: eDot(eVector,¬eVector)"; null; }
-				case eRowVector(x1,x2): switch(y) { case eRowVector(y1,y2): eMatrix(x1*y1,x2*y1,x1*y2,x2*y2); default: throw "Error: eDot(eRowVector,¬eRowVector)"; null; }
+				case eRowVector(x1,x2): switch(y) { case eRowVector(y1,y2): eMatrix(x1*y1,x1*y2,x2*y1,x2*y2); default: throw "Error: eDot(eRowVector,¬eRowVector)"; null; }
 				default: throw "Error: eDot(x=matrix/block/non-value,_)"; null;
 				}
 
@@ -412,7 +415,7 @@ class ExprUtils {
 				case eVector(x1,x2):
 					switch(y) {
 					case eScalar(y): eVector(y*x1,y*x2);
-					case eVector(y1,y2): eMatrix(x1*y1,x2*y1,x1*y2,x2*y2);
+					case eVector(y1,y2): eMatrix(x1*y1,x1*y2,x2*y1,x2*y2);
 					case eBlock(ys): eBlock(map(ys, function(y) return eval(eOuter(x,y),context)));
 					default: throw "Error: eOuter(eVector,¬scalar|vector|block"; null;
 					}

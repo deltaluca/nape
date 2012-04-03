@@ -184,8 +184,10 @@ class PR(UserConstraint) extends PR(Constraint) {
 					for(k in 0...j-1) sum += L[i*dim+k]*L[j*dim+k];
 					L[i*dim+j] = rec*(m[ind++] - sum);
 				}
-			}else
+			}else {
 				for(i in j+1...dim) L[i*dim+j] = 0.0;
+				ind += dim-j-1;
+			}
 		}
 		return L;
 	}
@@ -308,8 +310,8 @@ class PR(UserConstraint) extends PR(Constraint) {
 		if(velonly) return false;
 
 		outer_zn.__prepare();
-
 		outer_zn.__position(J);
+
 		var lj = lsq(J);
 		if(breakUnderError && lj > maxError*maxError) return true;
 		else if(lj < PR(Config).SLOP) return false;
@@ -318,6 +320,9 @@ class PR(UserConstraint) extends PR(Constraint) {
 
 		outer_zn.__eff_mass(Keff);
 		transform(solve(Keff),J);
+
+		//clamping
+		outer_zn.__clamp(J);
 
 		for(bs in bodies) {
 			var b = bs.body;
