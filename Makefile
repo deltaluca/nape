@@ -181,7 +181,8 @@ server-build-externs:
 	
 	flib --externs library.swf --include nape --include zpp_nape
 #	./fix-externs # doesn't work at present! oops
-	tar -cvfz externs.tar.gz externs
+	tar cvfz externs.tar.gz externs
+	rm -rf externs
 	rm -rf src
 	rm library.swf
 	
