@@ -665,6 +665,7 @@ class Body extends Interactor {
 		witharbs(COL,{
 			var imp = arb.wrapper().collisionArbiter.normalImpulse(this,freshOnly);
 			vec3_addeq(ret, imp.);
+			imp.dispose();
 		});
 		return Vec2.get(retx,rety,false);
 	}
@@ -673,6 +674,7 @@ class Body extends Interactor {
 		witharbs(COL,{
 			var imp = arb.wrapper().collisionArbiter.tangentImpulse(this,freshOnly);
 			vec3_addeq(ret, imp.);
+			imp.dispose();
 		});
 		return Vec2.get(retx,rety,weak);
 	}
@@ -681,8 +683,9 @@ class Body extends Interactor {
 		witharbs(COL,{
 			var imp = arb.wrapper().collisionArbiter.totalImpulse(this,freshOnly);
 			vec3_addeq(ret, imp.);
+			imp.dispose();
 		});
-		return new Vec3(retx,rety,retz);
+		return Vec3.get(retx,rety,retz);
 	}
 	keep public function rollingImpulse(?body:Body=null,?freshOnly:Bool=false) {
 		var ret = 0.0;
@@ -699,8 +702,9 @@ class Body extends Interactor {
 		witharbs(FLUID,{
 			var imp = arb.wrapper().fluidArbiter.buoyancyImpulse(this);
 			vec3_addeq(ret, imp.);
+			imp.dispose();
 		});
-		return new Vec3(retx,rety,retz);
+		return Vec3.get(retx,rety,retz);
 	}
 	
 	keep public function dragImpulse(?body:Body=null) {
@@ -708,8 +712,9 @@ class Body extends Interactor {
 		witharbs(FLUID,{
 			var imp = arb.wrapper().fluidArbiter.dragImpulse(this);
 			vec3_addeq(ret, imp.);
+			imp.dispose();
 		});
-		return new Vec3(retx,rety,retz);
+		return Vec3.get(retx,rety,retz);
 	}
 	
 	keep public function totalFluidImpulse(?body:Body=null) {
@@ -717,8 +722,9 @@ class Body extends Interactor {
 		witharbs(FLUID,{
 			var imp = arb.wrapper().fluidArbiter.totalImpulse(this);
 			vec3_addeq(ret, imp.);
+			imp.dispose();
 		});
-		return new Vec3(retx,rety,retz);
+		return Vec3.get(retx,rety,retz);
 	}
 	
 	//--------------------------------------------------------------
@@ -728,8 +734,9 @@ class Body extends Interactor {
 		Iter(con,pr(inner).constraints,{
 			var imp = con.outer.bodyImpulse(this);
 			vec3_addeq(ret, imp.);
+			imp.dispose();
 		});
-		return new Vec3(retx,rety,retz);
+		return Vec3.get(retx,rety,retz);
 	}
 	
 	//--------------------------------------------------------------
@@ -745,15 +752,17 @@ class Body extends Interactor {
 			
 			var imp = arb.wrapper().totalImpulse(this,freshOnly);
 			vec3_addeq(ret, imp.);
+			imp.dispose();
 		}
 		
 		Iter(con, pr(inner).constraints, {
 			if(con.active) {
 				var imp = con.outer.bodyImpulse(this);
 				vec3_addeq(ret, imp.);
+				imp.dispose();
 			}
 		});
-		return new Vec3(retx,rety,retz);
+		return Vec3.get(retx,rety,retz);
 	}
 	
 	//----------------------------------------------------------------------------------------------

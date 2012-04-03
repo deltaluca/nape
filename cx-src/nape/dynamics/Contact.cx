@@ -45,12 +45,12 @@ class Contact {
 		var cin = pr(inner).inner;
 		var jnAcc = cin.jnAcc + pr(inner).pjnAcc;
 		if(body==null)
-			return new Vec3(vec_imul(colarb.n, jnAcc));
+			return Vec3.get(vec_imul(colarb.n, jnAcc));
 		else {
 			DEBUG(if(body!=colarb.b1.outer && body!=colarb.b2.outer) throw "Error: Contact does not relate to the given body";)
 			if(body==colarb.b1.outer)
-				 return new Vec3(vec_imul(colarb.n, -jnAcc), -vec_cross(cin.r1,colarb.n)*jnAcc);
-			else return new Vec3(vec_imul(colarb.n,  jnAcc),  vec_cross(cin.r2,colarb.n)*jnAcc);
+				 return Vec3.get(vec_imul(colarb.n, -jnAcc), -vec_cross(cin.r1,colarb.n)*jnAcc);
+			else return Vec3.get(vec_imul(colarb.n,  jnAcc),  vec_cross(cin.r2,colarb.n)*jnAcc);
 		}
 	}
 	
@@ -60,12 +60,12 @@ class Contact {
 		var cin = pr(inner).inner;
 		var jtAcc = cin.jtAcc + pr(inner).pjtAcc;
 		if(body==null)
-			return new Vec3(-colarb.ny*jtAcc, colarb.nx*jtAcc);
+			return Vec3.get(-colarb.ny*jtAcc, colarb.nx*jtAcc);
 		else {
 			DEBUG(if(body!=colarb.b1.outer && body!=colarb.b2.outer) throw "Error: Contact does not relate to the given body";)
 			if(body==colarb.b1.outer)
-				 return new Vec3( colarb.ny*jtAcc, -colarb.nx*jtAcc, -vec_dot(cin.r1,colarb.n)*jtAcc);
-			else return new Vec3(-colarb.ny*jtAcc,  colarb.nx*jtAcc,  vec_dot(cin.r2,colarb.n)*jtAcc);
+				 return Vec3.get( colarb.ny*jtAcc, -colarb.nx*jtAcc, -vec_dot(cin.r1,colarb.n)*jtAcc);
+			else return Vec3.get(-colarb.ny*jtAcc,  colarb.nx*jtAcc,  vec_dot(cin.r2,colarb.n)*jtAcc);
 		}
 	}
 	
@@ -93,7 +93,7 @@ class Contact {
 		var jrAcc = colarb.jrAcc + colarb.pjrAcc;
 
 		if(body==null) {
-			return new Vec3(colarb.nx*jnAcc - colarb.ny*jtAcc,
+			return Vec3.get(colarb.nx*jnAcc - colarb.ny*jtAcc,
 							colarb.ny*jnAcc + colarb.nx*jtAcc,
 							jrAcc);
 		}else {
@@ -101,8 +101,8 @@ class Contact {
 			vec_new(j, colarb.nx*jnAcc - colarb.ny*jtAcc,
 			           colarb.ny*jnAcc + colarb.nx*jtAcc);
 			if(body==colarb.b1.outer)
-				 return new Vec3(-jx,-jy,-vec_cross(cin.r1,j)-jrAcc);
-			else return new Vec3( jx, jy, vec_cross(cin.r2,j)+jrAcc);
+				 return Vec3.get(-jx,-jy,-vec_cross(cin.r1,j)-jrAcc);
+			else return Vec3.get( jx, jy, vec_cross(cin.r2,j)+jrAcc);
 		}
 	}
 	

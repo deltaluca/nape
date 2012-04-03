@@ -4,11 +4,15 @@ $(import);
 class Vec3 {
 	public var pr(inner):PR(Vec3);
 
+	PublicMixPool(Vec3)
+
 	$(mixin genprop(x)
 		property(x,Float,{
+			Disposed(this,Vec3);
 			if(pr(inner).validate!=null) pr(inner).validate();
 			pr(inner).x;
 		},{
+			Disposed(this,Vec3);
 			DEBUG(if(pr(inner).immutable) throw "Error: Vec3 is immutable";)
 			pr(inner).x = x;
 		})
@@ -17,16 +21,36 @@ class Vec3 {
 	genprop(y)
 	genprop(z)
 	
+	public static function get(?x:Float=0,?y:Float=0,?z:Float=0) {
+		var ret = PublicGet(Vec3);
+		ret.setxyz(x,y,z);
+		ret.pr(inner).immutable = false;
+		ret.pr(inner).validate = null;
+		return ret;
+	}
 	public function new(?x:Float=0,?y:Float=0,?z:Float=0) {
 		pr(inner) = new PR(Vec3)();
 		pr(inner).outer = this;
 		vec3_set(this.,$(->));
 	}
-	keep public function copy() return new Vec3(x,y,z)
+	public function copy() {
+		Disposed(this,Vec3);
+		return Vec3.get(x,y,z);
+	}
+
+	public function dispose() {
+		Disposed(this,Vec3);
+		DEBUG(if(pr(inner).immutable) throw "Error: This Vec3 is not disposable";)
+		PublicFree(Vec3,this);	
+	}	
 	
 	//------------------------
 	
-    property(length,Float,vec3_length_slow(this.),{
+    property(length,Float,{
+		Disposed(this,Vec3);
+		vec3_length_slow(this.);
+	},{
+		Disposed(this,Vec3);
 		DEBUG(
 			if(isNaN(length)) throw "Error: Vec3::length cannot be NaN";
 			if(vec3_lsq(this.)==0) throw "Error: Cannot set length of a zero vector";
@@ -34,24 +58,34 @@ class Vec3 {
 		vec3_muleq(this., length/this.length);
 	})
 	
-	keep public function lsq() return vec3_lsq(this.)
+	keep public function lsq() {
+		Disposed(this,Vec3);
+		return vec3_lsq(this.);
+	}
 	
 	public function set(p:Vec3) {
+		Disposed(this,Vec3);
+		Disposed(p,Vec3);
 		DEBUG(if(p==null) throw "Error: Cannot assign null Vec3";)
 		return setxyz(p.x,p.y,p.z);
 	}
 	public function setxyz(x:Float,y:Float,z:Float) {
+		Disposed(this,Vec3);
 		vec3_set(this.,$(->));
 		return this;
 	}
 	
 	//-------------------------
 	
-	public function xy(?weak:Bool=false) return Vec2.get(x,y,weak)
+	public function xy(?weak:Bool=false) {
+		Disposed(this,Vec3);
+		return Vec2.get(x,y,weak);
+	}
 	
 	//-------------------------
 	
 	@:$keep public function toString() {
+		Disposed(this,Vec3);
 		return "{ x: "+x+" y: "+y+" z: "+z+" }";
 	}
 }
