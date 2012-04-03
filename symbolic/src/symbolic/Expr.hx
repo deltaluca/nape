@@ -57,32 +57,31 @@ class ExprUtils {
 		}
 		context.vars.set(n, {type:type,del:del,let:let});
 	}
-	static public function variableRedact(context:Context,n:String) {
+	static public inline function variableRedact(context:Context,n:String) {
 		context.vars.remove(n);
 	}
-	static public function extendContext(context:Context,n:String,eq:Expr) {
-		if(!context.env.exists(n)) context.env.set(n, [eq]);
-		else context.env.get(n).unshift(eq);
+	static public inline function extendContext(context:Context,n:String,eq:Expr) {
+		var env = context.env.get(n);
+		if(env==null) context.env.set(n, [eq]);
+		else env.unshift(eq);
 	}
-	static public function redactContext(context:Context,n:String) {
+	static public inline function redactContext(context:Context,n:String) {
 		var env = context.env.get(n);
 		env.shift();
 		if(env.length==0) context.env.remove(n);
 	}
-	static public function replaceContext(context:Context,n:String,eq:Expr) {
-		if(!context.env.exists(n)) context.env.set(n, [eq]);
-		else {
-			var ev = context.env.get(n);
-			ev[0] = eq;
-		}
+	static public inline function replaceContext(context:Context,n:String,eq:Expr) {
+		var env = context.env.get(n);
+		if(env==null) context.env.set(n, [eq]);
+		else env[0] = eq;
 	}
 
-	static public function map<T,S>(xs:Array<T>,f:T->S):Array<S> {
+	static public inline function map<T,S>(xs:Array<T>,f:T->S):Array<S> {
 		var ret = [];
 		for(x in xs) ret.push(f(x));
 		return ret;
 	}
-	static public function zipWith<T,S,R>(xs:Array<T>,ys:Array<S>,f:T->S->R):Array<R> {
+	static public inline function zipWith<T,S,R>(xs:Array<T>,ys:Array<S>,f:T->S->R):Array<R> {
 		var ret = [];
 		for(i in 0...(xs.length<ys.length ? xs.length : ys.length))
 			ret.push(f(xs[i],ys[i]));
@@ -285,7 +284,7 @@ class ExprUtils {
 	//===========================================================================
 
 	//evaluator
-	public static function tryeval(e:Expr,context:Context) {
+	public static inline function tryeval(e:Expr,context:Context) {
 		try {
 			var t = eval(e,context);
 			if(t!=null) e = t;
@@ -465,7 +464,7 @@ class ExprUtils {
 
 	//simplification
 	public static function simple(e:Expr,context:Context) {
-		return __simple(__simple(e,context),context);
+		return __simple(e,context);
 	}
 	static function __simple(e:Expr,context:Context) {
 		function _simple(e:Expr) return tryeval(simple(e,context),context);
