@@ -128,7 +128,7 @@ clean:
 
 server-release:
 	rm -rf nape.tar.gz
-	tar cvfz nape.tar.gz cx-src Makefile version server-remotes fix-remotes
+	tar cvfz nape.tar.gz cx-src Makefile version server-remotes fix-externs
 	scp nape.tar.gz deltaluca.me.uk:nape.tar.gz
 	echo "ssh deltaluca.me.uk << EOT" > .nape-release
 	echo "./nape-release" >> .nape-release
@@ -180,6 +180,8 @@ server-build-externs:
 	unzip release_nape.swc -x catalog.xml
 	
 	flib --externs library.swf --include nape --include zpp_nape
-	./fix-externs
+#	./fix-externs # doesn't work at present! oops
 	tar -cvfz externs.tar.gz externs
+	rm -rf src
+	rm library.swf
 	
