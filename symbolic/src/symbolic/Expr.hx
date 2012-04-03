@@ -94,6 +94,7 @@ class ExprUtils {
 
 	//printing algorithm
 	static public function print_type(e:EType) {
+		if(e==null) return "!!null-type!!";
 		return switch(e) {
 			case etScalar: "scalar";
 			case etVector: "vector";
@@ -108,6 +109,7 @@ class ExprUtils {
 		}
 	}
 	static public function print_context(c:Context) {
+		if(c==null) return "!!null-context!!";
 		var ret = "";
 		for(n in c.vars.keys()) {
 			var v = c.vars.get(n);
@@ -127,7 +129,7 @@ class ExprUtils {
 		return ret;
 	}
 	static public function print(e:Expr) {
-		if(e==null) return "!!null!!";
+		if(e==null) return "!!null-expression!!";
 		return switch(e) {
 			case eScalar(x): Std.string(x);
 			case eVector(x,y): "["+Std.string(x)+" "+Std.string(y)+"]";
@@ -194,14 +196,14 @@ class ExprUtils {
 						case etScalar: etRowVector;
 						case etVector: etScalar;
 						case etMatrix: etRowVector;
-						default: null;
+						default: throw "TypeError: Cannot muliply row-vector with row-vector"; null;
 						}
 					case etVector:
 						switch(yt) {
 						case etBlock(ys): etBlock(map(ys, function(y) return eMulType(xt,y)));
 						case etScalar: etVector;
 						case etRowVector: etMatrix;
-						default: null;
+						default: throw "TypeError: Cannot mulyiple vector with matrix or vector"; null;
 						}
 					case etMatrix:
 						switch(yt) {
@@ -209,13 +211,14 @@ class ExprUtils {
 						case etScalar: etMatrix;
 						case etVector: etVector;
 						case etMatrix: etMatrix;
-						default: null;
+						default: throw "TypeError: Cannot multiply matrix with row-vector"; null;
 						}
 					default: null;
 					}
 				}
 				eMulType(etype(x,context),etype(y,context));
-			case eDot(x,y): etScalar;
+			case eDot(x,y): 
+				switch(etype(x,context)) { case etRowVector: etMatrix; default: etScalar; } //improve TODO
 			case eCross(x,y):
 				var xt = etype(x,context);
 				var yt = etype(y,context);
@@ -225,15 +228,17 @@ class ExprUtils {
 					switch(yt) {
 						case etVector: etScalar;
 						case etScalar: etVector;
-						default: null;
+						default: throw "TypeError: Cannot cross vector with matrix/row-vector/block expression"; null;
 					}
-				default: null;
+				default: throw "TypeError: Cannot cross matrix/row-vector/block expression with T"; null;
 				}
 			case ePerp(x):
 				switch(etype(x,context)) {
 				case etScalar: etScalar;
 				case etVector: etVector;
-				default: null;
+				case etRowVector: etRowVector;
+				case etBlock(xs): etBlock(xs); //should be made better TODO
+				default: throw "TypeError: Cannot produce perp of matrix"; null;
 				}
 			case eOuter(x,y):
 				function eOuterType(xt,yt) {
@@ -244,23 +249,24 @@ class ExprUtils {
 						case etBlock(ys): etBlock(map(ys, function(y) return eOuterType(xt,y)));
 						case etScalar: etScalar;
 						case etVector: etRowVector;
-						default: null;
+						case etRowVector: etVector;	
+						default: throw "TypeError: Cannot produce outerproduct of scalar with matrix"; null;
 						}
 					case etVector:
 						switch(yt) {
 						case etBlock(ys): etBlock(map(ys, function(y) return eOuterType(xt,y)));
 						case etScalar: etVector;
 						case etVector: etMatrix;
-						default: null;
+						default: throw "TypeError: Cannot produce outerproduct of vector with row-vector/matrix"; null;
 						}
 					case etRowVector:
 						switch(yt) {
 						case etBlock(ys): etBlock(map(ys, function(y) return eOuterType(xt,y)));
 						case etScalar: etRowVector;
 						case etRowVector: etScalar;
-						default: null;
+						default: throw "TypeError: Cannot produce outerproduct of row-vector with matrix/vector"; null;
 						}
-					default: null;
+					default: throw "TypeError: Cannot produce outerproduct of matrix with T"; null;
 					}
 				}
 				eOuterType(etype(x,context),etype(y,context));
@@ -298,26 +304,28 @@ class ExprUtils {
 				} default: throw "Error: eRelative(r!=eScalar,_)"; null; }
 
 			case eVariable(n):
-				if(!context.env.exists(n)) null;
+				if(!context.env.exists(n)) { throw "Error: No variable exists in eval() for n="+n; null; }
 				else eval(context.env.get(n)[0],context);
 			case eLet(n,eq,vin):
 				extendContext(context, n,eval(eq,context));
 				var ret:Expr = null;
+				var err:Dynamic = null;
 				try {
 					ret = eval(vin,context);
-				}catch(e:Dynamic) {}
+				}catch(e:Dynamic) { err = e; }
 				redactContext(context, n);
+				if(err!=null) throw err;
 				ret;
 			
 			case eAdd(inx,iny):
 				var x = eval(inx,context);
 				var y = eval(iny,context);
 				switch(x) {
-				case eScalar(x): switch(y) { case eScalar(y): eScalar(x+y); default: null; }
-				case eVector(x1,x2): switch(y) { case eVector(y1,y2): eVector(x1+y1,x2+y2); default: null; }
-				case eMatrix(xa,xb,xc,xd): switch(y) { case eMatrix(ya,yb,yc,yd): eMatrix(xa+ya,xb+yb,xc+yc,xd+yd); default: null; }
-				case eBlock(xs): switch(y) { case eBlock(ys): eBlock(zipWith(xs,ys, function (x,y) return eval(eAdd(x,y),context))); default: null; }
-				case eRowVector(x1,x2): switch(y) { case eRowVector(y1,y2): eRowVector(x1+y1,x2+y2); default: null; }
+				case eScalar(x): switch(y) { case eScalar(y): eScalar(x+y); default: throw "Error: eAdd(eScalar,¬eScalar)"; null; }
+				case eVector(x1,x2): switch(y) { case eVector(y1,y2): eVector(x1+y1,x2+y2); default: throw "Error: eAdd(eVector,¬eVector)"; null; }
+				case eMatrix(xa,xb,xc,xd): switch(y) { case eMatrix(ya,yb,yc,yd): eMatrix(xa+ya,xb+yb,xc+yc,xd+yd); default: throw "Error: eAdd(eMatrix,¬eMatrix)"; null; }
+				case eBlock(xs): switch(y) { case eBlock(ys): eBlock(zipWith(xs,ys, function (x,y) return eval(eAdd(x,y),context))); default: throw "Error: eAdd(eBlock,¬eBlock)"; null; }
+				case eRowVector(x1,x2): switch(y) { case eRowVector(y1,y2): eRowVector(x1+y1,x2+y2); default: throw "Error: eAdd(eRowVector,¬eRowVector)"; null; }
 				default: throw "Error: eAdd(x!=value,_) with inx="+Std.string(inx)+" and x="+Std.string(x); null;
 				}
 			
@@ -325,18 +333,20 @@ class ExprUtils {
 				var x = eval(inx,context);
 				var y = eval(iny,context);
 				switch(x) {
-				case eScalar(x):
+				case eScalar(xi):
 					switch(y) {
-					case eScalar(y): eScalar(x*y);
-					case eVector(y1,y2): eVector(x*y1,x*y2);
-					case eRowVector(y1,y2): eRowVector(x*y1,x*y2);
-					case eMatrix(a,b,c,d): eMatrix(x*a,x*b,x*c,x*d);
+					case eScalar(y): eScalar(xi*y);
+					case eVector(y1,y2): eVector(xi*y1,xi*y2);
+					case eRowVector(y1,y2): eRowVector(xi*y1,xi*y2);
+					case eMatrix(a,b,c,d): eMatrix(xi*a,xi*b,xi*c,xi*d);
+					case eBlock(ys): eBlock(map(ys, function(y) return eval(eMul(x,y),context)));
 					default: throw "Error: eMul(x=eScalar,y!=value)"; null;
 					}
 				case eVector(x1,x2):
 					switch(y) {
 					case eScalar(y): eVector(y*x1,y*x2);
 					case eRowVector(y1,y2): eval(eOuter(x,eVector(y1,y2)),context);
+					case eBlock(ys): eBlock(map(ys, function(y) return eval(eMul(x,y),context)));
 					default: throw "Error: eMul(x=eVector,y!=value)"; null;
 					}
 				case eRowVector(x1,x2):
@@ -344,14 +354,17 @@ class ExprUtils {
 					case eScalar(y): eRowVector(x1*y,x2*y);
 					case eVector(y1,y2): eScalar(x1*y1+x2*y2);
 					case eMatrix(a,b,c,d): eRowVector(x1*a+x2*c,x1*b+x2*d);
+					case eBlock(ys): eBlock(map(ys, function(y) return eval(eMul(x,y),context)));
 					default: throw "Error: eMul(x=eRowVector,y!=value)"; null;
 					}
 				case eMatrix(a,b,c,d):
 					switch(y) {
 					case eScalar(y): eMatrix(a*y,b*y,c*y,d*y);
 					case eVector(y1,y2): eVector(a*y1+b*y2,c*y1+d*y2);
+					case eBlock(ys): eBlock(map(ys, function(y) return eval(eMul(x,y),context)));
 					default: throw "Error: eMul(x=eMatrix,y!=value)"; null;
 					}
+				case eBlock(xs): eBlock(map(xs, function(x) return eval(eMul(x,y),context)));
 				default: throw "Error: eMul(x!=value,_)"; null;
 				}
 
@@ -359,53 +372,59 @@ class ExprUtils {
 				var x = eval(inx,context);
 				var y = eval(iny,context);
 				switch(x) {
-				case eScalar(x): switch(y) { case eScalar(y): eScalar(x*y); default: null; }
-				case eVector(x1,x2): switch(y) { case eVector(y1,y2): eScalar(x1*y1+x2*y2); default: null; }
-				default:null;
+				case eScalar(x): switch(y) { case eScalar(y): eScalar(x*y); default: throw "Error: eDot(eScalar,¬eScalar)"; null; }
+				case eVector(x1,x2): switch(y) { case eVector(y1,y2): eScalar(x1*y1+x2*y2); default: throw "Error: eDot(eVector,¬eVector)"; null; }
+				case eRowVector(x1,x2): switch(y) { case eRowVector(y1,y2): eMatrix(x1*y1,x2*y1,x1*y2,x2*y2); default: throw "Error: eDot(eRowVector,¬eRowVector)"; null; }
+				default: throw "Error: eDot(x=matrix/block/non-value,_)"; null;
 				}
 
 			case eCross(inx,iny):
 				var x = eval(inx,context);
 				var y = eval(iny,context);
 				switch(x) {
-				case eScalar(x): switch(y) { case eVector(y1,y2): eVector(-y2*x,y1*x); default: null; }
+				case eScalar(x): switch(y) { case eVector(y1,y2): eVector(-y2*x,y1*x); default: throw "Error: eCross(eScalar,¬eVector)"; null; }
 				case eVector(x1,x2): switch(y) {
 					case eVector(y1,y2): eScalar(x1*y2-x2*y1);
 					case eScalar(y): eVector(x2*y,-x1*y);
-					default: null;
+					default: throw "Error: eCross(eVector,!(eVector|eScalar))"; null;
 				}
-				default: null;	
+				default: throw "Error: eCross(¬(eVector|eScalar))"; null;	
 				}
 			case ePerp(inx):
 				var x = eval(inx,context);
 				switch(x) {
 				case eVector(x,y): eVector(-y,x);
-				default: null;
+				case eRowVector(x,y): eRowVector(-y,x);
+				default: throw "Error: ePerp(¬vector-type)"; null;
 				}
 			case eOuter(inx,iny):
 				var x = eval(inx,context);
 				var y = eval(iny,context);
 				switch(x) {
-				case eScalar(x):
+				case eScalar(xi):
 					switch(y) {
-					case eScalar(y): eScalar(x*y);
-					case eVector(y1,y2): eRowVector(x*y1,x*y2);
-					case eRowVector(y1,y2): eVector(x*y1,x*y2);
-					default: null;
+					case eScalar(y): eScalar(xi*y);
+					case eVector(y1,y2): eRowVector(xi*y1,xi*y2);
+					case eRowVector(y1,y2): eVector(xi*y1,xi*y2);
+					case eBlock(ys): eBlock(map(ys, function(y) return eval(eOuter(x,y),context)));
+					default: throw "Error: eOuter(eScalar,¬scalar/vector-type/block)"; null;
 					}
 				case eVector(x1,x2):
 					switch(y) {
 					case eScalar(y): eVector(y*x1,y*x2);
 					case eVector(y1,y2): eMatrix(x1*y1,x2*y1,x1*y2,x2*y2);
-					default: null;
+					case eBlock(ys): eBlock(map(ys, function(y) return eval(eOuter(x,y),context)));
+					default: throw "Error: eOuter(eVector,¬scalar|vector|block"; null;
 					}
 				case eRowVector(x1,x2):
 					switch(y) {
 					case eScalar(y): eRowVector(y*x1,y*x2);
 					case eRowVector(y1,y2): eScalar(x1*y1+x2*y2);
-					default: null;
+					case eBlock(ys): eBlock(map(ys, function(y) return eval(eOuter(x,y),context)));
+					default: throw "Error: eOuter(eRowVector,¬scalar|row-vector|block"; null;
 					}
-				default: null;
+				case eBlock(xs): eBlock(map(xs, function(x) return eval(eOuter(x,y),context)));
+				default: throw "Error: eOuter(¬scalar/vector/block-type)"; null;
 				}
 			case eMag(inx):
 				var x = eval(inx,context);
@@ -413,20 +432,21 @@ class ExprUtils {
 				case eScalar(x): eScalar(Math.abs(x));
 				case eVector(x,y): eScalar(Math.sqrt(x*x+y*y));
 				case eRowVector(x,y): eScalar(Math.sqrt(x*x+y*y));
-				default: null;
+				default: throw "Error: eMag(¬scalar/vector-type)"; null;
 				}	
 			case eInv(inx):
 				var x = eval(inx,context);
 				switch(x) {
 				case eScalar(x): eScalar(1/x);
-				default: null;
+				default: throw "Error: eInv(¬scalar)"; null;
 				}
 			case eUnit(inx):
 				var x = eval(inx,context);
 				switch(x) {
+				case eScalar(x): eScalar(x == 0 ? 0 : x > 0 ? 1 : -1);
 				case eVector(x,y): var mag = 1/Math.sqrt(x*x+y*y); eVector(x*mag,y*mag);
 				case eRowVector(x,y): var mag = 1/Math.sqrt(x*x+y*y); eRowVector(x*mag,y*mag);
-				default: null;
+				default: throw "Error: eUnit(¬scalar/vector-type)"; null;
 				}
 
 			case eBlock(inx):
@@ -618,6 +638,7 @@ class ExprUtils {
 			
 			case eVariable(n):
 				if(!context.vars.exists(n)) {
+					if(!context.env.exists(n)) throw "Error: Cannot find variable '"+n+"'";
 					var vart = etype(context.env.get(n)[0],context);
 					switch(vart) {
 						case etScalar: eScalar(0);

@@ -37,22 +37,30 @@ class SymbolicMain {
 		//---------------------------------------
 
 		var line = "
-		body b1, b2
+		body body1, body2
 		vector anchor1, anchor2, direction
+		scalar jointMin, jointMax
+		
+		limit jointMin (-inf) jointMax
+		limit |direction| eps inf
 
-		let r1 = relative b1.rot anchor1 in
-		let r2 = relative b2.rot anchor2 in
-		let dir = relative b1.rot direction in
+		constraint
+			let r1 = relative body1.rotation anchor1 in
+			let r2 = relative body2.rotation anchor2 in
+			let dir = unit(relative body1.rotation direction) in
+			let del = (r2 + body2.position) - (r1 + body1.position) in
+			{ del cross dir
+              del dot dir }
 
-		let del = (r2 + b2.pos) - (r1 + b1.pos) in
-
-		del cross dir
+		limit constraint { 0 jointMin } { 0 jointMax }
 		";
-		/*var con = new symbolic.SymbolicConstraint(line);
+		var con = new symbolic.SymbolicConstraint(line);
 		con.setVector("direction", new nape.geom.Vec2(1,0));
 		con.setVector("anchor1", new nape.geom.Vec2(30,0));
-		con.setVector("anchor2", new nape.geom.Vec2(-30,0));
-		b2.angularVel = 5;*/
+		con.setVector("anchor2", new nape.geom.Vec2(30,0));
+		con.setScalar("jointMin",20);
+		con.setScalar("jointMax",80);
+		b2.angularVel = 5;
 
 		//---------------------------------------
 
@@ -70,13 +78,12 @@ class SymbolicMain {
 	
 		limit constraint jointMin jointMax
 		";
-		var con = new symbolic.SymbolicConstraint(dist);
+		/*var con = new symbolic.SymbolicConstraint(dist);
 		con.setVector("anchor1", new nape.geom.Vec2(30,0));
 		con.setVector("anchor2", new nape.geom.Vec2(-30,0));
 		con.setScalar("jointMin",20);
 		con.setScalar("jointMax",60);
-		b2.angularVel = 5;
-
+		b2.angularVel = 5;*/
 
 		//---------------------------------------
 

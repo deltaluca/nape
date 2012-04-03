@@ -29,6 +29,7 @@ class SymbolicConstraint extends UserConstraint {
 	#if flash @:protected #end private var lower:Expr;
 	#if flash @:protected #end private var upper:Expr;
 	#if flash @:protected #end private var scale:Array<Float>;
+	#if flash @:protected #end private var equal:Array<Bool>;
 
 	//-----------------------------------------------------------------------------
 
@@ -145,8 +146,8 @@ class SymbolicConstraint extends UserConstraint {
 				dim;
 		}
 
-		scale = [];
-		for(i in 0...dim) scale.push(0.0);
+		scale = []; equal = [];
+		for(i in 0...dim) { scale.push(0.0); equal.push(true); }
 
 		super(dim);	
 
@@ -270,7 +271,7 @@ class SymbolicConstraint extends UserConstraint {
 		for(i in 0...err.length) {
 			var low  = if(lowerv ==null) 0.0 else lowerv[i][0];
 			var high = if(upperv==null) 0.0 else upperv[i][0];
-			if(low==high) {
+			if(equal[i] = (low==high)) {
 				err[i] -= low;
 				scale[i] = 1.0;
 			}else if(err[i]<low) {
@@ -338,6 +339,10 @@ class SymbolicConstraint extends UserConstraint {
 		var ret = 0.0;
 		for(i in 0...a.length) ret += a[i][0]*b[i]*scale[i];
 		return ret;
+	}
+
+	public override function __clamp(imp:ARRAY<Float>) {
+		for(i in 0...imp.length) if(!equal[i] && imp[i]>0) imp[i] = 0;
 	}
 	
 	public override function __impulse(imp:ARRAY<Float>,body:Body,out:Vec3) {
