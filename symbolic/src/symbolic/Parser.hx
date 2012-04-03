@@ -25,9 +25,6 @@ using Lambda;
 	scalar|vector name (= default-literal) (-> time-derivative)? # and many allowed
 	
 	# constraint expression
-	# should either be expression of positions, or of velocities
-	# if you have some freaky constraint which is a functino of 'both' types
-	# of property, it will only be 'able' to functino as a soft constraint
 	constraint expression
 
 	# constraint/variable limits (optional; default 0's)
