@@ -15,7 +15,7 @@ class Mem extends Sprite {
 		var alpha = bg>>>24;
 
 		var txt = new flash.text.TextField();
-		txt.defaultTextFormat = new flash.text.TextFormat(null,null,~bg);
+		txt.defaultTextFormat = new flash.text.TextFormat(null,null,~bg,null,null,null,null,null,flash.text.TextFormatAlign.RIGHT);
 		txt.width = width;
 		txt.selectable = false;
 		addChild(txt);

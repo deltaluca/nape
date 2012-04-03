@@ -37,7 +37,8 @@ class StressPyramid extends VariableStep {
 		addChild(debug.display);
 		debug.drawShapeAngleIndicators = false;
 
-		addChild(new FPS(stage.stageWidth,60,0,60,0x40000000,0xffffffff,0xa0ff0000));
+//		addChild(new FPS(stage.stageWidth,60,0,60,0x40000000,0xffffffff,0xa0ff0000));
+		addChild(new Mem(stage.stageWidth,60,0,60,0x40000000,0xffffffff,0xa0ff0000));
 
 		var border = new Body(BodyType.STATIC);
 		border.shapes.add(new Polygon(Polygon.rect(0,0,-50,stage.stageHeight)));
