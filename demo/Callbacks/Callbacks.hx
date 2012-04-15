@@ -237,7 +237,7 @@ class Callbacks extends FixedStep {
 		//don't have sum-types yet, so have to assign for all types we want to operate with one-way
 		function oneway(cb:PreCallback) {
 			if(!cb.arbiter.isCollisionArbiter()) return PreFlag.ACCEPT;
-			var dir = new Vec2(0,cb.swapped ? -1 : 1);
+			var dir = new Vec2(0,cb.swapped ? 1 : -1);
 
 			return if(dir.dot(cb.arbiter.collisionArbiter.normal)>=0) PreFlag.ACCEPT else PreFlag.IGNORE;
 		}

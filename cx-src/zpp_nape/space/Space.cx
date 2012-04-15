@@ -1884,9 +1884,13 @@ class PR(Space) {
 								DEBUG(arb.makemutable();)
 
 								precb.pr(inner).pre_arbiter = arb;
-								precb.pr(inner).int1 = callbackset.int1;
-								precb.pr(inner).int2 = callbackset.int2;
-								precb.pr(inner).pre_swapped = prei1 != callbackset.int1;
+								precb.pr(inner).listener = listener;
+								precb.pr(inner).set = callbackset;
+								PR(Interactor).int_callback(
+									callbackset.int1, callbackset.int2,
+									listener.cb1, precb.pr(inner)
+								);
+								precb.pr(inner).pre_swapped = prei1 != precb.pr(inner).int1;
 
 								var ret = listener.handlerp(precb);
 
