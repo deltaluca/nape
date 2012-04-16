@@ -37,8 +37,6 @@ import nape.callbacks.CbEvent;
 import nape.constraint.PivotJoint;
 import nape.constraint.Constraint;
 
-import nape.hacks.ForcedSleep;
-
 class Callbacks extends FixedStep {
 	static function main() {
 		new Callbacks();
@@ -64,8 +62,7 @@ class Callbacks extends FixedStep {
 				if(!b.isDynamic()) continue;
 				hand.body2 = b;
 				hand.anchor2 = b.worldToLocal(mp);
-				if(hand.anchor2.length<8) ForcedSleep.sleepConnected(b);
-				else hand.active = true;
+				hand.active = true;
 			}
 		});
 		addEventListener(flash.events.MouseEvent.MOUSE_UP, function(_) {
@@ -88,13 +85,14 @@ class Callbacks extends FixedStep {
 
 		for(i in 0...10) {
 			var hex = new Body();
-			hex.shapes.add(new Polygon(Polygon.regular(60,60,5)));
+			hex.shapes.add(new Polygon(Polygon.regular(80,80,5)));
 			hex.position.setxy(800/11*(i+1),150);
+			hex.space = space;
 			
 			//set it's cbType
 			hex.cbType = hexcb;
-			ForcedSleep.addSleepingBody(hex,space);
 		}
+
 		//aaand set up the pre-listener to do the partial penetration magic fun times.
 		// note: this is a pure function with respect to the two objects
 		//       (it's output doesn't change) so we can tell nape this and allow objects
@@ -147,7 +145,7 @@ class Callbacks extends FixedStep {
 			box.cbType = boxcb;
 		}
 
-		for(i in 0...(boxes.length>>1)) {
+		for(i in 0...5) {
 			var b1 = boxes[i*2];
 			var b2 = boxes[i*2+1];
 		
@@ -164,8 +162,8 @@ class Callbacks extends FixedStep {
 
 			// (#) <-- because it is added to the space via it's compound instead.
 			// see also that the link constraint is not directly added to the space.
+			compound.space = space;
 			compound.cbType = paircb;
-			ForcedSleep.addSleepingCompound(compound,space);
 		}
 
 		//setup listeners
@@ -202,14 +200,14 @@ class Callbacks extends FixedStep {
 		//flashing circles (on sleep/wake)
 		var circcb = new CbType();
 
-		for(i in 0...10*0) {
+		for(i in 0...10) {
 			var circ = new Body();
 			circ.shapes.add(new Circle(15));
 			circ.position.setxy(800/11*(i+1),50);
+			circ.space = space;
 			
 			//set it's cbType
 			circ.cbType = circcb;
-			ForcedSleep.addSleepingBody(circ,space);
 		}
 
 		//and set up listeners
