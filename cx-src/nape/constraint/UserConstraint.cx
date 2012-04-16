@@ -83,6 +83,10 @@ class UserConstraint extends Constraint {
 		else        return pr(inner_zn).bodyImpulse(body.pr(inner));
 	}
 
+	public override function visitBodies(lambda:Body->Void) {
+		for(b in pr(inner_zn).bodies) if(b.body!=null) lambda(b.body.outer);
+	}
+
 	//------------------------------------------------------------------------
 
 	public function invalidate() {

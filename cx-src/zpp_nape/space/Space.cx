@@ -513,9 +513,11 @@ class PR(Space) {
 		p.component.sleeping = true; wake(p,true);
 	}
 	
-	public function added_shape(s:PR(Shape)) {
-		//wake the object
-		wake(s.body);
+	flibmdel public inline function added_shape(s:PR(Shape), dontwake:Bool=false) {
+		if(!dontwake) {
+			//wake the object
+			wake(s.body);
+		}
 		bphase.insert(s);
 
 		s.addedToSpace();
@@ -646,7 +648,7 @@ class PR(Space) {
 		body.component.sleeping = true;
         wake(body,true);
 			
-		Iter(shape,body.shapes,added_shape(shape));
+		Iter(shape,body.shapes,added_shape(shape,true));
 			
 		if(body.isStatic()) {
 			//validation won't be done on statics later.
@@ -1172,7 +1174,7 @@ class PR(Space) {
                 bodyCbWake(b);
 				c.reset();
 
-				//sync with aabb broadphase
+				//sync with aabb broadphase, sweepphase doesn't need syncing
 				if(!bphase.is_sweep && !b.isStatic())
 					Iter(shape, b.shapes, if(shape.node!=null) bphase.sync(shape));
 			}else {
@@ -1201,8 +1203,10 @@ class PR(Space) {
 						staticsleep.add(o);
 					else
 						live.add(o);
-						
-					if(!o.isDynamic()) {
+					
+					//to allow hacky forced sleeping of dynamics, need to
+					//wake constraints/arbiters of singular dynamics also (sigh)	
+//					if(!o.isDynamic()) {
 						//wake any constraints that might exist
 						//check that only constraints IN the space are woken!!
 						Iter(con,o.constraints,if(con.space==this) wake_constraint(con));
@@ -1231,7 +1235,8 @@ class PR(Space) {
 								if(arb.b2.isDynamic() && arb.b2.component.sleeping) wake(arb.b2);
 							}
 						});
-					}else if(!fst) bodyCbWake(o);
+//					}else if(!fst) bodyCbWake(o);
+					if(!fst && o.isDynamic()) bodyCbWake(o);
 
 					//sync with aabb broadphase
 					if(!fst && !bphase.is_sweep && !o.isStatic())
@@ -1423,6 +1428,7 @@ class PR(Space) {
                     cur.component.woken = false;
                 }
 
+				//sweepphase doesn't need syncing, so can skip it altogether.
 				if(!bphase.is_sweep)
 					Iter(shape,cur.shapes,bphase.sync(shape));
 			});

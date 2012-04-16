@@ -1,0 +1,171 @@
+package nape.hacks;
+$(import);
+
+class ForcedSleep {
+	public static function sleepBody(body:Body) {
+		DEBUG(if(body==null) throw "Error: Can't force sleep null body";)
+		DEBUG(if(body.space==null) throw "Error: This hack requires the Body to already be in a Space!";)
+		DEBUG(if(body==body.space.world) throw "Error: Cannot force sleep space.world!";)
+		DEBUG(if(body.space.zpp_inner.midstep) throw "Error: Even this hack can't operate from within space.step()!";)
+
+		var b = body.pr(inner);
+		if(b.component.sleeping) return;
+		b.component.sleeping = true;
+
+		//remove from live object lists.
+		if(body.isDynamic()) b.space.live.remove(b);
+		else {
+			if(body.isKinematic())
+				b.space.kinematics.remove(b);
+			b.space.staticsleep.remove(b);
+		}
+
+		//force any arbiters to be put to sleep.
+		Iter(arb, b.arbiters, {
+			if(arb.cleared || arb.sleeping) cx_continue;
+
+			arb.sleeping = true;
+			arb.sleep_stamp = b.space.stamp;
+
+			if(arb.type==PR(Arbiter).COL) {
+				var carb = arb.colarb;
+				if(carb.stat) b.space.c_arbiters(true).remove(carb);
+				else          b.space.c_arbiters(false).remove(carb);
+			}elif(arb.type==PR(Arbiter).FLUID)
+			     b.space.f_arbiters.remove(arb.fluidarb);
+			else b.space.s_arbiters.remove(arb.sensorarb);
+		});
+
+		if(!b.space.bphase.is_sweep)
+			Iterate(b.shapes, b.space.bphase.sync);
+	}
+
+	public static function sleepConstraint(constraint:Constraint) {
+		DEBUG(if(constraint==null) throw "Error: Can't force sleep null constraint";)
+		DEBUG(if(constraint.space==null) throw "Error: This hack requires the Constraint to already be in a Space";)
+		DEBUG(if(constraint.space.zpp_inner.midstep) throw "Error: Even this hack can't operate from within space.step()!";)
+
+		var c = constraint.pr(inner);
+		if(c.component.sleeping) return;
+		c.component.sleeping = true;
+
+		c.space.live_constraints.remove(c);
+	}
+
+	//sleep this body, and all bodies connected via constraints + those constraints
+	public static function sleepConnected(body:Body) {
+		DEBUG(if(body==null) throw "Error: Can't force sleep connected from null Body";)
+		DEBUG(if(body.space==null) throw "Error: This hack requires the Body to already be in a Space";)
+
+		var set = new IntHash<Body>();
+		var stack = [body];
+		while(stack.length>0) {
+			var b = stack.pop();
+			if(set.exists(b.id)) continue;
+
+			set.set(b.id,b);
+			for(c in b.constraints)
+				c.visitBodies(function (b) stack.unshift(b));
+		}
+
+		for(b in set) {
+			DEBUG(if(b.space==null) throw "Error: This hack requires Body's to already be in a Space regarding body found during sleepConnected";)
+
+			if(b!=b.space.world) 
+				sleepBody(b);
+
+			for(c in b.constraints) sleepConstraint(c);
+		}
+	}
+
+	//should be used in preference to adding, then sleeping
+	public static function addSleepingBody(space:Space, body:Body) {
+		DEBUG(if(body==null) throw "Error: Cannot add null body to Space";)
+		DEBUG(if(space==null) throw "Error: Cannot add body to null Space";)
+
+		if(body.space==space) { sleepBody(body); return; }
+		else if(body.space!=null) body.space = null;
+
+		var b = body.pr(inner);
+		var s = space.pr(inner);
+		//mostly copied from PR(Space)::addBody
+		b.space = s;
+		b.addedToSpace();
+		b.component.sleeping = true;
+
+		//mostly copied from PR(Space)::wake (well the one line anyways :D)
+		b.component.waket = s.stamp+1; //not sure about this btw :)
+		//addedToSpace will deal with broadphase with actual insertion
+		//for dyn-aabb being deferred until step at which point body
+		//is asleep and will be inserted into correct tree :)
+
+		//mostly copied from PR(Space)::addBody
+		Iter(S,b.shapes,s.added_shape(S,true));
+		if(body.isStatic())
+			s.static_validation(b);
+
+		//aaaand one extra step not present in addBody because
+		//of how bodies are added
+		s.bodies.add(b);
+
+		//also need to do this for non-statics to operate with
+		//broadphases correctly
+		//mostly copied from PR(Space)::validation
+		if(!body.isStatic()) {
+			b.validate_mass();
+			b.validate_inertia();
+			b.validate_aabb();
+			b.validate_gravMass();
+			b.validate_worldCOM();
+			b.validate_axis();
+			
+			Iter(s,b.shapes,{
+				if(s.isPolygon())
+					s.polygon.validate_gaxi();
+			});
+		}
+	}
+
+	//should be used in preference to adding, then sleeping
+	public static function addSleepingConstraint(space:Space, constraint:Constraint) {
+		DEBUG(if(constraint==null) throw "Error: Cannot add null constraint to Space";)
+		DEBUG(if(space==null) throw "Error: Cannot add constraint to null Space";)
+
+		if(constraint.space==space) { sleepConstraint(constraint); return; }
+		else if(constraint.space!=null) constraint.space = null;
+
+		var c = constraint.pr(inner);
+		var s = space.pr(inner);
+		//mostly copied from PR(Space)::addConstraint
+		c.space = s;
+		c.addedToSpace();
+		if(c.active) {
+			c.component.sleeping = true;
+			//mostly copied from PR(Space)::wake_constraint
+			c.component.waket = s.stamp+1; //not sure about this :)
+		}
+
+		//also need to do this! (here only)
+		s.constraints.add(c);
+	}
+
+	//should be used in preference to adding, then sleeping
+	public static function addSleepingCompound(space:Space, compound:Compound) {
+		DEBUG(if(compound==null) throw "Error: Cannot add null compound to Space";)
+		DEBUG(if(space==null) throw "Error: Cannot add compound to null Space";)
+
+		if(compound.space==space) {
+			compound.visitBodies(sleepBody);
+			compound.visitConstraints(sleepConstraint);
+		}else if(compound.space!=null) compound.space = null;
+
+		var c = compound.pr(inner);
+		var s = space.pr(inner);
+		//mostly copied from PR(Space)::addCompound
+		c.space = s;
+		c.addedToSpace();
+		Iter(b, c.bodies, addSleepingBody(b.outer, space));
+		Iter(C, c.constraints, addSleepingConstraint(C.outer, space));
+		Iter(C, c.compounds, addSleepingCompound(C.outer, space));
+	}
+}
