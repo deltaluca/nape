@@ -376,16 +376,20 @@ class Body extends Interactor {
 		var jsum = new Vec2();
 
 		for(arb in arbiters) {
-			var imp = arb.totalImpulse(this).xy();
+			var imp3 = arb.totalImpulse(this);
+			var imp = imp3.xy();
 			jsum.addeq(imp);
 			msum += imp.length;
 			imp.dispose();
+			imp3.dispose();
 		}
 		for(con in constraints) {
-			var imp = con.bodyImpulse(this).xy();
+			var imp3 = con.bodyImpulse(this);
+			var imp = imp3.xy();
 			jsum.addeq(imp);
 			msum += imp.length;
 			imp.dispose();
+			imp3.dispose();
 		}
 
 		var ret = (msum - jsum.length)*space.pr(inner).pre_dt;
