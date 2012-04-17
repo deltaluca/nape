@@ -129,14 +129,7 @@ clean:
 # remotes
 
 server-release:
-	rm -rf nape.tar.gz
-	tar cvfz nape.tar.gz cx-src Makefile version server-remotes fix-externs
-	scp nape.tar.gz deltaluca.me.uk:nape.tar.gz
-	echo "ssh deltaluca.me.uk << EOT" > .nape-release
-	echo "./nape-release" >> .nape-release
-	echo "EOT" >> .nape-release
-	sh .nape-release
-	rm .nape-release
+	./server-release
 
 ## --------------------------------------------
 

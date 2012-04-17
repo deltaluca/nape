@@ -63,7 +63,16 @@ class Parse {
 				case "bullet": ret.desc.push(new XBullet());
 				case "tab": ret.desc.push(new XTab());
 				case "hr": ret.desc.push(new XHr());
-				case "html": ret.desc.push(new XHTML(xdatum(child)));
+				case "html": 
+					var found = false;
+					for(attr in child.attributes()) {
+						switch(attr) {
+						case "file": ret.desc.push(new XHTML(null,child.get(attr))); found = true;
+						default:
+						}
+					}
+					if(!found)
+						ret.desc.push(new XHTML(xdatum(child)));
 				case "indent":
 					var ide = new XIndent();
 					ide.html = parseDescription(child);
