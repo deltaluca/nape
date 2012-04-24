@@ -1770,6 +1770,36 @@ class PR(Space) {
 		}
 	}
 
+	//-1 = no interaction, 0 = fluid, 1 = collision, 2 = sense
+	//pre: not both s1,s2 static or from same body
+	flibmdel public inline function interactionType(s1:PR(Shape),s2:PR(Shape), b1:PR(Body), b2:PR(Body)) {
+		assert(!(b1==b2), "both shapes from same object?");
+		assert(!(b1.isStatic() && b2.isStatic()), "both objects static?");
+
+        //check if constraints exists such that this should be ignored
+		//check if the two bodies belong to a group hierarchy to be ignored.
+		if(!Exists(con, b1.constraints, con.ignore && con.pair_exists(b1.id,b2.id))
+		&& !group_ignore(s1,s2)) {
+			//fluid has preference
+			if((s1.fluidEnabled || s2.fluidEnabled) && s1.filter.shouldFlow(s2.filter) &&
+	              ! (  (s1.fluidEnabled &&  b1.isDynamic() && !s2.fluidEnabled && !b2.isDynamic())
+	                || (s2.fluidEnabled &&  b2.isDynamic() && !s1.fluidEnabled && !b1.isDynamic())
+	                || (s1.fluidEnabled && !b1.isDynamic() && !b2.isDynamic())
+	                || (s2.fluidEnabled && !b2.isDynamic() && !b1.isDynamic())
+	            )) {
+				return 0;
+			//followed by collision
+			}else if(s1.filter.shouldCollide(s2.filter)
+					&& !(b1.imass==0 && b2.imass==0 && b1.iinertia==0 && b2.iinertia==0)) {
+				return 1;
+			//and finally sensing
+			}else if(s1.filter.shouldSense(s2.filter))
+				return 2;
+			else return -1;
+		}else
+			return -1;
+	}
+
 	var precb:PreCallback;
 	public function narrowPhase(s1:PR(Shape),s2:PR(Shape), stat:Bool, ?in_arb:PR(Arbiter)=null) {
 		#if NAPE_TIMES
@@ -1777,296 +1807,275 @@ class PR(Space) {
 		#end
 		var ret:PR(Arbiter) = null;
 
-        var b1 = s1.body;
-		var b2 = s2.body;
-		assert(b1!=b2,"colliding same body?");
-        assert(!(b1.isStatic() && b2.isStatic()), "both objects static?");
+        var b1 = s1.body; var b2 = s2.body;
+		var itype = interactionType(s1,s2,b1,b2);
+		if(itype!=-1) {
+			var sa,sb;
+			if(s1.type > s2.type) { sa = s2; sb = s1; }
+			else if(s1.type == s2.type) {
+				if(s1.id < s2.id) { sa = s1; sb = s2; }
+				else              { sb = s1; sa = s2; }
+			}else { sa = s1; sb = s2; }
+			var reverse = sa == s2;
 
-        //check if constraints exists such that this should be ignored
-		//check if the two bodies belong to a group hierarchy to be ignored.
-        if(!Exists(con, b1.constraints, con.ignore && con.pair_exists(b1.id,b2.id))
-		&& !group_ignore(s1,s2)
-		) {
+			$(mixin narrowed(arb,INTTYPE,Type,arbs, cond, waking,collisions) {
+				var inttype = Flag(InteractionType,INTTYPE);
 
-            var gcol = s1.filter.shouldCollide(s2.filter)
-                && !(b1.imass==0 && b2.imass==0 && b1.iinertia==0 && b2.iinertia==0);
-					
-            var scol = s1.filter.shouldSense(s2.filter);
-				
-            var fcol = (s1.fluidEnabled || s2.fluidEnabled) && s1.filter.shouldFlow(s2.filter) &&
-              ! (  (s1.fluidEnabled &&  b1.isDynamic() && !s2.fluidEnabled && !b2.isDynamic())
-                || (s2.fluidEnabled &&  b2.isDynamic() && !s1.fluidEnabled && !b1.isDynamic())
-                || (s1.fluidEnabled && !b1.isDynamic() && !b2.isDynamic())
-                || (s2.fluidEnabled && !b2.isDynamic() && !b1.isDynamic())
-            );
+				if(first || arb.stamp!=stamp) {
+					arb.stamp = stamp;
 
-            if(scol || gcol || fcol) {
-                var sa,sb;
-                if(s1.type > s2.type) { sa = s2; sb = s1; }
-                else if(s1.type == s2.type) {
-                    if(s1.id < s2.id) { sa = s1; sb = s2; }
-                    else              { sb = s1; sa = s2; }
-                }else { sa = s1; sb = s2; }
-                var reverse = sa == s2;
+					if(cond) {
+						if(first) {
+							arb.assign(s1,s2,sa.id,sb.id);
+							arbs.inlined_add(arb);
+							arb.fresh = !swapped;
+						}else
+							arb.fresh = arb.up_stamp<stamp-1; //handler persistance
+						arb.up_stamp = arb.stamp;
 
-				$(mixin narrowed(arb,INTTYPE,Type,arbs, cond, waking,collisions) {
-					var inttype = Flag(InteractionType,INTTYPE);
+						//search for a pre-listener or existing callbackset
+						var listener:PR(InteractionListener) = null;
+						var callbackset:PR(CallbackSet) = null;
+						var ncallbackset:PR(CallbackSet) = null;
+						var prei1:PR(Interactor) = null;
 
-					if(first || arb.stamp!=stamp) {
-						arb.stamp = stamp;
+						if(arb.fresh || (arb.immState&Flag(ImmState,ALWAYS))==0) {
+							arb.immState = Flag(ImmState,ACCEPT);
 
-						if(cond) {
-							if(first) {
-								arb.assign(s1,s2,sa.id,sb.id);
-								arbs.inlined_add(arb);
-								arb.fresh = !swapped;
-							}else
-								arb.fresh = arb.up_stamp<stamp-1; //handler persistance
-							arb.up_stamp = arb.stamp;
+							inlined_MRCA_chains(s1,s2);
+							Iter(i1, mrca1, {
+							Iter(i2, mrca2, {
+								var cb1 = i1.cbType;
+								var cb2 = i2.cbType;
+								assert(cb1!=null && cb2!=null, "null cb from MRCA_chains?");
 
-							//search for a pre-listener or existing callbackset
-							var listener:PR(InteractionListener) = null;
-							var callbackset:PR(CallbackSet) = null;
-							var ncallbackset:PR(CallbackSet) = null;
-							var prei1:PR(Interactor) = null;
+								if(PR(CbType).empty_intersection(cb1,cb2)) cx_continue;
 
-							if(arb.fresh || (arb.immState&Flag(ImmState,ALWAYS))==0) {
-								arb.immState = Flag(ImmState,ACCEPT);
+								DEBUG(
+									var i = PR(CbType).find(cb1,cb2,Flag(CbEvent,PRE),inttype);
+									if(i!=null && listener!=null) throw "Error: Multiple valid pre-listeners for possible interactor combinations descended from shape1="+s1.outer.toString()+" shape2="+s2.outer.toString()+". listener1="+i.outer.toString()+" listener2="+listener.outer.toString();
+									listener = i;
+								)
+								RELEASE(listener = PR(CbType).find(cb1,cb2,Flag(CbEvent,PRE),inttype);)
 
-								inlined_MRCA_chains(s1,s2);
-								Iter(i1, mrca1, {
-								Iter(i2, mrca2, {
-									var cb1 = i1.cbType;
-									var cb2 = i2.cbType;
-									assert(cb1!=null && cb2!=null, "null cb from MRCA_chains?");
+								if(listener==null) cx_continue;
 
-									if(PR(CbType).empty_intersection(cb1,cb2)) cx_continue;
+								callbackset = PR(Interactor).get(i1,i2);
+								if(callbackset==null) {
+									ncallbackset = PR(CallbackSet).get(i1,i2);
+									add_callbackset(ncallbackset);
+								}
+								prei1 = i1;
 
-									DEBUG(
-										var i = PR(CbType).find(cb1,cb2,Flag(CbEvent,PRE),inttype);
-										if(i!=null && listener!=null) throw "Error: Multiple valid pre-listeners for possible interactor combinations descended from shape1="+s1.outer.toString()+" shape2="+s2.outer.toString()+". listener1="+i.outer.toString()+" listener2="+listener.outer.toString();
-										listener = i;
-									)
-									RELEASE(listener = PR(CbType).find(cb1,cb2,Flag(CbEvent,PRE),inttype);)
+								RELEASE(cx_break;)
+							});
+							RELEASE(if(listener!=null) cx_break;)
+							});
+						}
 
-									if(listener==null) cx_continue;
-
-									callbackset = PR(Interactor).get(i1,i2);
-									if(callbackset==null) {
-										ncallbackset = PR(CallbackSet).get(i1,i2);
-										add_callbackset(ncallbackset);
-									}
-									prei1 = i1;
-
-									RELEASE(cx_break;)
-								});
-								RELEASE(if(listener!=null) cx_break;)
-								});
+						if(listener!=null && (callbackset==null || (callbackset.INTTYPE`stamp!=stamp && (callbackset.INTTYPE`state&Flag(ImmState,ALWAYS)==0)))) {
+							if(ncallbackset!=null) callbackset = ncallbackset;
+							if(callbackset!=null) {
+								if(listener.itype==Flag(InteractionType,ANY)) {
+									callbackset.COLLISIONstamp = stamp;
+									callbackset.SENSORstamp = stamp;
+									callbackset.FLUIDstamp = stamp;
+								}else
+									callbackset.INTTYPE`stamp = stamp;
 							}
 
-							if(listener!=null && (callbackset==null || (callbackset.INTTYPE`stamp!=stamp && (callbackset.INTTYPE`state&Flag(ImmState,ALWAYS)==0)))) {
-								if(ncallbackset!=null) callbackset = ncallbackset;
-								if(callbackset!=null) {
-									if(listener.itype==Flag(InteractionType,ANY)) {
-										callbackset.COLLISIONstamp = stamp;
-										callbackset.SENSORstamp = stamp;
-										callbackset.FLUIDstamp = stamp;
-									}else
-										callbackset.INTTYPE`stamp = stamp;
-								}
+							// arbiter (public) is not active in the situtation of a persistant
+							// collision arbiter being re-used before it was retired.
+							// so we activate it temporarily.
 
-								// arbiter (public) is not active in the situtation of a persistant
-								// collision arbiter being re-used before it was retired.
-								// so we activate it temporarily.
+							// we need to reset to old value so that in pre-step such an arbiter
+							// can as usual, update the public lists.
+							var pact = arb.active; arb.active = true;
 
-								// we need to reset to old value so that in pre-step such an arbiter
-								// can as usual, update the public lists.
-								var pact = arb.active; arb.active = true;
+							#if collisions //need to do this with #if since fluid/sensor has no such method
+								//update wrapped contact list for user.
+								arb.cleanupContacts();
+								assert(arb.wrapper().collisionArbiter.contacts.length!=0,"0 contacts BEFORE pre handler??");
+							#end
+							DEBUG(arb.makemutable();)
 
-								#if collisions //need to do this with #if since fluid/sensor has no such method
-									//update wrapped contact list for user.
-									arb.cleanupContacts();
-									assert(arb.wrapper().collisionArbiter.contacts.length!=0,"0 contacts BEFORE pre handler??");
-								#end
-								DEBUG(arb.makemutable();)
+							precb.pr(inner).pre_arbiter = arb;
+							precb.pr(inner).listener = listener;
+							precb.pr(inner).set = callbackset;
+							PR(Interactor).int_callback(
+								callbackset.int1, callbackset.int2,
+								listener.cb1, precb.pr(inner)
+							);
+							precb.pr(inner).pre_swapped = prei1 != precb.pr(inner).int1;
 
-								precb.pr(inner).pre_arbiter = arb;
-								precb.pr(inner).listener = listener;
-								precb.pr(inner).set = callbackset;
-								PR(Interactor).int_callback(
-									callbackset.int1, callbackset.int2,
-									listener.cb1, precb.pr(inner)
-								);
-								precb.pr(inner).pre_swapped = prei1 != precb.pr(inner).int1;
+							var ret = listener.handlerp(precb);
 
-								var ret = listener.handlerp(precb);
+							DEBUG(arb.makeimmutable();)
+							
+							arb.active = pact;
 
-								DEBUG(arb.makeimmutable();)
-								
-								arb.active = pact;
+							DEBUG(if(ret==null) throw "Error: PreListener handler should not return null >.>";)
+							arb.immState = 
+								if  (ret==PreFlag.ACCEPT)      Flag(ImmState, ACCEPT) | Flag(ImmState, ALWAYS)
+								elif(ret==PreFlag.ACCEPT_ONCE) Flag(ImmState, ACCEPT)
+								elif(ret==PreFlag.IGNORE)      Flag(ImmState, IGNORE) | Flag(ImmState, ALWAYS)
+								else                           Flag(ImmState, IGNORE);
 
-								DEBUG(if(ret==null) throw "Error: PreListener handler should not return null >.>";)
-								arb.immState = 
-									if  (ret==PreFlag.ACCEPT)      Flag(ImmState, ACCEPT) | Flag(ImmState, ALWAYS)
-									elif(ret==PreFlag.ACCEPT_ONCE) Flag(ImmState, ACCEPT)
-									elif(ret==PreFlag.IGNORE)      Flag(ImmState, IGNORE) | Flag(ImmState, ALWAYS)
-									else                           Flag(ImmState, IGNORE);
+							//validate in non release mode anyways,
+							if((arb.immState&Flag(ImmState,ACCEPT))!=0) {
+								//make sure things like normals are still normalised
+								arb.pre_validate();
+							}
+							
+							if(callbackset!=null) {
+								if(listener.itype==Flag(InteractionType,ANY)) {
+									callbackset.COLLISIONstate = arb.immState;
+									callbackset.SENSORstate = arb.immState;
+									callbackset.FLUIDstate = arb.immState;
+								}else
+									callbackset.INTTYPE`state = arb.immState;
+							}
+						}else if(callbackset==null) {
+							//reset state on non-persistance
+							if((arb.immState&Flag(ImmState,ALWAYS))==0)
+								arb.immState = Flag(ImmState, ACCEPT);
+						}else {
+							arb.immState = callbackset.INTTYPE`state;
+						}
 
-								//validate in non release mode anyways,
-								if((arb.immState&Flag(ImmState,ACCEPT))!=0) {
-									//make sure things like normals are still normalised
-									arb.pre_validate();
-								}
-								
-								if(callbackset!=null) {
-									if(listener.itype==Flag(InteractionType,ANY)) {
-										callbackset.COLLISIONstate = arb.immState;
-										callbackset.SENSORstate = arb.immState;
-										callbackset.FLUIDstate = arb.immState;
-									}else
-										callbackset.INTTYPE`state = arb.immState;
-								}
-							}else if(callbackset==null) {
-								//reset state on non-persistance
-								if((arb.immState&Flag(ImmState,ALWAYS))==0)
-									arb.immState = Flag(ImmState, ACCEPT);
+						//DON'T LET THE OBJECTS GO TO SLEEP!!
+						//# we cannot assume that at some point
+						//  handler (without explicit change) will
+						//  inform nape to do something differently
+						//  which would require the objects to be woken
+						//  so we can't let the objects sleep
+						if(listener!=null && !listener.pure && (arb.immState&Flag(ImmState,ALWAYS))==0) {
+							//wake even if 'waking' false (aka sensor arbiter)
+							//to keep consistency w.r.t #_ONCE handlers
+							//
+							//we do not check that they are sleeping before waking
+							//as we want them to never sleep which would be possible
+							//if we allowed them both to go to sleep at same time.
+							//
+							//what about non-dynamics? (like below waking)
+							//    @ not sure this is important.
+							//      the only relevant cases are static/kinematic - kinematic sensor arbiters
+							//      which it would be fairly strange to use pre callbacks with.
+							//    @ it should suffice to only wake non-statics
+							//      and for non-sensor arbiters, we should be able to wake only
+							//      dynamics as usual :)  ~ note: 'waking' only true for non-sensors so we use this.
+							if(waking) {
+								if(arb.b1.isDynamic()) wake(arb.b1);
+								if(arb.b1.isDynamic()) wake(arb.b2);
 							}else {
-								arb.immState = callbackset.INTTYPE`state;
+								if(!arb.b1.isStatic()) wake(arb.b1);
+								if(!arb.b2.isStatic()) wake(arb.b2);
 							}
-
-							//DON'T LET THE OBJECTS GO TO SLEEP!!
-							//# we cannot assume that at some point
-							//  handler (without explicit change) will
-							//  inform nape to do something differently
-							//  which would require the objects to be woken
-							//  so we can't let the objects sleep
-							if(listener!=null && !listener.pure && (arb.immState&Flag(ImmState,ALWAYS))==0) {
-								//wake even if 'waking' false (aka sensor arbiter)
-								//to keep consistency w.r.t #_ONCE handlers
-								//
-								//we do not check that they are sleeping before waking
-								//as we want them to never sleep which would be possible
-								//if we allowed them both to go to sleep at same time.
-								//
-								//what about non-dynamics? (like below waking)
-								//    @ not sure this is important.
-								//      the only relevant cases are static/kinematic - kinematic sensor arbiters
-								//      which it would be fairly strange to use pre callbacks with.
-								//    @ it should suffice to only wake non-statics
-								//      and for non-sensor arbiters, we should be able to wake only
-								//      dynamics as usual :)  ~ note: 'waking' only true for non-sensors so we use this.
-								if(waking) {
-									if(arb.b1.isDynamic()) wake(arb.b1);
-									if(arb.b1.isDynamic()) wake(arb.b2);
-								}else {
-									if(!arb.b1.isStatic()) wake(arb.b1);
-									if(!arb.b2.isStatic()) wake(arb.b2);
-								}
-							}
-							//optimisation, none-accept arbiter need not wake it's constituents
-							if(waking && (arb.immState & Flag(ImmState, ACCEPT)) !=0) {
-								if(arb.b1.component.sleeping && arb.b1.isDynamic())
-									wake(arb.b1);
-								if(arb.b2.component.sleeping && arb.b2.isDynamic())
-									wake(arb.b2);
-							}
-
-							if(arb.sleeping) {
-								arb.sleeping = false;
-								arbs.inlined_add(arb);
-							}
-
-							arb;
-						}else if(first) {
-							Free(Type, arb);
-							null;
 						}
-					}else null;
+						//optimisation, none-accept arbiter need not wake it's constituents
+						if(waking && (arb.immState & Flag(ImmState, ACCEPT)) !=0) {
+							if(arb.b1.component.sleeping && arb.b1.isDynamic())
+								wake(arb.b1);
+							if(arb.b2.component.sleeping && arb.b2.isDynamic())
+								wake(arb.b2);
+						}
+
+						if(arb.sleeping) {
+							arb.sleeping = false;
+							arbs.inlined_add(arb);
+						}
+
+						arb;
+					}else if(first) {
+						Free(Type, arb);
+						null;
+					}
+				}else null;
+			});
+
+			$(mixin arbget(s1,s2) ({
+				var ret:PR(Arbiter) = null;
+				var b = if(b1.arbiters.length < b2.arbiters.length) b1 else b2;
+				Iter(arb, b.arbiters, {
+					assert(!(arb.id==s2 && arb.di==s1),"arbiter id order doesn't match s1/s2 order?>");
+					if(arb.id == s1 && arb.di == s2) {
+						ret = arb;
+						break;
+					}
 				});
+				ret;
+			}));
 
-				$(mixin arbget(s1,s2) ({
-					var ret:PR(Arbiter) = null;
-					var b = if(b1.arbiters.length < b2.arbiters.length) b1 else b2;
-					Iter(arb, b.arbiters, {
-						assert(!(arb.id==s2 && arb.di==s1),"arbiter id order doesn't match s1/s2 order?>");
-						if(arb.id == s1 && arb.di == s2) {
-							ret = arb;
-							break;
-						}
-					});
-					ret;
-				}));
+			switch(itype) {
+			case 0:
+				var xarb = if(in_arb==null) arbget(sa.id,sb.id) else in_arb;
+				var first = xarb==null;
 
-                if(fcol) {
-                    var xarb = if(in_arb==null) arbget(sa.id,sb.id) else in_arb;
-                    var first = xarb==null;
-
-                    var arb; var swapped = false;
-                    if(first) arb = Get(PR(FluidArbiter))
-                    else {
-                        if(xarb.fluidarb==null) {
-                            xarb.lazyRetire(this,null);
-                            arb = Get(PR(FluidArbiter));
-							arb.intchange = true;
-                            first = true;
-							swapped = true;
-                        }else
-                            arb = xarb.fluidarb;
-                    }
-						
-					ret = narrowed(arb,FLUID,PR(FluidArbiter),f_arbiters, PR(Collide).flowCollide(sa,sb,arb), true,false);
-                } else if(gcol) {
-                    var carbs = stat ? c_arbiters(true) : c_arbiters(false);
-
-                    var xarb = if(in_arb==null) arbget(sa.id,sb.id) else in_arb;
-                    var first = xarb==null;
-						
-                    var arb; var swapped = false;
-                    if(first) {
-                        arb = Get(PR(ColArbiter));
-                        arb.stat = stat;
-                    } else {
-                        if(xarb.colarb==null) {
-                            xarb.lazyRetire(this,null);
-                            arb = Get(PR(ColArbiter));
-							arb.intchange = true;
-                            arb.stat = stat;
-                            first = true;
-							swapped = true;
-                        }else {
-                            arb = xarb.colarb;
-                            reverse = sa != arb.s1;
-
-                            if(arb.stat != stat) {
-                                arb.stat = stat;
-                                if(!arb.sleeping) {
-                                    (if(stat) c_arbiters(false) else c_arbiters(true)).remove(arb);
-                                    carbs.add(arb);
-                                }
-                            }
-                        }
-                    }
-
-					ret = narrowed(arb,COLLISION,PR(ColArbiter),carbs, PR(Collide).contactCollide(sa,sb,arb,reverse), true,true);
-                } else if(scol) {
-                    var xarb = if(in_arb==null) arbget(sa.id,sb.id) else in_arb;
-                    var first = xarb==null;
-						
-                    var arb; var swapped = false;
-                    if(first) arb = Get(PR(SensorArbiter))
-                    else {
-                        if(xarb.sensorarb==null) {
-                            xarb.lazyRetire(this,null);
-                            arb = Get(PR(SensorArbiter));
-							arb.intchange = true;
-                            first = true;
-							swapped = true;
-                        }else
-                            arb = xarb.sensorarb;
-                    }
-					
-					ret = narrowed(arb,SENSOR,PR(SensorArbiter),s_arbiters, PR(Collide).testCollide(sa,sb), false,false);
+				var arb; var swapped = false;
+				if(first) arb = Get(PR(FluidArbiter))
+				else {
+					if(xarb.fluidarb==null) {
+						xarb.lazyRetire(this,null);
+						arb = Get(PR(FluidArbiter));
+						arb.intchange = true;
+						first = true;
+						swapped = true;
+					}else
+						arb = xarb.fluidarb;
 				}
+					
+				ret = narrowed(arb,FLUID,PR(FluidArbiter),f_arbiters, PR(Collide).flowCollide(sa,sb,arb), true,false);
+			case 1:
+				var carbs = stat ? c_arbiters(true) : c_arbiters(false);
+
+				var xarb = if(in_arb==null) arbget(sa.id,sb.id) else in_arb;
+				var first = xarb==null;
+					
+				var arb; var swapped = false;
+				if(first) {
+					arb = Get(PR(ColArbiter));
+					arb.stat = stat;
+				} else {
+					if(xarb.colarb==null) {
+						xarb.lazyRetire(this,null);
+						arb = Get(PR(ColArbiter));
+						arb.intchange = true;
+						arb.stat = stat;
+						first = true;
+						swapped = true;
+					}else {
+						arb = xarb.colarb;
+						reverse = sa != arb.s1;
+
+						if(arb.stat != stat) {
+							arb.stat = stat;
+							if(!arb.sleeping) {
+								(if(stat) c_arbiters(false) else c_arbiters(true)).remove(arb);
+								carbs.add(arb);
+							}
+						}
+					}
+				}
+
+				ret = narrowed(arb,COLLISION,PR(ColArbiter),carbs, PR(Collide).contactCollide(sa,sb,arb,reverse), true,true);
+			case 2:
+				var xarb = if(in_arb==null) arbget(sa.id,sb.id) else in_arb;
+				var first = xarb==null;
+					
+				var arb; var swapped = false;
+				if(first) arb = Get(PR(SensorArbiter))
+				else {
+					if(xarb.sensorarb==null) {
+						xarb.lazyRetire(this,null);
+						arb = Get(PR(SensorArbiter));
+						arb.intchange = true;
+						first = true;
+						swapped = true;
+					}else
+						arb = xarb.sensorarb;
+				}
+				
+				ret = narrowed(arb,SENSOR,PR(SensorArbiter),s_arbiters, PR(Collide).testCollide(sa,sb), false,false);
 			}
 		}
 		#if NAPE_TIMES

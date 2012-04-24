@@ -121,6 +121,24 @@ class Space {
 	}
 	
 	//----------------------------------------------------------------------------------------------
+	
+	keep public function interactionType(shape1:Shape, shape2:Shape):InteractionType {
+		DEBUG(if(shape1==null || shape2==null) throw "Error: Cannot evaluate interaction type for null shapes";)
+		DEBUG(if(shape1.body==null || shape2.body==null) throw "Error: Cannot evaluate interaction type for shapes not part of a Body";)
+		if(shape1.body.isStatic() && shape2.body.isStatic()) return null;
+		if(shape1.body==shape2.body) return null;
+
+		var s1 = shape1.pr(inner);
+		var s2 = shape2.pr(inner);
+		return switch(pr(inner).interactionType(s1,s2,s1.body,s2.body)) {
+			case 0: InteractionType.FLUID;
+			case 1: InteractionType.COLLISION;
+			case 2: InteractionType.SENSOR;
+			default: null;
+		}
+	}
+
+	//----------------------------------------------------------------------------------------------
 
 	keep public function shapesUnderPoint(point:Vec2,?filter:InteractionFilter=null) {
 		Disposed(point,Vec2);
