@@ -4,14 +4,25 @@ $(import);
 class DummyNapeMain {
 	static function main() {
 		var space = new Space();
+
 		var b = new Body();
 		b.shapes.add(new Circle(1));
 		b.cbType = new CbType();
+		b.space = space;
+
+		var c = new Body();
+		c.shapes.add(new Circle(1));
+		c.cbType = new CbType();
+		c.space = space;
+
 		space.listeners.add(new BodyListener(CbEvent.WAKE, b.cbType, function (_) trace("w1"), 1));
 		space.listeners.add(new BodyListener(CbEvent.WAKE, b.cbType, function (_) trace("w2"), 2));
-		space.listeners.add(new BodyListener(CbEvent.SLEEP, b.cbType, function (_) trace("s1"), 1));
-		space.listeners.add(new BodyListener(CbEvent.SLEEP, b.cbType, function (_) trace("s2"), 2));
-		b.space = space;
+		space.listeners.add(new BodyListener(CbEvent.SLEEP, c.cbType, function (_) trace("s1"), 1));
+		space.listeners.add(new BodyListener(CbEvent.SLEEP, c.cbType, function (_) trace("s2"), 2));
+
+		space.listeners.add(new InteractionListener(CbEvent.ONGOING, InteractionType.ANY, b.cbType, c.cbType, function (_) trace("o1"), 1));
+		space.listeners.add(new InteractionListener(CbEvent.ONGOING, InteractionType.ANY, b.cbType, c.cbType, function (_) trace("o2"), 2));
+
 		for(i in 0...100) space.step(1,1,1);
 		b.position.x += 10;
 		for(i in 0...100) space.step(1,1,1);

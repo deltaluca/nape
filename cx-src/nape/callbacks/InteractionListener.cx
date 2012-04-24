@@ -54,7 +54,7 @@ class InteractionListener extends Listener {
     ///---------------------------------------------------------------------------------------------
 
 	flibopts(1)
-	public function new(event:CbEvent, interactionType:InteractionType, cbType1:CbType, cbType2:CbType, handler:InteractionCallback->Void) {
+	public function new(event:CbEvent, interactionType:InteractionType, cbType1:CbType, cbType2:CbType, handler:InteractionCallback->Void, ?precedence=0) {
 		PR(Listener).internal = true; super(); PR(Listener).internal = false;
 
 		DEBUG(if(handler==null)throw "Error: InteractionListener::handler cannot be null";)
@@ -73,6 +73,7 @@ class InteractionListener extends Listener {
 		pr(inner) = pr(inner_zn);
 		pr(inner).outer = this;
 		pr(inner_zn).outer_zni = this;
+		pr(inner).precedence = precedence;
 
 		pr(inner_zn).handleri = handler;
 		this.cbType1 = cbType1;
