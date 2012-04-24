@@ -7,6 +7,7 @@ class PR(Listener) {
 
     public var type:Int; //Flag(ListenerType)
     public var event:Int; //Flag(CbEvent)
+	public var precedence:Int; //for ordering in the case of more than one listener existing
 
     public var body:PR(BodyListener);
     public var constraint:PR(ConstraintListener);
@@ -33,19 +34,20 @@ class PR(BodyListener) extends PR(Listener) {
 
     public function addedToSpace() {
         assert(cbType!=null,"listener added to space with no cbtype associated?");
-
-        if(event==Flag(CbEvent,WAKE))
-             cbType._bodywake = this;
-        else cbType._bodysleep = this;
+		cbType.addbody(this);
     }
 
     public function removedFromSpace() {
         assert(cbType!=null,"listener removed from space with no cbtype associated?");
-
-        if(event==Flag(CbEvent,WAKE))
-             cbType._bodywake = null;
-        else cbType._bodysleep = null;
+		cbType.removebody(this);
     }
+
+	public function changed_precedence() {
+		if(space!=null) {
+			cbType.removebody(this);
+			cbType.addbody(this);
+		}
+	}
 
     public function swapCbType(newcb:PR(CbType)) {
         assert(newcb!=null,"swap to null cbtype?");
@@ -87,19 +89,20 @@ class PR(ConstraintListener) extends PR(Listener) {
 
     public function addedToSpace() {
         assert(cbType!=null,"listener added to space with no cbtype associated?");
-
-        if     (event==Flag(CbEvent,WAKE))  cbType._conwake = this;
-        else if(event==Flag(CbEvent,SLEEP)) cbType._consleep = this;
-        else cbType._break = this;
+		cbType.addcon(this);
     }
 
     public function removedFromSpace() {
         assert(cbType!=null,"listener removed from space with no cbtype associated?");
-
-        if     (event==Flag(CbEvent,WAKE))  cbType._conwake = this;
-        else if(event==Flag(CbEvent,SLEEP)) cbType._consleep = this;
-        else cbType._break = this;
+		cbType.removecon(this);
     }
+
+	public function changed_precedence() {
+		if(space!=null) {
+			cbType.removecon(this);
+			cbType.addcon(this);
+		}
+	}
 
     public function swapCbType(newcb:PR(CbType)) {
         assert(newcb!=null,"swap to null cbtype?");
@@ -167,15 +170,34 @@ class PR(InteractionListener) extends PR(Listener) {
 		if(PR(CbType).empty_intersection(cb1,cb2))
 			space.freshListenerType(cb1,cb2);
 
-		cb1.insert(this);
-		if(cb1!=cb2) cb2.insert(this);
+		cb1.addint(this);
+		if(cb1!=cb2) cb2.addint(this);
 	}
 	public function unassign() {
-		cb1.remove(this);
-		if(cb1!=cb2) cb2.remove(this);
+		cb1.removeint(this);
+		if(cb1!=cb2) cb2.removeint(this);
 
 		if(PR(CbType).empty_intersection(cb1,cb2))
 			space.nullListenerType(cb1,cb2);
+	}
+
+	public function changed_precedence() {
+		if(space!=null) {
+			cb1.removeint(this);
+			cb1.addint(this);
+			if(cb1!=cb2) {
+				cb2.removeint(this);
+				cb2.addint(this);
+			}
+			
+			//need to wake in the case of PRE listeners
+			//since the result of the pre-listener compositions
+			//may change
+			if(type==Flag(ListenerType,PRE)) {
+				Iter(i, cb1.interactors, i.wake());
+				if(cb1!=cb2) Iter(i, cb2.interactors, i.wake());
+			}
+		}
 	}
 
 	public function addedToSpace(?skip=false) {

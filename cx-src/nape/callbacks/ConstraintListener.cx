@@ -27,8 +27,8 @@ class ConstraintListener extends Listener {
 
     ///---------------------------------------------------------------------------------------------
 
-	flibopts(0)
-    public function new(event:CbEvent, cbType:CbType, handler:ConstraintCallback->Void) {
+	flibopts(1)
+    public function new(event:CbEvent, cbType:CbType, handler:ConstraintCallback->Void, ?precedence=0) {
         PR(Listener).internal = true; super(); PR(Listener).internal = false;
 		
 		DEBUG(if(handler==null)throw "Error: ConstraintListener::handler cannot be null";)
@@ -44,6 +44,7 @@ class ConstraintListener extends Listener {
         pr(inner) = pr(inner_zn);
         pr(inner).outer = this;
         pr(inner_zn).outer_zn = this;
+		pr(inner).precedence = precedence;
 
         this.cbType = cbType;
     }

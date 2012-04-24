@@ -3,7 +3,17 @@ $(import);
 
 class DummyNapeMain {
 	static function main() {
-		var v = Vec3.get(1,2,3);
-		v.dispose();
+		var space = new Space();
+		var b = new Body();
+		b.shapes.add(new Circle(1));
+		b.cbType = new CbType();
+		space.listeners.add(new BodyListener(CbEvent.WAKE, b.cbType, function (_) trace("w1"), 1));
+		space.listeners.add(new BodyListener(CbEvent.WAKE, b.cbType, function (_) trace("w2"), 2));
+		space.listeners.add(new BodyListener(CbEvent.SLEEP, b.cbType, function (_) trace("s1"), 1));
+		space.listeners.add(new BodyListener(CbEvent.SLEEP, b.cbType, function (_) trace("s2"), 2));
+		b.space = space;
+		for(i in 0...100) space.step(1,1,1);
+		b.position.x += 10;
+		for(i in 0...100) space.step(1,1,1);
 	}
 }

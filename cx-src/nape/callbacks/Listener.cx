@@ -32,6 +32,18 @@ class Listener {
         }
     })
 
+	property(precedence,Int,pr(inner).precedence,{
+		if(this.precedence!=precedence) {
+			pr(inner).precedence = precedence;
+			if(pr(inner).type == Flag(ListenerType,BODY))
+				pr(inner).body.changed_precedence();
+			elif(pr(inner).type == Flag(ListenerType,CONSTRAINT))
+				pr(inner).constraint.changed_precedence();
+			else
+				pr(inner).interaction.changed_precedence();
+		}
+	})
+
     ///---------------------------------------------------------------------------------------------
 
     public function new() {
@@ -71,7 +83,7 @@ class Listener {
 			var ret = if(pr(inner).type==Flag(ListenerType,INTERACTION))
 				 "InteractionListener{"+event+"#";
 			else "PreListener{";
-			return ret+itype+"::"+con.outer_zni.cbType1+":"+con.outer_zni.cbType2+"}";
+			return ret+itype+"::"+con.outer_zni.cbType1+":"+con.outer_zni.cbType2+"} precedence="+precedence;
 		}
     }
 }

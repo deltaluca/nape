@@ -895,55 +895,65 @@ class PR(Space) {
 	//----------------------------------------------------------------------------------------------
 
     public function bodyCbWake(b:PR(Body)) {
-        if(b.isDynamic() && b.cbType != null && b.cbType._bodywake != null) {
+        if(b.isDynamic() && b.cbType != null) {
             if(midstep) {
-				var i = b.cbType._bodywake;
-                var cb = push_callback(i);
-                cb.event = Flag(CbEvent,WAKE);
-                cb.body = b;
+				Iter(i, b.cbType.bodylisteners, {
+					if(i.event!=Flag(CbEvent,WAKE)) cx_continue;
+					var cb = push_callback(i);
+					cb.event = Flag(CbEvent,WAKE);
+					cb.body = b;
+				});
             }else
                 b.component.woken = true;
         }
     }
 
     public function bodyCbSleep(b:PR(Body)) {
-        if(b.isDynamic() && b.cbType!=null && b.cbType._bodysleep != null) {
-			var i = b.cbType._bodysleep;
-            var cb = push_callback(i);
-            cb.event = Flag(CbEvent,SLEEP);
-            cb.body = b;
+        if(b.isDynamic() && b.cbType!=null) {
+			Iter(i, b.cbType.bodylisteners, {
+				if(i.event!=Flag(CbEvent,SLEEP)) cx_continue;
+            	var cb = push_callback(i);
+	            cb.event = Flag(CbEvent,SLEEP);
+	            cb.body = b;
+			});
         }
     }
 
     //----------------------------------------------------------------------------------------------
 
     public function constraintCbWake(con:PR(Constraint)) {
-        if(con.cbType != null && con.cbType._conwake != null) {
+        if(con.cbType != null) {
             if(midstep) {
-				var i = con.cbType._conwake;
-                var cb = push_callback(i);
-                cb.event = Flag(CbEvent,WAKE);
-                cb.constraint = con;
+				Iter(i, con.cbType.conlisteners, {
+					if(i.event!=Flag(CbEvent,WAKE)) cx_continue;
+	                var cb = push_callback(i);
+	                cb.event = Flag(CbEvent,WAKE);
+	                cb.constraint = con;
+				});
             }else
                 con.component.woken = true;
         }
     }
 
     public function constraintCbSleep(con:PR(Constraint)) {
-        if(con.cbType != null && con.cbType._consleep != null) {
-			var i = con.cbType._consleep;
-            var cb = push_callback(i);
-            cb.event = Flag(CbEvent,SLEEP);
-            cb.constraint = con;
+        if(con.cbType != null) {
+			Iter(i, con.cbType.conlisteners, {
+				if(i.event!=Flag(CbEvent,SLEEP)) cx_continue;
+	            var cb = push_callback(i);
+	            cb.event = Flag(CbEvent,SLEEP);
+	            cb.constraint = con;
+			});
         }
     }
 
     public function constraintCbBreak(con:PR(Constraint)) {
-        if(con.cbType != null && con.cbType._break != null) {
-			var i = con.cbType._break;
-            var cb = push_callback(i);
-            cb.event = Flag(CbEvent,BREAK);
-            cb.constraint = con;
+        if(con.cbType != null) {
+			Iter(i, con.cbType.conlisteners, {
+				if(i.event!=Flag(CbEvent,BREAK)) cx_continue;
+	            var cb = push_callback(i);
+	            cb.event = Flag(CbEvent,BREAK);
+	            cb.constraint = con;
+			});
         }
     }
 
@@ -1420,11 +1430,13 @@ class PR(Space) {
 
                 //wake callbacks
                 if(!kin) {
-                    if(cur.component.woken && cur.cbType != null && cur.cbType._bodywake!=null) {
-						var i = cur.cbType._bodywake;
-                        var cb = push_callback(i);
-                        cb.event = Flag(CbEvent,WAKE);
-                        cb.body = cur;
+                    if(cur.component.woken && cur.cbType != null) {
+						Iter(i, cur.cbType.bodylisteners, {
+							if(i.event!=Flag(CbEvent,WAKE)) cx_continue;
+	                        var cb = push_callback(i);
+	                        cb.event = Flag(CbEvent,WAKE);
+	                        cb.body = cur;
+						})
                     }
                     cur.component.woken = false;
                 }
@@ -1443,11 +1455,13 @@ class PR(Space) {
         Iter(con,live_constraints,{
             if(con.active) {
                 DEBUG(con.validate();)
-                if(con.component.woken && con.cbType != null && con.cbType._conwake!=null) {
-					var i = con.cbType._conwake;
-                    var cb = push_callback(i);
-                    cb.event = Flag(CbEvent,WAKE);
-                    cb.constraint = con;
+                if(con.component.woken && con.cbType != null) {
+					Iter(i, con.cbType.conlisteners, {
+						if(i.event != Flag(CbEvent,WAKE)) cx_continue;
+	                    var cb = push_callback(i);
+	                    cb.event = Flag(CbEvent,WAKE);
+	                    cb.constraint = con;
+					});
                 }
                 con.component.woken = false;
             }

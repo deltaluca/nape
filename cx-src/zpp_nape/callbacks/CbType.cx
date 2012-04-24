@@ -34,29 +34,38 @@ class PR(CbType) {
 
     ///---------------------------------------------------------------------------------------------
 
-	//set of listeners using the cbType
-	public var listeners:List(PR(InteractionListener));
+	$(mixin listlist(T,n,r)
+		public var n:List(PR(T));
+		flibmdel public inline function add`r(x:PR(T)) {
+			assert(!n.has(x),"listener already in list");
+			//want highest precedence at start of list
+			Insert(x,n,$(mixin less(i,j) (i.precedence>=j.precedence)) less);
+		}
+		flibmdel public inline function remove`r(x:PR(T)) {
+			n.remove(x);
+		}
+		initlist(T,n)
+	);
 
-	flibmdel public inline function insert(x:PR(InteractionListener)) listeners.add(x)
-	flibmdel public inline function remove(x:PR(InteractionListener)) listeners.remove(x)
+	//all lists are only updated when listener is added to a space!
+	//set of interaction/pre listeners using the cbType
+	listlist(InteractionListener,listeners,int)
 
-    ///these are only assigned when listener is added to the space!
-    //store actual references as these are one-one
-    public var _bodywake :PR(BodyListener);
-    public var _bodysleep:PR(BodyListener);
-    public var _conwake  :PR(ConstraintListener);
-    public var _consleep :PR(ConstraintListener);
-    public var _break    :PR(ConstraintListener);
+	//set of body listeners using the cbType
+	listlist(BodyListener,bodylisteners,body)
+	//set of constraint listeners using the cbType
+	listlist(ConstraintListener,conlisteners,con)
 
     ///---------------------------------------------------------------------------------------------
 
     public function new() {
         id = ID(CbType);
 
+		$(expand object initlist(T,n)
+			n = new List(PR(T))();
+		)
         constraints = new List(PR(Constraint))();
 		interactors = new List(PR(Interactor))();
-
-		listeners = new List(PR(InteractionListener))();
     }
 
 	//----------------------------------------------------------------------------------------------
@@ -86,6 +95,7 @@ class PR(CbType) {
 		return !ret;
 	}
 
+	//no longer used as multiple listeners are now allowed.
 	public static function find(a:PR(CbType),b:PR(CbType), event:Int, type:Int) {
 		var id = if(a.id<b.id) a.id else b.id;
 		var di = if(a.id<b.id) b.id else a.id;
