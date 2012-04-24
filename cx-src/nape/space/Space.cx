@@ -125,6 +125,9 @@ class Space {
 	keep public function interactionType(shape1:Shape, shape2:Shape):InteractionType {
 		DEBUG(if(shape1==null || shape2==null) throw "Error: Cannot evaluate interaction type for null shapes";)
 		DEBUG(if(shape1.body==null || shape2.body==null) throw "Error: Cannot evaluate interaction type for shapes not part of a Body";)
+		DEBUG(if((shape1.body.space!=null && shape1.body.space!=this)
+		       ||(shape2.body.space!=null && shape2.body.space!=this)) throw "Error: Either the Shape's Bodys' space's should be null, or equal to 'this' Space";)
+
 		if(shape1.body.isStatic() && shape2.body.isStatic()) return null;
 		if(shape1.body==shape2.body) return null;
 
