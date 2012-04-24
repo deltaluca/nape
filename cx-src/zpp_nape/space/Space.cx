@@ -1563,7 +1563,6 @@ class PR(Space) {
 					assert(!begcb||arb.up_stamp==stamp, " fresh -> active=true hasn't held :(");
 
 					if(begcb || endcb || arb.cleared || arb.intchange) {
-						var listener:PR(InteractionListener) = null;
 						inlined_MRCA_chains(arb.ws1,arb.ws2);
 						Iter(i1,mrca1,{
 						Iter(i2,mrca2,{
@@ -1572,20 +1571,6 @@ class PR(Space) {
 							assert(cb1!=null && cb2!=null, "null cb from MRCA_chains?");
 
 							if(PR(CbType).empty_intersection(cb1,cb2)) cx_continue;
-
-							DEBUG(var i)
-							RELEASE(listener)
-							= if(begcb||endcb) PR(CbType).find(
-								cb1,cb2,
-								begcb ? Flag(CbEvent,BEGIN) : Flag(CbEvent,END),
-								arb.type)
-							else null;
-
-							DEBUG(
-								if(i!=null && listener!=null) throw "Error: Multiple valid pairings for callbacks between possible interactor combinations descended frmo shape1="+arb.ws1.outer.toString()+" shape2="+arb.ws2.outer.toString()+". Conflict arising from listener1="+i.outer.toString()+" listener2="+listener.outer.toString();
-								listener = i;
-							)
-
 
 							var callbackset = PR(Interactor).get(i1,i2);
 							if(begcb || arb.intchange) {
@@ -1596,29 +1581,29 @@ class PR(Space) {
 								}
 								//check for empty rather than null, since it might've been created
 								//already to prevent multiple pre-handlers
-								if(listener!=null) {
-									if(callbackset.empty_arb(listener.itype) && (listener.itype&arb.type)!=0) {
+								PR(CbType).find_all(cb1,cb2,Flag(CbEvent,BEGIN),function(listener:PR(InteractionListener)) {
+									if((listener.itype&arb.type)!=0 && callbackset.empty_arb(listener.itype)) {
 										var cb = push_callback(listener);
 										cb.event = Flag(CbEvent,BEGIN);
 										//use callbackset int1/int2 to keep consistency in cases of cbType1==cbType2
 										PR(Interactor).int_callback(callbackset.int1,callbackset.int2,listener.cb1,cb);
 										cb.set = callbackset;
 									}
-								}
+								});
 								callbackset.add_arb(arb);
 							}else {
 								arb.present = false;
 								assert(callbackset!=null,"end arbiter with no callbackset");
 								callbackset.remove_arb(arb);
-								if(listener!=null) {
-									if(callbackset.empty_arb(listener.itype) && (listener.itype&arb.type)!=0) {
+								PR(CbType).find_all(cb1,cb2,Flag(CbEvent,END),function(listener:PR(InteractionListener)) {
+									if((listener.itype&arb.type)!=0 && callbackset.empty_arb(listener.itype)) {
 										var cb = push_callback(listener);
 										cb.event = Flag(CbEvent,END);
 										//use callbackset int1/int2 to keep consistency in cases of cbType1==cbType2
 										PR(Interactor).int_callback(callbackset.int1,callbackset.int2,listener.cb1,cb);
 										cb.set = callbackset;
 									}
-								}
+								});
 								if(callbackset.really_empty()) {
 									remove_callbackset(callbackset);
 									//removal from callbackset_list is deferred to avoid
@@ -1629,7 +1614,6 @@ class PR(Space) {
 							}
 						RELEASE(cx_break;)
 						});
-						RELEASE(if(listener!=null) cx_break;)
 						});
 					}
 					arb.fresh = false;
