@@ -1836,7 +1836,6 @@ class PR(Space) {
 
 							//true if any listener in any callbackset is impure.
 							var anyimpure = false;
-							var master:PR(CallbackSet) = null;
 
 							inlined_MRCA_chains(s1,s2);
 							Iter(i1,mrca1, {
@@ -1850,9 +1849,10 @@ class PR(Space) {
 								var ncallbackset:PR(CallbackSet) = null;
 
 								var listeners = new List(PR(InteractionListener))();
+								var lite:Node(PR(InteractionListener)) = null;
 								PR(CbType).find_all(cb1,cb2,Flag(CbEvent,PRE),function(listener:PR(InteractionListener)) {
 									if((listener.itype&inttype)!=0) {
-										listeners.add(listener);
+										lite = listeners.insert(lite,listener);
 										anyimpure = anyimpure || !listener.pure;
 									}
 								});
@@ -1894,6 +1894,7 @@ class PR(Space) {
 
 									precb.pr(inner).pre_arbiter = arb;
 									precb.pr(inner).set = callbackset;
+
 									Iter(listener,listeners,{
 										precb.pr(inner).listener = listener;
 										PR(Interactor).int_callback(

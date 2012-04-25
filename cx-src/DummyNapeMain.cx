@@ -14,6 +14,8 @@ class DummyNapeMain {
 		c.shapes.add(new Circle(1));
 		c.cbType = new CbType();
 		c.space = space;
+		c.shapes.at(0).cbType = b.cbType;
+		b.shapes.at(0).cbType = c.cbType;
 
 		space.listeners.add(new BodyListener(CbEvent.WAKE, b.cbType, function (_) trace("w1"), 1));
 		space.listeners.add(new BodyListener(CbEvent.WAKE, b.cbType, function (_) trace("w2"), 2));
@@ -25,6 +27,15 @@ class DummyNapeMain {
 
 		space.listeners.add(new InteractionListener(CbEvent.BEGIN, InteractionType.ANY, b.cbType, c.cbType, function (_) trace("b1"), 1));
 		space.listeners.add(new InteractionListener(CbEvent.BEGIN, InteractionType.ANY, b.cbType, c.cbType, function (_) trace("b2"), 2));
+
+		space.listeners.add(new PreListener(InteractionType.ANY, b.cbType, c.cbType, function (cb) {
+			trace("p1");
+			return PreFlag.IGNORE;
+		},1,true));
+		space.listeners.add(new PreListener(InteractionType.ANY, b.cbType, c.cbType, function (cb) {
+			trace("p2");
+			return PreFlag.ACCEPT;
+		},2,true));
 
 		for(i in 0...3) { trace("---"); space.step(1,1,1); }
 	}

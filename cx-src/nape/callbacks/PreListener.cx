@@ -75,8 +75,8 @@ class PreListener extends Listener {
 
     ///---------------------------------------------------------------------------------------------
 
-	flibopts(1)
-	public function new(interactionType:InteractionType, cbType1:CbType, cbType2:CbType, handler:PreCallback->PreFlag, ?pure=false) {
+	flibopts(2)
+	public function new(interactionType:InteractionType, cbType1:CbType, cbType2:CbType, handler:PreCallback->PreFlag, ?precedence=0, ?pure=false) {
 		PR(Listener).internal = true; super(); PR(Listener).internal = false;
 
 		DEBUG(if(cbType1==null) throw "Error: PreListener CbType1 cannot be null";)
@@ -88,6 +88,7 @@ class PreListener extends Listener {
 		pr(inner) = pr(inner_zn);
 		pr(inner).outer = this;
 		pr(inner_zn).outer_znp = this;
+		pr(inner).precedence = precedence;
 
 		pr(inner_zn).pure = pure;
 		pr(inner_zn).handlerp = handler;
