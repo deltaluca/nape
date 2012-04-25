@@ -1831,7 +1831,145 @@ class PR(Space) {
 							arb.fresh = arb.up_stamp<stamp-1; //handler persistance
 						arb.up_stamp = arb.stamp;
 
-						//search for a pre-listener or existing callbackset
+						if(arb.fresh || (arb.immState&Flag(ImmState,ALWAYS))==0) {
+							arb.immState = Flag(ImmState,ACCEPT);
+
+							//true if any listener in any callbackset is impure.
+							var anyimpure = false;
+
+							inlined_MRCA_chains(s1,s2);
+							Iter(i1,mrca1, {
+							Iter(i2,mrca2, {
+								var cb1 = i1.cbType;
+								var cb2 = i2.cbType;
+								assert(cb1!=null && cb2!=null, "null cb from MRCA_chains?");
+								if(PR(CbType).empty_intersection(cb1,cb2)) cx_continue;
+
+								var callbackset:PR(CallbackSet) = null;
+								var ncallbackset:PR(CallbackSet) = null;
+
+								var listeners = new List(PR(InteractionListener))();
+								PR(CbType).find_all(cb1,cb2,Flag(CbEvent,PRE),function(listener:PR(InteractionListener)) {
+									if((listener.itype&inttype)!=0) {
+										listeners.add(listener);
+										anyimpure = anyimpure || !listener.pure;
+									}
+								});
+								if(listeners.empty()) cx_continue;
+
+								callbackset = PR(Interactor).get(i1,i2);
+								if(callbackset==null) {
+									ncallbackset = PR(CallbackSet).get(i1,i2);
+									add_callbackset(ncallbackset);
+								}
+
+								if(callbackset==null || (callbackset.INTTYPE`stamp!=stamp && (callbackset.INTTYPE`state&Flag(ImmState,ALWAYS)==0))) {
+									if(ncallbackset!=null) callbackset = ncallbackset;
+									if(callbackset!=null) {
+										Iter(listener,listeners,{
+											if(listener.itype==Flag(InteractionType,ANY)) {
+												callbackset.COLLISIONstamp = stamp;
+												callbackset.SENSORstamp = stamp;
+												callbackset.FLUIDstamp = stamp;
+											}else
+												callbackset.INTTYPE`stamp = stamp;
+										});
+
+										//arbiter (public) is not active in the situation of a persistant
+										//collision arbiter being re-used before it was retired
+										//so we activate it temporarily.
+
+										//we need to reset to old value so that in pre-step such an arbiter
+										//can as usual, update the public lists.
+										var pact = arb.active; arb.active = true;
+
+										#if collisions //need to do this with #if since fluid/sensor has no such method
+											//update wrapped contact list for user.
+											arb.cleanupContacts();
+											assert(arb.wrapper().collisionArbiter.contacts.length!=0,"0 contacts before pre handler??");
+										#end
+										DEBUG(arb.makemutable();)
+
+										precb.pr(inner).pre_arbiter = arb;
+										precb.pr(inner).set = callbackset;
+										Iter(listener,listeners,{
+											precb.pr(inner).listener = listener;
+											PR(Interactor).int_callback(
+												callbackset.int1, callbackset.int2,
+												listener.cb1, precb.pr(inner)
+											);
+											precb.pr(inner).pre_swapped = i1 != precb.pr(inner).int1;
+
+											var ret = listener.handlerp(precb);
+											if(ret!=null) {
+												arb.immState =
+													if  (ret==PreFlag.ACCEPT)      Flag(ImmState, ACCEPT) | Flag(ImmState, ALWAYS)
+													elif(ret==PreFlag.ACCEPT_ONCE) Flag(ImmState, ACCEPT)
+													elif(ret==PreFlag.IGNORE)      Flag(ImmState, IGNORE) | Flag(ImmState, ALWAYS)
+													else                           Flag(ImmState, IGNORE);
+											}
+										});
+
+										DEBUG(arb.makeimmutable();)
+										arb.active = pact;
+
+										//validate in non-release mode anyways.
+										if((arb.immState&Flag(ImmState,ACCEPT))!=0) {
+											//make sure things like normals are still normalised
+											arb.pre_validate();
+										}
+
+										if(callbackset!=null) {
+											Iter(listener,listeners,{
+												if(listener.itype==Flag(InteractionType,ANY)) {
+													callbackset.COLLISIONstate = arb.immState;
+													callbackset.SENSORstate = arb.immState;
+													callbackset.FLUIDstate = arb.immState;
+												}else
+													callbackset.INTTYPE`state = arb.immState;
+											});
+										}
+									}else if(callbackset==null) {
+										//reset state on non-persistance
+										if((arb.immState&Flag(ImmState,ALWAYS))==0)
+											arb.immState = Flag(ImmState,ACCEPT);
+									}else
+										arb.immState = callbackset.INTTYPE`state;
+								}
+							});
+							});
+
+							//DON'T LET THE OBJECTS GO TO SLEEP!!
+							//# we cannot assume that at some point
+							//  handler (without explicit change) will
+							//  inform nape to do something differently
+							//  which would require the objects to be woken
+							//  so we can't let the objects sleep
+							if(anyimpure && (arb.immState&Flag(ImmState,ALWAYS))==0) {
+								//wake even if 'waking' false (aka sensor arbiter)
+								//to keep consistency w.r.t #_ONCE handlers
+								//
+								//we do not check that they are sleeping before waking
+								//as we want them to never sleep which would be possible
+								//if we allowed them both to go to sleep at same time.
+								//
+								//what about non-dynamics? (like below waking)
+								//    @ not sure this is important.
+								//      the only relevant cases are static/kinematic - kinematic sensor arbiters
+								//      which it would be fairly strange to use pre callbacks with.
+								//    @ it should suffice to only wake non-statics
+								//      and for non-sensor arbiters, we should be able to wake only
+								//      dynamics as usual :)  ~ note: 'waking' only true for non-sensors so we use this.
+								if(waking) {
+									if(arb.b1.isDynamic()) wake(arb.b1);
+									if(arb.b1.isDynamic()) wake(arb.b2);
+								}else {
+									if(!arb.b1.isStatic()) wake(arb.b1);
+									if(!arb.b2.isStatic()) wake(arb.b2);
+								}
+							}
+						}
+/*						//search for a pre-listener or existing callbackset
 						var listener:PR(InteractionListener) = null;
 						var callbackset:PR(CallbackSet) = null;
 						var ncallbackset:PR(CallbackSet) = null;
@@ -1969,7 +2107,7 @@ class PR(Space) {
 								if(!arb.b1.isStatic()) wake(arb.b1);
 								if(!arb.b2.isStatic()) wake(arb.b2);
 							}
-						}
+						}*/
 						//optimisation, none-accept arbiter need not wake it's constituents
 						if(waking && (arb.immState & Flag(ImmState, ACCEPT)) !=0) {
 							if(arb.b1.component.sleeping && arb.b1.isDynamic())
