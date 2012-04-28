@@ -3,33 +3,21 @@ $(import);
 
 class DummyNapeMain {
 	static function main() {
-		var d = new ShapeDebug(600,450,0x333333);
-		var c = flash.Lib.current;
-		c.addChild(d.display);
-
 		var s = new Space();
-
 		var b1 = new Body();
-		b1.shapes.add(new Circle(10));
-
 		var b2 = new Body();
-		b2.shapes.add(new Circle(10));
-
-		b1.space = b2.space = s;
-		b1.position.setxy(100,100);
-		b2.position.setxy(200,100);
-
-		b1.mass *= 10;
-
-		d.drawConstraints = true;
-		var a = new WeldJoint(b1,b2,new Vec2(50,0), new Vec2(-50,0),0);
-		a.stiff = false;
-		a.space = s;
-
-		(new haxe.Timer(0)).run = function() {
-			d.clear();
-			s.step(1/60,10,10);
-			d.draw(s);
-		}
+		var p = new PivotJoint(b1,b2,new Vec2(), new Vec2());
+		trace([b1.constraints,b2.constraints]);
+		p.space = s;
+		trace([b1.constraints,b2.constraints]);
+		p.active = false;
+		trace([b1.constraints,b2.constraints]);
+		p.active = true;
+		trace([b1.constraints,b2.constraints]);
+		p.space = null;
+		p.active = false;
+		trace([b1.constraints,b2.constraints]);
+		p.space = s;
+		trace([b1.constraints,b2.constraints]);
 	}
 }
