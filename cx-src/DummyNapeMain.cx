@@ -3,40 +3,35 @@ $(import);
 
 class DummyNapeMain {
 	static function main() {
-		var space = new Space();
+		var space = new Space(new Vec2(0,400));
+		var body1 = new Body(BodyType.STATIC);
+		var body2 = new Body();
+		body1.shapes.add(new Polygon(Polygon.rect(0,500,500,100)));
+		body2.shapes.add(new Polygon(Polygon.rect(-100,-100,200,200)));
+		body2.shapes.add(new Polygon(Polygon.rect(-100,-140,200,200)));
+		body2.position.setxy(0,420);
 
-		var b = new Body();
-		b.shapes.add(new Circle(1));
-		b.cbType = new CbType();
-		b.space = space;
+		body1.space = body2.space = space;
 
-		var c = new Body();
-		c.shapes.add(new Circle(1));
-		c.cbType = new CbType();
-		c.space = space;
-		c.shapes.at(0).cbType = b.cbType;
-		b.shapes.at(0).cbType = c.cbType;
+		function run () {
+			trace("----");
+			space.step(1/1000,1,1);
+			for(arb in space.arbiters) trace(arb);
+		}
 
-		space.listeners.add(new BodyListener(CbEvent.WAKE, b.cbType, function (_) trace("w1"), 1));
-		space.listeners.add(new BodyListener(CbEvent.WAKE, b.cbType, function (_) trace("w2"), 2));
-		space.listeners.add(new BodyListener(CbEvent.SLEEP, c.cbType, function (_) trace("s1"), 1));
-		space.listeners.add(new BodyListener(CbEvent.SLEEP, c.cbType, function (_) trace("s2"), 2));
+		var cbb = new CbType();
+		var cbs = new CbType();
+		body1.cbType = body2.cbType = cbb;
+		body1.shapes.at(0).cbType = body2.shapes.at(0).cbType = cbs;
+		body2.shapes.at(1).cbType = cbs;
 
-		space.listeners.add(new InteractionListener(CbEvent.ONGOING, InteractionType.ANY, b.cbType, c.cbType, function (_) trace("o1"), 1));
-		space.listeners.add(new InteractionListener(CbEvent.ONGOING, InteractionType.ANY, b.cbType, c.cbType, function (_) trace("o2"), 2));
+		var l1 = new PreListener(InteractionType.ANY, cbs,cbs, function (x) { trace("l1"+x.int1+" "+x.int2); return PreFlag.IGNORE_ONCE;});
+		var l2 = new PreListener(InteractionType.ANY, cbb,cbb, function (x) { trace("l2"+x.int1+" "+x.int2); return PreFlag.ACCEPT_ONCE;});
 
-		space.listeners.add(new InteractionListener(CbEvent.BEGIN, InteractionType.ANY, b.cbType, c.cbType, function (_) trace("b1"), 1));
-		space.listeners.add(new InteractionListener(CbEvent.BEGIN, InteractionType.ANY, b.cbType, c.cbType, function (_) trace("b2"), 2));
-
-		space.listeners.add(new PreListener(InteractionType.ANY, b.cbType, c.cbType, function (cb) {
-			trace("p1");
-			return PreFlag.IGNORE;
-		},1,true));
-		space.listeners.add(new PreListener(InteractionType.ANY, b.cbType, c.cbType, function (cb) {
-			trace("p2");
-			return PreFlag.ACCEPT;
-		},2,true));
-
-		for(i in 0...3) { trace("---"); space.step(1,1,1); }
+		l2.space = space;
+		run();
+		l1.space = space;
+		body2.position.setxy(0,460);
+		run();
 	}
 }
