@@ -114,8 +114,6 @@ class Body extends Interactor {
 		this.type = type == null ? BodyType.DYNAMIC : type;
 		if(position!=null) WEAK(position);
 
-		graphicOffset = new Vec2(0,0);
-		graphicOffset.pr(inner).inuse = true;
 		graphicAngleOffset = 0.0;
 	}
 	
@@ -352,7 +350,13 @@ class Body extends Interactor {
 	
 	//----------------------------------------------------------------------------------------------
 
-	public var graphicOffset:Vec2;
+	property(graphicOffset,Vec2,{
+		pr(inner).graphicOffset;
+	},{
+		Disposed(graphicOffset,Vec2);
+		DEBUG(if(graphicOffset==null) throw "Error: Body::graphicOffset cannot be null";)
+		this.graphicOffset.set(graphicOffset);
+	})
 	public var graphicAngleOffset:Float;
 
     property(graphic,Dynamic,pr(inner).graphic,{
