@@ -113,6 +113,8 @@ class Body extends Interactor {
 		else vec_set(pr(inner).pos,0,0);
 		this.type = type == null ? BodyType.DYNAMIC : type;
 		if(position!=null) WEAK(position);
+
+		graphicAngleOffset = 0.0;
 	}
 	
 	keep public function copy() {
@@ -347,7 +349,16 @@ class Body extends Interactor {
 	})
 	
 	//----------------------------------------------------------------------------------------------
-	
+
+	property(graphicOffset,Vec2,{
+		pr(inner).graphicOffset;
+	},{
+		Disposed(graphicOffset,Vec2);
+		DEBUG(if(graphicOffset==null) throw "Error: Body::graphicOffset cannot be null";)
+		this.graphicOffset.set(graphicOffset);
+	})
+	public var graphicAngleOffset:Float;
+
     property(graphic,Dynamic,pr(inner).graphic,{
 		DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 		if(graphic!=this.graphic) {

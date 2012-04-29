@@ -539,6 +539,7 @@ class PR(Body) extends PR(Interactor) {
 	public var flashgraphic:Bool;
 	public var graphic:Dynamic;
 	public var graphicUpdate:Body->Void;
+	public var graphicOffset:Vec2;
 		
 	public function validate_graphic() {
 		if(graphicUpdate!=null) graphicUpdate(outer);
@@ -552,8 +553,9 @@ class PR(Body) extends PR(Interactor) {
 			//access to properties of dynamic values. we have this restriction
 			#if (flash9 || nme)
 				var g:flash.display.DisplayObject = graphic;
-				g.rotation = (rot*180/Math.PI)%360.0;
-				vec_set(g.,pos);
+				g.rotation = ((rot+outer.graphicAngleOffset)*180/Math.PI)%360.0;
+				vec_rotate(graphicOffset.,axis,g.);
+				vec_addeq(g.,pos);
 			#end
 		}
 	}
@@ -764,6 +766,9 @@ class PR(Body) extends PR(Interactor) {
 		wrap_shapes.pr(inner).subber = shapes_subber;
 		wrap_shapes.pr(inner)._invalidate = shapes_invalidate;
 		DEBUG(wrap_shapes.pr(inner)._modifiable = shapes_modifiable;)
+
+		graphicOffset = Vec2.get(0,0);
+		graphicOffset.pr(inner).inuse = true;
 	}
 	
 	//----------------------------------------------------------------------------------------------

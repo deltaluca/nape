@@ -37,7 +37,7 @@ class BodyFromGraphic extends FixedStep {
 		for(i in 0...5) {
 			var graphic = new Sprite();
 			var g = graphic.graphics;
-			g.beginFill(0xff0000,1);
+			g.beginFill(0,1);
 			g.drawCircle(0,30,15);
 			g.drawCircle(-10,-30,10+Math.random()*20);
 			g.drawCircle(0,0,10+Math.random()*20);
@@ -128,7 +128,7 @@ class BodyFromGraphic extends FixedStep {
 		var grain = if(granularity==null) new Vec2(8,8) else granularity;
 		var polys = MarchingSquares.run(iso, bounds, grain, 1);
 		for(p in polys) {
-			var qolys = p.convex_decomposition();
+			var qolys = p.simplify(1).convex_decomposition();
 			for(q in qolys)
 				body.shapes.add(new Polygon(q));
 		}
@@ -139,13 +139,8 @@ class BodyFromGraphic extends FixedStep {
 		var anchor = body.localCOM.mul(-1);
 		body.translateShapes(anchor);
 
-		var wrap = new Sprite();
-		var bmp = new Bitmap(bitmap, PixelSnapping.AUTO, true);
-		wrap.addChild(bmp);
-		bmp.x = anchor.x;
-		bmp.y = anchor.y;
-		
-		body.graphic = wrap;
+		body.graphic = new Bitmap(bitmap, PixelSnapping.AUTO, true);
+		body.graphicOffset = anchor;
 		return body;
 	}
 	
@@ -174,7 +169,7 @@ class BodyFromGraphic extends FixedStep {
 		var grain = if(granularity==null) new Vec2(8,8) else granularity;
 		var polys = MarchingSquares.run(iso, bounds, granularity, 6);
 		for(p in polys) {
-			var qolys = p.convex_decomposition();
+			var qolys = p.simplify(1).convex_decomposition();
 			for(q in qolys)
 				body.shapes.add(new Polygon(q));
 		}
@@ -187,12 +182,8 @@ class BodyFromGraphic extends FixedStep {
 		var anchor = body.localCOM.mul(-1);
 		body.align();
 		
-		var wrap = new Sprite();
-		wrap.addChild(graphic);
-		graphic.x = anchor.x;
-		graphic.y = anchor.y;
-
-		body.graphic = wrap;		
+		body.graphic = graphic;
+		body.graphicOffset = anchor;
 		return body;
 	}
 }

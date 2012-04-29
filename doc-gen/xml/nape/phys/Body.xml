@@ -154,6 +154,18 @@
 			</description>
 		</detail>
 	</property>
+	<property name="graphicOffset" type="Vec2" value="(0,0)">
+		<description>Local offset for graphic</description>
+		<detail>
+			<description><text>A local offset applied to the positioning of the graphic such that the final graphic position is given by </text><code inline="true">body.localToWorld(graphicOffset)</code></description>
+		</detail>
+	</property>
+	<property name="graphicAngleOffset" type="Float" value="0">
+		<description>Angle offset for graphic</description>
+		<detail>
+			<description><text>An angle offset for the positioning of the graphic</text></description>
+		</detail>
+	</property>
 	<property name="graphicUpdate" type="Body->Void">
 		<description>Assigned graphic handler</description>
 		<detail>
@@ -162,10 +174,11 @@
 				<text>For example, you could emulate how nape internally updates the graphic property with the following handler:</text>
 				<br/><code><![CDATA[body.graphic = ...;
 body.graphicUpdate = function(b:Body) {
-	b.graphic.x = b.position.x;
-	b.graphic.y = b.position.y;
+	var pos = b.localToWorld(b.graphicOffset);
+	b.graphic.x = pos.x;
+	b.graphic.y = pos.y;
 	//rotation is clamped to [-360,360] as flash doesn't like large rotation values
-	b.graphic.rotation = (b.rotation*180/Math.PI)%360;
+	b.graphic.rotation = ((b.rotation+b.graphicAngleOffset)*180/Math.PI)%360;
 }]]></code>
 			</description>
 		</detail>
@@ -190,7 +203,7 @@ body.graphicUpdate = function(b:Body) {
 	<property name="constraints" type="ConstraintList" readonly="true">
 		<description>List of associated active constraints</description>
 		<detail>
-			<description>List of all 'active' (Meaning inside of a space, with active=true) constraints associated with the body. This list is immutable due to the 'active' criterion which is necessary to allow proper garbage collection of objects (Similar to CbType::bodies case)</description>
+			<description>List of all 'active' (Meaning inside of a space; constraint.active is not considered here) constraints associated with the body. This list is immutable due to the 'active' criterion which is necessary to allow proper garbage collection of objects (Similar to CbType::bodies case)</description>
 		</detail>
 	</property>
 	
@@ -414,6 +427,23 @@ body.graphicUpdate = function(b:Body) {
 		</detail>
 	</method>
 	
+	<method/>
+
+	<method name="connectedBodies" return="BodyList" const="true">
+		<description>Produce a list of all bodies connected to 'this' body</description>
+		<detail>
+			<description>Produce a list of all bodies (including 'this' body) that are connected via active (in the sense of body.constraints list) constraints</description>
+		</detail>
+	</method>
+	<method name="interactingBodies" return="BodyList" const="true">
+		<arg name="type" type="InteractionType" optional="true" default="InteractionType.ANY"/>
+		<detail>
+			<description><text>Produce a list of all bodies (including 'this' body) which are interacting with 'this' body through the given interaction type.</text><br/><br/>
+			<text>For instance, to produce a list of all 'touching' bodies, you would call: </text><code inline="true">body.interactingBodies(InteractionType.COLLISION);</code>
+			</description>
+		</detail>
+	</method>
+
 	<method/>
 	<method name="translateShapes">
 		<arg name="displacement" type="Vec2" const="true"/>
