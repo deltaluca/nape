@@ -370,6 +370,21 @@ class Body extends Interactor {
 
     //----------------------------------------------------------------------------------------------
 
+	keep public function connectedBodies():BodyList {
+		return pr(inner).connectedBodies();
+	}
+	keep public function interactingBodies(?type:InteractionType) {
+		var arbiter_type = if(type==null) {
+			PR(Arbiter).COL | PR(Arbiter).SENSOR | PR(Arbiter).FLUID;
+		}elif(type==InteractionType.COLLISION) PR(Arbiter).COL
+		 elif(type==InteractionType.SENSOR)    PR(Arbiter).SENSOR
+		 else                                  PR(Arbiter).FLUID;
+
+		return pr(inner).interactingBodies(arbiter_type);
+	}
+
+    //----------------------------------------------------------------------------------------------
+
 	keep public function crushFactor():Float {
 		DEBUG(if(space==null) throw "Error: Makes no sense to see how much an object not taking part in a simulation is being crushed";)
 		var msum = 0.0;

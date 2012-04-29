@@ -239,7 +239,7 @@ $(expand genSet(T) class Set(T) {
 		Free(Set(T),cur);
 	}
 
-	public function clear() {
+/*	public function clear() {
 		if(parent!=null) clear_node(parent);
 		parent = null;
 		assert(next==null && prev==null && data==null,"wha?");
@@ -249,6 +249,30 @@ $(expand genSet(T) class Set(T) {
 		if(node.next!=null) clear_node(node.next);
 		node.parent = node.prev = node.next = null;
 		Free(Set(T),node);
+	}*/
+
+	public inline function clear() clear_with(function (_) {})
+	public inline function clear_with(lambda:T->Void) {
+		if(parent==null) return;
+
+		var cur = parent;
+		while(cur!=null) 
+			cur = if(cur.prev!=null) cur.prev
+			    elif(cur.next!=null) cur.next
+				else clear_node(cur,lambda);
+		parent = null;
+	}
+	inline function clear_node(node:Set(T),lambda:T->Void) {
+		assert(node.next==null && node.prev==null,"clear_node :: node not a leaf");
+
+		lambda(node.data);
+		var ret = node.parent;
+		if(ret!=null) {
+			if(node==ret.prev) ret.prev = null;
+			else               ret.next = null;
+			node.parent = null;
+		}
+		return ret;
 	}
 
 	public function __fix_neg_red(negred:Set(T)) {
@@ -320,6 +344,36 @@ $(expand genSet(T) class Set(T) {
 			}
 
 			break;
+		}
+	}
+
+	public function try_insert_bool(obj:T) {
+		var x:Set(T) = null;
+		var cur:Set(T) = null;
+		if(parent==null) {
+			x = Get(Set(T)); x.data = obj;
+			parent = x;
+		}else {
+			cur = parent;
+			while(true) {
+				if(lt(obj,cur.data)) {
+					if(cur.prev==null) { x = Get(Set(T)); x.data = obj; cur.prev = x; x.parent = cur; break; }
+					else cur = cur.prev;
+				}elif(lt(cur.data,obj)) {
+					if(cur.next==null) { x = Get(Set(T)); x.data = obj; cur.next = x; x.parent = cur; break; }
+					else cur = cur.next;
+				}else break;
+			}
+		}
+
+		if(x==null) return false;
+		else {
+			if(x.parent==null) x.colour = BLACK;
+			else {
+				x.colour = RED;
+				if(x.parent.colour==RED) __fix_dbl_red(x);
+			}
+			return true;
 		}
 	}
 

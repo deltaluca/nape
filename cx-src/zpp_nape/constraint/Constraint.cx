@@ -88,9 +88,15 @@ class PR(Constraint) {
 
 	public function addedToSpace() {
 		if(active) activeInSpace();
+
+		//do body lists
+		activeBodies();
 	}
 	public function removedFromSpace() {
 		if(active) inactiveOrOutSpace();
+
+		//do body lists
+		inactiveBodies();
 	}
 
 	//------------------------------------------------------------------------------------
@@ -103,9 +109,6 @@ class PR(Constraint) {
 		component = Get(PR(Component));
 		component.isBody = false;
 		component.constraint = this;
-
-		//do body lists
-		activeBodies();
 	}
 
 	public function inactiveOrOutSpace() {
@@ -114,9 +117,6 @@ class PR(Constraint) {
 
 		Free(PR(Component),component);
 		component = null;
-
-		//do body lists
-		inactiveBodies();
 	}
 
 	//------------------------------------------------------------------------------------
