@@ -1,9 +1,12 @@
 package zpp_nape.callbacks;
 $(import);
 
+GENID(Listener)
 class PR(Listener) {
     public var outer:Listener;
     public static var internal:Bool = false;
+
+	public var id:Int; //for total ordering of listeners.
 
     public var type:Int; //Flag(ListenerType)
     public var event:Int; //Flag(CbEvent)
@@ -14,6 +17,10 @@ class PR(Listener) {
     public var interaction:PR(InteractionListener);
 
     public var space:PR(Space);
+
+	function new() {
+		id = ID(Listener);
+	}
 }
 
 ///_________________________________________________________________________________________________
@@ -26,6 +33,7 @@ class PR(BodyListener) extends PR(Listener) {
     public var handler:BodyCallback->Void;
 
     public function new(event:Int, handler:BodyCallback->Void) {
+		super();
         this.event = event;
         this.handler = handler;
         body = this;
@@ -81,6 +89,7 @@ class PR(ConstraintListener) extends PR(Listener) {
     public var handler:ConstraintCallback->Void;
 
     public function new(event:Int, handler:ConstraintCallback->Void) {
+		super();
         this.event = event;
         this.handler = handler;
         constraint = this;
@@ -143,13 +152,14 @@ class PR(InteractionListener) extends PR(Listener) {
 	public var handlerp:PreCallback->PreFlag;
 
 	//used in lookups based on cbTypes
-	public var id:Int; public var di:Int;
+	public var cid:Int; public var cdi:Int;
 
 	public function settype(xtype:Int) {
 		itype = xtype;
 	}
 
 	public function new(event:Int,type:Int) {
+		super();
 		this.type = type;
 		interaction = this;
 		this.event = event;
@@ -225,9 +235,9 @@ class PR(InteractionListener) extends PR(Listener) {
 		if(cb1!=null && cb2!=null) {
 			//set hash id's
 			if(cb1.id <= cb2.id)
-				 { id = cb1.id; di = cb2.id; }
-			else { id = cb2.id; di = cb1.id; }
-			assert(id<di || (cb1==cb2 && id==di),"cbTypes in swapCbType of listener not well ordered");
+				 { cid = cb1.id; cdi = cb2.id; }
+			else { cid = cb2.id; cdi = cb1.id; }
+			assert(cid<cdi || (cb1==cb2 && cid==cdi),"cbTypes in swapCbType of listener not well ordered");
 
 			if(space!=null) {
 				assign();

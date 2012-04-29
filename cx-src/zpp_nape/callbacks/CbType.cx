@@ -1,6 +1,102 @@
 package zpp_nape.callbacks;
 $(import);
 
+//one CbSet exists for each unique combinatino of CbTypes Interactors within a Space
+//habe present so that lists can be computed per-CbSet instead of per-Interactor
+class PR(CbSet) {
+	//actually an ordered 'set'.
+	//don't use a real set so that comparisons are cheaper.
+	public var cbTypes:List(PR(CbType));
+
+	//reference counted
+	public var count:Int;
+	//object pooled
+	MixPool(PR(CbSet))
+
+	//-------------------------------------------------------------------------------
+
+	$(mixin listlist(T,n,r)
+		public var n:List(PR(T));
+		public var inv(n):Bool;
+		flibmdel public inline function invalidate_`n() {
+			inv(n) = true;
+		}
+		flibmdel public inline function validate_`n() {
+			if(inv(n)) {
+				inv(n) = false;
+				realvalidate_`n();
+			}
+		}
+		public function realvalidate_`n() {
+			n.clear();
+			//merge sorted list(set) from cbTypes into a new sorted list(set)
+			//effeciency is not of great concern here, so we adopt a simple algorithm.
+			Iter(cb,cbTypes,{
+				//want highest precedence at front of list.
+				$(mixin less(i,j) (i.precedence>j.precedence || (i.precedence==j.precedence && i.id>j.id)));
+
+				//merge n and cb.n avoiding duplicates based on ==
+				var npre = null;
+				var nite = n.begin();
+				var cite = cb.n.begin();
+				while(cite!=null) {
+					var cx = cite.elem();
+					if(nite==null || less(cx,nite.elem())) {
+						assert(!n.has(cx),"merged list already contains listener");
+						npre = n.insert(npre,cx);
+						cite = cite.next;
+					}elif(nite!=null && nite.elem()==cx)
+						cite = cite.next;
+					else {
+						npre = nite;
+						nite = nite.next;
+					}
+				}
+			});
+		}
+		initlist(T,n)
+	);
+
+	//all lists are only updated when listener is added to a space!
+	//set of interaction/pre listeners associated with CbSet
+	listlist(InteractionListener,listeners,int)
+
+	//set of body listeners associated with CbSet
+	listlist(BodyListener,bodylisteners,body)
+	//set of constraint listeners associated with CbSet
+	listlist(ConstraintListener,conlisteners,con)
+
+	//-------------------------------------------------------------------------------
+
+	//for Set
+	public static function set_lt(a:PR(CbSet),b:PR(CbSet)) {
+		//lexicographical sorting
+		var i = a.cbTypes.begin();
+		var j = b.cbTypes.begin();
+		while(i!=null && j!=null) {
+			var ca = i.elem();
+			var cb = j.elem();
+			if(ca.id < cb.id) return true;
+			if(ca.id > cb.id) return false;
+			else {
+				i = i.next;
+				j = j.next;
+			}
+		}
+		//at least one of i,j is always null here.
+		//
+		//need to ensure that (a=b) => !(a<b) ^ !(b<a)
+		//a=b <=> i=null ^ j=null
+		return j!=null && i==null;
+	}
+
+	public function new() {
+		$(expand object initlist(T,n)
+			n = new List(PR(T))();
+		);
+	}
+}
+
 GENID(CbType)
 class PR(CbType) {
     public var outer:CbType;
@@ -39,7 +135,7 @@ class PR(CbType) {
 		flibmdel public inline function add`r(x:PR(T)) {
 			assert(!n.has(x),"listener already in list");
 			//want highest precedence at start of list
-			Insert(x,n,$(mixin less(i,j) (i.precedence>=j.precedence)) less);
+			Insert(x,n,$(mixin less(i,j) (i.precedence>j.precedence || (i.precedence==j.precedence && i.id>j.id))) less);
 		}
 		flibmdel public inline function remove`r(x:PR(T)) {
 			n.remove(x);
@@ -83,8 +179,8 @@ class PR(CbType) {
 		var lx = (a.listeners.length<b.listeners.length) ? a.listeners : b.listeners;
 	
 		Iter(x,lx,{
-			assert(!(x.id==di && x.di==id) || id==di,"listener id order didn't match cbtype id order??");
-			if(x.id==id && x.di==di) { 
+			assert(!(x.cid==di && x.cdi==id) || id==di,"listener id order didn't match cbtype id order??");
+			if(x.cid==id && x.cdi==di) { 
 				ret = true;
 				break;
 			}
@@ -104,8 +200,8 @@ class PR(CbType) {
 		var ret:PR(InteractionListener) = null;
 		var lx = (a.listeners.length<b.listeners.length) ? a.listeners : b.listeners;
 		Iter(x,lx,{
-			assert(!(x.id==di && x.di==id) || id==di,"listener id order didn't match cbtype id order??");
-			if(x.id==id && x.di==di && x.event==event && (x.itype&type)!=0) {
+			assert(!(x.cid==di && x.cdi==id) || id==di,"listener id order didn't match cbtype id order??");
+			if(x.cid==id && x.cdi==di && x.event==event && (x.itype&type)!=0) {
 				DEBUG(if(ret!=null) throw "Error: multiple valid listeneres";)
 				ret = x;
 				RELEASE(break;)
@@ -122,8 +218,8 @@ class PR(CbType) {
 
 		var lx = (a.listeners.length<b.listeners.length) ? a.listeners : b.listeners;
 		Iter(x,lx,{
-			assert(!(x.id==di && x.di==id) || id==di,"listener id order didn't match cbtype id order??");
-			if(x.id==id && x.di==di && x.event==event)
+			assert(!(x.cid==di && x.cdi==id) || id==di,"listener id order didn't match cbtype id order??");
+			if(x.cid==id && x.cdi==di && x.event==event)
 				cb(x);
 		});
 	}
