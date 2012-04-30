@@ -107,6 +107,18 @@ $(expand genSet(T) class Set(T) {
 		return cur;
 	}
 
+	//_weak search based on comparison, not ==
+	public function has_weak(obj:T) return find_weak(obj)!=null
+	public function find_weak(obj:T) {
+		var cur = parent;
+		while(cur!=null) {
+			if  (lt(obj,cur.data)) cur = cur.prev;
+			elif(lt(cur.data,obj)) cur = cur.next;
+			else break;
+		}
+		return cur;
+	}
+
 	public function lower_bound(obj:T) {
 		return SetLowerBound(obj,this,lt);
 	}

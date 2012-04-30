@@ -71,6 +71,19 @@ class PR(Interactor) {
 
 	public var cbTypes:List(PR(CbType));
 	public var cbSet:PR(CbSet); //assigned by Space
+	public var wrap_cbTypes:CbTypeList;
+
+	public function setupcbTypes() {
+		wrap_cbTypes = PR(CbTypeList).get(cbTypes);
+		wrap_cbTypes.pr(inner).adder = wrap_cbTypes_adder;
+//		wrap_cbTypes.pr(inner)._invalidate
+//		wrap_cbTypes.pr(inner).subber
+	}
+	function wrap_cbTypes_adder(cb:CbType):Bool {
+		//attempt to insert cb into list in correct position (check not already inside).
+		TryInsert(cb.pr(inner),cbTypes,$(mixin less(i,j) (i.id<j.id)) less);
+		return false; //always prevent wrap_list inserting into real list
+	}
 
 	public function setCbType(cbType:PR(CbType)) {
 		if(this.cbType!=cbType) {
@@ -126,6 +139,7 @@ class PR(Interactor) {
 	public function new() {
 		id = ID(Interactor);
 		cbsets = new List(PR(CallbackSet))();
+		cbTypes = new List(PR(CbType))();
 	}
 
 	//--------------------------------------------------------------------

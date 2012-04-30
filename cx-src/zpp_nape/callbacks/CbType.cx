@@ -7,6 +7,7 @@ class PR(CbSet) {
 	//actually an ordered 'set'.
 	//don't use a real set so that comparisons are cheaper.
 	public var cbTypes:List(PR(CbType));
+	public var space:PR(Space);
 
 	//reference counted
 	public var count:Int;
@@ -105,9 +106,40 @@ class PR(CbSet) {
 		cbTypes = new List(PR(CbType))();
 		$(expand object initlist(T,n)
 			n = new List(PR(T))();
+			freelist(T,n)
 		);
         constraints = new List(PR(Constraint))();
 		interactors = new List(PR(Interactor))();
+	}
+
+	flibmdel public inline function free() {
+		assert(cbTypes.empty(),"non-empty cbtypes");
+		assert(constraints.empty(),"non-empty constraints");
+		assert(interactors.empty(),"non-empty interactors");
+		$(expand object freelist(T,n)
+			assert(n.empty(),"non-empty "+n);
+		);
+	}
+	flibmdel public inline function alloc() {}
+
+	#if NAPE_ASSERT
+	//check ordering of cbTypes
+	public static function assert_cbTypes(cbTypes:List(PR(CbType))) {
+		var pre = null;
+		Iter(cur,cbTypes,{
+			if(pre!=null)
+				assert(cur.id>pre.id,"cbTypes of CbSet not well-ordered!");
+			pre = cur;
+		});
+	}
+	#end
+
+	public static function get(cbTypes:List(PR(CbType))) {
+		var ret = Get(PR(CbSet));
+		var ite = null;
+		#if NAPE_ASSERT assert_cbTypes(cbTypes); #end
+		Iter(cb,cbTypes,ite = ret.cbTypes.insert(ite,cb));
+		return ret;
 	}
 	
 	//----------------------------------------------------------------------------------------------

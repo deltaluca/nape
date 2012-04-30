@@ -226,6 +226,33 @@ class PR(Space) {
 
 	//----------------------------------------------------------------------------------------------
 
+	public var cbsets:Set(PR(CbSet));
+
+	//look-up CbSet in Space, allocating a new one if one does not yet exist.
+	public function cbTypeSet(cbTypes:List(PR(CbType))) {
+		#if NAPE_ASSERT PR(CbSet).assert_cbTypes(cbTypes); #end
+		//allocate a 'fake' CbSet for lookup by comparison in cbsets set.
+		var fake = Get(PR(CbSet));
+		var faketypes = fake.cbTypes;
+		fake.cbTypes = cbTypes;
+
+		var res = cbsets.find_weak(fake);
+		var ret = if(res!=null) res.data
+			else {
+				var set = PR(CbSet).get(cbTypes);
+				assert(!cbsets.has_weak(set),"CbSet exists in Set already, but not found??");
+				set;
+			}
+
+		//reset fake set
+		fake.cbTypes = faketypes;
+		Free(PR(CbSet),fake);
+
+		return ret;
+	}
+
+	//----------------------------------------------------------------------------------------------
+
 	public function clear() {
 		global_lin_drag = PR(Config).GLOBAL_LIN_DRAG;
 		global_ang_drag = PR(Config).GLOBAL_ANG_DRAG;
@@ -451,6 +478,8 @@ class PR(Space) {
 
 		//used in narrowphase
 		prelisteners = new List(PR(InteractionListener))();
+
+		cbsets = new Set(PR(CbSet))();
 	}
 	
 	//----------------------------------------------------------------------------------------------
