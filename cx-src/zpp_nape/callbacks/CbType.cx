@@ -32,16 +32,13 @@ class PR(CbSet) {
 			//merge sorted list(set) from cbTypes into a new sorted list(set)
 			//effeciency is not of great concern here, so we adopt a simple algorithm.
 			Iter(cb,cbTypes,{
-				//want highest precedence at front of list.
-				$(mixin less(i,j) (i.precedence>j.precedence || (i.precedence==j.precedence && i.id>j.id)));
-
 				//merge n and cb.n avoiding duplicates based on ==
 				var npre = null;
 				var nite = n.begin();
 				var cite = cb.n.begin();
 				while(cite!=null) {
 					var cx = cite.elem();
-					if(nite==null || less(cx,nite.elem())) {
+					if(nite==null || PR(Listener).set_lt(cx,nite.elem())) {
 						assert(!n.has(cx),"merged list already contains listener");
 						npre = n.insert(npre,cx);
 						cite = cite.next;
@@ -65,6 +62,18 @@ class PR(CbSet) {
 	listlist(BodyListener,bodylisteners,body)
 	//set of constraint listeners associated with CbSet
 	listlist(ConstraintListener,conlisteners,con)
+
+    ///---------------------------------------------------------------------------------------------
+
+	//only ACTIVE shape/constriants/bodies are referenced to avoid memory leaks
+	public var interactors:List(PR(Interactor)); public var wrap_interactors:InteractorList;
+    public var constraints:List(PR(Constraint)); public var wrap_constraints:ConstraintList;
+
+    flibmdel public inline function addConstraint(con:PR(Constraint)) constraints.add(con)
+	flibmdel public inline function addInteractor(intx:PR(Interactor)) interactors.add(intx)
+	
+	flibmdel public inline function remConstraint(con:PR(Constraint)) constraints.remove(con)
+	flibmdel public inline function remInteractor(intx:PR(Interactor)) interactors.remove(intx)
 
 	//-------------------------------------------------------------------------------
 
@@ -90,10 +99,50 @@ class PR(CbSet) {
 		return j!=null && i==null;
 	}
 
+	//-------------------------------------------------------------------------------
+
 	public function new() {
+		cbTypes = new List(PR(CbType))();
 		$(expand object initlist(T,n)
 			n = new List(PR(T))();
 		);
+        constraints = new List(PR(Constraint))();
+		interactors = new List(PR(Interactor))();
+	}
+	
+	//----------------------------------------------------------------------------------------------
+
+	//determines if cbSets share an interaction listener
+	public static function empty_intersection(a:PR(CbSet),b:PR(CbSet)) {
+		var ret = true;
+		var aite = a.listeners.begin();
+		var bite = b.listeners.begin();
+		while(aite!=null && bite!=null) {
+			var ax = aite.elem(); var bx = bite.elem();
+			if(ax==bx) {
+				ret = false;
+				break;
+			}elif(PR(Listener).set_lt(ax,bx))
+			     aite = aite.next;
+			else bite = bite.next;
+		}
+		return ret;
+	}
+
+	//inlined for inline function call when used anonymously
+	inline public static function find_all(a:PR(CbSet),b:PR(CbSet), event:Int, cb:PR(InteractionListener)->Void) {
+		var aite = a.listeners.begin();
+		var bite = b.listeners.begin();
+		while(aite!=null && bite!=null) {
+			var ax = aite.elem(); var bx = bite.elem();
+			if(ax==bx && ax.event==event) {
+				cb(ax);
+				aite = aite.next;
+				bite = bite.next;
+			}elif(PR(Listener).set_lt(ax,bx))
+			     aite = aite.next;
+			else bite = bite.next;
+		}
 	}
 }
 
@@ -135,7 +184,7 @@ class PR(CbType) {
 		flibmdel public inline function add`r(x:PR(T)) {
 			assert(!n.has(x),"listener already in list");
 			//want highest precedence at start of list
-			Insert(x,n,$(mixin less(i,j) (i.precedence>j.precedence || (i.precedence==j.precedence && i.id>j.id))) less);
+			Insert(x,n,PR(Listener).set_lt);
 		}
 		flibmdel public inline function remove`r(x:PR(T)) {
 			n.remove(x);
@@ -189,25 +238,6 @@ class PR(CbType) {
 			log = ret;
 		#end
 		return !ret;
-	}
-
-	//no longer used as multiple listeners are now allowed.
-	public static function find(a:PR(CbType),b:PR(CbType), event:Int, type:Int) {
-		var id = if(a.id<b.id) a.id else b.id;
-		var di = if(a.id<b.id) b.id else a.id;
-		assert(id<di || (a==b && id==di), "id/di in empty_intersectino not well ordered");
-
-		var ret:PR(InteractionListener) = null;
-		var lx = (a.listeners.length<b.listeners.length) ? a.listeners : b.listeners;
-		Iter(x,lx,{
-			assert(!(x.cid==di && x.cdi==id) || id==di,"listener id order didn't match cbtype id order??");
-			if(x.cid==id && x.cdi==di && x.event==event && (x.itype&type)!=0) {
-				DEBUG(if(ret!=null) throw "Error: multiple valid listeneres";)
-				ret = x;
-				RELEASE(break;)
-			}
-		});
-		return ret;
 	}
 
 	//inlined for inline function call when used anonymously
