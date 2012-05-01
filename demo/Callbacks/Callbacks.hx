@@ -79,25 +79,38 @@ class Callbacks extends FixedStep {
 		border.space = space;
 
 		//--------------------
+		//CbTypes
 
-		//partially penetratable Hexagons :)
-		var hexcb = new CbType();
+		//partial penetration
+		var partial_penetration = new CbType();
+
+		//one-way platforms
+		var oneway_platform = new CbType();
+		var oneway_object = new CbType(); //objects that can interact with oneway_platforms
+
+		//sleep indication
+		var indicate_sleep = new CbType();
+		//touch indication
+		var indicate_touch = new CbType();
+
+		//--------------------
 
 		for(i in 0...10) {
-			var hex = new Body();
-			hex.shapes.add(new Polygon(Polygon.regular(80,80,5)));
-			hex.position.setxy(800/11*(i+1),150);
-			hex.space = space;
+			var pent = new Body();
+			pent.shapes.add(new Polygon(Polygon.regular(80,80,5)));
+			pent.position.setxy(800/11*(i+1),150);
+			pent.space = space;
 			
-			//set it's cbType
-			hex.cbType = hexcb;
+			//set it's cbTypes
+			pent.cbTypes.add(partial_penetration);
+			pent.cbTypes.add(oneway_object);
 		}
 
 		//aaand set up the pre-listener to do the partial penetration magic fun times.
 		// note: this is a pure function with respect to the two objects
 		//       (it's output doesn't change) so we can tell nape this and allow objects
 		//       to sleep as normal.
-		space.listeners.add(new PreListener(InteractionType.COLLISION,hexcb,hexcb,function(cb:PreCallback) {
+		space.listeners.add(new PreListener(InteractionType.COLLISION,partial_penetration,partial_penetration,function(cb:PreCallback) {
 			var depth = 15;
 
 			if(cb.arbiter.isCollisionArbiter()) {
@@ -120,17 +133,12 @@ class Callbacks extends FixedStep {
 				       else PreFlag.ACCEPT_ONCE;
 			}else
 				return PreFlag.ACCEPT;
-		},
+		},0,
 		true //pure
 		));
 
 		//----------------------------
 
-		//squares that report on BEGIN/END events.
-		var boxcb = new CbType();
-		//pairs of boxes that act like a single body for one-way platform (using Compounds)
-		//that is, until the constraint breaks!
-		var paircb = new CbType();
 		var concb = new CbType();
 
 		var boxes = [];
@@ -141,8 +149,8 @@ class Callbacks extends FixedStep {
 			boxes.push(box);
 			//note box isn't added to space (# see few lines below)
 			
-			//set it's cbType
-			box.cbType = boxcb;
+			//set it's cbTypes
+			box.cbTypes.add(indicate_touch);
 		}
 
 		for(i in 0...5) {
@@ -163,7 +171,7 @@ class Callbacks extends FixedStep {
 			// (#) <-- because it is added to the space via it's compound instead.
 			// see also that the link constraint is not directly added to the space.
 			compound.space = space;
-			compound.cbType = paircb;
+			compound.cbTypes.add(oneway_object);
 		}
 
 		//setup listeners
@@ -182,8 +190,8 @@ class Callbacks extends FixedStep {
 			};
 		}
 
-		space.listeners.add(new InteractionListener(CbEvent.BEGIN, InteractionType.COLLISION, boxcb,boxcb, boxer(0x00ff00)));
-		space.listeners.add(new InteractionListener(CbEvent.END,   InteractionType.COLLISION, boxcb,boxcb, boxer(0xff0000)));
+		space.listeners.add(new InteractionListener(CbEvent.BEGIN, InteractionType.COLLISION, indicate_touch,indicate_touch, boxer(0x00ff00)));
+		space.listeners.add(new InteractionListener(CbEvent.END,   InteractionType.COLLISION, indicate_touch,indicate_touch, boxer(0xff0000)));
 
 		space.listeners.add(new ConstraintListener(CbEvent.BREAK, concb, function (cb:ConstraintCallback) {
 			//We're going to break apart the compound containing the constraint and the two boxes
@@ -192,13 +200,11 @@ class Callbacks extends FixedStep {
 			var link = cast(cb.constraint,PivotJoint);
 			var b1 = link.body1; var b2 = link.body2;
 			b1.compound.breakApart();
-			b1.cbType = b2.cbType = boxcb;
+			//now that the compound is broken up, we want each box inside to be a oneway_object
+			b1.cbTypes.add(oneway_object);
+			b2.cbTypes.add(oneway_object);
 		}));
-
 		//----------------------------
-
-		//flashing circles (on sleep/wake)
-		var circcb = new CbType();
 
 		for(i in 0...10) {
 			var circ = new Body();
@@ -206,8 +212,9 @@ class Callbacks extends FixedStep {
 			circ.position.setxy(800/11*(i+1),50);
 			circ.space = space;
 			
-			//set it's cbType
-			circ.cbType = circcb;
+			//set it's cbTypes
+			circ.cbTypes.add(indicate_sleep);
+			circ.cbTypes.add(oneway_object);
 		}
 
 		//and set up listeners
@@ -216,9 +223,8 @@ class Callbacks extends FixedStep {
 				debug.drawFilledCircle(cb.body.position,cb.body.shapes.at(0).castCircle.radius,colour);
 			}
 		}
-
-		space.listeners.add(new BodyListener(CbEvent.WAKE,  circcb, circler(0x00ff00)));
-		space.listeners.add(new BodyListener(CbEvent.SLEEP, circcb, circler(0xff0000)));
+		space.listeners.add(new BodyListener(CbEvent.WAKE,  indicate_sleep, circler(0x00ff00)));
+		space.listeners.add(new BodyListener(CbEvent.SLEEP, indicate_sleep, circler(0xff0000)));
 
 		//----------------------------
 
@@ -230,8 +236,7 @@ class Callbacks extends FixedStep {
 		plat.shapes.add(new Polygon(Polygon.rect(100,300-30,600,60)));
 		plat.space = space;
 
-		var platcb = new CbType();
-		plat.cbType = platcb;
+		plat.cbTypes.add(oneway_platform);
 
 		//handler to deal with one-way platforms
 		//don't have sum-types yet, so have to assign for all types we want to operate with one-way
@@ -242,8 +247,7 @@ class Callbacks extends FixedStep {
 			return if(dir.dot(cb.arbiter.collisionArbiter.normal)>=0) PreFlag.ACCEPT else PreFlag.IGNORE;
 		}
 
-		for(cb in [hexcb,paircb])
-			space.listeners.add(new PreListener(InteractionType.COLLISION, platcb,cb,oneway));
+		space.listeners.add(new PreListener(InteractionType.COLLISION, oneway_platform,oneway_object,oneway));
 
 		run(function (dt) {
 			hand.anchor1.setxy(mouseX,mouseY);
