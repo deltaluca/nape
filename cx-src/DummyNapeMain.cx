@@ -4,23 +4,28 @@ $(import);
 class DummyNapeMain {
 	static function main() {
 		var space = new Space();
-		var body = new Body();
-		body.space = space;
+
+		var body1 = new Body();
+		body1.shapes.add(new Circle(10));
+		var body2 = new Body();
+		body2.shapes.add(new Circle(10));
+		body1.space = body2.space = null;
+
 		var cb1 = new CbType();
+		var cb2 = new CbType();
 
-		var l1 = new PreListener(InteractionType.ANY, cb1,cb1, function(_) return PreFlag.ACCEPT);
-		l1.space = space;
-		body.cbTypes.add(cb1);
+		body1.cbTypes.add(cb1);
 
-		function tr(x:List(PR(InteractionListener))) {
-			var ret = "";
-			Iter(y,x,ret += " "+Std.string(y.outer));
-			trace(ret);
-		}
-		tr(cb1.pr(inner).listeners);
+		body2.cbTypes.add(cb1);
+		body2.cbTypes.add(cb2);
 
-		var set = body.pr(inner).cbSet;
-		set.validate_listeners();
-		tr(set.listeners);
+		var beg1 = new InteractionListener(CbEvent.BEGIN, InteractionType.ANY, cb1,cb1, function (_) { trace("cb1-cb1 begin"); });
+		var beg2 = new InteractionListener(CbEvent.BEGIN, InteractionType.ANY, cb1,cb2, function (_) { trace("cb1-cb2 begin"); });
+		beg1.space = beg2.space = space;
+
+		space.step(1/60,1,1);
+
+		trace(body1.pr(inner).cbSet);
+		trace(body1.pr(inner).cbSet);
 	}
 }

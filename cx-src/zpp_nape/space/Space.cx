@@ -168,6 +168,10 @@ class PR(CbSetManager) {
 		cbsets = Get(Set(PR(CbSet)));
 		cbsets.lt = PR(CbSet).set_lt;
 	}
+
+	public function validate() {
+		SetIter(cb, cbsets, cb.validate());
+	}
 }
 
 GENID(Space)
@@ -593,21 +597,21 @@ class PR(Space) {
 				//as in either case the callbackset exists and must be cleaned
 //				if(xarb.active) {
 				if(xarb.present) {
-					MRCA_chains(xarb.ws1,xarb.ws2);
+					MRCA_chains2(xarb.ws1,xarb.ws2);
 					Iter(i1,mrca1,{
 					Iter(i2,mrca2,{
-						var cb1 = i1.cbType;
-						var cb2 = i2.cbType;
-						assert(cb1!=null && cb2!=null, "null cbs from MRCA_chains?");
+						var cb1 = i1.cbSet;
+						var cb2 = i2.cbSet;
+						assert(cb1!=null && cb2!=null, "null cbsets from MRCA_chains?");
 
-						if(PR(CbType).empty_intersection(cb1,cb2)) cx_continue;
+						if(PR(CbSet).empty_intersection(cb1,cb2)) cx_continue;
 
 						var callbackset = PR(Interactor).get(i1,i2);
 						assert(callbackset!=null,"null callbackset on arbiter deletion?");
 						callbackset.remove_arb(xarb);
 
 						if(!deleting) {
-							PR(CbType).find_all(cb1,cb2,Flag(CbEvent,END),function(listener:PR(InteractionListener)) {
+							PR(CbSet).find_all(cb1,cb2,Flag(CbEvent,END),function(listener:PR(InteractionListener)) {
 								if((listener.itype&xarb.type)!=0 && callbackset.empty_arb(listener.itype)) {
 									var cb = push_callback(listener);
 									cb.event = Flag(CbEvent,END);
@@ -1624,6 +1628,8 @@ class PR(Space) {
 	}
 	
 	public function validation() {
+		cbsets.validate();
+
 		$(mixin update(list, kin) {
 			Iter(cur,list,{
 				DEBUG(if(cur.shapes.empty())
@@ -1784,14 +1790,14 @@ class PR(Space) {
 					assert(!begcb||arb.up_stamp==stamp, " fresh -> active=true hasn't held :(");
 
 					if(begcb || endcb || arb.cleared || arb.intchange) {
-						inlined_MRCA_chains(arb.ws1,arb.ws2);
+						inlined_MRCA_chains2(arb.ws1,arb.ws2);
 						Iter(i1,mrca1,{
 						Iter(i2,mrca2,{
-							var cb1 = i1.cbType;
-							var cb2 = i2.cbType;
+							var cb1 = i1.cbSet;
+							var cb2 = i2.cbSet;
 							assert(cb1!=null && cb2!=null, "null cb from MRCA_chains?");
 
-							if(PR(CbType).empty_intersection(cb1,cb2)) cx_continue;
+							if(PR(CbSet).empty_intersection(cb1,cb2)) cx_continue;
 
 							var callbackset = PR(Interactor).get(i1,i2);
 							if(begcb || arb.intchange) {
@@ -1802,7 +1808,7 @@ class PR(Space) {
 								}
 								//check for empty rather than null, since it might've been created
 								//already to prevent multiple pre-handlers
-								PR(CbType).find_all(cb1,cb2,Flag(CbEvent,BEGIN),function(listener:PR(InteractionListener)) {
+								PR(CbSet).find_all(cb1,cb2,Flag(CbEvent,BEGIN),function(listener:PR(InteractionListener)) {
 									if((listener.itype&arb.type)!=0 && callbackset.empty_arb(listener.itype)) {
 										var cb = push_callback(listener);
 										cb.event = Flag(CbEvent,BEGIN);
@@ -1816,7 +1822,7 @@ class PR(Space) {
 								arb.present = false;
 								assert(callbackset!=null,"end arbiter with no callbackset");
 								callbackset.remove_arb(arb);
-								PR(CbType).find_all(cb1,cb2,Flag(CbEvent,END),function(listener:PR(InteractionListener)) {
+								PR(CbSet).find_all(cb1,cb2,Flag(CbEvent,END),function(listener:PR(InteractionListener)) {
 									if((listener.itype&arb.type)!=0 && callbackset.empty_arb(listener.itype)) {
 										var cb = push_callback(listener);
 										cb.event = Flag(CbEvent,END);
@@ -2059,13 +2065,13 @@ class PR(Space) {
 							//true if any listener in any callbackset is impure.
 							var anyimpure = false;
 
-							inlined_MRCA_chains(s1,s2);
+							inlined_MRCA_chains2(s1,s2);
 							Iter(i1,mrca1, {
 							Iter(i2,mrca2, {
-								var cb1 = i1.cbType;
-								var cb2 = i2.cbType;
+								var cb1 = i1.cbSet;
+								var cb2 = i2.cbSet;
 								assert(cb1!=null && cb2!=null, "null cb from MRCA_chains?");
-								if(PR(CbType).empty_intersection(cb1,cb2)) cx_continue;
+								if(PR(CbSet).empty_intersection(cb1,cb2)) cx_continue;
 
 								var callbackset:PR(CallbackSet) = null;
 								var ncallbackset:PR(CallbackSet) = null;
@@ -2074,7 +2080,7 @@ class PR(Space) {
 								prelisteners.clear();
 
 								var lite:Node(PR(InteractionListener)) = null;
-								PR(CbType).find_all(cb1,cb2,Flag(CbEvent,PRE),function(listener:PR(InteractionListener)) {
+								PR(CbSet).find_all(cb1,cb2,Flag(CbEvent,PRE),function(listener:PR(InteractionListener)) {
 									if((listener.itype&inttype)!=0) {
 										lite = prelisteners.insert(lite,listener);
 										anyimpure = anyimpure || !listener.pure;
