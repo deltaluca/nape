@@ -131,6 +131,45 @@ class PR(CallbackSet) {
 	}
 }
 
+class PR(CbSetManager) {
+	public var cbsets:Set(PR(CbSet));
+
+	//look-up CbSet in Space, allocating a new one if one does not yet exist.
+	public function get(cbTypes:List(PR(CbType))) {
+		if(cbTypes.empty()) return null;
+
+		#if NAPE_ASSERT PR(CbSet).assert_cbTypes(cbTypes); #end
+		//allocate a 'fake' CbSet for lookup by comparison in cbsets set.
+		var fake = Get(PR(CbSet));
+		var faketypes = fake.cbTypes;
+		fake.cbTypes = cbTypes;
+
+		var res = cbsets.find_weak(fake);
+		var ret = if(res!=null) res.data
+			else {
+				var set = PR(CbSet).get(cbTypes);
+				assert(!cbsets.has_weak(set),"CbSet exists in Set already, but not found??");
+				cbsets.insert(set);
+				set;
+			}
+
+		//reset fake set
+		fake.cbTypes = faketypes;
+		Free(PR(CbSet),fake);
+
+		return ret;
+	}
+	public function remove(set:PR(CbSet)) {
+		assert(cbsets.has(set),"cbsets does not contain real set");
+		cbsets.remove(set);
+	}
+
+	public function new() {
+		cbsets = Get(Set(PR(CbSet)));
+		cbsets.lt = PR(CbSet).set_lt;
+	}
+}
+
 GENID(Space)
 class PR(Space) {
 	public var outer:Space;
@@ -223,33 +262,8 @@ class PR(Space) {
 
 	//for on-going callbacks
 	public var callbackset_list:MixList(PR(CallbackSet));
-
-	//----------------------------------------------------------------------------------------------
-
-	public var cbsets:Set(PR(CbSet));
-
-	//look-up CbSet in Space, allocating a new one if one does not yet exist.
-	public function cbTypeSet(cbTypes:List(PR(CbType))) {
-		#if NAPE_ASSERT PR(CbSet).assert_cbTypes(cbTypes); #end
-		//allocate a 'fake' CbSet for lookup by comparison in cbsets set.
-		var fake = Get(PR(CbSet));
-		var faketypes = fake.cbTypes;
-		fake.cbTypes = cbTypes;
-
-		var res = cbsets.find_weak(fake);
-		var ret = if(res!=null) res.data
-			else {
-				var set = PR(CbSet).get(cbTypes);
-				assert(!cbsets.has_weak(set),"CbSet exists in Set already, but not found??");
-				set;
-			}
-
-		//reset fake set
-		fake.cbTypes = faketypes;
-		Free(PR(CbSet),fake);
-
-		return ret;
-	}
+	
+	public var cbsets:PR(CbSetManager);
 
 	//----------------------------------------------------------------------------------------------
 
@@ -479,7 +493,7 @@ class PR(Space) {
 		//used in narrowphase
 		prelisteners = new List(PR(InteractionListener))();
 
-		cbsets = new Set(PR(CbSet))();
+		cbsets = new PR(CbSetManager)();
 	}
 	
 	//----------------------------------------------------------------------------------------------
@@ -1044,6 +1058,49 @@ class PR(Space) {
 			}
 		}
 	}
+
+	//clean up all callbacksets associated with interactor	
+	public function nullInteractorType2(intx:PR(Interactor),me:PR(Interactor)=null) {
+		if(me==null) me = intx;
+
+		if(intx.isCompound()) {
+			var comp = intx.icompound;
+			Iter(body, comp.bodies,    nullInteractorType(body,me));
+			Iter(comp, comp.compounds, nullInteractorType(comp,me));
+		}else {
+			var xbody = if(intx.isBody()) intx.ibody else intx.ishape.body;
+			var xshp = if(intx.isShape()) intx.ishape else null;
+			Iter(xarb,xbody.arbiters,{
+				//bug-fix: need to try and remove arbiter even
+				// if inactive, can result if pre-listener removes
+				// contacts from arbiter it is still in the set
+				// and we should try and remove it
+				//if(!xarb.active) cx_continue;
+				if(!xarb.present) cx_continue;
+
+				if(xshp!=null && !(xarb.ws1==xshp || xarb.ws2==xshp)) cx_continue; //short-cut
+
+				MRCA_chains2(xarb.ws1,xarb.ws2);
+				Iter(i1,mrca1,{
+				Iter(i2,mrca2,{
+					//only want to handle relevant callbacksets!
+					if(i1!=me && i2!=me) cx_continue;
+
+					var callbackset = PR(Interactor).get(i1,i2);
+					if(callbackset!=null) {
+						xarb.present = false;
+						callbackset.remove_arb(xarb);
+						if(callbackset.really_empty()) {
+							remove_callbackset(callbackset);
+							//deferred for callbackset_list
+							//Free(PR(CallbackSet),callbackset);
+						}
+					}
+				});
+				});
+			});
+		}
+	}
 	
 	//clean up all callbacksets associated with interactor	
 	public function nullInteractorType(intx:PR(Interactor),me:PR(Interactor)=null) {
@@ -1133,7 +1190,48 @@ class PR(Space) {
 			}
 		}
 	}
-	
+
+	public function freshInteractorType2(intx:PR(Interactor),me:PR(Interactor)=null) {
+		if(me==null) me = intx;
+
+		if(intx.isCompound()) {
+			var comp = intx.icompound;
+			Iter(body, comp.bodies,    freshInteractorType(body,me));
+			Iter(comp, comp.compounds, freshInteractorType(comp,me));
+		}else {
+			var xbody = if(intx.isBody()) intx.ibody else intx.ishape.body;
+			var xshp = if(intx.isShape()) intx.ishape else null;
+			Iter(xarb,xbody.arbiters,{
+				//bug-fix see nullInteractorType
+				//if(!xarb.active) cx_continue;
+				if(!xarb.presentable) cx_continue;
+
+				if(xshp!=null && !(xarb.ws1==xshp || xarb.ws2==xshp)) cx_continue; //short-cut
+
+				MRCA_chains2(xarb.ws1,xarb.ws2);
+				Iter(i1,mrca1,{
+				Iter(i2,mrca2,{
+					//only want to handle relevant callbacksets!
+					if(i1!=me && i2!=me) cx_continue;
+
+					var cb1 = i1.cbSet;
+					var cb2 = i2.cbSet;
+					assert(cb1!=null && cb2!=null, "null cbset from MRCA_chain?");
+					if(!PR(CbSet).empty_intersection(cb1,cb2)) {
+						xarb.present = true;
+						var callbackset = PR(Interactor).get(i1,i2);
+						if(callbackset==null) {
+							callbackset = PR(CallbackSet).get(i1,i2);
+							add_callbackset(callbackset);
+						}
+						callbackset.add_arb(xarb);
+					}
+				});
+				});
+			});
+		}
+	}
+
 	public function freshInteractorType(intx:PR(Interactor),me:PR(Interactor)=null) {
 		if(me==null) me = intx;
 
@@ -2130,6 +2228,28 @@ class PR(Space) {
 	//as a further optimisation, only interactors with non-null cbTypes are included.
 	public var mrca1:List(PR(Interactor));
 	public var mrca2:List(PR(Interactor));
+
+	public function MRCA_chains2(s1:PR(Shape),s2:PR(Shape)) inlined_MRCA_chains2(s1,s2)
+	flibmdel public inline function inlined_MRCA_chains2(s1:PR(Shape), s2:PR(Shape)) {
+		assert(s1!=s2 && s1.body!=s2.body, "MRCA chain for equal shapes, or shapes of the same body?");
+		//clear any remnants
+		mrca1.clear();
+		mrca2.clear();
+
+		//first part done explicitly for most common path.
+		if(s1.cbSet!=null) mrca1.add(s1); if(s1.body.cbSet!=null) mrca1.add(s1.body);
+		if(s2.cbSet!=null) mrca2.add(s2); if(s2.body.cbSet!=null) mrca2.add(s2.body);
+
+		//slower path for rest of compound chain.
+		var c1 = s1.body.compound;
+		var c2 = s2.body.compound;
+		while(c1!=c2) {
+			var d1 = if(c1==null) 0 else c1.depth;
+			var d2 = if(c2==null) 0 else c2.depth;
+			if(d1<d2) {	if(c2.cbSet!=null) mrca2.add(c2); c2 = c2.compound; }
+			else      { if(c1.cbSet!=null) mrca1.add(c1); c1 = c1.compound; }
+		}
+	}
 
 	public function MRCA_chains(s1:PR(Shape),s2:PR(Shape)) inlined_MRCA_chains(s1,s2)
 	flibmdel public inline function inlined_MRCA_chains(s1:PR(Shape), s2:PR(Shape)) {

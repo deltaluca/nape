@@ -7,12 +7,17 @@ class PR(CbSet) {
 	//actually an ordered 'set'.
 	//don't use a real set so that comparisons are cheaper.
 	public var cbTypes:List(PR(CbType));
-	public var space:PR(Space);
 
 	//reference counted
 	public var count:Int;
 	//object pooled
 	MixPool(PR(CbSet))
+
+	flibmdel public inline function increment() count++
+	flibmdel public inline function decrement() {
+		assert(count>0,"decrementing ref.count into negatives??");
+		return (--count) == 0;
+	}
 
 	//-------------------------------------------------------------------------------
 
@@ -53,6 +58,7 @@ class PR(CbSet) {
 			});
 		}
 		initlist(T,n)
+		freelist(T,n)
 	);
 
 	//all lists are only updated when listener is added to a space!
@@ -106,19 +112,21 @@ class PR(CbSet) {
 		cbTypes = new List(PR(CbType))();
 		$(expand object initlist(T,n)
 			n = new List(PR(T))();
-			freelist(T,n)
+			inv(n) = true;
 		);
         constraints = new List(PR(Constraint))();
 		interactors = new List(PR(Interactor))();
 	}
 
 	flibmdel public inline function free() {
-		assert(cbTypes.empty(),"non-empty cbtypes");
 		assert(constraints.empty(),"non-empty constraints");
 		assert(interactors.empty(),"non-empty interactors");
+		assert(count==0,"deallocating with count!=0?");
 		$(expand object freelist(T,n)
-			assert(n.empty(),"non-empty "+n);
+			n.clear();
+			inv(n) = true;
 		);
+		ClearWith(cb,cbTypes, cb.cbsets.remove(this));
 	}
 	flibmdel public inline function alloc() {}
 
@@ -138,7 +146,10 @@ class PR(CbSet) {
 		var ret = Get(PR(CbSet));
 		var ite = null;
 		#if NAPE_ASSERT assert_cbTypes(cbTypes); #end
-		Iter(cb,cbTypes,ite = ret.cbTypes.insert(ite,cb));
+		Iter(cb,cbTypes,{
+			ite = ret.cbTypes.insert(ite,cb);
+			cb.cbsets.add(ret);
+		});
 		return ret;
 	}
 	
@@ -197,6 +208,8 @@ class PR(CbType) {
 
     public var id:Int;
 
+	public var cbsets:List(PR(CbSet));
+
     ///---------------------------------------------------------------------------------------------
 
 	//only ACTIVE shape/constriants/bodies are referenced to avoid memory leaks
@@ -217,9 +230,14 @@ class PR(CbType) {
 			assert(!n.has(x),"listener already in list");
 			//want highest precedence at start of list
 			Insert(x,n,PR(Listener).set_lt);
+			invalidate`r();
 		}
 		flibmdel public inline function remove`r(x:PR(T)) {
 			n.remove(x);
+			invalidate`r();
+		}
+		flibmdel public inline function invalidate`r() {
+			Iter(cb,cbsets,cb.invalidate_`n());
 		}
 		initlist(T,n)
 	);
@@ -243,6 +261,8 @@ class PR(CbType) {
 		)
         constraints = new List(PR(Constraint))();
 		interactors = new List(PR(Interactor))();
+
+		cbsets = new List(PR(CbSet))();
     }
 
 	//----------------------------------------------------------------------------------------------

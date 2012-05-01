@@ -3,53 +3,24 @@ $(import);
 
 class DummyNapeMain {
 	static function main() {
-		var space = new Space(new Vec2(0,400));
-		var body1 = new Body(BodyType.STATIC);
-		var body2 = new Body();
-		body1.shapes.add(new Polygon(Polygon.rect(0,500,500,100)));
-		body2.shapes.add(new Polygon(Polygon.rect(-100,-100,200,200)));
-		body2.shapes.add(new Polygon(Polygon.rect(-100,-140,200,200)));
-		body2.position.setxy(0,420);
+		var space = new Space();
+		var body = new Body();
+		body.space = space;
+		var cb1 = new CbType();
 
-		body1.space = body2.space = space;
-
-		function run () {
-			trace("----");
-			space.step(1/1000,1,1);
-			for(arb in space.arbiters) trace(arb);
-		}
-
-		var cbb = new CbType();
-		var cbs = new CbType();
-		body1.cbType = body2.cbType = cbb;
-		body1.shapes.at(0).cbType = body2.shapes.at(0).cbType = cbs;
-		body2.shapes.at(1).cbType = cbs;
-
-		var l1 = new PreListener(InteractionType.ANY, cbs,cbb, function (x) { trace("l1"+x.int1+" "+x.int2); return PreFlag.IGNORE_ONCE;}, 1);
-		var l2 = new PreListener(InteractionType.ANY, cbb,cbb, function (x) { trace("l2"+x.int1+" "+x.int2); return PreFlag.ACCEPT_ONCE;}, 2);
-		var l3 = new PreListener(InteractionType.ANY, cbs,cbs, function (x) { trace("l3"+x.int1+" "+x.int2); return PreFlag.ACCEPT_ONCE;}, 3);
-
-		l2.space = space;
+		var l1 = new PreListener(InteractionType.ANY, cb1,cb1, function(_) return PreFlag.ACCEPT);
 		l1.space = space;
-		l3.space = space;
+		body.cbTypes.add(cb1);
 
 		function tr(x:List(PR(InteractionListener))) {
 			var ret = "";
 			Iter(y,x,ret += " "+Std.string(y.outer));
 			trace(ret);
 		}
-		tr(cbb.pr(inner).listeners);
-		tr(cbs.pr(inner).listeners);
+		tr(cb1.pr(inner).listeners);
 
-		body1.cbTypes.add(cbb);
-		body1.cbTypes.add(cbs);
-
-		var set = space.pr(inner).cbTypeSet(body1.cbTypes.pr(inner).inner);
-		set.invalidate_listeners();
+		var set = body.pr(inner).cbSet;
 		set.validate_listeners();
 		tr(set.listeners);
-
-		trace(PR(CbSet).empty_intersection(set,set));
-		PR(CbSet).find_all(set,set,Flag(CbEvent,PRE),function (x) trace(x));
 	}
 }

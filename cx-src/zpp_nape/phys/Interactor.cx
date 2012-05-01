@@ -22,10 +22,12 @@ class PR(Interactor) {
 	public function __iaddedToSpace() {
 		if(cbType!=null) cbType.addInteractor(this);
 		if(group!=null) group.addInteractor(this);
+		alloc_cbSet();
 	}
 	public function __iremovedFromSpace() {
 		if(cbType!=null) cbType.remInteractor(this);
 		if(group!=null) group.remInteractor(this);
+		dealloc_cbSet();
 	}
 
 	public function wake() {
@@ -66,8 +68,19 @@ class PR(Interactor) {
 
 	//--------------------------------------------------------------------
 
+	flibmdel public inline function get_space() {
+		return
+			if(isShape())  ishape.body==null ? null : ishape.body.space
+			elif(isBody()) ibody.space
+			else           icompound.space;
+	}
+
+	//--------------------------------------------------------------------
+
 	public var group:PR(InteractionGroup);
 	public var cbType:PR(CbType); //deprecated
+
+	//--------------------------------------------------------------------
 
 	public var cbTypes:List(PR(CbType));
 	public var cbSet:PR(CbSet); //assigned by Space
@@ -76,22 +89,55 @@ class PR(Interactor) {
 	public function setupcbTypes() {
 		wrap_cbTypes = PR(CbTypeList).get(cbTypes);
 		wrap_cbTypes.pr(inner).adder = wrap_cbTypes_adder;
-//		wrap_cbTypes.pr(inner)._invalidate
-//		wrap_cbTypes.pr(inner).subber
+		wrap_cbTypes.pr(inner)._invalidate = wrap_cbTypes_invalidate;
 	}
 	function wrap_cbTypes_adder(cb:CbType):Bool {
 		//attempt to insert cb into list in correct position (check not already inside).
 		TryInsert(cb.pr(inner),cbTypes,$(mixin less(i,j) (i.id<j.id)) less);
+		wrap_cbTypes_invalidate(null); //need to call due to returning false!
 		return false; //always prevent wrap_list inserting into real list
 	}
+	function wrap_cbTypes_invalidate(_) {
+		var space = get_space();
+		if(space!=null) {
+			dealloc_cbSet();
+			alloc_cbSet();
+		}
+		wake();
+	}
+
+	//--------------------------------------------------------------------
+
+	public function alloc_cbSet() {
+		var space = get_space();
+		assert(space!=null,"space null in alloc_cbSet");
+		if((cbSet = space.cbsets.get(cbTypes))!=null) {
+			cbSet.increment();
+
+			cbSet.addInteractor(this);
+			space.freshInteractorType2(this);
+		}
+	}
+	public function dealloc_cbSet() {
+		var space = get_space();
+		assert(space!=null,"space null in dealloc_cbSet");
+		if(cbSet!=null) {
+			cbSet.remInteractor(this);
+			space.nullInteractorType2(this);
+
+			if(cbSet.decrement()) {
+				space.cbsets.remove(cbSet);
+				Free(PR(CbSet),cbSet);
+			}
+			cbSet = null;
+		}
+	}
+
+	//--------------------------------------------------------------------
 
 	public function setCbType(cbType:PR(CbType)) {
 		if(this.cbType!=cbType) {
-			var space =
-				if(isShape())  ishape.body==null ? null : ishape.body.space
-				elif(isBody()) ibody.space
-				else           icompound.space;
-
+			var space = get_space();
 			if(space!=null && this.cbType!=null) {
 				this.cbType.remInteractor(this);
 				space.nullInteractorType(this);
@@ -109,10 +155,7 @@ class PR(Interactor) {
 
 	public function setGroup(group:PR(InteractionGroup)) {
 		if(this.group!=group) {
-			var inspace =
-				if(isShape())  ishape.body!=null && ishape.body.space!=null
-				elif(isBody()) ibody.space!=null
-				else           icompound.space!=null;
+			var inspace = get_space()!=null;
 
 			if(inspace && this.group!=null) this.group.remInteractor(this);
 			this.group = group;
