@@ -54,6 +54,8 @@ class PR(Constraint) {
 		
         removeOnBreak = true;
         pre_dt = -1.0;
+
+		cbTypes = new List(PR(CbType))();
 	}
 
 	//------------------------------------------------------------------------------------
@@ -64,19 +66,56 @@ class PR(Constraint) {
 		)
 	}
 
-    public function setCbType(cbType:PR(CbType)) {
-        if(this.cbType != cbType) {
-			if(space!=null && active && this.cbType!=null)
-	            this.cbType.remConstraint(this);
-			
-            this.cbType = cbType;
-			if(space!=null && active && cbType!=null)
-	            cbType.addConstraint(this);
+	public var cbTypes:List(PR(CbType));
+	public var cbSet:PR(CbSet); //assigned by Space
+	public var wrap_cbTypes:CbTypeList;
 
-            wake();
-        }
-    }
-	
+	public function setupcbTypes() {
+		wrap_cbTypes = PR(CbTypeList).get(cbTypes);
+		wrap_cbTypes.pr(inner).adder = wrap_cbTypes_adder;
+		wrap_cbTypes.pr(inner)._invalidate = wrap_cbTypes_invalidate;
+		wrap_cbTypes.pr(inner)._modifiable = immutable_cbTypes;
+	}
+	function immutable_cbTypes() {
+		immutable_midstep("Interactor::cbTypes");
+	}
+	function wrap_cbTypes_adder(cb:CbType):Bool {
+		//attempt to insert cb into list in correct position (check not already inside).
+		TryInsert(cb.pr(inner),cbTypes,$(mixin less(i,j) (i.id<j.id)) less);
+		wrap_cbTypes_invalidate(null); //need to call due to returning false!
+		return false; //always prevent wrap_list inserting into real list
+	}
+	function wrap_cbTypes_invalidate(_) {
+		if(space!=null && active) {
+			dealloc_cbSet();
+			alloc_cbSet();
+		}
+		wake();
+	}
+
+	//--------------------------------------------------------------------
+
+	public function alloc_cbSet() {
+		assert(space!=null,"space null in alloc_cbSet");
+		if((cbSet = space.cbsets.get(cbTypes))!=null) {
+			cbSet.increment();
+
+			cbSet.addConstraint(this);
+		}
+	}
+	public function dealloc_cbSet() {
+		assert(space!=null,"space null in dealloc_cbSet");
+		if(cbSet!=null) {
+			cbSet.remConstraint(this);
+
+			if(cbSet.decrement()) {
+				space.cbsets.remove(cbSet);
+				Free(PR(CbSet),cbSet);
+			}
+			cbSet = null;
+		}
+	}
+
 	//------------------------------------------------------------------------------------
 
 	public function activate() {
@@ -102,9 +141,8 @@ class PR(Constraint) {
 	//------------------------------------------------------------------------------------
 
 	public function activeInSpace() {
-		if(cbType!=null)
-			cbType.addConstraint(this);
-		
+		alloc_cbSet();
+
 		assert(component==null,"already has a component?");
 		component = Get(PR(Component));
 		component.isBody = false;
@@ -112,8 +150,7 @@ class PR(Constraint) {
 	}
 
 	public function inactiveOrOutSpace() {
-		if(cbType!=null)
-			cbType.remConstraint(this);
+		dealloc_cbSet();
 
 		Free(PR(Component),component);
 		component = null;
@@ -173,15 +210,16 @@ class PR(Constraint) {
 
 	//----------------------------------------------------------------------------------------------
 
-    public var cbType:PR(CbType);
-
 	//extra funky fields used in copying Compounds
 	//so as to be able to resolve any dangling references external to the Compound.
 	public function copy(?dict:Array<{id:Int,bc:Body}>,?todo:Array<{id:Int, cb:Body->Void}>):Constraint { return null; }
 
 	public function copyto(ret:Constraint) {
 		var me = outer;
-		ret.cbType = me.cbType;
+
+		var pre = null;
+		Iter(cb,cbTypes,pre = ret.pr(inner).cbTypes.insert(pre,cb));
+
 		ret.removeOnBreak = me.removeOnBreak;
 		ret.breakUnderError = me.breakUnderError;
 		ret.breakUnderForce = me.breakUnderForce;

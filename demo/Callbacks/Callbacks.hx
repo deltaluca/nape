@@ -93,6 +93,9 @@ class Callbacks extends FixedStep {
 		//touch indication
 		var indicate_touch = new CbType();
 
+		//breakapart constraint compound
+		var breakup_compound = new CbType();
+
 		//--------------------
 
 		for(i in 0...10) {
@@ -139,8 +142,6 @@ class Callbacks extends FixedStep {
 
 		//----------------------------
 
-		var concb = new CbType();
-
 		var boxes = [];
 		for(i in 0...10) {
 			var box = new Body();
@@ -163,10 +164,10 @@ class Callbacks extends FixedStep {
 			var mid = b1.position.add(b2.position).mul(0.5);
 			var link = new PivotJoint(b1,b2,b1.worldToLocal(mid),b2.worldToLocal(mid));
 			link.compound = compound;
-			link.cbType = concb;
 			link.maxError = 5; //px
 			link.breakUnderError = true;
 			link.removeOnBreak = true;
+			link.cbTypes.add(breakup_compound);
 
 			// (#) <-- because it is added to the space via it's compound instead.
 			// see also that the link constraint is not directly added to the space.
@@ -193,7 +194,7 @@ class Callbacks extends FixedStep {
 		space.listeners.add(new InteractionListener(CbEvent.BEGIN, InteractionType.COLLISION, indicate_touch,indicate_touch, boxer(0x00ff00)));
 		space.listeners.add(new InteractionListener(CbEvent.END,   InteractionType.COLLISION, indicate_touch,indicate_touch, boxer(0xff0000)));
 
-		space.listeners.add(new ConstraintListener(CbEvent.BREAK, concb, function (cb:ConstraintCallback) {
+		space.listeners.add(new ConstraintListener(CbEvent.BREAK, breakup_compound, function (cb:ConstraintCallback) {
 			//We're going to break apart the compound containing the constraint and the two boxes
 			//we set the constraint to be removed when it broke, so we don't need to remove the constraint
 			// - When removed, it is also removed from the compound treating it as though it is completely deleted.

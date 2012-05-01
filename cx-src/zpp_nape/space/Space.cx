@@ -973,9 +973,9 @@ class PR(Space) {
     //----------------------------------------------------------------------------------------------
 
     public function constraintCbWake(con:PR(Constraint)) {
-        if(con.cbType != null) {
+        if(con.cbSet != null) {
             if(midstep) {
-				Iter(i, con.cbType.conlisteners, {
+				Iter(i, con.cbSet.conlisteners, {
 					if(i.event!=Flag(CbEvent,WAKE)) cx_continue;
 	                var cb = push_callback(i);
 	                cb.event = Flag(CbEvent,WAKE);
@@ -987,8 +987,8 @@ class PR(Space) {
     }
 
     public function constraintCbSleep(con:PR(Constraint)) {
-        if(con.cbType != null) {
-			Iter(i, con.cbType.conlisteners, {
+        if(con.cbSet != null) {
+			Iter(i, con.cbSet.conlisteners, {
 				if(i.event!=Flag(CbEvent,SLEEP)) cx_continue;
 	            var cb = push_callback(i);
 	            cb.event = Flag(CbEvent,SLEEP);
@@ -998,8 +998,8 @@ class PR(Space) {
     }
 
     public function constraintCbBreak(con:PR(Constraint)) {
-        if(con.cbType != null) {
-			Iter(i, con.cbType.conlisteners, {
+        if(con.cbSet != null) {
+			Iter(i, con.cbSet.conlisteners, {
 				if(i.event!=Flag(CbEvent,BREAK)) cx_continue;
 	            var cb = push_callback(i);
 	            cb.event = Flag(CbEvent,BREAK);
@@ -1683,8 +1683,8 @@ class PR(Space) {
         Iter(con,live_constraints,{
             if(con.active) {
                 DEBUG(con.validate();)
-                if(con.component.woken && con.cbType != null) {
-					Iter(i, con.cbType.conlisteners, {
+                if(con.component.woken && con.cbSet != null) {
+					Iter(i, con.cbSet.conlisteners, {
 						if(i.event != Flag(CbEvent,WAKE)) cx_continue;
 	                    var cb = push_callback(i);
 	                    cb.event = Flag(CbEvent,WAKE);
