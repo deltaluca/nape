@@ -912,7 +912,7 @@ class PR(Space) {
 				continue;
 			}
 
-			PR(CbType).find_all(set.int1.cbType,set.int2.cbType,Flag(CbEvent,ONGOING),
+			PR(CbSet).find_all(set.int1.cbSet,set.int2.cbSet,Flag(CbEvent,ONGOING),
 			function (x:PR(InteractionListener)) {
 				if(!set.empty_arb(x.itype)) {
 					var cb = push_callback(x);
@@ -946,9 +946,9 @@ class PR(Space) {
 	//----------------------------------------------------------------------------------------------
 
     public function bodyCbWake(b:PR(Body)) {
-        if(b.isDynamic() && b.cbType != null) {
+        if(b.isDynamic() && b.cbSet != null) {
             if(midstep) {
-				Iter(i, b.cbType.bodylisteners, {
+				Iter(i, b.cbSet.bodylisteners, {
 					if(i.event!=Flag(CbEvent,WAKE)) cx_continue;
 					var cb = push_callback(i);
 					cb.event = Flag(CbEvent,WAKE);
@@ -960,8 +960,8 @@ class PR(Space) {
     }
 
     public function bodyCbSleep(b:PR(Body)) {
-        if(b.isDynamic() && b.cbType!=null) {
-			Iter(i, b.cbType.bodylisteners, {
+        if(b.isDynamic() && b.cbSet!=null) {
+			Iter(i, b.cbSet.bodylisteners, {
 				if(i.event!=Flag(CbEvent,SLEEP)) cx_continue;
             	var cb = push_callback(i);
 	            cb.event = Flag(CbEvent,SLEEP);
@@ -1063,7 +1063,7 @@ class PR(Space) {
 		}
 	}
 
-	//clean up all callbacksets associated with these cbTypes
+/*	//clean up all callbacksets associated with these cbTypes
 	//pre: this is valid! (aka cb1/cb2 have no matching listener for interaction/pre)
 	public function nullListenerType(cb1:PR(CbType),cb2:PR(CbType)) {
 		//we could iterate the callbackset hash here instead to pick them out easily
@@ -1108,7 +1108,7 @@ class PR(Space) {
 				});
 			}
 		}
-	}
+	}*/
 
 	//clean up all callbacksets associated with interactor	
 	public function nullInteractorType2(intx:PR(Interactor),me:PR(Interactor)=null) {
@@ -1116,8 +1116,8 @@ class PR(Space) {
 
 		if(intx.isCompound()) {
 			var comp = intx.icompound;
-			Iter(body, comp.bodies,    nullInteractorType(body,me));
-			Iter(comp, comp.compounds, nullInteractorType(comp,me));
+			Iter(body, comp.bodies,    nullInteractorType2(body,me));
+			Iter(comp, comp.compounds, nullInteractorType2(comp,me));
 		}else {
 			var xbody = if(intx.isBody()) intx.ibody else intx.ishape.body;
 			var xshp = if(intx.isShape()) intx.ishape else null;
@@ -1152,7 +1152,7 @@ class PR(Space) {
 			});
 		}
 	}
-	
+	/*
 	//clean up all callbacksets associated with interactor	
 	public function nullInteractorType(intx:PR(Interactor),me:PR(Interactor)=null) {
 		if(me==null) me = intx;
@@ -1197,7 +1197,7 @@ class PR(Space) {
 				});
 			});
 		}
-	}
+	}*/
 	
 	//create all callbacksets associated with these cbTypes
 	//pre: this is valid! (aka cb1/cb2 has only one matching listener for interaction/pre)
@@ -1241,7 +1241,7 @@ class PR(Space) {
 			}
 		}
 	}
-
+/*
 	//create all callbacksets associated with these cbTypes
 	//pre: this is valid! (aka cb1/cb2 has only one matching listener for interaction/pre)
 	public function freshListenerType(cb1:PR(CbType),cb2:PR(CbType)) {
@@ -1284,14 +1284,14 @@ class PR(Space) {
 			}
 		}
 	}
-
+*/
 	public function freshInteractorType2(intx:PR(Interactor),me:PR(Interactor)=null) {
 		if(me==null) me = intx;
 
 		if(intx.isCompound()) {
 			var comp = intx.icompound;
-			Iter(body, comp.bodies,    freshInteractorType(body,me));
-			Iter(comp, comp.compounds, freshInteractorType(comp,me));
+			Iter(body, comp.bodies,    freshInteractorType2(body,me));
+			Iter(comp, comp.compounds, freshInteractorType2(comp,me));
 		}else {
 			var xbody = if(intx.isBody()) intx.ibody else intx.ishape.body;
 			var xshp = if(intx.isShape()) intx.ishape else null;
@@ -1325,7 +1325,7 @@ class PR(Space) {
 			});
 		}
 	}
-
+/*
 	public function freshInteractorType(intx:PR(Interactor),me:PR(Interactor)=null) {
 		if(me==null) me = intx;
 
@@ -1366,7 +1366,7 @@ class PR(Space) {
 			});
 		}
 	}
-	
+	*/
     //----------------------------------------------------------------------------------------------
 
 	public function wakeCompound(x:PR(Compound)) {
@@ -1628,6 +1628,7 @@ class PR(Space) {
 	}
 	
 	public function validation() {
+		//validate that all CbSet's in existance of space, have correctly synced listener lists from sub CbType's
 		cbsets.validate();
 
 		$(mixin update(list, kin) {
@@ -1657,8 +1658,8 @@ class PR(Space) {
 
                 //wake callbacks
                 if(!kin) {
-                    if(cur.component.woken && cur.cbType != null) {
-						Iter(i, cur.cbType.bodylisteners, {
+                    if(cur.component.woken && cur.cbSet != null) {
+						Iter(i, cur.cbSet.bodylisteners, {
 							if(i.event!=Flag(CbEvent,WAKE)) cx_continue;
 	                        var cb = push_callback(i);
 	                        cb.event = Flag(CbEvent,WAKE);
@@ -2346,7 +2347,7 @@ class PR(Space) {
 			else      { if(c1.cbSet!=null) mrca1.add(c1); c1 = c1.compound; }
 		}
 	}
-
+/*
 	public function MRCA_chains(s1:PR(Shape),s2:PR(Shape)) inlined_MRCA_chains(s1,s2)
 	flibmdel public inline function inlined_MRCA_chains(s1:PR(Shape), s2:PR(Shape)) {
 		assert(s1!=s2 && s1.body!=s2.body, "MRCA chain for equal shapes, or shapes of the same body?");
@@ -2367,5 +2368,5 @@ class PR(Space) {
 			if(d1<d2) {	if(c2.cbType!=null) mrca2.add(c2); c2 = c2.compound; }
 			else      { if(c1.cbType!=null) mrca1.add(c1); c1 = c1.compound; }
 		}
-	}
+	}*/
 }

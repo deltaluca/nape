@@ -162,6 +162,12 @@ class PR(CbSet) {
 	
 	//----------------------------------------------------------------------------------------------
 
+	//check a given listener is actually usable for the two given cbset.
+	inline static function compatible(i:PR(InteractionListener), a:PR(CbSet), b:PR(CbSet)) {
+		return (a.cbTypes.has(i.cb1) && b.cbTypes.has(i.cb2))
+		    || (b.cbTypes.has(i.cb1) && a.cbTypes.has(i.cb2));
+	}
+
 	//determines if cbSets share an interaction listener
 	public static function empty_intersection(a:PR(CbSet),b:PR(CbSet)) {
 		var ret = true;
@@ -170,8 +176,13 @@ class PR(CbSet) {
 		while(aite!=null && bite!=null) {
 			var ax = aite.elem(); var bx = bite.elem();
 			if(ax==bx) {
-				ret = false;
-				break;
+				if(compatible(ax,a,b)) {
+					ret = false;
+					break;
+				}else {
+					aite = aite.next;
+					bite = bite.next;
+				}
 			}elif(PR(Listener).set_lt(ax,bx))
 			     aite = aite.next;
 			else bite = bite.next;
@@ -186,7 +197,8 @@ class PR(CbSet) {
 		while(aite!=null && bite!=null) {
 			var ax = aite.elem(); var bx = bite.elem();
 			if(ax==bx && ax.event==event) {
-				cb(ax);
+				if(compatible(ax,a,b))
+					cb(ax);
 				aite = aite.next;
 				bite = bite.next;
 			}elif(PR(Listener).set_lt(ax,bx))
@@ -271,7 +283,7 @@ class PR(CbType) {
 
 		cbsets = new List(PR(CbSet))();
     }
-
+/*
 	//----------------------------------------------------------------------------------------------
 
 	//determines if cbTypes share an interaction listener
@@ -311,5 +323,5 @@ class PR(CbType) {
 			if(x.cid==id && x.cdi==di && x.event==event)
 				cb(x);
 		});
-	}
+	}*/
 }

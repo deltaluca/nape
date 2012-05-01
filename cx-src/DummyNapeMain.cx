@@ -9,7 +9,7 @@ class DummyNapeMain {
 		body1.shapes.add(new Circle(10));
 		var body2 = new Body();
 		body2.shapes.add(new Circle(10));
-		body1.space = body2.space = null;
+		body1.space = body2.space = space;
 
 		var cb1 = new CbType();
 		var cb2 = new CbType();
@@ -17,15 +17,27 @@ class DummyNapeMain {
 		body1.cbTypes.add(cb1);
 
 		body2.cbTypes.add(cb1);
-		body2.cbTypes.add(cb2);
 
-		var beg1 = new InteractionListener(CbEvent.BEGIN, InteractionType.ANY, cb1,cb1, function (_) { trace("cb1-cb1 begin"); });
-		var beg2 = new InteractionListener(CbEvent.BEGIN, InteractionType.ANY, cb1,cb2, function (_) { trace("cb1-cb2 begin"); });
+		function handler(name:String) {
+			return function (cb:InteractionCallback) {
+				trace(name+" "+cb.int1.cbTypes+" "+cb.int2.cbTypes);
+			}
+		}
+
+		var beg1 = new InteractionListener(CbEvent.BEGIN, InteractionType.ANY, cb1,cb1, handler("cb1 cb1"));
+		var beg2 = new InteractionListener(CbEvent.BEGIN, InteractionType.ANY, cb2,cb1, handler("cb1 cb2"));
 		beg1.space = beg2.space = space;
 
-		space.step(1/60,1,1);
+		var ong2 = new InteractionListener(CbEvent.ONGOING, InteractionType.ANY, cb2,cb1, handler("cb1 cb2 (ong)"));
 
-		trace(body1.pr(inner).cbSet);
-		trace(body1.pr(inner).cbSet);
+		body1.position.set(body2.position); space.step(1/60,1,1); trace("---");
+
+		body2.cbTypes.add(cb2);
+
+		body1.position.set(body2.position); space.step(1/60,1,1); trace("---");
+
+		ong2.space = space;
+
+		body1.position.set(body2.position); space.step(1/60,1,1); trace("---");
 	}
 }

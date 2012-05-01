@@ -20,12 +20,12 @@ class PR(Interactor) {
 	//--------------------------------------------------------------------
 
 	public function __iaddedToSpace() {
-		if(cbType!=null) cbType.addInteractor(this);
+		//if(cbType!=null) cbType.addInteractor(this);
 		if(group!=null) group.addInteractor(this);
 		alloc_cbSet();
 	}
 	public function __iremovedFromSpace() {
-		if(cbType!=null) cbType.remInteractor(this);
+		//if(cbType!=null) cbType.remInteractor(this);
 		if(group!=null) group.remInteractor(this);
 		dealloc_cbSet();
 	}
@@ -78,9 +78,6 @@ class PR(Interactor) {
 	//--------------------------------------------------------------------
 
 	public var group:PR(InteractionGroup);
-	public var cbType:PR(CbType); //deprecated
-
-	//--------------------------------------------------------------------
 
 	public var cbTypes:List(PR(CbType));
 	public var cbSet:PR(CbSet); //assigned by Space
@@ -90,6 +87,10 @@ class PR(Interactor) {
 		wrap_cbTypes = PR(CbTypeList).get(cbTypes);
 		wrap_cbTypes.pr(inner).adder = wrap_cbTypes_adder;
 		wrap_cbTypes.pr(inner)._invalidate = wrap_cbTypes_invalidate;
+		wrap_cbTypes.pr(inner)._modifiable = immutable_cbTypes;
+	}
+	function immutable_cbTypes() {
+		immutable_midstep("Interactor::cbTypes");
 	}
 	function wrap_cbTypes_adder(cb:CbType):Bool {
 		//attempt to insert cb into list in correct position (check not already inside).
@@ -115,6 +116,8 @@ class PR(Interactor) {
 			cbSet.increment();
 
 			cbSet.addInteractor(this);
+			
+			cbSet.validate(); //<--- !!!! otherwise freshInteractorType fails.
 			space.freshInteractorType2(this);
 		}
 	}
@@ -134,7 +137,7 @@ class PR(Interactor) {
 	}
 
 	//--------------------------------------------------------------------
-
+/*
 	public function setCbType(cbType:PR(CbType)) {
 		if(this.cbType!=cbType) {
 			var space = get_space();
@@ -151,7 +154,7 @@ class PR(Interactor) {
 
 			wake();
 		}
-	}
+	}*/
 
 	public function setGroup(group:PR(InteractionGroup)) {
 		if(this.group!=group) {
@@ -188,8 +191,8 @@ class PR(Interactor) {
 	//--------------------------------------------------------------------
 
 	flibmdel public inline static function int_callback(o1:PR(Interactor),o2:PR(Interactor),cb1:PR(CbType),cb:PR(Callback)) {
-		if(o1.cbType==cb1) { cb.int1 = o1; cb.int2 = o2; }
-		else               { cb.int2 = o1; cb.int1 = o2; }
+		if(o1.cbTypes.has(cb1)) { cb.int1 = o1; cb.int2 = o2; }
+		else                    { cb.int2 = o1; cb.int1 = o2; }
 	}
 
 	flibmdel public inline function lookup_group() {
@@ -206,6 +209,8 @@ class PR(Interactor) {
 
 	public function copyto(ret:Interactor) {
 		ret.pr(inner_i).group = group;
-		ret.pr(inner_i).cbType = cbType;
+		//ret.pr(inner_i).cbType = cbType;
+		var pre = null;
+		Iter(cb, cbTypes, pre = ret.pr(inner_i).cbTypes.insert(pre, cb));
 	}
 }
