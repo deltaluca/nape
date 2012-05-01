@@ -183,6 +183,16 @@ class PR(InteractionListener) extends PR(Listener) {
 	}
 
 	public function assign() {
+		Iter(cs1,cb1.cbsets,{
+		Iter(cs2,cb2.cbsets,{
+			//avoid duplicate pairs, can we do better?
+			if(cb1.cbsets.has(cs2) && cb2.cbsets.has(cs1) && PR(CbSet).set_lt(cs2,cs1)) cx_continue;
+
+			if(PR(CbSet).empty_intersection(cs1,cs2))
+				space.freshListenerType2(cs1,cs2);
+		});
+		});
+
 		if(PR(CbType).empty_intersection(cb1,cb2))
 			space.freshListenerType(cb1,cb2);
 
@@ -192,6 +202,16 @@ class PR(InteractionListener) extends PR(Listener) {
 	public function unassign() {
 		cb1.removeint(this);
 		if(cb1!=cb2) cb2.removeint(this);
+
+		Iter(cs1,cb1.cbsets,{
+		Iter(cs2,cb2.cbsets,{
+			//avoid duplicate pairs, can we do better?
+			if(cb1.cbsets.has(cs2) && cb2.cbsets.has(cs1) && PR(CbSet).set_lt(cs2,cs1)) cx_continue;
+
+			if(PR(CbSet).empty_intersection(cs1,cs2))
+				space.nullListenerType2(cs1,cs2);
+		});
+		});
 
 		if(PR(CbType).empty_intersection(cb1,cb2))
 			space.nullListenerType(cb1,cb2);

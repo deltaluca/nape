@@ -1014,6 +1014,53 @@ class PR(Space) {
 
 	//clean up all callbacksets associated with these cbTypes
 	//pre: this is valid! (aka cb1/cb2 have no matching listener for interaction/pre)
+	public function nullListenerType2(cb1:PR(CbSet),cb2:PR(CbSet)) {
+		//we could iterate the callbackset hash here instead to pick them out easily
+		//but iterating the hash and deleting elements isn't something currently possible
+		//at least not properly and well tested. so we'll take the dirty approach
+		//since this is a function that will not often be called.
+		//
+		//or atleast only iterate pairs of shapes once! TODO
+		var stack = new List(PR(Interactor))();	
+		Iterate(cb1.interactors, stack.add);
+		if(cb1!=cb2)
+			Iterate(cb2.interactors, stack.add);
+	
+		while(!stack.empty()) {
+			var intx = stack.pop_unsafe();
+			if(intx.isCompound()) {
+				var comp = intx.icompound;
+				Iterate(comp.bodies, stack.add);
+				Iterate(comp.compounds, stack.add);
+			}else {
+				var xbody = if(intx.isBody()) intx.ibody else intx.ishape.body;
+				var xshp = if(intx.isShape()) intx.ishape else null;
+				Iter(xarb,xbody.arbiters,{
+					//bug-fix: see same line in nullInteractorType
+					//if(!xarb.active) cx_continue;
+					if(!xarb.present) cx_continue;
+
+					if(xshp!=null && !(xarb.ws1==xshp || xarb.ws2==xshp)) cx_continue; //short-cut
+
+					MRCA_chains2(xarb.ws1,xarb.ws2);
+					Iter(i1,mrca1,{ if(i1.cbSet != cb1 && i1.cbSet != cb2) cx_continue;
+					Iter(i2,mrca2,{ if((i1.cbSet == cb1 && i2.cbSet != cb2) || (i1.cbSet == cb2 && i2.cbSet != cb1)) cx_continue;
+						var callbackset = PR(Interactor).get(i1,i2);
+						if(callbackset!=null) {
+							ClearWith(arb, callbackset.arbiters, arb.present=false);
+							remove_callbackset(callbackset);
+							//deferred for callbackset_list
+							//Free(PR(CallbackSet),callbackset);
+						}
+					});
+					});
+				});
+			}
+		}
+	}
+
+	//clean up all callbacksets associated with these cbTypes
+	//pre: this is valid! (aka cb1/cb2 have no matching listener for interaction/pre)
 	public function nullListenerType(cb1:PR(CbType),cb2:PR(CbType)) {
 		//we could iterate the callbackset hash here instead to pick them out easily
 		//but iterating the hash and deleting elements isn't something currently possible
@@ -1148,6 +1195,49 @@ class PR(Space) {
 		}
 	}
 	
+	//create all callbacksets associated with these cbTypes
+	//pre: this is valid! (aka cb1/cb2 has only one matching listener for interaction/pre)
+	public function freshListenerType2(cb1:PR(CbSet),cb2:PR(CbSet)) {
+		//this could be improved greatly to only consider pairs of shapes once
+		//but for now it will do: TODO
+		var stack = new List(PR(Interactor))();	
+		Iterate(cb1.interactors, stack.add);
+		if(cb1!=cb2)
+			Iterate(cb2.interactors, stack.add);
+	
+		while(!stack.empty()) {
+			var intx = stack.pop_unsafe();
+			if(intx.isCompound()) {
+				var comp = intx.icompound;
+				Iterate(comp.bodies, stack.add);
+				Iterate(comp.compounds, stack.add);
+			}else {
+				var xbody = if(intx.isBody()) intx.ibody else intx.ishape.body;
+				var xshp = if(intx.isShape()) intx.ishape else null;
+				Iter(xarb,xbody.arbiters,{
+					//bug-fix... meh
+					//if(!xarb.active) cx_continue;
+					if(!xarb.presentable) cx_continue;
+
+					if(xshp!=null && !(xarb.ws1==xshp || xarb.ws2==xshp)) cx_continue; //short-cut
+
+					MRCA_chains2(xarb.ws1,xarb.ws2);
+					Iter(i1,mrca1,{ if(i1.cbSet != cb1 && i1.cbSet != cb2) cx_continue;
+					Iter(i2,mrca2,{ if((i1.cbSet == cb1 && i2.cbSet != cb2) || (i1.cbSet == cb2 && i2.cbSet != cb1)) cx_continue;
+						var callbackset = PR(Interactor).get(i1,i2);
+						xarb.present = true;
+						if(callbackset==null) {
+							callbackset = PR(CallbackSet).get(i1,i2);
+							add_callbackset(callbackset);
+						}
+						callbackset.add_arb(xarb);
+					});
+					});
+				});
+			}
+		}
+	}
+
 	//create all callbacksets associated with these cbTypes
 	//pre: this is valid! (aka cb1/cb2 has only one matching listener for interaction/pre)
 	public function freshListenerType(cb1:PR(CbType),cb2:PR(CbType)) {
