@@ -597,7 +597,7 @@ class PR(Space) {
 				//as in either case the callbackset exists and must be cleaned
 //				if(xarb.active) {
 				if(xarb.present) {
-					MRCA_chains2(xarb.ws1,xarb.ws2);
+					MRCA_chains(xarb.ws1,xarb.ws2);
 					Iter(i1,mrca1,{
 					Iter(i2,mrca2,{
 						var cb1 = i1.cbSet;
@@ -1018,54 +1018,7 @@ class PR(Space) {
 
 	//clean up all callbacksets associated with these cbTypes
 	//pre: this is valid! (aka cb1/cb2 have no matching listener for interaction/pre)
-	public function nullListenerType2(cb1:PR(CbSet),cb2:PR(CbSet)) {
-		//we could iterate the callbackset hash here instead to pick them out easily
-		//but iterating the hash and deleting elements isn't something currently possible
-		//at least not properly and well tested. so we'll take the dirty approach
-		//since this is a function that will not often be called.
-		//
-		//or atleast only iterate pairs of shapes once! TODO
-		var stack = new List(PR(Interactor))();	
-		Iterate(cb1.interactors, stack.add);
-		if(cb1!=cb2)
-			Iterate(cb2.interactors, stack.add);
-	
-		while(!stack.empty()) {
-			var intx = stack.pop_unsafe();
-			if(intx.isCompound()) {
-				var comp = intx.icompound;
-				Iterate(comp.bodies, stack.add);
-				Iterate(comp.compounds, stack.add);
-			}else {
-				var xbody = if(intx.isBody()) intx.ibody else intx.ishape.body;
-				var xshp = if(intx.isShape()) intx.ishape else null;
-				Iter(xarb,xbody.arbiters,{
-					//bug-fix: see same line in nullInteractorType
-					//if(!xarb.active) cx_continue;
-					if(!xarb.present) cx_continue;
-
-					if(xshp!=null && !(xarb.ws1==xshp || xarb.ws2==xshp)) cx_continue; //short-cut
-
-					MRCA_chains2(xarb.ws1,xarb.ws2);
-					Iter(i1,mrca1,{ if(i1.cbSet != cb1 && i1.cbSet != cb2) cx_continue;
-					Iter(i2,mrca2,{ if((i1.cbSet == cb1 && i2.cbSet != cb2) || (i1.cbSet == cb2 && i2.cbSet != cb1)) cx_continue;
-						var callbackset = PR(Interactor).get(i1,i2);
-						if(callbackset!=null) {
-							ClearWith(arb, callbackset.arbiters, arb.present=false);
-							remove_callbackset(callbackset);
-							//deferred for callbackset_list
-							//Free(PR(CallbackSet),callbackset);
-						}
-					});
-					});
-				});
-			}
-		}
-	}
-
-/*	//clean up all callbacksets associated with these cbTypes
-	//pre: this is valid! (aka cb1/cb2 have no matching listener for interaction/pre)
-	public function nullListenerType(cb1:PR(CbType),cb2:PR(CbType)) {
+	public function nullListenerType(cb1:PR(CbSet),cb2:PR(CbSet)) {
 		//we could iterate the callbackset hash here instead to pick them out easily
 		//but iterating the hash and deleting elements isn't something currently possible
 		//at least not properly and well tested. so we'll take the dirty approach
@@ -1094,8 +1047,8 @@ class PR(Space) {
 					if(xshp!=null && !(xarb.ws1==xshp || xarb.ws2==xshp)) cx_continue; //short-cut
 
 					MRCA_chains(xarb.ws1,xarb.ws2);
-					Iter(i1,mrca1,{ if(i1.cbType != cb1 && i1.cbType != cb2) cx_continue;
-					Iter(i2,mrca2,{ if((i1.cbType == cb1 && i2.cbType != cb2) || (i1.cbType == cb2 && i2.cbType != cb1)) cx_continue;
+					Iter(i1,mrca1,{ if(i1.cbSet != cb1 && i1.cbSet != cb2) cx_continue;
+					Iter(i2,mrca2,{ if((i1.cbSet == cb1 && i2.cbSet != cb2) || (i1.cbSet == cb2 && i2.cbSet != cb1)) cx_continue;
 						var callbackset = PR(Interactor).get(i1,i2);
 						if(callbackset!=null) {
 							ClearWith(arb, callbackset.arbiters, arb.present=false);
@@ -1108,51 +1061,8 @@ class PR(Space) {
 				});
 			}
 		}
-	}*/
-
-	//clean up all callbacksets associated with interactor	
-	public function nullInteractorType2(intx:PR(Interactor),me:PR(Interactor)=null) {
-		if(me==null) me = intx;
-
-		if(intx.isCompound()) {
-			var comp = intx.icompound;
-			Iter(body, comp.bodies,    nullInteractorType2(body,me));
-			Iter(comp, comp.compounds, nullInteractorType2(comp,me));
-		}else {
-			var xbody = if(intx.isBody()) intx.ibody else intx.ishape.body;
-			var xshp = if(intx.isShape()) intx.ishape else null;
-			Iter(xarb,xbody.arbiters,{
-				//bug-fix: need to try and remove arbiter even
-				// if inactive, can result if pre-listener removes
-				// contacts from arbiter it is still in the set
-				// and we should try and remove it
-				//if(!xarb.active) cx_continue;
-				if(!xarb.present) cx_continue;
-
-				if(xshp!=null && !(xarb.ws1==xshp || xarb.ws2==xshp)) cx_continue; //short-cut
-
-				MRCA_chains2(xarb.ws1,xarb.ws2);
-				Iter(i1,mrca1,{
-				Iter(i2,mrca2,{
-					//only want to handle relevant callbacksets!
-					if(i1!=me && i2!=me) cx_continue;
-
-					var callbackset = PR(Interactor).get(i1,i2);
-					if(callbackset!=null) {
-						xarb.present = false;
-						callbackset.remove_arb(xarb);
-						if(callbackset.really_empty()) {
-							remove_callbackset(callbackset);
-							//deferred for callbackset_list
-							//Free(PR(CallbackSet),callbackset);
-						}
-					}
-				});
-				});
-			});
-		}
 	}
-	/*
+
 	//clean up all callbacksets associated with interactor	
 	public function nullInteractorType(intx:PR(Interactor),me:PR(Interactor)=null) {
 		if(me==null) me = intx;
@@ -1180,9 +1090,6 @@ class PR(Space) {
 					//only want to handle relevant callbacksets!
 					if(i1!=me && i2!=me) cx_continue;
 
-					var cb1 = i1.cbType;
-					var cb2 = i2.cbType;
-					assert(cb1!=null && cb2!=null, "null cb from MRCA_chains??");
 					var callbackset = PR(Interactor).get(i1,i2);
 					if(callbackset!=null) {
 						xarb.present = false;
@@ -1197,54 +1104,11 @@ class PR(Space) {
 				});
 			});
 		}
-	}*/
-	
-	//create all callbacksets associated with these cbTypes
-	//pre: this is valid! (aka cb1/cb2 has only one matching listener for interaction/pre)
-	public function freshListenerType2(cb1:PR(CbSet),cb2:PR(CbSet)) {
-		//this could be improved greatly to only consider pairs of shapes once
-		//but for now it will do: TODO
-		var stack = new List(PR(Interactor))();	
-		Iterate(cb1.interactors, stack.add);
-		if(cb1!=cb2)
-			Iterate(cb2.interactors, stack.add);
-	
-		while(!stack.empty()) {
-			var intx = stack.pop_unsafe();
-			if(intx.isCompound()) {
-				var comp = intx.icompound;
-				Iterate(comp.bodies, stack.add);
-				Iterate(comp.compounds, stack.add);
-			}else {
-				var xbody = if(intx.isBody()) intx.ibody else intx.ishape.body;
-				var xshp = if(intx.isShape()) intx.ishape else null;
-				Iter(xarb,xbody.arbiters,{
-					//bug-fix... meh
-					//if(!xarb.active) cx_continue;
-					if(!xarb.presentable) cx_continue;
-
-					if(xshp!=null && !(xarb.ws1==xshp || xarb.ws2==xshp)) cx_continue; //short-cut
-
-					MRCA_chains2(xarb.ws1,xarb.ws2);
-					Iter(i1,mrca1,{ if(i1.cbSet != cb1 && i1.cbSet != cb2) cx_continue;
-					Iter(i2,mrca2,{ if((i1.cbSet == cb1 && i2.cbSet != cb2) || (i1.cbSet == cb2 && i2.cbSet != cb1)) cx_continue;
-						var callbackset = PR(Interactor).get(i1,i2);
-						xarb.present = true;
-						if(callbackset==null) {
-							callbackset = PR(CallbackSet).get(i1,i2);
-							add_callbackset(callbackset);
-						}
-						callbackset.add_arb(xarb);
-					});
-					});
-				});
-			}
-		}
 	}
-/*
+	
 	//create all callbacksets associated with these cbTypes
 	//pre: this is valid! (aka cb1/cb2 has only one matching listener for interaction/pre)
-	public function freshListenerType(cb1:PR(CbType),cb2:PR(CbType)) {
+	public function freshListenerType(cb1:PR(CbSet),cb2:PR(CbSet)) {
 		//this could be improved greatly to only consider pairs of shapes once
 		//but for now it will do: TODO
 		var stack = new List(PR(Interactor))();	
@@ -1269,8 +1133,8 @@ class PR(Space) {
 					if(xshp!=null && !(xarb.ws1==xshp || xarb.ws2==xshp)) cx_continue; //short-cut
 
 					MRCA_chains(xarb.ws1,xarb.ws2);
-					Iter(i1,mrca1,{ if(i1.cbType != cb1 && i1.cbType != cb2) cx_continue;
-					Iter(i2,mrca2,{ if((i1.cbType == cb1 && i2.cbType != cb2) || (i1.cbType == cb2 && i2.cbType != cb1)) cx_continue;
+					Iter(i1,mrca1,{ if(i1.cbSet != cb1 && i1.cbSet != cb2) cx_continue;
+					Iter(i2,mrca2,{ if((i1.cbSet == cb1 && i2.cbSet != cb2) || (i1.cbSet == cb2 && i2.cbSet != cb1)) cx_continue;
 						var callbackset = PR(Interactor).get(i1,i2);
 						xarb.present = true;
 						if(callbackset==null) {
@@ -1284,48 +1148,7 @@ class PR(Space) {
 			}
 		}
 	}
-*/
-	public function freshInteractorType2(intx:PR(Interactor),me:PR(Interactor)=null) {
-		if(me==null) me = intx;
 
-		if(intx.isCompound()) {
-			var comp = intx.icompound;
-			Iter(body, comp.bodies,    freshInteractorType2(body,me));
-			Iter(comp, comp.compounds, freshInteractorType2(comp,me));
-		}else {
-			var xbody = if(intx.isBody()) intx.ibody else intx.ishape.body;
-			var xshp = if(intx.isShape()) intx.ishape else null;
-			Iter(xarb,xbody.arbiters,{
-				//bug-fix see nullInteractorType
-				//if(!xarb.active) cx_continue;
-				if(!xarb.presentable) cx_continue;
-
-				if(xshp!=null && !(xarb.ws1==xshp || xarb.ws2==xshp)) cx_continue; //short-cut
-
-				MRCA_chains2(xarb.ws1,xarb.ws2);
-				Iter(i1,mrca1,{
-				Iter(i2,mrca2,{
-					//only want to handle relevant callbacksets!
-					if(i1!=me && i2!=me) cx_continue;
-
-					var cb1 = i1.cbSet;
-					var cb2 = i2.cbSet;
-					assert(cb1!=null && cb2!=null, "null cbset from MRCA_chain?");
-					if(!PR(CbSet).empty_intersection(cb1,cb2)) {
-						xarb.present = true;
-						var callbackset = PR(Interactor).get(i1,i2);
-						if(callbackset==null) {
-							callbackset = PR(CallbackSet).get(i1,i2);
-							add_callbackset(callbackset);
-						}
-						callbackset.add_arb(xarb);
-					}
-				});
-				});
-			});
-		}
-	}
-/*
 	public function freshInteractorType(intx:PR(Interactor),me:PR(Interactor)=null) {
 		if(me==null) me = intx;
 
@@ -1349,10 +1172,10 @@ class PR(Space) {
 					//only want to handle relevant callbacksets!
 					if(i1!=me && i2!=me) cx_continue;
 
-					var cb1 = i1.cbType;
-					var cb2 = i2.cbType;
-					assert(cb1!=null && cb2!=null, "null cb from MRCA_chain?");
-					if(!PR(CbType).empty_intersection(cb1,cb2)) {
+					var cb1 = i1.cbSet;
+					var cb2 = i2.cbSet;
+					assert(cb1!=null && cb2!=null, "null cbset from MRCA_chain?");
+					if(!PR(CbSet).empty_intersection(cb1,cb2)) {
 						xarb.present = true;
 						var callbackset = PR(Interactor).get(i1,i2);
 						if(callbackset==null) {
@@ -1366,7 +1189,7 @@ class PR(Space) {
 			});
 		}
 	}
-	*/
+
     //----------------------------------------------------------------------------------------------
 
 	public function wakeCompound(x:PR(Compound)) {
@@ -1791,7 +1614,7 @@ class PR(Space) {
 					assert(!begcb||arb.up_stamp==stamp, " fresh -> active=true hasn't held :(");
 
 					if(begcb || endcb || arb.cleared || arb.intchange) {
-						inlined_MRCA_chains2(arb.ws1,arb.ws2);
+						inlined_MRCA_chains(arb.ws1,arb.ws2);
 						Iter(i1,mrca1,{
 						Iter(i2,mrca2,{
 							var cb1 = i1.cbSet;
@@ -2066,7 +1889,7 @@ class PR(Space) {
 							//true if any listener in any callbackset is impure.
 							var anyimpure = false;
 
-							inlined_MRCA_chains2(s1,s2);
+							inlined_MRCA_chains(s1,s2);
 							Iter(i1,mrca1, {
 							Iter(i2,mrca2, {
 								var cb1 = i1.cbSet;
@@ -2326,8 +2149,8 @@ class PR(Space) {
 	public var mrca1:List(PR(Interactor));
 	public var mrca2:List(PR(Interactor));
 
-	public function MRCA_chains2(s1:PR(Shape),s2:PR(Shape)) inlined_MRCA_chains2(s1,s2)
-	flibmdel public inline function inlined_MRCA_chains2(s1:PR(Shape), s2:PR(Shape)) {
+	public function MRCA_chains(s1:PR(Shape),s2:PR(Shape)) inlined_MRCA_chains(s1,s2)
+	flibmdel public inline function inlined_MRCA_chains(s1:PR(Shape), s2:PR(Shape)) {
 		assert(s1!=s2 && s1.body!=s2.body, "MRCA chain for equal shapes, or shapes of the same body?");
 		//clear any remnants
 		mrca1.clear();
@@ -2347,26 +2170,4 @@ class PR(Space) {
 			else      { if(c1.cbSet!=null) mrca1.add(c1); c1 = c1.compound; }
 		}
 	}
-/*
-	public function MRCA_chains(s1:PR(Shape),s2:PR(Shape)) inlined_MRCA_chains(s1,s2)
-	flibmdel public inline function inlined_MRCA_chains(s1:PR(Shape), s2:PR(Shape)) {
-		assert(s1!=s2 && s1.body!=s2.body, "MRCA chain for equal shapes, or shapes of the same body?");
-		//clear any remnants
-		mrca1.clear();
-		mrca2.clear();
-
-		//first part done explicitly for most common path.
-		if(s1.cbType!=null) mrca1.add(s1); if(s1.body.cbType!=null) mrca1.add(s1.body);
-		if(s2.cbType!=null) mrca2.add(s2); if(s2.body.cbType!=null) mrca2.add(s2.body);
-
-		//slower path for rest of compound chain.
-		var c1 = s1.body.compound;
-		var c2 = s2.body.compound;
-		while(c1!=c2) {
-			var d1 = if(c1==null) 0 else c1.depth;
-			var d2 = if(c2==null) 0 else c2.depth;
-			if(d1<d2) {	if(c2.cbType!=null) mrca2.add(c2); c2 = c2.compound; }
-			else      { if(c1.cbType!=null) mrca1.add(c1); c1 = c1.compound; }
-		}
-	}*/
 }
