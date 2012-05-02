@@ -1,0 +1,28 @@
+package nape.callbacks;
+$(import);
+
+class OptionType {
+	public var pr(inner):PR(OptionType);
+
+	property(negated, Bool, pr(inner).negated)
+	property(cbType, CbType, pr(inner).cbType.outer)
+
+	public function new(cbType:CbType, negated:Bool=false) {
+		DEBUG(if(cbType==null) throw "Error: Cannot construct OptionType from null CbType";)
+		pr(inner).cbType = cbType.pr(inner);
+		pr(inner).negated = negated;
+	}
+
+	public function choice(types:Dynamic):OptionTypeList return PR(OptionType).toPublicList(types)
+	public function butnot(types:Dynamic):OptionTypeList {
+		var ret = choice(types);
+		for(x in ret) x.pr(inner).negated = !x.pr(inner).negated;
+		return ret;
+	}
+
+	public function or(types:Dynamic):OptionTypeList return choice([this,types])
+
+	@:$keep public function toString() {
+		return (negated ? "not " : "") + cbType.toString();
+	}
+}

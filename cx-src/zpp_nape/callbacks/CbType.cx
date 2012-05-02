@@ -1,6 +1,55 @@
 package zpp_nape.callbacks;
 $(import);
 
+class PR(OptionType) {
+	public var outer:OptionType;
+
+	public var cbType:PR(CbType);
+	public var negated:Bool;
+
+	public function new() {
+	}
+
+	//used by Listener constructors etc.
+	public static function toPublicList(type:Dynamic):OptionTypeList {
+		var ret = new OptionTypeList();
+		if(type==null) return ret;
+
+		if(Std.is(type,CbType)) {
+			var cb:CbType = type;
+			ret.add(new OptionType(cb,false));
+		}else if(Std.is(type,OptionType)) {
+			var op:OptionType = type;
+			ret.add(op);
+		}else if(Std.is(type,Array)) {
+			var lv:Array<Dynamic> = type;
+			for(x in lv) {
+				var ys = toPublicList(x);
+				for(y in ys) ret.add(y);
+			}
+		}
+	#if flash10
+	     else if(Std.is(type,PR(Const).cbtypevector)) {
+			 var xs:flash.Vector<CbType> = type;
+			 for(x in xs) ret.add(new OptionType(x,false));
+		}else if(Std.is(type,PR(Const).optiontypevector)) {
+			var xs:flash.Vector<OptionType> = type;
+			for(x in xs) ret.add(x);
+		}
+	#end
+		 else if(Std.is(type,OptionTypeList)) {
+			 var xs:OptionTypeList = type;
+			 for(x in xs) ret.add(x);
+		}else if(Std.is(type,CbTypeList)) {
+			var xs:CbTypeList = type;
+			for(x in xs) ret.add(new OptionType(x,false));
+		}
+		DEBUG(else throw "Error: OptionTypeList can only be constructed from OptionTypes and CbTypes";)
+
+		return ret;
+	}
+}
+
 //one CbSet exists for each unique combinatino of CbTypes Interactors within a Space
 //habe present so that lists can be computed per-CbSet instead of per-Interactor
 class PR(CbSet) {
