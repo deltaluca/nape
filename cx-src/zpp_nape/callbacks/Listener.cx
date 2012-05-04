@@ -36,44 +36,35 @@ class PR(Listener) {
 $(mixin SingleListener(t,T,FLAG)
 	public var outer_zn:T`Listener;
 
-	public var wrap_options:OptionTypeList;
-	public var options:List(PR(OptionType));
+	public var options:PR(OptionType);
 	public var handler:T`Callback->Void;
 	DEBUG(function immutable_options() {
 		if(space!=null && space.midstep)
 			throw "Error: Cannot change listener type options during space.step()";
 	})
-	function wrap_options_adder(op:OptionType) {
-		//attempt to insert option into list in correct position (check not already inside).
-		if(TryInsert(op.pr(inner),options,PR(OptionType).set_lt)) {
-			op.pr(inner).cbType.add`t(this);
-		}
-		return false; //always prevent warp list doing insertions
-	}
-	function wrap_options_subber(op:OptionType) {
-		op.pr(inner).cbType.remove`t(this);
-	}
 
-	public function new(types:Dynamic, event:Int, handler:T`Callback->Void) {
+	public function new(options:OptionType, event:Int, handler:T`Callback->Void) {
 		super();
 		this.event = event;
 		this.handler = handler;
 		t = this;
 		type = FLAG;
-
-		wrap_options = PR(OptionType).toPublicList(types);
-		options = wrap_options.pr(inner).inner;
-		DEBUG(wrap_options.pr(inner)._modifiable = immutable_options;)
-		wrap_options.pr(inner).adder = wrap_options_adder;
-		wrap_options.pr(inner).subber = wrap_options_subber;
+		this.options = options.pr(inner);
 	}
 
 	public function addedToSpace() {
-		PR(OptionType).foreach(options, function (o:PR(CbType)) o.add`t(this));
+		options.handler = cbtype_change;
+		Iter(cb, options.includes, cb.add`t(this));
 	}
 	public function removedFromSpace() {
-		PR(OptionType).foreach(options, function (o:PR(CbType)) o.remove`t(this));
+		Iter(cb, options.includes, cb.remove`t(this));
+		options.handler = null;
 	}
+	function cbtype_change(cb:PR(CbType),added:Bool) {
+		if(added) cb.add`t(this);
+		else cb.remove`t(this);
+	}
+
 	public function changed_precedence() {
 		if(space!=null) {
 			removedFromSpace();

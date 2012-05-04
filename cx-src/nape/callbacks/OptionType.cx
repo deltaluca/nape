@@ -7,33 +7,42 @@ class OptionType {
 	$(mixin ANY(T)
 		public static var ANY_`T(flibget_ANY_`T,never):OptionType;
 		force_inline static function flibget_ANY_`T() {
-			return new OptionType(PR(CbType).ANY_`T.wrapper());
+			var ret = new OptionType();
+			ret.pr(inner).includes.add(PR(CbType).ANY_`T);
+			return ret;
 		}
 	);
 	ANY(BODY) ANY(SHAPE) ANY(COMPOUND) ANY(CONSTRAINT)
 
-	property(negated, Bool, pr(inner).negated)
-	property(cbType, CbType, pr(inner).cbType.outer)
+	property(includes,CbTypeList,{
+		if(pr(inner).wrap_includes==null) pr(inner).setup_includes();
+		pr(inner).wrap_includes;
+	})
+	property(excludes,CbTypeList,{
+		if(pr(inner).wrap_excludes==null) pr(inner).setup_excludes();
+		pr(inner).wrap_excludes;
+	})
 
-	public function new(cbType:CbType, negated:Bool=false) {
-		DEBUG(if(cbType==null) throw "Error: Cannot construct OptionType from null CbType";)
+	flibopts(2)
+	public function new(includes:Dynamic=null, excludes:Dynamic=null) {
 		pr(inner) = new PR(OptionType)();
-		pr(inner).cbType = cbType.pr(inner);
-		pr(inner).negated = negated;
 		pr(inner).outer = this;
+		include(includes);
+		exclude(excludes);
 	}
 
-	public static function choice(types:Dynamic):OptionTypeList return PR(OptionType).toPublicList(types)
-	public static function not(types:Dynamic):OptionTypeList {
-		var ret = choice(types);
-		for(x in ret) x.pr(inner).negated = !x.pr(inner).negated;
-		return ret;
+	public function include(includes:Dynamic=null) {
+		pr(inner).append(pr(inner).includes,includes);
+		return this;
 	}
-	public function except(types:Dynamic) return or(not(types))
-
-	public function or(types:Dynamic):OptionTypeList return choice([this,types])
+	public function exclude(excludes:Dynamic=null) {
+		pr(inner).append(pr(inner).excludes,excludes);
+		return this;
+	}
 
 	@:$keep public function toString() {
-		return (negated ? "¬" : "") + cbType.toString();
+		var inc = includes.toString();
+		var exc = excludes.toString();
+		return "@{"+inc+"-"+exc+"}";
 	}
 }

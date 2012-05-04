@@ -3,96 +3,99 @@ $(import);
 
 class PR(OptionType) {
 	public var outer:OptionType;
+	//used for when changes are made for a listener
+	public var handler:PR(CbType)->Bool->Void;
 
-	public var cbType:PR(CbType);
-	public var negated:Bool;
+	public var includes:List(PR(CbType));
+	public var excludes:List(PR(CbType));
 
 	public function new() {
+		includes = new List(PR(CbType))();
+		excludes = new List(PR(CbType))();
 	}
 
-    ///---------------------------------------------------------------------------------------------
-	//for ordering operations
-
-	public inline static function set_lt(a:PR(OptionType),b:PR(OptionType)) {
-		return if(a.negated==b.negated)
-			PR(CbType).set_lt(a.cbType,b.cbType)
-		else a.negated;
+	public var wrap_includes:CbTypeList;
+	public var wrap_excludes:CbTypeList;
+	public function setup_includes() {
+		wrap_includes = PR(CbTypeList).get(includes,true);
+	}
+	public function setup_excludes() {
+		wrap_excludes = PR(CbTypeList).get(excludes,true);
 	}
 
-    ///---------------------------------------------------------------------------------------------
+	//----------------------------------------------------------------------
 
-	public static inline function foreach(options:List(PR(OptionType)),lambda:PR(CbType)->Void) {
-		Iter(o, options, if(!o.negated) lambda(o.cbType));
-	}
-
-    ///---------------------------------------------------------------------------------------------
-
-	//check if a single set of options is compatible with CbSet for single-listeners.
-	//specifically, we are checking for a overlapping the negative portion of the options
-	//since the positive portn is used to generate the listener lists in the first place.
-	public inline static function compatible(options:List(PR(OptionType)), cb:PR(CbSet)) {
-		//options are ordered lexicographically with negatives first, then ordered by CbType id.
-		var ret = true;
-		var oite = options.begin();
-		var cite = cb.cbTypes.begin();
-		while(oite!=null && cite!=null) {
-			var op = oite.elem();
-			if(!op.negated) break;
-			var cb = cite.elem();
-
-			if(op.cbType == cb) { //we've found a matching negated type in options for the cbset!
-				ret = false;
+	//check if (xs intersect excludes) != nil
+	public function excluded(xs:List(PR(CbType))) {
+		//lists are ordered :)
+		var ret = false;
+		var xite = xs.begin();
+		var eite = excludes.begin();
+		while(eite!=null && xite!=null) {
+			var ex = eite.elem();
+			var xi = xite.elem();
+			if(ex==xi) {
+				ret = true;
 				break;
-			}elif(PR(CbType).set_lt(op.cbType,cb))
-				 oite = oite.next;
-			else cite = cite.next;
+			}else if(PR(CbType).set_lt(ex,xi))
+				 eite = eite.next;
+			else xite = xite.next;
 		}
 		return ret;
 	}
 
-    ///---------------------------------------------------------------------------------------------
+	//----------------------------------------------------------------------
 
-	//used by Listener constructors etc.
-	inline static function insertto(xs:OptionTypeList,x:OptionType) {
-		var ys = xs.pr(inner).inner;
-		var y = x.pr(inner);
-		Insert(y,ys,set_lt);
-	}
-	public static function toPublicList(type:Dynamic):OptionTypeList {
-		var ret = new OptionTypeList();
-		if(type==null) return ret;
-
-		if(Std.is(type,CbType)) {
-			var cb:CbType = type;
-			insertto(ret,new OptionType(cb,false));
-		}else if(Std.is(type,OptionType)) {
-			var op:OptionType = type;
-			insertto(ret,op);
-		}else if(Std.is(type,Array)) {
-			var lv:Array<Dynamic> = type;
-			for(x in lv) {
-				var ys = toPublicList(x);
-				for(y in ys) insertto(ret,y);
+	function append_type(list:List(PR(CbType)), val:PR(CbType)) {
+		if(list==includes) {
+			if(!includes.has(val)) {
+				if(!TryRemove(val,excludes,PR(CbType).set_lt)) {
+					Insert(val,includes,PR(CbType).set_lt);
+					//handle new includer!
+					if(handler!=null) handler(val,true);
+				}
+			}
+		}else {
+			if(!excludes.has(val)) {
+				if(!TryRemove(val,includes,PR(CbType).set_lt)) {
+					Insert(val,excludes,PR(CbType).set_lt);
+				}else {
+					//handle removed includer!
+					if(handler!=null) handler(val,false);
+				}
 			}
 		}
-	#if flash10
-	     else if(Std.is(type,PR(Const).cbtypevector)) {
-			 var xs:flash.Vector<CbType> = type;
-			 for(x in xs) insertto(ret,new OptionType(x,false));
-		}else if(Std.is(type,PR(Const).optiontypevector)) {
-			var xs:flash.Vector<OptionType> = type;
-			for(x in xs) insertto(ret,x);
-		}
-	#end
-		 else if(Std.is(type,OptionTypeList)) {
-			 var xs:OptionTypeList = type;
-			 for(x in xs) insertto(ret,x);
-		}else if(Std.is(type,CbTypeList)) {
-			var xs:CbTypeList = type;
-			for(x in xs) insertto(ret,new OptionType(x,false));
-		}
-		DEBUG(else throw "Error: OptionTypeList can only be constructed from OptionTypes and CbTypes";)
-		return ret;
+	}
+
+	//append to list from dynamic
+	public function append(list:List(PR(CbType)), val:Dynamic) {
+		DEBUG(if(val==null) throw "Error: Cannot append null, only CbType and CbType list values";)
+		if(Std.is(val,CbType)) {
+			var cb:CbType = val;
+			append_type(list,cb.pr(inner));
+		}elif(Std.is(val,CbTypeList)) {
+			var cbs:CbTypeList = val;
+			for(cb in cbs) append_type(list,cb.pr(inner));
+		}#if flash10
+		elif(Std.is(val,PR(Const).cbtypevector)) {
+			var cbs:flash.Vector<CbType> = val;
+			for(cb in cbs) append_type(list,cb.pr(inner));
+		}#end
+		elif(Std.is(val,Array)) {
+			var cbs:Array<Dynamic> = val;
+			for(cb in cbs) {
+				DEBUG(if(!Std.is(cb,CbType)) throw "Error: Cannot append non-CbType or CbType list value";)
+				var cbx:CbType = cb;
+				append_type(list,cbx.pr(inner));
+			}
+		}DEBUG(else throw "Error: Cannot append non-CbType or CbType list value";)		
+	}
+
+	//for Listener arguments :)
+	public static function argument(val:Dynamic):OptionType {
+		if(val==null) return new OptionType();
+		if(Std.is(val,OptionType)) return val;
+		return new OptionType().include(val);
 	}
 }
 
@@ -148,7 +151,7 @@ class PR(CbSet) {
 						assert(!n.has(cx),"merged list already contains listener");
 						#if optionstype
 						//only insert if valid for entire set of CbTypes!
-						if(PR(OptionType).compatible(cx.options,this)) {
+						if(!cx.options.excluded(cbTypes)) {
 							#end
 							npre = n.insert(npre,cx);
 							#if optionstype

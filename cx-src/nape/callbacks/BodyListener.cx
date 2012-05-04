@@ -4,7 +4,7 @@ $(import);
 class BodyListener extends Listener {
     public var pr(inner_zn):PR(BodyListener);
 
-	property(types,OptionTypeList,pr(inner_zn).wrap_options)
+	property(options,OptionType,pr(inner_zn).options.outer)
 
     property(handler,BodyCallback->Void,pr(inner_zn).handler,{
 		DEBUG(if(handler==null)throw "Error: BodyListener::handler cannot be null";)
@@ -14,7 +14,7 @@ class BodyListener extends Listener {
     ///---------------------------------------------------------------------------------------------
 
 	flibopts(1)
-    public function new(event:CbEvent, types:Dynamic, handler:BodyCallback->Void, ?precedence=0) {
+    public function new(event:CbEvent, options:Dynamic, handler:BodyCallback->Void, ?precedence=0) {
         PR(Listener).internal = true; super(); PR(Listener).internal = false;
 
 		DEBUG(if(handler==null)throw "Error: BodyListener::handler cannot be null";)
@@ -24,7 +24,7 @@ class BodyListener extends Listener {
         else if(event==CbEvent.SLEEP) xevent = Flag(CbEvent,SLEEP);
         DEBUG(else throw "Error: cbEvent '"+event.toString()+"' is not a valid event type for a BodyListener";)
 
-        pr(inner_zn) = new PR(BodyListener)(types,xevent,handler);
+        pr(inner_zn) = new PR(BodyListener)(PR(OptionType).argument(options),xevent,handler);
         pr(inner) = pr(inner_zn);
         pr(inner).outer = this;
         pr(inner_zn).outer_zn = this;

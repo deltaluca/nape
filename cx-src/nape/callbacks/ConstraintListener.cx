@@ -1,18 +1,10 @@
 package nape.callbacks;
-
-import nape.callbacks.Listener;
-import nape.constraint.Constraint;
-import nape.callbacks.CbType;
-import nape.callbacks.ConstraintCallback;
-import nape.callbacks.CbEvent;
-import zpp_nape.util.Names;
-import zpp_nape.callbacks.Listener;
-import zpp_nape.util.Flags;
+$(import);
 
 class ConstraintListener extends Listener {
     public var pr(inner_zn):PR(ConstraintListener);
 
-	property(types,OptionTypeList,pr(inner_zn).wrap_options)
+	property(options,OptionType,pr(inner_zn).options.outer)
 
     property(handler,ConstraintCallback->Void,pr(inner_zn).handler,{
 		DEBUG(if(handler==null)throw "Error: ConstraintListener::handler cannot be null";)
@@ -22,7 +14,7 @@ class ConstraintListener extends Listener {
     ///---------------------------------------------------------------------------------------------
 
 	flibopts(1)
-    public function new(event:CbEvent, types:Dynamic, handler:ConstraintCallback->Void, ?precedence=0) {
+    public function new(event:CbEvent, options:Dynamic, handler:ConstraintCallback->Void, ?precedence=0) {
         PR(Listener).internal = true; super(); PR(Listener).internal = false;
 		
 		DEBUG(if(handler==null)throw "Error: ConstraintListener::handler cannot be null";)
@@ -33,7 +25,7 @@ class ConstraintListener extends Listener {
         else if(event==CbEvent.BREAK) xevent = Flag(CbEvent,BREAK);
         DEBUG(else throw "Error: cbEvent '"+event.toString()+"' is not a valid event type for a ConstraintListener";)
 
-        pr(inner_zn) = new PR(ConstraintListener)(types,xevent,handler);
+        pr(inner_zn) = new PR(ConstraintListener)(PR(OptionType).argument(options),xevent,handler);
         pr(inner) = pr(inner_zn);
         pr(inner).outer = this;
         pr(inner_zn).outer_zn = this;
