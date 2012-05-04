@@ -12,13 +12,7 @@ import zpp_nape.util.Flags;
 class ConstraintListener extends Listener {
     public var pr(inner_zn):PR(ConstraintListener);
 
-    property(cbType,CbType,pr(inner_zn).cbType.wrapper(),{
-        DEBUG(if(cbType==null) throw "Error: Cannot assign null CbType to Listener";)
-
-        var con = pr(inner_zn);
-        if(con.cbType==null || con.cbType!=cbType.pr(inner))
-            con.swapCbType(cbType.pr(inner));
-    })
+	property(types,OptionTypeList,pr(inner_zn).wrap_options)
 
     property(handler,ConstraintCallback->Void,pr(inner_zn).handler,{
 		DEBUG(if(handler==null)throw "Error: ConstraintListener::handler cannot be null";)
@@ -28,7 +22,7 @@ class ConstraintListener extends Listener {
     ///---------------------------------------------------------------------------------------------
 
 	flibopts(1)
-    public function new(event:CbEvent, cbType:CbType, handler:ConstraintCallback->Void, ?precedence=0) {
+    public function new(event:CbEvent, types:Dynamic, handler:ConstraintCallback->Void, ?precedence=0) {
         PR(Listener).internal = true; super(); PR(Listener).internal = false;
 		
 		DEBUG(if(handler==null)throw "Error: ConstraintListener::handler cannot be null";)
@@ -38,15 +32,12 @@ class ConstraintListener extends Listener {
         else if(event==CbEvent.SLEEP) xevent = Flag(CbEvent,SLEEP);
         else if(event==CbEvent.BREAK) xevent = Flag(CbEvent,BREAK);
         DEBUG(else throw "Error: cbEvent '"+event.toString()+"' is not a valid event type for a ConstraintListener";)
-        DEBUG(if(cbType==null) throw "Error: ConstraintListener cbType cannot be null";)
 
-        pr(inner_zn) = new PR(ConstraintListener)(xevent,handler);
+        pr(inner_zn) = new PR(ConstraintListener)(types,xevent,handler);
         pr(inner) = pr(inner_zn);
         pr(inner).outer = this;
         pr(inner_zn).outer_zn = this;
 		pr(inner).precedence = precedence;
-
-        this.cbType = cbType;
     }
 }
 

@@ -32,12 +32,13 @@ class PR(Listener) {
 ///_________________________________________________________________________________________________
 ///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 
-class PR(BodyListener) extends PR(Listener) {
-    public var outer_zn:BodyListener;
+//used for Body/Constraint Listener that require mostly the same attributes
+$(mixin SingleListener(t,T,FLAG)
+	public var outer_zn:T`Listener;
 
 	public var wrap_options:OptionTypeList;
 	public var options:List(PR(OptionType));
-    public var handler:BodyCallback->Void;
+	public var handler:T`Callback->Void;
 	DEBUG(function immutable_options() {
 		if(space!=null && space.midstep)
 			throw "Error: Cannot change listener type options during space.step()";
@@ -45,58 +46,44 @@ class PR(BodyListener) extends PR(Listener) {
 	function wrap_options_adder(op:OptionType) {
 		//attempt to insert option into list in correct position (check not already inside).
 		if(TryInsert(op.pr(inner),options,PR(OptionType).set_lt)) {
-			op.pr(inner).cbType.addbody(this);
+			op.pr(inner).cbType.add`t(this);
 		}
-		return false; //always prevent wrap list doing insertion.
+		return false; //always prevent warp list doing insertions
 	}
 	function wrap_options_subber(op:OptionType) {
-		op.pr(inner).cbType.removebody(this);
-	}
-	function wrap_options_invalidate(_) {
-		if(space!=null) {
-			removedFromSpace();
-
-		}
+		op.pr(inner).cbType.remove`t(this);
 	}
 
-    public function new(types:Dynamic, event:Int, handler:BodyCallback->Void) {
+	public function new(types:Dynamic, event:Int, handler:T`Callback->Void) {
 		super();
-        this.event = event;
-        this.handler = handler;
-        body = this;
-        type = Flag(ListenerType,BODY);
+		this.event = event;
+		this.handler = handler;
+		t = this;
+		type = FLAG;
 
 		wrap_options = PR(OptionType).toPublicList(types);
 		options = wrap_options.pr(inner).inner;
 		DEBUG(wrap_options.pr(inner)._modifiable = immutable_options;)
 		wrap_options.pr(inner).adder = wrap_options_adder;
 		wrap_options.pr(inner).subber = wrap_options_subber;
-    }
-
-    public function addedToSpace() {
-		PR(OptionType).foreach(options, function (o:PR(CbType)) o.addbody(this));
-    }
-
-    public function removedFromSpace() {
-		PR(OptionType).foreach(options, function (o:PR(CbType)) o.removebody(this));
-    }
-
-	public function changed_precedence() {
-		if(space!=null) {
-			PR(OptionType).foreach(options, function (o:PR(CbType)) { o.removebody(this); o.addbody(this); });
-		}
 	}
 
-   /* public function swapCbType(newcb:PR(CbType)) {
-        assert(newcb!=null,"swap to null cbtype?");
+	public function addedToSpace() {
+		PR(OptionType).foreach(options, function (o:PR(CbType)) o.add`t(this));
+	}
+	public function removedFromSpace() {
+		PR(OptionType).foreach(options, function (o:PR(CbType)) o.remove`t(this));
+	}
+	public function changed_precedence() {
+		if(space!=null) {
+			removedFromSpace();
+			addedToSpace();
+		}
+	}
+);
 
-        //handle live data.
-        if(space!=null) {
-            if(cbType!=null) removedFromSpace();
-            cbType = newcb;
-            addedToSpace();
-        }else cbType = newcb;
-    }*/
+class PR(BodyListener) extends PR(Listener) {
+	SingleListener(body,Body,Flag(ListenerType,BODY))
 
     public function swapEvent(newev:Int) {
         DEBUG(
@@ -113,46 +100,7 @@ class PR(BodyListener) extends PR(Listener) {
 ///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 
 class PR(ConstraintListener) extends PR(Listener) {
-    public var outer_zn:ConstraintListener;
-
-    public var cbType:PR(CbType);
-    public var handler:ConstraintCallback->Void;
-
-    public function new(event:Int, handler:ConstraintCallback->Void) {
-		super();
-        this.event = event;
-        this.handler = handler;
-        constraint = this;
-        type = Flag(ListenerType,CONSTRAINT);
-    }
-
-    public function addedToSpace() {
-        assert(cbType!=null,"listener added to space with no cbtype associated?");
-		cbType.addcon(this);
-    }
-
-    public function removedFromSpace() {
-        assert(cbType!=null,"listener removed from space with no cbtype associated?");
-		cbType.removecon(this);
-    }
-
-	public function changed_precedence() {
-		if(space!=null) {
-			cbType.removecon(this);
-			cbType.addcon(this);
-		}
-	}
-
-    public function swapCbType(newcb:PR(CbType)) {
-        assert(newcb!=null,"swap to null cbtype?");
-
-        //handle live data.
-        if(space!=null) {
-            if(cbType!=null) removedFromSpace();
-            cbType = newcb;
-            addedToSpace();
-        }else cbType = newcb;
-    }
+	SingleListener(constraint,Constraint,Flag(ListenerType,CONSTRAINT))
 
     public function swapEvent(newev:Int) {
         DEBUG(

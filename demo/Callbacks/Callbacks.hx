@@ -195,7 +195,7 @@ class Callbacks extends FixedStep {
 		space.listeners.add(new InteractionListener(CbEvent.BEGIN, InteractionType.COLLISION, indicate_touch,indicate_touch, boxer(0x00ff00)));
 		space.listeners.add(new InteractionListener(CbEvent.END,   InteractionType.COLLISION, indicate_touch,indicate_touch, boxer(0xff0000)));
 
-		space.listeners.add(new ConstraintListener(CbEvent.BREAK, breakup_compound, function (cb:ConstraintCallback) {
+		space.listeners.add(new ConstraintListener(CbEvent.BREAK, OptionType.ANY_CONSTRAINT/*breakup_compound*/, function (cb:ConstraintCallback) {
 			//We're going to break apart the compound containing the constraint and the two boxes
 			//we set the constraint to be removed when it broke, so we don't need to remove the constraint
 			// - When removed, it is also removed from the compound treating it as though it is completely deleted.

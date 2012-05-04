@@ -80,10 +80,13 @@ class PR(Constraint) {
 		immutable_midstep("Interactor::cbTypes");
 	}
 	function wrap_cbTypes_adder(cb:CbType):Bool {
-		//attempt to insert cb into list in correct position (check not already inside).
-		TryInsert(cb.pr(inner),cbTypes,PR(CbType).set_lt);
+		insert_cbtype(cb.pr(inner));
 		wrap_cbTypes_invalidate(null); //need to call due to returning false!
 		return false; //always prevent wrap_list inserting into real list
+	}
+	public function insert_cbtype(cb:PR(CbType)) {
+		//attempt to insert cb into list in correct position (check not already inside).
+		TryInsert(cb,cbTypes,PR(CbType).set_lt);
 	}
 	function wrap_cbTypes_invalidate(_) {
 		if(space!=null && active) {
@@ -217,8 +220,7 @@ class PR(Constraint) {
 	public function copyto(ret:Constraint) {
 		var me = outer;
 
-		var pre = null;
-		Iter(cb,cbTypes,pre = ret.pr(inner).cbTypes.insert(pre,cb));
+		for(cb in me.cbTypes) ret.cbTypes.add(cb);
 
 		ret.removeOnBreak = me.removeOnBreak;
 		ret.breakUnderError = me.breakUnderError;
