@@ -609,18 +609,28 @@ $(mixin global TryInsert(i,list,less) {
 	var pre = null;
 	var exists = false;
 	Iter(j,list,{
-		if(less(i,j))
-			cx_break;
-		if(!less(j,i)) {
-			exists = true;
-			cx_break;
-		}
+		if(less(i,j)) cx_break;
+		if(!less(j,i)) { exists = true; cx_break; }
 		pre = cx_ite;
 	});
 	if(!exists)
 		list.insert(pre,i);
 	!exists;
 });
+
+$(mixin global TryRemove(i,list,less) {
+	var pre = null;
+	var exists = false;
+	Iter(j,list,{
+		if(less(i,j)) cx_break;
+		if(!less(j,i)) { exists = true; cx_break; }
+		pre = cx_ite;
+	});
+	if(!exists) list.erase(pre);
+	!exists;
+});
+
+//--------------------------------------------------------------------------------------------------
 
 //insert i into first position such that less(i,j) for j in list.
 //pre: list is sorted according to less.
