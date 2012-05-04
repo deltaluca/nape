@@ -35,7 +35,8 @@ class PR(Listener) {
 class PR(BodyListener) extends PR(Listener) {
     public var outer_zn:BodyListener;
 
-    public var cbType:PR(CbType);
+	public var wrap_options:OptionTypeList;
+	public var options:List(PR(OptionType));
     public var handler:BodyCallback->Void;
 
     public function new(event:Int, handler:BodyCallback->Void) {
@@ -47,23 +48,20 @@ class PR(BodyListener) extends PR(Listener) {
     }
 
     public function addedToSpace() {
-        assert(cbType!=null,"listener added to space with no cbtype associated?");
-		cbType.addbody(this);
+		PR(OptionType).foreach(options, function (o:PR(CbType)) o.addbody(this));
     }
 
     public function removedFromSpace() {
-        assert(cbType!=null,"listener removed from space with no cbtype associated?");
-		cbType.removebody(this);
+		PR(OptionType).foreach(options, function (o:PR(CbType)) o.removebody(this));
     }
 
 	public function changed_precedence() {
 		if(space!=null) {
-			cbType.removebody(this);
-			cbType.addbody(this);
+			PR(OptionType).foreach(options, function (o:PR(CbType)) { o.removebody(this); o.addbody(this); });
 		}
 	}
 
-    public function swapCbType(newcb:PR(CbType)) {
+   /* public function swapCbType(newcb:PR(CbType)) {
         assert(newcb!=null,"swap to null cbtype?");
 
         //handle live data.
@@ -72,7 +70,7 @@ class PR(BodyListener) extends PR(Listener) {
             cbType = newcb;
             addedToSpace();
         }else cbType = newcb;
-    }
+    }*/
 
     public function swapEvent(newev:Int) {
         DEBUG(

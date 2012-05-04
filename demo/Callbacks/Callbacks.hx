@@ -32,6 +32,7 @@ import nape.callbacks.InteractionType;
 
 import nape.callbacks.PreFlag;
 import nape.callbacks.CbType;
+import nape.callbacks.OptionType;
 import nape.callbacks.CbEvent;
 
 import nape.constraint.PivotJoint;
@@ -221,10 +222,13 @@ class Callbacks extends FixedStep {
 		//and set up listeners
 		function circler(colour:Int) {
 			return function(cb:BodyCallback) {
-				debug.drawFilledCircle(cb.body.position,cb.body.shapes.at(0).castCircle.radius,colour);
+				for(shape in cb.body.shapes) {
+					if(shape.isCircle()) debug.drawFilledCircle(shape.worldCOM,shape.castCircle.radius,colour);
+					else debug.drawFilledPolygon(shape.castPolygon.worldVerts,colour);
+				}
 			}
 		}
-		space.listeners.add(new BodyListener(CbEvent.WAKE,  indicate_sleep, circler(0x00ff00)));
+		space.listeners.add(new BodyListener(CbEvent.WAKE,  OptionType.ANY_BODY.except(indicate_sleep), circler(0x00ff00)));
 		space.listeners.add(new BodyListener(CbEvent.SLEEP, indicate_sleep, circler(0xff0000)));
 
 		//----------------------------

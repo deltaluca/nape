@@ -10,6 +10,10 @@ class PR(OptionType) {
 	public function new() {
 	}
 
+	public static inline function foreach(options:List(PR(OptionType)),lambda:PR(CbType)->Void) {
+		Iter(o, options, if(!o.negated) lambda(o.cbType));
+	}
+
 	//used by Listener constructors etc.
 	public static function toPublicList(type:Dynamic):OptionTypeList {
 		var ret = new OptionTypeList();
@@ -45,7 +49,6 @@ class PR(OptionType) {
 			for(x in xs) ret.add(new OptionType(x,false));
 		}
 		DEBUG(else throw "Error: OptionTypeList can only be constructed from OptionTypes and CbTypes";)
-
 		return ret;
 	}
 }
@@ -259,6 +262,12 @@ class PR(CbSet) {
 
 GENID(CbType)
 class PR(CbType) {
+	public static var ANY_BODY = new PR(CbType)(true);
+	public static var ANY_SHAPE = new PR(CbType)(true);
+	public static var ANY_COMPOUND = new PR(CbType)(true);
+	public var ANYTYPE:Bool; //used in CbTypeList to ignore the implicit ANY_X in Interactor lists.
+
+
     public var outer:CbType;
 
     static public var internal:Bool = false;
@@ -321,7 +330,7 @@ class PR(CbType) {
 
     ///---------------------------------------------------------------------------------------------
 
-    public function new() {
+    public function new(ANYTYPE=false) {
         id = ID(CbType);
 
 		$(expand object initlist(T,n)
@@ -331,5 +340,6 @@ class PR(CbType) {
 		interactors = new List(PR(Interactor))();
 
 		cbsets = new List(PR(CbSet))();
+		this.ANYTYPE = ANYTYPE;
     }
 }
