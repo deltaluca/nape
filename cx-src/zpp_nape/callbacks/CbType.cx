@@ -10,43 +10,86 @@ class PR(OptionType) {
 	public function new() {
 	}
 
+    ///---------------------------------------------------------------------------------------------
+	//for ordering operations
+
+	public inline static function set_lt(a:PR(OptionType),b:PR(OptionType)) {
+		return if(a.negated==b.negated)
+			PR(CbType).set_lt(a.cbType,b.cbType)
+		else a.negated;
+	}
+
+    ///---------------------------------------------------------------------------------------------
+
 	public static inline function foreach(options:List(PR(OptionType)),lambda:PR(CbType)->Void) {
 		Iter(o, options, if(!o.negated) lambda(o.cbType));
 	}
 
+    ///---------------------------------------------------------------------------------------------
+
+	//check if a single set of options is compatible with CbSet for single-listeners.
+	//specifically, we are checking for a overlapping the negative portion of the options
+	//since the positive portn is used to generate the listener lists in the first place.
+	public inline static function compatible(options:List(PR(OptionType)), cb:PR(CbSet)) {
+		//options are ordered lexicographically with negatives first, then ordered by CbType id.
+		var ret = true;
+		var oite = options.begin();
+		var cite = cb.cbTypes.begin();
+		while(oite!=null && cite!=null) {
+			var op = oite.elem();
+			if(!op.negated) break;
+			var cb = cite.elem();
+
+			if(op.cbType == cb) { //we've found a matching negated type in options for the cbset!
+				ret = false;
+				break;
+			}elif(PR(CbType).set_lt(op.cbType,cb))
+				 oite = oite.next;
+			else cite = cite.next;
+		}
+		return ret;
+	}
+
+    ///---------------------------------------------------------------------------------------------
+
 	//used by Listener constructors etc.
+	inline static function insertto(xs:OptionTypeList,x:OptionType) {
+		var ys = xs.pr(inner).inner;
+		var y = x.pr(inner);
+		Insert(y,ys,set_lt);
+	}
 	public static function toPublicList(type:Dynamic):OptionTypeList {
 		var ret = new OptionTypeList();
 		if(type==null) return ret;
 
 		if(Std.is(type,CbType)) {
 			var cb:CbType = type;
-			ret.add(new OptionType(cb,false));
+			insertto(ret,new OptionType(cb,false));
 		}else if(Std.is(type,OptionType)) {
 			var op:OptionType = type;
-			ret.add(op);
+			insertto(ret,op);
 		}else if(Std.is(type,Array)) {
 			var lv:Array<Dynamic> = type;
 			for(x in lv) {
 				var ys = toPublicList(x);
-				for(y in ys) ret.add(y);
+				for(y in ys) insertto(ret,y);
 			}
 		}
 	#if flash10
 	     else if(Std.is(type,PR(Const).cbtypevector)) {
 			 var xs:flash.Vector<CbType> = type;
-			 for(x in xs) ret.add(new OptionType(x,false));
+			 for(x in xs) insertto(ret,new OptionType(x,false));
 		}else if(Std.is(type,PR(Const).optiontypevector)) {
 			var xs:flash.Vector<OptionType> = type;
-			for(x in xs) ret.add(x);
+			for(x in xs) insertto(ret,x);
 		}
 	#end
 		 else if(Std.is(type,OptionTypeList)) {
 			 var xs:OptionTypeList = type;
-			 for(x in xs) ret.add(x);
+			 for(x in xs) insertto(ret,x);
 		}else if(Std.is(type,CbTypeList)) {
 			var xs:CbTypeList = type;
-			for(x in xs) ret.add(new OptionType(x,false));
+			for(x in xs) insertto(ret,new OptionType(x,false));
 		}
 		DEBUG(else throw "Error: OptionTypeList can only be constructed from OptionTypes and CbTypes";)
 		return ret;
@@ -73,7 +116,7 @@ class PR(CbSet) {
 
 	//-------------------------------------------------------------------------------
 
-	$(mixin listlist(T,n,r)
+	$(mixin listlist(T,n,r, optionstype)
 		public var n:List(PR(T));
 		public var inv(n):Bool;
 		flibmdel public inline function invalidate_`n() {
@@ -96,13 +139,23 @@ class PR(CbSet) {
 				var cite = cb.n.begin();
 				while(cite!=null) {
 					var cx = cite.elem();
-					if(nite==null || PR(Listener).set_lt(cx,nite.elem())) {
+
+					if(nite!=null && nite.elem()==cx) {
+						cite = cite.next;
+						npre = nite;
+						nite = nite.next;
+					}else if(nite==null || PR(Listener).set_lt(cx,nite.elem())) {
 						assert(!n.has(cx),"merged list already contains listener");
-						npre = n.insert(npre,cx);
+						#if optionstype
+						//only insert if valid for entire set of CbTypes!
+						if(PR(OptionType).compatible(cx.options,this)) {
+							#end
+							npre = n.insert(npre,cx);
+							#if optionstype
+						}
+						#end
 						cite = cite.next;
-					}elif(nite!=null && nite.elem()==cx)
-						cite = cite.next;
-					else {
+					}else {
 						npre = nite;
 						nite = nite.next;
 					}
@@ -116,12 +169,12 @@ class PR(CbSet) {
 
 	//all lists are only updated when listener is added to a space!
 	//set of interaction/pre listeners associated with CbSet
-	listlist(InteractionListener,listeners,int)
+	listlist(InteractionListener,listeners,int, false)
 
 	//set of body listeners associated with CbSet
-	listlist(BodyListener,bodylisteners,body)
+	listlist(BodyListener,bodylisteners,body, true)
 	//set of constraint listeners associated with CbSet
-	listlist(ConstraintListener,conlisteners,con)
+	listlist(ConstraintListener,conlisteners,con, false)
 
 	public function validate() {
 		$(expand object validlist(T,n)
@@ -151,8 +204,8 @@ class PR(CbSet) {
 		while(i!=null && j!=null) {
 			var ca = i.elem();
 			var cb = j.elem();
-			if(ca.id < cb.id) return true;
-			if(ca.id > cb.id) return false;
+			if(PR(CbType).set_lt(ca,cb)) return true;
+			if(PR(CbType).set_lt(cb,ca)) return false;
 			else {
 				i = i.next;
 				j = j.next;
@@ -195,7 +248,7 @@ class PR(CbSet) {
 		var pre = null;
 		Iter(cur,cbTypes,{
 			if(pre!=null)
-				assert(cur.id>pre.id,"cbTypes of CbSet not well-ordered!");
+				assert(PR(CbType).set_lt(pre,cur),"cbTypes of CbSet not well-ordered!");
 			pre = cur;
 		});
 	}
@@ -286,6 +339,11 @@ class PR(CbType) {
     public var id:Int;
 
 	public var cbsets:List(PR(CbSet));
+
+    ///---------------------------------------------------------------------------------------------
+	//for ordering operations
+
+	public inline static function set_lt(a:PR(CbType),b:PR(CbType)) return a.id < b.id
 
     ///---------------------------------------------------------------------------------------------
 

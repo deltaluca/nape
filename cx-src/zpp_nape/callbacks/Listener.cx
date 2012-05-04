@@ -38,13 +38,39 @@ class PR(BodyListener) extends PR(Listener) {
 	public var wrap_options:OptionTypeList;
 	public var options:List(PR(OptionType));
     public var handler:BodyCallback->Void;
+	DEBUG(function immutable_options() {
+		if(space!=null && space.midstep)
+			throw "Error: Cannot change listener type options during space.step()";
+	})
+	function wrap_options_adder(op:OptionType) {
+		//attempt to insert option into list in correct position (check not already inside).
+		if(TryInsert(op.pr(inner),options,PR(OptionType).set_lt)) {
+			op.pr(inner).cbType.addbody(this);
+		}
+		return false; //always prevent wrap list doing insertion.
+	}
+	function wrap_options_subber(op:OptionType) {
+		op.pr(inner).cbType.removebody(this);
+	}
+	function wrap_options_invalidate(_) {
+		if(space!=null) {
+			removedFromSpace();
 
-    public function new(event:Int, handler:BodyCallback->Void) {
+		}
+	}
+
+    public function new(types:Dynamic, event:Int, handler:BodyCallback->Void) {
 		super();
         this.event = event;
         this.handler = handler;
         body = this;
         type = Flag(ListenerType,BODY);
+
+		wrap_options = PR(OptionType).toPublicList(types);
+		options = wrap_options.pr(inner).inner;
+		DEBUG(wrap_options.pr(inner)._modifiable = immutable_options;)
+		wrap_options.pr(inner).adder = wrap_options_adder;
+		wrap_options.pr(inner).subber = wrap_options_subber;
     }
 
     public function addedToSpace() {
