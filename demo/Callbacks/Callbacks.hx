@@ -101,12 +101,13 @@ class Callbacks extends FixedStep {
 
 		for(i in 0...10) {
 			var pent = new Body();
-			pent.shapes.add(new Polygon(Polygon.regular(80,80,5)));
+			var shape = new Polygon(Polygon.regular(80,80,5));
+			shape.body = pent;
 			pent.position.setxy(800/11*(i+1),150);
 			pent.space = space;
 			
 			//set it's cbTypes
-			pent.cbTypes.add(partial_penetration);
+			shape.cbTypes.add(partial_penetration);
 			pent.cbTypes.add(oneway_object);
 		}
 
@@ -114,30 +115,24 @@ class Callbacks extends FixedStep {
 		// note: this is a pure function with respect to the two objects
 		//       (it's output doesn't change) so we can tell nape this and allow objects
 		//       to sleep as normal.
-		space.listeners.add(new PreListener(InteractionType.COLLISION,partial_penetration,partial_penetration,function(cb:PreCallback) {
+		space.listeners.add(new PreListener(InteractionType.COLLISION,partial_penetration,OptionType.ANY_SHAPE,function(cb:PreCallback) {
 			var depth = 15;
 
-			if(cb.arbiter.isCollisionArbiter()) {
-				//to allow penetration, we need to both change contact penetrations,
-				//and arbiter radius by same amount.
-				var carb = cb.arbiter.collisionArbiter;
-				carb.contacts.filter(function (c:Contact):Bool {
-					//discard if not deep enough.
-					if(c.penetration <= depth) return false;
-	
-					c.penetration -= depth;
-					return true;
-				});
-				carb.radius -= depth;
+			//to allow penetration, we need to both change contact penetrations,
+			//and arbiter radius by same amount.
+			var carb = cb.arbiter.collisionArbiter;
+			carb.contacts.filter(function (c:Contact):Bool {
+				//discard if not deep enough.
+				if(c.penetration <= depth) return false;
 
-				//no contacts left? ignore arbiter for now.
-				//eitherway we use the *_ONCE flag as we need to continously perform these
-				//modifications and checks.
-				return if(carb.contacts.length==0) PreFlag.IGNORE_ONCE;
-				       else PreFlag.ACCEPT_ONCE;
-			}else
-				return PreFlag.ACCEPT;
-		},0,
+				c.penetration -= depth;
+				return true;
+			});
+			carb.radius -= depth;
+
+			//ACCEPT_ONCE because we need to keep making modifications and checks.
+			return PreFlag.ACCEPT_ONCE;
+		},1, //precedence of 1 (higher than default 0) so that one-way platform check occurs AFTER!
 		true //pure
 		));
 
@@ -192,8 +187,8 @@ class Callbacks extends FixedStep {
 			};
 		}
 
-		space.listeners.add(new InteractionListener(CbEvent.BEGIN, InteractionType.COLLISION, indicate_touch,OptionType.ANY_BODY.exclude(indicate_sleep), boxer(0x00ff00)));
-		space.listeners.add(new InteractionListener(CbEvent.END,   InteractionType.COLLISION, indicate_touch,OptionType.ANY_BODY.exclude(indicate_touch), boxer(0xff0000)));
+		space.listeners.add(new InteractionListener(CbEvent.BEGIN, InteractionType.COLLISION, indicate_touch,indicate_touch, boxer(0x00ff00)));
+		space.listeners.add(new InteractionListener(CbEvent.END,   InteractionType.COLLISION, indicate_touch,indicate_touch, boxer(0xff0000)));
 
 		space.listeners.add(new ConstraintListener(CbEvent.BREAK, breakup_compound, function (cb:ConstraintCallback) {
 			//We're going to break apart the compound containing the constraint and the two boxes
@@ -246,13 +241,14 @@ class Callbacks extends FixedStep {
 		//handler to deal with one-way platforms
 		//don't have sum-types yet, so have to assign for all types we want to operate with one-way
 		function oneway(cb:PreCallback) {
-			if(!cb.arbiter.isCollisionArbiter()) return PreFlag.ACCEPT;
 			var dir = new Vec2(0,cb.swapped ? 1 : -1);
 
-			return if(dir.dot(cb.arbiter.collisionArbiter.normal)>=0) PreFlag.ACCEPT else PreFlag.IGNORE;
+			//return null so that whatever PreFlag is already set is kept
+			//allows this to work in conjunction with other PreListeners that may come before.
+			return if(dir.dot(cb.arbiter.collisionArbiter.normal)>=0) null else PreFlag.IGNORE;
 		}
 
-		space.listeners.add(new PreListener(InteractionType.COLLISION, oneway_platform,OptionType.ANY_BODY,oneway));
+		space.listeners.add(new PreListener(InteractionType.COLLISION, oneway_platform,oneway_object,oneway));
 
 		run(function (dt) {
 			hand.anchor1.setxy(mouseX,mouseY);
