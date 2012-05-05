@@ -130,8 +130,11 @@ class Callbacks extends FixedStep {
 			});
 			carb.radius -= depth;
 
-			//ACCEPT_ONCE because we need to keep making modifications and checks.
-			return PreFlag.ACCEPT_ONCE;
+			//another handler may have come in already.
+			//we simply make sure we return current state + IGNORE
+			if(cb.arbiter.state == PreFlag.IGNORE) return PreFlag.IGNORE_ONCE;
+			else if(cb.arbiter.state == PreFlag.ACCEPT) return PreFlag.ACCEPT_ONCE;
+			else return null;
 		},1, //precedence of 1 (higher than default 0) so that one-way platform check occurs AFTER!
 		true //pure
 		));
