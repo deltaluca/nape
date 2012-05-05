@@ -1,7 +1,6 @@
 package zpp_nape.util;
 $(import);
 
-
 $(mixin global SetIter(i,set,closure) ${assert/2->
 	assert(set!=null,"Iterate  null set?");
 	if(!set.empty()) {
@@ -266,13 +265,14 @@ $(expand genSet(T) class Set(T) {
 	public inline function clear() clear_with(function (_) {})
 	public inline function clear_with(lambda:T->Void) {
 		if(parent==null) return;
-
-		var cur = parent;
-		while(cur!=null) 
-			cur = if(cur.prev!=null) cur.prev
-			    elif(cur.next!=null) cur.next
-				else clear_node(cur,lambda);
-		parent = null;
+		else {
+			var cur = parent;
+			while(cur!=null) 
+				cur = if(cur.prev!=null) cur.prev
+				    elif(cur.next!=null) cur.next
+					else clear_node(cur,lambda);
+			parent = null;
+		}
 	}
 	inline function clear_node(node:Set(T),lambda:T->Void) {
 		assert(node.next==null && node.prev==null,"clear_node :: node not a leaf");

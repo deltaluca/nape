@@ -192,8 +192,8 @@ class Callbacks extends FixedStep {
 			};
 		}
 
-		space.listeners.add(new InteractionListener(CbEvent.BEGIN, InteractionType.COLLISION, indicate_touch,indicate_touch, boxer(0x00ff00)));
-		space.listeners.add(new InteractionListener(CbEvent.END,   InteractionType.COLLISION, indicate_touch,indicate_touch, boxer(0xff0000)));
+		space.listeners.add(new InteractionListener(CbEvent.BEGIN, InteractionType.COLLISION, indicate_touch,OptionType.ANY_BODY.exclude(indicate_sleep), boxer(0x00ff00)));
+		space.listeners.add(new InteractionListener(CbEvent.END,   InteractionType.COLLISION, indicate_touch,OptionType.ANY_BODY.exclude(indicate_touch), boxer(0xff0000)));
 
 		space.listeners.add(new ConstraintListener(CbEvent.BREAK, breakup_compound, function (cb:ConstraintCallback) {
 			//We're going to break apart the compound containing the constraint and the two boxes

@@ -108,8 +108,11 @@ class PR(InteractionListener) extends PR(Listener) {
 	public var outer_znp:PreListener;
 
 	public var itype:Int; //InteractionType Flag
-    public var cb1:PR(CbType);
-    public var cb2:PR(CbType);
+/*    public var cb1:PR(CbType);
+    public var cb2:PR(CbType);*/
+
+	public var options1:PR(OptionType);
+	public var options2:PR(OptionType);
 
 	//for InteractionListener
     public var handleri:InteractionCallback->Void;
@@ -124,11 +127,40 @@ class PR(InteractionListener) extends PR(Listener) {
 		itype = xtype;
 	}
 
-	public function new(event:Int,type:Int) {
+	public function new(options1:OptionType, options2:OptionType, event:Int,type:Int) {
 		super();
 		this.type = type;
 		interaction = this;
 		this.event = event;
+		this.options1 = options1.pr(inner);
+		this.options2 = options2.pr(inner);
+	}
+
+	function with_union(lambda:PR(CbType)->Void) {
+		var ite1 = options1.includes.begin();
+		var ite2 = options2.includes.begin();
+		while(ite1!=null && ite2!=null) {
+			var cb1 = ite1.elem();
+			var cb2 = ite2.elem();
+			if(cb1==cb2) { 
+				lambda(cb1);
+				ite1 = ite1.next; ite2 = ite2.next;
+			}elif(PR(CbType).set_lt(cb1,cb2)) {
+				lambda(cb1);
+				ite1 = ite1.next;
+			}else {
+				lambda(cb2);
+				ite2 = ite2.next;
+			}
+		}
+		while(ite1!=null) {
+			lambda(ite1.elem());
+			ite1 = ite1.next;
+		}
+		while(ite2!=null) {
+			lambda(ite2.elem());
+			ite2 = ite2.next;
+		}
 	}
 
 	//for PreListener
@@ -137,13 +169,38 @@ class PR(InteractionListener) extends PR(Listener) {
 		//PreListener only needs ito wake the bodies.
 		//but we iterate the cb SHAPES, not the bodies
 		//as the bodies refer to Body callbacks, not Interaction/Imm callbacks
-		Iter(i, cb1.interactors, i.wake());
+		/*Iter(i, cb1.interactors, i.wake());
 		if(cb2!=cb1)
-			Iter(i, cb2.interactors, i.wake());
+			Iter(i, cb2.interactors, i.wake());*/
+
+		with_union(function (cb:PR(CbType)) Iter(i,cb.interactors,i.wake()));
+	}
+
+	//generate set of all unique pairs of CbSet's generatable via the optionals includes list.
+	function genset() {
+		var set = Get(Set(PR(CbSetPair)));
+		set.lt = PR(CbSetPair).set_lt;
+		Iter(cb1, options1.includes, {
+		Iter(cb2, options2.includes, {
+			//avoid duplicate pairs, can we do better?
+			if(options1.includes.has(cb2) && options2.includes.has(cb1) && PR(CbType).set_lt(cb2,cb1)) cx_continue;
+			
+			Iter(cs1, cb1.cbsets, {
+			Iter(cs2, cb2.cbsets, {
+				//avoid dupliscate pairs, can we do better?
+				if(cb1.cbsets.has(cs2) && cb2.cbsets.has(cs1) && PR(CbSet).set_lt(cs2,cs1)) cx_continue;
+
+				if(PR(CbSet).empty_intersection(cs1,cs2))
+					set.try_insert(PR(CbSetPair).get(cs1,cs2));	
+			});
+			});
+		});
+		});
+		return set;
 	}
 
 	public function assign() {
-		Iter(cs1,cb1.cbsets,{
+		/*Iter(cs1,cb1.cbsets,{
 		Iter(cs2,cb2.cbsets,{
 			//avoid duplicate pairs, can we do better?
 			if(cb1.cbsets.has(cs2) && cb2.cbsets.has(cs1) && PR(CbSet).set_lt(cs2,cs1)) cx_continue;
@@ -152,18 +209,28 @@ class PR(InteractionListener) extends PR(Listener) {
 				space.freshListenerType(cs1,cs2);
 		});
 		});
+*/
+
+		genset().clear_with(function (pair:PR(CbSetPair)) {
+			space.freshListenerType(pair.a,pair.b);
+			pair.free();
+		});
 /*
 		if(PR(CbType).empty_intersection(cb1,cb2))
 			space.freshListenerType(cb1,cb2);
 */
-		cb1.addint(this);
-		if(cb1!=cb2) cb2.addint(this);
+		with_union(function (cb:PR(CbType)) cb.addint(this));
+
+/*		cb1.addint(this);
+		if(cb1!=cb2) cb2.addint(this);*/
 	}
 	public function unassign() {
-		cb1.removeint(this);
+	/*	cb1.removeint(this);
 		if(cb1!=cb2) cb2.removeint(this);
+*/
+		with_union(function (cb:PR(CbType)) cb.removeint(this));
 
-		Iter(cs1,cb1.cbsets,{
+/*		Iter(cs1,cb1.cbsets,{
 		Iter(cs2,cb2.cbsets,{
 			//avoid duplicate pairs, can we do better?
 			if(cb1.cbsets.has(cs2) && cb2.cbsets.has(cs1) && PR(CbSet).set_lt(cs2,cs1)) cx_continue;
@@ -171,6 +238,11 @@ class PR(InteractionListener) extends PR(Listener) {
 			if(PR(CbSet).empty_intersection(cs1,cs2))
 				space.nullListenerType(cs1,cs2);
 		});
+		});*/
+
+		genset().clear_with(function (pair:PR(CbSetPair)) {
+			space.nullListenerType(pair.a,pair.b);
+			pair.free();
 		});
 /*
 		if(PR(CbType).empty_intersection(cb1,cb2))
@@ -179,35 +251,41 @@ class PR(InteractionListener) extends PR(Listener) {
 
 	public function changed_precedence() {
 		if(space!=null) {
-			cb1.removeint(this);
+/*			cb1.removeint(this);
 			cb1.addint(this);
 			if(cb1!=cb2) {
 				cb2.removeint(this);
 				cb2.addint(this);
 			}
+*/
+			var pre = type==Flag(ListenerType,PRE);
+			with_union(function (cb:PR(CbType)) {
+				cb.removeint(this); cb.addint(this);
+				//need to wake in the case of PRE listeners
+				//since the result of the pre-listener compositions
+				//may change
+				Iter(i, cb.interactors, i.wake());
+			});
 			
-			//need to wake in the case of PRE listeners
-			//since the result of the pre-listener compositions
-			//may change
-			if(type==Flag(ListenerType,PRE)) {
+	/*		if(type==Flag(ListenerType,PRE)) {
 				Iter(i, cb1.interactors, i.wake());
 				if(cb1!=cb2) Iter(i, cb2.interactors, i.wake());
-			}
+			}*/
 		}
 	}
 
 	public function addedToSpace(?skip=false) {
-		assert(cb1!=null && cb2!=null,"listener added to space with no cbtypes associated?");
+	//	assert(cb1!=null && cb2!=null,"listener added to space with no cbtypes associated?");
 
 		if(!skip) assign();
 	}
 	public function removedFromSpace(?skip=false) {
-		assert(cb1!=null && cb2!=null,"listener added to space with no cbtypes associated?");
+	//	assert(cb1!=null && cb2!=null,"listener added to space with no cbtypes associated?");
 
 		if(!skip) unassign();
 	}
 
-    public function swapCbType(which:Int, newcb:PR(CbType)) {
+   /* public function swapCbType(which:Int, newcb:PR(CbType)) {
         assert(newcb!=null,"swap to null cbtype?");
 
 		if(cb1!=null && cb2!=null && space!=null) {	
@@ -230,7 +308,7 @@ class PR(InteractionListener) extends PR(Listener) {
 				space.unrevoke_listener(this);
 			}
 		}
-    }
+    }*/
 
 	public function swapEvent(newev:Int) {
 		DEBUG(

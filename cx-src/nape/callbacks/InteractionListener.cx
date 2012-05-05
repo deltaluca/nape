@@ -1,19 +1,10 @@
 package nape.callbacks;
-
-import nape.callbacks.Callback;
-import nape.phys.Interactor;
-import nape.dynamics.ArbiterList;
-import nape.callbacks.CbType;
-import nape.callbacks.CbEvent;
-import nape.callbacks.InteractionType;
-import zpp_nape.util.Flags;
-import zpp_nape.util.Names;
-import zpp_nape.callbacks.Listener;
+$(import);
 
 class InteractionListener extends Listener {
 	public var pr(inner_zn):PR(InteractionListener);
 
-	property(cbType1,CbType,pr(inner_zn).cb1.wrapper(),{
+/*	property(cbType1,CbType,pr(inner_zn).cb1.wrapper(),{
 		DEBUG(if(cbType1==null) throw "Error: Cannot assign null CbType to Listener";)
 
 		var con = pr(inner_zn);
@@ -26,7 +17,10 @@ class InteractionListener extends Listener {
 		var con = pr(inner_zn);
 		if(con.cb2==null || con.cb2!=cbType2.pr(inner))
 			con.swapCbType(2, cbType2.pr(inner));
-	})
+	})*/
+
+	property(options1,OptionType,pr(inner_zn).options1.outer)
+	property(options2,OptionType,pr(inner_zn).options2.outer)
 
 	property(interactionType,InteractionType,{
 		var ret = pr(inner_zn).itype;
@@ -54,7 +48,7 @@ class InteractionListener extends Listener {
     ///---------------------------------------------------------------------------------------------
 
 	flibopts(1)
-	public function new(event:CbEvent, interactionType:InteractionType, cbType1:CbType, cbType2:CbType, handler:InteractionCallback->Void, ?precedence=0) {
+	public function new(event:CbEvent, interactionType:InteractionType, options1:Dynamic, options2:Dynamic, handler:InteractionCallback->Void, ?precedence=0) {
 		PR(Listener).internal = true; super(); PR(Listener).internal = false;
 
 		DEBUG(if(handler==null)throw "Error: InteractionListener::handler cannot be null";)
@@ -66,18 +60,19 @@ class InteractionListener extends Listener {
 		else if(event==CbEvent.ONGOING) xevent = Flag(CbEvent,ONGOING);
 		DEBUG(else throw "Error: CbEvent '"+event.toString()+"' is not a valid event type for InteractionListener";)
 		
-		DEBUG(if(cbType1==null) throw "Error: InteractionListener cbType1 cannot be null";)
-		DEBUG(if(cbType2==null) throw "Error: InteractionListener cbType2 cannot be null";)
-
-		pr(inner_zn) = new PR(InteractionListener)(xevent,Flag(ListenerType,INTERACTION));
+		pr(inner_zn) = new PR(InteractionListener)(
+			PR(OptionType).argument(options1),
+			PR(OptionType).argument(options2),
+			xevent,Flag(ListenerType,INTERACTION)
+		);
 		pr(inner) = pr(inner_zn);
 		pr(inner).outer = this;
 		pr(inner_zn).outer_zni = this;
 		pr(inner).precedence = precedence;
 
 		pr(inner_zn).handleri = handler;
-		this.cbType1 = cbType1;
-		this.cbType2 = cbType2;
+/*		this.cbType1 = cbType1;
+		this.cbType2 = cbType2;*/
 		this.interactionType = interactionType;
 	}
 }

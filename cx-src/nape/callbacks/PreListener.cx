@@ -1,20 +1,10 @@
 package nape.callbacks;
-
-import nape.callbacks.Callback;
-import nape.phys.Interactor;
-import nape.dynamics.Arbiter;
-import nape.callbacks.CbType;
-import nape.callbacks.CbEvent;
-import nape.callbacks.PreFlag;
-import nape.callbacks.InteractionType;
-import zpp_nape.util.Flags;
-import zpp_nape.util.Names;
-import zpp_nape.callbacks.Listener;
+$(import);
 
 class PreListener extends Listener {
 	public var pr(inner_zn):PR(InteractionListener);
 
-	property(cbType1,CbType,pr(inner_zn).cb1.wrapper(),{
+/*	property(cbType1,CbType,pr(inner_zn).cb1.wrapper(),{
 		DEBUG(if(cbType1==null) throw "Error: Cannot assign null CbType to Listener";)
 
 		var con = pr(inner_zn);
@@ -27,7 +17,10 @@ class PreListener extends Listener {
 		var con = pr(inner_zn);
 		if(con.cb2==null || con.cb2!=cbType1.pr(inner))
 			con.swapCbType(2, cbType2.pr(inner));
-	})
+	})*/
+
+	property(options1,OptionType,pr(inner_zn).options1.outer)
+	property(options2,OptionType,pr(inner_zn).options2.outer)
 
 	//do not need to wake bodies here!
 	//the contract of ACCEPT/IGNORE are that you hand control over to nape
@@ -76,15 +69,21 @@ class PreListener extends Listener {
     ///---------------------------------------------------------------------------------------------
 
 	flibopts(2)
-	public function new(interactionType:InteractionType, cbType1:CbType, cbType2:CbType, handler:PreCallback->PreFlag, ?precedence=0, ?pure=false) {
+	public function new(interactionType:InteractionType, options1:Dynamic, options2:Dynamic, handler:PreCallback->PreFlag, ?precedence=0, ?pure=false) {
 		PR(Listener).internal = true; super(); PR(Listener).internal = false;
 
-		DEBUG(if(cbType1==null) throw "Error: PreListener CbType1 cannot be null";)
+/*		DEBUG(if(cbType1==null) throw "Error: PreListener CbType1 cannot be null";)
 		DEBUG(if(cbType2==null) throw "Error: PreListener CbType2 cannot be null";)
-
+/*/
 		DEBUG(if(handler==null) throw "Error: PreListener must take a handler!";)
 
-		pr(inner_zn) = new PR(InteractionListener)(Flag(CbEvent,PRE),Flag(ListenerType,PRE));
+//		pr(inner_zn) = new PR(InteractionListener)(Flag(CbEvent,PRE),Flag(ListenerType,PRE));
+		pr(inner_zn) = new PR(InteractionListener)(
+			PR(OptionType).argument(options1),
+			PR(OptionType).argument(options2),
+			Flag(CbEvent,PRE),Flag(ListenerType,PRE)
+		);
+
 		pr(inner) = pr(inner_zn);
 		pr(inner).outer = this;
 		pr(inner_zn).outer_znp = this;
@@ -92,8 +91,8 @@ class PreListener extends Listener {
 
 		pr(inner_zn).pure = pure;
 		pr(inner_zn).handlerp = handler;
-		this.cbType1 = cbType1;
-		this.cbType2 = cbType2;
+//		this.cbType1 = cbType1;
+//		this.cbType2 = cbType2;
 		this.interactionType = interactionType;
 	}
 }
