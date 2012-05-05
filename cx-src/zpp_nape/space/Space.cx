@@ -110,15 +110,12 @@ class PR(CallbackSet) {
 
 	public function add_arb(x:PR(Arbiter)) {
 		if(!arbiters.has(x))
-			arbiters.add(x);
+			arbiters.inlined_add(x);
 	}
 	public function try_remove_arb(x:PR(Arbiter)) {
-		if(arbiters.has(x)) {
-			arbiters.remove(x);
-			return true;
-		}else return false;
+		return arbiters.inlined_try_remove(x);
 	}
-	public function remove_arb(x:PR(Arbiter)) arbiters.remove(x)
+	public function remove_arb(x:PR(Arbiter)) arbiters.inlined_remove(x)
 
 	//type is an Interactor/Arbiter type.
 	//we check that for this specific interaction type
@@ -126,7 +123,7 @@ class PR(CallbackSet) {
 	public function empty_arb(type:Int) {
 		return ForAll(x, arbiters, (x.type&type)==0);
 	}
-	public function really_empty() {
+	flibmdel public inline function really_empty() {
 		return arbiters.empty();
 	}
 }
@@ -160,7 +157,6 @@ class PR(CbSetManager) {
 		return ret;
 	}
 	public function remove(set:PR(CbSet)) {
-		assert(cbsets.has(set),"cbsets does not contain real set");
 		cbsets.remove(set);
 	}
 
@@ -169,7 +165,7 @@ class PR(CbSetManager) {
 		cbsets.lt = PR(CbSet).set_lt;
 	}
 
-	public function validate() {
+	flibmdel public inline function validate() {
 		SetIter(cb, cbsets, cb.validate());
 	}
 }
@@ -890,7 +886,7 @@ class PR(Space) {
 			assert(!b.isDynamic(), "step :: swef static/kinematics");
 			if(!b.isKinematic() || (b.velx == 0 && b.vely == 0 && b.angvel == 0)) {
 				b.component.sleeping = true;
-				cx_ite = staticsleep.erase(pre);
+				cx_ite = staticsleep.inlined_erase(pre);
 				continue;
 			}
 			pre = cx_ite;
@@ -907,7 +903,7 @@ class PR(Space) {
 			//be generated or not (for instance in the case
 			//of a listener being removed)
 			if(set.really_empty()) {
-				cx_ite = callbackset_list.erase(pre);
+				cx_ite = callbackset_list.inlined_erase(pre);
 				Free(PR(CallbackSet),set);
 				continue;
 			}
@@ -1220,13 +1216,13 @@ class PR(Space) {
 						if(arb.type == PR(Arbiter).COL) {
 							var carb = arb.colarb;
 							if(carb.stat)
-								c_arbiters(true).add(carb);
+								c_arbiters(true).inlined_add(carb);
 							else
-								c_arbiters(false).add(carb);
+								c_arbiters(false).inlined_add(carb);
 						} else if(arb.type == PR(Arbiter).FLUID)
-							f_arbiters.add(arb.fluidarb);
+							f_arbiters.inlined_add(arb.fluidarb);
 						else
-							s_arbiters.add(arb.sensorarb);
+							s_arbiters.inlined_add(arb.sensorarb);
 					}
 				});
 
@@ -1239,7 +1235,7 @@ class PR(Space) {
 			}else {
 				var con = c.constraint;
 				assert(con.space==this,"wakeIsland:: constraint is not actually IN this space??");
-				live_constraints.add(con);
+				live_constraints.inlined_add(con);
 
                 constraintCbWake(con);
 				c.reset();
@@ -1259,9 +1255,9 @@ class PR(Space) {
 					//new body, or forced wake, or kinematic/static
 					o.component.sleeping = false;
 					if(o.isKinematic() || o.isStatic())
-						staticsleep.add(o);
+						staticsleep.inlined_add(o);
 					else
-						live.add(o);
+						live.inlined_add(o);
 					
 					//to allow hacky forced sleeping of dynamics, need to
 					//wake constraints/arbiters of singular dynamics also (sigh)	
@@ -1277,13 +1273,13 @@ class PR(Space) {
 								if(arb.type == PR(Arbiter).COL) {
 									var carb = arb.colarb;
 									if(carb.stat)
-										c_arbiters(true).add(carb);
+										c_arbiters(true).inlined_add(carb);
 									else
-										c_arbiters(false).add(carb);
+										c_arbiters(false).inlined_add(carb);
 								}else if(arb.type == PR(Arbiter).FLUID)
-										f_arbiters.add(arb.fluidarb);
+										f_arbiters.inlined_add(arb.fluidarb);
 								else
-									s_arbiters.add(arb.sensorarb);
+									s_arbiters.inlined_add(arb.sensorarb);
 							}
 							//we do not know anything about arb.active
 							//so base this on information we do know.
@@ -1320,7 +1316,7 @@ class PR(Space) {
                 if(con.component.island==null) {
                     //new constraint
                     con.component.sleeping = false;
-                    live_constraints.add(con);
+                    live_constraints.inlined_add(con);
                     con.wake_connected();
 
                     if(!fst) constraintCbWake(con);
@@ -1901,12 +1897,12 @@ class PR(Space) {
 								var ncallbackset:PR(CallbackSet) = null;
 
 								//clear any remnants
-								prelisteners.clear();
+								prelisteners.inlined_clear();
 
 								var lite:Node(PR(InteractionListener)) = null;
 								PR(CbSet).find_all(cb1,cb2,Flag(CbEvent,PRE),function(listener:PR(InteractionListener)) {
 									if((listener.itype&inttype)!=0) {
-										lite = prelisteners.insert(lite,listener);
+										lite = prelisteners.inlined_insert(lite,listener);
 										anyimpure = anyimpure || !listener.pure;
 									}
 								});
@@ -1937,6 +1933,7 @@ class PR(Space) {
 
 									//we need to reset to old value so that in pre-step such an arbiter
 									//can as usual, update the public lists.
+									DEBUG(arb.makemutable();)
 									var pact = arb.active; arb.active = true;
 
 									#if collisions //need to do this with #if since fluid/sensor has no such method
@@ -1944,7 +1941,6 @@ class PR(Space) {
 										arb.cleanupContacts();
 										assert(arb.wrapper().collisionArbiter.contacts.length!=0,"0 contacts before pre handler??");
 									#end
-									DEBUG(arb.makemutable();)
 
 									precb.pr(inner).pre_arbiter = arb;
 									precb.pr(inner).set = callbackset;
@@ -1967,14 +1963,14 @@ class PR(Space) {
 										}
 									});
 
-									DEBUG(arb.makeimmutable();)
-									arb.active = pact;
-
 									//validate in non-release mode anyways.
 									if((arb.immState&Flag(ImmState,ACCEPT))!=0) {
 										//make sure things like normals are still normalised
 										arb.pre_validate();
 									}
+
+									DEBUG(arb.makeimmutable();)
+									arb.active = pact;
 
 									if(callbackset!=null) {
 										Iter(listener,prelisteners,{
@@ -2153,12 +2149,12 @@ class PR(Space) {
 	flibmdel public inline function inlined_MRCA_chains(s1:PR(Shape), s2:PR(Shape)) {
 		assert(s1!=s2 && s1.body!=s2.body, "MRCA chain for equal shapes, or shapes of the same body?");
 		//clear any remnants
-		mrca1.clear();
-		mrca2.clear();
+		mrca1.inlined_clear();
+		mrca2.inlined_clear();
 
 		//first part done explicitly for most common path.
-		if(s1.cbSet!=null) mrca1.add(s1); if(s1.body.cbSet!=null) mrca1.add(s1.body);
-		if(s2.cbSet!=null) mrca2.add(s2); if(s2.body.cbSet!=null) mrca2.add(s2.body);
+		if(s1.cbSet!=null) mrca1.inlined_add(s1); if(s1.body.cbSet!=null) mrca1.inlined_add(s1.body);
+		if(s2.cbSet!=null) mrca2.inlined_add(s2); if(s2.body.cbSet!=null) mrca2.inlined_add(s2.body);
 
 		//slower path for rest of compound chain.
 		var c1 = s1.body.compound;
@@ -2166,8 +2162,8 @@ class PR(Space) {
 		while(c1!=c2) {
 			var d1 = if(c1==null) 0 else c1.depth;
 			var d2 = if(c2==null) 0 else c2.depth;
-			if(d1<d2) {	if(c2.cbSet!=null) mrca2.add(c2); c2 = c2.compound; }
-			else      { if(c1.cbSet!=null) mrca1.add(c1); c1 = c1.compound; }
+			if(d1<d2) {	if(c2.cbSet!=null) mrca2.inlined_add(c2); c2 = c2.compound; }
+			else      { if(c1.cbSet!=null) mrca1.inlined_add(c1); c1 = c1.compound; }
 		}
 	}
 }

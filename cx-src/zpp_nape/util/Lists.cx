@@ -474,8 +474,12 @@ $(mixin global ListMixin(defs,Cons,T,I)
 
     //----------------------------------------------------------------------------------------------
 
-    public function remove(obj:T):Bool {
-		assert(obj!=null && has(obj), "[ListMixin("+$str(T)+"] remove -> "+obj);
+	public function remove(obj:T) {
+		assert(has(obj),"removed but didn't exist");
+		inlined_try_remove(obj);
+	}
+    public function try_remove(obj:T):Bool {
+		assert(obj!=null, "[ListMixin("+$str(T)+"] remove -> "+obj);
 		
         var pre = null;
         var cur = begin();
@@ -492,8 +496,12 @@ $(mixin global ListMixin(defs,Cons,T,I)
         return ret;
     }
 
-    flibmdel public inline function inlined_remove(obj:T):Bool {
-		assert(obj!=null && has(obj), "[ListMixin("+$str(T)+"] remove -> "+obj);
+	flibmdel public inline function inlined_remove(obj:T) {
+		assert(has(obj),"removed but didn't exist");
+		inlined_try_remove(obj);
+	}
+    flibmdel public inline function inlined_try_remove(obj:T):Bool {
+		assert(obj!=null, "[ListMixin("+$str(T)+"] remove -> "+obj);
 		
         var pre = null;
         var cur = begin();
@@ -539,12 +547,13 @@ $(mixin global ListMixin(defs,Cons,T,I)
         return pre.next;
     }
 
-    public function clear() {
-        if(_clear) {
-            while(!empty()) pop();
+    public function clear() inlined_clear()
+	flibmdel public inline function inlined_clear() {
+		if(_clear) {
+			while(!empty()) inlined_pop();
 			pushmod = true;
-        }
-    }
+		}
+	}
 
     //----------------------------------------------------------------------------------------------
 
@@ -614,7 +623,7 @@ $(mixin global TryInsert(i,list,less) {
 		pre = cx_ite;
 	});
 	if(!exists)
-		list.insert(pre,i);
+		list.inlined_insert(pre,i);
 	!exists;
 });
 
@@ -626,7 +635,7 @@ $(mixin global TryRemove(i,list,less) {
 		if(!less(j,i)) { exists = true; cx_break; }
 		pre = cx_ite;
 	});
-	if(exists) list.erase(pre);
+	if(exists) list.inlined_erase(pre);
 	exists;
 });
 
@@ -641,7 +650,7 @@ $(mixin global Insert(i,list,less) {
 			cx_break;
 		pre = cx_ite;
 	});
-	list.insert(pre,i);
+	list.inlined_insert(pre,i);
 });
 
 $(mixin global Sort(L,NodeT, lt) {

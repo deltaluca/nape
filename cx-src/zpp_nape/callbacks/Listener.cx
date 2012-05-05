@@ -176,6 +176,63 @@ class PR(InteractionListener) extends PR(Listener) {
 		with_union(function (cb:PR(CbType)) Iter(i,cb.interactors,i.wake()));
 	}
 
+	//given two sorted lists, find all unique pairings of elements.
+	$(expand genmethod(T)
+	static var U`T = new List(PR(T))();
+	static var V`T = new List(PR(T))();
+	static var W`T = new List(PR(T))();
+	flibmdel inline function T`set(A:List(PR(T)), B:List(PR(T)), lambda:PR(T)->PR(T)->Void) {
+		// let A = options1.includes, B = options2.includes (sorted lists)
+		// let U = A-B, V = B-A, W = A intersect B
+		// then we require to find (UxB) ++ (VxW) ++ a_triangle_of(WxW)
+		// all duplicates are found in below/above the diagonal of WxW as a table. so easy to discard.
+		//
+		// total time O(|A||B|).
+	
+		//first find U,V,W in single O(|A|+|B|) time pass abusing sorted nature of A,B
+		var U = U`T; var V = V`T; var W = W`T;
+		var aite = A.begin(); var bite = B.begin();
+		while(aite!=null && bite!=null) {
+			var a = aite.elem(); var b = bite.elem();
+			if(a==b) {
+				W.inlined_add(a);
+				aite = aite.next;
+				bite = bite.next;
+			}else if(PR(T).set_lt(a,b)) {
+				U.inlined_add(a);
+				aite = aite.next;
+			}else {
+				V.inlined_add(b);
+				bite = bite.next;
+			}
+		}
+		while(aite!=null) { U.inlined_add(aite.elem()); aite = aite.next; }
+		while(bite!=null) { V.inlined_add(bite.elem()); bite = bite.next; }
+
+		//now product away cleaning up as we go!
+		ClearWith(x, U, Iter(y, B, lambda(x,y)));
+		ClearWith(x, V, Iter(y, W, lambda(x,y)));
+		//triangle product, works due to ClearWith
+		ClearWith(x, W, {
+			lambda(x,x); Iter(y, W, lambda(x,y));
+		});
+	});
+	genmethod(CbSet) genmethod(CbType)
+
+	//operate on all unique CbSet pairs generatable from options.
+	//had to move this to a non-inlined method specialising based on argument
+	//instead of inlined with a closure due to haxe errors.
+	function with_uniquesets(fresh:Bool) {
+		CbTypeset(options1.includes, options2.includes, function (a:PR(CbType), b:PR(CbType)) {
+			CbSetset(a.cbsets, b.cbsets, function (a:PR(CbSet), b:PR(CbSet)) {
+				if(PR(CbSet).empty_intersection(a,b)) {
+					if(fresh) space.freshListenerType(a,b);
+					else      space.nullListenerType(a,b);
+				}
+			});
+		});
+	}
+/*
 	//generate set of all unique pairs of CbSet's generatable via the optionals includes list.
 	function genset() {
 		var set = Get(Set(PR(CbSetPair)));
@@ -198,7 +255,7 @@ class PR(InteractionListener) extends PR(Listener) {
 		});
 		return set;
 	}
-
+*/
 	public function assign() {
 		/*Iter(cs1,cb1.cbsets,{
 		Iter(cs2,cb2.cbsets,{
@@ -211,7 +268,8 @@ class PR(InteractionListener) extends PR(Listener) {
 		});
 */
 
-		genset().clear_with(function (pair:PR(CbSetPair)) {
+		with_uniquesets(true);
+/*		genset().clear_with(function (pair:PR(CbSetPair)) {
 			space.freshListenerType(pair.a,pair.b);
 			pair.free();
 		});
@@ -240,10 +298,11 @@ class PR(InteractionListener) extends PR(Listener) {
 		});
 		});*/
 
-		genset().clear_with(function (pair:PR(CbSetPair)) {
+		with_uniquesets(false);
+		/*genset().clear_with(function (pair:PR(CbSetPair)) {
 			space.nullListenerType(pair.a,pair.b);
 			pair.free();
-		});
+		});*/
 /*
 		if(PR(CbType).empty_intersection(cb1,cb2))
 			space.nullListenerType(cb1,cb2);*/

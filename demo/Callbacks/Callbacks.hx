@@ -228,7 +228,7 @@ class Callbacks extends FixedStep {
 				}
 			}
 		}
-		space.listeners.add(new BodyListener(CbEvent.WAKE,  OptionType.ANY_BODY.exclude(indicate_sleep), circler(0x00ff00)));
+		space.listeners.add(new BodyListener(CbEvent.WAKE,  indicate_sleep, circler(0x00ff00)));
 		space.listeners.add(new BodyListener(CbEvent.SLEEP, indicate_sleep, circler(0xff0000)));
 
 		//----------------------------
@@ -252,7 +252,7 @@ class Callbacks extends FixedStep {
 			return if(dir.dot(cb.arbiter.collisionArbiter.normal)>=0) PreFlag.ACCEPT else PreFlag.IGNORE;
 		}
 
-		space.listeners.add(new PreListener(InteractionType.COLLISION, oneway_platform,oneway_object,oneway));
+		space.listeners.add(new PreListener(InteractionType.COLLISION, oneway_platform,OptionType.ANY_BODY,oneway));
 
 		run(function (dt) {
 			hand.anchor1.setxy(mouseX,mouseY);
