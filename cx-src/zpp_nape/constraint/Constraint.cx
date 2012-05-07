@@ -73,6 +73,7 @@ class PR(Constraint) {
 	public function setupcbTypes() {
 		wrap_cbTypes = PR(CbTypeList).get(cbTypes);
 		wrap_cbTypes.pr(inner).adder = wrap_cbTypes_adder;
+		wrap_cbTypes.pr(inner).subber = wrap_cbTypes_subber;
 		wrap_cbTypes.pr(inner)._invalidate = wrap_cbTypes_invalidate;
 		DEBUG(wrap_cbTypes.pr(inner)._modifiable = immutable_cbTypes;)
 	}
@@ -84,9 +85,13 @@ class PR(Constraint) {
 		wrap_cbTypes_invalidate(null); //need to call due to returning false!
 		return false; //always prevent wrap_list inserting into real list
 	}
+	function wrap_cbTypes_subber(cb:CbType):Void {
+		cb.pr(inner).remConstraint(this);
+	}
 	public function insert_cbtype(cb:PR(CbType)) {
 		//attempt to insert cb into list in correct position (check not already inside).
-		TryInsert(cb,cbTypes,PR(CbType).set_lt);
+		if(TryInsert(cb,cbTypes,PR(CbType).set_lt))
+			cb.addConstraint(this);
 	}
 	function wrap_cbTypes_invalidate(_) {
 		if(space!=null && active) {

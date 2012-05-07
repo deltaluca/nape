@@ -85,12 +85,16 @@ class PR(Interactor) {
 	public function setupcbTypes() {
 		wrap_cbTypes = PR(CbTypeList).get(cbTypes);
 		wrap_cbTypes.pr(inner).adder = wrap_cbTypes_adder;
+		wrap_cbTypes.pr(inner).subber = wrap_cbTypes_subber;
 		wrap_cbTypes.pr(inner)._invalidate = wrap_cbTypes_invalidate;
 		DEBUG(wrap_cbTypes.pr(inner)._modifiable = immutable_cbTypes;)
 	}
 	DEBUG(function immutable_cbTypes() {
 		immutable_midstep("Interactor::cbTypes");
 	})
+	function wrap_cbTypes_subber(cb:CbType):Void {
+		cb.pr(inner).remInteractor(this);
+	}
 	function wrap_cbTypes_adder(cb:CbType):Bool {
 		insert_cbtype(cb.pr(inner));
 		wrap_cbTypes_invalidate(null); //need to call due to returning false!
@@ -98,7 +102,8 @@ class PR(Interactor) {
 	}
 	public function insert_cbtype(cb:PR(CbType)) {
 		//attempt to insert cb into list in correct position (check not already inside).
-		TryInsert(cb,cbTypes,PR(CbType).set_lt);
+		if(TryInsert(cb,cbTypes,PR(CbType).set_lt))
+			cb.addInteractor(this);
 	}
 	function wrap_cbTypes_invalidate(_) {
 		var space = get_space();
