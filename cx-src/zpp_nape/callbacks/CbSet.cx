@@ -174,8 +174,7 @@ class PR(CbSet) {
 
 	//check a given listener is actually usable for the two given cbset.
 	inline static function compatible(i:PR(InteractionListener), a:PR(CbSet), b:PR(CbSet)) {
-/*		return (a.cbTypes.has(i.cb1) && b.cbTypes.has(i.cb2))
-		    || (b.cbTypes.has(i.cb1) && a.cbTypes.has(i.cb2));*/
+		trace("compatibile? "+i.outer);
 		return (i.options1.compatible(a.cbTypes) && i.options2.compatible(b.cbTypes)) 
 		    || (i.options2.compatible(a.cbTypes) && i.options1.compatible(b.cbTypes));
 	}
@@ -200,6 +199,30 @@ class PR(CbSet) {
 			else bite = bite.next;
 		}
 		return ret;
+	}
+
+	//determines if cbSets share exactly the given listener
+	public static function single_intersection(a:PR(CbSet),b:PR(CbSet),i:PR(InteractionListener)) {
+		var others = false;
+		var found = false;
+
+		var aite = a.listeners.begin();
+		var bite = b.listeners.begin();
+		while(aite!=null && bite!=null) {
+			var ax = aite.elem(); var bx = bite.elem();
+			if(ax==bx) {
+				if(compatible(ax,a,b)) {
+					if(ax==i) { found = true; }
+					else { others = true; break; }
+				}
+				aite = aite.next;
+				bite = bite.next;
+			}elif(PR(Listener).set_lt(ax,bx))
+				 aite = aite.next;
+			else bite = bite.next;
+		}
+
+		return found && !others;
 	}
 
 	//inlined for inline function call when used anonymously

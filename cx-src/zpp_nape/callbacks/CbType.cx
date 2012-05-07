@@ -4,7 +4,7 @@ $(import);
 class PR(OptionType) {
 	public var outer:OptionType;
 	//used for when changes are made for a listener
-	public var handler:PR(CbType)->Bool->Void;
+	public var handler:PR(CbType)->Bool->Bool->Void;
 
 	public var includes:List(PR(CbType));
 	public var excludes:List(PR(CbType));
@@ -52,22 +52,38 @@ class PR(OptionType) {
 
 	//----------------------------------------------------------------------
 
+	flibmdel public inline function effect_change(val:PR(CbType),included:Bool,added:Bool) {
+		if(included) {
+			if(added) Insert(val,includes,PR(CbType).set_lt);
+			else      includes.remove(val);
+		} else {
+			if(added) Insert(val,excludes,PR(CbType).set_lt);
+			else      excludes.remove(val);
+		}
+	}
 	function append_type(list:List(PR(CbType)), val:PR(CbType)) {
 		if(list==includes) {
 			if(!includes.has(val)) {
-				if(!TryRemove(val,excludes,PR(CbType).set_lt)) {
-					Insert(val,includes,PR(CbType).set_lt);
-					//handle new includer!
-					if(handler!=null) handler(val,true);
+				if(!excludes.has(val)) {
+					if(handler!=null)
+						 handler(val,true,true);
+					else effect_change(val,true,true);
+				}else {
+					if(handler!=null)
+						 handler(val,false,false);
+					else effect_change(val,false,false);
 				}
 			}
 		}else {
 			if(!excludes.has(val)) {
-				if(!TryRemove(val,includes,PR(CbType).set_lt)) {
-					Insert(val,excludes,PR(CbType).set_lt);
+				if(!includes.has(val)) {
+					if(handler!=null)
+						 handler(val,false,true);
+					else effect_change(val,false,true);
 				}else {
-					//handle removed includer!
-					if(handler!=null) handler(val,false);
+					if(handler!=null)
+						 handler(val,true,false);
+					else effect_change(val,true,false);
 				}
 			}
 		}

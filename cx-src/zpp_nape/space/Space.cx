@@ -53,8 +53,6 @@ class PR(Component) {
 }
 
 class PR(CallbackSet) {
-	//for hash
-	public var hnext:PR(CallbackSet);
 	public var id:Int; public var di:Int;
 
 	public var int1:PR(Interactor);
@@ -68,6 +66,7 @@ class PR(CallbackSet) {
 		ret.id = ret.int1.id;
 		ret.di = ret.int2.id;
 		assert(ret.id<ret.di,"badly ordered id's in callback set?");
+		trace("just got with ints="+ret.int1.outer_i+","+ret.int2.outer_i+")");
 		return ret;
 	}
 
@@ -93,9 +92,12 @@ class PR(CallbackSet) {
 	MixPoolNoNext(PR(CallbackSet))
 
 	flibmdel public inline function free() {
+		trace("freeing set with ints ("+int1.outer_i+","+int2.outer_i+")");
+		int1 = int2 = null;
 		assert(arbiters.empty(),"callbackset released with lingering arbs");
 	}
 	flibmdel public inline function alloc() {
+		trace("just alloced");
 		$(expand object gentype(n)
 			n`state = Flag(PreFlag,ACCEPT);
 			n`stamp = 0;
@@ -498,9 +500,11 @@ class PR(Space) {
 	
 	//----------------------------------------------------------------------------------------------
 
-	public function revoke_listener(x:PR(InteractionListener)) {
+	//nothing at present needs to be done inside of this.
+	//wasn't always the case!
+	flibmdel public inline function revoke_listener(x:PR(InteractionListener)) {
 	}
-	public function unrevoke_listener(x:PR(InteractionListener)) {
+	flibmdel public inline function unrevoke_listener(x:PR(InteractionListener)) {
 	}
 
     public function addListener(x:PR(Listener)) {
@@ -529,14 +533,16 @@ class PR(Space) {
     //----------------------------------------------------------------------------------------------
 
 	public function add_callbackset(cb:PR(CallbackSet)) {
-		cb.int1.cbsets.add(cb);
-		cb.int2.cbsets.add(cb);
-		callbackset_list.add(cb);
+		trace("add_callbackset ("+cb.int1.outer_i+","+cb.int2.outer_i+")");
+		cb.int1.cbsets.inlined_add(cb);
+		cb.int2.cbsets.inlined_add(cb);
+		callbackset_list.inlined_add(cb);
 	}
 
 	public function remove_callbackset(cb:PR(CallbackSet)) {
-		cb.int1.cbsets.remove(cb);
-		cb.int2.cbsets.remove(cb);
+		trace("lazy_remove_callbackset ("+cb.int1.outer_i+","+cb.int2.outer_i+")");
+		cb.int1.cbsets.inlined_remove(cb);
+		cb.int2.cbsets.inlined_remove(cb);
 	}
 
     //----------------------------------------------------------------------------------------------
@@ -569,7 +575,8 @@ class PR(Space) {
 		bphase.insert(s);
 
 		s.addedToSpace();
-	}
+	}		//so re-add/re-remove object
+
 	public function removed_shape(s:PR(Shape), ?deleting=false) {
 		var body = s.body;
 		
@@ -600,6 +607,7 @@ class PR(Space) {
 						var cb2 = i2.cbSet;
 						assert(cb1!=null && cb2!=null, "null cbsets from MRCA_chains?");
 
+						cb1.validate(); cb2.validate();
 						if(PR(CbSet).empty_intersection(cb1,cb2)) cx_continue;
 
 						var callbackset = PR(Interactor).get(i1,i2);
@@ -904,6 +912,7 @@ class PR(Space) {
 			//of a listener being removed)
 			if(set.really_empty()) {
 				cx_ite = callbackset_list.inlined_erase(pre);
+				trace("about to free set with ints ("+set.int1.outer_i+","+set.int2.outer_i+")");
 				Free(PR(CallbackSet),set);
 				continue;
 			}
@@ -1020,6 +1029,7 @@ class PR(Space) {
 		//at least not properly and well tested. so we'll take the dirty approach
 		//since this is a function that will not often be called.
 		//
+		trace("nullListenerType");
 		//or atleast only iterate pairs of shapes once! TODO
 		var stack = new List(PR(Interactor))();	
 		Iterate(cb1.interactors, stack.add);
@@ -1047,6 +1057,7 @@ class PR(Space) {
 					Iter(i2,mrca2,{ if((i1.cbSet == cb1 && i2.cbSet != cb2) || (i1.cbSet == cb2 && i2.cbSet != cb1)) cx_continue;
 						var callbackset = PR(Interactor).get(i1,i2);
 						if(callbackset!=null) {
+							trace("Null listener type, deleting callbackset ("+callbackset.int1.outer_i+","+callbackset.int2.outer_i+")");
 							ClearWith(arb, callbackset.arbiters, arb.present=false);
 							remove_callbackset(callbackset);
 							//deferred for callbackset_list
@@ -1107,6 +1118,7 @@ class PR(Space) {
 	public function freshListenerType(cb1:PR(CbSet),cb2:PR(CbSet)) {
 		//this could be improved greatly to only consider pairs of shapes once
 		//but for now it will do: TODO
+		trace("freshListenerType");
 		var stack = new List(PR(Interactor))();	
 		Iterate(cb1.interactors, stack.add);
 		if(cb1!=cb2)
@@ -1135,8 +1147,10 @@ class PR(Space) {
 						xarb.present = true;
 						if(callbackset==null) {
 							callbackset = PR(CallbackSet).get(i1,i2);
+							trace("Fresh listener type, creating callbackset ("+callbackset.int1.outer_i+","+callbackset.int2.outer_i+")");
 							add_callbackset(callbackset);
 						}
+						trace("Fresh listener type, adding to callbackset ("+callbackset.int1.outer_i+","+callbackset.int2.outer_i+") arb="+xarb.wrapper());
 						callbackset.add_arb(xarb);
 					});
 					});
@@ -1171,6 +1185,7 @@ class PR(Space) {
 					var cb1 = i1.cbSet;
 					var cb2 = i2.cbSet;
 					assert(cb1!=null && cb2!=null, "null cbset from MRCA_chain?");
+					cb1.validate(); cb2.validate();
 					if(!PR(CbSet).empty_intersection(cb1,cb2)) {
 						xarb.present = true;
 						var callbackset = PR(Interactor).get(i1,i2);
@@ -1246,6 +1261,7 @@ class PR(Space) {
 	}
 	
 	public function wake(o:PR(Body),?fst=false) {
+		trace("waking "+o.outer);
 		assert(o.space==this,"object being woken in the space... is not actually in the space!");
 		if(!o.world) {
 			assert(o.component!=null,"body woken, but no component exists?");
@@ -1617,9 +1633,11 @@ class PR(Space) {
 							var cb2 = i2.cbSet;
 							assert(cb1!=null && cb2!=null, "null cb from MRCA_chains?");
 
+							trace([i1.outer_i,i2.outer_i]);
 							if(PR(CbSet).empty_intersection(cb1,cb2)) cx_continue;
 
 							var callbackset = PR(Interactor).get(i1,i2);
+							trace([begcb,endcb,arb.intchange]);
 							if(begcb || arb.intchange) {
 								arb.present = true;
 								if(callbackset==null) {
@@ -1641,6 +1659,7 @@ class PR(Space) {
 							}else {
 								arb.present = false;
 								assert(callbackset!=null,"end arbiter with no callbackset");
+								trace("removing arb from callbackset");
 								callbackset.remove_arb(arb);
 								PR(CbSet).find_all(cb1,cb2,Flag(CbEvent,END),function(listener:PR(InteractionListener)) {
 									if((listener.itype&arb.type)!=0 && callbackset.empty_arb(listener.itype)) {
@@ -1671,6 +1690,7 @@ class PR(Space) {
 				if(arb.cleared //always retire
 			 	 || arb.up_stamp + (arb.type==PR(Arbiter).COL ? PR(Config).PERSIST : 0) < stamp //possibly delayed age-death
 				) {
+					trace("retiring arb");
 					arb.retire();
 					arbite = arbs.inlined_erase(pre);
 					pre_continue;

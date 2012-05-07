@@ -60,9 +60,13 @@ $(mixin SingleListener(t,T,FLAG)
 		Iter(cb, options.includes, cb.remove`t(this));
 		options.handler = null;
 	}
-	function cbtype_change(cb:PR(CbType),added:Bool) {
-		if(added) cb.add`t(this);
-		else cb.remove`t(this);
+	function cbtype_change(cb:PR(CbType),included:Bool,added:Bool) {
+		removedFromSpace();
+
+		//make change required.
+		options.effect_change(cb,included,added);
+
+		addedToSpace();
 	}
 	public function changed_precedence() {
 		if(space!=null) {
@@ -216,12 +220,18 @@ class PR(InteractionListener) extends PR(Listener) {
 	//had to move this to a non-inlined method specialising based on argument
 	//instead of inlined with a closure due to haxe errors.
 	function with_uniquesets(fresh:Bool) {
+		// PREVIOUSLY: This work under an assumption that we could check for an empty_intersection
+		//             and that the addition to the callback lists would then cause it to be
+		//             non-empty. ... With exclusion lists on listeners this is no longer the case!
+		//             so the method single_intersection is used now instead!
+
 		var set = Get(Set(PR(CbSetPair)));
 		set.lt = PR(CbSetPair).set_lt;
 
 		CbTypeset(options1.includes, options2.includes, function (a:PR(CbType), b:PR(CbType)) {
 			CbSetset(a.cbsets, b.cbsets, function (a:PR(CbSet), b:PR(CbSet)) {
-				if(PR(CbSet).empty_intersection(a,b)) {
+				a.validate(); b.validate();
+				if(PR(CbSet).single_intersection(a,b,this)) {
 					set.try_insert(PR(CbSetPair).get(a,b));
 				}
 			});
@@ -237,18 +247,28 @@ class PR(InteractionListener) extends PR(Listener) {
 	}
 
 	public function assign() {
-		with_uniquesets(true);
+		//need to wake in the case of PRE listeners
+		//since the result of the pre-listener compositions
+		//may change
+		var pre = type==Flag(ListenerType,PRE);
+		with_union(function (cb:PR(CbType)) { cb.addint(this); trace("assigned cb="+cb.wrapper()+" pre="+pre); if(pre) Iter(i, cb.interactors, i.wake()); });
 
-		with_union(function (cb:PR(CbType)) cb.addint(this));
 		options1.handler = cbtype_change1;
 		options2.handler = cbtype_change2;
+
+		with_uniquesets(true);
 	}
 	public function unassign() {
-		with_union(function (cb:PR(CbType)) cb.removeint(this));
+		with_uniquesets(false);
+
+		//need to wake in the case of PRE listeners
+		//since the result of the pre-listener compositions
+		//may change
+		var pre = type==Flag(ListenerType,PRE);
+		with_union(function (cb:PR(CbType)) { cb.removeint(this); trace("unassigned cb="+cb.wrapper()+" pre="+pre); if(pre) Iter(i, cb.interactors, i.wake()); });
+
 		options1.handler = null;
 		options2.handler = null;
-
-		with_uniquesets(false);
 	}
 
 	public function changed_precedence() {
@@ -259,7 +279,7 @@ class PR(InteractionListener) extends PR(Listener) {
 				//need to wake in the case of PRE listeners
 				//since the result of the pre-listener compositions
 				//may change
-				Iter(i, cb.interactors, i.wake());
+				if(pre) Iter(i, cb.interactors, i.wake());
 			});
 		}
 	}
@@ -271,54 +291,20 @@ class PR(InteractionListener) extends PR(Listener) {
 		if(!skip) unassign();
 	}
 
-	function cbtype_change1(cb:PR(CbType),added:Bool) cbtype_change(options1,cb,added)
-	function cbtype_change2(cb:PR(CbType),added:Bool) cbtype_change(options2,cb,added)
-	function cbtype_change(options:PR(OptionType), cb:PR(CbType),added:Bool) {
-		//bit hacky. Want to have options unchanged for this operation!
-		//so re-add/re-remove object
-		trace(options==options1);
-		if(added)
-			 options.includes.remove(cb);
-		else Insert(cb, options.includes, PR(CbType).set_lt);
-
+	function cbtype_change1(cb:PR(CbType),included:Bool,added:Bool) cbtype_change(options1,cb,included,added)
+	function cbtype_change2(cb:PR(CbType),included:Bool,added:Bool) cbtype_change(options2,cb,included,added)
+	function cbtype_change(options:PR(OptionType), cb:PR(CbType),included:Bool,added:Bool) {
 		//deal with cleaning up any old callbacksets.
 		space.revoke_listener(this);
 		unassign();
 
-		//now undo :)
-		if(!added)
-			 options.includes.remove(cb);
-		else Insert(cb, options.includes, PR(CbType).set_lt);
+		//effect changes
+		options.effect_change(cb,included,added);
 
 		//aaand generate any new callbacksets
 		assign();
 		space.unrevoke_listener(this);
 	}
-
-   /* public function swapCbType(which:Int, newcb:PR(CbType)) {
-        assert(newcb!=null,"swap to null cbtype?");
-
-		if(cb1!=null && cb2!=null && space!=null) {	
-			space.revoke_listener(this);
-			unassign();
-		}
-
-		if(which==1) cb1 = newcb;
-		else         cb2 = newcb;
-
-		if(cb1!=null && cb2!=null) {
-			//set hash id's
-			if(cb1.id <= cb2.id)
-				 { cid = cb1.id; cdi = cb2.id; }
-			else { cid = cb2.id; cdi = cb1.id; }
-			assert(cid<cdi || (cb1==cb2 && cid==cdi),"cbTypes in swapCbType of listener not well ordered");
-
-			if(space!=null) {
-				assign();
-				space.unrevoke_listener(this);
-			}
-		}
-    }*/
 
 	public function swapEvent(newev:Int) {
 		DEBUG(
