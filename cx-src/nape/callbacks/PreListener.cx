@@ -4,21 +4,6 @@ $(import);
 class PreListener extends Listener {
 	public var pr(inner_zn):PR(InteractionListener);
 
-/*	property(cbType1,CbType,pr(inner_zn).cb1.wrapper(),{
-		DEBUG(if(cbType1==null) throw "Error: Cannot assign null CbType to Listener";)
-
-		var con = pr(inner_zn);
-		if(con.cb1==null || con.cb1!=cbType1.pr(inner))
-			con.swapCbType(1, cbType1.pr(inner));
-	})
-	property(cbType2,CbType,pr(inner_zn).cb2.wrapper(),{
-		DEBUG(if(cbType2==null) throw "Error: Cannot assign null CbType to Listener";)
-
-		var con = pr(inner_zn);
-		if(con.cb2==null || con.cb2!=cbType1.pr(inner))
-			con.swapCbType(2, cbType2.pr(inner));
-	})*/
-
 	property(options1,OptionType,pr(inner_zn).options1.outer)
 	property(options2,OptionType,pr(inner_zn).options2.outer)
 
@@ -72,12 +57,8 @@ class PreListener extends Listener {
 	public function new(interactionType:InteractionType, options1:Dynamic, options2:Dynamic, handler:PreCallback->PreFlag, ?precedence=0, ?pure=false) {
 		PR(Listener).internal = true; super(); PR(Listener).internal = false;
 
-/*		DEBUG(if(cbType1==null) throw "Error: PreListener CbType1 cannot be null";)
-		DEBUG(if(cbType2==null) throw "Error: PreListener CbType2 cannot be null";)
-/*/
 		DEBUG(if(handler==null) throw "Error: PreListener must take a handler!";)
 
-//		pr(inner_zn) = new PR(InteractionListener)(Flag(CbEvent,PRE),Flag(ListenerType,PRE));
 		pr(inner_zn) = new PR(InteractionListener)(
 			PR(OptionType).argument(options1),
 			PR(OptionType).argument(options2),
@@ -91,8 +72,6 @@ class PreListener extends Listener {
 
 		pr(inner_zn).pure = pure;
 		pr(inner_zn).handlerp = handler;
-//		this.cbType1 = cbType1;
-//		this.cbType2 = cbType2;
 		this.interactionType = interactionType;
 	}
 }

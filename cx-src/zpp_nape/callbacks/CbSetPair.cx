@@ -1,0 +1,30 @@
+package zpp_nape.callbacks;
+$(import);
+
+class PR(CbSetPair) {
+	public var a:PR(CbSet);
+	public var b:PR(CbSet);
+
+	MixPool(PR(CbSetPair))
+	flibmdel public inline function free() {
+		a = b = null;
+	}
+	flibmdel public inline function alloc() {}
+
+	public function new() {}
+
+	public static inline function get(a:PR(CbSet),b:PR(CbSet)) {
+		var ret = Get(PR(CbSetPair));
+		if(PR(CbSet).set_lt(a,b)) {
+			ret.a = a; ret.b = b;
+		}else {
+			ret.a = b; ret.b = a;
+		}
+		return ret;
+	}
+
+	public static inline function set_lt(x:PR(CbSetPair),y:PR(CbSetPair)) {
+		assert((x.a==y.a)==(!PR(CbSet).set_lt(x.a,y.a) && !PR(CbSet).set_lt(y.a,x.a)),"Assumption that CbSet's are unique!! Aka we can compare for 'equal' CbSet with == is wrong?? :(");
+		return PR(CbSet).set_lt(x.a,y.a) || (x.a==y.a && PR(CbSet).set_lt(x.b,y.b));
+	}
+}

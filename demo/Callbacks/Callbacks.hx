@@ -57,7 +57,11 @@ class Callbacks extends FixedStep {
 		hand.space = space;
 		hand.active = false;
 
+		var prel:PreListener = null;
+		var oneway_platform = new CbType();
 		addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function(_) {
+			prel.options2.include(oneway_platform);
+			prel.options2.exclude(oneway_platform);
 			var mp = new Vec2(mouseX,mouseY);
 			for(b in space.bodiesUnderPoint(mp)) {
 				if(!b.isDynamic()) continue;
@@ -86,7 +90,6 @@ class Callbacks extends FixedStep {
 		var partial_penetration = new CbType();
 
 		//one-way platforms
-		var oneway_platform = new CbType();
 		var oneway_object = new CbType(); //objects that can interact with oneway_platforms
 
 		//sleep indication
@@ -115,7 +118,7 @@ class Callbacks extends FixedStep {
 		// note: this is a pure function with respect to the two objects
 		//       (it's output doesn't change) so we can tell nape this and allow objects
 		//       to sleep as normal.
-		space.listeners.add(new PreListener(InteractionType.COLLISION,partial_penetration,OptionType.ANY_SHAPE,function(cb:PreCallback) {
+		space.listeners.add(prel = new PreListener(InteractionType.COLLISION,partial_penetration,OptionType.ANY_SHAPE,function(cb:PreCallback) {
 			var depth = 15;
 
 			//to allow penetration, we need to both change contact penetrations,

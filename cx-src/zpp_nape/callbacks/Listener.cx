@@ -211,17 +211,6 @@ class PR(InteractionListener) extends PR(Listener) {
 		});
 	});
 	genmethod(CbSet) genmethod(CbType)
-	$(mixin object list(xs) ({
-		var ret = "[";
-		var fst = true;
-		Iter(x, xs, {
-			if(!fst) ret += ", ";
-			fst = false;
-			ret += x.wrapper();
-		});
-		ret + "]";
-	}));
-
 
 	//operate on all unique CbSet pairs generatable from options.
 	//had to move this to a non-inlined method specialising based on argument
@@ -243,14 +232,16 @@ class PR(InteractionListener) extends PR(Listener) {
 			else      space.nullListenerType(pair.a,pair.b);
 			pair.free();
 		});
+
+		Free(Set(PR(CbSetPair)),set);
 	}
 
 	public function assign() {
 		with_uniquesets(true);
 
 		with_union(function (cb:PR(CbType)) cb.addint(this));
-		options1.handler = cbtype_change;
-		options2.handler = cbtype_change;
+		options1.handler = cbtype_change1;
+		options2.handler = cbtype_change2;
 	}
 	public function unassign() {
 		with_union(function (cb:PR(CbType)) cb.removeint(this));
@@ -280,8 +271,28 @@ class PR(InteractionListener) extends PR(Listener) {
 		if(!skip) unassign();
 	}
 
-	function cbtype_change(cb:PR(CbType),added:Bool) {
-		throw "FUK FUK FUK. need to make this so that we can handle things properly here, regarding cleaning up with 'unchanged' options, mutate options, then clean up with 'changed' options. at present not possible due to append_type in PR(OptionType)";
+	function cbtype_change1(cb:PR(CbType),added:Bool) cbtype_change(options1,cb,added)
+	function cbtype_change2(cb:PR(CbType),added:Bool) cbtype_change(options2,cb,added)
+	function cbtype_change(options:PR(OptionType), cb:PR(CbType),added:Bool) {
+		//bit hacky. Want to have options unchanged for this operation!
+		//so re-add/re-remove object
+		trace(options==options1);
+		if(added)
+			 options.includes.remove(cb);
+		else Insert(cb, options.includes, PR(CbType).set_lt);
+
+		//deal with cleaning up any old callbacksets.
+		space.revoke_listener(this);
+		unassign();
+
+		//now undo :)
+		if(!added)
+			 options.includes.remove(cb);
+		else Insert(cb, options.includes, PR(CbType).set_lt);
+
+		//aaand generate any new callbacksets
+		assign();
+		space.unrevoke_listener(this);
 	}
 
    /* public function swapCbType(which:Int, newcb:PR(CbType)) {
