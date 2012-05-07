@@ -64,7 +64,6 @@ $(mixin SingleListener(t,T,FLAG)
 		if(added) cb.add`t(this);
 		else cb.remove`t(this);
 	}
-
 	public function changed_precedence() {
 		if(space!=null) {
 			removedFromSpace();
@@ -108,8 +107,6 @@ class PR(InteractionListener) extends PR(Listener) {
 	public var outer_znp:PreListener;
 
 	public var itype:Int; //InteractionType Flag
-/*    public var cb1:PR(CbType);
-    public var cb2:PR(CbType);*/
 
 	public var options1:PR(OptionType);
 	public var options2:PR(OptionType);
@@ -169,10 +166,6 @@ class PR(InteractionListener) extends PR(Listener) {
 		//PreListener only needs ito wake the bodies.
 		//but we iterate the cb SHAPES, not the bodies
 		//as the bodies refer to Body callbacks, not Interaction/Imm callbacks
-		/*Iter(i, cb1.interactors, i.wake());
-		if(cb2!=cb1)
-			Iter(i, cb2.interactors, i.wake());*/
-
 		with_union(function (cb:PR(CbType)) Iter(i,cb.interactors,i.wake()));
 	}
 
@@ -218,105 +211,57 @@ class PR(InteractionListener) extends PR(Listener) {
 		});
 	});
 	genmethod(CbSet) genmethod(CbType)
+	$(mixin object list(xs) ({
+		var ret = "[";
+		var fst = true;
+		Iter(x, xs, {
+			if(!fst) ret += ", ";
+			fst = false;
+			ret += x.wrapper();
+		});
+		ret + "]";
+	}));
+
 
 	//operate on all unique CbSet pairs generatable from options.
 	//had to move this to a non-inlined method specialising based on argument
 	//instead of inlined with a closure due to haxe errors.
 	function with_uniquesets(fresh:Bool) {
+		var set = Get(Set(PR(CbSetPair)));
+		set.lt = PR(CbSetPair).set_lt;
+
 		CbTypeset(options1.includes, options2.includes, function (a:PR(CbType), b:PR(CbType)) {
 			CbSetset(a.cbsets, b.cbsets, function (a:PR(CbSet), b:PR(CbSet)) {
 				if(PR(CbSet).empty_intersection(a,b)) {
-					if(fresh) space.freshListenerType(a,b);
-					else      space.nullListenerType(a,b);
+					set.try_insert(PR(CbSetPair).get(a,b));
 				}
 			});
 		});
-	}
-/*
-	//generate set of all unique pairs of CbSet's generatable via the optionals includes list.
-	function genset() {
-		var set = Get(Set(PR(CbSetPair)));
-		set.lt = PR(CbSetPair).set_lt;
-		Iter(cb1, options1.includes, {
-		Iter(cb2, options2.includes, {
-			//avoid duplicate pairs, can we do better?
-			if(options1.includes.has(cb2) && options2.includes.has(cb1) && PR(CbType).set_lt(cb2,cb1)) cx_continue;
-			
-			Iter(cs1, cb1.cbsets, {
-			Iter(cs2, cb2.cbsets, {
-				//avoid dupliscate pairs, can we do better?
-				if(cb1.cbsets.has(cs2) && cb2.cbsets.has(cs1) && PR(CbSet).set_lt(cs2,cs1)) cx_continue;
 
-				if(PR(CbSet).empty_intersection(cs1,cs2))
-					set.try_insert(PR(CbSetPair).get(cs1,cs2));	
-			});
-			});
-		});
-		});
-		return set;
-	}
-*/
-	public function assign() {
-		/*Iter(cs1,cb1.cbsets,{
-		Iter(cs2,cb2.cbsets,{
-			//avoid duplicate pairs, can we do better?
-			if(cb1.cbsets.has(cs2) && cb2.cbsets.has(cs1) && PR(CbSet).set_lt(cs2,cs1)) cx_continue;
-
-			if(PR(CbSet).empty_intersection(cs1,cs2))
-				space.freshListenerType(cs1,cs2);
-		});
-		});
-*/
-
-		with_uniquesets(true);
-/*		genset().clear_with(function (pair:PR(CbSetPair)) {
-			space.freshListenerType(pair.a,pair.b);
+		set.clear_with(function (pair:PR(CbSetPair)) {
+			if(fresh) space.freshListenerType(pair.a,pair.b);
+			else      space.nullListenerType(pair.a,pair.b);
 			pair.free();
 		});
-/*
-		if(PR(CbType).empty_intersection(cb1,cb2))
-			space.freshListenerType(cb1,cb2);
-*/
-		with_union(function (cb:PR(CbType)) cb.addint(this));
+	}
 
-/*		cb1.addint(this);
-		if(cb1!=cb2) cb2.addint(this);*/
+	public function assign() {
+		with_uniquesets(true);
+
+		with_union(function (cb:PR(CbType)) cb.addint(this));
+		options1.handler = cbtype_change;
+		options2.handler = cbtype_change;
 	}
 	public function unassign() {
-	/*	cb1.removeint(this);
-		if(cb1!=cb2) cb2.removeint(this);
-*/
 		with_union(function (cb:PR(CbType)) cb.removeint(this));
-
-/*		Iter(cs1,cb1.cbsets,{
-		Iter(cs2,cb2.cbsets,{
-			//avoid duplicate pairs, can we do better?
-			if(cb1.cbsets.has(cs2) && cb2.cbsets.has(cs1) && PR(CbSet).set_lt(cs2,cs1)) cx_continue;
-
-			if(PR(CbSet).empty_intersection(cs1,cs2))
-				space.nullListenerType(cs1,cs2);
-		});
-		});*/
+		options1.handler = null;
+		options2.handler = null;
 
 		with_uniquesets(false);
-		/*genset().clear_with(function (pair:PR(CbSetPair)) {
-			space.nullListenerType(pair.a,pair.b);
-			pair.free();
-		});*/
-/*
-		if(PR(CbType).empty_intersection(cb1,cb2))
-			space.nullListenerType(cb1,cb2);*/
 	}
 
 	public function changed_precedence() {
 		if(space!=null) {
-/*			cb1.removeint(this);
-			cb1.addint(this);
-			if(cb1!=cb2) {
-				cb2.removeint(this);
-				cb2.addint(this);
-			}
-*/
 			var pre = type==Flag(ListenerType,PRE);
 			with_union(function (cb:PR(CbType)) {
 				cb.removeint(this); cb.addint(this);
@@ -325,23 +270,18 @@ class PR(InteractionListener) extends PR(Listener) {
 				//may change
 				Iter(i, cb.interactors, i.wake());
 			});
-			
-	/*		if(type==Flag(ListenerType,PRE)) {
-				Iter(i, cb1.interactors, i.wake());
-				if(cb1!=cb2) Iter(i, cb2.interactors, i.wake());
-			}*/
 		}
 	}
 
 	public function addedToSpace(?skip=false) {
-	//	assert(cb1!=null && cb2!=null,"listener added to space with no cbtypes associated?");
-
 		if(!skip) assign();
 	}
 	public function removedFromSpace(?skip=false) {
-	//	assert(cb1!=null && cb2!=null,"listener added to space with no cbtypes associated?");
-
 		if(!skip) unassign();
+	}
+
+	function cbtype_change(cb:PR(CbType),added:Bool) {
+		throw "FUK FUK FUK. need to make this so that we can handle things properly here, regarding cleaning up with 'unchanged' options, mutate options, then clean up with 'changed' options. at present not possible due to append_type in PR(OptionType)";
 	}
 
    /* public function swapCbType(which:Int, newcb:PR(CbType)) {

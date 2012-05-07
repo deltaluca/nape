@@ -74,11 +74,11 @@ class PR(Constraint) {
 		wrap_cbTypes = PR(CbTypeList).get(cbTypes);
 		wrap_cbTypes.pr(inner).adder = wrap_cbTypes_adder;
 		wrap_cbTypes.pr(inner)._invalidate = wrap_cbTypes_invalidate;
-		wrap_cbTypes.pr(inner)._modifiable = immutable_cbTypes;
+		DEBUG(wrap_cbTypes.pr(inner)._modifiable = immutable_cbTypes;)
 	}
-	function immutable_cbTypes() {
+	DEBUG(function immutable_cbTypes() {
 		immutable_midstep("Interactor::cbTypes");
-	}
+	})
 	function wrap_cbTypes_adder(cb:CbType):Bool {
 		insert_cbtype(cb.pr(inner));
 		wrap_cbTypes_invalidate(null); //need to call due to returning false!
@@ -102,7 +102,6 @@ class PR(Constraint) {
 		assert(space!=null,"space null in alloc_cbSet");
 		if((cbSet = space.cbsets.get(cbTypes))!=null) {
 			cbSet.increment();
-
 			cbSet.addConstraint(this);
 		}
 	}
