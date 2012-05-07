@@ -89,12 +89,18 @@ class PR(CallbackSet) {
 	//kept in list for on-going events
 	MixListMixin(PR(CallbackSet))
 	MixPoolNoNext(PR(CallbackSet))
+	public var freed:Bool;
+	public var lazydel:Bool;
 
 	flibmdel public inline function free() {
 		int1 = int2 = null;
+		id = di = -1;
+		freed = true;
 		assert(arbiters.empty(),"callbackset released with lingering arbs");
 	}
 	flibmdel public inline function alloc() {
+		freed = false;
+		lazydel = false;
 		$(expand object gentype(n)
 			n`state = Flag(PreFlag,ACCEPT);
 			n`stamp = 0;
@@ -530,12 +536,14 @@ class PR(Space) {
     //----------------------------------------------------------------------------------------------
 
 	public function add_callbackset(cb:PR(CallbackSet)) {
+		assert(!(cb.freed || cb.lazydel),"adding callbacket which is freed or lazydel??");
 		cb.int1.cbsets.inlined_add(cb);
 		cb.int2.cbsets.inlined_add(cb);
 		callbackset_list.inlined_add(cb);
 	}
 
 	public function remove_callbackset(cb:PR(CallbackSet)) {
+		cb.lazydel = true;
 		cb.int1.cbsets.inlined_remove(cb);
 		cb.int2.cbsets.inlined_remove(cb);
 	}
@@ -907,6 +915,9 @@ class PR(Space) {
 			//of a listener being removed)
 			if(set.really_empty()) {
 				cx_ite = callbackset_list.inlined_erase(pre);
+				assert(!set.int1.cbsets.has(set), "freeing set that wasn't lazy del'ed");
+				assert(!set.int2.cbsets.has(set), "freeing set that wasn't lazy del'ed");
+				assert(set.lazydel,"freeing set not with lazydel true");
 				Free(PR(CallbackSet),set);
 				continue;
 			}
@@ -1949,6 +1960,17 @@ class PR(Space) {
 
 									Iter(listener,prelisteners,{
 										precb.pr(inner).listener = listener;
+										if(callbackset.int1==null) {
+											var err = "";
+											err += "OKAY WTF IS HAPPENING HERE\n";
+											err += "ncallbackset is null? "+(ncallbackset==null?"yes":"no")+"\n";
+											err += "assuming yes, let's find callbacksets on interactor\n";
+											err += "i1 (id="+i1.id+"):\n";
+											Iter(cbset, i1.cbsets, err += "  ("+cbset.id+" "+(cbset.int1==null?"null":"")+","+cbset.di+" "+(cbset.int2==null?"null":"")+") arbs size="+cbset.arbiters.size()+" freed="+cbset.freed+" lazydel="+cbset.lazydel+"\n");
+											err += "i2 (id="+i2.id+"):\n";
+											Iter(cbset, i2.cbsets, err += "  ("+cbset.id+" "+(cbset.int1==null?"null":"")+","+cbset.di+" "+(cbset.int2==null?"null":"")+") arbs size="+cbset.arbiters.size()+" freed="+cbset.freed+" lazydel="+cbset.lazydel+"\n");
+											throw err;
+										}
 										PR(Interactor).int_callback(
 											callbackset.int1, callbackset.int2,
 											listener.options1, precb.pr(inner)

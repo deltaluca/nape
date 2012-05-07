@@ -57,10 +57,30 @@ class Callbacks extends FixedStep {
 		hand.space = space;
 		hand.active = false;
 
-		var prel:PreListener = null;
+		//--------------------
+		//CbTypes
+
+		//partial penetration
+		var partial_penetration = new CbType();
+
+		//one-way platforms
 		var oneway_platform = new CbType();
+		var oneway_object = new CbType(); //objects that can interact with oneway_platforms
+
+		//sleep indication
+		var indicate_sleep = new CbType();
+		//touch indication
+		var indicate_touch = new CbType();
+
+		//breakapart constraint compound
+		var breakup_compound = new CbType();
+
+		//--------------------
+
+		var circles = new Array<Body>();
+
 		addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function(_) {
-			prel.options2.exclude(oneway_platform);
+			for(c in circles) c.cbTypes.add(partial_penetration);
 			var mp = new Vec2(mouseX,mouseY);
 			for(b in space.bodiesUnderPoint(mp)) {
 				if(!b.isDynamic()) continue;
@@ -70,7 +90,7 @@ class Callbacks extends FixedStep {
 			}
 		});
 		addEventListener(flash.events.MouseEvent.MOUSE_UP, function(_) {
-			prel.options2.include(oneway_platform);
+			for(c in circles) c.cbTypes.remove(partial_penetration);
 			hand.active = false;
 		});
 
@@ -84,25 +104,8 @@ class Callbacks extends FixedStep {
 		border.space = space;
 
 		//--------------------
-		//CbTypes
 
-		//partial penetration
-		var partial_penetration = new CbType();
-
-		//one-way platforms
-		var oneway_object = new CbType(); //objects that can interact with oneway_platforms
-
-		//sleep indication
-		var indicate_sleep = new CbType();
-		//touch indication
-		var indicate_touch = new CbType();
-
-		//breakapart constraint compound
-		var breakup_compound = new CbType();
-
-		//--------------------
-
-		for(i in 3...4) {
+		for(i in 0...10) {
 			var pent = new Body();
 			var shape = new Polygon(Polygon.regular(80,80,5));
 			shape.body = pent;
@@ -118,7 +121,7 @@ class Callbacks extends FixedStep {
 		// note: this is a pure function with respect to the two objects
 		//       (it's output doesn't change) so we can tell nape this and allow objects
 		//       to sleep as normal.
-		space.listeners.add(prel = new PreListener(InteractionType.COLLISION,partial_penetration,OptionType.ANY_BODY,function(cb:PreCallback) {
+		space.listeners.add(new PreListener(InteractionType.COLLISION,partial_penetration,OptionType.ANY_SHAPE,function(cb:PreCallback) {
 			var depth = 15;
 
 			//to allow penetration, we need to both change contact penetrations,
@@ -144,7 +147,7 @@ class Callbacks extends FixedStep {
 
 		//----------------------------
 
-	/*	var boxes = [];
+		var boxes = [];
 		for(i in 0...10) {
 			var box = new Body();
 			box.shapes.add(new Polygon(Polygon.box(40,40)));
@@ -175,7 +178,7 @@ class Callbacks extends FixedStep {
 			// see also that the link constraint is not directly added to the space.
 			compound.space = space;
 			compound.cbTypes.add(oneway_object);
-		}*/
+		}
 
 		//setup listeners
 		function boxer(colour:Int) { 
@@ -193,10 +196,10 @@ class Callbacks extends FixedStep {
 			};
 		}
 
-	//	space.listeners.add(new InteractionListener(CbEvent.BEGIN, InteractionType.COLLISION, indicate_touch,indicate_touch, boxer(0x00ff00)));
-	//	space.listeners.add(new InteractionListener(CbEvent.END,   InteractionType.COLLISION, indicate_touch,indicate_touch, boxer(0xff0000)));
+		space.listeners.add(new InteractionListener(CbEvent.BEGIN, InteractionType.COLLISION, indicate_touch,indicate_touch, boxer(0x00ff00)));
+		space.listeners.add(new InteractionListener(CbEvent.END,   InteractionType.COLLISION, indicate_touch,indicate_touch, boxer(0xff0000)));
 
-	/*	space.listeners.add(new ConstraintListener(CbEvent.BREAK, breakup_compound, function (cb:ConstraintCallback) {
+		space.listeners.add(new ConstraintListener(CbEvent.BREAK, breakup_compound, function (cb:ConstraintCallback) {
 			//We're going to break apart the compound containing the constraint and the two boxes
 			//we set the constraint to be removed when it broke, so we don't need to remove the constraint
 			// - When removed, it is also removed from the compound treating it as though it is completely deleted.
@@ -206,19 +209,19 @@ class Callbacks extends FixedStep {
 			//now that the compound is broken up, we want each box inside to be a oneway_object
 			b1.cbTypes.add(oneway_object);
 			b2.cbTypes.add(oneway_object);
-		}));*/
+		}));
 		//----------------------------
 
-		/*for(i in 0...10) {
+		for(i in 0...10) {
 			var circ = new Body();
-			circ.shapes.add(new Circle(15));
+			circles.push(circ);
+			circ.shapes.add(new Circle(20));
 			circ.position.setxy(800/11*(i+1),50);
 			circ.space = space;
 			
 			//set it's cbTypes
 			circ.cbTypes.add(indicate_sleep);
-			circ.cbTypes.add(oneway_object);
-		}*/
+		}
 
 		//and set up listeners
 		function circler(colour:Int) {
@@ -229,8 +232,8 @@ class Callbacks extends FixedStep {
 				}
 			}
 		}
-	//	space.listeners.add(new BodyListener(CbEvent.WAKE,  indicate_sleep, circler(0x00ff00)));
-		//space.listeners.add(new BodyListener(CbEvent.SLEEP, indicate_sleep, circler(0xff0000)));
+		space.listeners.add(new BodyListener(CbEvent.WAKE,  indicate_sleep, circler(0x00ff00)));
+		space.listeners.add(new BodyListener(CbEvent.SLEEP, indicate_sleep, circler(0xff0000)));
 
 		//----------------------------
 
@@ -254,7 +257,7 @@ class Callbacks extends FixedStep {
 			return if(dir.dot(cb.arbiter.collisionArbiter.normal)>=0) null else PreFlag.IGNORE;
 		}
 
-		//space.listeners.add(new PreListener(InteractionType.COLLISION, oneway_platform,oneway_object,oneway));
+		//space.listeners.add(new PreListener(InteractionType.COLLISION, oneway_platform,oneway_object,oneway,0,true));
 
 		run(function (dt) {
 			hand.anchor1.setxy(mouseX,mouseY);
@@ -263,20 +266,6 @@ class Callbacks extends FixedStep {
 			space.step(dt,10,10);
 			debug.draw(space);
 			debug.flush();
-
-			for(b in space.liveBodies) {
-				trace("b = "+b+" cbtypes = "+b.cbTypes);
-				var ite = b.cbTypes.zpp_inner.inner.begin();
-				while(ite!=null) {
-					var cb = ite.elt; ite = ite.next;
-					trace("   cb="+cb.wrapper());
-					var xite = cb.interactors.begin();
-					while(xite!=null) {
-						var i = xite.elt; xite = xite.next;
-						trace("     int="+i.outer_i);
-					}
-				}
-			}
 		});
 	}
 }

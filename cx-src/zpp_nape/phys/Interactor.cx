@@ -85,32 +85,40 @@ class PR(Interactor) {
 		wrap_cbTypes = PR(CbTypeList).get(cbTypes);
 		wrap_cbTypes.pr(inner).adder = wrap_cbTypes_adder;
 		wrap_cbTypes.pr(inner).subber = wrap_cbTypes_subber;
-		wrap_cbTypes.pr(inner)._invalidate = wrap_cbTypes_invalidate;
+		wrap_cbTypes.pr(inner).dontremove = true; //done by subber
 		DEBUG(wrap_cbTypes.pr(inner)._modifiable = immutable_cbTypes;)
 	}
 	DEBUG(function immutable_cbTypes() {
 		immutable_midstep("Interactor::cbTypes");
 	})
-	function wrap_cbTypes_subber(cb:CbType):Void {
-		cb.pr(inner).remInteractor(this);
+	function wrap_cbTypes_subber(pcb:CbType):Void {
+		var cb = pcb.pr(inner);
+		if(cbTypes.has(cb)) {
+			if(get_space()!=null) dealloc_cbSet();
+
+			cbTypes.remove(cb);
+			cb.remInteractor(this);
+
+			if(get_space()!=null) alloc_cbSet();
+
+			wake();
+		}
 	}
 	function wrap_cbTypes_adder(cb:CbType):Bool {
 		insert_cbtype(cb.pr(inner));
-		wrap_cbTypes_invalidate(null); //need to call due to returning false!
 		return false; //always prevent wrap_list inserting into real list
 	}
 	public function insert_cbtype(cb:PR(CbType)) {
-		//attempt to insert cb into list in correct position (check not already inside).
-		if(TryInsert(cb,cbTypes,PR(CbType).set_lt))
+		if(!cbTypes.has(cb)) {
+			if(get_space()!=null) dealloc_cbSet();
+
+			Insert(cb,cbTypes,PR(CbType).set_lt);
 			cb.addInteractor(this);
-	}
-	function wrap_cbTypes_invalidate(_) {
-		var space = get_space();
-		if(space!=null) {
-			dealloc_cbSet();
-			alloc_cbSet();
+
+			if(get_space()!=null) alloc_cbSet();
+
+			wake();
 		}
-		wake();
 	}
 
 	//--------------------------------------------------------------------
