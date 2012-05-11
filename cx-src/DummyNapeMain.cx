@@ -2,22 +2,35 @@ package;
 $(import);
 
 class DummyNapeMain {
-	static function main() {
-		var s = new Space();
-		var b1 = new Body();
-		var b2 = new Body();
-		var p = new PivotJoint(b1,b2,new Vec2(), new Vec2());
-		trace([b1.connectedBodies()]);
-		p.space = s;
-		trace([b1.connectedBodies()]);
-		p.active = false;
-		trace([b1.connectedBodies()]);
-		p.active = true;
-		trace([b1.connectedBodies()]);
-		p.space = null;
-		p.active = false;
-		trace([b1.connectedBodies()]);
-		p.space = s;
-		trace([b1.connectedBodies()]);
-	}
+    static function main() {
+        var space = new Space();
+
+        var tris = new Body(BodyType.STATIC);
+        tris.shapes.add(new Polygon([
+            new Vec2(0,200), new Vec2(50,250), new Vec2(100,300), new Vec2(50,300), new Vec2(0,300), new Vec2(0,250)
+        ]));
+        tris.shapes.add(new Polygon([
+            new Vec2(250,250), new Vec2(300,200), new Vec2(300,250), new Vec2(300,300), new Vec2(250,300), new Vec2(200,300)    
+        ]));
+        tris.space = space;
+
+		for(s in tris.shapes) trace(s.castPolygon.localVerts);
+
+        var debug = new ShapeDebug(1,1);
+        flash.Lib.current.addChild(debug.display);
+
+        for(i in 0...11) {
+            var b = new Body();
+            b.shapes.add(new Circle(4));
+            b.position.x = 300/10*i;
+            b.space = space;
+            b.velocity.y = 100;
+        }
+
+        (new haxe.Timer(11)).run = function() {
+            debug.clear();
+            space.step(1/60,10,10);
+            debug.draw(space);
+        }
+    }
 }
