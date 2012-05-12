@@ -27,10 +27,17 @@ class DummyNapeMain {
             b.velocity.y = 100;
         }
 
+		var ray = new Ray(new Vec2(150,150), new Vec2(0,1));
+
         (new haxe.Timer(11)).run = function() {
             debug.clear();
             space.step(1/60,10,10);
             debug.draw(space);
+
+			ray.direction.rotate(0.1);
+			var res = space.rayCast(ray);
+			debug.drawLine(ray.origin,ray.at(400),0xff0000);
+			if(res!=null) debug.drawFilledCircle(ray.at(res.distance),3,0xff0000);
         }
     }
 }
