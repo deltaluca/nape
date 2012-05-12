@@ -113,9 +113,11 @@ class PR(CallbackSet) {
 
 	//-------------
 
-	public function add_arb(x:PR(Arbiter)) {
-		if(!arbiters.has(x))
+	public inline function add_arb(x:PR(Arbiter)) {
+		if(!arbiters.inlined_has(x)) {
 			arbiters.inlined_add(x);
+			return true;
+		}else return false;
 	}
 	public function try_remove_arb(x:PR(Arbiter)) {
 		return arbiters.inlined_try_remove(x);
@@ -602,7 +604,7 @@ class PR(Space) {
 				//we decrement on both begin/end callback existance also pre.
 				//as in either case the callbackset exists and must be cleaned
 //				if(xarb.active) {
-				if(xarb.present) {
+				if(xarb.present!=0) {
 					MRCA_chains(xarb.ws1,xarb.ws2);
 					Iter(i1,mrca1,{
 					Iter(i2,mrca2,{
@@ -636,8 +638,9 @@ class PR(Space) {
 						}
 					});
 					});
+					xarb.present--;
+					assert(xarb.present>=0, "xarb present < 0?");
 				}
-				xarb.present = false;
 
 				//wake connected first.
 				if(xarb.b1 != body && xarb.b1.isDynamic()) wake(xarb.b1);
@@ -1052,16 +1055,20 @@ class PR(Space) {
 				Iter(xarb,xbody.arbiters,{
 					//bug-fix: see same line in nullInteractorType
 					//if(!xarb.active) cx_continue;
-					if(!xarb.present) cx_continue;
+					if(xarb.present==0) cx_continue;
 
 					if(xshp!=null && !(xarb.ws1==xshp || xarb.ws2==xshp)) cx_continue; //short-cut
+
 
 					MRCA_chains(xarb.ws1,xarb.ws2);
 					Iter(i1,mrca1,{ if(i1.cbSet != cb1 && i1.cbSet != cb2) cx_continue;
 					Iter(i2,mrca2,{ if((i1.cbSet == cb1 && i2.cbSet != cb2) || (i1.cbSet == cb2 && i2.cbSet != cb1)) cx_continue;
 						var callbackset = PR(Interactor).get(i1,i2);
 						if(callbackset!=null) {
-							ClearWith(arb, callbackset.arbiters, arb.present=false);
+							ClearWith(arb, callbackset.arbiters, {
+								arb.present--;
+								assert(arb.present>=0,"xarb present <0 ?");
+							});
 							remove_callbackset(callbackset);
 							//deferred for callbackset_list
 							//Free(PR(CallbackSet),callbackset);
@@ -1077,6 +1084,7 @@ class PR(Space) {
 	public function nullInteractorType(intx:PR(Interactor),me:PR(Interactor)=null) {
 		if(me==null) me = intx;
 
+
 		if(intx.isCompound()) {
 			var comp = intx.icompound;
 			Iter(body, comp.bodies,    nullInteractorType(body,me));
@@ -1090,9 +1098,10 @@ class PR(Space) {
 				// contacts from arbiter it is still in the set
 				// and we should try and remove it
 				//if(!xarb.active) cx_continue;
-				if(!xarb.present) cx_continue;
+				if(xarb.present==0) cx_continue;
 
 				if(xshp!=null && !(xarb.ws1==xshp || xarb.ws2==xshp)) cx_continue; //short-cut
+
 
 				MRCA_chains(xarb.ws1,xarb.ws2);
 				Iter(i1,mrca1,{
@@ -1100,9 +1109,11 @@ class PR(Space) {
 					//only want to handle relevant callbacksets!
 					if(i1!=me && i2!=me) cx_continue;
 
+
 					var callbackset = PR(Interactor).get(i1,i2);
 					if(callbackset!=null) {
-						xarb.present = false;
+						xarb.present--;
+						assert(xarb.present>=0,"xarb present <0?");
 						callbackset.remove_arb(xarb);
 						if(callbackset.really_empty()) {
 							remove_callbackset(callbackset);
@@ -1142,16 +1153,18 @@ class PR(Space) {
 
 					if(xshp!=null && !(xarb.ws1==xshp || xarb.ws2==xshp)) cx_continue; //short-cut
 
+
 					MRCA_chains(xarb.ws1,xarb.ws2);
 					Iter(i1,mrca1,{ if(i1.cbSet != cb1 && i1.cbSet != cb2) cx_continue;
 					Iter(i2,mrca2,{ if((i1.cbSet == cb1 && i2.cbSet != cb2) || (i1.cbSet == cb2 && i2.cbSet != cb1)) cx_continue;
 						var callbackset = PR(Interactor).get(i1,i2);
-						xarb.present = true;
 						if(callbackset==null) {
 							callbackset = PR(CallbackSet).get(i1,i2);
 							add_callbackset(callbackset);
 						}
-						callbackset.add_arb(xarb);
+						if(callbackset.add_arb(xarb)) {
+							xarb.present++;
+						}
 					});
 					});
 				});
@@ -1161,6 +1174,7 @@ class PR(Space) {
 
 	public function freshInteractorType(intx:PR(Interactor),me:PR(Interactor)=null) {
 		if(me==null) me = intx;
+
 
 		if(intx.isCompound()) {
 			var comp = intx.icompound;
@@ -1176,24 +1190,28 @@ class PR(Space) {
 
 				if(xshp!=null && !(xarb.ws1==xshp || xarb.ws2==xshp)) cx_continue; //short-cut
 
+
 				MRCA_chains(xarb.ws1,xarb.ws2);
 				Iter(i1,mrca1,{
 				Iter(i2,mrca2,{
 					//only want to handle relevant callbacksets!
 					if(i1!=me && i2!=me) cx_continue;
 
+
 					var cb1 = i1.cbSet;
 					var cb2 = i2.cbSet;
 					assert(cb1!=null && cb2!=null, "null cbset from MRCA_chain?");
 					cb1.validate(); cb2.validate();
 					if(!PR(CbSet).empty_intersection(cb1,cb2)) {
-						xarb.present = true;
+
 						var callbackset = PR(Interactor).get(i1,i2);
 						if(callbackset==null) {
 							callbackset = PR(CallbackSet).get(i1,i2);
 							add_callbackset(callbackset);
 						}
-						callbackset.add_arb(xarb);
+						if(callbackset.add_arb(xarb)) {
+							xarb.present++;
+						}
 					}
 				});
 				});
@@ -1618,7 +1636,7 @@ class PR(Space) {
 				//arb.present matches when arbiter was retired, but needs to be removed
 				//from it's callbacksets!
 				//deals neatly with change in interaction types at runtime
-				if(!arb.cleared || arb.present || arb.intchange) {	
+				if(!arb.cleared || arb.present!=0 || arb.intchange) {	
 					//callbacks
 					var endcb = (arb.up_stamp==stamp-1) && !arb.cleared && !arb.intchange;
 					var begcb = (arb.fresh) && !arb.cleared && !arb.intchange;
@@ -1636,7 +1654,6 @@ class PR(Space) {
 
 							var callbackset = PR(Interactor).get(i1,i2);
 							if(begcb || arb.intchange) {
-								arb.present = true;
 								if(callbackset==null) {
 									callbackset = PR(CallbackSet).get(i1,i2);
 									add_callbackset(callbackset);
@@ -1652,9 +1669,11 @@ class PR(Space) {
 										cb.set = callbackset;
 									}
 								});
-								callbackset.add_arb(arb);
+								if(callbackset.add_arb(arb))
+									arb.present++;
 							}else {
-								arb.present = false;
+								arb.present--;
+								assert(arb.present>=0,"arb present < 0?");
 								assert(callbackset!=null,"end arbiter with no callbackset");
 								callbackset.remove_arb(arb);
 								PR(CbSet).find_all(cb1,cb2,Flag(CbEvent,END),function(listener:PR(InteractionListener)) {
@@ -1674,7 +1693,7 @@ class PR(Space) {
 									//Free(PR(CallbackSet),callbackset);
 								}
 							}
-						RELEASE(cx_break;)
+//						RELEASE(cx_break;)
 						});
 						});
 					}

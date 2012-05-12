@@ -221,6 +221,7 @@ class Callbacks extends FixedStep {
 			
 			//set it's cbTypes
 			circ.cbTypes.add(indicate_sleep);
+			circ.cbTypes.add(oneway_object);
 		}
 
 		//and set up listeners
@@ -257,7 +258,7 @@ class Callbacks extends FixedStep {
 			return if(dir.dot(cb.arbiter.collisionArbiter.normal)>=0) null else PreFlag.IGNORE;
 		}
 
-		//space.listeners.add(new PreListener(InteractionType.COLLISION, oneway_platform,oneway_object,oneway,0,true));
+		space.listeners.add(new PreListener(InteractionType.COLLISION, oneway_platform,oneway_object,oneway,0,true));
 
 		run(function (dt) {
 			hand.anchor1.setxy(mouseX,mouseY);

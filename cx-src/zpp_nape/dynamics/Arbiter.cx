@@ -92,7 +92,7 @@ class PR(Arbiter) {
 	//for instance if a pre-listener returns IGNORE
 	//or deletes it's contacts but arbiter is still existing
 	//as part of a callbackset etc, but not only for cacheing
-	public var present:Bool;
+	public var present:Int; //reference counted for number of callbacksets present within.
 	//used to mark arbiter was result of swapping a type
 	//and callbacksets may need changing
 	public var intchange:Bool;
@@ -194,7 +194,7 @@ class PR(Arbiter) {
 		b2.arbiters.inlined_add(this);
 		
 		active   = true;
-		present  = false;
+		present  = 0;
 		cleared  = false;
 		sleeping = false;
 		fresh    = false;
@@ -208,7 +208,7 @@ class PR(Arbiter) {
         assert(b2!=null,"Arbiter::sup_retire");
 
 		//arbiter shouldn't be in a callbackset!!
-		assert(!present,"Arbiter::sup_retire cbsets present");
+		assert(present==0,"Arbiter::sup_retire cbsets present");
 		assert(!intchange,"Arbiter::sup_retire intchange");
 
 	    if(!cleared) { //only need to remove arbiters if not prematurely cleared.
