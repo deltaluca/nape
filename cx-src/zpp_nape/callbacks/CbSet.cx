@@ -13,6 +13,9 @@ class PR(CbSet) {
 	//object pooled
 	MixPool(PR(CbSet))
 
+	static var nextId = 0;
+	public var id:Int;
+
 	flibmdel public inline function increment() count++
 	flibmdel public inline function decrement() {
 		assert(count>0,"decrementing ref.count into negatives??");
@@ -133,6 +136,7 @@ class PR(CbSet) {
 		);
         constraints = new List(PR(Constraint))();
 		interactors = new List(PR(Interactor))();
+		id = nextId++;
 	}
 
 	flibmdel public inline function free() {
@@ -179,7 +183,12 @@ class PR(CbSet) {
 	}
 
 	//determines if cbSets share an interaction listener
+	public static var inthash = new IntHash<Int>();
 	public static inline function empty_intersection(a:PR(CbSet),b:PR(CbSet)) {
+		var key = if(a.id<b.id) (a.id<<16)|b.id else (b.id<<16)|a.id;
+		var cur = inthash.exists(key) ? inthash.get(key) : 0;
+		inthash.set(key,cur+1);
+
 		var ret = true;
 		var aite = a.listeners.begin();
 		var bite = b.listeners.begin();

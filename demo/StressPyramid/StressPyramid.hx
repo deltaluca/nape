@@ -96,6 +96,14 @@ class StressPyramid extends VariableStep {
 			space.step(dt,8,8);
 			debug.draw(space);
 			debug.flush();
+
+			var cnt = 0;
+			var total = 0;
+			for(i in zpp_nape.callbacks.CbSet.ZPP_CbSet.inthash) {
+				cnt++;
+				total += i;
+			}
+			trace("pairs="+cnt+" total="+total+" mean/pair="+Std.string(total/cnt).substr(0,5)+" mean/step="+Std.string(total/space.timeStamp).substr(0,5));
 		});
 	}
 }
