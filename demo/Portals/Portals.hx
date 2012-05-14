@@ -51,6 +51,9 @@ class PortalInfo {
 	//all shapes in limbo intersecting exit shape
 	public var limbos:Array<Limbo>;
 
+	//total number of shapes to detect bug condition!
+	public var count:Int;
+
 	public var pcon:PortalConstraint;
 
 	public function new() {
@@ -128,7 +131,9 @@ class PortalManager {
 						var info = limbo.info;
 						var portal = if(shape.body==info.master) info.mportal else info.sportal;
 						var del = c.position.sub(portal.body.localToWorld(portal.position)).dot(portal.body.localToRelative(portal.direction));
-						if(del<=0) { rem = true; break; }
+						var wid = c.position.sub(portal.body.localToWorld(portal.position)).cross(portal.body.localToRelative(portal.direction));
+
+						if(del<=0 && wid*wid < (portal.width/2)*(portal.width/2)) { rem = true; break; }
 					}
 					if(rem) {
 						carb.contacts.remove(c);
@@ -191,6 +196,28 @@ class PortalManager {
 					for(s in info.master.shapes) s.cbTypes.remove(INOUT);
 				}
 				delfrom(infos,info);
+			}else if(info.count == info.master.shapes.length+info.slave.shapes.length) {
+				//bug condition! body has been disjointed onto either side of portal!
+				//choose side with most shapes?
+				var usemaster = info.master.shapes.length >= info.slave.shapes.length;
+				var keep = usemaster ? info.master : info.slave;
+				var disp = usemaster ? info.slave : info.master;
+
+				//delete info
+				info.pcon.space = null;
+				//distribute shapes of disp to keep.
+				disp.space = null;
+				var scale = usemaster ? info.mportal.width/info.sportal.width
+				                      : info.sportal.width/info.mportal.width;
+				while(disp.shapes.length>0) {
+					var s = disp.shapes.pop();
+					var clone_shp = Shape.copy(s);
+					clone_shp.scale(scale,scale);
+					clone_shp.body = keep;
+				}
+				for(s in keep.shapes) s.cbTypes.remove(INOUT);
+
+				delfrom(infos,info);
 			}
 		}));
 
@@ -227,6 +254,7 @@ class PortalManager {
 
 				info = new PortalInfo();
 				info.master = object.body;
+				info.count = object.body.shapes.length;
 				info.mportal = portal;
 				info.slave = clone;
 				info.sportal = nortal;
@@ -308,7 +336,7 @@ class Portals extends FixedStep {
 			b.position.set(pos);
 			b.rotation = dir.angle;
 
-			var d = 8;
+			var d = 10;
 			var port = new Polygon(Polygon.box(d,w));
 			port.body = b;
 
@@ -325,8 +353,8 @@ class Portals extends FixedStep {
 
 		var p1 = genportal(new Vec2(100,225),new Vec2(1,0),150);
 		var p2 = genportal(new Vec2(500,225),new Vec2(-1,0),100);
-		var p3 = genportal(new Vec2(300,25),new Vec2(0,1),150);
-		var p4 = genportal(new Vec2(300,425),new Vec2(0,-1),100);
+		var p3 = genportal(new Vec2(300,55),new Vec2(0,1),150);
+		var p4 = genportal(new Vec2(300,395),new Vec2(0,-1),100);
 
 		p1.target = p2;
 		p2.target = p3;
