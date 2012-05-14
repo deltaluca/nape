@@ -111,7 +111,7 @@ class DynamicDestruction extends FixedStep {
 }
 
 class Destructable {
-	static inline var granularity = new Vec2(5,5);
+	static var granularity = new Vec2(5,5);
 
 	//cut away from a body based on the function
 	//to return true if inside the 'thing' to be cut out of the body

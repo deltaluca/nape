@@ -251,16 +251,18 @@ $(expand genSet(T) class Set(T) {
 		Free(Set(T),node);
 	}*/
 
-	public inline function clear() clear_with(function (_) {})
+	public function clear() clear_with(function (_) {})
 	public inline function clear_with(lambda:T->Void) {
 		if(parent==null) return;
+		else {
+			var cur = parent;
+			while(cur!=null) 
+				cur = if(cur.prev!=null) cur.prev
+				    elif(cur.next!=null) cur.next
+					else clear_node(cur,lambda);
+			parent = null;
+		}
 
-		var cur = parent;
-		while(cur!=null) 
-			cur = if(cur.prev!=null) cur.prev
-			    elif(cur.next!=null) cur.next
-				else clear_node(cur,lambda);
-		parent = null;
 	}
 	inline function clear_node(node:Set(T),lambda:T->Void) {
 		assert(node.next==null && node.prev==null,"clear_node :: node not a leaf");
