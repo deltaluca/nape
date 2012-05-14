@@ -7,6 +7,7 @@ import nape.shape.Circle;
 import nape.shape.Polygon;
 import nape.shape.Shape;
 import nape.callbacks.CbType;
+import nape.callbacks.OptionType;
 import nape.callbacks.CbEvent;
 import nape.callbacks.PreFlag;
 import nape.callbacks.InteractionType;
@@ -78,21 +79,15 @@ class Portal {
 		this.direction = direction;
 		this.width = width;
 
-		sensor.cbType = PortalManager.PORTAL;
+		sensor.cbTypes.add(PortalManager.PORTAL);
 		sensor.filter = new InteractionFilter(-1,-1,-1,-1,-1,-1);
 		sensor.userData = this;
-
-		for(s in body.shapes) {
-			if(s==sensor || s.cbType==PortalManager.PORTAL) continue;
-			s.cbType = PortalManager.OBJECT;
-		}
 	}
 }
 
 class PortalManager {
 	//portal sensors.
 	public static var PORTAL = new CbType();
-	public static var OBJECT = new CbType();
 
 	public static var PORTER = new CbType(); //object that can be teleported.
 	public static var INOUT  = new CbType(); //object which is part of an on-going portal interaction (in limbo)
@@ -119,41 +114,38 @@ class PortalManager {
 
 	public function init(space:Space) {
 		//ignore relevant contacts for shapes in limbo
-		for(cb in [OBJECT,INOUT,PORTER]) {
-			space.listeners.add(new PreListener(InteractionType.COLLISION, cb, INOUT, function(cb:PreCallback) {
-				var arb = cb.arbiter;
-				var carb = arb.collisionArbiter;
-				function eval(ret:PreFlag, shape:Shape) {
-					if(ret==PreFlag.IGNORE_ONCE) return ret;
-					var i = 0;
-					while(i<carb.contacts.length) {
-						var c = carb.contacts.at(i);
-						var rem = false;
-						for(limbo in limbos) {
-							if(limbo.mshape!=shape && limbo.sshape!=shape) continue;
-							var info = limbo.info;
-							var portal = if(shape.body==info.master) info.mportal else info.sportal;
-							var del = c.position.sub(portal.body.localToWorld(portal.position)).dot(portal.body.localToRelative(portal.direction));
-							if(del<=0) { rem = true; break; }
-						}
-						if(rem) {
-							carb.contacts.remove(c);
-							break;
-						}else i++;
+		space.listeners.add(new PreListener(InteractionType.COLLISION, INOUT, OptionType.ANY_SHAPE.exclude(PORTAL), function(cb:PreCallback) {
+			var arb = cb.arbiter;
+			var carb = arb.collisionArbiter;
+			function eval(ret:PreFlag, shape:Shape) {
+				if(ret==PreFlag.IGNORE_ONCE) return ret;
+				var i = 0;
+				while(i<carb.contacts.length) {
+					var c = carb.contacts.at(i);
+					var rem = false;
+					for(limbo in limbos) {
+						if(limbo.mshape!=shape && limbo.sshape!=shape) continue;
+						var info = limbo.info;
+						var portal = if(shape.body==info.master) info.mportal else info.sportal;
+						var del = c.position.sub(portal.body.localToWorld(portal.position)).dot(portal.body.localToRelative(portal.direction));
+						if(del<=0) { rem = true; break; }
 					}
-					if(carb.contacts.length==0) return PreFlag.IGNORE_ONCE;
-					else return ret;
+					if(rem) {
+						carb.contacts.remove(c);
+						break;
+					}else i++;
 				}
-				var ret = PreFlag.ACCEPT_ONCE;
-				if(arb.shape1.cbType==INOUT) ret = eval(ret, arb.shape1);
-				if(arb.shape2.cbType==INOUT) ret = eval(ret, arb.shape2);
-				return ret;
-			}));
-		}
+				if(carb.contacts.length==0) return PreFlag.IGNORE_ONCE;
+				else return ret;
+			}
+			var ret = PreFlag.ACCEPT_ONCE;
+			if(arb.shape1.cbTypes.has(INOUT)) ret = eval(ret, arb.shape1);
+			if(arb.shape2.cbTypes.has(INOUT)) ret = eval(ret, arb.shape2);
+			return ret;
+		}));
 
 		//ignore portal interactions
-		for(cb in [PORTER,INOUT])
-			space.listeners.add(new PreListener(InteractionType.ANY, cb, PORTAL, function(_) return PreFlag.IGNORE));
+		space.listeners.add(new PreListener(InteractionType.ANY, OptionType.ANY_SHAPE, PORTAL, function(_) return PreFlag.IGNORE));
 
 		function getinfo(portal:Portal, object:Body):PortalInfo {
 			for(i in infos) {
@@ -191,83 +183,86 @@ class PortalManager {
 			if(info.master.shapes.length==0 || info.slave.shapes.length==0) {
 				//delete info
 				info.pcon.space = null;
-				if(info.master.shapes.length==0) info.master.space = null;
-				else                             info.slave.space = null;
+				if(info.master.shapes.length==0) {
+					info.master.space = null;
+					for(s in info.slave.shapes) s.cbTypes.remove(INOUT);
+				} else {
+					 info.slave.space = null;
+					for(s in info.master.shapes) s.cbTypes.remove(INOUT);
+				}
 				delfrom(infos,info);
 			}
 		}));
 
-		for(cb in [PORTER,INOUT]) {
-			space.listeners.add(new InteractionListener(CbEvent.BEGIN, InteractionType.ANY, PORTAL, cb,	
-			function (cb:InteractionCallback) {
-				var pshape = cb.int1.castShape; 
-				var object = cb.int2.castShape;
-				var portal:Portal = cast pshape.userData;
+		space.listeners.add(new InteractionListener(CbEvent.BEGIN, InteractionType.ANY, PORTAL, PORTER,	
+		function (cb:InteractionCallback) {
+			var pshape = cb.int1.castShape; 
+			var object = cb.int2.castShape;
+			var portal:Portal = cast pshape.userData;
 
-				var info = getinfo(portal,object.body);
-				var limbo = infolimbo(info,object);
-				if(limbo!=null) {
-					limbo.cnt++;
-					return;
-				}
+			var info = getinfo(portal,object.body);
+			var limbo = infolimbo(info,object);
+			if(limbo!=null) {
+				limbo.cnt++;
+				return;
+			}
 
-				var nortal = portal.target;
-				var scale = nortal.width/portal.width;
-				if(info==null) {
-					var clone = new Body();
-					var clone_shp = Shape.copy(object);
-					clone_shp.scale(scale,scale);
-					clone_shp.body = clone;
-					clone.space = space;
+			var nortal = portal.target;
+			var scale = nortal.width/portal.width;
+			if(info==null) {
+				var clone = new Body();
+				var clone_shp = Shape.copy(object);
+				clone_shp.scale(scale,scale);
+				clone_shp.body = clone;
+				clone.space = space;
 
-					var pcon = new PortalConstraint(
-						portal.body, portal.position, portal.direction,
-						nortal.body, nortal.position, nortal.direction,
-						scale,
-						object.body,clone
-					);
-					pcon.space = space;
-					pcon.set_properties(clone,object.body);
+				var pcon = new PortalConstraint(
+					portal.body, portal.position, portal.direction,
+					nortal.body, nortal.position, nortal.direction,
+					scale,
+					object.body,clone
+				);
+				pcon.space = space;
+				pcon.set_properties(clone,object.body);
 
-					info = new PortalInfo();
-					info.master = object.body;
-					info.mportal = portal;
-					info.slave = clone;
-					info.sportal = nortal;
-					info.pcon = pcon;
-					
-					var nlimbo = new Limbo(); nlimbo.cnt = 1;
-					nlimbo.mshape = object;
-					nlimbo.sshape = clone_shp;
-					
-					info.limbos.push(nlimbo);
-					nlimbo.info = info;
+				info = new PortalInfo();
+				info.master = object.body;
+				info.mportal = portal;
+				info.slave = clone;
+				info.sportal = nortal;
+				info.pcon = pcon;
+				
+				var nlimbo = new Limbo(); nlimbo.cnt = 1;
+				nlimbo.mshape = object;
+				nlimbo.sshape = clone_shp;
+				
+				info.limbos.push(nlimbo);
+				nlimbo.info = info;
 
-					infos.push(info);
-					limbos.push(nlimbo);
+				infos.push(info);
+				limbos.push(nlimbo);
 
-					object.cbType = INOUT;
-					clone_shp.cbType = INOUT;
-				}else {
-					var clone = if(info.master==object.body) info.slave else info.master;
-					var clone_shp = Shape.copy(object);
-					clone_shp.scale(scale,scale);
-					clone_shp.body = clone;
-					
-					var nlimbo = new Limbo(); nlimbo.cnt = 1;
-					nlimbo.mshape = if(info.master==object.body) clone_shp else object;
-					nlimbo.sshape = if(info.master==object.body) object else clone_shp;
+				object.cbTypes.add(INOUT);
+				clone_shp.cbTypes.add(INOUT);
+			}else {
+				var clone = if(info.master==object.body) info.slave else info.master;
+				var clone_shp = Shape.copy(object);
+				clone_shp.scale(scale,scale);
+				clone_shp.body = clone;
+				
+				var nlimbo = new Limbo(); nlimbo.cnt = 1;
+				nlimbo.mshape = if(info.master==object.body) clone_shp else object;
+				nlimbo.sshape = if(info.master==object.body) object else clone_shp;
 
-					info.limbos.push(nlimbo);
-					nlimbo.info = info;
+				info.limbos.push(nlimbo);
+				nlimbo.info = info;
 
-					limbos.push(nlimbo);
-					
-					object.cbType = INOUT;
-					clone_shp.cbType = INOUT;
-				}
-			}));
-		}
+				limbos.push(nlimbo);
+				
+				object.cbTypes.add(INOUT);
+				clone_shp.cbTypes.add(INOUT);
+			}
+		}));
 	}
 }
 
@@ -290,7 +285,6 @@ class Portals extends FixedStep {
 		border.shapes.add(new Polygon(Polygon.rect(0,0,stage.stageWidth,-50)));
 		border.shapes.add(new Polygon(Polygon.rect(0,stage.stageHeight,stage.stageWidth,50)));
 		border.space = space;
-		for(s in border.shapes) s.cbType = PortalManager.OBJECT;
 
 		//-------------------------------------------------------------------------
 
@@ -304,7 +298,7 @@ class Portals extends FixedStep {
 			b.shapes.add(new Circle(12,new Vec2(0,12)));
 			b.shapes.add(new Circle(12,new Vec2(-12*0.86,-6)));
 			b.space = space;
-			for(s in b.shapes) s.cbType = PortalManager.PORTER;
+			for(s in b.shapes) s.cbTypes.add(PortalManager.PORTER);
 		}
 
 		//-------------------------------------------------------------------------
@@ -350,7 +344,6 @@ class Portals extends FixedStep {
 		b.shapes.add(new Polygon(Polygon.rect(-42,42,-8,8)));
 		b.shapes.add(new Polygon(Polygon.rect(42,-42,8,-8)));
 		b.shapes.add(new Polygon(Polygon.rect(42,42,8,8)));
-		for(s in b.shapes) s.cbType = PortalManager.OBJECT;
 
 		var port1 = new Polygon(Polygon.rect(-42,-42,-8,84));
 		var port2 = new Polygon(Polygon.rect(42,-42,8,84));
@@ -402,6 +395,22 @@ class Portals extends FixedStep {
 
 			debug.clear();
 			space.step(dt);
+
+			for(b in space.bodies) {
+				for(s in b.shapes) {
+					var inout = s.cbTypes.has(PortalManager.INOUT);
+					var porter = s.cbTypes.has(PortalManager.PORTER);
+					var portal = s.cbTypes.has(PortalManager.PORTAL);
+					var col = (inout?0xff:0)|(porter?0xff00:0)|(portal?0xff0000:0);
+					if(col==0) continue;
+					if(s.isCircle()) {
+						debug.drawFilledCircle(s.worldCOM,s.castCircle.radius,col);
+					}else {
+						debug.drawFilledPolygon(s.castPolygon.worldVerts,col);
+					}
+				}
+			}
+
 			debug.draw(space);
 			debug.flush();
 		});	

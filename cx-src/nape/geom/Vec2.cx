@@ -163,9 +163,12 @@ class Vec2 {
 		Disposed(this,Vec2);
 		DEBUG(if(isNaN(angle)) throw "Error: Cannot rotate Vec2 by NaN";)
 
-		var ax = Math.sin(angle);
-		var ay = Math.cos(angle);
-		vec_rotateq(pr(inner).,a);
+		if((angle%Math.PI*2)!=0) {
+			var ax = Math.sin(angle);
+			var ay = Math.cos(angle);
+			vec_rotateq(pr(inner).,a);
+			pr(inner).invalidate();
+		}
 
 		return this;
 	}

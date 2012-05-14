@@ -4,13 +4,13 @@
 	Brief(ish) overview of everything in Nape.
 </short>
 <long>
-<text class="small1">(When I say brief, this is quite long; and yet suprisingly sparse of true detail available in the api docs. This provides an ovewview of all core functionality, without turning into a full book! The only features not covered at all are Geometric utilities)</text>
+<text class="small1">(When I say brief, this is quite long; and yet surprisingly sparse of true detail available in the API docs. This provides an overview of all core functionality, without turning into a full book! The only features not covered at all are Geometric utilities)</text>
 <br/><br/>
-<text>Nape is a 2D Rigid body physics engine, written in cross-platform HaXe and available for use in AS3 through pre-compiled .swc libraries.</text><br/>
+<text>Nape is a 2D Rigid body physics engine, written in cross-platform Haxe and available for use in AS3 through pre-compiled .swc libraries.</text><br/>
 <br/>
 <text>Not only is Nape faster than engines like Box2D and more sensible with it's memory use, it's main benefit lies in it's expressive and concise API which also hides (without becoming a </text><link type="outside" href="http://en.wikipedia.org/wiki/Leaky_abstraction">leaky-abstraction</link><text>); things such as ensuring that physics entities are always woken up appropriately when they were sleeping and some modification is made, or when properties of a body change and it's physical properties, and potentially many unknown to the user properties internal to the engine need updating. This is done through the user of getter/setter properties which are largely done lazily under the hood to avoid any unnecessary, repeated computation (Aka they don't waste your time)</text><br/>
 <br/>
-<text>Beyond this, whilst Nape lacks some features of say Box2D (Continous collision detection is not yet implemented) It provides other features that engines like Box2D do not possess; more complex buoyancy, and a much higher-level callback system and geometric utilities</text><br/>
+<text>Beyond this, whilst Nape lacks some features of say Box2D (Continuous collision detection is not yet implemented) It provides other features that engines like Box2D do not possess; more complex buoyancy, and a much higher-level callback system and geometric utilities</text><br/>
 <br/>
 <hr/>
 <text class="header3">Space's</text><br/><br/>
@@ -22,7 +22,7 @@
 <text class="header3">Body's</text><br/><br/>
 <bullet/><text>To build up a simulation you need some rigid </text><link type="class" href="Body">Body</link><text>s: static, dynamic or kinematic</text><br/>
 <code>var body = new Body(?type : BodyType = BodyType.DYNAMIC);</code><br/>
-<text>Which neccessarigly must be given some physical form via Shape's, and can be added to the Space like:</text><br/>
+<text>Which necessarily must be given some physical form via Shape's, and can be added to the Space like:</text><br/>
 <code>body.space = space;</code><br/>
 <text class="header3">Shape's</text><br/><br/>
 <bullet/><text>The possible shape types are </text><link type="class" href="Circle">Circle</link><text>'s, and </text><link type="class" href="Polygon">Polygon</link><text>'s which can represent convex polygons</text><br/>
@@ -79,7 +79,7 @@
 <hr/>
 <text class="header3">Compound's</text><br/><br/>
 
-<bullet/><text>When constructing things like ragdolls, or cars it is often useful to abstract the internal representation, and treat the entire object as a single physics object with respect to addition/removal from the space, copying and in the callback system</text><br/>
+<bullet/><text>When constructing things like rag-dolls, or cars it is often useful to abstract the internal representation, and treat the entire object as a single physics object with respect to addition/removal from the space, copying and in the callback system</text><br/>
 <text>This is done through the </text><link type="class" href="Compound">Compound</link><text> class which groups together various Body's and Constraint's (As well as other Compounds forming a tree) You can think of the Space itself as being a Compound with the same overall API.</text>
 <code><![CDATA[var compound = new Compound();
 var body = createSomeBody(); body.compound = compound;
@@ -103,11 +103,11 @@ constraint.space = null;
 
 <bullet/><text>To view the state of a simulation, you can use Nape's debug views, </text><link type="class" href="ShapeDebug">ShapeDebug</link><text> and (for flash players from 10 up to but not including 11.2) </text><link type="class" href="BitmapDebug">BuitmapDebug</link><text> which provides a much faster rendering</text><br/>
 <code>var debug = new ***Debug(width : Float, height : Float, bgColor : Int);</code>
-<text>In the case of the ShapeDebug, the arguments are not so important (especcialy bgColor), but the width/height are important if you are debugging a larger world and you want to enable culling to improve performance (so that only things visible are rendered)</text><br/>
+<text>In the case of the ShapeDebug, the arguments are not so important (especially bgColor), but the width/height are important if you are debugging a larger world and you want to enable culling to improve performance (so that only things visible are rendered)</text><br/>
 <br/>
 <text>The visible region is always defined by (0,0) to (width,height), but the Debug views also have a transform : </text><link type="class" href="Mat23">Mat23</link><text> property which is a transformation matrix applied to all drawing operations to permit rotation/scaling/translation of the world</text><br/>
 <br/>
-<text>Clearly, this is not entirely cross-platform, but through NME we can atleast make use of the ShapeDebug class. To add the debug view to the display list you would use (in flash's API)</text>
+<text>Clearly, this is not entirely cross-platform, but through NME we can at least make use of the ShapeDebug class. To add the debug view to the display list you would use (in flash's API)</text>
 <code>addChild(debug.display);</code>
 <text>With rendering controlled by methods clear(), draw() and (for BitmapDebug) flush(); A typical main loop with no added logic may look like:</text><br/>
 <code><![CDATA[{
@@ -137,7 +137,7 @@ constraint.space = null;
 	<bullet/><text>The bit's set in the group value (default = 1), denote which 'layers' if you will, the shape exists in for that interaction type.</text><br/>
 	<bullet/><text>The bit's set in the mask value (default = -1 = 0xffffffff), denote which 'layers' if you will, the shape is allowed to interact in for the specific interaction type.</text>
 </indent><br/>
-<text>What this amounts to is that given 2 pairs of group/value bit-vectors, the two shapes are elligble for that interaction type if</text>
+<text>What this amounts to is that given 2 pairs of group/value bit-vectors, the two shapes are eligible for that interaction type if</text>
 <code>(shape1.group &amp; shape2.mask) != 0 &amp;&amp; (shape2.group &amp; shape1.mask) != 0</code>
 
 <br/>
@@ -157,7 +157,7 @@ constraint.space = null;
 <hr/>
 <text class="header3">InteractionGroup's</text><br/><br/>
 
-<bullet/><text>Ontop of the InteractionFilter's exists a higher-level (if less powerful) feature in </text><link type="class" href="InteractionGroup">InteractionGroup</link><text>'s.</text><br/>
+<bullet/><text>On top of the InteractionFilter's exists a higher-level (if less powerful) feature in </text><link type="class" href="InteractionGroup">InteractionGroup</link><text>'s.</text><br/>
 <br/>
 <code>var group = new InteractionGroup(?ignore = false);</code><br/>
 <text>InteractionGroups are assigned to any Shape, Body or Compound (or other InteractionGroup's forming trees), such that given any two shapes, if their most recent common ancestor in the tree is an InteractionGroup with ignore=true set, the two shapes will not interact.</text><br/>
@@ -168,7 +168,7 @@ constraint.space = null;
 <hr/>
 <text class="header3">Callback system</text><br/><br/>
 
-<bullet/><text>Compared to say Box2D, nape's callback system is at a much higher-level; instead of getting interaction events based on single shapes, we instead classify Shapes/Bodys/Compounds as 'belonging' (think of interfaces in AS3/HaXe) to a certain </text><link type="class" href="CbType">CbType</link><text> and listen for events occuring between any two such types.</text><br/>
+<bullet/><text>Compared to say Box2D, nape's callback system is at a much higher-level; instead of getting interaction events based on single shapes, we instead classify Shapes/Bodys/Compounds as 'belonging' (think of interfaces in AS3/Haxe) to a certain </text><link type="class" href="CbType">CbType</link><text> and listen for events occurring between any two such types.</text><br/>
 <br/>
 <text>A near-future change will hopefully see the relaxation of this system to permit multiple CbType's per Interactor increasing modularity in user code greatly!</text><br/>
 <br/>
@@ -193,7 +193,7 @@ body.cbType = boxtype;</code><br/>
 <br/>
 
 <text class="header3">Interaction events</text><br/><br/>
-<bullet/><text>The most useful part of the Callback system is for interaction events, which can occur between any viable pairing of Shape/Body/Compound that exists; producing a single event in any case. That means if you handle callbacks between two ragdolls, then you can get a single begin/end event when any part of one ragdoll starts touching the other, and when all touching parts have seperated!</text><br/>
+<bullet/><text>The most useful part of the Callback system is for interaction events, which can occur between any viable pairing of Shape/Body/Compound that exists; producing a single event in any case. That means if you handle callbacks between two rag dolls, then you can get a single begin/end event when any part of one rag doll starts touching the other, and when all touching parts have separated!</text><br/>
 <br/>
 <text>Interaction events are split into two sub-types, Pre-events, and standard Interaction-events.</text><br/>
 <br/>
@@ -211,13 +211,13 @@ body.cbType = boxtype;</code><br/>
 <indent>
 	<text>Pre-events are special, in that the function supplied in the Listener, is called directly inside of the simulation step as soon as it is determined that the two interactions 'will' interact, and with details like contact points, or intersection centroids depending on interaction type. They are powerful in allowing you to have fine-grain control over whether the interaction should proceed or not depending on this information; think one-way platforms!</text><br/>
 	<br/>
-	<text>The associated CbEvent type is PRE, and is implict in construction</text><br/>
+	<text>The associated CbEvent type is PRE, and is implicit in construction</text><br/>
 	<code>new PreListener(InteractionType.#, cbType1, cbType2, handler : PreCallback -> PreFlag);</code><br/>
-	<text>Like with standard events, we define what type of interaction is to be handled; so that if we handle collisions, the pre listener is invoked only when the first collision interaction is about to occur; and the return flag decides on how any subsequent collision interactinos are to behave until an appropriate 'end' event could be generated</text><br/>
+	<text>Like with standard events, we define what type of interaction is to be handled; so that if we handle collisions, the pre listener is invoked only when the first collision interaction is about to occur; and the return flag decides on how any subsequent collision interactions are to behave until an appropriate 'end' event could be generated</text><br/>
 	<br/>
 	<text>The PreListener can occur even between two Compounds as usual, but note well that the only information available to decide the fate of the interaction, is that of the first Shape-Shape pair to begin overlapping; initiating the interaction</text><br/>
 	<br/>
-	<text>PreListener's are also special in that they are the one place where the abstraction in nape involving sleeping can be 'leaked', given that these are a more advanced area I think this is permissable. Should you consistently return from the handler, either PreFlag.IGNORE_ONCE or PreFlag.ACCEPT_ONCE, then nape can make no assumption abuot the purity of your handler (Whether a future unrelated change may cause your handler to return a different value requiring the waking of the objects); and as such will not permit the two related to come to sleep.</text><br/>
+	<text>PreListener's are also special in that they are the one place where the abstraction in nape involving sleeping can be 'leaked', given that these are a more advanced area I think this is permissible. Should you consistently return from the handler, either PreFlag.IGNORE_ONCE or PreFlag.ACCEPT_ONCE, then nape can make no assumption about the purity of your handler (Whether a future unrelated change may cause your handler to return a different value requiring the waking of the objects); and as such will not permit the two related to come to sleep.</text><br/>
 	<br/>
 	<text>If you 'know' that your handler is pure, then you can set the 'pure' property on the listener to true and allow nape to let the objects go to sleep in this situation. Even if your handler is not strictly pure, but you know the times when it's behaviour changes; you can set the listener to pure and re-assign the handler like listener.handler = listener.handler; to tell nape that it's behaviour has changed (and as such is a strictly 'new' handler) and wake up the objects when necessary.</text>
 </indent>
