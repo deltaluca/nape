@@ -53,6 +53,11 @@ class PR(CbSetPair) {
 		}
 	}
 	public function __validate() {
+		var inthash = PR(CbSet).inthash;
+		var key = if(a.id<b.id) (a.id<<16)|b.id else (b.id<<16)|a.id;
+		var cur = inthash.exists(key) ? inthash.get(key) : 0;
+		inthash.set(key,cur+1);
+
 		listeners.clear();
 
 		var aite = a.listeners.begin();

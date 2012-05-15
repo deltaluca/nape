@@ -154,6 +154,7 @@ class PR(CbSetManager) {
 				var set = PR(CbSet).get(cbTypes);
 				assert(!cbsets.has_weak(set),"CbSet exists in Set already, but not found??");
 				cbsets.insert(set);
+				set.manager = this;
 				set;
 			}
 
@@ -165,6 +166,12 @@ class PR(CbSetManager) {
 	}
 	public function remove(set:PR(CbSet)) {
 		cbsets.remove(set);
+		ClearWith(pair, set.cbpairs, {
+			if(set==pair.a) pair.b.cbpairs.remove(pair);
+			else            pair.a.cbpairs.remove(pair);
+			Free(PR(CbSetPair),pair);
+		});
+		set.manager = null;
 	}
 
 	public function new() {
@@ -174,6 +181,26 @@ class PR(CbSetManager) {
 
 	flibmdel public inline function validate() {
 		SetIter(cb, cbsets, cb.validate());
+	}
+
+	flibmdel public inline function pair(a:PR(CbSet),b:PR(CbSet)) {
+		var ret:PR(CbSetPair) = null;
+		//linear search at first... see later if we should move to a tree.
+		var pairs = if(a.cbpairs.length<b.cbpairs.length) a.cbpairs else b.cbpairs;
+		Iter(p, pairs, {
+			if((p.a==a && p.b==b)||(p.a==b && p.b==a)) {
+				ret = p;
+				cx_break;
+			}
+		});
+
+		if(ret==null) {
+			ret = PR(CbSetPair).get(a,b);
+			a.cbpairs.add(ret);
+			if(b!=a) b.cbpairs.add(ret);
+		}
+		ret.validate();
+		return ret;
 	}
 }
 
