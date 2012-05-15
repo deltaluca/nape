@@ -137,6 +137,7 @@ class PR(CbSet) {
         constraints = new List(PR(Constraint))();
 		interactors = new List(PR(Interactor))();
 		id = nextId++;
+		cbpairs = new List(PR(CbSetPair))();
 	}
 
 	flibmdel public inline function free() {
@@ -148,6 +149,7 @@ class PR(CbSet) {
 			inv(n) = true;
 		);
 		ClearWith(cb,cbTypes, cb.cbsets.remove(this));
+		assert(cbpairs.empty(),"non-empty cbpairs");
 	}
 	flibmdel public inline function alloc() {}
 
@@ -174,6 +176,10 @@ class PR(CbSet) {
 		return ret;
 	}
 	
+	//----------------------------------------------------------------------------------------------
+
+	public var cbpairs:List(PR(CbSetPair));
+
 	//----------------------------------------------------------------------------------------------
 
 	//check a given listener is actually usable for the two given cbset.
@@ -239,8 +245,8 @@ class PR(CbSet) {
 		var bite = b.listeners.begin();
 		while(aite!=null && bite!=null) {
 			var ax = aite.elem(); var bx = bite.elem();
-			if(ax==bx && ax.event==event) {
-				if(compatible(ax,a,b))
+			if(ax==bx) {
+				if(ax.event==event && compatible(ax,a,b))
 					cb(ax);
 				aite = aite.next;
 				bite = bite.next;
