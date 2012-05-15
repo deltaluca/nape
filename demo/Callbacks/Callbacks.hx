@@ -267,14 +267,6 @@ class Callbacks extends FixedStep {
 			space.step(dt,10,10);
 			debug.draw(space);
 			debug.flush();
-
-			var cnt = 0;
-			var total = 0;
-			for(i in zpp_nape.callbacks.CbSet.ZPP_CbSet.inthash) {
-				cnt++;
-				total += i;
-			}
-			trace("pairs="+cnt+" total="+total+" mean="+Std.string(total/cnt).substr(0,5)+" mean/step="+Std.string(total/cnt/space.timeStamp).substr(0,5));
 		});
 	}
 }
