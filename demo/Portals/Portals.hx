@@ -89,11 +89,10 @@ class Portal {
 }
 
 class PortalManager {
-	//portal sensors.
-	public static var PORTAL = new CbType();
+	public static var PORTAL = new CbType(); //shape representing portal boundary.
 
-	public static var PORTER = new CbType(); //object that can be teleported.
-	public static var INOUT  = new CbType(); //object which is part of an on-going portal interaction (in limbo)
+	public static var PORTER = new CbType(); //shape that can be teleported.
+	public static var INOUT  = new CbType(); //shape which is part of an on-going portal interaction (in limbo)
 
 	public var portals:Array<Portal>;
 	public var infos  :Array<PortalInfo>;
@@ -165,6 +164,10 @@ class PortalManager {
 			for(i in info.limbos) if(i.mshape==shape || i.sshape==shape) return i;
 			return null;
 		}
+		function inlimbo(shape:Shape) {
+			for(i in limbos) if(i.mshape==shape || i.sshape==shape) return true;
+			return false;
+		}
 
 		space.listeners.add(new InteractionListener(CbEvent.END, InteractionType.ANY, PORTAL, INOUT,
 		function (cb:InteractionCallback) {
@@ -190,13 +193,14 @@ class PortalManager {
 				info.pcon.space = null;
 				if(info.master.shapes.length==0) {
 					info.master.space = null;
-					for(s in info.slave.shapes) s.cbTypes.remove(INOUT);
+					for(s in info.slave.shapes) if(!inlimbo(s)) s.cbTypes.remove(INOUT);
 				} else {
 					 info.slave.space = null;
-					for(s in info.master.shapes) s.cbTypes.remove(INOUT);
+					for(s in info.master.shapes) if(!inlimbo(s)) s.cbTypes.remove(INOUT);
 				}
 				delfrom(infos,info);
 			}else if(info.count == info.master.shapes.length+info.slave.shapes.length) {
+				trace("BUG COND");
 				//bug condition! body has been disjointed onto either side of portal!
 				//choose side with most shapes?
 				var usemaster = info.master.shapes.length >= info.slave.shapes.length;
@@ -215,7 +219,7 @@ class PortalManager {
 					clone_shp.scale(scale,scale);
 					clone_shp.body = keep;
 				}
-				for(s in keep.shapes) s.cbTypes.remove(INOUT);
+				for(s in keep.shapes) if(!inlimbo(s)) s.cbTypes.remove(INOUT);
 
 				delfrom(infos,info);
 			}
