@@ -55,6 +55,8 @@ class PR(CbSetPair) {
 	public function __validate() {
 		listeners.clear();
 
+		assert(!a.inv(listeners),"a.listeners not validated??");
+		assert(!b.inv(listeners),"b.listeners not validated??");
 		var aite = a.listeners.begin();
 		var bite = b.listeners.begin();
 		while(aite!=null && bite!=null) {
@@ -71,12 +73,17 @@ class PR(CbSetPair) {
 
 	//-------------------------------------------
 
-	flibmdel public inline function empty_intersection() return listeners.empty()
+	flibmdel public inline function empty_intersection() {
+		assert(!inv(listeners),"not validated before empty_intersection");
+		return listeners.empty();
+	}
 	flibmdel public inline function single_intersection(i:PR(InteractionListener)) {
+		assert(!inv(listeners),"not validated before single_intersection");
 		var ite = listeners.begin();
 		return ite!=null && ite.elem()==i && ite.next==null;
 	}
 	flibmdel public inline function forall(event:Int, cb:PR(InteractionListener)->Void) {
+		assert(!inv(listeners),"not validated before forall");
 		Iter(x, listeners, if(x.event==event) cb(x));
 	}
 }

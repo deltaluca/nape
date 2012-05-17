@@ -89,6 +89,18 @@ class PR(OptionType) {
 		}
 	}
 
+	//set optiontype to that given by appending appropriately
+	//used so that required side effects through handler are handled simply.
+	public function set(options:PR(OptionType)) {
+		if(options!=this) {
+			while(!includes.empty()) append_type(excludes, includes.front());
+			while(!excludes.empty()) append_type(includes, excludes.front());
+			Iter(i, options.excludes, append_type(excludes, i));
+			Iter(i, options.includes, append_type(includes, i));
+		}
+		return this;
+	}
+
 	//append to list from dynamic
 	public function append(list:List(PR(CbType)), val:Dynamic) {
 		DEBUG(if(val==null) throw "Error: Cannot append null, only CbType and CbType list values";)
@@ -146,7 +158,6 @@ class PR(CbType) {
     ///---------------------------------------------------------------------------------------------
 
     public var id:Int;
-
 	public var cbsets:List(PR(CbSet));
 
     ///---------------------------------------------------------------------------------------------
