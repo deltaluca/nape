@@ -260,6 +260,8 @@ class Callbacks extends FixedStep {
 
 		space.listeners.add(new PreListener(InteractionType.COLLISION, oneway_platform,oneway_object,oneway,0,true));
 
+		throw space.listeners.toString();
+
 		run(function (dt) {
 			hand.anchor1.setxy(mouseX,mouseY);
 
