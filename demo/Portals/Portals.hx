@@ -22,7 +22,7 @@ class Portals extends FixedStep {
 		super(1/60);
 
 		var space = new Space();
-		var debug = new BitmapDebug(stage.stageWidth,stage.stageHeight,0xffffff);
+		var debug = new BitmapDebug(stage.stageWidth,stage.stageHeight,0x333333);
 		debug.drawConstraints = true;
 		addChild(debug.display);
 		addChild(new FPS(stage.stageWidth,60,0,60,0x40000000,0xffffffff,0xa0ff0000));
@@ -42,11 +42,10 @@ class Portals extends FixedStep {
 		]) {
 			var b = new Body();
 			b.position = p;
-//			b.shapes.add(new Circle(12,new Vec2(12*0.86,-6)));
-//			b.shapes.add(new Circle(12,new Vec2(0,12)));
+			b.shapes.add(new Circle(12,new Vec2(12*0.86,-6)));
+			b.shapes.add(new Circle(12,new Vec2(0,12)));
 			b.shapes.add(new Circle(12,new Vec2(-12*0.86,-6)));
 			b.space = space;
-			b.align();
 			for(s in b.shapes) s.cbTypes.add(PortalManager.Portable);
 		}
 
@@ -133,12 +132,10 @@ class Portals extends FixedStep {
 		//-------------------------------------------------------------------------
 
 		var manager = new PortalManager(space);
-
+		space.worldLinearDrag = 0.9;
+		space.worldAngularDrag = 0.9;
+	
 		run(function (dt) {
-			for(p in space.liveBodies) {
-				p.velocity.muleq(0.1); p.angularVel *= 0.1;
-			}
-
 			p1.body.velocity.y = Math.cos(space.elapsedTime)*50;
 
 			if(hand.active && hand.body2.space==null) { hand.body2 = null; hand.active = false; }

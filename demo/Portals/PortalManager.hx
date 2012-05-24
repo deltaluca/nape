@@ -253,8 +253,8 @@ class PortalManager {
 	private function enact_history(limbo:Limbo, info:PortalInfo, remove:Shape) {
 		//enact any relevant histories.
 		for(h in histories) {
-			if(h.limbo.sshape == limbo.sshape || h.limbo.sshape == limbo.mshape
-			|| h.limbo.mshape == limbo.sshape || h.limbo.mshape == limbo.mshape) {
+			if((h.remove == limbo.sshape || h.remove==limbo.mshape)
+			&& h.info == info) {
 				delfrom(histories, h);
 				enact_history(h.limbo, h.info, h.remove);
 			}
