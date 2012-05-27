@@ -241,9 +241,10 @@ $(mixin global __debug_draw(obj) {
 	DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
 
 	if(pr(inner).xnull) {
-	    if  (Std.is(obj,Space))      pr(inner_zn).draw_space(cast(obj,Space     ).pr(inner), null,1.0,true);
-	    elif(Std.is(obj,Body ))      pr(inner_zn).draw_body (cast(obj,Body      ).pr(inner), null,1.0,true);
-	    elif(Std.is(obj,Shape))      pr(inner_zn).draw_shape(cast(obj,Shape     ).pr(inner), null,1.0,true);
+	    if  (Std.is(obj,Space))      pr(inner_zn).draw_space(cast(obj,Space      ).pr(inner), null,1.0,true);
+		elif(Std.is(obj,Compound))   pr(inner_zn).draw_compound(cast(obj,Compound).pr(inner), null,1.0,true);
+	    elif(Std.is(obj,Body ))      pr(inner_zn).draw_body (cast(obj,Body       ).pr(inner), null,1.0,true);
+	    elif(Std.is(obj,Shape))      pr(inner_zn).draw_shape(cast(obj,Shape      ).pr(inner), null,1.0,true);
 	    elif(Std.is(obj,Constraint)) cast(obj,Constraint).pr(inner).draw(this); 
 	    DEBUG(else throw "Error: Unhandled object type for Debug draw";)
 	}else {

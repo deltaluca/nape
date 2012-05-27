@@ -22,14 +22,11 @@ import nape.callbacks.ConstraintListener;
 import nape.callbacks.InteractionListener;
 import nape.callbacks.BodyListener;
 import nape.callbacks.PreListener;
-
 import nape.callbacks.ConstraintCallback;
 import nape.callbacks.InteractionCallback;
 import nape.callbacks.BodyCallback;
 import nape.callbacks.PreCallback;
-
 import nape.callbacks.InteractionType;
-
 import nape.callbacks.PreFlag;
 import nape.callbacks.CbType;
 import nape.callbacks.OptionType;
@@ -259,8 +256,6 @@ class Callbacks extends FixedStep {
 		}
 
 		space.listeners.add(new PreListener(InteractionType.COLLISION, oneway_platform,oneway_object,oneway,0,true));
-
-		throw space.listeners.toString();
 
 		run(function (dt) {
 			hand.anchor1.setxy(mouseX,mouseY);
