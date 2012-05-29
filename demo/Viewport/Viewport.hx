@@ -14,6 +14,7 @@ import nape.callbacks.CbEvent;
 import nape.callbacks.InteractionType;
 import nape.callbacks.InteractionListener;
 import nape.util.Debug;
+import nape.callbacks.OptionType;
 import nape.constraint.MotorJoint;
 import nape.constraint.PivotJoint;
 
@@ -35,20 +36,21 @@ class Viewport extends FixedStep {
 		viewport.cbTypes.add(VIEWPORT);
 		viewport.space = space;
 
-		//objects we want to interact with viewport
-		var VIEWABLE = new CbType();
-
 		//called when a body has entered any part of viewport.
 		space.listeners.add(
-		new InteractionListener(CbEvent.BEGIN, InteractionType.SENSOR, VIEWPORT, VIEWABLE, function (cb) {
+		new InteractionListener(CbEvent.BEGIN, InteractionType.SENSOR, VIEWPORT, OptionType.ANY_BODY, function (cb) {
 			var new_body = cb.int2.castBody;
+			if(new_body.compound==viewport) return; //ignore viewport bodies.
+
 			new_body.graphic.alpha = 1.0;
 		}));
 
 		//called when a body has left any part of viewport.
 		space.listeners.add(
-		new InteractionListener(CbEvent.END, InteractionType.SENSOR, VIEWPORT, VIEWABLE, function (cb) {
+		new InteractionListener(CbEvent.END, InteractionType.SENSOR, VIEWPORT, OptionType.ANY_BODY, function (cb) {
 			var old_body = cb.int2.castBody;
+			if(old_body.compound==viewport) return; //ignore viewport bodies.
+
 			old_body.graphic.alpha = 0.25;
 		}));
 
@@ -103,7 +105,6 @@ class Viewport extends FixedStep {
 			b.position.setxy(Math.random()*800,Math.random()*600);
 			b.shapes.add(new Polygon(Polygon.regular(Math.random()*20+20,Math.random()*20+20,Std.int(Math.random()*2)+3)));
 			b.space = space;
-			b.cbTypes.add(VIEWABLE);
 
 			b.graphic = Debug.createGraphic(b);
 			addChild(b.graphic);
