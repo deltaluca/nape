@@ -1,21 +1,31 @@
 package zpp_nape.space;
 $(import);
 
+/*
+	Used only at present in sleeping computations
+
+	TODO: Have islands kept throughout simulation
+	      and have computations done per-island.
+	      Leaves room for future parallerilisation
+		  and possibly better C++ performance from
+		  cache use?
+*/
 class PR(Island) {
-	MixPoolNoNext(PR(Island))
 	MixListMixin(PR(Island))
 	
 	public var comps:List(PR(Component));
 	public var sleep:Bool;
 	public var waket:Int;
 	
+	MixPoolNoNext(PR(Island))
 	flibmdel public inline function free() {
+		assert(comps.empty(),"Island freed with components in island");
+	}
+	flibmdel public inline function alloc() {
 		waket = 0;
 	}
-	flibmdel public inline function alloc() {}
 	public function new() {
 		comps = new List(PR(Component))();
-		waket = 0;
 	}
 }
 

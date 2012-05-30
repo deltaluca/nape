@@ -101,7 +101,7 @@ constraint.space = null;
 <hr/>
 <text class="header3">Debug views</text><br/><br/>
 
-<bullet/><text>To view the state of a simulation, you can use Nape's debug views, </text><link type="class" href="ShapeDebug">ShapeDebug</link><text> and (for flash players from 10 up to but not including 11.2) </text><link type="class" href="BitmapDebug">BuitmapDebug</link><text> which provides a much faster rendering</text><br/>
+<bullet/><text>To view the state of a simulation, you can use Nape's debug views, </text><link type="class" href="ShapeDebug">ShapeDebug</link><text> and (for flash players from 10 up to but not including 11.2) </text><link type="class" href="BitmapDebug">BitmapDebug</link><text> which provides a much faster rendering</text><br/>
 <code>var debug = new ***Debug(width : Float, height : Float, bgColor : Int);</code>
 <text>In the case of the ShapeDebug, the arguments are not so important (especially bgColor), but the width/height are important if you are debugging a larger world and you want to enable culling to improve performance (so that only things visible are rendered)</text><br/>
 <br/>
@@ -168,22 +168,31 @@ constraint.space = null;
 <hr/>
 <text class="header3">Callback system</text><br/><br/>
 
-<bullet/><text>Compared to say Box2D, nape's callback system is at a much higher-level; instead of getting interaction events based on single shapes, we instead classify Shapes/Bodys/Compounds as 'belonging' (think of interfaces in AS3/Haxe) to a certain </text><link type="class" href="CbType">CbType</link><text> and listen for events occurring between any two such types.</text><br/>
+<bullet/><text>Compared to say Box2D, nape's callback system is at a much higher level of abstraction. Instead of getting interaction events based on single pairs of shapes, we instead classify Interactors and Constraints as 'belonging' (think of interfaces in AS3/Haxe) to a certain set of </text><link type="class" href="CbType">CbType</link><text>'s and listen for events occurring based on inclusion-exclusion matches of CbType sets.</text><br/>
 <br/>
-<text>A near-future change will hopefully see the relaxation of this system to permit multiple CbType's per Interactor increasing modularity in user code greatly!</text><br/>
+<text>The result is a highly modular way of extending behaviour in the system which like the rest of nape is tolerant against any change to the system at runtime as long as nape is not throwing an error at you telling you off for doing something disallowed</text><br/>
 <br/>
-<code>var boxtype = new CbType();
-body.cbType = boxtype;</code><br/>
+<text>Every object is assigned a default type to begin with; Body's have the CbType.ANY_BODY type etc</text><br/>
+<br/>
+<code>var ONEWAY_PLATFORM = new CbType();
+platform.cbTypes.add(ONEWAY_PLATFORM);
+</code>
+<text> And assuming you have listeners set up for this type, you would instantly get one way platform behaviour for all such objects given the ONEWAY_PLATFORM type. </text><br/>
+<br/>
 <text>Events are listened for by Listener objects assigned to a Space, these Listener's are given functions to be called at the 'end' of the space.step() call reporting on what has happened, meaning that things like removing bodies from the Space may be performed during the functions.</text><br/>
+<br/>
+<text> Listener's have </text><link type="class" href="OptionType">OptionType</link><text>'s which define a list of included CbType's and excluded CbType's so that a given object's CbType list will match against the options iff It has a common element with the includes list, and does not have a common element with the excludes list.</text><br/>
+<text> Example: </text><code inline="true">CbType.ANY_BODY.except(ONEWAY_PLATFORM)</code><text> Is an OptionType which matches any Body that does 'not' have the ONEWAY_PLATFORM CbType</text>
+<br/>
 <text>Listener's are added like normal to the space with:</text>
 <code>listener.space = space;</code>
 <br/>
 
 <text class="header3">Body events</text><br/><br/>
 <bullet/><text>For singular Body's we have such events as CbEvent.WAKE and CbEvent.SLEEP; how useful these are given the abstractions hiding the need to ever really know that Body's even 'go' to sleep in nape I don't know, but they exist anyways :P</text><br/>
-<code>var listener = new BodyListener(CbEvent.#, cbType, handler : BodyCallback -> Void);</code>
+<code>var listener = new BodyListener(CbEvent.#, options, handler : BodyCallback -> Void);</code>
 <br/>
-<text class="small1 italic">Given the explicitness to a single Body, it is the Body which must have the CbType for these events.</text><br/>
+<text class="small1 italic">Given the explicitness to a single Body, it is the Body which must match the OptionType for these events.</text><br/>
 <br/>
 <text>The </text><link type="class" href="BodyCallback">BodyCallback</link><text> object contains the body associated with the callback, as well as common attributes for the Callback's like the listener which spawned the callback and the event type</text><br/>
 <br/>
@@ -205,14 +214,14 @@ body.cbType = boxtype;</code><br/>
 	<text>The 'ongoing' event occurs in all steps in which the two Interactors interact. (overlapping with the 'begin' event)</text><br/>
 <br/>
 	<text>When we use these callbacks, we speak of interaction in terms of a specific type given in the Listener constructor; so that if we listen for collision event, then even if the two Interactors are interacting (but through non-collision means) we will not get a 'begin' event until they begin to collide in some manner</text><br/>
-	<code>new InteractionListener(CbEvent.#, InteractionType.#, cbType1, cbType2, handler : InteractionCallback -> Void);</code>
+	<code>new InteractionListener(CbEvent.#, InteractionType.#, options1, options2, handler : InteractionCallback -> Void);</code>
 </indent>
 <bullet/><text>Pre events</text><br/>
 <indent>
 	<text>Pre-events are special, in that the function supplied in the Listener, is called directly inside of the simulation step as soon as it is determined that the two interactions 'will' interact, and with details like contact points, or intersection centroids depending on interaction type. They are powerful in allowing you to have fine-grain control over whether the interaction should proceed or not depending on this information; think one-way platforms!</text><br/>
 	<br/>
 	<text>The associated CbEvent type is PRE, and is implicit in construction</text><br/>
-	<code>new PreListener(InteractionType.#, cbType1, cbType2, handler : PreCallback -> PreFlag);</code><br/>
+	<code>new PreListener(InteractionType.#, options1, options2, handler : PreCallback -> PreFlag);</code><br/>
 	<text>Like with standard events, we define what type of interaction is to be handled; so that if we handle collisions, the pre listener is invoked only when the first collision interaction is about to occur; and the return flag decides on how any subsequent collision interactions are to behave until an appropriate 'end' event could be generated</text><br/>
 	<br/>
 	<text>The PreListener can occur even between two Compounds as usual, but note well that the only information available to decide the fate of the interaction, is that of the first Shape-Shape pair to begin overlapping; initiating the interaction</text><br/>

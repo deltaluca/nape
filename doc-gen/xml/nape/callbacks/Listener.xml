@@ -136,6 +136,16 @@
 			<set>Invalid CbEvent for listener type</set>
 		</detail>
 	</property>
+	<property name="precedence" type="Int" value="0">
+		<description>Listener precedence</description>
+		<detail>
+			<description>
+				<text>In the event that there is more than one listener to be called in any instance, the listeners will be called in order of highest to lowest precedence.</text><br/>
+				<br/>
+				<text>(Advanced:) In the case of Interaction/Pre Listeners, it may be possible to have multiple listeners across distinct pairings of Interactors within the same two objects. In this case we cannot make any assumption about orderings across pairings, though the order within a distinct pairing will be high precedence to low precedence.</text>
+			</description>
+		</detail>
+	</property>
 
 	<property name="space" type="Space">
 		<description>Space listener's assigned to</description>
@@ -150,10 +160,10 @@
 	<short>Body event listener</short>
 	<description>Listener type for Body events. Allowed types are CbEvent.WAKE/SLEEP</description>
 
-	<property name="cbType" type="CbType">
-		<description> CbType for Body's handled by listener </description>
+	<property name="options" type="OptionType">
+		<description> OptionType for Body's handled by listener </description>
 		<detail>
-			<description> CbType matching the Body's listener is intended for</description>
+			<description> OptionType for matching Body's against this listener </description>
 		</detail>
 	</property>
 
@@ -166,11 +176,16 @@
 
 	<constructor>
 		<arg name="event" type="CbEvent"/>
-		<arg name="cbType" type="CbType"/>
+		<arg name="options" type="Dynamic"/>
 		<arg name="handler" type="BodyCallback->Void"/>
+		<arg name="precedence" type="Int" optional="true" default="0"/>
 		<description>construct new BodyListener</description>
 		<detail>
-			<description>Construct new BodyListener</description>
+			<description>
+				<text>Construct new BodyListener</text><br/>
+				<br/>
+				<text>The Type of the options argument should be 'either' OptionType, CbType, CbTypeList, Array&lt;CbType&gt; or for flash9+ targets, flash.Vector&lt;CbType&gt; with the interpretation that in the case of passing CbTypes rather than an OptionType, we implicitly construct new OptionType(options) so that the CbType's given become the included CbTypes.</text>
+			</description>
 		</detail>
 	</constructor>
 </class>
@@ -180,10 +195,10 @@
 	<short>Constraint event listener</short>
 	<description>Listener type for Constraint events. Allowed types are CbEvent.WAKE/SLEEP/BREAK</description>
 
-	<property name="cbType" type="CbType">
-		<description> CbType for Constraint's handled by listener </description>
+	<property name="options" type="OptionType">
+		<description> OptionType for Constraint's handled by listener </description>
 		<detail>
-			<description> CbType matching the Constraint's listener is intended for</description>
+			<description> OptionType for matching Constraint's against this listener </description>
 		</detail>
 	</property>
 
@@ -194,14 +209,18 @@
 		</detail>
 	</property>
 
-
 	<constructor>
 		<arg name="event" type="CbEvent"/>
-		<arg name="cbType" type="CbType"/>
+		<arg name="options" type="Dynamic"/>
 		<arg name="handler" type="ConstraintCallback->Void"/>
+		<arg name="precedence" type="Int" optional="true" default="0"/>
 		<description>construct new ConstraintListener</description>
 		<detail>
-			<description>Construct new ConstraintListener</description>
+			<description>
+				<text>Construct new ConstraintListener</text><br/>
+				<br/>
+				<text>The Type of the options argument should be 'either' OptionType, CbType, CbTypeList, Array&lt;CbType&gt; or for flash9+ targets, flash.Vector&lt;CbType&gt; with the interpretation that in the case of passing CbTypes rather than an OptionType, we implicitly construct new OptionType(options) so that the CbType's given become the included CbTypes.</text>
+			</description>
 		</detail>
 	</constructor>
 </class>
@@ -222,16 +241,16 @@ MRCA(S2,S3) = null => Interactor pairs = [S2,B2,C2,C1] X [S3,B3,C3]]]></code><br
 		<text>Furthermore an Interaction type for the listener to operate upon is specified which works even in mixed cases where many type of interaction is happening at once. The listeners are at present implemented so that there cannot be more than one listener for an interaction type</text>
 	</description>
 
-	<property name="cbType1" type="CbType">
-		<description> First CbType for shapes/bodies handled by listener </description>
+	<property name="options1" type="OptionType">
+		<description> First OptionType for Interactors's handled by listener </description>
 		<detail>
-			<description> CbType matching the first shape/body's listener is intended for</description>
+			<description> OptionType for matching the first Interactor against this listener </description>
 		</detail>
 	</property>
-	<property name="cbType2" type="CbType">
-		<description> Second CbType for shapes/bodies handled by listener </description>
+	<property name="options2" type="OptionType">
+		<description> Second OptionType for Interactors's handled by listener </description>
 		<detail>
-			<description> CbType matching the second shape/body's listener is intended for</description>
+			<description> OptionType for matching the second Interactor against this listener </description>
 		</detail>
 	</property>
 
@@ -252,15 +271,19 @@ MRCA(S2,S3) = null => Interactor pairs = [S2,B2,C2,C1] X [S3,B3,C3]]]></code><br
 	<constructor>
 		<arg name="event" type="CbEvent"/>
 		<arg name="interactionType" type="InteractionType"/>
-		<arg name="cbType1" type="CbType"/>
-		<arg name="cbType2" type="CbType"/>
+		<arg name="options1" type="Dynamic"/>
+		<arg name="options2" type="Dynamic"/>
 		<arg name="handler" type="InteractionCallback->Void"/>
-		<description>Construct new InteractionListener</description>
+		<arg name="precedence" type="Int" optional="true" default="0"/>
+		<description>construct new InteractionListener</description>
 		<detail>
-			<description>Construct new InteractorListener </description>
+			<description>
+				<text>Construct new InteractionListener</text><br/>
+				<br/>
+				<text>The Type of the options arguments should be 'either' OptionType, CbType, CbTypeList, Array&lt;CbType&gt; or for flash9+ targets, flash.Vector&lt;CbType&gt; with the interpretation that in the case of passing CbTypes rather than an OptionType, we implicitly construct new OptionType(options) so that the CbType's given become the included CbTypes.</text>
+			</description>
 		</detail>
 	</constructor>
-
 </class>
 
 <class package="nape.callbacks" name="PreListener" super="Listener">
@@ -272,16 +295,16 @@ MRCA(S2,S3) = null => Interactor pairs = [S2,B2,C2,C1] X [S3,B3,C3]]]></code><br
 		<text>For information about how interaction events work between various Interactors see the description in </text><link type="class" href="InteractionListener"><text>InteractionListener</text></link>
 	</description>
 
-	<property name="cbType1" type="CbType">
-		<description> First CbType for shapes/bodies handled by listener </description>
+	<property name="options1" type="OptionType">
+		<description> First OptionType for Interactors's handled by listener </description>
 		<detail>
-			<description> CbType matching the first shape/body's listener is intended for</description>
+			<description> OptionType for matching the first Interactor against this listener </description>
 		</detail>
 	</property>
-	<property name="cbType2" type="CbType">
-		<description> Second CbType for shapes/bodies handled by listener </description>
+	<property name="options2" type="OptionType">
+		<description> Second OptionType for Interactors's handled by listener </description>
 		<detail>
-			<description> CbType matching the second shape/body's listener is intended for</description>
+			<description> OptionType for matching the second Interactor against this listener </description>
 		</detail>
 	</property>
 
@@ -306,14 +329,22 @@ MRCA(S2,S3) = null => Interactor pairs = [S2,B2,C2,C1] X [S3,B3,C3]]]></code><br
 	</property>
 
 	<constructor>
+		<arg name="event" type="CbEvent"/>
 		<arg name="interactionType" type="InteractionType"/>
-		<arg name="cbType1" type="CbType"/>
-		<arg name="cbType2" type="CbType"/>
+		<arg name="options1" type="Dynamic"/>
+		<arg name="options2" type="Dynamic"/>
 		<arg name="handler" type="Arbiter->PreFlag"/>
+		<arg name="precedence" type="Int" optional="true" default="0"/>
 		<arg name="pure" type="Bool" optional="true" default="false"/>
-		<description>Construct new PreListener</description>
+		<description>construct new InteractionListener</description>
 		<detail>
-			<description>Construct new PreListener. If pure, nape will assume that the result of invoking the handler will not change whenever the two interactors are unchanged and allow the objects to go to sleep should the handler be returning IGNORE_ONCE/ACCEPT_ONCE.</description>
+			<description>
+				<text>Construct new InteractionListener</text><br/>
+				<br/>
+				<text>The Type of the options arguments should be 'either' OptionType, CbType, CbTypeList, Array&lt;CbType&gt; or for flash9+ targets, flash.Vector&lt;CbType&gt; with the interpretation that in the case of passing CbTypes rather than an OptionType, we implicitly construct new OptionType(options) so that the CbType's given become the included CbTypes.</text><br/>
+				<br/>
+				<text>If pure, nape will assume that the result of invoking the handler will not change whenever the two interactors are unchanged and allow the objects to go to sleep should the handler be returning IGNORE_ONCE/ACCEPT_ONCE.</text>
+			</description>
 		</detail>
 	</constructor>
 </class>
