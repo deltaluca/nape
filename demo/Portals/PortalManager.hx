@@ -9,7 +9,7 @@ import nape.dynamics.Arbiter;
 import nape.dynamics.InteractionFilter;
 
 import nape.callbacks.CbType;
-import nape.callbacks.OptionType;
+import nape.callbacks.CbType;
 import nape.callbacks.CbEvent;
 import nape.callbacks.PreFlag;
 import nape.callbacks.PreCallback;
@@ -309,8 +309,8 @@ class PortalManager {
 	private var listeners:Array<Listener>;
 	public function new(space:Space) {
 		for(x in listeners = [
-			new PreListener(InteractionType.COLLISION, InOut, OptionType.ANY_SHAPE.exclude(Portal), prevent_back_collisions),
-			new PreListener(InteractionType.ANY, OptionType.ANY_SHAPE, Portal, ignore_portal_interaction),
+			new PreListener(InteractionType.COLLISION, InOut, CbType.ANY_SHAPE.exclude(Portal), prevent_back_collisions),
+			new PreListener(InteractionType.ANY, CbType.ANY_SHAPE, Portal, ignore_portal_interaction),
 			new InteractionListener(CbEvent.BEGIN, InteractionType.ANY, Portal, Portable, start_portal),
 			new InteractionListener(CbEvent.END, InteractionType.ANY, Portal, InOut, end_portal)
 		]) x.space = space;

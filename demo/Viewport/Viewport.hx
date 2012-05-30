@@ -14,7 +14,6 @@ import nape.callbacks.CbEvent;
 import nape.callbacks.InteractionType;
 import nape.callbacks.InteractionListener;
 import nape.util.Debug;
-import nape.callbacks.OptionType;
 import nape.constraint.MotorJoint;
 import nape.constraint.PivotJoint;
 
@@ -38,7 +37,7 @@ class Viewport extends FixedStep {
 
 		//called when a body has entered any part of viewport.
 		space.listeners.add(
-		new InteractionListener(CbEvent.BEGIN, InteractionType.SENSOR, VIEWPORT, OptionType.ANY_BODY, function (cb) {
+		new InteractionListener(CbEvent.BEGIN, InteractionType.SENSOR, VIEWPORT, CbType.ANY_BODY, function (cb) {
 			var new_body = cb.int2.castBody;
 			if(new_body.compound==viewport) return; //ignore viewport bodies.
 
@@ -47,7 +46,7 @@ class Viewport extends FixedStep {
 
 		//called when a body has left any part of viewport.
 		space.listeners.add(
-		new InteractionListener(CbEvent.END, InteractionType.SENSOR, VIEWPORT, OptionType.ANY_BODY, function (cb) {
+		new InteractionListener(CbEvent.END, InteractionType.SENSOR, VIEWPORT, CbType.ANY_BODY, function (cb) {
 			var old_body = cb.int2.castBody;
 			if(old_body.compound==viewport) return; //ignore viewport bodies.
 

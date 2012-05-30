@@ -4,16 +4,6 @@ $(import);
 class OptionType {
 	public var pr(inner):PR(OptionType);
 
-	$(mixin ANY(T)
-		public static var ANY_`T(flibget_ANY_`T,never):OptionType;
-		force_inline static function flibget_ANY_`T() {
-			var ret = new OptionType();
-			ret.pr(inner).includes.add(PR(CbType).ANY_`T);
-			return ret;
-		}
-	);
-	ANY(BODY) ANY(SHAPE) ANY(COMPOUND) ANY(CONSTRAINT)
-
 	property(includes,CbTypeList,{
 		if(pr(inner).wrap_includes==null) pr(inner).setup_includes();
 		pr(inner).wrap_includes;
@@ -41,16 +31,7 @@ class OptionType {
 	}
 
 	@:$keep public function toString() {
-		var inc =
-			if  (pr(inner).includes.has(PR(CbType).ANY_BODY)) "[ANY_BODY"
-			elif(pr(inner).includes.has(PR(CbType).ANY_SHAPE)) "[ANY_SHAPE"
-			elif(pr(inner).includes.has(PR(CbType).ANY_COMPOUND)) "[ANY_COMPOUND"
-			elif(pr(inner).includes.has(PR(CbType).ANY_CONSTRAINT)) "[ANY_CONSTRAINT"
-			else "[";
-		var inc2 = includes.toString();
-		if(inc2=="[]") inc += "]";
-		else inc += (if(inc=="[") "" else ",") + inc2.substr(1);
-
+		var inc = includes.toString();
 		var exc = excludes.toString();
 		return "@{"+inc+"-"+exc+"}";
 	}

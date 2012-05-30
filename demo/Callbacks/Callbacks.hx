@@ -29,7 +29,6 @@ import nape.callbacks.PreCallback;
 import nape.callbacks.InteractionType;
 import nape.callbacks.PreFlag;
 import nape.callbacks.CbType;
-import nape.callbacks.OptionType;
 import nape.callbacks.CbEvent;
 
 import nape.constraint.PivotJoint;
@@ -118,7 +117,7 @@ class Callbacks extends FixedStep {
 		// note: this is a pure function with respect to the two objects
 		//       (it's output doesn't change) so we can tell nape this and allow objects
 		//       to sleep as normal.
-		space.listeners.add(new PreListener(InteractionType.COLLISION,partial_penetration,OptionType.ANY_SHAPE,function(cb:PreCallback) {
+		space.listeners.add(new PreListener(InteractionType.COLLISION,partial_penetration,CbType.ANY_SHAPE,function(cb:PreCallback) {
 			var depth = 15;
 
 			//to allow penetration, we need to both change contact penetrations,
