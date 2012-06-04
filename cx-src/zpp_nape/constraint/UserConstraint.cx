@@ -7,7 +7,7 @@ class PR(UserConstraint) extends PR(Constraint) {
 	//previously a lambda in UserConstraint
 	public function bindVec2_invalidate(_) { outer_zn.invalidate(); }
 	
-	public var bodies : ARRAY({cnt:Int,body:PR(Body)});
+	public var bodies : ARRAY(PR(UserBody));
 
 	public var dim  : Int; //number of rows.
 
@@ -21,7 +21,7 @@ class PR(UserConstraint) extends PR(Constraint) {
 		for(x in bodies) { if(x.body==b) { match = x; break; } };
 
 		if(match==null) {
-			 bodies.push({cnt:1,body:b});
+			 bodies.push(new PR(UserBody)(1,b));
 			 if(active && space!=null)
 				 active_body(b);
 		}
@@ -77,7 +77,7 @@ class PR(UserConstraint) extends PR(Constraint) {
 
 	//-------------------------------------------
 
-	public override function copy(?dict:Array<{id:Int,bc:Body}>,?todo:Array<{id:Int,cb:Body->Void}>):Constraint {
+	public override function copy(?dict:Array<PR(CopyHelper)>,?todo:Array<PR(CopyHelper)>):Constraint {
 		var ret = outer_zn.__copy();
 		copyto(ret);
 
@@ -89,7 +89,7 @@ class PR(UserConstraint) extends PR(Constraint) {
 	public function new(dim:Int,velonly:Bool) {
 		super();
 
-		bodies = newARRAY({cnt:Int,body:PR(Body)});
+		bodies = newARRAY(PR(UserBody));
 
 		this.dim = dim;
 		this.velonly = velonly;
@@ -338,6 +338,15 @@ class PR(UserConstraint) extends PR(Constraint) {
 
 	public override function draw(g:Debug) {
 		outer_zn.__draw(g);
+	}
+}
+
+class PR(UserBody) {
+	public var cnt:Int;
+	public var body:PR(Body);
+	public function new(cnt:Int,body:PR(Body)) {
+		this.cnt = cnt;
+		this.body = body;
 	}
 }
 )

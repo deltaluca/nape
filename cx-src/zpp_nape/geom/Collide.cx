@@ -154,8 +154,8 @@ class PR(Collide) {
 				if(x2<=-c2.radius)
 					arb.inject(c2.area,c2.worldCOMx,c2.worldCOMy);
 				else {
-					var area1 = 0.; var y1 = 0.;
-					var area2 = 0.; var y2 = 0.;
+					var area1 = 0.0; var y1 = 0.0;
+					var area2 = 0.0; var y2 = 0.0;
 					circle_segment(x1,c1.radius, area1,y1);
 					circle_segment(x2,c2.radius, area2,y2);
 					
@@ -394,7 +394,7 @@ class PR(Collide) {
 					Iter2(u,v, p1.gverts, {
 						var min = 2.0;
 						Iter2(a,b, p2.gverts, {
-							var t = 0.;
+							var t = 0.0;
 							if(intersect(a.,b.,u.,v.,t)) {
 								if(t<min) {
 									min = t;
@@ -438,7 +438,7 @@ class PR(Collide) {
 							var max = -1.0; var itmo = null; var indo = 0;
 							var icnt = 0;
 							IterCycle(v, pM.gverts, itm, {
-								var t = 0.;
+								var t = 0.0;
 								if(intersect(a.,b.,u.,v., t)) {
 									if(t>=max) {
 										itmo = ite`M;
@@ -476,7 +476,7 @@ class PR(Collide) {
 				}
 				
 				if(flowpoly.begin()!=null && flowpoly.begin().next!=null && flowpoly.begin().next.next!=null) {
-					var area = 0.; vec_new(COM);
+					var area = 0.0; vec_new(COM);
 					polygon(flowpoly,area,COM);
 					arb.inject(-area,COMx,COMy);
 					true;
@@ -487,7 +487,7 @@ class PR(Collide) {
 	
 	$(mixin polygon(poly,area_ref,com_ref) {
 		vec_set(com_ref,0,0);
-		area_ref = 0.;
+		area_ref = 0.0;
 		Iter3_fast(u,v,w, poly, {
 			area_ref += v.x * (w.y - u.y);
 			var cf = vec_cross(v.,w.);
@@ -763,7 +763,7 @@ class PR(Collide) {
 											state = 1;
 											cx_break;
 										}else {
-											var t0 = 0.; var t1 = 0.;
+											var t0 = 0.0; var t1 = 0.0;
 											var two = intersect2(u.,v.,t0,t1);
 											if(t0<1-PR(Const).EPSILON && t1 > PR(Const).EPSILON) {
 												vec_new(c); vec_interp(u.,v.,t0,c);
@@ -814,10 +814,10 @@ class PR(Collide) {
 								false;
 						}else {
 							vec_new(COM,0,0);
-							var area = 0.;
+							var area = 0.0;
 							
 							if(flowpoly.begin().next.next!=null) {
-								var parea = 0.; vec_new(pCOM);
+								var parea = 0.0; vec_new(pCOM);
 								polygon(flowpoly,parea,pCOM);
 								vec_addeq(COM,pCOM,-parea);
 								area -= parea;
@@ -833,7 +833,7 @@ class PR(Collide) {
 								vec_new(n); vec_set(n,d); vec_normal(n);
 								vec_new(c); vec_add(u.,v.,c); vec_diveq(c,2); vec_subeq(c,circle.worldCOM);
 								var xd = vec_dot(n,c);
-								var carea = 0.; var ccom = 0.;
+								var carea = 0.0; var ccom = 0.0;
 								circle_segment(xd,circle.radius,carea,ccom);
 								vec_set(c,circle.worldCOM); vec_addeq(c,n,ccom);
 								vec_addeq(COM,c,carea);

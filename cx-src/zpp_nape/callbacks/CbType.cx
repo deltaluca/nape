@@ -110,19 +110,19 @@ class PR(OptionType) {
 		}elif(Std.is(val,CbTypeList)) {
 			var cbs:CbTypeList = val;
 			for(cb in cbs) append_type(list,cb.pr(inner));
-		}#if flash10
-		elif(Std.is(val,PR(Const).cbtypevector)) {
+		}elif(#if flash10 Std.is(val,PR(Const).cbtypevector) #else false #end) {
+		#if flash10
 			var cbs:flash.Vector<CbType> = val;
 			for(cb in cbs) append_type(list,cb.pr(inner));
-		}#end
-		elif(Std.is(val,Array)) {
+		#end
+		}elif(Std.is(val,Array)) {
 			var cbs:Array<Dynamic> = val;
 			for(cb in cbs) {
 				DEBUG(if(!Std.is(cb,CbType)) throw "Error: Cannot append non-CbType or CbType list value";)
 				var cbx:CbType = cb;
 				append_type(list,cbx.pr(inner));
 			}
-		}DEBUG(else throw "Error: Cannot append non-CbType or CbType list value";)		
+		}else { DEBUG(throw "Error: Cannot append non-CbType or CbType list value";) }
 	}
 
 	//for Listener arguments :)

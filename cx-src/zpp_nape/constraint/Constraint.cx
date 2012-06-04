@@ -219,7 +219,7 @@ class PR(Constraint) {
 
 	//extra funky fields used in copying Compounds
 	//so as to be able to resolve any dangling references external to the Compound.
-	public function copy(?dict:Array<{id:Int,bc:Body}>,?todo:Array<{id:Int, cb:Body->Void}>):Constraint { return null; }
+	public function copy(?dict:Array<PR(CopyHelper)>,?todo:Array<PR(CopyHelper)>):Constraint { return null; }
 
 	public function copyto(ret:Constraint) {
 		var me = outer;
@@ -239,6 +239,26 @@ class PR(Constraint) {
 	}
 }
 
+class PR(CopyHelper) {
+	public var id:Int;
+	public var bc:Body;
+	public var cb:Body->Void;
+
+	function new() {}
+	public static function dict(id:Int,bc:Body) {
+		var ret = new PR(CopyHelper)();
+		ret.id = id;
+		ret.bc = bc;
+		return ret;
+	}
+	public static function todo(id:Int,cb:Body->Void) {
+		var ret = new PR(CopyHelper)();
+		ret.id = id;
+		ret.cb = cb;
+		return ret;
+	}
+}
+
 $(mixin global withConstraint(block)
 
 	//assume dict/todo exist
@@ -253,7 +273,7 @@ $(mixin global withConstraint(block)
 				}
 			}
 			if(b!=null) to.body = b.pr(inner);
-			else todo.push({id:body.id, cb:function(b:Body) to.body=b.pr(inner)});
+			else todo.push(PR(CopyHelper).todo(body.id, function (b:Body) to.body=b.pr(inner)));
 		}
 	});
 	

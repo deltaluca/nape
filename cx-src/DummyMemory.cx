@@ -1,7 +1,23 @@
 package;
 $(import);
 
-typedef Reference = {name:String, obj:TObject};
+class Reference {
+	public var name:String;
+	public var obj:TObject;
+	public function new(name:String,obj:TObject) { 
+		this.name = name;
+		this.obj = obj;
+	}
+}
+
+class PushResult {
+	public var isnew:Bool;
+	public var obj:TObject;
+	public function new(isnew:Bool,obj:TObject) {
+		this.isnew = isnew;
+		this.obj = obj;
+	}
+}
 
 class TObject {
 	public static var nextId = 0;
@@ -40,15 +56,15 @@ class Graph {
 		for(o in objs) push(o);
 	}
 
-	public function push(obj:Dynamic):{isnew:Bool, obj:TObject} {
+	public function push(obj:Dynamic):PushResult {
 		if(Reflect.isObject(obj)) {
 			if((untyped dict[obj])==null) {
 				var ob = new TObject(obj);
 				untyped dict[obj] = ob;
 				objects.set(ob.id, ob);
-				return {isnew:true, obj:ob};
+				return new PushResult(true, ob);
 			}else
-				return {isnew:false, obj:untyped dict[obj]};
+				return new PushResult(false, untyped dict[obj]);
 		}else
 			return null;
 	}
@@ -80,7 +96,7 @@ class Graph {
 					var field:Dynamic = Reflect.field(obj.obj, o);
 					if(field!=null && Reflect.isObject(field)) {
 						var ref = push(field);
-						obj.references.push({name:o, obj:ref.obj});
+						obj.references.push(new Reference(o,ref.obj));
 						if(ref.isnew) stack.push(ref.obj);
 					}
 				}

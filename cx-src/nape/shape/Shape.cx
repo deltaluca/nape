@@ -119,18 +119,16 @@ class Shape extends Interactor {
 	keep public function scale(scalex:Float,scaley:Float) {
 		pr(inner).immutable_midstep("Shape::scale()");
 		DEBUG(
-            if(pr(inner).body!=null && pr(inner).body.space!=null && pr(inner).body.isStatic())
-                    throw "Error: Cannot modify Shape belonging to a static Object once inside a Space";
-                if(isNaN(scalex) || isNaN(scaley)) throw "Error: Cannot scale Shape by NaN";
+			if(pr(inner).body!=null && pr(inner).body.space!=null && pr(inner).body.isStatic())
+				throw "Error: Cannot modify Shape belonging to a static Object once inside a Space";
+			if(isNaN(scalex) || isNaN(scaley)) throw "Error: Cannot scale Shape by NaN";
 		)
 		if(scalex!=0 && scaley!=0) {
 			if(isCircle()) {
 				var d = scalex*scalex-scaley*scaley;
 				if(d*d<PR(Const).EPSILON) {
 					pr(inner).circle.__scale(scalex,scaley);
-				}DEBUG(else
-					throw "Error: Cannot perform a non equal scaling on a Circle";
-				)
+				}else { DEBUG(throw "Error: Cannot perform a non equal scaling on a Circle";) }
 			}else pr(inner).polygon.__scale(scalex,scaley);
 		}
 	}
@@ -162,9 +160,7 @@ class Shape extends Interactor {
 		if(isCircle()) {
 			if(matrix.equiorthogonal()) {
 				pr(inner).circle.__transform(matrix);
-			}DEBUG(else
-				throw "Error: Cannot transform Circle by a non equiorthogonal matrix";
-			)
+			}else { DEBUG(throw "Error: Cannot transform Circle by a non equiorthogonal matrix";) }
 		}else
 			pr(inner).polygon.__transform(matrix);
 	}
