@@ -135,7 +135,6 @@ class BodyFromGraphic extends FixedStep {
 
 		//want to align body to it's centre of mass
 		//and also have graphic offset correctly
-		//easiest way is to wrap the graphic in another.
 		var anchor = body.localCOM.mul(-1);
 		body.translateShapes(anchor);
 
@@ -178,7 +177,6 @@ class BodyFromGraphic extends FixedStep {
 
 		//want to align body to it's centre of mass
 		//but also have the graphic offset correctly
-		//-> easiest way is to wrap the graphic in another.
 		var anchor = body.localCOM.mul(-1);
 		body.align();
 		
