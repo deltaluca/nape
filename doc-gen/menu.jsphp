@@ -121,15 +121,15 @@ function getmodules(napever) {
 	var buildd = document.getElementById("build_select");
 	seperator(buildd,"------------ MODULES ------------");
 
-	var vers = napever.substring(1,napever.indexOf("r"));
-	var revi = napever.substring(napever.indexOf("r")+1);
+	var vers = parseFloat(napever.substring(1,napever.indexOf("r")));
+	var revi = parseInt(napever.substring(napever.indexOf("r")+1));
 
 	for(var i = 0; i<modules.length; i++) {
 		var mod = modules[i];
 		for(var j = 0; j<mod.versions.length; j++) {
 			var ver = mod.versions[j];
-			var mvers = ver.depends.substring(1,ver.depends.indexOf("r"));
-			var mrevi = ver.depends.substring(ver.depends.indexOf("r")+1);
+			var mvers = parseFloat(ver.depends.substring(1,ver.depends.indexOf("r")));
+			var mrevi = parseInt(ver.depends.substring(ver.depends.indexOf("r")+1));
 			if(mvers<vers || (mvers==vers && mrevi <= revi)) {
 				var node = document.createElement('option');
 				var value = "_mod_"+mod.name+"_"+ver.version+"_swc";
