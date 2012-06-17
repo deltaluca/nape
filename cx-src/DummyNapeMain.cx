@@ -3,25 +3,63 @@ $(import);
 
 class DummyNapeMain {
 	static function main() {
-		var space = new Space();
+        var BALL = new CbType();
+        var WALL = new CbType();
 
-		var body1 = new Body(); body1.shapes.add(new Circle(10));
-		var body2 = new Body(); body2.shapes.add(new Circle(10));
-		body1.space = body2.space = space;
+        var space = new Space();
+        var ball = new Body();
+        ball.allowRotation = false;
+        var circle = new Circle(10, null, new Material(1, 0, 0, 1, 0));
+        circle.body = ball;
 
-		var cb1 = new CbType();
-		var cb2 = new CbType();
-		body1.cbTypes.add(cb1);
-		body2.cbTypes.add(cb1);
+        ball.position.setxy(300,300);
+        ball.cbTypes.add(BALL);
+        ball.space = space;
+        var angle;
+        ball.velocity = Vec2.fromPolar(200, angle = Math.PI*2*Math.random());
+        trace(angle);
 
-		var inti = new InteractionListener(CbEvent.BEGIN, InteractionType.ANY, CbType.ANY_BODY.include(cb1), CbType.ANY_BODY.include([cb1,cb2]), function (_) {});
-		inti.space = space;
-		inti.space = null;
+        var stage = flash.Lib.current.stage;
+        function createBoundary(rect:flash.geom.Rectangle, size:Float) {
+            var body = new Body(BodyType.STATIC);
+            body.shapes.add(new Polygon(Polygon.rect(rect.x-size,rect.bottom,rect.width+size*2,size)));
+            body.shapes.add(new Polygon(Polygon.rect(rect.x-size, rect.y-size,rect.width+size*2, size)));
+            body.shapes.add(new Polygon(Polygon.rect(rect.x-size, rect.y-size, size, rect.height+size*2)));
+            body.shapes.add(new Polygon(Polygon.rect(rect.right, rect.y-size, size, rect.height+size*2)));
+            return body;
+        }
+        var wall = createBoundary(new flash.geom.Rectangle(20, 20, stage.stageWidth - 40, stage.stageHeight - 40), 200);
+        wall.cbTypes.add(WALL);
+        wall.space = space;
 
-		trace("STEPPING");
-		space.step(1e-100,1,1);
+        var debug = new BitmapDebug(stage.stageWidth, stage.stageHeight, 0);
+        stage.addChild(debug.display);
 
-		inti.space = space;
-		inti.space = null;
+        var icollision = 0;
+        function onCollision(cb:InteractionCallback) {
+            ball.type = BodyType.KINEMATIC;
+            ball.velocity = new Vec2();
+            var move = cb.arbiters.at(0).collisionArbiter.normal.mul(10);
+            ball.position.addeq(move);
+            icollision = 10;
+            trace("collided");
+        }
+        space.listeners.add(new InteractionListener(CbEvent.ONGOING, InteractionType.COLLISION, BALL, WALL, onCollision));
+        space.listeners.add(new InteractionListener(CbEvent.END, InteractionType.SENSOR, BALL, WALL, function (_) { throw "ended"; }));
+
+        (new haxe.Timer(15)).run = function() {
+            trace("---");
+            if(icollision>0) {
+                icollision--;
+                if(icollision==0) {
+                    trace("changing position");
+                    ball.position.setxy(300,300);
+                }
+            }
+            debug.clear();
+            space.step(30/1000);
+            debug.draw(space);
+            debug.flush();
+        }
 	}
 }

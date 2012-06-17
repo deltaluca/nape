@@ -177,8 +177,10 @@ class PR(CbSetManager) {
 	public function remove(set:PR(CbSet)) {
 		cbsets.remove(set);
 		ClearWith(pair, set.cbpairs, {
-			if(set==pair.a) pair.b.cbpairs.remove(pair);
-			else            pair.a.cbpairs.remove(pair);
+            if(pair.a != pair.b) {
+    			if(set==pair.a) pair.b.cbpairs.remove(pair);
+    			else            pair.a.cbpairs.remove(pair);
+            }
 			Free(PR(CbSetPair),pair);
 		});
 		set.manager = null;
@@ -1276,7 +1278,7 @@ class PR(Space) {
 		while(!i.comps.empty()) {
 			var c = i.comps.pop_unsafe();
 			assert(c.sleeping, "???");
-			c.waket = stamp+1;
+			c.waket = stamp + (midstep ? 0 : 1);
 
 			if(c.isBody) {
 				var b = c.body;
@@ -1325,7 +1327,7 @@ class PR(Space) {
 		assert(o.space==this,"object being woken in the space... is not actually in the space!");
 		if(!o.world) {
 			assert(o.component!=null,"body woken, but no component exists?");
-			o.component.waket = stamp+1;
+			o.component.waket = stamp + (midstep ? 0 : 1);
 			if(o.component.sleeping) {
 				if(o.component.island==null) {
 					//new body, or forced wake, or kinematic/static
@@ -1345,7 +1347,8 @@ class PR(Space) {
 						Iter(arb,o.arbiters,{
 							if(arb.sleeping) {
 								arb.sleeping = false;
-								arb.up_stamp += stamp - arb.sleep_stamp;
+								arb.up_stamp += stamp + (midstep ? 0 : 1) - arb.sleep_stamp;
+                                //trace(["wake",arb.id,arb.up_stamp,stamp]);
 								if(arb.type == PR(Arbiter).COL) {
 									var carb = arb.colarb;
 									if(carb.stat)
@@ -1387,7 +1390,7 @@ class PR(Space) {
 		assert(con.space==this,"constraint woken, but not actually IN the space!");
 		if(con.active) {
 			assert(con.component!=null,"constraint woken but no component exists?");
-            con.component.waket = stamp+1;
+            con.component.waket = stamp + (midstep ? 0 : 1);
             if(con.component.sleeping) {
                 if(con.component.island==null) {
                     //new constraint
@@ -1668,6 +1671,7 @@ class PR(Space) {
 				var arb = arbite.elem();
 				if(!arb.cleared && (arb.b1.component.sleeping && arb.b2.component.sleeping)) {
 					arb.sleep_stamp = stamp;
+                    //trace(["sleep",arb.id,arb.sleep_stamp,arb.up_stamp]);
 					arb.sleeping = true;
 					arbite = arbs.inlined_erase(pre);
 					pre_continue;
@@ -1685,6 +1689,8 @@ class PR(Space) {
 					var begcb = (arb.fresh) && !arb.cleared && !arb.intchange;
 					assert(!begcb||arb.up_stamp==stamp, " fresh -> active=true hasn't held :(");
 
+                    //trace([arb.id, begcb, endcb, arb.cleared, arb.intchange, arb.present, arb.up_stamp]);
+
 					if(begcb || endcb || arb.cleared || arb.intchange) {
 						inlined_MRCA_chains(arb.ws1,arb.ws2);
 						Iter(i1,mrca1,{
@@ -1694,6 +1700,7 @@ class PR(Space) {
 							assert(cb1!=null && cb2!=null, "null cb from MRCA_chains?");
 
 							if(PR(CbSet).empty_intersection(cb1,cb2)) cx_continue;
+                            //trace("non-empty");
 
 							var callbackset = PR(Interactor).get(i1,i2);
 							if(begcb || arb.intchange) {
@@ -1736,6 +1743,7 @@ class PR(Space) {
 									//Free(PR(CallbackSet),callbackset);
 								}
 							}
+                            //trace([arb.id, arb.present]);
 //						RELEASE(cx_break;)
 						});
 						});
@@ -1748,6 +1756,7 @@ class PR(Space) {
 				if(arb.cleared //always retire
 			 	 || arb.up_stamp + (arb.type==PR(Arbiter).COL ? PR(Config).PERSIST : 0) < stamp //possibly delayed age-death
 				) {
+                    //trace([arb.id, "retire", arb.cleared, arb.up_stamp, stamp]);
 					arb.retire();
 					arbite = arbs.inlined_erase(pre);
 					pre_continue;
@@ -1953,6 +1962,7 @@ class PR(Space) {
 						}else
 							arb.fresh = arb.up_stamp<stamp-1; //handler persistance
 						arb.up_stamp = arb.stamp;
+                        //trace(["narrow", arb.id, arb.up_stamp]);
 
 						if(arb.fresh || (arb.immState&Flag(ImmState,ALWAYS))==0) {
 							arb.immState = Flag(ImmState,ACCEPT);
@@ -2152,6 +2162,7 @@ class PR(Space) {
 					if(xarb.fluidarb==null) {
 						xarb.lazyRetire(this,null);
 						arb = Get(PR(FluidArbiter));
+                        //trace("now fluid");
 						arb.intchange = true;
 						first = true;
 						swapped = true;
@@ -2175,6 +2186,7 @@ class PR(Space) {
 						xarb.lazyRetire(this,null);
 						arb = Get(PR(ColArbiter));
 						arb.intchange = true;
+                        //trace("now collision");
 						arb.stat = stat;
 						first = true;
 						swapped = true;
@@ -2203,6 +2215,7 @@ class PR(Space) {
 					if(xarb.sensorarb==null) {
 						xarb.lazyRetire(this,null);
 						arb = Get(PR(SensorArbiter));
+                        //trace("now sensor");
 						arb.intchange = true;
 						first = true;
 						swapped = true;
