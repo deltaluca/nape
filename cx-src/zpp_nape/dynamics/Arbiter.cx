@@ -2,159 +2,159 @@ package zpp_nape.dynamics;
 $(import);
 
 PRFlags(ImmState,
-	prop(ACCEPT, 1)
-	prop(IGNORE, 2)
-	prop(ALWAYS, 4)
+    prop(ACCEPT, 1)
+    prop(IGNORE, 2)
+    prop(ALWAYS, 4)
 )
 
 class PR(Arbiter) {
-	public var outer:Arbiter;
+    public var outer:Arbiter;
 
-	#if NAPE_POOL_STATS
-		public var arbid:Int;
-		static var nextarbid:Int = 0;
-	#end
+    #if NAPE_POOL_STATS
+        public var arbid:Int;
+        static var nextarbid:Int = 0;
+    #end
 
-	public static var internal = false;
-	public function wrapper() {
-		if(outer==null) {
+    public static var internal = false;
+    public function wrapper() {
+        if(outer==null) {
             //disable derp! errors.
-			internal = true;
+            internal = true;
 
-			if(type==COL) {
-				colarb.outer_zn = new CollisionArbiter();
-				outer = colarb.outer_zn;
-			}else if(type==FLUID) {
-				fluidarb.outer_zn = new FluidArbiter();
-				outer = fluidarb.outer_zn;
-			}
-			else outer = new Arbiter();
+            if(type==COL) {
+                colarb.outer_zn = new CollisionArbiter();
+                outer = colarb.outer_zn;
+            }else if(type==FLUID) {
+                fluidarb.outer_zn = new FluidArbiter();
+                outer = fluidarb.outer_zn;
+            }
+            else outer = new Arbiter();
             outer.pr(inner) = this;
 
             //re-enable derp! errors
-			internal = false;
-		}
-		return outer;
-	}
+            internal = false;
+        }
+        return outer;
+    }
 
     ///---------------------------------------------------------------------------------------------
-	//used in various parts of API
+    //used in various parts of API
 
-	flibmdel public inline function inactiveme() {
-		return !active;
-	}
+    flibmdel public inline function inactiveme() {
+        return !active;
+    }
 
     ///---------------------------------------------------------------------------------------------
 
     //used in hash map
     public var hnext:PR(Arbiter);
 
-	public function new() {
-		#if NAPE_POOL_STATS
-			arbid = nextarbid++;
-		#end
-	}
+    public function new() {
+        #if NAPE_POOL_STATS
+            arbid = nextarbid++;
+        #end
+    }
 
     ///---------------------------------------------------------------------------------------------
 
-	//  dynamic-dynamic  :- id(a,b) [a<b based on shape types and then id]
-	//  static-dynamic   :- id(s,d)  ""
-	public var id:Int;
-	public var di:Int;
+    //  dynamic-dynamic  :- id(a,b) [a<b based on shape types and then id]
+    //  static-dynamic   :- id(s,d)  ""
+    public var id:Int;
+    public var di:Int;
 
     ///---------------------------------------------------------------------------------------------
 
-	//3 different time stamps:
-	//       stamp : updated in narrowphase to avoid duplicate work whether an interaction occured
+    //3 different time stamps:
+    //       stamp : updated in narrowphase to avoid duplicate work whether an interaction occured
     //               or not
-	//    up_stamp : the time at which arbiter was last active in terms of interaction, updated in
-	//	 		     narrowphase, but also when an arbiter is awoken based on sleep_stamp
-	// sleep_stamp : set when arbiter is put to sleep so that we can keep track of the inactive
+    //    up_stamp : the time at which arbiter was last active in terms of interaction, updated in
+    //                  narrowphase, but also when an arbiter is awoken based on sleep_stamp
+    // sleep_stamp : set when arbiter is put to sleep so that we can keep track of the inactive
     //               state of arbiters; aka an arbiter inactive but persisting for 3 steps after
-	//               waking will have an up_stamp such that it appears to have been inactive and
-	//               persisting for 3 steps even after waking.
-	public var       stamp:Int;
-	public var    up_stamp:Int;
-	public var sleep_stamp:Int;
+    //               waking will have an up_stamp such that it appears to have been inactive and
+    //               persisting for 3 steps even after waking.
+    public var       stamp:Int;
+    public var    up_stamp:Int;
+    public var sleep_stamp:Int;
 
     ///---------------------------------------------------------------------------------------------
-	
-	//if false, arbiter should not be exposed to user or worked on: is only used to persist contacts
-	public var active:Bool;
+    
+    //if false, arbiter should not be exposed to user or worked on: is only used to persist contacts
+    public var active:Bool;
 
-	//set when arbiter is removed prematurely from objects and waiting to be removed by space later.
-	public var cleared:Bool;
+    //set when arbiter is removed prematurely from objects and waiting to be removed by space later.
+    public var cleared:Bool;
 
     //set when arbiter is sweffed
     public var sleeping:Bool;
 
-	//marks arbiter is active, but not necesarigly 'actively' part of the simulation
-	//for instance if a pre-listener returns IGNORE
-	//or deletes it's contacts but arbiter is still existing
-	//as part of a callbackset etc, but not only for cacheing
-	public var present:Int; //reference counted for number of callbacksets present within.
-	//used to mark arbiter was result of swapping a type
-	//and callbacksets may need changing
-	public var intchange:Bool;
-	//marked to say arbiter should be made part of callbacksets
-	//on freshInteractors/freshListener types
-	public var presentable:Bool;
+    //marks arbiter is active, but not necesarigly 'actively' part of the simulation
+    //for instance if a pre-listener returns IGNORE
+    //or deletes it's contacts but arbiter is still existing
+    //as part of a callbackset etc, but not only for cacheing
+    public var present:Int; //reference counted for number of callbacksets present within.
+    //used to mark arbiter was result of swapping a type
+    //and callbacksets may need changing
+    public var intchange:Bool;
+    //marked to say arbiter should be made part of callbacksets
+    //on freshInteractors/freshListener types
+    public var presentable:Bool;
 
     ///---------------------------------------------------------------------------------------------
 
-	//used to swap between begin/ongoing style cb
-	public var fresh:Bool;
+    //used to swap between begin/ongoing style cb
+    public var fresh:Bool;
 
-	//imm cb flag
-	public var immState:Int; //ImmState
-
-    ///---------------------------------------------------------------------------------------------
-
-	//called after pre-handler
-	flibmdel public inline function pre_validate() {
-		if(type==COL) colarb._pre_validate();
-	}
-
-	flibmdel public inline function acting() {
-		return active && ((immState & Flag(ImmState,ACCEPT))!=0);
-	}
+    //imm cb flag
+    public var immState:Int; //ImmState
 
     ///---------------------------------------------------------------------------------------------
-	
+
+    //called after pre-handler
+    flibmdel public inline function pre_validate() {
+        if(type==COL) colarb._pre_validate();
+    }
+
+    flibmdel public inline function acting() {
+        return active && ((immState & Flag(ImmState,ACCEPT))!=0);
+    }
+
+    ///---------------------------------------------------------------------------------------------
+    
     //arbiter properties need to be recalculated come next pre-step
-	public var invalidated:Bool;
+    public var invalidated:Bool;
 
     ///---------------------------------------------------------------------------------------------
-	
-	public var b1:PR(Body);
-	public var b2:PR(Body);
-	
-	//used internally in certain places to avoid recursing types
-	public var ws1:PR(Shape);
+    
+    public var b1:PR(Body);
+    public var b2:PR(Body);
+    
+    //used internally in certain places to avoid recursing types
+    public var ws1:PR(Shape);
     public var ws2:PR(Shape);
-	
+    
     ///---------------------------------------------------------------------------------------------
-	//used for dynamic aabb broadphase in helping to reduce lookup costs.
+    //used for dynamic aabb broadphase in helping to reduce lookup costs.
 
-	public var pair:PR(AABBPair);
+    public var pair:PR(AABBPair);
 
-	//called from narrowphase.
-	flibmdel public inline function swap_features() {
+    //called from narrowphase.
+    flibmdel public inline function swap_features() {
         ///assert pre-condition satisfied
         assert(type==COL,"Arbiter::swap_features");
 
-		swap(b1,b2);
-		swap(ws1,ws2);
+        swap(b1,b2);
+        swap(ws1,ws2);
         swap(colarb.s1,colarb.s2);
-	}
+    }
 
     ///---------------------------------------------------------------------------------------------
 
-	//matches ArbiterType values.	
-	public var type:Int;
-	flibstaticdel(COL)    public static var COL    = 1;
-	flibstaticdel(FLUID)  public static var FLUID  = 4;
-	flibstaticdel(SENSOR) public static var SENSOR = 2;
+    //matches ArbiterType values.    
+    public var type:Int;
+    flibstaticdel(COL)    public static var COL    = 1;
+    flibstaticdel(FLUID)  public static var FLUID  = 4;
+    flibstaticdel(SENSOR) public static var SENSOR = 2;
 
     //to be used in stead of runtime casting of arbiter.
     public var colarb   :PR(ColArbiter);
@@ -162,121 +162,121 @@ class PR(Arbiter) {
     public var sensorarb:PR(SensorArbiter);
 
     ///---------------------------------------------------------------------------------------------
-	
-	//called when want to retire arbiter from objects, but let full retire wait for space.step()
-	//given argument should not have arbiter removed as is done externally
-	flibmdel public inline function lazyRetire(s:PR(Space), b:PR(Body)=null) {
+    
+    //called when want to retire arbiter from objects, but let full retire wait for space.step()
+    //given argument should not have arbiter removed as is done externally
+    flibmdel public inline function lazyRetire(s:PR(Space), b:PR(Body)=null) {
         ///at entry, arbiter should not have already been cleared.
         assert(!cleared,"Arbiter::lazyRetire");
-		cleared = true;
+        cleared = true;
 
-		if(b==null || (b2==b)) b1.arbiters.inlined_remove(this);
-		if(b==null || (b1==b)) b2.arbiters.inlined_remove(this);
-		if(pair!=null) { pair.arb = null; pair = null; }
-	
-		active = false;
-		//need to tell wrapped space::arbiters list about non structual changes
-		//only one of the lists needs notifiying for the changes to take place
-		//so this suffices whether this arbiter is a fluid arbiter or not.
-		s.f_arbiters.modified = true;
-	}
+        if(b==null || (b2==b)) b1.arbiters.inlined_remove(this);
+        if(b==null || (b1==b)) b2.arbiters.inlined_remove(this);
+        if(pair!=null) { pair.arb = null; pair = null; }
+    
+        active = false;
+        //need to tell wrapped space::arbiters list about non structual changes
+        //only one of the lists needs notifiying for the changes to take place
+        //so this suffices whether this arbiter is a fluid arbiter or not.
+        s.f_arbiters.modified = true;
+    }
 
     ///---------------------------------------------------------------------------------------------
-	
+    
     //called by sub-types on assignment.
-	flibmdel public inline function sup_assign(s1:PR(Shape),s2:PR(Shape),id:Int,di:Int) {
-		b1 = s1.body; ws1 = s1;
-		b2 = s2.body; ws2 = s2;
-		this.id = id;
-		this.di = di;
-		
-		b1.arbiters.inlined_add(this);
-		b2.arbiters.inlined_add(this);
-		
-		active   = true;
-		present  = 0;
-		cleared  = false;
-		sleeping = false;
-		fresh    = false;
-		presentable = false;
-	}
-	
+    flibmdel public inline function sup_assign(s1:PR(Shape),s2:PR(Shape),id:Int,di:Int) {
+        b1 = s1.body; ws1 = s1;
+        b2 = s2.body; ws2 = s2;
+        this.id = id;
+        this.di = di;
+        
+        b1.arbiters.inlined_add(this);
+        b2.arbiters.inlined_add(this);
+        
+        active   = true;
+        present  = 0;
+        cleared  = false;
+        sleeping = false;
+        fresh    = false;
+        presentable = false;
+    }
+    
     //called by sub-types on retirement.
-	flibmdel public inline function sup_retire() {
+    flibmdel public inline function sup_retire() {
         ///arbiter should not have been fully retired yet, check this via body existance
         assert(b1!=null,"Arbiter::sup_retire");
         assert(b2!=null,"Arbiter::sup_retire");
 
-		//arbiter shouldn't be in a callbackset!!
-		assert(present==0,"Arbiter::sup_retire cbsets present");
-		assert(!intchange,"Arbiter::sup_retire intchange");
+        //arbiter shouldn't be in a callbackset!!
+        assert(present==0,"Arbiter::sup_retire cbsets present");
+        assert(!intchange,"Arbiter::sup_retire intchange");
 
-	    if(!cleared) { //only need to remove arbiters if not prematurely cleared.
-			b1.arbiters.inlined_remove(this);
-			b2.arbiters.inlined_remove(this);
-			if(pair!=null) { pair.arb = null; pair = null; }
-		}
-		b1 = b2 = null;
-	
-		active = false;
-		intchange= false;
-	}
+        if(!cleared) { //only need to remove arbiters if not prematurely cleared.
+            b1.arbiters.inlined_remove(this);
+            b2.arbiters.inlined_remove(this);
+            if(pair!=null) { pair.arb = null; pair = null; }
+        }
+        b1 = b2 = null;
+    
+        active = false;
+        intchange= false;
+    }
 }
 
 ///_________________________________________________________________________________________________
 ///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 
 class PR(SensorArbiter) extends PR(Arbiter) {
-	MixPool(PR(SensorArbiter))
-	flibmdel public inline function alloc() { assert(pair==null,"AABBNode pair exists on arb going out of pool? (sensor)"); }
-	flibmdel public inline function free() { assert(pair==null,"AABBNode pair exists on arb going into pool? (sensor)"); }
-	
-	public function new() {
-		super();
-		type = PR(Arbiter).SENSOR;
-		sensorarb = this;
-	}
+    MixPool(PR(SensorArbiter))
+    flibmdel public inline function alloc() { assert(pair==null,"AABBNode pair exists on arb going out of pool? (sensor)"); }
+    flibmdel public inline function free() { assert(pair==null,"AABBNode pair exists on arb going into pool? (sensor)"); }
+    
+    public function new() {
+        super();
+        type = PR(Arbiter).SENSOR;
+        sensorarb = this;
+    }
 
     ///---------------------------------------------------------------------------------------------
-	
-	flibmdel public inline function assign(s1:PR(Shape),s2:PR(Shape),id:Int,di:Int) {
-		sup_assign(s1,s2,id,di);
-	}
-	
-	flibmdel public inline function retire() {
-		sup_retire();
-		Free(PR(SensorArbiter),this);
-	}
+    
+    flibmdel public inline function assign(s1:PR(Shape),s2:PR(Shape),id:Int,di:Int) {
+        sup_assign(s1,s2,id,di);
+    }
+    
+    flibmdel public inline function retire() {
+        sup_retire();
+        Free(PR(SensorArbiter),this);
+    }
 
     ///---------------------------------------------------------------------------------------------
 
-	//nothing to do!
-	flibmdel public inline function makemutable() {}
-	flibmdel public inline function makeimmutable() {}
+    //nothing to do!
+    flibmdel public inline function makemutable() {}
+    flibmdel public inline function makeimmutable() {}
 }
 
 ///_________________________________________________________________________________________________
 ///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 
 class PR(FluidArbiter) extends PR(Arbiter) {
-	public var outer_zn:FluidArbiter;
-	MixPool(PR(FluidArbiter))
-	flibmdel public inline function alloc() {
-		assert(pair==null,"AABBNode pair exists on arb going out of pool? (fluid)"); 
-		vec_set(pdamp,0,0);
-		padamp = 0;
-	}
-	flibmdel public inline function free() { assert(pair==null,"AABBNode pair exists on arb going into pool? (fluid)"); }
+    public var outer_zn:FluidArbiter;
+    MixPool(PR(FluidArbiter))
+    flibmdel public inline function alloc() {
+        assert(pair==null,"AABBNode pair exists on arb going out of pool? (fluid)"); 
+        vec_set(pdamp,0,0);
+        padamp = 0;
+    }
+    flibmdel public inline function free() { assert(pair==null,"AABBNode pair exists on arb going into pool? (fluid)"); }
 
     ///---------------------------------------------------------------------------------------------
-	
+    
     //assigned by narrowphase
-	vec_new(public,centroid); ///world coord.
-	public var overlap:Float;
+    vec_new(public,centroid); ///world coord.
+    public var overlap:Float;
 
     //relative centroid positions.
     vec_new(public,r1); ///relative to b1.
-	vec_new(public,r2); ///relative to b2.
+    vec_new(public,r2); ///relative to b2.
 
     ///---------------------------------------------------------------------------------------------
 
@@ -287,7 +287,7 @@ class PR(FluidArbiter) extends PR(Arbiter) {
     public var wMass:Float;
     public var adamp:Float; //accumulated impulse
     public var agamma:Float;
-	
+    
     //linear drag
     mat2_new(public, vMass);
     vec_new(public,damp); //accumulated impulse
@@ -301,348 +301,348 @@ class PR(FluidArbiter) extends PR(Arbiter) {
     ///used only for API
     vec_new(public,buoy); //cached buoyancy impulse
 
-	//used for proper impulse calculations (drag only, buoy applied only once)
-	vec_new(public,pdamp);
-	public var padamp:Float;
+    //used for proper impulse calculations (drag only, buoy applied only once)
+    vec_new(public,pdamp);
+    public var padamp:Float;
 
     ///---------------------------------------------------------------------------------------------
 
-	//previously lambads
-	private function position_validate() {
-		DEBUG(if(inactiveme()) throw "Error: Arbiter not currently in use";)
-		vec_set(wrap_position.pr(inner).,centroid);
-	}
-	private function position_invalidate(x:PR(Vec2)) {
-		vec_set(centroid,x.);
-	}
-	
-	public var wrap_position:Vec2;
-	public function getposition() {
-		wrap_position = Vec2.get();
-		wrap_position.pr(inner).inuse = true;
-		wrap_position.pr(inner).immutable = !mutable;
-		wrap_position.pr(inner)._validate = position_validate;
-		wrap_position.pr(inner)._invalidate = position_invalidate;
-	}
+    //previously lambads
+    private function position_validate() {
+        DEBUG(if(inactiveme()) throw "Error: Arbiter not currently in use";)
+        vec_set(wrap_position.pr(inner).,centroid);
+    }
+    private function position_invalidate(x:PR(Vec2)) {
+        vec_set(centroid,x.);
+    }
+    
+    public var wrap_position:Vec2;
+    public function getposition() {
+        wrap_position = Vec2.get();
+        wrap_position.pr(inner).inuse = true;
+        wrap_position.pr(inner).immutable = !mutable;
+        wrap_position.pr(inner)._validate = position_validate;
+        wrap_position.pr(inner)._invalidate = position_invalidate;
+    }
 
     ///---------------------------------------------------------------------------------------------
-	
-	public function new() {
-		super();
-		type = PR(Arbiter).FLUID;
-		fluidarb = this;
-		
-		vec_set(buoy,0,0);
+    
+    public function new() {
+        super();
+        type = PR(Arbiter).FLUID;
+        fluidarb = this;
+        
+        vec_set(buoy,0,0);
         pre_dt = -1.0;
-	}
+    }
 
     ///---------------------------------------------------------------------------------------------
-	
-	flibmdel public inline function assign(s1:PR(Shape),s2:PR(Shape),id:Int,di:Int) {
-		sup_assign(s1,s2,id,di);
+    
+    flibmdel public inline function assign(s1:PR(Shape),s2:PR(Shape),id:Int,di:Int) {
+        sup_assign(s1,s2,id,di);
 
-		vec_set(n,0,1);
-		vec_set(damp,0,0);
-		adamp = 0.0;
-	}
-	
-	flibmdel public inline function retire() {
-		sup_retire();
-		Free(PR(FluidArbiter),this);
+        vec_set(n,0,1);
+        vec_set(damp,0,0);
+        adamp = 0.0;
+    }
+    
+    flibmdel public inline function retire() {
+        sup_retire();
+        Free(PR(FluidArbiter),this);
         pre_dt = -1.0;
-	}
+    }
 
     ///---------------------------------------------------------------------------------------------
 
-	public var mutable:Bool;
-	flibmdel public inline function makemutable() {
-		mutable = true;
-		if(wrap_position!=null) wrap_position.pr(inner).immutable = false;
-	}
-	flibmdel public inline function makeimmutable() {
-		mutable = false;
-		if(wrap_position!=null) wrap_position.pr(inner).immutable = true;
-	}
+    public var mutable:Bool;
+    flibmdel public inline function makemutable() {
+        mutable = true;
+        if(wrap_position!=null) wrap_position.pr(inner).immutable = false;
+    }
+    flibmdel public inline function makeimmutable() {
+        mutable = false;
+        if(wrap_position!=null) wrap_position.pr(inner).immutable = true;
+    }
 
     ///---------------------------------------------------------------------------------------------
 
     flibmdel public inline function inject(area:Float,cx:Float,cy:Float) {
-		overlap = area;
-		vec_set(centroid,c);
-	}
+        overlap = area;
+        vec_set(centroid,c);
+    }
 
     ///---------------------------------------------------------------------------------------------
-	
+    
     public var pre_dt:Float;
-	flibmdel public inline function preStep(s:PR(Space), dt:Float) {
+    flibmdel public inline function preStep(s:PR(Space), dt:Float) {
         if(pre_dt==-1.0) pre_dt = dt;
         var dtratio = dt/pre_dt;
         pre_dt = dt;
 
-		vec_sub(centroid,b1.pos,r1);
-		vec_sub(centroid,b2.pos,r2);
-	
-		//----------------------
-		//buoyancy
-		
-		vec_new(g1); if(ws1.fluidEnabled && ws1.fluidProperties.wrap_gravity!=null) vec_set(g1, ws1.fluidProperties.gravity) else vec_set(g1, s.gravity);
-		vec_new(g2); if(ws2.fluidEnabled && ws2.fluidProperties.wrap_gravity!=null) vec_set(g2, ws2.fluidProperties.gravity) else vec_set(g2, s.gravity);
+        vec_sub(centroid,b1.pos,r1);
+        vec_sub(centroid,b2.pos,r2);
+    
+        //----------------------
+        //buoyancy
+        
+        vec_new(g1); if(ws1.fluidEnabled && ws1.fluidProperties.wrap_gravity!=null) vec_set(g1, ws1.fluidProperties.gravity) else vec_set(g1, s.gravity);
+        vec_new(g2); if(ws2.fluidEnabled && ws2.fluidProperties.wrap_gravity!=null) vec_set(g2, ws2.fluidProperties.gravity) else vec_set(g2, s.gravity);
 
-		vec_new(buoy,0,0);
-		if(ws1.fluidEnabled && ws2.fluidEnabled) {
-			var mass1 = overlap*ws1.fluidProperties.density;
-			var mass2 = overlap*ws2.fluidProperties.density;
-			if     (mass1>mass2) vec_subeq(buoy, g1, mass1+mass2);
-			else if(mass1<mass2) vec_addeq(buoy, g2, mass1+mass2);
-			else {
-				vec_new(g); vec_add(g1,g2,g); vec_muleq(g,0.5);
-				if(vec_dot(ws1.worldCOM,g)>vec_dot(ws2.worldCOM,g))
-					vec_subeq(buoy, g, mass1+mass2);
-				else
-					vec_addeq(buoy, g, mass1+mass2);
-			}
-		}else if(ws1.fluidEnabled) {
-			var mass = overlap*ws1.fluidProperties.density;
-			vec_subeq(buoy, g1, mass);
-		}else if(ws2.fluidEnabled) {
-			var mass = overlap*ws2.fluidProperties.density;
-			vec_addeq(buoy, g2, mass);
-		}
-		vec_muleq(buoy, dt);
-		vec_set(this.buoy,buoy);
-		
-		if(b1.isDynamic()) {
+        vec_new(buoy,0,0);
+        if(ws1.fluidEnabled && ws2.fluidEnabled) {
+            var mass1 = overlap*ws1.fluidProperties.density;
+            var mass2 = overlap*ws2.fluidProperties.density;
+            if     (mass1>mass2) vec_subeq(buoy, g1, mass1+mass2);
+            else if(mass1<mass2) vec_addeq(buoy, g2, mass1+mass2);
+            else {
+                vec_new(g); vec_add(g1,g2,g); vec_muleq(g,0.5);
+                if(vec_dot(ws1.worldCOM,g)>vec_dot(ws2.worldCOM,g))
+                    vec_subeq(buoy, g, mass1+mass2);
+                else
+                    vec_addeq(buoy, g, mass1+mass2);
+            }
+        }else if(ws1.fluidEnabled) {
+            var mass = overlap*ws1.fluidProperties.density;
+            vec_subeq(buoy, g1, mass);
+        }else if(ws2.fluidEnabled) {
+            var mass = overlap*ws2.fluidProperties.density;
+            vec_addeq(buoy, g2, mass);
+        }
+        vec_muleq(buoy, dt);
+        vec_set(this.buoy,buoy);
+        
+        if(b1.isDynamic()) {
             vec_subeq(b1.force, buoy, 1/dt);
             b1.torque -= vec_cross(r1,buoy)/dt;
-		}
-		if(b2.isDynamic()) {
+        }
+        if(b2.isDynamic()) {
             vec_addeq(b2.force, buoy, 1/dt);
             b2.torque += vec_cross(r2,buoy)/dt;
-		}
-		
-		if((!ws1.fluidEnabled || ws1.fluidProperties.viscosity==0)
-		&& (!ws2.fluidEnabled || ws2.fluidProperties.viscosity==0)) {
-			nodrag = true;
-			vec_set(damp,0,0);
-			adamp = 0;
-		}else {
-			nodrag = false;
-		
-			//----------------------
-			//angular drag
-			
-			var tViscosity = 0.0;
-			if(ws1.fluidEnabled) {
-				ws2.validate_angDrag();
-				tViscosity += ws1.fluidProperties.viscosity*ws2.angDrag*overlap/ws2.area;
-			}
-			if(ws2.fluidEnabled) {
-				ws1.validate_angDrag();
-				tViscosity += ws2.fluidProperties.viscosity*ws1.angDrag*overlap/ws1.area;
-			}
+        }
+        
+        if((!ws1.fluidEnabled || ws1.fluidProperties.viscosity==0)
+        && (!ws2.fluidEnabled || ws2.fluidProperties.viscosity==0)) {
+            nodrag = true;
+            vec_set(damp,0,0);
+            adamp = 0;
+        }else {
+            nodrag = false;
+        
+            //----------------------
+            //angular drag
+            
+            var tViscosity = 0.0;
+            if(ws1.fluidEnabled) {
+                ws2.validate_angDrag();
+                tViscosity += ws1.fluidProperties.viscosity*ws2.angDrag*overlap/ws2.area;
+            }
+            if(ws2.fluidEnabled) {
+                ws1.validate_angDrag();
+                tViscosity += ws2.fluidProperties.viscosity*ws1.angDrag*overlap/ws1.area;
+            }
 
-			if(tViscosity!=0) {
-				var iSum = b1.sinertia + b2.sinertia;
-				if(iSum!=0) wMass = 1/iSum;
-				else wMass = 0.0;
-				
-				var biasCoef;
-				tViscosity *= 0.0004;
-				wMass *= withConstraint(soft_gamma(tViscosity,1,dt,agamma,biasCoef));
-			}else {
-				wMass = 0.0;
-				agamma = 0.0;
-			}
+            if(tViscosity!=0) {
+                var iSum = b1.sinertia + b2.sinertia;
+                if(iSum!=0) wMass = 1/iSum;
+                else wMass = 0.0;
+                
+                var biasCoef;
+                tViscosity *= 0.0004;
+                wMass *= withConstraint(soft_gamma(tViscosity,1,dt,agamma,biasCoef));
+            }else {
+                wMass = 0.0;
+                agamma = 0.0;
+            }
 
-			//----------------------
-			//linear drag
-				
-			vec_new(vrn,
-			(b2.velx+b2.kinvelx-r2y*(b2.angvel+b2.kinangvel))-(b1.velx+b1.kinvelx-r1y*(b2.angvel+b2.kinangvel)),
-			(b2.vely+b2.kinvely+r2x*(b2.angvel+b2.kinangvel))-(b1.vely+b1.kinvely+r1x*(b1.angvel+b1.kinangvel))
-			);
-				
-			if(vec_lsq(vrn) < PR(Const).EPSILON) {
-				//use previous vr, best guess as to direction velocity will take the objects
-				//since i don't want to use a 2d constraint here.
-			}else {
-				vec_normalise(vrn); vec_set(n,vrn);
-			}
-				
-			var tViscosity = 0.0;
-			if(ws1.fluidEnabled) {
-				var f = -ws1.fluidProperties.viscosity*overlap/ws2.area;
-				if(ws2.type == Flag(ShapeType,CIRCLE))
-					tViscosity -= f * ws2.circle.radius*PR(Config).FLUID_COEF_LIN / (2*ws2.circle.radius*Math.PI);
-				else {
-					var poly = ws2.polygon;
-					var bord = 0.0;
-					var acc = 0.0;
-					Iter(ex,poly.edges,{
-						bord += ex.length;
-						var fact = f*ex.length*vec_dot(ex.gnorm,n);
-						if(fact>0) fact = fact *= -PR(Config).ANGDRAGCOEF_VACUUM;
-						acc -= fact*0.5*PR(Config).FLUID_COEF_LIN;
-					});
-					tViscosity += acc/bord;
-				}
-			}
-			if(ws2.fluidEnabled) {
-				var f = -ws2.fluidProperties.viscosity*overlap/ws1.area;
-				if(ws1.type == Flag(ShapeType,CIRCLE))
-					tViscosity -= f * ws1.circle.radius*PR(Config).FLUID_COEF_LIN / (2*ws1.circle.radius*Math.PI);
-				else {
-					var poly = ws1.polygon;
-					var bord = 0.0;
-					var acc = 0.0;
-					Iter(ex,poly.edges,{
-						bord += ex.length;
-						var fact = f*ex.length*vec_dot(ex.gnorm,n);
-						if(fact>0) fact = fact *= -PR(Config).ANGDRAGCOEF_VACUUM;
-						acc -= fact*0.5*PR(Config).FLUID_COEF_LIN;
-					});
-					tViscosity += acc/bord;
-				}
-			}
-			
-			if(tViscosity!=0) {
-				var m = b1.smass + b2.smass;
-				mat2_new(K);
-				mat2_set(K, m,0,m);
-				$(mixin body(b,r) if(b.sinertia!=0) {
-					var X = r`x*b.sinertia;
-					var Y = r`y*b.sinertia;
-					mat2_addeq(K, Y*r`y,
-								 -Y*r`x, X*r`x);
-				});
-				body(b1,r1);
-				body(b2,r2);
-				
-				mat2_invert(K);
-				mat2_set(vMass,Ka,Kb,Kc);
-				
-				var biasCoef;
-				mat2_scaleq(vMass,withConstraint(soft_gamma(tViscosity,1,dt,lgamma,biasCoef)));
-			}else {
-				mat2_set(vMass,0,0,0);
-				lgamma = 0.0;
-			}
-		}
+            //----------------------
+            //linear drag
+                
+            vec_new(vrn,
+            (b2.velx+b2.kinvelx-r2y*(b2.angvel+b2.kinangvel))-(b1.velx+b1.kinvelx-r1y*(b2.angvel+b2.kinangvel)),
+            (b2.vely+b2.kinvely+r2x*(b2.angvel+b2.kinangvel))-(b1.vely+b1.kinvely+r1x*(b1.angvel+b1.kinangvel))
+            );
+                
+            if(vec_lsq(vrn) < PR(Const).EPSILON) {
+                //use previous vr, best guess as to direction velocity will take the objects
+                //since i don't want to use a 2d constraint here.
+            }else {
+                vec_normalise(vrn); vec_set(n,vrn);
+            }
+                
+            var tViscosity = 0.0;
+            if(ws1.fluidEnabled) {
+                var f = -ws1.fluidProperties.viscosity*overlap/ws2.area;
+                if(ws2.type == Flag(ShapeType,CIRCLE))
+                    tViscosity -= f * ws2.circle.radius*PR(Config).FLUID_COEF_LIN / (2*ws2.circle.radius*Math.PI);
+                else {
+                    var poly = ws2.polygon;
+                    var bord = 0.0;
+                    var acc = 0.0;
+                    Iter(ex,poly.edges,{
+                        bord += ex.length;
+                        var fact = f*ex.length*vec_dot(ex.gnorm,n);
+                        if(fact>0) fact = fact *= -PR(Config).ANGDRAGCOEF_VACUUM;
+                        acc -= fact*0.5*PR(Config).FLUID_COEF_LIN;
+                    });
+                    tViscosity += acc/bord;
+                }
+            }
+            if(ws2.fluidEnabled) {
+                var f = -ws2.fluidProperties.viscosity*overlap/ws1.area;
+                if(ws1.type == Flag(ShapeType,CIRCLE))
+                    tViscosity -= f * ws1.circle.radius*PR(Config).FLUID_COEF_LIN / (2*ws1.circle.radius*Math.PI);
+                else {
+                    var poly = ws1.polygon;
+                    var bord = 0.0;
+                    var acc = 0.0;
+                    Iter(ex,poly.edges,{
+                        bord += ex.length;
+                        var fact = f*ex.length*vec_dot(ex.gnorm,n);
+                        if(fact>0) fact = fact *= -PR(Config).ANGDRAGCOEF_VACUUM;
+                        acc -= fact*0.5*PR(Config).FLUID_COEF_LIN;
+                    });
+                    tViscosity += acc/bord;
+                }
+            }
+            
+            if(tViscosity!=0) {
+                var m = b1.smass + b2.smass;
+                mat2_new(K);
+                mat2_set(K, m,0,m);
+                $(mixin body(b,r) if(b.sinertia!=0) {
+                    var X = r`x*b.sinertia;
+                    var Y = r`y*b.sinertia;
+                    mat2_addeq(K, Y*r`y,
+                                 -Y*r`x, X*r`x);
+                });
+                body(b1,r1);
+                body(b2,r2);
+                
+                mat2_invert(K);
+                mat2_set(vMass,Ka,Kb,Kc);
+                
+                var biasCoef;
+                mat2_scaleq(vMass,withConstraint(soft_gamma(tViscosity,1,dt,lgamma,biasCoef)));
+            }else {
+                mat2_set(vMass,0,0,0);
+                lgamma = 0.0;
+            }
+        }
 
         vec_muleq(damp,dtratio);
         adamp *= dtratio;
-	}
+    }
 
     ///---------------------------------------------------------------------------------------------
 
     flibmdel public inline function warmStart() {
-		vec_subeq(b1.vel, damp, b1.imass);
-		vec_addeq(b2.vel, damp, b2.imass);
-		b1.angvel -= b1.iinertia*vec_cross(r1,damp);
-		b2.angvel += b2.iinertia*vec_cross(r2,damp);
-			
-		b1.angvel -= adamp*b1.iinertia;
+        vec_subeq(b1.vel, damp, b1.imass);
+        vec_addeq(b2.vel, damp, b2.imass);
+        b1.angvel -= b1.iinertia*vec_cross(r1,damp);
+        b2.angvel += b2.iinertia*vec_cross(r2,damp);
+            
+        b1.angvel -= adamp*b1.iinertia;
         b2.angvel += adamp*b2.iinertia;
 
-		vec_set(pdamp,damp);
-		padamp = adamp;
+        vec_set(pdamp,damp);
+        padamp = adamp;
     }
-	
-	flibmdel public inline function applyImpulseVel() {
-		if(!nodrag) {
+    
+    flibmdel public inline function applyImpulseVel() {
+        if(!nodrag) {
             var w1 = b1.angvel+b1.kinangvel;
             var w2 = b2.angvel+b2.kinangvel;
             vec_new(j,
                 (b1.velx+b1.kinvelx - r1y*w1) - (b2.velx+b2.kinvelx - r2y*w2),
                 (b1.vely+b1.kinvely + r1x*w1) - (b2.vely+b2.kinvely + r2x*w2)
             );
-	
-			mat2_xform(vMass,j);
-			vec_subeq(j, damp,lgamma);
-			vec_addeq(damp, j);
-			
-			vec_subeq(b1.vel, j, b1.imass);
-			vec_addeq(b2.vel, j, b2.imass);
-			b1.angvel -= b1.iinertia*vec_cross(r1,j);
-			b2.angvel += b2.iinertia*vec_cross(r2,j);
-			
-			var j_damp = (w1-w2)*wMass - adamp*agamma;
-			adamp += j_damp;
-			
-			b1.angvel -= j_damp*b1.iinertia;
-			b2.angvel += j_damp*b2.iinertia;
-		}
-	}
+    
+            mat2_xform(vMass,j);
+            vec_subeq(j, damp,lgamma);
+            vec_addeq(damp, j);
+            
+            vec_subeq(b1.vel, j, b1.imass);
+            vec_addeq(b2.vel, j, b2.imass);
+            b1.angvel -= b1.iinertia*vec_cross(r1,j);
+            b2.angvel += b2.iinertia*vec_cross(r2,j);
+            
+            var j_damp = (w1-w2)*wMass - adamp*agamma;
+            adamp += j_damp;
+            
+            b1.angvel -= j_damp*b1.iinertia;
+            b2.angvel += j_damp*b2.iinertia;
+        }
+    }
 }
 
 ///_________________________________________________________________________________________________
 ///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 
 class PR(ColArbiter) extends PR(Arbiter) {
-	public var outer_zn:CollisionArbiter;
+    public var outer_zn:CollisionArbiter;
 
     ///---------------------------------------------------------------------------------------------
 
-	//computed based on feature materials
-	public var dyn_fric:Float;
-	public var stat_fric:Float;
-	public var restitution:Float;
-	public var rfric:Float;
+    //computed based on feature materials
+    public var dyn_fric:Float;
+    public var stat_fric:Float;
+    public var restitution:Float;
+    public var rfric:Float;
 
     ///---------------------------------------------------------------------------------------------
-	
-	public var s1:PR(Shape);
-	public var s2:PR(Shape);
+    
+    public var s1:PR(Shape);
+    public var s2:PR(Shape);
 
     ///---------------------------------------------------------------------------------------------
-	
+    
     public var contacts:MixList(PR(Contact)); public var wrap_contacts:ContactList;
-	public var innards:MixList(PR(IContact)); //for faster iteration in impulse loops
+    public var innards:MixList(PR(IContact)); //for faster iteration in impulse loops
 
     ///---------------------------------------------------------------------------------------------
 
-	//velocity iterations
-	vec_new(public, n); //normal (shared between contacts)
+    //velocity iterations
+    vec_new(public, n); //normal (shared between contacts)
 
     ///---------------------------------------------------------------------------------------------
 
-	//previously lambdas
-	private function normal_validate() {
-		if(cleared) throw "Error: Arbiter not currently in use";
-		vec_set(wrap_normal.pr(inner).,n);
-	}
-	private function normal_invalidate(x:PR(Vec2)) {
-		vec_set(n,x.);
-	}
-	
-	public var wrap_normal:Vec2;
-	public function getnormal() {
-		wrap_normal = Vec2.get(0,0);
-		wrap_normal.pr(inner).immutable = !mutable;
-		wrap_normal.pr(inner).inuse = true;
-		wrap_normal.pr(inner)._validate = normal_validate;
-		wrap_normal.pr(inner)._invalidate = normal_invalidate;
-	}
+    //previously lambdas
+    private function normal_validate() {
+        if(cleared) throw "Error: Arbiter not currently in use";
+        vec_set(wrap_normal.pr(inner).,n);
+    }
+    private function normal_invalidate(x:PR(Vec2)) {
+        vec_set(n,x.);
+    }
+    
+    public var wrap_normal:Vec2;
+    public function getnormal() {
+        wrap_normal = Vec2.get(0,0);
+        wrap_normal.pr(inner).immutable = !mutable;
+        wrap_normal.pr(inner).inuse = true;
+        wrap_normal.pr(inner)._validate = normal_validate;
+        wrap_normal.pr(inner)._invalidate = normal_invalidate;
+    }
 
     ///---------------------------------------------------------------------------------------------
 
-	flibmdel public inline function _pre_validate() {
-//		DEBUG(if(wrap_contacts!=null && wrap_contacts.length==0) throw "Error: CollisionArbiter must have at least one contact! If you're trying to ignore collision by deleting all contacts, just return PreFlag.IGNORE_ONCE instead.";)
-		var vl = vec_lsq(n);
-		DEBUG(if(vl==0) throw "Error: CollisionArbiter::normal cannot be zero length";)
-		vec_muleq(n, 1/Math.sqrt(vl));
-	}
+    flibmdel public inline function _pre_validate() {
+//        DEBUG(if(wrap_contacts!=null && wrap_contacts.length==0) throw "Error: CollisionArbiter must have at least one contact! If you're trying to ignore collision by deleting all contacts, just return PreFlag.IGNORE_ONCE instead.";)
+        var vl = vec_lsq(n);
+        DEBUG(if(vl==0) throw "Error: CollisionArbiter::normal cannot be zero length";)
+        vec_muleq(n, 1/Math.sqrt(vl));
+    }
 
     ///---------------------------------------------------------------------------------------------
-	
-	//block solver
-	mat2_new(kMass);
-	mat2_new(K);
-	
-	public var rMass:Float; //rolling mass
-	public var jrAcc:Float; //accumulated rolling impulse
-	//used for proper impulse calculations
-	public var pjrAcc:Float;
+    
+    //block solver
+    mat2_new(kMass);
+    mat2_new(K);
+    
+    public var rMass:Float; //rolling mass
+    public var jrAcc:Float; //accumulated rolling impulse
+    //used for proper impulse calculations
+    public var pjrAcc:Float;
 
     var rn1a:Float; var rt1a:Float;
     var rn1b:Float; var rt1b:Float;
@@ -651,430 +651,430 @@ class PR(ColArbiter) extends PR(Arbiter) {
 
     var k1x:Float; var k1y:Float;
     var k2x:Float; var k2y:Float;
-	
-	//surface velocity
-	vec_new(public, surface);
+    
+    //surface velocity
+    vec_new(public, surface);
 
     ///---------------------------------------------------------------------------------------------
-	
-	//position iterations
-	public static force_inline var FACE1  = 0;
-	public static force_inline var FACE2  = 1;
-	public static force_inline var CIRCLE = 2;
-	
-	public var ptype:Int; //PR(ColArbiter).FACE1/2,CIRCLE
-	vec_new(public, lnorm); public var lproj:Float;
-	public var radius:Float;
-	public var rev:Bool; //normal needs reversing in positional iterations
-	
+    
+    //position iterations
+    public static force_inline var FACE1  = 0;
+    public static force_inline var FACE2  = 1;
+    public static force_inline var CIRCLE = 2;
+    
+    public var ptype:Int; //PR(ColArbiter).FACE1/2,CIRCLE
+    vec_new(public, lnorm); public var lproj:Float;
+    public var radius:Float;
+    public var rev:Bool; //normal needs reversing in positional iterations
+    
     ///---------------------------------------------------------------------------------------------
 
-	//active contacts
-	public var c1:PR(IContact); public var oc1:PR(Contact);
-	public var c2:PR(IContact); public var oc2:PR(Contact);
-	public var hc2:Bool; //has contact 2
+    //active contacts
+    public var c1:PR(IContact); public var oc1:PR(Contact);
+    public var c2:PR(IContact); public var oc2:PR(Contact);
+    public var hc2:Bool; //has contact 2
 
     ///---------------------------------------------------------------------------------------------
 
     MixPool(PR(ColArbiter))
-	
-	public function new() {
-		pre_dt = -1.0;
+    
+    public function new() {
+        pre_dt = -1.0;
 
-		super();
-		contacts = new MixList(PR(Contact))();
-		innards = new MixList(PR(IContact))();
-		type = PR(Arbiter).COL;
-		colarb = this;
-	}
-	flibmdel public inline function alloc() {
-		pjrAcc = 0.0;
-		assert(pair==null,"AABBNode exists on col arbiter going out of pool?"); 
-	}
-	flibmdel public inline function free() { 
-		assert(contacts.empty(),"still has contacts on free?");
-		assert(pair==null,"AABBNode exists on col arbiter going into pool?");
-	}
-	
+        super();
+        contacts = new MixList(PR(Contact))();
+        innards = new MixList(PR(IContact))();
+        type = PR(Arbiter).COL;
+        colarb = this;
+    }
+    flibmdel public inline function alloc() {
+        pjrAcc = 0.0;
+        assert(pair==null,"AABBNode exists on col arbiter going out of pool?"); 
+    }
+    flibmdel public inline function free() { 
+        assert(contacts.empty(),"still has contacts on free?");
+        assert(pair==null,"AABBNode exists on col arbiter going into pool?");
+    }
+    
     public var stat:Bool; //one of the bodies is non-dynamic (different arbiter list)
 
-	///---------------------------------------------------------------------------------------------
-	
-	flibmdel public inline function injectContact(px:Float,py:Float,nx:Float,ny:Float,dist:Float,hash:Int) {
-		var c:PR(Contact) = null;
-		Iter(cur,contacts, if(hash==cur.hash) { c = cur; break; });
-		if(c==null) {
-			c = Get(PR(Contact));
-			var ci = c.inner;
-			ci.jnAcc = ci.jtAcc = 0;
-			c.sBias = -1; //resets
-			c.hash = hash;
-			c.fresh = true;
-			c.arbiter = this;
-			jrAcc = 0;
-			contacts.inlined_add(c);
-			innards.add(ci);
-		}else
-			c.fresh = false; //c.stamp +1 != stamp
-		
-		vec_set(c.p,p);
-		vec_set(this.n,n);
-		c.dist = dist;
-		c.stamp = stamp;
-		
-		return c;
-	}
-	
-	///---------------------------------------------------------------------------------------------
-	
-	flibmdel public inline function assign(s1:PR(Shape),s2:PR(Shape),id:Int,di:Int) {
-		sup_assign(s1,s2,id,di);
-		this.s1 = s1;
-		this.s2 = s2;
+    ///---------------------------------------------------------------------------------------------
+    
+    flibmdel public inline function injectContact(px:Float,py:Float,nx:Float,ny:Float,dist:Float,hash:Int) {
+        var c:PR(Contact) = null;
+        Iter(cur,contacts, if(hash==cur.hash) { c = cur; break; });
+        if(c==null) {
+            c = Get(PR(Contact));
+            var ci = c.inner;
+            ci.jnAcc = ci.jtAcc = 0;
+            c.sBias = -1; //resets
+            c.hash = hash;
+            c.fresh = true;
+            c.arbiter = this;
+            jrAcc = 0;
+            contacts.inlined_add(c);
+            innards.add(ci);
+        }else
+            c.fresh = false; //c.stamp +1 != stamp
+        
+        vec_set(c.p,p);
+        vec_set(this.n,n);
+        c.dist = dist;
+        c.stamp = stamp;
+        
+        return c;
+    }
+    
+    ///---------------------------------------------------------------------------------------------
+    
+    flibmdel public inline function assign(s1:PR(Shape),s2:PR(Shape),id:Int,di:Int) {
+        sup_assign(s1,s2,id,di);
+        this.s1 = s1;
+        this.s2 = s2;
 
         calcProperties();
-	}
-
-	///---------------------------------------------------------------------------------------------
-	
-	flibmdel public inline function calcProperties() {
-		if(s1.material.elasticity<=PR(Const).NEGINF() || s2.material.elasticity<=PR(Const).NEGINF())
-			restitution = 0;
-		else if(s1.material.elasticity>=PR(Const).POSINF() || s2.material.elasticity>=PR(Const).POSINF())
-			restitution = 1;
-		else
-			restitution = (s1.material.elasticity+s2.material.elasticity)/2;
-			
-		if(restitution<0) restitution = 0;
-		if(restitution>1) restitution = 1;
-		
-		dyn_fric = PR(Math).sqrt(s1.material.dynamicFriction*s2.material.dynamicFriction);
-		stat_fric = PR(Math).sqrt(s1.material.staticFriction*s2.material.staticFriction);
-		
-		rfric = PR(Math).sqrt(s1.material.rollingFriction*s2.material.rollingFriction);
-	}
+    }
 
     ///---------------------------------------------------------------------------------------------
-	
-	flibmdel public inline function validate_props() {
-		if(invalidated) {
-			invalidated = false;
-			calcProperties();
-		}
-	}
-	
+    
+    flibmdel public inline function calcProperties() {
+        if(s1.material.elasticity<=PR(Const).NEGINF() || s2.material.elasticity<=PR(Const).NEGINF())
+            restitution = 0;
+        else if(s1.material.elasticity>=PR(Const).POSINF() || s2.material.elasticity>=PR(Const).POSINF())
+            restitution = 1;
+        else
+            restitution = (s1.material.elasticity+s2.material.elasticity)/2;
+            
+        if(restitution<0) restitution = 0;
+        if(restitution>1) restitution = 1;
+        
+        dyn_fric = PR(Math).sqrt(s1.material.dynamicFriction*s2.material.dynamicFriction);
+        stat_fric = PR(Math).sqrt(s1.material.staticFriction*s2.material.staticFriction);
+        
+        rfric = PR(Math).sqrt(s1.material.rollingFriction*s2.material.rollingFriction);
+    }
+
     ///---------------------------------------------------------------------------------------------
-	
-	flibmdel public inline function retire() {
-		sup_retire();
-		while(!contacts.empty()) {
-			Free(PR(Contact),contacts.inlined_pop_unsafe());
-			innards.inlined_pop();
-		}
-		Free(PR(ColArbiter),this);
+    
+    flibmdel public inline function validate_props() {
+        if(invalidated) {
+            invalidated = false;
+            calcProperties();
+        }
+    }
+    
+    ///---------------------------------------------------------------------------------------------
+    
+    flibmdel public inline function retire() {
+        sup_retire();
+        while(!contacts.empty()) {
+            Free(PR(Contact),contacts.inlined_pop_unsafe());
+            innards.inlined_pop();
+        }
+        Free(PR(ColArbiter),this);
         pre_dt = -1.0;
-	}
+    }
 
     ///---------------------------------------------------------------------------------------------
 
-	public var mutable:Bool;
-	flibmdel public inline function makemutable() {
-		mutable = true;
-		if(wrap_normal!=null) wrap_normal.pr(inner).immutable = false;
-		if(wrap_contacts!=null) wrap_contacts.pr(inner).immutable = false;
-	}
-	flibmdel public inline function makeimmutable() {
-		mutable = false;
-		if(wrap_normal!=null) wrap_normal.pr(inner).immutable = true;
-		if(wrap_contacts!=null) wrap_contacts.pr(inner).immutable = true;
-	}
+    public var mutable:Bool;
+    flibmdel public inline function makemutable() {
+        mutable = true;
+        if(wrap_normal!=null) wrap_normal.pr(inner).immutable = false;
+        if(wrap_contacts!=null) wrap_contacts.pr(inner).immutable = false;
+    }
+    flibmdel public inline function makeimmutable() {
+        mutable = false;
+        if(wrap_normal!=null) wrap_normal.pr(inner).immutable = true;
+        if(wrap_contacts!=null) wrap_contacts.pr(inner).immutable = true;
+    }
 
-	//previously lambdas
-	private function contacts_adder(x:Contact) {
-		DEBUG(throw "Error: Cannot add new contacts, information required is far too specific and detailed :)";)
-		return false;
-	}
-	private function contacts_subber(x:Contact) {
-		var pre = null; var prei = null;
-		var cx_itei = innards.begin();
-		Iter(c, contacts, {
-			if(c==x.pr(inner)) {
-				//dontremove true, so we will deal with removing from contacts
-				contacts.erase(pre);
-				innards.erase(prei);
-				Free(PR(Contact),c);
-				break;
-			}
-			pre = cx_ite;
-			prei = cx_itei;
-			cx_itei = cx_itei.next;
-		});
-	}
+    //previously lambdas
+    private function contacts_adder(x:Contact) {
+        DEBUG(throw "Error: Cannot add new contacts, information required is far too specific and detailed :)";)
+        return false;
+    }
+    private function contacts_subber(x:Contact) {
+        var pre = null; var prei = null;
+        var cx_itei = innards.begin();
+        Iter(c, contacts, {
+            if(c==x.pr(inner)) {
+                //dontremove true, so we will deal with removing from contacts
+                contacts.erase(pre);
+                innards.erase(prei);
+                Free(PR(Contact),c);
+                break;
+            }
+            pre = cx_ite;
+            prei = cx_itei;
+            cx_itei = cx_itei.next;
+        });
+    }
 
-	public function setupcontacts() {
-		wrap_contacts = PR(ContactList).get(contacts,true);
-		wrap_contacts.pr(inner).immutable = !mutable;
-		wrap_contacts.pr(inner).adder = contacts_adder;
-		wrap_contacts.pr(inner).dontremove = true; //!!!!
-		wrap_contacts.pr(inner).subber = contacts_subber;
-	}
-	
-	///---------------------------------------------------------------------------------------------
-	
-	$(mixin local calc_relvel(vr,c) {
-		var ang = b2.angvel + b2.kinangvel;
-		vr`x = (b2.velx + b2.kinvelx - c.r2y*ang);
-		vr`y = (b2.vely + b2.kinvely + c.r2x*ang);
+    public function setupcontacts() {
+        wrap_contacts = PR(ContactList).get(contacts,true);
+        wrap_contacts.pr(inner).immutable = !mutable;
+        wrap_contacts.pr(inner).adder = contacts_adder;
+        wrap_contacts.pr(inner).dontremove = true; //!!!!
+        wrap_contacts.pr(inner).subber = contacts_subber;
+    }
+    
+    ///---------------------------------------------------------------------------------------------
+    
+    $(mixin local calc_relvel(vr,c) {
+        var ang = b2.angvel + b2.kinangvel;
+        vr`x = (b2.velx + b2.kinvelx - c.r2y*ang);
+        vr`y = (b2.vely + b2.kinvely + c.r2x*ang);
         ang = b1.angvel + b1.kinangvel;
         vr`x -= (b1.velx + b1.kinvelx - c.r1y*ang);
         vr`y -= (b1.vely + b1.kinvely + c.r1x*ang);
-	});
-	
-	///---------------------------------------------------------------------------------------------
+    });
+    
+    ///---------------------------------------------------------------------------------------------
 
-	//called on an ignored arbiter to make sure arbiters are still cleaned up
-	//and so we can still determine if no more active contacts exist for cleaning up
-	//
-	//when arbiter is accepted, this is handled in the preStep
-	//later clean up may remove the common logic if it is deemed appropriate
-	//and not a hinderance
-	flibmdel public inline function cleanupContacts() {
-		var fst = true;
-		var pre = null; var prei = null;
-		var cx_itei = innards.begin();
-		hc2 = false;
-		Iter(c, contacts, {
-			if(c.stamp+PR(Config).PERSIST<stamp) {
-				cx_ite = contacts.inlined_erase(pre);
-				cx_itei = innards.inlined_erase(prei);
-				Free(PR(Contact), c);
-				continue;
-			}
+    //called on an ignored arbiter to make sure arbiters are still cleaned up
+    //and so we can still determine if no more active contacts exist for cleaning up
+    //
+    //when arbiter is accepted, this is handled in the preStep
+    //later clean up may remove the common logic if it is deemed appropriate
+    //and not a hinderance
+    flibmdel public inline function cleanupContacts() {
+        var fst = true;
+        var pre = null; var prei = null;
+        var cx_itei = innards.begin();
+        hc2 = false;
+        Iter(c, contacts, {
+            if(c.stamp+PR(Config).PERSIST<stamp) {
+                cx_ite = contacts.inlined_erase(pre);
+                cx_itei = innards.inlined_erase(prei);
+                Free(PR(Contact), c);
+                continue;
+            }
 
-			var ci = c.inner;
-			var pact = c.active;
-			c.active = c.stamp==stamp;
-			//necessary to notify list of non structual changes when using accept mode for API.
-			if(pact!=c.active) contacts.modified = true;
+            var ci = c.inner;
+            var pact = c.active;
+            c.active = c.stamp==stamp;
+            //necessary to notify list of non structual changes when using accept mode for API.
+            if(pact!=c.active) contacts.modified = true;
 
-			if(c.active) {
-				if(fst) {
-					fst = false;
-					c1 = ci;
-					oc1 = c;
-				}else {
-					assert(!hc2,"arbiter has +2 contacts??");
-					hc2 = true;
-					c2 = ci;
-					oc2 = c;
-				}
-			}
+            if(c.active) {
+                if(fst) {
+                    fst = false;
+                    c1 = ci;
+                    oc1 = c;
+                }else {
+                    assert(!hc2,"arbiter has +2 contacts??");
+                    hc2 = true;
+                    c2 = ci;
+                    oc2 = c;
+                }
+            }
 
-			pre = cx_ite;
-			prei = cx_itei;
-			cx_itei = cx_itei.next;
-		});
+            pre = cx_ite;
+            prei = cx_itei;
+            cx_itei = cx_itei.next;
+        });
 
-		return !fst;
-	}
-	
+        return !fst;
+    }
+    
     public var pre_dt:Float;
-	flibmdel public inline function preStep(dt:Float) {
-		validate_props();
+    flibmdel public inline function preStep(dt:Float) {
+        validate_props();
         #if NAPE_TIMES Debug.AACNT++; #end
 
         if(pre_dt==-1.0) pre_dt = dt;
         var dtratio = dt/pre_dt;
         pre_dt = dt;
-		
-		var mass_sum = b1.smass + b2.smass;
-		hc2 = false;
-		var fst = true;
+        
+        var mass_sum = b1.smass + b2.smass;
+        hc2 = false;
+        var fst = true;
 
-		//remove old contacts, do per-contact calculations.
-		var pre = null; var prei = null;
-		var cx_itei = innards.begin();
-		Iter(c,contacts,{
-			if(c.stamp+PR(Config).PERSIST<stamp) {
-				cx_ite = contacts.inlined_erase(pre);
-				cx_itei = innards.inlined_erase(prei);
-				Free(PR(Contact),c);
-				continue;
-			}
+        //remove old contacts, do per-contact calculations.
+        var pre = null; var prei = null;
+        var cx_itei = innards.begin();
+        Iter(c,contacts,{
+            if(c.stamp+PR(Config).PERSIST<stamp) {
+                cx_ite = contacts.inlined_erase(pre);
+                cx_itei = innards.inlined_erase(prei);
+                Free(PR(Contact),c);
+                continue;
+            }
 
             #if NAPE_TIMES Debug.CCNT++; #end
-			
-			var ci = c.inner;
+            
+            var ci = c.inner;
 
-			var pact = c.active;
-			c.active = c.stamp==stamp;
-			//necessary to notify list of non strutual changes when using accept mode for API.
-			if(pact!=c.active) contacts.modified = true;
-		
-			if(c.active) {
+            var pact = c.active;
+            c.active = c.stamp==stamp;
+            //necessary to notify list of non strutual changes when using accept mode for API.
+            if(pact!=c.active) contacts.modified = true;
+        
+            if(c.active) {
                 #if NAPE_TIMES Debug.ACCNT++; #end
 
-				if(fst) {
-					fst = false;
-					c1 = ci;
-					oc1 = c;
-				} else {
-					hc2 = true;
-					c2 = ci;
-					oc2 = c;
-				}
-				
-				vec_sub(c.p,b2.pos,ci.r2);
-				vec_sub(c.p,b1.pos,ci.r1);
-				
-				var kt = mass_sum + b2.sinertia * PR(Math).sqr(vec_dot(ci.r2,n));
+                if(fst) {
+                    fst = false;
+                    c1 = ci;
+                    oc1 = c;
+                } else {
+                    hc2 = true;
+                    c2 = ci;
+                    oc2 = c;
+                }
+                
+                vec_sub(c.p,b2.pos,ci.r2);
+                vec_sub(c.p,b1.pos,ci.r1);
+                
+                var kt = mass_sum + b2.sinertia * PR(Math).sqr(vec_dot(ci.r2,n));
                 kt += b1.sinertia * PR(Math).sqr(vec_dot(ci.r1,n));
-				ci.tMass = if(kt<PR(Const).EPSILON) 0 else 1.0/kt;
-				
-				var nt = mass_sum + b2.sinertia * PR(Math).sqr(vec_cross(ci.r2,n));
-				nt += b1.sinertia * PR(Math).sqr(vec_cross(ci.r1,n));
-				ci.nMass = if(nt<PR(Const).EPSILON) 0 else 1.0/nt;
-				
-				vec_new(vr); calc_relvel(vr,ci);
-				var vdot = vec_dot(n, vr);
-				
-				var nb = PR(Config).MIN_BIAS_COEF;
-				var delta = 1 - PR(Config).VEL_BIAS_COEF * vdot*vdot; if(delta<0) delta = 0;
-				delta -= c.dist*PR(Config).BIAS_PEN_COEF;
-				if(delta<0) delta = 0;
-				if(delta>1) delta = 1;
-					
-				nb += PR(Config).DEL_BIAS_COEF * delta;
-				if(nb>1) nb = 1;
-					
-				if(c.sBias==-1) c.sBias = nb;
-				else            c.sBias = PR(Config).INT_BIAS_COEF * c.sBias + PR(Config).SUB_BIAS_COEF * nb;
-				ci.biasCoef = c.sBias;
+                ci.tMass = if(kt<PR(Const).EPSILON) 0 else 1.0/kt;
+                
+                var nt = mass_sum + b2.sinertia * PR(Math).sqr(vec_cross(ci.r2,n));
+                nt += b1.sinertia * PR(Math).sqr(vec_cross(ci.r1,n));
+                ci.nMass = if(nt<PR(Const).EPSILON) 0 else 1.0/nt;
+                
+                vec_new(vr); calc_relvel(vr,ci);
+                var vdot = vec_dot(n, vr);
+                
+                var nb = PR(Config).MIN_BIAS_COEF;
+                var delta = 1 - PR(Config).VEL_BIAS_COEF * vdot*vdot; if(delta<0) delta = 0;
+                delta -= c.dist*PR(Config).BIAS_PEN_COEF;
+                if(delta<0) delta = 0;
+                if(delta>1) delta = 1;
+                    
+                nb += PR(Config).DEL_BIAS_COEF * delta;
+                if(nb>1) nb = 1;
+                    
+                if(c.sBias==-1) c.sBias = nb;
+                else            c.sBias = PR(Config).INT_BIAS_COEF * c.sBias + PR(Config).SUB_BIAS_COEF * nb;
+                ci.biasCoef = c.sBias;
                 if(stat) {
                     ci.biasCoef *= 2;
                     if(ci.biasCoef>1) ci.biasCoef = 1;
                 }
-				
-				//c.elasticity = if(vdot > -30) 0.0 else restitution;//*Math.atan(0.5*(-vdot-25))*2/Math.PI;
+                
+                //c.elasticity = if(vdot > -30) 0.0 else restitution;//*Math.atan(0.5*(-vdot-25))*2/Math.PI;
                 c.elasticity = restitution;
-				ci.bounce = vdot*c.elasticity;
+                ci.bounce = vdot*c.elasticity;
 
-				vdot = vec_cross(n,vr);
-				if(vdot*vdot>PR(Config).STATIC_VELSQ) {
-					ci.friction = dyn_fric;
-				}else {
-					ci.friction = stat_fric;
-				}
+                vdot = vec_cross(n,vr);
+                if(vdot*vdot>PR(Config).STATIC_VELSQ) {
+                    ci.friction = dyn_fric;
+                }else {
+                    ci.friction = stat_fric;
+                }
 
                 ci.jnAcc *= dtratio;
                 ci.jtAcc *= dtratio;
-			}
-			
-			pre = cx_ite;
-			prei = cx_itei;
-			cx_itei = cx_itei.next;
-		});
+            }
+            
+            pre = cx_ite;
+            prei = cx_itei;
+            cx_itei = cx_itei.next;
+        });
 
         jrAcc *= dtratio;
-		
+        
         if(!fst) {
             rn1a = vec_cross(c1.r1, n); rt1a = vec_dot(c1.r1, n);
-			rn1b = vec_cross(c1.r2, n); rt1b = vec_dot(c1.r2, n);
+            rn1b = vec_cross(c1.r2, n); rt1b = vec_dot(c1.r2, n);
             k1x = b2.kinvelx - c1.r2y*b2.kinangvel - (b1.kinvelx - c1.r1y*b1.kinangvel);
             k1y = b2.kinvely + c1.r2x*b2.kinangvel - (b1.kinvely + c1.r1x*b1.kinangvel);
         }
-		if(hc2) {
-			rn2a = vec_cross(c2.r1, n); rt2a = vec_dot(c2.r1, n);
-			rn2b = vec_cross(c2.r2, n); rt2b = vec_dot(c2.r2, n);
+        if(hc2) {
+            rn2a = vec_cross(c2.r1, n); rt2a = vec_dot(c2.r1, n);
+            rn2b = vec_cross(c2.r2, n); rt2b = vec_dot(c2.r2, n);
             k2x = b2.kinvelx - c2.r2y*b2.kinangvel - (b1.kinvelx - c2.r1y*b1.kinangvel);
             k2y = b2.kinvely + c2.r2x*b2.kinangvel - (b1.kinvely + c2.r1x*b1.kinangvel);
-			
-			mat2_set(kMass, mass_sum + b1.sinertia*rn1a*rn1a + b2.sinertia*rn1b*rn1b,
-							mass_sum + b1.sinertia*rn1a*rn2a + b2.sinertia*rn1b*rn2b,
-							mass_sum + b1.sinertia*rn2a*rn2a + b2.sinertia*rn2b*rn2b
-			);
-			
-			if(kMassa*kMassa < PR(Config).ILL * mat2_det(kMass)) {
-				mat2_set(K,kMassa,kMassb,kMassc);
-				mat2_invert(kMass);
-			}else {
-				hc2 = false;
-				if(oc2.dist<oc1.dist)
-					swap(c1,c2);
-				oc2.active = false;
-				contacts.modified = true;
-			}
-		}
+            
+            mat2_set(kMass, mass_sum + b1.sinertia*rn1a*rn1a + b2.sinertia*rn1b*rn1b,
+                            mass_sum + b1.sinertia*rn1a*rn2a + b2.sinertia*rn1b*rn2b,
+                            mass_sum + b1.sinertia*rn2a*rn2a + b2.sinertia*rn2b*rn2b
+            );
+            
+            if(kMassa*kMassa < PR(Config).ILL * mat2_det(kMass)) {
+                mat2_set(K,kMassa,kMassb,kMassc);
+                mat2_invert(kMass);
+            }else {
+                hc2 = false;
+                if(oc2.dist<oc1.dist)
+                    swap(c1,c2);
+                oc2.active = false;
+                contacts.modified = true;
+            }
+        }
 
-		//surface velocity
-		vec_set(surface,b2.svel);
-		vec_addeq(surface,b1.svel);
-		vec_negate(surface);
-		
-		//rolling mass
-		rMass = b1.smass + b2.smass;
-		if(rMass!=0) rMass = 1/rMass;
+        //surface velocity
+        vec_set(surface,b2.svel);
+        vec_addeq(surface,b1.svel);
+        vec_negate(surface);
+        
+        //rolling mass
+        rMass = b1.smass + b2.smass;
+        if(rMass!=0) rMass = 1/rMass;
 
-		return !fst;
-	}
-	
+        return !fst;
+    }
+    
     flibmdel public inline function warmStart() {
-				appImp(c1,c1.jnAcc,c1.jtAcc);
-		if(hc2) appImp(c2,c2.jnAcc,c2.jtAcc);
-			
-		b2.angvel += jrAcc*b2.iinertia;
+                appImp(c1,c1.jnAcc,c1.jtAcc);
+        if(hc2) appImp(c2,c2.jnAcc,c2.jtAcc);
+            
+        b2.angvel += jrAcc*b2.iinertia;
         b1.angvel -= jrAcc*b1.iinertia;
 
-		oc1.pjnAcc = c1.jnAcc; oc1.pjtAcc = c1.jtAcc;
-		if(hc2) {
-			oc2.pjnAcc = c2.jnAcc; oc2.pjtAcc = c2.jtAcc;
-		}
-		pjrAcc = jrAcc;
+        oc1.pjnAcc = c1.jnAcc; oc1.pjtAcc = c1.jtAcc;
+        if(hc2) {
+            oc2.pjnAcc = c2.jnAcc; oc2.pjtAcc = c2.jtAcc;
+        }
+        pjrAcc = jrAcc;
     }
 
-	///---------------------------------------------------------------------------------------------
-	
-	$(mixin local appImp(c,jn,jt) {
-		var jx = nx*jn - ny*jt;
-		var jy = ny*jn + nx*jt;
+    ///---------------------------------------------------------------------------------------------
+    
+    $(mixin local appImp(c,jn,jt) {
+        var jx = nx*jn - ny*jt;
+        var jy = ny*jn + nx*jt;
 
         vec_subeq(b1.vel, j, b1.imass);
         b1.angvel -= b1.iinertia * vec_cross(c.r1,j);
-		vec_addeq(b2.vel, j, b2.imass);
-		b2.angvel += b2.iinertia * vec_cross(c.r2,j);
-	});
+        vec_addeq(b2.vel, j, b2.imass);
+        b2.angvel += b2.iinertia * vec_cross(c.r2,j);
+    });
 
     ///---------------------------------------------------------------------------------------------
-	
+    
     ///very verbose in an attempt to improve performance.
-	flibmdel public inline function applyImpulseVel(bouncy:Float) {
-		var jx:Float; var jy:Float;
-		var j:Float; var jMax:Float; var jOld:Float; var cjAcc:Float;
+    flibmdel public inline function applyImpulseVel(bouncy:Float) {
+        var jx:Float; var jy:Float;
+        var j:Float; var jMax:Float; var jOld:Float; var cjAcc:Float;
 
-		$(mixin friction(N)
-			v`N`x = k`N`x + b2.velx - c`N.r2y*b2.angvel - (b1.velx - c`N.r1y*b1.angvel);
-			v`N`y = k`N`y + b2.vely + c`N.r2x*b2.angvel - (b1.vely + c`N.r1x*b1.angvel);
+        $(mixin friction(N)
+            v`N`x = k`N`x + b2.velx - c`N.r2y*b2.angvel - (b1.velx - c`N.r1y*b1.angvel);
+            v`N`y = k`N`y + b2.vely + c`N.r2x*b2.angvel - (b1.vely + c`N.r1x*b1.angvel);
 
-			j = (vec_cross(n,v`N) + surfacex)*c`N.tMass;
-			jMax = c`N.friction * c`N.jnAcc; jOld = c`N.jtAcc;
-			cjAcc = jOld - j; if(cjAcc>jMax) cjAcc = jMax else if(cjAcc<-jMax) cjAcc = -jMax;
-			j = cjAcc - jOld; c`N.jtAcc = cjAcc;
-			jx = -ny*j; jy = nx*j;
+            j = (vec_cross(n,v`N) + surfacex)*c`N.tMass;
+            jMax = c`N.friction * c`N.jnAcc; jOld = c`N.jtAcc;
+            cjAcc = jOld - j; if(cjAcc>jMax) cjAcc = jMax else if(cjAcc<-jMax) cjAcc = -jMax;
+            j = cjAcc - jOld; c`N.jtAcc = cjAcc;
+            jx = -ny*j; jy = nx*j;
 
-			b2.velx += jx*b2.imass; b2.vely += jy*b2.imass;
-			b1.velx -= jx*b1.imass; b1.vely -= jy*b1.imass;
-			b2.angvel += rt`N`b*j*b2.iinertia;
-			b1.angvel -= rt`N`a*j*b1.iinertia;
-		);
+            b2.velx += jx*b2.imass; b2.vely += jy*b2.imass;
+            b1.velx -= jx*b1.imass; b1.vely -= jy*b1.imass;
+            b2.angvel += rt`N`b*j*b2.iinertia;
+            b1.angvel -= rt`N`a*j*b1.iinertia;
+        );
 
-		var v1x = k1x + b2.velx - c1.r2y*b2.angvel - (b1.velx - c1.r1y*b1.angvel);
-		var v1y = k1y + b2.vely + c1.r2x*b2.angvel - (b1.vely + c1.r1x*b1.angvel);
+        var v1x = k1x + b2.velx - c1.r2y*b2.angvel - (b1.velx - c1.r1y*b1.angvel);
+        var v1y = k1y + b2.vely + c1.r2x*b2.angvel - (b1.vely + c1.r1x*b1.angvel);
 
-		if(hc2) {
-			var v2x = k2x + b2.velx - c2.r2y*b2.angvel - (b1.velx - c2.r1y*b1.angvel);
-			var v2y = k2y + b2.vely + c2.r2x*b2.angvel - (b1.vely + c2.r1x*b1.angvel);
+        if(hc2) {
+            var v2x = k2x + b2.velx - c2.r2y*b2.angvel - (b1.velx - c2.r1y*b1.angvel);
+            var v2y = k2y + b2.vely + c2.r2x*b2.angvel - (b1.vely + c2.r1x*b1.angvel);
 
-			vec_new(a, c1.jnAcc, c2.jnAcc);
+            vec_new(a, c1.jnAcc, c2.jnAcc);
 
             var jnx = vec_dot(v1,n)+surfacey + (bouncy*c1.bounce) - (Ka*ax + Kb*ay);
             var jny = vec_dot(v2,n)+surfacey + (bouncy*c2.bounce) - (Kb*ax + Kc*ay);
@@ -1097,126 +1097,126 @@ class PR(ColArbiter) extends PR(Arbiter) {
             j = jnx+jny;
             jx = nx*j; jy = ny*j;
 
-			b2.velx += jx*b2.imass; b2.vely += jy*b2.imass;
-			b1.velx -= jx*b1.imass; b1.vely -= jy*b1.imass;
-			b2.angvel += (rn1b*jnx + rn2b*jny)*b2.iinertia;
-			b1.angvel -= (rn1a*jnx + rn2a*jny)*b1.iinertia;
+            b2.velx += jx*b2.imass; b2.vely += jy*b2.imass;
+            b1.velx -= jx*b1.imass; b1.vely -= jy*b1.imass;
+            b2.angvel += (rn1b*jnx + rn2b*jny)*b2.iinertia;
+            b1.angvel -= (rn1a*jnx + rn2a*jny)*b1.iinertia;
 
-			friction(1)
-            friction(2)	
-		}else {
-			j = (bouncy*c1.bounce + vec_dot(n,v1) + surfacey)*c1.nMass;
-			jOld = c1.jnAcc;
-			cjAcc = jOld - j; if(cjAcc<0.0) cjAcc = 0.0;
-			j = cjAcc - jOld; c1.jnAcc = cjAcc;
+            friction(1)
+            friction(2)    
+        }else {
+            j = (bouncy*c1.bounce + vec_dot(n,v1) + surfacey)*c1.nMass;
+            jOld = c1.jnAcc;
+            cjAcc = jOld - j; if(cjAcc<0.0) cjAcc = 0.0;
+            j = cjAcc - jOld; c1.jnAcc = cjAcc;
 
-			jx = nx*j; jy = ny*j;
+            jx = nx*j; jy = ny*j;
 
-			b2.velx += jx*b2.imass; b2.vely += jy*b2.imass;
-			b1.velx -= jx*b1.imass; b1.vely -= jy*b1.imass;
-			b2.angvel += rn1b*j*b2.iinertia;
-			b1.angvel -= rn1a*j*b1.iinertia;
+            b2.velx += jx*b2.imass; b2.vely += jy*b2.imass;
+            b1.velx -= jx*b1.imass; b1.vely -= jy*b1.imass;
+            b2.angvel += rn1b*j*b2.iinertia;
+            b1.angvel -= rn1a*j*b1.iinertia;
 
-			friction(1)
+            friction(1)
 
-			//atleast one object is a circle
-			if(radius!=0.0) {
-				var dw = b2.angvel - b1.angvel;
-				j = dw*rMass;
-				jMax = rfric*c1.jnAcc; jOld = jrAcc;
-				jrAcc -= j; if(jrAcc>jMax) jrAcc = jMax else if(jrAcc<-jMax) jrAcc = -jMax;
-				j = jrAcc - jOld;
+            //atleast one object is a circle
+            if(radius!=0.0) {
+                var dw = b2.angvel - b1.angvel;
+                j = dw*rMass;
+                jMax = rfric*c1.jnAcc; jOld = jrAcc;
+                jrAcc -= j; if(jrAcc>jMax) jrAcc = jMax else if(jrAcc<-jMax) jrAcc = -jMax;
+                j = jrAcc - jOld;
 
-				b2.angvel += j*b2.iinertia;
-				b1.angvel -= j*b1.iinertia;
-			}
-		}
+                b2.angvel += j*b2.iinertia;
+                b1.angvel -= j*b1.iinertia;
+            }
+        }
 
-	}
+    }
 
     ///---------------------------------------------------------------------------------------------
-	
+    
     flibmdel public inline function applyImpulsePos() {
-		if(ptype==PR(ColArbiter).CIRCLE) {
-			var c = c1;
-			
-			vec_new(d);
-			vec_new(r2); vec_rotate(c.lr2, b2.axis, r2);
-			vec_addeq(r2,b2.pos);
+        if(ptype==PR(ColArbiter).CIRCLE) {
+            var c = c1;
+            
+            vec_new(d);
+            vec_new(r2); vec_rotate(c.lr2, b2.axis, r2);
+            vec_addeq(r2,b2.pos);
 
-			vec_new(r1); vec_rotate(c.lr1, b1.axis, r1);
-			vec_addeq(r1,b1.pos);
-			
-			vec_new(d); vec_sub(r2,r1,d);
-				
-			var dl = vec_lsq(d);
-			var r = radius - PR(Config).OVERLAP;
-			if(dl < r*r) {
-				if(dl<PR(Const).EPSILON*PR(Const).EPSILON) {
-					if(b1.smass!=0.0) b1.posx += PR(Const).EPSILON*10;
-					else              b2.posx += PR(Const).EPSILON*10;
-				}else {
-					dl = PR(Math).sqrt(dl);
-					vec_diveq(d,dl);
-					
-					vec_new(p,
-						0.5*(r1x+r2x),
-						0.5*(r1y+r2y)
-					);
-					
-					var pen = dl-r;
-					
-					vec_sub(p,b1.pos,r1);
-					vec_sub(p,b2.pos,r2);
-					
-					var rn1 = vec_cross(r1,d);
-	                var rn2 = vec_cross(r2,d);
-	
-	                var K = b2.smass + rn2*rn2*b2.sinertia + b1.smass + rn1*rn1*b1.sinertia;
-	                if(K!=0) {
-	                    var jn = -c1.biasCoef*pen/K;
-	                    vec_new(J); vec_mul(d, jn, J);
-	
-	                    vec_subeq(b1.pos, J, b1.imass);
-	                    b1.delta_rot(-rn1*b1.iinertia*jn);
-	                    vec_addeq(b2.pos, J, b2.imass);
-	                    b2.delta_rot(rn2*b2.iinertia*jn);
-	                }
-				}
-			}
-		}else {
-			vec_new(gnorm);
-			var gproj;
-			vec_new(clip1); vec_new(clip2,0,0);
-			
-			if(ptype==PR(ColArbiter).FACE1) {
-				vec_rotate(lnorm, b1.axis, gnorm);
-				gproj = lproj + vec_dot(gnorm, b1.pos);
-				vec_rotate(c1.lr1, b2.axis, clip1);
-				vec_addeq(clip1,b2.pos);
-				if(hc2) {
-					vec_rotate(c2.lr1, b2.axis, clip2);
-					vec_addeq(clip2,b2.pos);
-				}
-			}else {
-				vec_rotate(lnorm, b2.axis, gnorm);
-				gproj = lproj + vec_dot(gnorm, b2.pos);
-				vec_rotate(c1.lr1, b1.axis, clip1);
-				vec_addeq(clip1,b1.pos);
-				if(hc2) {
-					vec_rotate(c2.lr1, b1.axis, clip2);
-					vec_addeq(clip2,b1.pos);
-				}
-			}
-			
-			var err1 = vec_dot(clip1,gnorm) - gproj - radius;
-			err1 += PR(Config).OVERLAP;
+            vec_new(r1); vec_rotate(c.lr1, b1.axis, r1);
+            vec_addeq(r1,b1.pos);
+            
+            vec_new(d); vec_sub(r2,r1,d);
+                
+            var dl = vec_lsq(d);
+            var r = radius - PR(Config).OVERLAP;
+            if(dl < r*r) {
+                if(dl<PR(Const).EPSILON*PR(Const).EPSILON) {
+                    if(b1.smass!=0.0) b1.posx += PR(Const).EPSILON*10;
+                    else              b2.posx += PR(Const).EPSILON*10;
+                }else {
+                    dl = PR(Math).sqrt(dl);
+                    vec_diveq(d,dl);
+                    
+                    vec_new(p,
+                        0.5*(r1x+r2x),
+                        0.5*(r1y+r2y)
+                    );
+                    
+                    var pen = dl-r;
+                    
+                    vec_sub(p,b1.pos,r1);
+                    vec_sub(p,b2.pos,r2);
+                    
+                    var rn1 = vec_cross(r1,d);
+                    var rn2 = vec_cross(r2,d);
+    
+                    var K = b2.smass + rn2*rn2*b2.sinertia + b1.smass + rn1*rn1*b1.sinertia;
+                    if(K!=0) {
+                        var jn = -c1.biasCoef*pen/K;
+                        vec_new(J); vec_mul(d, jn, J);
+    
+                        vec_subeq(b1.pos, J, b1.imass);
+                        b1.delta_rot(-rn1*b1.iinertia*jn);
+                        vec_addeq(b2.pos, J, b2.imass);
+                        b2.delta_rot(rn2*b2.iinertia*jn);
+                    }
+                }
+            }
+        }else {
+            vec_new(gnorm);
+            var gproj;
+            vec_new(clip1); vec_new(clip2,0,0);
+            
+            if(ptype==PR(ColArbiter).FACE1) {
+                vec_rotate(lnorm, b1.axis, gnorm);
+                gproj = lproj + vec_dot(gnorm, b1.pos);
+                vec_rotate(c1.lr1, b2.axis, clip1);
+                vec_addeq(clip1,b2.pos);
+                if(hc2) {
+                    vec_rotate(c2.lr1, b2.axis, clip2);
+                    vec_addeq(clip2,b2.pos);
+                }
+            }else {
+                vec_rotate(lnorm, b2.axis, gnorm);
+                gproj = lproj + vec_dot(gnorm, b2.pos);
+                vec_rotate(c1.lr1, b1.axis, clip1);
+                vec_addeq(clip1,b1.pos);
+                if(hc2) {
+                    vec_rotate(c2.lr1, b1.axis, clip2);
+                    vec_addeq(clip2,b1.pos);
+                }
+            }
+            
+            var err1 = vec_dot(clip1,gnorm) - gproj - radius;
+            err1 += PR(Config).OVERLAP;
 
-			var err2 = 0.0;
-			if(hc2) {
-				err2 = vec_dot(clip2,gnorm) - gproj - radius;
+            var err2 = 0.0;
+            if(hc2) {
+                err2 = vec_dot(clip2,gnorm) - gproj - radius;
                 err2 += PR(Config).OVERLAP;
-			}
+            }
 
             if(err1<0 || err2<0) {
                 if(rev) vec_negate(gnorm);
@@ -1281,6 +1281,6 @@ class PR(ColArbiter) extends PR(Arbiter) {
                     }
                 }
             }
-		}
-	}
+        }
+    }
 }

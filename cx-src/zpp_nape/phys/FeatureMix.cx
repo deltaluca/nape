@@ -2,15 +2,15 @@ package zpp_nape.phys;
 $(import);
 
 $(mixin global FeatureMix(T,t)
-	
-	public var pr(inner):PR(T);
-	
-	//----------------------------------------------------------------------------------------------
-	
+    
+    public var pr(inner):PR(T);
+    
+    //----------------------------------------------------------------------------------------------
+    
     property(shapes,ShapeList,{
-		if(pr(inner).wrap_shapes==null) pr(inner).wrap_shapes = PR(ShapeList).get(pr(inner).shapes, true);
-		pr(inner).wrap_shapes;
-	})
+        if(pr(inner).wrap_shapes==null) pr(inner).wrap_shapes = PR(ShapeList).get(pr(inner).shapes, true);
+        pr(inner).wrap_shapes;
+    })
 
 );
 
@@ -18,34 +18,34 @@ $(mixin global FeatureMix(T,t)
 
 $(mixin global PRFeatureMix(T,t)
 
-	MixPool(PR(T))
-	public var outer:T;
-	public function wrapper() {
-		if(outer==null) {
-			outer = new T();
-			Free(PR(T),outer.pr(inner));
-			outer.pr(inner) = this;
-		}
-		return outer;
-	}
-	flibmdel public inline function free() {
-		outer = null;
-	}
-	flibmdel public inline function alloc() {}
-	
-	//----------------------------------------------------------------------------------------------
+    MixPool(PR(T))
+    public var outer:T;
+    public function wrapper() {
+        if(outer==null) {
+            outer = new T();
+            Free(PR(T),outer.pr(inner));
+            outer.pr(inner) = this;
+        }
+        return outer;
+    }
+    flibmdel public inline function free() {
+        outer = null;
+    }
+    flibmdel public inline function alloc() {}
+    
+    //----------------------------------------------------------------------------------------------
 
-	public var shapes:List(PR(Shape)); public var wrap_shapes:ShapeList;
-	
-	//----------------------------------------------------------------------------------------------
-	
-	flibmdel public inline function feature_cons() {
-		shapes = new List(PR(Shape))();
-	}
-	
-	//----------------------------------------------------------------------------------------------
-	
-	flibmdel public inline function addShape(shape:PR(Shape)) shapes.add(shape)
-	flibmdel public inline function remShape(shape:PR(Shape)) shapes.remove(shape)
+    public var shapes:List(PR(Shape)); public var wrap_shapes:ShapeList;
+    
+    //----------------------------------------------------------------------------------------------
+    
+    flibmdel public inline function feature_cons() {
+        shapes = new List(PR(Shape))();
+    }
+    
+    //----------------------------------------------------------------------------------------------
+    
+    flibmdel public inline function addShape(shape:PR(Shape)) shapes.add(shape)
+    flibmdel public inline function remShape(shape:PR(Shape)) shapes.remove(shape)
 
 );

@@ -2,74 +2,74 @@ package nape.geom;
 $(import);
 
 class Ray {
-	public var pr(inner):PR(Ray);
-	
-	public var userData:Dynamic;
-	
-	//----------------------------------------------------------------------------
-	
+    public var pr(inner):PR(Ray);
+    
+    public var userData:Dynamic;
+    
+    //----------------------------------------------------------------------------
+    
     property(origin,Vec2,pr(inner).origin,{
-		Disposed(origin,Vec2);
+        Disposed(origin,Vec2);
         DEBUG(if(origin==null) throw "Error: Ray::origin cannot be null";)
-		pr(inner).origin.set(origin);
+        pr(inner).origin.set(origin);
     })
 
     property(direction,Vec2,pr(inner).direction,{
-		Disposed(direction,Vec2);
+        Disposed(direction,Vec2);
         DEBUG(
-			if(direction==null) throw "Error: Ray::direction cannot be null";
-			if(direction.lsq()<PR(Const).EPSILON) throw "Error: Ray::direction cannot be degenerate";
-		)
-		pr(inner).direction.set(direction);
-		pr(inner).invalidate_dir();
+            if(direction==null) throw "Error: Ray::direction cannot be null";
+            if(direction.lsq()<PR(Const).EPSILON) throw "Error: Ray::direction cannot be degenerate";
+        )
+        pr(inner).direction.set(direction);
+        pr(inner).invalidate_dir();
     })
-	
+    
     property(maxDistance,Float,pr(inner).maxdist,{
         DEBUG(if(isNaN(maxDistance)) throw "Error: maxDistance cannot be NaN";)
-		pr(inner).maxdist = maxDistance;
+        pr(inner).maxdist = maxDistance;
     })
-	
-	//----------------------------------------------------------------------------
+    
+    //----------------------------------------------------------------------------
 
     public function aabb() return pr(inner).rayAABB().wrapper()
 
     //----------------------------------------------------------------------------
-	
-	public function copy() {
-		var ret = new Ray(origin,direction);
-		ret.maxDistance = maxDistance;
-		return ret;
-	}
-	
-	public function at(distance:Float,?weak:Bool=false) {
-		pr(inner).validate_dir();
-		return Vec2.get(origin.x+distance*pr(inner).dirx,origin.y+distance*pr(inner).diry,weak);
-	}
-	
-	//----------------------------------------------------------------------------
-	
-	flibopts(0)
-	public function new(origin:Vec2, direction:Vec2) {
-		Disposed(origin,Vec2);
-		Disposed(direction,Vec2);
-		pr(inner) = new PR(Ray)();
-		this.origin = origin;
-		this.direction = direction;
-		pr(inner).maxdist = PR(Const).POSINF();
-	}
-	
-	public static function fromSegment(start:Vec2,end:Vec2) {
-		Disposed(start,Vec2);
-		Disposed(end,Vec2);
-		DEBUG(
-			if(start==null) throw "Error: Ray::fromSegment::start is null";
-			if(end  ==null) throw "Error: Ray::fromSegment::end is null";
-		)
-		var dir = end.sub(start,true);
-		var ret = new Ray(start,dir);
-		ret.maxDistance = Math.sqrt(vec_dsq(start.,end.));
-		WEAK(start);
-		WEAK(end);
-		return ret;
-	}
+    
+    public function copy() {
+        var ret = new Ray(origin,direction);
+        ret.maxDistance = maxDistance;
+        return ret;
+    }
+    
+    public function at(distance:Float,?weak:Bool=false) {
+        pr(inner).validate_dir();
+        return Vec2.get(origin.x+distance*pr(inner).dirx,origin.y+distance*pr(inner).diry,weak);
+    }
+    
+    //----------------------------------------------------------------------------
+    
+    flibopts(0)
+    public function new(origin:Vec2, direction:Vec2) {
+        Disposed(origin,Vec2);
+        Disposed(direction,Vec2);
+        pr(inner) = new PR(Ray)();
+        this.origin = origin;
+        this.direction = direction;
+        pr(inner).maxdist = PR(Const).POSINF();
+    }
+    
+    public static function fromSegment(start:Vec2,end:Vec2) {
+        Disposed(start,Vec2);
+        Disposed(end,Vec2);
+        DEBUG(
+            if(start==null) throw "Error: Ray::fromSegment::start is null";
+            if(end  ==null) throw "Error: Ray::fromSegment::end is null";
+        )
+        var dir = end.sub(start,true);
+        var ret = new Ray(start,dir);
+        ret.maxDistance = Math.sqrt(vec_dsq(start.,end.));
+        WEAK(start);
+        WEAK(end);
+        return ret;
+    }
 }

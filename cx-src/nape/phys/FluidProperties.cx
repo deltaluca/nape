@@ -2,65 +2,65 @@ package nape.phys;
 $(import);
 
 class FluidProperties {
-	
-	FeatureMix(FluidProperties,fluidProperties)
-	
-	public function new(?density:Float=1,?viscosity:Float=1) {
-		pr(inner) = Get(PR(FluidProperties));
-		pr(inner).outer = this;
-		this.density = density;
-		this.viscosity = viscosity;
-	}
-	
-	keep public function copy() {
-		var ret = new FluidProperties(density,viscosity);
-		ret.userData = userData;
-		return ret;
-	}
-	
-	//----------------------------------------------------------------------------------------------
-	
-	public var userData:Dynamic;
-	
-	//----------------------------------------------------------------------------------------------
-	
-	$(mixin prop(n)
+    
+    FeatureMix(FluidProperties,fluidProperties)
+    
+    public function new(?density:Float=1,?viscosity:Float=1) {
+        pr(inner) = Get(PR(FluidProperties));
+        pr(inner).outer = this;
+        this.density = density;
+        this.viscosity = viscosity;
+    }
+    
+    keep public function copy() {
+        var ret = new FluidProperties(density,viscosity);
+        ret.userData = userData;
+        return ret;
+    }
+    
+    //----------------------------------------------------------------------------------------------
+    
+    public var userData:Dynamic;
+    
+    //----------------------------------------------------------------------------------------------
+    
+    $(mixin prop(n)
         property(n,Float,pr(inner).n * ($str(n)=="density" ? 1000 : 1),{
-			if(n!=this.n) {
-				DEBUG(
-					if(isNaN(n)) throw "Error: FluidProperties::"+$str(n)+" cannot be NaN";
-					if($str(n)!="density" && n<0) throw "Error: FluidProperties::"+$str(n)+" ("+n+") must be >= 0";
-				)
+            if(n!=this.n) {
+                DEBUG(
+                    if(isNaN(n)) throw "Error: FluidProperties::"+$str(n)+" cannot be NaN";
+                    if($str(n)!="density" && n<0) throw "Error: FluidProperties::"+$str(n)+" ("+n+") must be >= 0";
+                )
                 pr(inner).n = n / ($str(n)=="density" ? 1000 : 1);
-				pr(inner).invalidate();
-			}
-		})
-	);
-	prop(density)
-	prop(viscosity)
-	
-	//----------------------------------------------------------------------------------------------
+                pr(inner).invalidate();
+            }
+        })
+    );
+    prop(density)
+    prop(viscosity)
+    
+    //----------------------------------------------------------------------------------------------
 
-	property(gravity,Vec2,pr(inner).wrap_gravity,{
-		if(gravity==null) {
-			if(pr(inner).wrap_gravity!=null) {
-				pr(inner).wrap_gravity.pr(inner).inuse = false;
-				pr(inner).wrap_gravity.dispose();
-				pr(inner).wrap_gravity = null;
-			}
-		}else {
-			Disposed(gravity,Vec2);
-			if(pr(inner).wrap_gravity==null) pr(inner).getgravity();
-			this.gravity.set(gravity);
-		}
-	})
+    property(gravity,Vec2,pr(inner).wrap_gravity,{
+        if(gravity==null) {
+            if(pr(inner).wrap_gravity!=null) {
+                pr(inner).wrap_gravity.pr(inner).inuse = false;
+                pr(inner).wrap_gravity.dispose();
+                pr(inner).wrap_gravity = null;
+            }
+        }else {
+            Disposed(gravity,Vec2);
+            if(pr(inner).wrap_gravity==null) pr(inner).getgravity();
+            this.gravity.set(gravity);
+        }
+    })
 
-	//----------------------------------------------------------------------------------------------
-	
-	@:$keep public function toString() {
+    //----------------------------------------------------------------------------------------------
+    
+    @:$keep public function toString() {
         return "{ density: "+density
-			   +" viscosity: "+viscosity
+               +" viscosity: "+viscosity
                +" }";
     }
-	
+    
 }

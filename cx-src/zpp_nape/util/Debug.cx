@@ -1,23 +1,23 @@
 package zpp_nape.util;
 $(import);
 
-	$(mixin mat_xform_hom(Anull,A,u,v) if(Anull) vec_set(v,u) else mat_transform_hom(A.,u,v));
-	$(mixin mat_xform    (Anull,A,u,v) if(Anull) vec_set(v,u) else mat_transform    (A.,u,v));
-	$(mixin mat_xform_hom(Anull,A,u) if(!Anull) mat_transform_hom(A.,u));
-	$(mixin mat_xform    (Anull,A,u) if(!Anull) mat_transform    (A.,u));
+    $(mixin mat_xform_hom(Anull,A,u,v) if(Anull) vec_set(v,u) else mat_transform_hom(A.,u,v));
+    $(mixin mat_xform    (Anull,A,u,v) if(Anull) vec_set(v,u) else mat_transform    (A.,u,v));
+    $(mixin mat_xform_hom(Anull,A,u) if(!Anull) mat_transform_hom(A.,u));
+    $(mixin mat_xform    (Anull,A,u) if(!Anull) mat_transform    (A.,u));
 
 #if (flash9||nme)
 
 class PR(Debug) {
     public static var internal = false;
 
-	public var outer:Debug;
+    public var outer:Debug;
 
-	public var isbmp:Bool;
-	#if flash10
-	public var d_bmp  :PR(BitmapDebug);
-	#end
-	public var d_shape:PR(ShapeDebug);
+    public var isbmp:Bool;
+    #if flash10
+    public var d_bmp  :PR(BitmapDebug);
+    #end
+    public var d_shape:PR(ShapeDebug);
 
     ///---------------------------------------------------------------------------------------------
 
@@ -29,81 +29,81 @@ class PR(Debug) {
 
     ///---------------------------------------------------------------------------------------------
 
-	public var xform:PR(Mat23);
-	public var xnull:Bool;
-	public var xdet:Float;
+    public var xform:PR(Mat23);
+    public var xnull:Bool;
+    public var xdet:Float;
 
     ///---------------------------------------------------------------------------------------------
 
     public var width:Int;
     public var height:Int;
-	public var viewport:PR(AABB);
-	public var iport:PR(AABB); //viewport with inverse transformation (for space queries)
+    public var viewport:PR(AABB);
+    public var iport:PR(AABB); //viewport with inverse transformation (for space queries)
 
-	public function new(width:Int,height:Int) {
-		xnull = true;
-		xdet = 1.0;
+    public function new(width:Int,height:Int) {
+        xnull = true;
+        xdet = 1.0;
 
-		this.width = width;
-		this.height = height;
-		viewport = PR(AABB).get(0,0,width,height);
-		iport = PR(AABB).get(0,0,width,height);
-		tmpab = new PR(AABB)();
-	}
+        this.width = width;
+        this.height = height;
+        viewport = PR(AABB).get(0,0,width,height);
+        iport = PR(AABB).get(0,0,width,height);
+        tmpab = new PR(AABB)();
+    }
 
-	//previously a lambda
-	private function xform_invalidate() {
-		xdet = PR(Math).sqrt(abs(xform.outer.determinant));
-		xnull = xform.a == 1.0 && xform.b == 0.0 && xform.c == 0.0 && xform.d == 1.0
-				&& xform.tx == 0.0 && xform.ty == 0.0;
+    //previously a lambda
+    private function xform_invalidate() {
+        xdet = PR(Math).sqrt(abs(xform.outer.determinant));
+        xnull = xform.a == 1.0 && xform.b == 0.0 && xform.c == 0.0 && xform.d == 1.0
+                && xform.tx == 0.0 && xform.ty == 0.0;
 
-		var qmat = xform.outer.inverse();
-		var q = Vec2.get();
-		var v = qmat.transform(q);
-		vec_set(iport.min,v.); vec_set(iport.max,iport.min);
-		v.dispose();
+        var qmat = xform.outer.inverse();
+        var q = Vec2.get();
+        var v = qmat.transform(q);
+        vec_set(iport.min,v.); vec_set(iport.max,iport.min);
+        v.dispose();
 
-		q.x = width;
-		v = qmat.transform(q);
-		iport.set_expand_point(v.x,v.y);
-		v.dispose();
+        q.x = width;
+        v = qmat.transform(q);
+        iport.set_expand_point(v.x,v.y);
+        v.dispose();
 
-		q.y = height;
-		v = qmat.transform(q);
-		iport.set_expand_point(v.x,v.y);
-		v.dispose();
+        q.y = height;
+        v = qmat.transform(q);
+        iport.set_expand_point(v.x,v.y);
+        v.dispose();
 
-		q.x = 0;
-		v = qmat.transform(q);
-		iport.set_expand_point(v.x,v.y);
-		v.dispose();
-		q.dispose();
-	}
+        q.x = 0;
+        v = qmat.transform(q);
+        iport.set_expand_point(v.x,v.y);
+        v.dispose();
+        q.dispose();
+    }
 
-	public function setform() {
-		//don't bother not using wrapper since it'll exist ALWAYS.
-		xform = new Mat23().pr(inner);
-		xform.__invalidate = xform_invalidate;
-	}
+    public function setform() {
+        //don't bother not using wrapper since it'll exist ALWAYS.
+        xform = new Mat23().pr(inner);
+        xform.__invalidate = xform_invalidate;
+    }
 
-	public var tmpab:PR(AABB);
-	public function cull(aabb:PR(AABB)) {
-		if(xnull) return aabb.intersect(viewport);
-		else {
-			//compute approximated AABB of feature after transformations
-			vec_new(q);
-			vec_new(v); vec_set(v,aabb.min);
-			mat_xform_hom(false,xform,v,tmpab.min); vec_set(tmpab.max,tmpab.min);
-			vx = aabb.maxx;
-			mat_xform_hom(false,xform,v,q); tmpab.set_expand_point(qx,qy);
-			vy = aabb.maxy;
-			mat_xform_hom(false,xform,v,q); tmpab.set_expand_point(qx,qy);
-			vx = aabb.minx;
-			mat_xform_hom(false,xform,v,q); tmpab.set_expand_point(qx,qy);
+    public var tmpab:PR(AABB);
+    public function cull(aabb:PR(AABB)) {
+        if(xnull) return aabb.intersect(viewport);
+        else {
+            //compute approximated AABB of feature after transformations
+            vec_new(q);
+            vec_new(v); vec_set(v,aabb.min);
+            mat_xform_hom(false,xform,v,tmpab.min); vec_set(tmpab.max,tmpab.min);
+            vx = aabb.maxx;
+            mat_xform_hom(false,xform,v,q); tmpab.set_expand_point(qx,qy);
+            vy = aabb.maxy;
+            mat_xform_hom(false,xform,v,q); tmpab.set_expand_point(qx,qy);
+            vx = aabb.minx;
+            mat_xform_hom(false,xform,v,q); tmpab.set_expand_point(qx,qy);
 
-			return tmpab.intersect(viewport);
-		}
-	}
+            return tmpab.intersect(viewport);
+        }
+    }
 
     ///---------------------------------------------------------------------------------------------
 
@@ -125,12 +125,12 @@ class PR(ShapeDebug) extends PR(Debug) {
     public var graphics:flash.display.Graphics;
 
     public function new(width:Int,height:Int) {
-		super(width,height);
+        super(width,height);
         shape = new flash.display.Shape();
         graphics = shape.graphics;
 
-		isbmp = false;
-		d_shape = this;
+        isbmp = false;
+        d_shape = this;
     }
 
     public function setbg(bgColor:Int) {
@@ -182,7 +182,7 @@ class PR(BitmapDebug) extends PR(Debug) {
     }
 
     public function new(w:Int,h:Int, bgcol:Int, transparent:Bool) {
-		super(w,h);
+        super(w,h);
         this.transp = transparent;
 
         bytes = new flash.utils.ByteArray();
@@ -204,8 +204,8 @@ class PR(BitmapDebug) extends PR(Debug) {
 
         bitmap = new flash.display.Bitmap(bit,flash.display.PixelSnapping.NEVER, false);
 
-		isbmp = true;
-		d_bmp = this;
+        isbmp = true;
+        d_bmp = this;
     }
 
     ///---------------------------------------------------------------------------------------------
@@ -216,9 +216,9 @@ class PR(BitmapDebug) extends PR(Debug) {
         bytes.writeBytes(bgbytes);
     }
 
-	public function prepare() {
-		flash.Memory.select(bytes);
-	}
+    public function prepare() {
+        flash.Memory.select(bytes);
+    }
 
     public function flush() {
         bit.lock();
@@ -229,15 +229,15 @@ class PR(BitmapDebug) extends PR(Debug) {
 
     ///---------------------------------------------------------------------------------------------
 
-	flibmdel public inline function index(x:Int,y:Int) return y*width+x
-	flibmdel public inline function setpix(ind:Int, col:Int) flash.Memory.setI32(ind<<2,col)
-	flibmdel public inline function setpixel(x:Int, y:Int, col:Int) {
+    flibmdel public inline function index(x:Int,y:Int) return y*width+x
+    flibmdel public inline function setpix(ind:Int, col:Int) flash.Memory.setI32(ind<<2,col)
+    flibmdel public inline function setpixel(x:Int, y:Int, col:Int) {
         if(x>=0 && x<width && y>=0 && y<height) setpix(index(x,y),col);
     }
 
     ///---------------------------------------------------------------------------------------------
 
-	public function __line(x0:Int,y0:Int,x1:Int,y1:Int, col:Int) {
+    public function __line(x0:Int,y0:Int,x1:Int,y1:Int, col:Int) {
         $(mixin draw(op1,op2)
             var err = dx-dy;
 
@@ -279,96 +279,96 @@ class PR(BitmapDebug) extends PR(Debug) {
         }
     }
 
-	public function __curve(u:Vec2,v:Vec2,q:Vec2,col:Int) {
-		vec_new(mq,
-			0.25*(u.x + 2*v.x + q.x),
-			0.25*(u.y + 2*v.y + q.y)
-		);
-		vec_new(ml,
-			0.5*(u.x+q.x),
-			0.5*(u.y+q.y)
-		);
-		if(vec_dsq(mq,ml)<0.3)
-			__line(fastint(u.x+0.5),fastint(u.y+0.5),fastint(q.x+0.5),fastint(q.y+0.5),col);
-		else {
-			var m1 = Vec2.get(0.5*(u.x+v.x),0.5*(u.y+v.y));
-			var m2 = Vec2.get(0.5*(q.x+v.x),0.5*(q.y+v.y));
-			var mm = Vec2.get(0.5*(m1.x+m2.x),0.5*(m1.y+m2.y));
-			__curve(u,m1,mm,col);
-			m1.dispose();
-			__curve(q,m2,mm,col);
-			m2.dispose();
-			mm.dispose();
-		}
-	}
+    public function __curve(u:Vec2,v:Vec2,q:Vec2,col:Int) {
+        vec_new(mq,
+            0.25*(u.x + 2*v.x + q.x),
+            0.25*(u.y + 2*v.y + q.y)
+        );
+        vec_new(ml,
+            0.5*(u.x+q.x),
+            0.5*(u.y+q.y)
+        );
+        if(vec_dsq(mq,ml)<0.3)
+            __line(fastint(u.x+0.5),fastint(u.y+0.5),fastint(q.x+0.5),fastint(q.y+0.5),col);
+        else {
+            var m1 = Vec2.get(0.5*(u.x+v.x),0.5*(u.y+v.y));
+            var m2 = Vec2.get(0.5*(q.x+v.x),0.5*(q.y+v.y));
+            var mm = Vec2.get(0.5*(m1.x+m2.x),0.5*(m1.y+m2.y));
+            __curve(u,m1,mm,col);
+            m1.dispose();
+            __curve(q,m2,mm,col);
+            m2.dispose();
+            mm.dispose();
+        }
+    }
     
     public function __tri(p0:Vec2,p1:Vec2,p2:Vec2,col:Int) {
-		if(!xnull) {
-			p0 = xform.outer.transform(p0);
-			p1 = xform.outer.transform(p1);
-			p2 = xform.outer.transform(p2);
-		}
+        if(!xnull) {
+            p0 = xform.outer.transform(p0);
+            p1 = xform.outer.transform(p1);
+            p2 = xform.outer.transform(p2);
+        }
         var p0x = __round(p0.x); var p0y = __round(p0.y);
         var p1x = __round(p1.x); var p1y = __round(p1.y);
         var p2x = __round(p2.x); var p2y = __round(p2.y);
-		if(!xnull) {
-			p0.dispose();
-			p1.dispose();
-			p2.dispose();
-		}
+        if(!xnull) {
+            p0.dispose();
+            p1.dispose();
+            p2.dispose();
+        }
         
         //sort vertices
-		if(p1y<p0y) { swap(p0x,p1x); swap(p0y,p1y); }
-		if(p2y<p0y) {
-			var t = p0x; var s = p1x; p0x = p2x; p1x = t; p2x = s;
-			var t = p0y; var s = p1y; p0y = p2y; p1y = t; p2y = s;
-		}elif(p2y<p1y) { swap(p1x,p2x); swap(p1y,p2y); }
+        if(p1y<p0y) { swap(p0x,p1x); swap(p0y,p1y); }
+        if(p2y<p0y) {
+            var t = p0x; var s = p1x; p0x = p2x; p1x = t; p2x = s;
+            var t = p0y; var s = p1y; p0y = p2y; p1y = t; p2y = s;
+        }elif(p2y<p1y) { swap(p1x,p2x); swap(p1y,p2y); }
 
-		if(p0y!=p2y && !(p0x==p1x && p1x==p2x)) {
+        if(p0y!=p2y && !(p0x==p1x && p1x==p2x)) {
 
-			$(mixin scan(x0,x1,y) {
-				if(x0<0) x0 = 0; if(x1>=width) x1 = width-1;
-				for(x in x0...(x1+1)) setpixel(x,y,col);
-			});
+            $(mixin scan(x0,x1,y) {
+                if(x0<0) x0 = 0; if(x1>=width) x1 = width-1;
+                for(x in x0...(x1+1)) setpixel(x,y,col);
+            });
 
-			$(mixin scan(midleft) {
-				var ml = (p2x-p0x)/(p2y-p0y);
-				if(p0y!=p1y) {
-					var mm = (p1x-p0x)/(p1y-p0y);
+            $(mixin scan(midleft) {
+                var ml = (p2x-p0x)/(p2y-p0y);
+                if(p0y!=p1y) {
+                    var mm = (p1x-p0x)/(p1y-p0y);
 
-					var fy = p0y; var sy = p1y;
-					if(fy<0) fy = 0; if(sy>=height) sy = height-1;
-					for(y in fy...sy) {
-						var dy = y-p0y;
-						var xm = __round(p0x+dy*mm);
-						var xl = __round(p0x+dy*ml);
-						if(midleft) scan(xm,xl,y);
-						else        scan(xl,xm,y);
-					}
-				}
-				if(p1y!=p2y) {
-					var mm = (p2x-p1x)/(p2y-p1y);
+                    var fy = p0y; var sy = p1y;
+                    if(fy<0) fy = 0; if(sy>=height) sy = height-1;
+                    for(y in fy...sy) {
+                        var dy = y-p0y;
+                        var xm = __round(p0x+dy*mm);
+                        var xl = __round(p0x+dy*ml);
+                        if(midleft) scan(xm,xl,y);
+                        else        scan(xl,xm,y);
+                    }
+                }
+                if(p1y!=p2y) {
+                    var mm = (p2x-p1x)/(p2y-p1y);
 
-					var fy = p1y; var sy = p2y;
-					if(fy<0) fy = 0; if(sy>=height) sy = height-1;
-					for(y in fy...(sy+1)) {
-						var xm = __round(p1x+(y-p1y)*mm);
-						var xl = __round(p0x+(y-p0y)*ml);
-						if(midleft) scan(xm,xl,y);
-						else        scan(xl,xm,y);
-					}
-				}
-			});
-	
-			if((p0x-p2x)*(p1y-p2y) - (p0y-p2y)*(p1x-p2x) < 0) //middle is to left
-				 scan(true);
-			else scan(false);
-		}
+                    var fy = p1y; var sy = p2y;
+                    if(fy<0) fy = 0; if(sy>=height) sy = height-1;
+                    for(y in fy...(sy+1)) {
+                        var xm = __round(p1x+(y-p1y)*mm);
+                        var xl = __round(p0x+(y-p0y)*ml);
+                        if(midleft) scan(xm,xl,y);
+                        else        scan(xl,xm,y);
+                    }
+                }
+            });
+    
+            if((p0x-p2x)*(p1y-p2y) - (p0y-p2y)*(p1x-p2x) < 0) //middle is to left
+                 scan(true);
+            else scan(false);
+        }
     }
 
     ///---------------------------------------------------------------------------------------------
 
-	public function __circle(x0:Int,y0:Int,radius:Int, col:Int) {
+    public function __circle(x0:Int,y0:Int,radius:Int, col:Int) {
         if(radius==0) setpixel(x0,y0,col);
         else {
             if(radius==1) {
@@ -501,20 +501,20 @@ class PR(BitmapDebug) extends PR(Debug) {
 ///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 
 $(mixin __colour(id,sleep) {
-	var idc:Int;
-	if(outer.colour==null) idc = fastint(0xffffff*Math.exp(-(id%500)/1500));
-	else				   idc = outer.colour(id);
+    var idc:Int;
+    if(outer.colour==null) idc = fastint(0xffffff*Math.exp(-(id%500)/1500));
+    else                   idc = outer.colour(id);
 
-	var _r = (((idc&0xff0000)>>16))*0.7;
-	var _g = (((idc&0xff00)>>8))*0.7;
-	var _b = (idc&0xff)*0.7;
-	
-	if(sleep) {
+    var _r = (((idc&0xff0000)>>16))*0.7;
+    var _g = (((idc&0xff00)>>8))*0.7;
+    var _b = (idc&0xff)*0.7;
+    
+    if(sleep) {
         _r = 0.4*_r + 0.6*bg_r;
         _g = 0.4*_g + 0.6*bg_g;
         _b = 0.4*_b + 0.6*bg_b;
     }
-	0xff000000|((fastint(_r))<<16)|((fastint(_g))<<8)|(fastint(_b));
+    0xff000000|((fastint(_r))<<16)|((fastint(_g))<<8)|(fastint(_b));
 });
 
 $(mixin __tint(__col,__ncol, __f) {
@@ -534,69 +534,69 @@ $(mixin __tint(__col,__ncol, __f) {
 $(mixin pr_debug(utils)
     utils
 
-	$(mixin __AABB(xnull,xform,aabb) {
-		if(xnull) __drawAABB(aabb);
-		else {
-			vec_new(o); mat_xform_hom(false,xform,aabb.min,o);
-			vec_new(w,aabb.width(),0);  mat_xform(false,xform,w);
-			vec_new(h,0,aabb.height()); mat_xform(false,xform,h);
+    $(mixin __AABB(xnull,xform,aabb) {
+        if(xnull) __drawAABB(aabb);
+        else {
+            vec_new(o); mat_xform_hom(false,xform,aabb.min,o);
+            vec_new(w,aabb.width(),0);  mat_xform(false,xform,w);
+            vec_new(h,0,aabb.height()); mat_xform(false,xform,h);
 
-			__moveTo(ox,oy);
-			__lineTo(ox+wx,oy+wy);
-			__lineTo(ox+wx+hx,oy+wy+hy);
-			__lineTo(ox+hx,oy+hy);
-			__lineTo(ox,oy);
-		}
-	});
+            __moveTo(ox,oy);
+            __lineTo(ox+wx,oy+wy);
+            __lineTo(ox+wx+hx,oy+wy+hy);
+            __lineTo(ox+hx,oy+hy);
+            __lineTo(ox,oy);
+        }
+    });
 
-	public var compoundstack:List(PR(Compound));
-	public function draw_compound(compound:PR(Compound),xform:PR(Mat23),xdet:Float,xnull:Bool) {
-		Iter(c, compound.compounds, draw_compound(c,xform,xdet,xnull));
-		Iter(b, compound.bodies, draw_body(b,xform,xdet,xnull));
-	}
+    public var compoundstack:List(PR(Compound));
+    public function draw_compound(compound:PR(Compound),xform:PR(Mat23),xdet:Float,xnull:Bool) {
+        Iter(c, compound.compounds, draw_compound(c,xform,xdet,xnull));
+        Iter(b, compound.bodies, draw_body(b,xform,xdet,xnull));
+    }
     public function draw_space(space:PR(Space),xform:PR(Mat23),xdet:Float,xnull:Bool) {
-		if(outer.cullingEnabled) {
-	        if(outer.drawBodies) {
-				if(outer.drawBodyDetail) {
-					var bods = space.bphase.bodiesInAABB(iport,false,false,null);
-					while(!bods.empty()) {
-						var b = bods.shift();
-						draw_body(b.pr(inner),xform,xdet,xnull);
-					}
-				}else {
-					var shapes = space.bphase.shapesInAABB(iport,false,false,null);
-					while(!shapes.empty()) {
-						var s = shapes.shift();
-						draw_shape(s.pr(inner),xform,xdet,xnull);
-					}
-				}
-			}
-		}else {
-	        if(outer.drawBodies) {
-				if(compoundstack==null) compoundstack = new List(PR(Compound))();
-				Iter(b, space.bodies, draw_body(b,xform,xdet,xnull));
-				Iter(c, space.compounds, compoundstack.add(c));
-				while(!compoundstack.empty()) {
-					var x = compoundstack.pop_unsafe();
-					Iter(b, x.bodies, draw_body(b,xform,xdet,xnull));
-					Iter(c, x.compounds, compoundstack.add(c));
-				}
-			}
-		}
+        if(outer.cullingEnabled) {
+            if(outer.drawBodies) {
+                if(outer.drawBodyDetail) {
+                    var bods = space.bphase.bodiesInAABB(iport,false,false,null);
+                    while(!bods.empty()) {
+                        var b = bods.shift();
+                        draw_body(b.pr(inner),xform,xdet,xnull);
+                    }
+                }else {
+                    var shapes = space.bphase.shapesInAABB(iport,false,false,null);
+                    while(!shapes.empty()) {
+                        var s = shapes.shift();
+                        draw_shape(s.pr(inner),xform,xdet,xnull);
+                    }
+                }
+            }
+        }else {
+            if(outer.drawBodies) {
+                if(compoundstack==null) compoundstack = new List(PR(Compound))();
+                Iter(b, space.bodies, draw_body(b,xform,xdet,xnull));
+                Iter(c, space.compounds, compoundstack.add(c));
+                while(!compoundstack.empty()) {
+                    var x = compoundstack.pop_unsafe();
+                    Iter(b, x.bodies, draw_body(b,xform,xdet,xnull));
+                    Iter(c, x.compounds, compoundstack.add(c));
+                }
+            }
+        }
 
         if(outer.drawCollisionArbiters || outer.drawFluidArbiters || outer.drawSensorArbiters)
             for(arb in space.outer.arbiters) draw_arbiter(arb.pr(inner),xform,xdet,xnull);
 
         if(outer.drawConstraints) {
-			if(compoundstack==null) compoundstack = new List(PR(Compound))();
-			Iter(c, space.constraints, if(c.active) c.draw(outer));
-			Iter(c, space.compounds, compoundstack.add(c));
-			while(!compoundstack.empty()) {
-				var x = compoundstack.pop_unsafe();
-				Iter(c, x.constraints, if(c.active) c.draw(outer));
-				Iter(c, x.compounds, compoundstack.add(c));
-			}
-		}
+            if(compoundstack==null) compoundstack = new List(PR(Compound))();
+            Iter(c, space.constraints, if(c.active) c.draw(outer));
+            Iter(c, space.compounds, compoundstack.add(c));
+            while(!compoundstack.empty()) {
+                var x = compoundstack.pop_unsafe();
+                Iter(c, x.constraints, if(c.active) c.draw(outer));
+                Iter(c, x.compounds, compoundstack.add(c));
+            }
+        }
     }
     public function draw_body(body:PR(Body),xform:PR(Mat23),xdet:Float,xnull:Bool) {
         Iter(s,body.shapes, draw_shape(s,xform,xdet,xnull));
@@ -605,13 +605,13 @@ $(mixin pr_debug(utils)
             body.validate_worldCOM();
             __lineStyle(__tint(col,0xff0000,0.8),1);
 
-			vec_new(p);
-			mat_xform_hom(xnull,xform,body.worldCOM,p);
+            vec_new(p);
+            mat_xform_hom(xnull,xform,body.worldCOM,p);
 
             __drawCircle(px,py,1);
 
             body.validate_aabb();
-			__AABB(xnull,xform,body.aabb);
+            __AABB(xnull,xform,body.aabb);
         }
     }
     public function draw_shape(shape:PR(Shape),xform:PR(Mat23),xdet:Float,xnull:Bool) {
@@ -627,7 +627,7 @@ $(mixin pr_debug(utils)
                 circ.validate_worldCOM();
                 var vx = circ.worldCOMx;
                 var vy = circ.worldCOMy;
-				mat_xform_hom(xnull,xform,v);
+                mat_xform_hom(xnull,xform,v);
                 __drawCircle(vx,vy,circ.radius*xdet);
 
                 if(outer.drawShapeAngleIndicators) {
@@ -636,8 +636,8 @@ $(mixin pr_debug(utils)
                     var v1x = circ.worldCOMx + circ.radius*body.axisy;
                     var v1y = circ.worldCOMy + circ.radius*body.axisx;
 
-					mat_xform_hom(xnull,xform,v0);
-					mat_xform_hom(xnull,xform,v1);
+                    mat_xform_hom(xnull,xform,v0);
+                    mat_xform_hom(xnull,xform,v1);
                     __moveTo(v0x,v0y);
                     __lineTo(v1x,v1y);
                 }
@@ -648,21 +648,21 @@ $(mixin pr_debug(utils)
                 var u = poly.gverts.front();
                 var vx = u.x;
                 var vy = u.y;
-				mat_xform_hom(xnull,xform,v);
+                mat_xform_hom(xnull,xform,v);
                 __moveTo(vx,vy);
-				var vox = vx;
-				var voy = vy;
+                var vox = vx;
+                var voy = vy;
                 IterIte(u, poly.gverts, poly.gverts.begin().next, {
                     vx = u.x;
                     vy = u.y;
-					mat_xform_hom(xnull,xform,v);
+                    mat_xform_hom(xnull,xform,v);
                     __lineTo(vx,vy);
                 });
                 __lineTo(vox,voy);
 
                 if(outer.drawShapeAngleIndicators) {
                     poly.validate_worldCOM();
-					mat_xform_hom(xnull,xform,poly.worldCOM,v);
+                    mat_xform_hom(xnull,xform,poly.worldCOM,v);
                     __moveTo(vx,vy);
                     __lineTo(vox,voy);
                 }
@@ -671,31 +671,31 @@ $(mixin pr_debug(utils)
             if(outer.drawShapeDetail) {
                 shape.validate_worldCOM();
                 __lineStyle(__tint(col,0xff0000,0.8),1);
-				vec_new(v); mat_xform_hom(xnull,xform,shape.worldCOM,v);
+                vec_new(v); mat_xform_hom(xnull,xform,shape.worldCOM,v);
                 __drawCircle(vx,vy,1);
 
                 shape.validate_aabb();
-				__AABB(xnull,xform,shape.aabb);
+                __AABB(xnull,xform,shape.aabb);
             }
         }
     }
 
     public function draw_arbiter(arb:PR(Arbiter),xform:PR(Mat23),xdet:Float,xnull:Bool) {
-		vec_new(v);
+        vec_new(v);
         if(arb.outer.isSensorArbiter()) {
             if(outer.drawSensorArbiters) {
                 var sarb = arb.outer;
                 __lineStyle(__tint(0xff00,~bg_col,0.7),1);
-				mat_xform_hom(xnull,xform,sarb.shape1.worldCOM.,v);
+                mat_xform_hom(xnull,xform,sarb.shape1.worldCOM.,v);
                 __moveTo(vx,vy);
-				mat_xform_hom(xnull,xform,sarb.shape2.worldCOM.,v);
+                mat_xform_hom(xnull,xform,sarb.shape2.worldCOM.,v);
                 __lineTo(vx,vy);
             }
         }else if(arb.outer.isFluidArbiter()) {
             if(outer.drawFluidArbiters) {
                 var farb = arb.outer.fluidArbiter;
                 __lineStyle(__tint(0xff,~bg_col,0.7),1);
-				mat_xform_hom(xnull,xform,farb.position.,v);
+                mat_xform_hom(xnull,xform,farb.position.,v);
                 __drawCircle(vx,vy,0.75);
             }
         }else {
@@ -707,7 +707,7 @@ $(mixin pr_debug(utils)
                     var c1 = carb.contacts.at(0).position;
                     var c2 = carb.contacts.at(1).position;
                     var n = carb.normal;
-						
+                        
                     var x = 0.661437828;
                     var y = 0.75;
                     if(vec_cross(c1.,n.) < vec_cross(c2.,n.)) {
@@ -715,35 +715,35 @@ $(mixin pr_debug(utils)
                         y = -y;
                     }
                     __lineStyle(__tint(0xff,~bg_col,0.7),1);
-					vec_set(v,c1.x+n.x*y-n.y*x,c1.y+n.y*y+n.x*x);
-					mat_xform_hom(xnull,xform,v);
+                    vec_set(v,c1.x+n.x*y-n.y*x,c1.y+n.y*y+n.x*x);
+                    mat_xform_hom(xnull,xform,v);
                     __moveTo(vx,vy);
-					vec_set(v,c2.x+n.x*y+n.y*x,c2.y+n.y*y-n.x*x);
-					mat_xform_hom(xnull,xform,v);
+                    vec_set(v,c2.x+n.x*y+n.y*x,c2.y+n.y*y-n.x*x);
+                    mat_xform_hom(xnull,xform,v);
                     __lineTo(vx,vy);
 
                     __lineStyle(__tint(0xff0000,~bg_col,0.7),1);
-					vec_set(v,c1.x-n.x*y-n.y*x,c1.y-n.y*y+n.x*x);
-					mat_xform_hom(xnull,xform,v);
+                    vec_set(v,c1.x-n.x*y-n.y*x,c1.y-n.y*y+n.x*x);
+                    mat_xform_hom(xnull,xform,v);
                     __moveTo(vx,vy);
-					vec_set(v,c2.x-n.x*y+n.y*x,c2.y-n.y*y-n.x*x);
-					mat_xform_hom(xnull,xform,v);
+                    vec_set(v,c2.x-n.x*y+n.y*x,c2.y-n.y*y-n.x*x);
+                    mat_xform_hom(xnull,xform,v);
                     __lineTo(vx,vy);
-						
+                        
                     vec_set(p, 0.5*(c1.x+c2.x), 0.5*(c1.y+c2.y));
-					mat_xform_hom(xnull,xform,p);
+                    mat_xform_hom(xnull,xform,p);
                 }else {
                     vec_set(p, carb.contacts.at(0).position.);
-					mat_xform_hom(xnull,xform,p);
+                    mat_xform_hom(xnull,xform,p);
 
                     __lineStyle(__tint(0xff00ff,~bg_col,0.7),1);
                     __drawCircle(px,py,1);
                 }
-					
+                    
                 __lineStyle(__tint(~bg_col,bg_col,0.7),1);
                 __moveTo(px,py);
-				vec_set(v,carb.normal.x*5,carb.normal.y*5);
-				mat_xform(xnull,xform,v);
+                vec_set(v,carb.normal.x*5,carb.normal.y*5);
+                mat_xform(xnull,xform,v);
                 __lineTo(px+vx,py+vy);
             }
         }

@@ -5,305 +5,305 @@ $(mixin Vertex() PR(GeomVert));
 
 geom(
 class GeomPoly {
-	$(mixin verts() pr(inner).vertices);
-	public var pr(inner):PR(GeomPoly);
+    $(mixin verts() pr(inner).vertices);
+    public var pr(inner):PR(GeomPoly);
 
-	public function empty() return mix_circular(Vertex,empty(verts))
-	public function size () return mix_circular(Vertex,size(verts))
+    public function empty() return mix_circular(Vertex,empty(verts))
+    public function size () return mix_circular(Vertex,size(verts))
 
-	public function iterator() return PR(GeomVertexIterator).get(verts,true)
-	public function forward_iterator  () return PR(GeomVertexIterator).get(verts,true)
-	public function backwards_iterator() return PR(GeomVertexIterator).get(verts,false)
+    public function iterator() return PR(GeomVertexIterator).get(verts,true)
+    public function forward_iterator  () return PR(GeomVertexIterator).get(verts,true)
+    public function backwards_iterator() return PR(GeomVertexIterator).get(verts,false)
 
-	public function current() {
-		DEBUG(if(empty()) throw "Error: GeomPoly is empty";)
-		return verts.wrapper();
-	}
+    public function current() {
+        DEBUG(if(empty()) throw "Error: GeomPoly is empty";)
+        return verts.wrapper();
+    }
 
-	public function push(x:Vec2) {
-		DEBUG(if(x==null) throw "Error: Cannot push null vertex";)
-		Disposed(x,Vec2);
+    public function push(x:Vec2) {
+        DEBUG(if(x==null) throw "Error: Cannot push null vertex";)
+        Disposed(x,Vec2);
 
-		mix_circular(Vertex,
-			verts = push_after(verts, Vertex.get(x.x,x.y));
-		)
-		WEAK(x);
-		return current();
-	}
-	public function pop() {
-		mix_circular(Vertex,
-			DEBUG(if(empty(verts)) throw "Error: Cannot pop from empty polygon";)
-			var retv = verts;
-			verts = pop_ret_before(verts);
-			Free(Vertex,retv);
-		)
-	}
+        mix_circular(Vertex,
+            verts = push_after(verts, Vertex.get(x.x,x.y));
+        )
+        WEAK(x);
+        return current();
+    }
+    public function pop() {
+        mix_circular(Vertex,
+            DEBUG(if(empty(verts)) throw "Error: Cannot pop from empty polygon";)
+            var retv = verts;
+            verts = pop_ret_before(verts);
+            Free(Vertex,retv);
+        )
+    }
 
-	public function unshift(x:Vec2) {
-		DEBUG(if(x==null) throw "Error: Cannot unshift null vertex";)
-		Disposed(x,Vec2);
+    public function unshift(x:Vec2) {
+        DEBUG(if(x==null) throw "Error: Cannot unshift null vertex";)
+        Disposed(x,Vec2);
 
-		mix_circular(Vertex,
-			verts = push_before(verts, Vertex.get(x.x,x.y));
-		)
-		WEAK(x);
-		return current();
-	}
-	public function shift() {
-		mix_circular(Vertex,
-			DEBUG(if(empty(verts)) throw "Error: Cannot shift from empty polygon";)
-			var retv = verts;
-			verts = pop_ret_after(verts);
-			Free(Vertex,retv);
-		)
-	}
+        mix_circular(Vertex,
+            verts = push_before(verts, Vertex.get(x.x,x.y));
+        )
+        WEAK(x);
+        return current();
+    }
+    public function shift() {
+        mix_circular(Vertex,
+            DEBUG(if(empty(verts)) throw "Error: Cannot shift from empty polygon";)
+            var retv = verts;
+            verts = pop_ret_after(verts);
+            Free(Vertex,retv);
+        )
+    }
 
-	public function skip_forward(times:Int) {
-		mix_circular(Vertex,
-			if(!empty(verts)) {
-				if(times>0) {
-					while(times-->0) verts = verts.next;
-				}elif(times<0) {
-					while(times++<0) verts = verts.prev;
-				}
-			}
-		)
-	}
-	public function skip_backwards(times:Int) skip_forward(-times)
+    public function skip_forward(times:Int) {
+        mix_circular(Vertex,
+            if(!empty(verts)) {
+                if(times>0) {
+                    while(times-->0) verts = verts.next;
+                }elif(times<0) {
+                    while(times++<0) verts = verts.prev;
+                }
+            }
+        )
+    }
+    public function skip_backwards(times:Int) skip_forward(-times)
 
-	public function erase(count:Int) {
-		mix_circular(Vertex,
-			while(count!=0 && !empty(verts)) {
-				var retv = verts;
-				if(count>0) {
-					verts = pop_ret_after(verts);
-					count--;
-				}elif(count<0) {
-					verts = pop_ret_before(verts);
-					count++;
-				}
-				Free(Vertex,retv);
-			}
-		)
-	}
+    public function erase(count:Int) {
+        mix_circular(Vertex,
+            while(count!=0 && !empty(verts)) {
+                var retv = verts;
+                if(count>0) {
+                    verts = pop_ret_after(verts);
+                    count--;
+                }elif(count<0) {
+                    verts = pop_ret_before(verts);
+                    count++;
+                }
+                Free(Vertex,retv);
+            }
+        )
+    }
 
-	public function clear() {
-		mix_circular(Vertex,
-			clear_with(verts, $(mixin cb(x) Free(Vertex,x)) cb);
-		)	
-	}
+    public function clear() {
+        mix_circular(Vertex,
+            clear_with(verts, $(mixin cb(x) Free(Vertex,x)) cb);
+        )    
+    }
 
-	public function copy() {
-		var ret = new GeomPoly();
-		mix_circular(Vertex,
-			for_iter(v, verts, ret.verts = push_after(ret.verts, Vertex.get(v.x,v.y)));
-		)
-		return ret;
-	}
+    public function copy() {
+        var ret = new GeomPoly();
+        mix_circular(Vertex,
+            for_iter(v, verts, ret.verts = push_after(ret.verts, Vertex.get(v.x,v.y)));
+        )
+        return ret;
+    }
 
-	public function new(vertices:Dynamic=null) {
-		pr(inner) = new PR(GeomPoly)(this);
-		if(vertices!=null) {
-			PolyIter(v,vertices,mix_circular(Vertex, verts = push_after(verts,Vertex.get(v.x,v.y))));
-			PolyWeak(vertices);
-		}
-	}
-	@:$keep public function toString() {
-		var ret = "GeomPoly[";
-		mix_circular(PR(GeomVert),{
-			for_iter(v, verts, {
-				if(v!=verts) ret += ",";
-				ret += "{"+v.x+","+v.y+"}";
-			});
-		})
-		return ret+"]";
-	}
+    public function new(vertices:Dynamic=null) {
+        pr(inner) = new PR(GeomPoly)(this);
+        if(vertices!=null) {
+            PolyIter(v,vertices,mix_circular(Vertex, verts = push_after(verts,Vertex.get(v.x,v.y))));
+            PolyWeak(vertices);
+        }
+    }
+    @:$keep public function toString() {
+        var ret = "GeomPoly[";
+        mix_circular(PR(GeomVert),{
+            for_iter(v, verts, {
+                if(v!=verts) ret += ",";
+                ret += "{"+v.x+","+v.y+"}";
+            });
+        })
+        return ret+"]";
+    }
 
-	$(mixin size_lt_3() ({
-		verts == null || verts.next == null || verts.prev == verts.next;
-	}));
+    $(mixin size_lt_3() ({
+        verts == null || verts.next == null || verts.prev == verts.next;
+    }));
 
-	public function area() {
-		return if(size_lt_3) 0.0;
-		else area(verts);
-	}
+    public function area() {
+        return if(size_lt_3) 0.0;
+        else area(verts);
+    }
 
-	public function winding() {
-		return if(size_lt_3) Winding.UNDEFINED
-		else {
-			var area = signed_area(verts);
-			if  (area >0) Winding.CLOCKWISE;
-			elif(area==0) Winding.UNDEFINED;
-			else          Winding.ANTICLOCKWISE;
-		}
-	}
+    public function winding() {
+        return if(size_lt_3) Winding.UNDEFINED
+        else {
+            var area = signed_area(verts);
+            if  (area >0) Winding.CLOCKWISE;
+            elif(area==0) Winding.UNDEFINED;
+            else          Winding.ANTICLOCKWISE;
+        }
+    }
 
-	public function contains(point:Vec2) {
-		DEBUG(if(point==null) throw "Error: GeomPoly::contains point cannot be null";)
-		Disposed(point,Vec2);
-		var ret = contains(verts, point.x,point.y);
-		WEAK(point);
-		return ret;
-	}
+    public function contains(point:Vec2) {
+        DEBUG(if(point==null) throw "Error: GeomPoly::contains point cannot be null";)
+        Disposed(point,Vec2);
+        var ret = contains(verts, point.x,point.y);
+        WEAK(point);
+        return ret;
+    }
 
-	public function isClockwise() return winding()==Winding.CLOCKWISE
+    public function isClockwise() return winding()==Winding.CLOCKWISE
 
-	public function isConvex() {
-		return if(size_lt_3) true;
-		else convex(verts);
-	}
+    public function isConvex() {
+        return if(size_lt_3) true;
+        else convex(verts);
+    }
 
-	public function isSimple() {
-		return if(size_lt_3) true;
-		else PR(Simple).isSimple(verts);
-	}
+    public function isSimple() {
+        return if(size_lt_3) true;
+        else PR(Simple).isSimple(verts);
+    }
 
-	public function isMonotone() {
-		return if(size_lt_3) true;
-		else PR(Monotone).isMonotone(verts);
-	}
+    public function isMonotone() {
+        return if(size_lt_3) true;
+        else PR(Monotone).isMonotone(verts);
+    }
 
-	public function isDegenerate() {
-		return if(size_lt_3) true;
-		else area() < PR(Const).EPSILON;
-	}
+    public function isDegenerate() {
+        return if(size_lt_3) true;
+        else area() < PR(Const).EPSILON;
+    }
 
-	public function simplify(epsilon:Float) {
-		DEBUG(if(epsilon<=0.0) throw "Error: Epsilon should be > 0 for simplifying a GeomPoly";)
-		if(size_lt_3) return copy();
-		else {
-			var x = PR(Simplify).simplify(verts,epsilon);
-			var ret = new GeomPoly();
-			ret.verts = x;
-			return ret;
-		}
-	}
+    public function simplify(epsilon:Float) {
+        DEBUG(if(epsilon<=0.0) throw "Error: Epsilon should be > 0 for simplifying a GeomPoly";)
+        if(size_lt_3) return copy();
+        else {
+            var x = PR(Simplify).simplify(verts,epsilon);
+            var ret = new GeomPoly();
+            ret.verts = x;
+            return ret;
+        }
+    }
 
-	public function simple_decomposition() {
-		DEBUG(if(size_lt_3) throw "Error: Cannot decompose a degenerate polygon";)
-		var MPs = PR(Simple).decompose(verts);
-		var ret = new GeomPolyList();
-		while(!MPs.empty()) {
-			var MP = MPs.pop_unsafe();
-			var x = new GeomPoly();
-			x.verts = MP;
-			ret.add(x);
-		}
-		return ret;
-	}
+    public function simple_decomposition() {
+        DEBUG(if(size_lt_3) throw "Error: Cannot decompose a degenerate polygon";)
+        var MPs = PR(Simple).decompose(verts);
+        var ret = new GeomPolyList();
+        while(!MPs.empty()) {
+            var MP = MPs.pop_unsafe();
+            var x = new GeomPoly();
+            x.verts = MP;
+            ret.add(x);
+        }
+        return ret;
+    }
 
-	public function monotone_decomposition() {
-		DEBUG(if(size_lt_3) throw "Error: Cannot decompose a degenerate polygon";)
-		var MPs = PR(Monotone).decompose(verts).extract();
-		var ret = new GeomPolyList();
-		while(!MPs.empty()) {
-			var MP = MPs.pop_unsafe();
-			var x = new GeomPoly();
-			x.verts = MP;
-			ret.add(x);
-			assert(x.isMonotone(),"monotone decomposition gave non-monotone output?");
-		}
-		return ret;
-	}
+    public function monotone_decomposition() {
+        DEBUG(if(size_lt_3) throw "Error: Cannot decompose a degenerate polygon";)
+        var MPs = PR(Monotone).decompose(verts).extract();
+        var ret = new GeomPolyList();
+        while(!MPs.empty()) {
+            var MP = MPs.pop_unsafe();
+            var x = new GeomPoly();
+            x.verts = MP;
+            ret.add(x);
+            assert(x.isMonotone(),"monotone decomposition gave non-monotone output?");
+        }
+        return ret;
+    }
 
-	public function convex_decomposition() {
-		DEBUG(if(size_lt_3) throw "Error: Cannot decompose a degenerate polygon";)
-		var MPs = PR(Monotone).decompose(verts).extract_partitions();
-		var ret = new GeomPolyList();
-		while(!MPs.empty()) {
-			var MP = MPs.pop_unsafe();
-			PR(Triangular).triangulate(MP);
-			PR(Convex).optimise(MP);
-			var MQs = MP.extract();
-			while(!MQs.empty()) {
-				var MQ = MQs.pop_unsafe();
-				var x = new GeomPoly();
-				x.verts = MQ;
-				ret.add(x);
-				assert(x.isConvex(),"convex decomposition gave non-convex output?");
-			}
-		}
-		return ret;
-	}
+    public function convex_decomposition() {
+        DEBUG(if(size_lt_3) throw "Error: Cannot decompose a degenerate polygon";)
+        var MPs = PR(Monotone).decompose(verts).extract_partitions();
+        var ret = new GeomPolyList();
+        while(!MPs.empty()) {
+            var MP = MPs.pop_unsafe();
+            PR(Triangular).triangulate(MP);
+            PR(Convex).optimise(MP);
+            var MQs = MP.extract();
+            while(!MQs.empty()) {
+                var MQ = MQs.pop_unsafe();
+                var x = new GeomPoly();
+                x.verts = MQ;
+                ret.add(x);
+                assert(x.isConvex(),"convex decomposition gave non-convex output?");
+            }
+        }
+        return ret;
+    }
 
-	public function triangular_decomposition() {
-		DEBUG(if(size_lt_3) throw "Error: Cannot decompose a degenerate polygon";)
-		var MPs = PR(Monotone).decompose(verts).extract_partitions();
-		var ret = new GeomPolyList();
-		while(!MPs.empty()) {
-			var MP = MPs.pop_unsafe();
-			var MQs = PR(Triangular).triangulate(MP).extract();
-			while(!MQs.empty()) {
-				var MQ = MQs.pop_unsafe();
-				var x = new GeomPoly();
-				x.verts = MQ;
-				ret.add(x);
-				assert(x.size()==3,"triangular decomosition gave non-triangle output?");
-			}
-		}
-		return ret;
-	}
+    public function triangular_decomposition() {
+        DEBUG(if(size_lt_3) throw "Error: Cannot decompose a degenerate polygon";)
+        var MPs = PR(Monotone).decompose(verts).extract_partitions();
+        var ret = new GeomPolyList();
+        while(!MPs.empty()) {
+            var MP = MPs.pop_unsafe();
+            var MQs = PR(Triangular).triangulate(MP).extract();
+            while(!MQs.empty()) {
+                var MQ = MQs.pop_unsafe();
+                var x = new GeomPoly();
+                x.verts = MQ;
+                ret.add(x);
+                assert(x.size()==3,"triangular decomosition gave non-triangle output?");
+            }
+        }
+        return ret;
+    }
 
-	public function cut(start:Vec2,end:Vec2, bounded_start:Bool=false, bounded_end:Bool=false):GeomPolyList {
-		DEBUG(
-			if(!isSimple())
-				throw "Error: Cut requires a truly simple polygon";
-			if(start==null || end==null)
-				throw "Error: Cannot cut with null start/end's";
-		)
-		Disposed(start,Vec2);
-		Disposed(end,Vec2);
-		var ret = PR(Cutter).run(verts,start,end,bounded_start,bounded_end);
-		WEAK(start);
-		WEAK(end);
-		return ret;
-	}
+    public function cut(start:Vec2,end:Vec2, bounded_start:Bool=false, bounded_end:Bool=false):GeomPolyList {
+        DEBUG(
+            if(!isSimple())
+                throw "Error: Cut requires a truly simple polygon";
+            if(start==null || end==null)
+                throw "Error: Cannot cut with null start/end's";
+        )
+        Disposed(start,Vec2);
+        Disposed(end,Vec2);
+        var ret = PR(Cutter).run(verts,start,end,bounded_start,bounded_end);
+        WEAK(start);
+        WEAK(end);
+        return ret;
+    }
 
 mix_circular(Vertex,
-	public function transform(matrix:Mat23) {
-		DEBUG(if(matrix==null) throw "Error: Cannot transform by null matrix";)
-		for_iter(v, verts, {
-			mat_transform_hom(matrix.,v.);
-		});
-	}
+    public function transform(matrix:Mat23) {
+        DEBUG(if(matrix==null) throw "Error: Cannot transform by null matrix";)
+        for_iter(v, verts, {
+            mat_transform_hom(matrix.,v.);
+        });
+    }
 
-	public function bounds() {
-		DEBUG(if(empty()) throw "Error: empty GeomPoly has no defineable bounds";)
-		vec_new(min, PR(Const).FMAX, PR(Const).FMAX);
-		vec_new(max,-PR(Const).FMAX,-PR(Const).FMAX);
-		for_iter(v, verts, {
-			if(v.x < minx) minx = v.x;
-			if(v.y < miny) miny = v.y;
-			if(v.x > maxx) maxx = v.x;
-			if(v.y > maxy) maxy = v.y;
-		});
-		return new AABB(minx,miny,maxx-minx,maxy-miny);
-	}
+    public function bounds() {
+        DEBUG(if(empty()) throw "Error: empty GeomPoly has no defineable bounds";)
+        vec_new(min, PR(Const).FMAX, PR(Const).FMAX);
+        vec_new(max,-PR(Const).FMAX,-PR(Const).FMAX);
+        for_iter(v, verts, {
+            if(v.x < minx) minx = v.x;
+            if(v.y < miny) miny = v.y;
+            if(v.x > maxx) maxx = v.x;
+            if(v.y > maxy) maxy = v.y;
+        });
+        return new AABB(minx,miny,maxx-minx,maxy-miny);
+    }
 
-	public function top() {
-		DEBUG(if(empty()) throw "Error: empty GeomPoly has no defineable topmost vertex";)
-		var min = verts;
-		for_iter(v, verts.next, verts, if(v.y<min.y) min = v);
-		return min.wrapper();
-	}
-	public function bottom() {
-		DEBUG(if(empty()) throw "Error: empty GeomPoly has no defineable bottommost vertex";)
-		var max = verts;
-		for_iter(v, verts.next, verts, if(v.y>max.y) max = v);
-		return max.wrapper();
-	}
-	public function left() {
-		DEBUG(if(empty()) throw "Error: empty GeomPoly has no defineable leftmost vertex";)
-		var min = verts;
-		for_iter(v, verts.next, verts, if(v.x<min.x) min = v);
-		return min.wrapper();
-	}
-	public function right() {
-		DEBUG(if(empty()) throw "Error: empty GeomPoly has no defineable rightmmost vertex";)
-		var max = verts;
-		for_iter(v, verts.next, verts, if(v.x>max.x) max = v);
-		return max.wrapper();
-	}
+    public function top() {
+        DEBUG(if(empty()) throw "Error: empty GeomPoly has no defineable topmost vertex";)
+        var min = verts;
+        for_iter(v, verts.next, verts, if(v.y<min.y) min = v);
+        return min.wrapper();
+    }
+    public function bottom() {
+        DEBUG(if(empty()) throw "Error: empty GeomPoly has no defineable bottommost vertex";)
+        var max = verts;
+        for_iter(v, verts.next, verts, if(v.y>max.y) max = v);
+        return max.wrapper();
+    }
+    public function left() {
+        DEBUG(if(empty()) throw "Error: empty GeomPoly has no defineable leftmost vertex";)
+        var min = verts;
+        for_iter(v, verts.next, verts, if(v.x<min.x) min = v);
+        return min.wrapper();
+    }
+    public function right() {
+        DEBUG(if(empty()) throw "Error: empty GeomPoly has no defineable rightmmost vertex";)
+        var max = verts;
+        for_iter(v, verts.next, verts, if(v.x>max.x) max = v);
+        return max.wrapper();
+    }
 )
 }
 )

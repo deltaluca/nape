@@ -3,16 +3,16 @@ $(import);
 
 /**
 
-	Intrusive 2D and 3D vectors.
+    Intrusive 2D and 3D vectors.
 
 **/
 
 $(mixin global vec_new(acc,n) acc var n`x:Float; acc var n`y:Float);
 $(mixin global vec_new(n)     vec_new(,n));
 $(mixin global vec_new(n,X,Y)
-	var n`x:Float = X; var n`y:Float = Y;
-	assert(!assert_isNaN(n`x),"vec_new(in n: "+$str(n)+",in x: "+$str(X)+",in y: "+$str(Y)+")");
-	assert(!assert_isNaN(n`y),"vec_new(in n: "+$str(n)+",in x: "+$str(X)+",in y: "+$str(Y)+")")
+    var n`x:Float = X; var n`y:Float = Y;
+    assert(!assert_isNaN(n`x),"vec_new(in n: "+$str(n)+",in x: "+$str(X)+",in y: "+$str(Y)+")");
+    assert(!assert_isNaN(n`y),"vec_new(in n: "+$str(n)+",in x: "+$str(X)+",in y: "+$str(Y)+")")
 );
 
 //------------------------------------------------------------------------------
@@ -23,9 +23,9 @@ $(mixin global mat_str(n) ("{ "+n`a+"  "+n`b+",, "+n`c+"  "+n`d+" }"));
 //------------------------------------------------------------------------------
 
 $(mixin global vec_set(n,X,Y) { 
-	n`x = X; n`y = Y;
-	assert(!assert_isNaN(n`x),"vec_set(in n: "+$str(n)+",in x: "+$str(X)+",in y: "+$str(Y)+")");
-	assert(!assert_isNaN(n`y),"vec_set(in n: "+$str(n)+",in x: "+$str(X)+",in y: "+$str(Y)+")");
+    n`x = X; n`y = Y;
+    assert(!assert_isNaN(n`x),"vec_set(in n: "+$str(n)+",in x: "+$str(X)+",in y: "+$str(Y)+")");
+    assert(!assert_isNaN(n`y),"vec_set(in n: "+$str(n)+",in x: "+$str(X)+",in y: "+$str(Y)+")");
 });
 $(mixin global vec_set(n,v)   vec_set(n,v`x,v`y));
 
@@ -41,23 +41,23 @@ $(mixin global vec_dsq   (a,b) ({
 }));
 
 $(mixin global vec_interp(a,b,t, c) {
-	var T = (t);
-	assert(!(assert_isNaN(T) || T<0.0 || T>1.0), "vec_interp(in a: "+$str(a)+",in b: "+$str(b)+",in t: "+$str(t)+",out c: "+$str(c)+")");
-	c`x = a`x + (b`x-a`x)*T;
-	c`y = a`y + (b`y-a`y)*T;
+    var T = (t);
+    assert(!(assert_isNaN(T) || T<0.0 || T>1.0), "vec_interp(in a: "+$str(a)+",in b: "+$str(b)+",in t: "+$str(t)+",out c: "+$str(c)+")");
+    c`x = a`x + (b`x-a`x)*T;
+    c`y = a`y + (b`y-a`y)*T;
 });
 
 //------------------------------------------------------------------------------
 
 $(mixin global vec_normalise(n) {
     var d = vec_lsq(n);
-	assert(d!=0.0, "vec_normalise(in n: "+$str(n)+")");
+    assert(d!=0.0, "vec_normalise(in n: "+$str(n)+")");
     var imag = PR(Math).invsqrt(d);
     vec_muleq(n,imag);
 });
 $(mixin global vec_normalise_slow(n) {
     var d = vec_lsq(n);
-	assert(d!=0.0, "vec_normalise(in n: "+$str(n)+")");
+    assert(d!=0.0, "vec_normalise(in n: "+$str(n)+")");
     var imag = 1.0/Math.sqrt(d);
     vec_muleq(n,imag);
 });
@@ -89,30 +89,30 @@ $(mixin global vec_perp(n,r) vec_set(r,-n`y,n`x));
 $(mixin global vec_add(a,b, r) { r`x = a`x+b`x; r`y = a`y+b`y; });
 $(mixin global vec_sub(a,b, r) { r`x = a`x-b`x; r`y = a`y-b`y; });
 $(mixin global vec_mul(a,s, r) { 
-	var t = (s);
-	assert(!assert_isNaN(t), "vec_mul(in a: "+$str(a)+",in s: "+$str(s)+",out r: "+$str(r)+")");
-	r`x = a`x*t; r`y = a`y*t;
+    var t = (s);
+    assert(!assert_isNaN(t), "vec_mul(in a: "+$str(a)+",in s: "+$str(s)+",out r: "+$str(r)+")");
+    r`x = a`x*t; r`y = a`y*t;
 });
 $(mixin global vec_div(a,s, r) vec_mul(a,1.0/(s),r));
 
 //------------------------------------------------------------------------------
 
 $(mixin global vec_addeq(a,b,s) {
-	var t = (s); 
-	assert(!assert_isNaN(t), "vec_addeq(in a: "+$str(a)+",in b: "+$str(b)+",in s: "+$str(s)+")");
-	a`x += b`x*t; a`y += b`y*t;
+    var t = (s); 
+    assert(!assert_isNaN(t), "vec_addeq(in a: "+$str(a)+",in b: "+$str(b)+",in s: "+$str(s)+")");
+    a`x += b`x*t; a`y += b`y*t;
 });
 $(mixin global vec_subeq(a,b,s) {
-	var t = (s); 
-	assert(!assert_isNaN(t), "vec_subeq(in a: "+$str(a)+",in b: "+$str(b)+",in s: "+$str(s)+")");
-	a`x -= b`x*t; a`y -= b`y*t;
+    var t = (s); 
+    assert(!assert_isNaN(t), "vec_subeq(in a: "+$str(a)+",in b: "+$str(b)+",in s: "+$str(s)+")");
+    a`x -= b`x*t; a`y -= b`y*t;
 });
 $(mixin global vec_addeq(a,b) vec_addeq(a,b,1.0));
 $(mixin global vec_subeq(a,b) vec_subeq(a,b,1.0));
 $(mixin global vec_muleq(a,s) {
-	var t = (s); 
-	assert(!assert_isNaN(t), "vec_muleq(in a: "+$str(a)+",in s: "+$str(s)+")");
-	a`x *= t; a`y *= t;
+    var t = (s); 
+    assert(!assert_isNaN(t), "vec_muleq(in a: "+$str(a)+",in s: "+$str(s)+")");
+    a`x *= t; a`y *= t;
 });
 $(mixin global vec_diveq(a,s) vec_muleq(a,1.0/(s)));
 
@@ -147,12 +147,12 @@ $(mixin global vec_revroteq(a,axis) {
 
 $(mixin global vec_clamp(n,m) {
     var t = (m);
-	assert(!assert_isNaN(t),"vec_clamp(in n: "+$str(n)+", in m: "+$str(m)+")");
+    assert(!assert_isNaN(t),"vec_clamp(in n: "+$str(n)+", in m: "+$str(m)+")");
     var ls = vec_lsq(n);
     if(ls > t*t) {
-		assert(ls!=0.0,"vec_clamp(in n: "+$str(n)+", in m: "+$str(m)+")");
+        assert(ls!=0.0,"vec_clamp(in n: "+$str(n)+", in m: "+$str(m)+")");
         vec_muleq(n,t*PR(Math).invsqrt(ls));
-	}
+    }
 });
 
 $(mixin global vec_project(v,n) vec_mul(n,vec_dot(n,v),v));
@@ -168,43 +168,43 @@ $(mixin global vec_localglobal(axis,p, v,r) {
 //--------------------------------------------------------------------------------------------------
 
 $(mixin global vec3_new(acc, n)
-	vec_new(acc,n); acc var n`z:Float
+    vec_new(acc,n); acc var n`z:Float
 );
 $(mixin global vec3_new(n) vec3_new(,n));
 
 $(mixin global vec3_new(n,X,Y,Z)
-	vec_new(n,X,Y); var n`z:Float = Z
+    vec_new(n,X,Y); var n`z:Float = Z
 );
 
 $(mixin global vec3_set(n,X,Y,Z) {
-	vec_set(n,X,Y); n`z = Z;
+    vec_set(n,X,Y); n`z = Z;
 });
 $(mixin global vec3_set(n,m) {
-	vec_set(n,m); n`z = m`z;
+    vec_set(n,m); n`z = m`z;
 });
 
 $(mixin global vec3_addeq(n,m) vec3_addeq(n,m,1));
 $(mixin global vec3_subeq(n,m) vec3_subeq(n,m,1));
 $(mixin global vec3_addeq(n,m,s) {
-	var t = (s);
-	vec_addeq(n,m,t); n`z += m`z*t;
+    var t = (s);
+    vec_addeq(n,m,t); n`z += m`z*t;
 });
 $(mixin global vec3_subeq(n,m,s) {
-	var t = (s);
-	vec_subeq(n,m,t); n`z -= m`z*t;
+    var t = (s);
+    vec_subeq(n,m,t); n`z -= m`z*t;
 });
 
 $(mixin global vec3_add(n,m, r) {
-	vec_add(n,m,r); r`z = n`z+m`z;
+    vec_add(n,m,r); r`z = n`z+m`z;
 });
 $(mixin global vec3_sub(n,m, r) {
-	vec_sub(n,m,r); r`z = n`z-m`z;
+    vec_sub(n,m,r); r`z = n`z-m`z;
 });
 
 $(mixin global vec3_muleq(n,s) {
-	var t = (s);
-	vec_muleq(n,t);
-	n`z *= t;
+    var t = (s);
+    vec_muleq(n,t);
+    n`z *= t;
 });
 
 $(mixin global vec3_lsq(n) (vec_lsq(n)+n`z*n`z));
@@ -214,10 +214,10 @@ $(mixin global vec3_length_slow(n) Math.sqrt(vec3_lsq(n)));
 
 $(mixin global vec3_clamp(n,m) {
     var t = (m);
-	assert(!assert_isNaN(t),"vec3_clamp(in n: "+$str(n)+", in m: "+$str(m)+")");
+    assert(!assert_isNaN(t),"vec3_clamp(in n: "+$str(n)+", in m: "+$str(m)+")");
     var ls = vec3_lsq(n);
     if(ls > t*t) {
-		assert(ls!=0.0,"vec3_clamp(in n: "+$str(n)+", in m: "+$str(m)+")");
+        assert(ls!=0.0,"vec3_clamp(in n: "+$str(n)+", in m: "+$str(m)+")");
         vec3_muleq(n,t*PR(Math).invsqrt(ls));
-	}
+    }
 });

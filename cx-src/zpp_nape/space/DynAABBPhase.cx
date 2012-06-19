@@ -3,136 +3,136 @@ $(import);
 
 //since i use different 'next' variables, cannot use a MixList.
 $(mixin iadd(list,obj,next) {
-	assert(obj.next==null,"object already in list");
-	obj.next = list;
-	list = obj;
+    assert(obj.next==null,"object already in list");
+    obj.next = list;
+    list = obj;
 });
 $(mixin ipop(list,next) ({
-	assert(list!=null,"pop from empty list!");
-	var ret = list;
-	list = ret.next;
-	ret.next = null;
-	ret;
+    assert(list!=null,"pop from empty list!");
+    var ret = list;
+    list = ret.next;
+    ret.next = null;
+    ret;
 }));
 $(mixin ierase(list,pre,cur,next) {
-	assert(cur!=null,"cur = null");
-	if(pre==null) list = cur.next;
-	else pre.next = cur.next;
-	cur.next = null;
+    assert(cur!=null,"cur = null");
+    if(pre==null) list = cur.next;
+    else pre.next = cur.next;
+    cur.next = null;
 });
 $(mixin irem(list,obj,next) {
-	var pre = null;
-	var cur = list;
-	while(cur!=null) {
-		if(cur==obj) break;
-		pre = cur;
-		cur = cur.next;
-	}
-	ierase(list,pre,cur,next);
+    var pre = null;
+    var cur = list;
+    while(cur!=null) {
+        if(cur==obj) break;
+        pre = cur;
+        cur = cur.next;
+    }
+    ierase(list,pre,cur,next);
 });
 
 class PR(AABBNode) {
-	//fattened AABB
-	public var aabb :PR(AABB);
-	public var shape:PR(Shape);
+    //fattened AABB
+    public var aabb :PR(AABB);
+    public var shape:PR(Shape);
 
-	//tree links
-	public var dyn:Bool; //dtree or stree
-	public var parent:PR(AABBNode);
-	public var child1:PR(AABBNode);
-	public var child2:PR(AABBNode);
+    //tree links
+    public var dyn:Bool; //dtree or stree
+    public var parent:PR(AABBNode);
+    public var child1:PR(AABBNode);
+    public var child2:PR(AABBNode);
 
-	//sub-tree height
-	public var height:Int;
+    //sub-tree height
+    public var height:Int;
 
-	//used in ray casting for intersection time
-	public var rayt:Float;
+    //used in ray casting for intersection time
+    public var rayt:Float;
 
-	public function new() {
-		height = -1;
-	}
+    public function new() {
+        height = -1;
+    }
 
-	MixPool(PR(AABBNode))
-	flibmdel public inline function alloc() {
-		aabb = Get(PR(AABB));
-		moved = false;
-		synced = false;
-		first_sync = false;
-	}
-	flibmdel public inline function free() {
-		height = -1;
-		Free(PR(AABB),aabb);
-		child1 = child2 = parent = null;
-		next = null; snext = null; mnext = null;
-	}
+    MixPool(PR(AABBNode))
+    flibmdel public inline function alloc() {
+        aabb = Get(PR(AABB));
+        moved = false;
+        synced = false;
+        first_sync = false;
+    }
+    flibmdel public inline function free() {
+        height = -1;
+        Free(PR(AABB),aabb);
+        child1 = child2 = parent = null;
+        next = null; snext = null; mnext = null;
+    }
 
-	//maintaining list of objects that have been re-inserted
-	//for updating interaction pairs (vv)
-	
-	public var mnext:PR(AABBNode);
-	public var moved:Bool; //exists in move list.
+    //maintaining list of objects that have been re-inserted
+    //for updating interaction pairs (vv)
+    
+    public var mnext:PR(AABBNode);
+    public var moved:Bool; //exists in move list.
 
-	public var snext:PR(AABBNode);
-	public var synced:Bool; //exists in sync list.
-	public var first_sync:Bool; //to avoid unnecessary work when syncing for the first time.
+    public var snext:PR(AABBNode);
+    public var synced:Bool; //exists in sync list.
+    public var first_sync:Bool; //to avoid unnecessary work when syncing for the first time.
 
-	flibmdel public inline function isLeaf() return child1==null
+    flibmdel public inline function isLeaf() return child1==null
 }
 
 class PR(AABBPair) {
-	public var n1:PR(AABBNode);
-	public var n2:PR(AABBNode);
-	public var first:Bool;
-	public var sleeping:Bool;
+    public var n1:PR(AABBNode);
+    public var n2:PR(AABBNode);
+    public var first:Bool;
+    public var sleeping:Bool;
 
-	//for lookups in shape lists of pairs.
-	public var id:Int;
-	public var di:Int;
+    //for lookups in shape lists of pairs.
+    public var id:Int;
+    public var di:Int;
 
-	//optimisation to avoid second lookup if possible.
-	public var arb:PR(Arbiter);
+    //optimisation to avoid second lookup if possible.
+    public var arb:PR(Arbiter);
 
-	MixPool(PR(AABBPair))
-	public function new() {}
-	flibmdel public inline function alloc() {
-		assert(arb==null,"node still has an arbiter when going into pool??");
-	}
-	flibmdel public inline function free () {
-		assert(arb==null,"node still has an arbiter when going into pool??");
-		n1 = n2 = null;
-		sleeping = false;
-	}
+    MixPool(PR(AABBPair))
+    public function new() {}
+    flibmdel public inline function alloc() {
+        assert(arb==null,"node still has an arbiter when going into pool??");
+    }
+    flibmdel public inline function free () {
+        assert(arb==null,"node still has an arbiter when going into pool??");
+        n1 = n2 = null;
+        sleeping = false;
+    }
 }
 
 class PR(AABBTree) {
-	public var root:PR(AABBNode);
-	public function new() {}
+    public var root:PR(AABBNode);
+    public function new() {}
 
     //----------------------------------------------------------------------------------------------
   
-  	public function clear() { 
-		if(root==null) return;
+      public function clear() { 
+        if(root==null) return;
 
-   		var stack:PR(AABBNode) = null;
-		iadd(stack,root,next);
-		while(stack!=null) {
-			var node = ipop(stack,next);
-			if(node.isLeaf()) {
-				node.shape.node = null;
-				node.shape.removedFromSpace();
-				node.shape = null;
-			}else {
-				if(node.child1!=null) iadd(stack,node.child1,next);
-				if(node.child2!=null) iadd(stack,node.child2,next);
-			}
-			Free(PR(AABBNode),node);
-		}
+           var stack:PR(AABBNode) = null;
+        iadd(stack,root,next);
+        while(stack!=null) {
+            var node = ipop(stack,next);
+            if(node.isLeaf()) {
+                node.shape.node = null;
+                node.shape.removedFromSpace();
+                node.shape = null;
+            }else {
+                if(node.child1!=null) iadd(stack,node.child1,next);
+                if(node.child2!=null) iadd(stack,node.child2,next);
+            }
+            Free(PR(AABBNode),node);
+        }
 
-		root = null;
-	}
+        root = null;
+    }
     
     public static var tmpaabb = new PR(AABB)();
-	function insertLeaf(leaf:PR(AABBNode)) inlined_insertLeaf(leaf)
+    function insertLeaf(leaf:PR(AABBNode)) inlined_insertLeaf(leaf)
     flibmdel public inline function inlined_insertLeaf(leaf:PR(AABBNode)) {
         if(root==null) {
             root = leaf;
@@ -215,7 +215,7 @@ class PR(AABBTree) {
         }
     }
 
-	public function removeLeaf(leaf:PR(AABBNode)) inlined_removeLeaf(leaf)
+    public function removeLeaf(leaf:PR(AABBNode)) inlined_removeLeaf(leaf)
     flibmdel public inline function inlined_removeLeaf(leaf:PR(AABBNode)) {
         if(leaf==root) {
             root = null;
@@ -307,152 +307,152 @@ class PR(AABBTree) {
 
 //Double Dynamic AABB tree.
 class PR(DynAABBPhase) extends PR(Broadphase) {
-	inline static var FATTEN = 3.0;
-	inline static var VEL_STEPS = 2.0;
-	
-	//note kinematics are treat no differently here than dynamics
-	public var stree:PR(AABBTree); //for static/sleeping objects
-	public var dtree:PR(AABBTree); //for non-static, non-sleeping objects
+    inline static var FATTEN = 3.0;
+    inline static var VEL_STEPS = 2.0;
+    
+    //note kinematics are treat no differently here than dynamics
+    public var stree:PR(AABBTree); //for static/sleeping objects
+    public var dtree:PR(AABBTree); //for non-static, non-sleeping objects
 
-	public var pairs:PR(AABBPair); //intrusive list
+    public var pairs:PR(AABBPair); //intrusive list
 
-	public var syncs:PR(AABBNode); //intrusive list
-	public var moves:PR(AABBNode); //intrusice list
+    public var syncs:PR(AABBNode); //intrusive list
+    public var moves:PR(AABBNode); //intrusice list
 
-	public function new(space:PR(Space)) {
-		this.space = space;
-		is_sweep = false;
-		dynab = this;
+    public function new(space:PR(Space)) {
+        this.space = space;
+        is_sweep = false;
+        dynab = this;
 
-		stree = new PR(AABBTree)();
-		dtree = new PR(AABBTree)();
-	}
+        stree = new PR(AABBTree)();
+        dtree = new PR(AABBTree)();
+    }
 
-	//==============================================================
+    //==============================================================
 
-	flibmdel public inline function dyn(shape:PR(Shape)) {
-		if(shape.body.isStatic()) return false;
-		else return !shape.body.component.sleeping;
-	}
+    flibmdel public inline function dyn(shape:PR(Shape)) {
+        if(shape.body.isStatic()) return false;
+        else return !shape.body.component.sleeping;
+    }
 
-	//==============================================================
+    //==============================================================
 
-	public function __insert(shape:PR(Shape)) {
-		assert(shape.node==null,"shape has been inserted already");
-		assert(shape.body!=null,"shape inserted with no body");
+    public function __insert(shape:PR(Shape)) {
+        assert(shape.node==null,"shape has been inserted already");
+        assert(shape.body!=null,"shape inserted with no body");
 
-		var node = Get(PR(AABBNode));
-		node.shape = shape;
-		shape.node = node;
+        var node = Get(PR(AABBNode));
+        node.shape = shape;
+        shape.node = node;
 
-		//defer actual insertion until broadphase needs to be synced
-		//makes sense to do this; as a shape may exist in the space
-		//and then have transformations applied etc which would
-		//required it to be re-synced again anyways.
-		assert(!node.synced,"node is already in sync list?");
-		node.synced = true;
-		node.first_sync = true;
-		iadd(syncs,node,snext);
-	}
-	public function __remove(shape:PR(Shape)) {
-		assert(shape.body!=null,"do i need this assertion?");
-		assert(shape.node!=null,"shape has no node?");
+        //defer actual insertion until broadphase needs to be synced
+        //makes sense to do this; as a shape may exist in the space
+        //and then have transformations applied etc which would
+        //required it to be re-synced again anyways.
+        assert(!node.synced,"node is already in sync list?");
+        node.synced = true;
+        node.first_sync = true;
+        iadd(syncs,node,snext);
+    }
+    public function __remove(shape:PR(Shape)) {
+        assert(shape.body!=null,"do i need this assertion?");
+        assert(shape.node!=null,"shape has no node?");
 
-		var node = shape.node;
-		//shape might not have been 'actually' inserted yet.
-		if(!node.first_sync) {
-			if(node.dyn) dtree.removeLeaf(node);
-			else         stree.removeLeaf(node);
-		}
-		shape.node = null;
+        var node = shape.node;
+        //shape might not have been 'actually' inserted yet.
+        if(!node.first_sync) {
+            if(node.dyn) dtree.removeLeaf(node);
+            else         stree.removeLeaf(node);
+        }
+        shape.node = null;
 
-		//remove from sync list if waiting to be synced
-		if(node.synced)	{ irem(syncs,node,snext); node.synced = false; }
-		if(node.moved)  { irem(moves,node,mnext); node.moved  = false; }
+        //remove from sync list if waiting to be synced
+        if(node.synced)    { irem(syncs,node,snext); node.synced = false; }
+        if(node.moved)  { irem(moves,node,mnext); node.moved  = false; }
 
-		//remove any pairs that may exist
-		var pre = null;
-		var cur = pairs;
-		while(cur!=null) {
-			assert(!cur.sleeping,"sleeping pair in pairs");
-			var nxt = cur.next;
-			if(cur.n1 == node || cur.n2==node) {
-				if(pre==null) pairs    = nxt;
-				else          pre.next = nxt;
+        //remove any pairs that may exist
+        var pre = null;
+        var cur = pairs;
+        while(cur!=null) {
+            assert(!cur.sleeping,"sleeping pair in pairs");
+            var nxt = cur.next;
+            if(cur.n1 == node || cur.n2==node) {
+                if(pre==null) pairs    = nxt;
+                else          pre.next = nxt;
 
-				if(cur.arb!=null) cur.arb.pair = null;
-				cur.arb = null;
-				cur.n1.shape.pairs.remove(cur);
-				cur.n2.shape.pairs.remove(cur);
-				Free(PR(AABBPair),cur);
+                if(cur.arb!=null) cur.arb.pair = null;
+                cur.arb = null;
+                cur.n1.shape.pairs.remove(cur);
+                cur.n2.shape.pairs.remove(cur);
+                Free(PR(AABBPair),cur);
 
-				cur = nxt;
-				continue;
-			}
-			pre = cur;
-			cur = nxt;
-		}
-		//clean up shape.pairs of any sleeping pairs that still remain!
-		while(!shape.pairs.empty()) {
-			var cur = shape.pairs.pop_unsafe();
-			assert(cur.sleeping,"non-sleeping pair remaining after removing them from pairs");
-			if(cur.n1==node) cur.n2.shape.pairs.remove(cur);
-			else             cur.n1.shape.pairs.remove(cur);
-			if(cur.arb!=null) cur.arb.pair = null;
-			cur.arb = null;
-			Free(PR(AABBPair),cur);
-		}
+                cur = nxt;
+                continue;
+            }
+            pre = cur;
+            cur = nxt;
+        }
+        //clean up shape.pairs of any sleeping pairs that still remain!
+        while(!shape.pairs.empty()) {
+            var cur = shape.pairs.pop_unsafe();
+            assert(cur.sleeping,"non-sleeping pair remaining after removing them from pairs");
+            if(cur.n1==node) cur.n2.shape.pairs.remove(cur);
+            else             cur.n1.shape.pairs.remove(cur);
+            if(cur.arb!=null) cur.arb.pair = null;
+            cur.arb = null;
+            Free(PR(AABBPair),cur);
+        }
 
-		Free(PR(AABBNode),node);
-	}
-	flibmdel public inline function __sync(shape:PR(Shape)) {
-		assert(!shape.body.isStatic(),"static shape being synced?");
-	
-		var node = shape.node;
-		assert(node!=null,"shape has no node?");
-		//defer syncing until it is necessary.	
-		if(!node.synced) {
-			shape.validate_aabb();
-			//only sync if shape has changed mode (dyn/stat tree)
-			//or has left it's fattened aabb
-			var sync = node.dyn != dyn(shape) || !node.aabb.contains(shape.aabb);
-			//var sync = !(node.dyn && node.aabb.contains(shape.aabb));
-			if(sync) {
-				#if NAPE_TIMES Debug.BROADCLASH++; #end
-				node.synced = true;
-				iadd(syncs,node,snext);
-			}
-			#if NAPE_TIMES Debug.BROADTOTAL++; #end
-		}
-    }	
+        Free(PR(AABBNode),node);
+    }
+    flibmdel public inline function __sync(shape:PR(Shape)) {
+        assert(!shape.body.isStatic(),"static shape being synced?");
+    
+        var node = shape.node;
+        assert(node!=null,"shape has no node?");
+        //defer syncing until it is necessary.    
+        if(!node.synced) {
+            shape.validate_aabb();
+            //only sync if shape has changed mode (dyn/stat tree)
+            //or has left it's fattened aabb
+            var sync = node.dyn != dyn(shape) || !node.aabb.contains(shape.aabb);
+            //var sync = !(node.dyn && node.aabb.contains(shape.aabb));
+            if(sync) {
+                #if NAPE_TIMES Debug.BROADCLASH++; #end
+                node.synced = true;
+                iadd(syncs,node,snext);
+            }
+            #if NAPE_TIMES Debug.BROADTOTAL++; #end
+        }
+    }    
 
-	//==============================================================
-	/*
-		In an effort to reduce runtime work, whenever possible
-		the broadphase does not actually generate the moves list
-		at all, and simply uses the syncs list.
+    //==============================================================
+    /*
+        In an effort to reduce runtime work, whenever possible
+        the broadphase does not actually generate the moves list
+        at all, and simply uses the syncs list.
 
-		If this is not possible, then a constant switch is done
-		and from that point on moves list is updated as per usual.
-	*/
+        If this is not possible, then a constant switch is done
+        and from that point on moves list is updated as per usual.
+    */
 
-	$(mixin syncnode(node) {
-		var shape = node.shape;
-		assert(node.synced,"node doesn't need syncing?");
-		assert(shape.body!=null,"shape with no body can't be synced");
+    $(mixin syncnode(node) {
+        var shape = node.shape;
+        assert(node.synced,"node doesn't need syncing?");
+        assert(shape.body!=null,"shape with no body can't be synced");
 
-		//if this isn't the node's first sync, remove from tree.
-		if(!node.first_sync) {
-			var tree = if(node.dyn) dtree else stree;
-			tree.inlined_removeLeaf(node);
-		}else
-			node.first_sync = false;
+        //if this isn't the node's first sync, remove from tree.
+        if(!node.first_sync) {
+            var tree = if(node.dyn) dtree else stree;
+            tree.inlined_removeLeaf(node);
+        }else
+            node.first_sync = false;
 
-		var aabb = node.aabb;
-		shape.validate_aabb();
-		aabb.set_expand(shape.aabb,FATTEN);
+        var aabb = node.aabb;
+        shape.validate_aabb();
+        aabb.set_expand(shape.aabb,FATTEN);
 
-		//add a velocity contribution
+        //add a velocity contribution
 /*
         vec_new(vel, shape.body.velx, shape.body.vely);
         var ang = shape.body.angvel;
@@ -465,634 +465,634 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
         if(velx<0) aabb.minx += velx; else aabb.maxx += velx;
         if(vely<0) aabb.miny += vely; else aabb.maxy += vely;
 */
-		//and insert/re-insert
-		var tree = if(node.dyn=dyn(shape)) dtree else stree;
-		tree.inlined_insertLeaf(node);
-		node.synced = false;
-	});
-
-	public function sync_broadphase() {
-		//validate shape aabb's and other properties.
-		space.validation();
-
-		if(syncs!=null) {
-			if(moves==null) {
-				var node = syncs;
-				while(node!=null) {
-					syncnode(node);
-	
-					//add to moves list, remove from syncs list.
-					assert(!node.moved,"node already moved apparently?");
-					node.moved = true;
-					node.mnext = node.snext;
-					node.snext = null;
-					node = node.mnext;
-				}
-	
-				//final pointer swap
-				swap(syncs,moves)
-			}else
-			{
-				while(syncs!=null) {
-					var node = ipop(syncs,snext);
-					syncnode(node);
-	
-					if(!node.moved) {
-						node.moved = true;
-						iadd(moves,node,mnext);
-					}
-				}
-			}
-		}
-	}
-
-	public override function broadphase() {
-		//finish syncing whatever is left to sync.
-		var node = syncs;
-		while(node!=null) {
-			syncnode(node);
-			node = node.snext;
-		}
-
-		//process moves + syncs list to generate new pairs.
-		$(mixin proc(list,lnext) {
-			while(list!=null) {
-				var leaf = ipop(list,lnext);
-
-				//handle rare instance of shape being in both syncs and moves list
-				//ignore it and just handle once in moves.
-				if($str(list)!="moves" && leaf.moved) continue;
-				leaf.moved = false;
-
-				var lshape = leaf.shape;
-				var lbody = lshape.body;
-
-				assert(!(lbody.component.sleeping && lbody.isStatic()),"a sleeping static?");
-				if(lbody.component.sleeping) continue;
-				
-				var ab = leaf.aabb;
-				var stack = null;
-				$(mixin dotree(tree) {
-					if(tree.root!=null)
-						iadd(stack,tree.root,next);
-					while(stack!=null) {
-						var node = ipop(stack,next);
-						if(node==leaf) continue;
-
-						if(node.isLeaf()) {
-							var shape = node.shape;
-							if(shape.body != lshape.body) {
-								if(ab.intersect(node.aabb)) {
-									var id:Int; var di:Int;
-									assert(lshape!=shape,"narrowphase area of dyn-aabb with same shape?");
-									if(lshape.id < shape.id) { id = lshape.id; di = shape.id; }
-									else                     { id = shape.id; di = lshape.id; }
-									assert(id<di,"id's not well ordered in dyn-aabb narrowphase");
-									var s = if(lshape.pairs.length<shape.pairs.length) lshape else shape;
-
-									var p:PR(AABBPair) = null;
-									Iter(px, s.pairs, {
-										assert(!(px.id==di && px.di==id),"dyn-pair id didn't match shape id's");
-										if(px.id == id && px.di == di) {
-											p = px;
-											break;
-										}
-									});
-	
-									if(p!=null) {
-										if(p.sleeping) {
-											p.sleeping = false;
-											p.next = pairs;
-											pairs = p;
-											p.first = true; //avoid bounds check in main loop.
-										}
-										continue;
-									}
-
-									p = Get(PR(AABBPair));
-									p.n1 = leaf;
-									p.n2 = node;
-									p.id = id; p.di = di;
-									p.next = pairs;
-									pairs = p;
-									p.first = true; //avoid bounds check in main loop.
-
-									lshape.pairs.inlined_add(p);
-									 shape.pairs.inlined_add(p);
-								}
-							}
-						}else if(ab.intersect(node.aabb)) {
-							if(node.child1!=null) iadd(stack,node.child1,next);
-							if(node.child2!=null) iadd(stack,node.child2,next);
-						}
-					}
-				});
-
-				dotree(dtree);
-				if(!lbody.isStatic())
-					dotree(stree)
-			}
-		});
-		proc(syncs,snext)
-		proc(moves,mnext)
-
-		//process pairs (+ remove no longer valid pairs)
-		var pre:PR(AABBPair) = null;
-		var cur = pairs;
-		while(cur!=null) {
-			assert(!cur.sleeping,"non-sleeping pair in pairs");
-			if(!cur.first && !cur.n1.aabb.intersect(cur.n2.aabb)) {
-				if(pre==null) pairs = cur.next;
-				else          pre.next = cur.next;
-				cur.n1.shape.pairs.inlined_remove(cur);
-				cur.n2.shape.pairs.inlined_remove(cur);
-				var nxt = cur.next;
-				if(cur.arb!=null) cur.arb.pair = null;
-				cur.arb = null;
-				Free(PR(AABBPair),cur);
-				cur = nxt;
-				continue;
-			}
-			var s1 = cur.n1.shape; var b1 = s1.body;
-			var s2 = cur.n2.shape; var b2 = s2.body;
-			if((b1.component.sleeping || b1.isStatic())
-			&& (b2.component.sleeping || b2.isStatic())) {
-				cur.sleeping = true;
-				if(pre==null) pairs = cur.next;
-				else          pre.next = cur.next;
-				cur = cur.next;
-				continue;
-			}
-			cur.first = false;
-			if(s1.aabb.intersect(s2.aabb)) {
-				assert(cur.arb==null || cur.arb.pair==cur, "arbiter/pair don't match up");
-				var oarb = cur.arb;
-				cur.arb = space.narrowPhase(s1,s2,!b1.isDynamic() || !b2.isDynamic(), cur.arb);
-				if(cur.arb==null) {
-					if(oarb!=null) oarb.pair = null;
-				}else
-					cur.arb.pair = cur;
-				#if NAPE_ASSERT
-					if(cur.arb!=oarb)
-						assert(oarb==null || oarb.pair==null,"oh deary me");
-				#end
-			}
-
-			pre = cur;
-			cur = cur.next;
-		}
-	}
-
-	//==============================================================
-
-	//could DEFINATELY be improved, but not important right now
-	public override function clear() {
-		while(syncs!=null) {
-			var next = syncs.snext;
-			syncs.snext = null;
-			if(syncs.first_sync) {
-				syncs.shape.node = null;
-				syncs.shape.removedFromSpace();
-				syncs.shape = null;
-			}
-			syncs = next;
-		}
-		while(moves!=null) {
-			var next = moves.mnext;
-			moves.mnext = null;
-			if(moves.first_sync) {
-				moves.shape.node = null;
-				moves.shape.removedFromSpace();
-				moves.shape = null;
-			}
-			moves = next;
-		}
-
-		while(pairs!=null) {
-			var nxt = pairs.next;
-			if(pairs.arb!=null) pairs.arb.pair = null;
-			pairs.arb = null;
-			Free(PR(AABBPair),pairs);
-			pairs = nxt;
-		}
-
-		dtree.clear();
-		stree.clear();
-	}
-
-	//==============================================================
-
-	//iterate tree, descending into a subtree only if condition is true
-	//execute block on each leaf shape.
-	$(mixin IterTree(tree,condition,block) {
-		if(tree.root!=null) {
-			var stack = new List(PR(AABBNode))();
-			stack.add(tree.root);
-			while(!stack.empty()) {
-				var node = stack.pop_unsafe();
-				assert(node!=null,"null node");
-				if(condition(node)) {
-					if(node.isLeaf()) {
-						block(node.shape);
-					}else {
-						if(node.child1!=null) stack.add(node.child1);
-						if(node.child2!=null) stack.add(node.child2);
-					}
-				}
-			}
-		}
-	});
-
-	//==============================================================
-
-	//iterate for leaves containing given point
-	$(mixin IterPoint(tree,point,block) IterTree(tree,$(mixin cond(node) node.aabb.containsPoint(point)) cond, block));
-
-	public override function shapesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)) {
-		sync_broadphase();
-
-		var v = PR(Vec2).get(x,y);
-		var ret = new ShapeList();
-
-		$(mixin dotree(tree) {
-			IterPoint(tree,v, $(mixin block(shape) {
-				if(filter==null || shape.filter.shouldCollide(filter)) {
-		            if(shape.isCircle()) {
-	                    if(PR(Collide).circleContains(shape.circle,v))
-	                        ret.push(shape.outer);
-	                }else {
-	                    if(PR(Collide).polyContains(shape.polygon,v))
-	                        ret.push(shape.outer);
-	                }
-				}
-			}) block)
-		});
-		dotree(stree)
-		dotree(dtree)
-
-		Free(PR(Vec2),v);
-		return ret;
-	}
-
-	public override function bodiesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)) {
-		sync_broadphase();
-
-		var v = PR(Vec2).get(x,y);
-		var ret = new BodyList();
-
-		$(mixin dotree(tree) {
-			IterPoint(tree,v, $(mixin block(shape) {
-				var body = shape.body.outer;
-				if(!ret.has(body)) {
-					if(filter==null || shape.filter.shouldCollide(filter)) {
-		                if(shape.isCircle()) {
-	                        if(PR(Collide).circleContains(shape.circle,v))
-	                            ret.push(body);
-	                    }else {
-	                        if(PR(Collide).polyContains(shape.polygon,v))
-	                            ret.push(body);
-	                    }
-					}
-				}
-			}) block)
-		});
-		dotree(stree)
-		dotree(dtree)
-
-		Free(PR(Vec2),v);
-		return ret;
-	}
-
-	//==============================================================
-
-	//iterate over leaves intersecting given aabb
-	$(mixin IterAABB(tree,AABB,block) IterTree(tree,$(mixin cond(node) node.aabb.intersect(AABB)) cond, block));
-
-	$(mixin IterRealAABB(tree,AABB,block,block2) {
-		if(tree.root!=null) {
-			var stack = new List(PR(AABBNode))();
-			stack.add(tree.root);
-			while(!stack.empty()) {
-				var node = stack.pop_unsafe();
-				assert(node!=null,"null node");
-				if(AABB.contains(node.aabb)) {
-					if(node.isLeaf()) {
-						block2(node.shape);
-					}else {
-
-						//faster traversal.
-						var stack2 = new List(PR(AABBNode))();
-						stack2.add(node);
-						while(!stack2.empty()) {
-							var node = stack2.pop_unsafe();
-							if(node.isLeaf()) block2(node.shape);
-							else {
-								if(node.child1!=null) stack2.add(node.child1);
-								if(node.child2!=null) stack2.add(node.child2);
-							}
-						}
-
-					}
-				}
-				else if(node.aabb.intersect(AABB)) {
-					if(node.isLeaf()) {
-						block(node.shape);
-					}else {
-						if(node.child1!=null) stack.add(node.child1);
-						if(node.child2!=null) stack.add(node.child2);
-					}
-				}
-			}
-		}
-	});
-
-	public override function shapesInAABB(aabb:PR(AABB), strict:Bool, containment:Bool, filter:PR(InteractionFilter)) {
-		sync_broadphase();
-		updateAABBShape(aabb);
-
-		var ab = aabbShape.pr(inner).aabb;
-		var ret = new ShapeList();
-		
-		$(mixin dotree(tree) {
-			IterRealAABB(tree,ab, $(mixin block(shape) {
-				if(filter==null || shape.filter.shouldCollide(filter)) {
-					if(strict) {
-						if(containment) {
-							if(PR(Collide).containTest(aabbShape.pr(inner),shape))
-								ret.push(shape.outer);
-						}else {
-							if(ab.contains(shape.aabb))
-								ret.push(shape.outer);
-							else if(PR(Collide).testCollide_safe(shape,aabbShape.pr(inner)))
-								ret.push(shape.outer);
-						}
-					}else if(!containment || ab.contains(shape.aabb))
-						ret.push(shape.outer);
-				}
-			}) block,
-			$(mixin block2(shape) {
-				ret.push(shape.outer);
-			}) block2
-			)
-		});
-		dotree(stree)
-		dotree(dtree)
-		return ret;
-	}
-
-	public override function bodiesInAABB(aabb:PR(AABB), strict:Bool, containment:Bool, filter:PR(InteractionFilter)) {
-		sync_broadphase();
-		updateAABBShape(aabb);
-
-		var ab = aabbShape.pr(inner).aabb;
-		var ret = new BodyList();
-		
-		$(mixin dotree(tree) {
-			IterRealAABB(tree,ab, $(mixin block(shape) {
-				var body = shape.body.outer;
-				if(!ret.has(body)) {
-					if(filter==null || shape.filter.shouldCollide(filter)) {
-						if(strict) {
-							if(containment) {
-								if(PR(Collide).containTest(aabbShape.pr(inner),shape))
-									ret.push(body);
-							}else {
-								if(ab.contains(shape.aabb))
-									ret.push(body);
-								else if(PR(Collide).testCollide_safe(shape,aabbShape.pr(inner)))
-									ret.push(body);
-							}
-						}else if(!containment || ab.contains(shape.aabb))
-							ret.push(body);
-					}
-				}else if(containment) {
-					//ensure all shapes contained
-					if(filter==null || shape.filter.shouldCollide(filter)) {
-						if(strict) {
-							if(!PR(Collide).containTest(aabbShape.pr(inner),shape))
-								ret.remove(body);
-						}else if(!ab.contains(shape.aabb))
-							ret.remove(body);
-					}
-				}
-			}) block,
-			$(mixin block2(shape) {
-				var body = shape.body.outer;
-				if(!ret.has(body)) ret.push(body);
-			}) block2
-			)
-		});
-		dotree(stree)
-		dotree(dtree)
-		return ret;
-	}
-
-	//==============================================================
-
-	public override function shapesInCircle(x:Float,y:Float,r:Float, containment:Bool, filter:PR(InteractionFilter)) {
-		sync_broadphase();
-		updateCircShape(x,y,r);
-
-		var ab = circShape.pr(inner).aabb;
-		var ret = new ShapeList();
-		
-		$(mixin dotree(tree) {
-			IterAABB(tree,ab, $(mixin block(shape) {
-				if(filter==null || shape.filter.shouldCollide(filter)) {
-					if(containment) {
-						if(PR(Collide).containTest(circShape.pr(inner),shape))
-							ret.push(shape.outer);
-					} else if(PR(Collide).testCollide_safe(shape,circShape.pr(inner)))
-						ret.push(shape.outer);
-				}
-			}) block)
-		});
-		dotree(stree)
-		dotree(dtree)
-		return ret;
-	}
-
-	public override function bodiesInCircle(x:Float,y:Float,r:Float, containment:Bool, filter:PR(InteractionFilter)) {
-		sync_broadphase();
-		updateCircShape(x,y,r);
-
-		var ab = circShape.pr(inner).aabb;
-		var ret = new BodyList();
-		
-		$(mixin dotree(tree) {
-			IterAABB(tree,ab, $(mixin block(shape) {
-				var body = shape.body.outer;
-				if(!ret.has(body)) {
-					if(filter==null || shape.filter.shouldCollide(filter)) {
-						if(containment) {
-							if(PR(Collide).containTest(circShape.pr(inner),shape))
-								ret.push(body);
-						} else if(PR(Collide).testCollide_safe(shape,circShape.pr(inner)))
-							ret.push(body);
-					}
-				}else if(containment) {
-					//check all contained
-					if((filter==null || shape.filter.shouldCollide(filter)) && !PR(Collide).containTest(circShape.pr(inner),shape))
-						ret.remove(body);
-				}
-			}) block)
-		});
-		dotree(stree)
-		dotree(dtree)
-		return ret;
-	}
-
-	//==============================================================
-
-	public override function shapesInShape(shp:PR(Shape), containment:Bool, filter:PR(InteractionFilter)) {
-		sync_broadphase();
-		validateShape(shp);
-
-		var ab = shp.aabb;
-		var ret = new ShapeList();
-		
-		$(mixin dotree(tree) {
-			IterAABB(tree,ab, $(mixin block(shape) {
-				if(filter==null || shape.filter.shouldCollide(filter)) {
-					if(containment) {
-						if(PR(Collide).containTest(shp,shape))
-							ret.push(shape.outer);
-					}else if(PR(Collide).testCollide_safe(shape,shp))
-						ret.push(shape.outer);
-				}
-			}) block)
-		});
-		dotree(stree)
-		dotree(dtree)
-		return ret;
-	}
-
-	public override function bodiesInShape(shp:PR(Shape), containment:Bool, filter:PR(InteractionFilter)) {
-		sync_broadphase();
-		validateShape(shp);
-
-		var ab = shp.aabb;
-		var ret = new BodyList();
-		
-		$(mixin dotree(tree) {
-			IterAABB(tree,ab, $(mixin block(shape) {
-				var body = shape.body.outer;
-				if(!ret.has(body)) {
-					if(filter==null || shape.filter.shouldCollide(filter)) {
-						if(containment) {
-							if(PR(Collide).containTest(shp,shape))
-								ret.push(body);
-						}else if(PR(Collide).testCollide_safe(shape,shp))
-							ret.push(body);
-					}
-				}else if(containment) {
-					//check all contained
-					if((filter==null || shape.filter.shouldCollide(filter)) && !PR(Collide).containTest(shp,shape))
-						ret.remove(body);
-				}
-			}) block)
-		});
-		dotree(stree)
-		dotree(dtree)
-		return ret;
-	}
-
-	//==============================================================
-
-	public var openlist:List(PR(AABBNode));
-	
-	public override function rayCast(ray:PR(Ray),inner:Bool,filter:PR(InteractionFilter)) {
-		if(openlist==null) openlist = new List(PR(AABBNode))();
-
-		sync_broadphase();
-		ray.validate_dir();
-		var mint = ray.maxdist;
-
-		$(mixin raynode(node) {
-			if(node!=null) {
-				if(ray.aabbtest(node.aabb)) {
-					var t = ray.aabbsect(node.aabb);
-					if(t>=0 && t<mint) {
-						node.rayt = t;
-						Insert(node, openlist, $(mixin lt(x,y) (x.rayt < y.rayt)) lt);
-					}
-				}
-			}
-		});
-
-		raynode(dtree.root);
-		raynode(stree.root);
-
-		var minres:RayResult = null;
-
-		while(!openlist.empty()) {
-			var cnode = openlist.pop_unsafe();
-			if(cnode.rayt >= mint) break;
-
-			if(cnode.isLeaf()) {
-				var shape = cnode.shape;
-				if(filter==null || shape.filter.shouldCollide(filter)) {
-					var result =
-						if(shape.isCircle()) ray.circlesect(shape.circle, inner,mint)
-						else if(ray.aabbtest(shape.aabb)) ray.polysect(shape.polygon,inner,mint);
-						else null;
-					if(result!=null) {
-						mint = result.distance;
-						minres = result;
-					}
-				}
-			}else {
-				raynode(cnode.child1);
-				raynode(cnode.child2);
-			}
-		}
-
-		openlist.clear();
-		return minres;
-	}
-
-	public override function rayMultiCast(ray:PR(Ray),inner:Bool,filter:PR(InteractionFilter)) {
-		if(openlist==null) openlist = new List(PR(AABBNode))();
-
-		sync_broadphase();
-		ray.validate_dir();
-
-		var inf = ray.maxdist >= PR(Const).POSINF();
-		var ret = new RayResultList();
-
-		$(mixin raynode(node) {
-			if(node!=null) {
-				if(ray.aabbtest(node.aabb)) {
-					if(inf)
-						openlist.add(node);
-					else {
-						var t = ray.aabbsect(node.aabb);
-						if(t>=0 && t<ray.maxdist)
-							openlist.add(node);
-					}
-				}
-			}
-		});
-
-		raynode(dtree.root);
-		raynode(stree.root);
-
-		while(!openlist.empty()) {
-			var cnode = openlist.pop_unsafe();
-			if(cnode.isLeaf()) {
-				var shape = cnode.shape;
-				if(filter==null || shape.filter.shouldCollide(filter)) {
-					if(shape.isCircle()) ray.circlesect2(shape.circle,inner,ret);
-					else if(ray.aabbtest(shape.aabb))
-						ray.polysect2(shape.polygon,inner,ret);
-				}
-			}else {
-				raynode(cnode.child1);
-				raynode(cnode.child2);
-			}
-		}
-
-		openlist.clear();
-		return ret;
-	}
+        //and insert/re-insert
+        var tree = if(node.dyn=dyn(shape)) dtree else stree;
+        tree.inlined_insertLeaf(node);
+        node.synced = false;
+    });
+
+    public function sync_broadphase() {
+        //validate shape aabb's and other properties.
+        space.validation();
+
+        if(syncs!=null) {
+            if(moves==null) {
+                var node = syncs;
+                while(node!=null) {
+                    syncnode(node);
+    
+                    //add to moves list, remove from syncs list.
+                    assert(!node.moved,"node already moved apparently?");
+                    node.moved = true;
+                    node.mnext = node.snext;
+                    node.snext = null;
+                    node = node.mnext;
+                }
+    
+                //final pointer swap
+                swap(syncs,moves)
+            }else
+            {
+                while(syncs!=null) {
+                    var node = ipop(syncs,snext);
+                    syncnode(node);
+    
+                    if(!node.moved) {
+                        node.moved = true;
+                        iadd(moves,node,mnext);
+                    }
+                }
+            }
+        }
+    }
+
+    public override function broadphase() {
+        //finish syncing whatever is left to sync.
+        var node = syncs;
+        while(node!=null) {
+            syncnode(node);
+            node = node.snext;
+        }
+
+        //process moves + syncs list to generate new pairs.
+        $(mixin proc(list,lnext) {
+            while(list!=null) {
+                var leaf = ipop(list,lnext);
+
+                //handle rare instance of shape being in both syncs and moves list
+                //ignore it and just handle once in moves.
+                if($str(list)!="moves" && leaf.moved) continue;
+                leaf.moved = false;
+
+                var lshape = leaf.shape;
+                var lbody = lshape.body;
+
+                assert(!(lbody.component.sleeping && lbody.isStatic()),"a sleeping static?");
+                if(lbody.component.sleeping) continue;
+                
+                var ab = leaf.aabb;
+                var stack = null;
+                $(mixin dotree(tree) {
+                    if(tree.root!=null)
+                        iadd(stack,tree.root,next);
+                    while(stack!=null) {
+                        var node = ipop(stack,next);
+                        if(node==leaf) continue;
+
+                        if(node.isLeaf()) {
+                            var shape = node.shape;
+                            if(shape.body != lshape.body) {
+                                if(ab.intersect(node.aabb)) {
+                                    var id:Int; var di:Int;
+                                    assert(lshape!=shape,"narrowphase area of dyn-aabb with same shape?");
+                                    if(lshape.id < shape.id) { id = lshape.id; di = shape.id; }
+                                    else                     { id = shape.id; di = lshape.id; }
+                                    assert(id<di,"id's not well ordered in dyn-aabb narrowphase");
+                                    var s = if(lshape.pairs.length<shape.pairs.length) lshape else shape;
+
+                                    var p:PR(AABBPair) = null;
+                                    Iter(px, s.pairs, {
+                                        assert(!(px.id==di && px.di==id),"dyn-pair id didn't match shape id's");
+                                        if(px.id == id && px.di == di) {
+                                            p = px;
+                                            break;
+                                        }
+                                    });
+    
+                                    if(p!=null) {
+                                        if(p.sleeping) {
+                                            p.sleeping = false;
+                                            p.next = pairs;
+                                            pairs = p;
+                                            p.first = true; //avoid bounds check in main loop.
+                                        }
+                                        continue;
+                                    }
+
+                                    p = Get(PR(AABBPair));
+                                    p.n1 = leaf;
+                                    p.n2 = node;
+                                    p.id = id; p.di = di;
+                                    p.next = pairs;
+                                    pairs = p;
+                                    p.first = true; //avoid bounds check in main loop.
+
+                                    lshape.pairs.inlined_add(p);
+                                     shape.pairs.inlined_add(p);
+                                }
+                            }
+                        }else if(ab.intersect(node.aabb)) {
+                            if(node.child1!=null) iadd(stack,node.child1,next);
+                            if(node.child2!=null) iadd(stack,node.child2,next);
+                        }
+                    }
+                });
+
+                dotree(dtree);
+                if(!lbody.isStatic())
+                    dotree(stree)
+            }
+        });
+        proc(syncs,snext)
+        proc(moves,mnext)
+
+        //process pairs (+ remove no longer valid pairs)
+        var pre:PR(AABBPair) = null;
+        var cur = pairs;
+        while(cur!=null) {
+            assert(!cur.sleeping,"non-sleeping pair in pairs");
+            if(!cur.first && !cur.n1.aabb.intersect(cur.n2.aabb)) {
+                if(pre==null) pairs = cur.next;
+                else          pre.next = cur.next;
+                cur.n1.shape.pairs.inlined_remove(cur);
+                cur.n2.shape.pairs.inlined_remove(cur);
+                var nxt = cur.next;
+                if(cur.arb!=null) cur.arb.pair = null;
+                cur.arb = null;
+                Free(PR(AABBPair),cur);
+                cur = nxt;
+                continue;
+            }
+            var s1 = cur.n1.shape; var b1 = s1.body;
+            var s2 = cur.n2.shape; var b2 = s2.body;
+            if((b1.component.sleeping || b1.isStatic())
+            && (b2.component.sleeping || b2.isStatic())) {
+                cur.sleeping = true;
+                if(pre==null) pairs = cur.next;
+                else          pre.next = cur.next;
+                cur = cur.next;
+                continue;
+            }
+            cur.first = false;
+            if(s1.aabb.intersect(s2.aabb)) {
+                assert(cur.arb==null || cur.arb.pair==cur, "arbiter/pair don't match up");
+                var oarb = cur.arb;
+                cur.arb = space.narrowPhase(s1,s2,!b1.isDynamic() || !b2.isDynamic(), cur.arb);
+                if(cur.arb==null) {
+                    if(oarb!=null) oarb.pair = null;
+                }else
+                    cur.arb.pair = cur;
+                #if NAPE_ASSERT
+                    if(cur.arb!=oarb)
+                        assert(oarb==null || oarb.pair==null,"oh deary me");
+                #end
+            }
+
+            pre = cur;
+            cur = cur.next;
+        }
+    }
+
+    //==============================================================
+
+    //could DEFINATELY be improved, but not important right now
+    public override function clear() {
+        while(syncs!=null) {
+            var next = syncs.snext;
+            syncs.snext = null;
+            if(syncs.first_sync) {
+                syncs.shape.node = null;
+                syncs.shape.removedFromSpace();
+                syncs.shape = null;
+            }
+            syncs = next;
+        }
+        while(moves!=null) {
+            var next = moves.mnext;
+            moves.mnext = null;
+            if(moves.first_sync) {
+                moves.shape.node = null;
+                moves.shape.removedFromSpace();
+                moves.shape = null;
+            }
+            moves = next;
+        }
+
+        while(pairs!=null) {
+            var nxt = pairs.next;
+            if(pairs.arb!=null) pairs.arb.pair = null;
+            pairs.arb = null;
+            Free(PR(AABBPair),pairs);
+            pairs = nxt;
+        }
+
+        dtree.clear();
+        stree.clear();
+    }
+
+    //==============================================================
+
+    //iterate tree, descending into a subtree only if condition is true
+    //execute block on each leaf shape.
+    $(mixin IterTree(tree,condition,block) {
+        if(tree.root!=null) {
+            var stack = new List(PR(AABBNode))();
+            stack.add(tree.root);
+            while(!stack.empty()) {
+                var node = stack.pop_unsafe();
+                assert(node!=null,"null node");
+                if(condition(node)) {
+                    if(node.isLeaf()) {
+                        block(node.shape);
+                    }else {
+                        if(node.child1!=null) stack.add(node.child1);
+                        if(node.child2!=null) stack.add(node.child2);
+                    }
+                }
+            }
+        }
+    });
+
+    //==============================================================
+
+    //iterate for leaves containing given point
+    $(mixin IterPoint(tree,point,block) IterTree(tree,$(mixin cond(node) node.aabb.containsPoint(point)) cond, block));
+
+    public override function shapesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)) {
+        sync_broadphase();
+
+        var v = PR(Vec2).get(x,y);
+        var ret = new ShapeList();
+
+        $(mixin dotree(tree) {
+            IterPoint(tree,v, $(mixin block(shape) {
+                if(filter==null || shape.filter.shouldCollide(filter)) {
+                    if(shape.isCircle()) {
+                        if(PR(Collide).circleContains(shape.circle,v))
+                            ret.push(shape.outer);
+                    }else {
+                        if(PR(Collide).polyContains(shape.polygon,v))
+                            ret.push(shape.outer);
+                    }
+                }
+            }) block)
+        });
+        dotree(stree)
+        dotree(dtree)
+
+        Free(PR(Vec2),v);
+        return ret;
+    }
+
+    public override function bodiesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)) {
+        sync_broadphase();
+
+        var v = PR(Vec2).get(x,y);
+        var ret = new BodyList();
+
+        $(mixin dotree(tree) {
+            IterPoint(tree,v, $(mixin block(shape) {
+                var body = shape.body.outer;
+                if(!ret.has(body)) {
+                    if(filter==null || shape.filter.shouldCollide(filter)) {
+                        if(shape.isCircle()) {
+                            if(PR(Collide).circleContains(shape.circle,v))
+                                ret.push(body);
+                        }else {
+                            if(PR(Collide).polyContains(shape.polygon,v))
+                                ret.push(body);
+                        }
+                    }
+                }
+            }) block)
+        });
+        dotree(stree)
+        dotree(dtree)
+
+        Free(PR(Vec2),v);
+        return ret;
+    }
+
+    //==============================================================
+
+    //iterate over leaves intersecting given aabb
+    $(mixin IterAABB(tree,AABB,block) IterTree(tree,$(mixin cond(node) node.aabb.intersect(AABB)) cond, block));
+
+    $(mixin IterRealAABB(tree,AABB,block,block2) {
+        if(tree.root!=null) {
+            var stack = new List(PR(AABBNode))();
+            stack.add(tree.root);
+            while(!stack.empty()) {
+                var node = stack.pop_unsafe();
+                assert(node!=null,"null node");
+                if(AABB.contains(node.aabb)) {
+                    if(node.isLeaf()) {
+                        block2(node.shape);
+                    }else {
+
+                        //faster traversal.
+                        var stack2 = new List(PR(AABBNode))();
+                        stack2.add(node);
+                        while(!stack2.empty()) {
+                            var node = stack2.pop_unsafe();
+                            if(node.isLeaf()) block2(node.shape);
+                            else {
+                                if(node.child1!=null) stack2.add(node.child1);
+                                if(node.child2!=null) stack2.add(node.child2);
+                            }
+                        }
+
+                    }
+                }
+                else if(node.aabb.intersect(AABB)) {
+                    if(node.isLeaf()) {
+                        block(node.shape);
+                    }else {
+                        if(node.child1!=null) stack.add(node.child1);
+                        if(node.child2!=null) stack.add(node.child2);
+                    }
+                }
+            }
+        }
+    });
+
+    public override function shapesInAABB(aabb:PR(AABB), strict:Bool, containment:Bool, filter:PR(InteractionFilter)) {
+        sync_broadphase();
+        updateAABBShape(aabb);
+
+        var ab = aabbShape.pr(inner).aabb;
+        var ret = new ShapeList();
+        
+        $(mixin dotree(tree) {
+            IterRealAABB(tree,ab, $(mixin block(shape) {
+                if(filter==null || shape.filter.shouldCollide(filter)) {
+                    if(strict) {
+                        if(containment) {
+                            if(PR(Collide).containTest(aabbShape.pr(inner),shape))
+                                ret.push(shape.outer);
+                        }else {
+                            if(ab.contains(shape.aabb))
+                                ret.push(shape.outer);
+                            else if(PR(Collide).testCollide_safe(shape,aabbShape.pr(inner)))
+                                ret.push(shape.outer);
+                        }
+                    }else if(!containment || ab.contains(shape.aabb))
+                        ret.push(shape.outer);
+                }
+            }) block,
+            $(mixin block2(shape) {
+                ret.push(shape.outer);
+            }) block2
+            )
+        });
+        dotree(stree)
+        dotree(dtree)
+        return ret;
+    }
+
+    public override function bodiesInAABB(aabb:PR(AABB), strict:Bool, containment:Bool, filter:PR(InteractionFilter)) {
+        sync_broadphase();
+        updateAABBShape(aabb);
+
+        var ab = aabbShape.pr(inner).aabb;
+        var ret = new BodyList();
+        
+        $(mixin dotree(tree) {
+            IterRealAABB(tree,ab, $(mixin block(shape) {
+                var body = shape.body.outer;
+                if(!ret.has(body)) {
+                    if(filter==null || shape.filter.shouldCollide(filter)) {
+                        if(strict) {
+                            if(containment) {
+                                if(PR(Collide).containTest(aabbShape.pr(inner),shape))
+                                    ret.push(body);
+                            }else {
+                                if(ab.contains(shape.aabb))
+                                    ret.push(body);
+                                else if(PR(Collide).testCollide_safe(shape,aabbShape.pr(inner)))
+                                    ret.push(body);
+                            }
+                        }else if(!containment || ab.contains(shape.aabb))
+                            ret.push(body);
+                    }
+                }else if(containment) {
+                    //ensure all shapes contained
+                    if(filter==null || shape.filter.shouldCollide(filter)) {
+                        if(strict) {
+                            if(!PR(Collide).containTest(aabbShape.pr(inner),shape))
+                                ret.remove(body);
+                        }else if(!ab.contains(shape.aabb))
+                            ret.remove(body);
+                    }
+                }
+            }) block,
+            $(mixin block2(shape) {
+                var body = shape.body.outer;
+                if(!ret.has(body)) ret.push(body);
+            }) block2
+            )
+        });
+        dotree(stree)
+        dotree(dtree)
+        return ret;
+    }
+
+    //==============================================================
+
+    public override function shapesInCircle(x:Float,y:Float,r:Float, containment:Bool, filter:PR(InteractionFilter)) {
+        sync_broadphase();
+        updateCircShape(x,y,r);
+
+        var ab = circShape.pr(inner).aabb;
+        var ret = new ShapeList();
+        
+        $(mixin dotree(tree) {
+            IterAABB(tree,ab, $(mixin block(shape) {
+                if(filter==null || shape.filter.shouldCollide(filter)) {
+                    if(containment) {
+                        if(PR(Collide).containTest(circShape.pr(inner),shape))
+                            ret.push(shape.outer);
+                    } else if(PR(Collide).testCollide_safe(shape,circShape.pr(inner)))
+                        ret.push(shape.outer);
+                }
+            }) block)
+        });
+        dotree(stree)
+        dotree(dtree)
+        return ret;
+    }
+
+    public override function bodiesInCircle(x:Float,y:Float,r:Float, containment:Bool, filter:PR(InteractionFilter)) {
+        sync_broadphase();
+        updateCircShape(x,y,r);
+
+        var ab = circShape.pr(inner).aabb;
+        var ret = new BodyList();
+        
+        $(mixin dotree(tree) {
+            IterAABB(tree,ab, $(mixin block(shape) {
+                var body = shape.body.outer;
+                if(!ret.has(body)) {
+                    if(filter==null || shape.filter.shouldCollide(filter)) {
+                        if(containment) {
+                            if(PR(Collide).containTest(circShape.pr(inner),shape))
+                                ret.push(body);
+                        } else if(PR(Collide).testCollide_safe(shape,circShape.pr(inner)))
+                            ret.push(body);
+                    }
+                }else if(containment) {
+                    //check all contained
+                    if((filter==null || shape.filter.shouldCollide(filter)) && !PR(Collide).containTest(circShape.pr(inner),shape))
+                        ret.remove(body);
+                }
+            }) block)
+        });
+        dotree(stree)
+        dotree(dtree)
+        return ret;
+    }
+
+    //==============================================================
+
+    public override function shapesInShape(shp:PR(Shape), containment:Bool, filter:PR(InteractionFilter)) {
+        sync_broadphase();
+        validateShape(shp);
+
+        var ab = shp.aabb;
+        var ret = new ShapeList();
+        
+        $(mixin dotree(tree) {
+            IterAABB(tree,ab, $(mixin block(shape) {
+                if(filter==null || shape.filter.shouldCollide(filter)) {
+                    if(containment) {
+                        if(PR(Collide).containTest(shp,shape))
+                            ret.push(shape.outer);
+                    }else if(PR(Collide).testCollide_safe(shape,shp))
+                        ret.push(shape.outer);
+                }
+            }) block)
+        });
+        dotree(stree)
+        dotree(dtree)
+        return ret;
+    }
+
+    public override function bodiesInShape(shp:PR(Shape), containment:Bool, filter:PR(InteractionFilter)) {
+        sync_broadphase();
+        validateShape(shp);
+
+        var ab = shp.aabb;
+        var ret = new BodyList();
+        
+        $(mixin dotree(tree) {
+            IterAABB(tree,ab, $(mixin block(shape) {
+                var body = shape.body.outer;
+                if(!ret.has(body)) {
+                    if(filter==null || shape.filter.shouldCollide(filter)) {
+                        if(containment) {
+                            if(PR(Collide).containTest(shp,shape))
+                                ret.push(body);
+                        }else if(PR(Collide).testCollide_safe(shape,shp))
+                            ret.push(body);
+                    }
+                }else if(containment) {
+                    //check all contained
+                    if((filter==null || shape.filter.shouldCollide(filter)) && !PR(Collide).containTest(shp,shape))
+                        ret.remove(body);
+                }
+            }) block)
+        });
+        dotree(stree)
+        dotree(dtree)
+        return ret;
+    }
+
+    //==============================================================
+
+    public var openlist:List(PR(AABBNode));
+    
+    public override function rayCast(ray:PR(Ray),inner:Bool,filter:PR(InteractionFilter)) {
+        if(openlist==null) openlist = new List(PR(AABBNode))();
+
+        sync_broadphase();
+        ray.validate_dir();
+        var mint = ray.maxdist;
+
+        $(mixin raynode(node) {
+            if(node!=null) {
+                if(ray.aabbtest(node.aabb)) {
+                    var t = ray.aabbsect(node.aabb);
+                    if(t>=0 && t<mint) {
+                        node.rayt = t;
+                        Insert(node, openlist, $(mixin lt(x,y) (x.rayt < y.rayt)) lt);
+                    }
+                }
+            }
+        });
+
+        raynode(dtree.root);
+        raynode(stree.root);
+
+        var minres:RayResult = null;
+
+        while(!openlist.empty()) {
+            var cnode = openlist.pop_unsafe();
+            if(cnode.rayt >= mint) break;
+
+            if(cnode.isLeaf()) {
+                var shape = cnode.shape;
+                if(filter==null || shape.filter.shouldCollide(filter)) {
+                    var result =
+                        if(shape.isCircle()) ray.circlesect(shape.circle, inner,mint)
+                        else if(ray.aabbtest(shape.aabb)) ray.polysect(shape.polygon,inner,mint);
+                        else null;
+                    if(result!=null) {
+                        mint = result.distance;
+                        minres = result;
+                    }
+                }
+            }else {
+                raynode(cnode.child1);
+                raynode(cnode.child2);
+            }
+        }
+
+        openlist.clear();
+        return minres;
+    }
+
+    public override function rayMultiCast(ray:PR(Ray),inner:Bool,filter:PR(InteractionFilter)) {
+        if(openlist==null) openlist = new List(PR(AABBNode))();
+
+        sync_broadphase();
+        ray.validate_dir();
+
+        var inf = ray.maxdist >= PR(Const).POSINF();
+        var ret = new RayResultList();
+
+        $(mixin raynode(node) {
+            if(node!=null) {
+                if(ray.aabbtest(node.aabb)) {
+                    if(inf)
+                        openlist.add(node);
+                    else {
+                        var t = ray.aabbsect(node.aabb);
+                        if(t>=0 && t<ray.maxdist)
+                            openlist.add(node);
+                    }
+                }
+            }
+        });
+
+        raynode(dtree.root);
+        raynode(stree.root);
+
+        while(!openlist.empty()) {
+            var cnode = openlist.pop_unsafe();
+            if(cnode.isLeaf()) {
+                var shape = cnode.shape;
+                if(filter==null || shape.filter.shouldCollide(filter)) {
+                    if(shape.isCircle()) ray.circlesect2(shape.circle,inner,ret);
+                    else if(ray.aabbtest(shape.aabb))
+                        ray.polysect2(shape.polygon,inner,ret);
+                }
+            }else {
+                raynode(cnode.child1);
+                raynode(cnode.child2);
+            }
+        }
+
+        openlist.clear();
+        return ret;
+    }
 }

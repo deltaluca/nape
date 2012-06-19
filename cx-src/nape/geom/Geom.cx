@@ -2,70 +2,70 @@ package nape.geom;
 $(import);
 
 class Geom {
-	keep public static function distance(
-		shape1:Shape, shape2:Shape,
-		out1:Vec2, out2:Vec2
-	) {
-		Disposed(out1,Vec2);
-		Disposed(out2,Vec2);
+    keep public static function distance(
+        shape1:Shape, shape2:Shape,
+        out1:Vec2, out2:Vec2
+    ) {
+        Disposed(out1,Vec2);
+        Disposed(out2,Vec2);
 
-		DEBUG(if(out1.pr(inner).immutable || out2.pr(inner).immutable)
-			throw "Error: Supplied Vec2 are immutable";
-		)
-		
-		if(out1.pr(inner)._immutable != null)
-			out1.pr(inner)._immutable();
-			
-		if(out2.pr(inner)._immutable != null)
-			out2.pr(inner)._immutable();
-			
-		DEBUG(if(shape1.body==null || shape2.body==null)
-			throw "Error: Shape must be part of a Body to calculate distances";
-		)
-		
-		var rev = false;
-		if(shape1.isPolygon() && shape2.isCircle()) {
-			rev = true;
-			swap(shape1,shape2);
-		}
-	
-		PR(Geom).validateShape(shape1.pr(inner));
-		PR(Geom).validateShape(shape2.pr(inner));	
-			
-		var ret = PR(Distance).distance(
-			out1.pr(inner), out2.pr(inner),
-			shape1.pr(inner),shape2.pr(inner),
-			null
-		);
-		
-		if(rev) {
-			swap(out1.x,out2.x);
-			swap(out1.y,out2.y);
-		}
-		
-		return ret;
-	}
+        DEBUG(if(out1.pr(inner).immutable || out2.pr(inner).immutable)
+            throw "Error: Supplied Vec2 are immutable";
+        )
+        
+        if(out1.pr(inner)._immutable != null)
+            out1.pr(inner)._immutable();
+            
+        if(out2.pr(inner)._immutable != null)
+            out2.pr(inner)._immutable();
+            
+        DEBUG(if(shape1.body==null || shape2.body==null)
+            throw "Error: Shape must be part of a Body to calculate distances";
+        )
+        
+        var rev = false;
+        if(shape1.isPolygon() && shape2.isCircle()) {
+            rev = true;
+            swap(shape1,shape2);
+        }
+    
+        PR(Geom).validateShape(shape1.pr(inner));
+        PR(Geom).validateShape(shape2.pr(inner));    
+            
+        var ret = PR(Distance).distance(
+            out1.pr(inner), out2.pr(inner),
+            shape1.pr(inner),shape2.pr(inner),
+            null
+        );
+        
+        if(rev) {
+            swap(out1.x,out2.x);
+            swap(out1.y,out2.y);
+        }
+        
+        return ret;
+    }
 
-	keep public static function intersects(shape1:Shape,shape2:Shape) {
-		DEBUG(if(shape1.body==null || shape2.body==null)
-			throw "Error: Shape must be part of a Body to calculate intersection";
-		)
+    keep public static function intersects(shape1:Shape,shape2:Shape) {
+        DEBUG(if(shape1.body==null || shape2.body==null)
+            throw "Error: Shape must be part of a Body to calculate intersection";
+        )
 
-		PR(Geom).validateShape(shape1.pr(inner));
-		PR(Geom).validateShape(shape2.pr(inner));
+        PR(Geom).validateShape(shape1.pr(inner));
+        PR(Geom).validateShape(shape2.pr(inner));
 
-		return shape1.pr(inner).aabb.intersect(shape2.pr(inner).aabb)
-		    && PR(Collide).testCollide_safe(shape1.pr(inner),shape2.pr(inner));
-	}
+        return shape1.pr(inner).aabb.intersect(shape2.pr(inner).aabb)
+            && PR(Collide).testCollide_safe(shape1.pr(inner),shape2.pr(inner));
+    }
 
-	keep public static function contains(shape1:Shape,shape2:Shape) {
-		DEBUG(if(shape1.body==null || shape2.body==null)
-			throw "Error: Shape must be part of a Body to calculate containment";
-		)
+    keep public static function contains(shape1:Shape,shape2:Shape) {
+        DEBUG(if(shape1.body==null || shape2.body==null)
+            throw "Error: Shape must be part of a Body to calculate containment";
+        )
 
-		PR(Geom).validateShape(shape1.pr(inner));
-		PR(Geom).validateShape(shape2.pr(inner));
+        PR(Geom).validateShape(shape1.pr(inner));
+        PR(Geom).validateShape(shape2.pr(inner));
 
-		return PR(Collide).containTest(shape1.pr(inner),shape2.pr(inner));
-	}
+        return PR(Collide).containTest(shape1.pr(inner),shape2.pr(inner));
+    }
 }

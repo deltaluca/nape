@@ -4,167 +4,167 @@ $(import);
 $(mixin Vertex() PR(SimplifyV));
 
 class Vertex {
-	vec_new(public,$(->));
+    vec_new(public,$(->));
 
-	MixPool(Vertex)
-	public var prev:Vertex;
+    MixPool(Vertex)
+    public var prev:Vertex;
 
-	public var flag:Bool;
-	public var forced:Bool; //to feed GeomVert value
+    public var flag:Bool;
+    public var forced:Bool; //to feed GeomVert value
 
-	public function free () {}
-	public function alloc() {}
+    public function free () {}
+    public function alloc() {}
 
-	public function new() {}
-	public static function get(v:PR(GeomVert)) {
-		var ret = Get(Vertex);
-		vec_set(ret.,v.);
-		ret.flag = false;
-		return ret;
-	}
+    public function new() {}
+    public static function get(v:PR(GeomVert)) {
+        var ret = Get(Vertex);
+        vec_set(ret.,v.);
+        ret.flag = false;
+        return ret;
+    }
 }
 
 $(mixin Pair() PR(SimplifyP));
 class Pair {
-	MixPool(Pair)
+    MixPool(Pair)
 
-	public var min:Vertex;
-	public var max:Vertex;
+    public var min:Vertex;
+    public var max:Vertex;
 
-	public function new() {}
-	public function free () { min = max = null; }
-	public function alloc () {}
+    public function new() {}
+    public function free () { min = max = null; }
+    public function alloc () {}
 
-	public static function get(min:Vertex,max:Vertex) {
-		var ret = Get(Pair);
-		ret.min = min;
-		ret.max = max;
-		return ret;
-	}
+    public static function get(min:Vertex,max:Vertex) {
+        var ret = Get(Pair);
+        ret.min = min;
+        ret.max = max;
+        return ret;
+    }
 }
 
 class PR(Simplify) {
 
-	public static function lessval(a:Vertex,b:Vertex) {
-		return (a.x-b.x) + (a.y-b.y);
-	}
-	public static function less(a:Vertex,b:Vertex) {
-		return lessval(a,b) < 0.0;
-	}
+    public static function lessval(a:Vertex,b:Vertex) {
+        return (a.x-b.x) + (a.y-b.y);
+    }
+    public static function less(a:Vertex,b:Vertex) {
+        return lessval(a,b) < 0.0;
+    }
 
-	public static function distance(v:Vertex, a:Vertex,b:Vertex) {
-		vec_new(n); vec_sub(b.,a.,n);
-		vec_new(c); vec_sub(v.,a.,c);
+    public static function distance(v:Vertex, a:Vertex,b:Vertex) {
+        vec_new(n); vec_sub(b.,a.,n);
+        vec_new(c); vec_sub(v.,a.,c);
 
-		var den = vec_dot(n,n);
-		if(den==0.0) return vec_lsq(c);
-		else {
-			var t = vec_dot(c,n)/vec_dot(n,n);
-			if  (t<=0) return vec_lsq(c);
-			elif(t>=1) return vec_dsq(v.,b.);
-			else {
-				vec_subeq(c, n,t);
-				return vec_lsq(c);
-			}
-		}
-	}
+        var den = vec_dot(n,n);
+        if(den==0.0) return vec_lsq(c);
+        else {
+            var t = vec_dot(c,n)/vec_dot(n,n);
+            if  (t<=0) return vec_lsq(c);
+            elif(t>=1) return vec_dsq(v.,b.);
+            else {
+                vec_subeq(c, n,t);
+                return vec_lsq(c);
+            }
+        }
+    }
 
-	public static function simplify(P:PR(GeomVert),epsilon:Float) {
-		var ret:Vertex = null;
-		var min:Vertex = null; var max:Vertex = null;
+    public static function simplify(P:PR(GeomVert),epsilon:Float) {
+        var ret:Vertex = null;
+        var min:Vertex = null; var max:Vertex = null;
 
-		epsilon *= epsilon;
-		var stack = new List(Pair)();
+        epsilon *= epsilon;
+        var stack = new List(Pair)();
 
-		//find min/max vertices
-		//previously forced vert.
-		var pre:Vertex = null;
-		var fst:Vertex = null;
+        //find min/max vertices
+        //previously forced vert.
+        var pre:Vertex = null;
+        var fst:Vertex = null;
 
-		var cur:PR(GeomVert) = P;
-		do {
-		mix_circular(Vertex,
-			var v = Vertex.get(cur);
-			v.forced = cur.forced;
-			if(v.forced) {
-				v.flag = true;
-				if(pre!=null)
-					stack.add(Pair.get(pre,v));
-				else fst = v;
-				pre = v;
-			}
+        var cur:PR(GeomVert) = P;
+        do {
+        mix_circular(Vertex,
+            var v = Vertex.get(cur);
+            v.forced = cur.forced;
+            if(v.forced) {
+                v.flag = true;
+                if(pre!=null)
+                    stack.add(Pair.get(pre,v));
+                else fst = v;
+                pre = v;
+            }
 
-			ret = push_after(ret, v);
-			if(min==null) { min = ret; max = ret; }
-			else {
-				if(less(ret,min)) min = ret;
-				if(less(max,ret)) max = ret;
-			}
-		)
-			cur = cur.next;
-		}while(cur!=P);
+            ret = push_after(ret, v);
+            if(min==null) { min = ret; max = ret; }
+            else {
+                if(less(ret,min)) min = ret;
+                if(less(max,ret)) max = ret;
+            }
+        )
+            cur = cur.next;
+        }while(cur!=P);
 
-		if(stack.empty()) {
-			//flag min/max for inclusion
-			if(fst==null) {
-				min.flag = max.flag = true;
-				stack.add(Pair.get(min,max));
-				stack.add(Pair.get(max,min));
-			}else {
-				var d1 = lessval(min,fst); if(d1<0) d1 = -d1;
-				var d2 = lessval(max,fst); if(d2<0) d2 = -d2;
-				if(d1>d2) {
-					min.flag = fst.flag = true;
-					stack.add(Pair.get(min,fst));
-					stack.add(Pair.get(fst,min));
-				}else {
-					max.flag = fst.flag = true;
-					stack.add(Pair.get(max,fst));
-					stack.add(Pair.get(fst,max));
-				}
-			}
-		}else
-			stack.add(Pair.get(pre,fst));
+        if(stack.empty()) {
+            //flag min/max for inclusion
+            if(fst==null) {
+                min.flag = max.flag = true;
+                stack.add(Pair.get(min,max));
+                stack.add(Pair.get(max,min));
+            }else {
+                var d1 = lessval(min,fst); if(d1<0) d1 = -d1;
+                var d2 = lessval(max,fst); if(d2<0) d2 = -d2;
+                if(d1>d2) {
+                    min.flag = fst.flag = true;
+                    stack.add(Pair.get(min,fst));
+                    stack.add(Pair.get(fst,min));
+                }else {
+                    max.flag = fst.flag = true;
+                    stack.add(Pair.get(max,fst));
+                    stack.add(Pair.get(fst,max));
+                }
+            }
+        }else
+            stack.add(Pair.get(pre,fst));
 
-		//recursively add vertices.
-		while(!stack.empty()) {
-			var cur = stack.pop_unsafe();
-			var min = cur.min; var max = cur.max;
-			Free(Pair,cur);
+        //recursively add vertices.
+        while(!stack.empty()) {
+            var cur = stack.pop_unsafe();
+            var min = cur.min; var max = cur.max;
+            Free(Pair,cur);
 
-			var dmax = epsilon;
-			var dv:Vertex = null;
-			var ite = min.next;
-			while(ite!=max) {
-				var dist = distance(ite, min,max);
-				if(dist>dmax) {
-					dmax = dist;
-					dv = ite;
-				}		
-				ite = ite.next;
-			}
+            var dmax = epsilon;
+            var dv:Vertex = null;
+            var ite = min.next;
+            while(ite!=max) {
+                var dist = distance(ite, min,max);
+                if(dist>dmax) {
+                    dmax = dist;
+                    dv = ite;
+                }        
+                ite = ite.next;
+            }
 
-			if(dv!=null) {
-				dv.flag = true;
-				stack.add(Pair.get(min,dv));
-				stack.add(Pair.get(dv,max));
-			}
-		}
+            if(dv!=null) {
+                dv.flag = true;
+                stack.add(Pair.get(min,dv));
+                stack.add(Pair.get(dv,max));
+            }
+        }
 
-		//build out-poly
-		var retp:PR(GeomVert) = null;
-		while(ret!=null) {
-			mix_circular(PR(GeomVert),
-				if(ret.flag) {
-					retp = push_after(retp,PR(GeomVert).get(ret.x,ret.y));
-					retp.forced = ret.forced;
-				}
-			)
-			mixpool_circular(Vertex,
-				ret = pop_ret_after(ret);
-			)
-		}
+        //build out-poly
+        var retp:PR(GeomVert) = null;
+        while(ret!=null) {
+            mix_circular(PR(GeomVert),
+                if(ret.flag) {
+                    retp = push_after(retp,PR(GeomVert).get(ret.x,ret.y));
+                    retp.forced = ret.forced;
+                }
+            )
+            mixpool_circular(Vertex,
+                ret = pop_ret_after(ret);
+            )
+        }
 
-		return retp;
-	}
+        return retp;
+    }
 }

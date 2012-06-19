@@ -2,206 +2,206 @@ package zpp_nape.geom;
 $(import);
 
 class PR(Collide) {
-	
-	flibstaticdel(circleContains)
-	public static function circleContains(c:PR(Circle),p:PR(Vec2)) {
-		vec_new(d); vec_sub(p.,c.worldCOM,d);
-		return vec_lsq(d) < c.radius*c.radius;
-	}
-	
-	flibstaticdel(polyContains)
-	public static function polyContains(s:PR(Polygon),p:PR(Vec2)) {
-		return ForAll(a, s.edges, vec_dot(a.gnorm, p.) <= a.gprojection);
-	}
-	
-	//----------------------------------------------------------------------------------------------
+    
+    flibstaticdel(circleContains)
+    public static function circleContains(c:PR(Circle),p:PR(Vec2)) {
+        vec_new(d); vec_sub(p.,c.worldCOM,d);
+        return vec_lsq(d) < c.radius*c.radius;
+    }
+    
+    flibstaticdel(polyContains)
+    public static function polyContains(s:PR(Polygon),p:PR(Vec2)) {
+        return ForAll(a, s.edges, vec_dot(a.gnorm, p.) <= a.gprojection);
+    }
+    
+    //----------------------------------------------------------------------------------------------
 
-	flibstaticdel(shapeContains)
-	public static function shapeContains(s:PR(Shape),p:PR(Vec2)) {
-		return if(s.isCircle()) circleContains(s.circle,p);
-			   else             polyContains(s.polygon,p);
-	}
-	
-	flibstaticdel(bodyContains)
-	public static function bodyContains(b:PR(Body),p:PR(Vec2)) {
-		return Exists(s,b.shapes,shapeContains(s,p));
-	}
-	
-	//----------------------------------------------------------------------------------------------
+    flibstaticdel(shapeContains)
+    public static function shapeContains(s:PR(Shape),p:PR(Vec2)) {
+        return if(s.isCircle()) circleContains(s.circle,p);
+               else             polyContains(s.polygon,p);
+    }
+    
+    flibstaticdel(bodyContains)
+    public static function bodyContains(b:PR(Body),p:PR(Vec2)) {
+        return Exists(s,b.shapes,shapeContains(s,p));
+    }
+    
+    //----------------------------------------------------------------------------------------------
 
-	flibstaticdel(containTest)
-	public static function containTest(s1:PR(Shape),s2:PR(Shape)) {
-		if(s1.aabb.contains(s2.aabb)) {
-			return if(s1.isCircle()) {
-				if(s2.isCircle()) circle2circle_contain(s1.circle,s2.circle);
-				else              circle2poly_contain  (s1.circle,s2.polygon);
-			}else {
-				if(s2.isCircle()) poly2circle_contain(s1.polygon,s2.circle);
-				else              poly2poly_contain  (s1.polygon,s2.polygon);
-			};
-		}else return false;
-	}
+    flibstaticdel(containTest)
+    public static function containTest(s1:PR(Shape),s2:PR(Shape)) {
+        if(s1.aabb.contains(s2.aabb)) {
+            return if(s1.isCircle()) {
+                if(s2.isCircle()) circle2circle_contain(s1.circle,s2.circle);
+                else              circle2poly_contain  (s1.circle,s2.polygon);
+            }else {
+                if(s2.isCircle()) poly2circle_contain(s1.polygon,s2.circle);
+                else              poly2poly_contain  (s1.polygon,s2.polygon);
+            };
+        }else return false;
+    }
 
-	//----------------------------------------------------------------------------------------------
-	
-	public static function contactCollide(s1:PR(Shape),s2:PR(Shape),arb:PR(ColArbiter), rev:Bool) {
-		if(s2.isPolygon()) {
-			return if(s1.isPolygon())
-				poly2poly(s1.polygon,s2.polygon,arb,rev);
-			else circle2poly(s1.circle,s2.polygon,arb,rev);
-		}else
-			return circle2circle(s1.circle,s2.circle,arb,rev);
-	}
+    //----------------------------------------------------------------------------------------------
+    
+    public static function contactCollide(s1:PR(Shape),s2:PR(Shape),arb:PR(ColArbiter), rev:Bool) {
+        if(s2.isPolygon()) {
+            return if(s1.isPolygon())
+                poly2poly(s1.polygon,s2.polygon,arb,rev);
+            else circle2poly(s1.circle,s2.polygon,arb,rev);
+        }else
+            return circle2circle(s1.circle,s2.circle,arb,rev);
+    }
 
-	flibstaticdel(testCollide_safe)
-	public static function testCollide_safe(s1:PR(Shape),s2:PR(Shape)) {
-		if(s2.isCircle()) swap(s1,s2);
-		return testCollide(s1,s2);
-	}
-	
-	flibstaticdel(testCollide)
-	public static function testCollide(s1:PR(Shape),s2:PR(Shape)) {
-		if(s2.isPolygon()) {
-			return if(s1.isPolygon())
-				poly2poly_test(s1.polygon,s2.polygon);
-			else circle2poly_test(s1.circle,s2.polygon);
-		}else
-			return circle2circle_test(s1.circle,s2.circle);
-	}
-	
-	flibstaticdel(flowCollide)
-	public static function flowCollide(s1:PR(Shape),s2:PR(Shape),arb:PR(FluidArbiter)) {
-		if(s2.isPolygon()) {
-			return if(s1.isPolygon())
-				poly2poly_flow(s1.polygon,s2.polygon,arb);
-			else circle2poly_flow(s1.circle,s2.polygon,arb);
-		}else
-			return circle2circle_flow(s1.circle,s2.circle,arb);
-	}
-	
-	//----------------------------------------------------------------------------------------------
-	
-	$(mixin circle2circle(c1,c2,arb,rev) {
-		var co = circle2circle_query(c1.worldCOM,c2.worldCOM,arb,c1.radius,c2.radius,rev,0);
-		if(co != null) {
-			var con = co.inner;
-			//for position iterations
-			if(rev) {
-				vec_set(con.lr1, c2.localCOM);
-				vec_set(con.lr2, c1.localCOM);
-			}else {
-				vec_set(con.lr1, c1.localCOM);
-				vec_set(con.lr2, c2.localCOM);
-			}
-			arb.radius = c1.radius + c2.radius;
-			arb.ptype = PR(ColArbiter).CIRCLE;
-			true;
-		}else
-			false;
-	});
-	
-	$(mixin circle2circle_query(p1,p2,arb,r1,r2,rev,hash) {
-		var minDist = r1+r2;
-		vec_new(p); vec_sub(p2,p1,p);
-		var distSqr = vec_lsq(p);
-		if(distSqr > minDist*minDist) null;
-		else if(distSqr<PR(Const).EPSILON*PR(Const).EPSILON)
-			arb.injectContact(p1`x,p1`y,1,0,-minDist,hash);
-		else {
-			var invDist = PR(Math).invsqrt(distSqr);
-			var dist = if(invDist<PR(Const).EPSILON) PR(Const).FMAX else 1.0 / invDist;
-			var df = 0.5 + (r1 - 0.5*minDist) * invDist;
-			
-			if(rev) arb.injectContact(p1`x + px*df, p1`y + py*df, -px*invDist, -py*invDist, dist-minDist, hash);
-			else    arb.injectContact(p1`x + px*df, p1`y + py*df,  px*invDist,  py*invDist, dist-minDist, hash);
-		}
-	});
-	
-	
-	$(mixin circle2circle_test(c1,c2) circle2circle_query_test(c1.worldCOM,c2.worldCOM,c1.radius,c2.radius));
-	
-	$(mixin circle2circle_query_test(p1,p2,r1,r2) {
-		var minDist = r1+r2;
-		vec_new(p); vec_sub(p2,p1,p);
-		var distSqr = vec_lsq(p);
-		distSqr <= minDist*minDist;
-	});
+    flibstaticdel(testCollide_safe)
+    public static function testCollide_safe(s1:PR(Shape),s2:PR(Shape)) {
+        if(s2.isCircle()) swap(s1,s2);
+        return testCollide(s1,s2);
+    }
+    
+    flibstaticdel(testCollide)
+    public static function testCollide(s1:PR(Shape),s2:PR(Shape)) {
+        if(s2.isPolygon()) {
+            return if(s1.isPolygon())
+                poly2poly_test(s1.polygon,s2.polygon);
+            else circle2poly_test(s1.circle,s2.polygon);
+        }else
+            return circle2circle_test(s1.circle,s2.circle);
+    }
+    
+    flibstaticdel(flowCollide)
+    public static function flowCollide(s1:PR(Shape),s2:PR(Shape),arb:PR(FluidArbiter)) {
+        if(s2.isPolygon()) {
+            return if(s1.isPolygon())
+                poly2poly_flow(s1.polygon,s2.polygon,arb);
+            else circle2poly_flow(s1.circle,s2.polygon,arb);
+        }else
+            return circle2circle_flow(s1.circle,s2.circle,arb);
+    }
+    
+    //----------------------------------------------------------------------------------------------
+    
+    $(mixin circle2circle(c1,c2,arb,rev) {
+        var co = circle2circle_query(c1.worldCOM,c2.worldCOM,arb,c1.radius,c2.radius,rev,0);
+        if(co != null) {
+            var con = co.inner;
+            //for position iterations
+            if(rev) {
+                vec_set(con.lr1, c2.localCOM);
+                vec_set(con.lr2, c1.localCOM);
+            }else {
+                vec_set(con.lr1, c1.localCOM);
+                vec_set(con.lr2, c2.localCOM);
+            }
+            arb.radius = c1.radius + c2.radius;
+            arb.ptype = PR(ColArbiter).CIRCLE;
+            true;
+        }else
+            false;
+    });
+    
+    $(mixin circle2circle_query(p1,p2,arb,r1,r2,rev,hash) {
+        var minDist = r1+r2;
+        vec_new(p); vec_sub(p2,p1,p);
+        var distSqr = vec_lsq(p);
+        if(distSqr > minDist*minDist) null;
+        else if(distSqr<PR(Const).EPSILON*PR(Const).EPSILON)
+            arb.injectContact(p1`x,p1`y,1,0,-minDist,hash);
+        else {
+            var invDist = PR(Math).invsqrt(distSqr);
+            var dist = if(invDist<PR(Const).EPSILON) PR(Const).FMAX else 1.0 / invDist;
+            var df = 0.5 + (r1 - 0.5*minDist) * invDist;
+            
+            if(rev) arb.injectContact(p1`x + px*df, p1`y + py*df, -px*invDist, -py*invDist, dist-minDist, hash);
+            else    arb.injectContact(p1`x + px*df, p1`y + py*df,  px*invDist,  py*invDist, dist-minDist, hash);
+        }
+    });
+    
+    
+    $(mixin circle2circle_test(c1,c2) circle2circle_query_test(c1.worldCOM,c2.worldCOM,c1.radius,c2.radius));
+    
+    $(mixin circle2circle_query_test(p1,p2,r1,r2) {
+        var minDist = r1+r2;
+        vec_new(p); vec_sub(p2,p1,p);
+        var distSqr = vec_lsq(p);
+        distSqr <= minDist*minDist;
+    });
 
-	$(mixin circle2circle_contain(c1,c2) circle2circle_query_test(c1.worldCOM,c1.worldCOM,c1.radius,(-c2.radius)));
-	
-	$(mixin circle2circle_flow(cx1,cx2,arb) {
-		var c1 = cx1; var c2 = cx2;
-		
-		vec_new(delta); vec_sub(c2.worldCOM,c1.worldCOM,delta);
-		var cr = c1.radius+c2.radius;
-		var ds = vec_lsq(delta);
-		
-		if(ds>cr*cr)
-			false;
-		else if(ds<PR(Const).EPSILON) {
-			if(c1.radius<c2.radius)
-				arb.inject(c1.area,c1.worldCOMx,c1.worldCOMy);
-			else
-				arb.inject(c2.area,c2.worldCOMx,c2.worldCOMy);
-			true;
-		}else {
-			var d = Math.sqrt(ds); var id = 1/d;
-			var x1 = 0.5*(d - (c2.radius*c2.radius-c1.radius*c1.radius)*id);
-			if(x1<=-c1.radius)
-				arb.inject(c1.area,c1.worldCOMx,c1.worldCOMy);
-			else {
-				var x2 = d-x1;
-				if(x2<=-c2.radius)
-					arb.inject(c2.area,c2.worldCOMx,c2.worldCOMy);
-				else {
-					var area1 = 0.0; var y1 = 0.0;
-					var area2 = 0.0; var y2 = 0.0;
-					circle_segment(x1,c1.radius, area1,y1);
-					circle_segment(x2,c2.radius, area2,y2);
-					
-					var tarea = area1+area2;
-					var ya = (y1*area1 + (d-y2)*area2)/tarea*id;
-					
-					arb.inject(tarea,c1.worldCOMx+deltax*ya,c1.worldCOMy+deltay*ya);
-				}
-			}
-			true;
-		}
-	});
-	
-	$(mixin circle_segment(x,r, ref_area, ref_com) {
-		var X = x;
-		var cos = X/r; var sin = Math.sqrt(1-cos*cos); var theta = Math.acos(cos);
-		ref_area = r*(r*theta - X*sin);
-		ref_com = (2/3)*r*sin*sin*sin / (theta - cos*sin);
-	});
-	
-	//----------------------------------------------------------------------------------------------
-	
-	$(mixin evalAxis2(i,pa,pb)
-		Iter(ax,pa.edges,{
-			var min = PR(Const).FMAX;
-			Iter(v,pb.gverts,{
-				var k = vec_dot(ax.gnorm,v.);
-				if(k<min) min = k;
-				if(min-ax.gprojection<=max) cx_break;
-			});
-			min -= ax.gprojection;
-			if(min>=0) { cont = false; cx_break; }
-			if(min>max) {
-				max = min;
-				axis`i = ax;
-				maxi = i;
-			}
-		})
-	);
-	
-	$(mixin poly2poly(p1,p2,arb,rev) {
-		var cont = true;
+    $(mixin circle2circle_contain(c1,c2) circle2circle_query_test(c1.worldCOM,c1.worldCOM,c1.radius,(-c2.radius)));
+    
+    $(mixin circle2circle_flow(cx1,cx2,arb) {
+        var c1 = cx1; var c2 = cx2;
+        
+        vec_new(delta); vec_sub(c2.worldCOM,c1.worldCOM,delta);
+        var cr = c1.radius+c2.radius;
+        var ds = vec_lsq(delta);
+        
+        if(ds>cr*cr)
+            false;
+        else if(ds<PR(Const).EPSILON) {
+            if(c1.radius<c2.radius)
+                arb.inject(c1.area,c1.worldCOMx,c1.worldCOMy);
+            else
+                arb.inject(c2.area,c2.worldCOMx,c2.worldCOMy);
+            true;
+        }else {
+            var d = Math.sqrt(ds); var id = 1/d;
+            var x1 = 0.5*(d - (c2.radius*c2.radius-c1.radius*c1.radius)*id);
+            if(x1<=-c1.radius)
+                arb.inject(c1.area,c1.worldCOMx,c1.worldCOMy);
+            else {
+                var x2 = d-x1;
+                if(x2<=-c2.radius)
+                    arb.inject(c2.area,c2.worldCOMx,c2.worldCOMy);
+                else {
+                    var area1 = 0.0; var y1 = 0.0;
+                    var area2 = 0.0; var y2 = 0.0;
+                    circle_segment(x1,c1.radius, area1,y1);
+                    circle_segment(x2,c2.radius, area2,y2);
+                    
+                    var tarea = area1+area2;
+                    var ya = (y1*area1 + (d-y2)*area2)/tarea*id;
+                    
+                    arb.inject(tarea,c1.worldCOMx+deltax*ya,c1.worldCOMy+deltay*ya);
+                }
+            }
+            true;
+        }
+    });
+    
+    $(mixin circle_segment(x,r, ref_area, ref_com) {
+        var X = x;
+        var cos = X/r; var sin = Math.sqrt(1-cos*cos); var theta = Math.acos(cos);
+        ref_area = r*(r*theta - X*sin);
+        ref_com = (2/3)*r*sin*sin*sin / (theta - cos*sin);
+    });
+    
+    //----------------------------------------------------------------------------------------------
+    
+    $(mixin evalAxis2(i,pa,pb)
+        Iter(ax,pa.edges,{
+            var min = PR(Const).FMAX;
+            Iter(v,pb.gverts,{
+                var k = vec_dot(ax.gnorm,v.);
+                if(k<min) min = k;
+                if(min-ax.gprojection<=max) cx_break;
+            });
+            min -= ax.gprojection;
+            if(min>=0) { cont = false; cx_break; }
+            if(min>max) {
+                max = min;
+                axis`i = ax;
+                maxi = i;
+            }
+        })
+    );
+    
+    $(mixin poly2poly(p1,p2,arb,rev) {
+        var cont = true;
 
         var max = -PR(Const).FMAX;
         var maxmin = -PR(Const).FMAX;
-		var maxi = -1;
+        var maxi = -1;
 
         var axis1:PR(Edge) = null;
         var axis2:PR(Edge) = null;
@@ -211,300 +211,300 @@ class PR(Collide) {
             evalAxis2(2,p2,p1);
             if(!cont) false;
             else {
-				var q1, q2, ax, scale;
-				if(maxi==1) { q1 = p1; q2 = p2; ax = axis1; scale = 1.0; }
-				else        { q1 = p2; q2 = p1; ax = axis2; scale =-1.0; } 
+                var q1, q2, ax, scale;
+                if(maxi==1) { q1 = p1; q2 = p2; ax = axis1; scale = 1.0; }
+                else        { q1 = p2; q2 = p1; ax = axis2; scale =-1.0; } 
 
-				var ay:PR(Edge) = null;
-				var min = PR(Const).FMAX;
-				Iter(axis,q2.edges,{
-					var k = vec_dot(ax.gnorm,axis.gnorm);
-					if(k<min) {
-						min = k;
-						ay = axis;
-					}
-				});
+                var ay:PR(Edge) = null;
+                var min = PR(Const).FMAX;
+                Iter(axis,q2.edges,{
+                    var k = vec_dot(ax.gnorm,axis.gnorm);
+                    if(k<min) {
+                        min = k;
+                        ay = axis;
+                    }
+                });
 
-				vec_new(c0); vec_set(c0,ay.gp0.);
-				vec_new(c1); vec_set(c1,ay.gp1.);
+                vec_new(c0); vec_set(c0,ay.gp0.);
+                vec_new(c1); vec_set(c1,ay.gp1.);
 
-				vec_new(dv); vec_sub(c1,c0,dv);
-				var d0 = vec_cross(c0,ax.gnorm);
-				var d1 = vec_cross(c1,ax.gnorm);
-				var den = 1/(d1-d0);
-				//clip c0
-				var t = (-ax.tp1 - d0)*den;
-				if(t>PR(Const).EPSILON) vec_addeq(c0,dv,t);
-				//clip c1
-				var t = (-ax.tp0 - d1)*den;
-				if(t<-PR(Const).EPSILON) vec_addeq(c1,dv,t);
+                vec_new(dv); vec_sub(c1,c0,dv);
+                var d0 = vec_cross(c0,ax.gnorm);
+                var d1 = vec_cross(c1,ax.gnorm);
+                var den = 1/(d1-d0);
+                //clip c0
+                var t = (-ax.tp1 - d0)*den;
+                if(t>PR(Const).EPSILON) vec_addeq(c0,dv,t);
+                //clip c1
+                var t = (-ax.tp0 - d1)*den;
+                if(t<-PR(Const).EPSILON) vec_addeq(c1,dv,t);
 
-				vec_new(n); vec_mul(ax.gnorm,scale,n);
-				//position iterations
-				vec_set(arb.lnorm, ax.lnorm);
-				arb.lproj = ax.lprojection;
-				arb.radius = 0;
-				arb.rev = rev != (scale==-1);
-				arb.ptype = arb.rev ? PR(ColArbiter).FACE2 : PR(ColArbiter).FACE1;
+                vec_new(n); vec_mul(ax.gnorm,scale,n);
+                //position iterations
+                vec_set(arb.lnorm, ax.lnorm);
+                arb.lproj = ax.lprojection;
+                arb.radius = 0;
+                arb.rev = rev != (scale==-1);
+                arb.ptype = arb.rev ? PR(ColArbiter).FACE2 : PR(ColArbiter).FACE1;
 
-				//per-contact distance, not massively important but for completeness.
-				//especcialy in light of being able to have more control over contacts
-				//with pre-handlers.
-				var c0d = vec_dot(c0,ax.gnorm)-ax.gprojection;
-				var c1d = vec_dot(c1,ax.gnorm)-ax.gprojection;
-				vec_subeq(c0,ax.gnorm,c0d*0.5);
-				vec_subeq(c1,ax.gnorm,c1d*0.5);
+                //per-contact distance, not massively important but for completeness.
+                //especcialy in light of being able to have more control over contacts
+                //with pre-handlers.
+                var c0d = vec_dot(c0,ax.gnorm)-ax.gprojection;
+                var c1d = vec_dot(c1,ax.gnorm)-ax.gprojection;
+                vec_subeq(c0,ax.gnorm,c0d*0.5);
+                vec_subeq(c1,ax.gnorm,c1d*0.5);
 
-				if(rev) { nx = -nx; ny = -ny; }
-				if(c0d <= 0) {
-					var con = arb.injectContact(c0x,c0y,nx,ny,c0d,arb.rev ? 1 : 0);
-					//position iterations
-					vec_subeq(c0,q2.body.pos);
-					vec_revrot(c0,q2.body.axis,con.inner.lr1);
-				}
-				if(c1d <= 0) {
-					var con = arb.injectContact(c1x,c1y,nx,ny,c1d,arb.rev ? 0 : 1);
-					//position iterations
-					vec_subeq(c1,q2.body.pos);
-					vec_revrot(c1,q2.body.axis,con.inner.lr1);
-				}
+                if(rev) { nx = -nx; ny = -ny; }
+                if(c0d <= 0) {
+                    var con = arb.injectContact(c0x,c0y,nx,ny,c0d,arb.rev ? 1 : 0);
+                    //position iterations
+                    vec_subeq(c0,q2.body.pos);
+                    vec_revrot(c0,q2.body.axis,con.inner.lr1);
+                }
+                if(c1d <= 0) {
+                    var con = arb.injectContact(c1x,c1y,nx,ny,c1d,arb.rev ? 0 : 1);
+                    //position iterations
+                    vec_subeq(c1,q2.body.pos);
+                    vec_revrot(c1,q2.body.axis,con.inner.lr1);
+                }
 
-				c0d <=0 || c1d <= 0;
+                c0d <=0 || c1d <= 0;
             }
         }else false;
-	});
+    });
 
     $(mixin evalAxis(i,pa,pb)
-		Iter(ax,pa.edges,{
-			var min = PR(Const).FMAX;
-			Iter(v,pb.gverts,{
-				var k = vec_dot(ax.gnorm,v.);
-				if(k<min) min = k;
-			});
-			min -= ax.gprojection;
-			if(min>0) { cont = false; cx_break; }
-		})
-	);
-	
-	$(mixin poly2poly_test(p1,p2) {
-		var cont = true;
-		evalAxis(1,p1,p2);
-		if(cont) {
-			evalAxis(2,p2,p1);
-			cont;
-		}else false;
-	});
+        Iter(ax,pa.edges,{
+            var min = PR(Const).FMAX;
+            Iter(v,pb.gverts,{
+                var k = vec_dot(ax.gnorm,v.);
+                if(k<min) min = k;
+            });
+            min -= ax.gprojection;
+            if(min>0) { cont = false; cx_break; }
+        })
+    );
+    
+    $(mixin poly2poly_test(p1,p2) {
+        var cont = true;
+        evalAxis(1,p1,p2);
+        if(cont) {
+            evalAxis(2,p2,p1);
+            cont;
+        }else false;
+    });
 
-	$(mixin poly2poly_contain(p1,p2) ForAll(a,p1.edges,{
-		var max = -PR(Const).FMAX;
-		Iter(v,p2.gverts,{
-			var k = vec_dot(a.gnorm,v.);
-			if(k>max) max = k;
-		});
-		max <= a.gprojection;
-	}));
-	
-	public static var flowpoly:List(PR(Vec2)) = new List(PR(Vec2))();
-	$(mixin poly2poly_flow(p1,p2,arb) {
-		var out1 = new Array<Bool>();
-		var out2 = new Array<Bool>();
-		
-		$(mixin evalAxis(i,j,pa,pb)
-			Iter(ax,pa.edges,{
-				var min = PR(Const).FMAX;
-				var ind = 0;
-				Iter(v,pb.gverts,{
-					var k = vec_dot(ax.gnorm,v.);
-					if(k<min) min = k;
-					if(k>=ax.gprojection+PR(Const).EPSILON) {
-						out`j[ind] = true;
-						total = false;
-					}
-					ind++;
-				});
-				min -= ax.gprojection;
-				if(min>0) { cont = false; cx_break; }
-			})
-		);
-		
-		var cont = true;
-		var total = true;
-		evalAxis(1,2,p1,p2);
-		if(total) {
-			p2.validate_worldCOM();
-			arb.inject(p2.area,p2.worldCOMx,p2.worldCOMy);
-			true;
-		}else if(cont) {
-			total = true;
-			evalAxis(2,1,p2,p1);
-			if(total) {
-				p1.validate_worldCOM();
-				arb.inject(p1.area,p1.worldCOMx,p1.worldCOMy);
-				true;
-			}else if(cont) {
-				//could have used AllocList and clear, but some elements may be 'actual' vertices.
-				//so only want to release those that aren't in use.
-				while(!flowpoly.empty()) {
-					var p = flowpoly.pop_unsafe();
-					if(!p.inuse) Free(PR(Vec2),p);
-				}
-				
-				var fst_vert = null;
-				var poly1 = false;
-				var ite1 = p1.gverts.begin(); var ind1 = 0;
-				var ite2 = p2.gverts.begin(); var ind2 = 0;
-				
-				//attempt to find a vertex that is inside the other to start intersection.
-				for(i in 0...p2.edgeCnt) if(!out2[i]) { ind2 = i; break; } else ite2 = ite2.next;
-				if(ite2==null) {
-					ite2 = p2.gverts.begin();
-					poly1 = true;
-					for(i in 0...p1.edgeCnt) if(!out1[i]) { ind1 = i; break; } else ite1 = ite1.next;
-					if(ite1==null) ite1 = p1.gverts.begin();
-					else {
-						flowpoly.add(ite1.elem());
-						fst_vert = flowpoly.front();
-					}
-				}else {
-					flowpoly.add(ite2.elem());
-					fst_vert = flowpoly.front();
-				}
-				
-				$(mixin intersect(a,b,u,v, tr) {
-					vec_new(_s); vec_sub(u,a,_s);
-					vec_new(_v); vec_sub(v,u,_v);
-					vec_new(_q); vec_sub(b,a,_q);
-					
-					var den = vec_cross(_q,_v);
-					if(den*den > PR(Const).EPSILON) {
-						den = 1/den;
-						var txx = vec_cross(_s,_q)*den;
-						if(txx>PR(Const).EPSILON && txx<1-PR(Const).EPSILON) {
-							var sxx = vec_cross(_s,_v)*den;
-							if(sxx>PR(Const).EPSILON && sxx<1-PR(Const).EPSILON) {
-								tr = txx;
-								true;
-							}else false;
-						}else false;
-					}else false;
-				});
-				
-				var cnt = 1;
-				if(flowpoly.empty()) {
-					Iter2(u,v, p1.gverts, {
-						var min = 2.0;
-						Iter2(a,b, p2.gverts, {
-							var t = 0.0;
-							if(intersect(a.,b.,u.,v.,t)) {
-								if(t<min) {
-									min = t;
-									ite2 = cx_itei;
-								}
-							}
-						});
-						if(min!=2.0) {
-							vec_new(c); vec_interp(u.,v.,min, c);
-							fst_vert = PR(Vec2).get(cx,cy);
-							flowpoly.add(fst_vert);
-							
-							poly1 = true;
-							ite1 = cx_itei;
-							cx_break;
-						}
-					});
-					cnt = 2;
-				}
-				
-				while(true) {
-					$(mixin interstate(N,pN,M,pM) {
-						ite`N = ite`N.next;
-						ind`N++;
-						if(ite`N==null) {
-							ite`N = pN.gverts.begin();
-							ind`N = 0;
-						}
-						if(!out`N[ind`N]) {
-							var ex = ite`N.elem();
-							if(fst_vert!=null && vec_dsq(ex.,fst_vert.)<PR(Const).EPSILON) break;
-							flowpoly.add(ex);
-							if(fst_vert==null) fst_vert = flowpoly.front();
-							cnt = 1;
-						}else {
-							var a = flowpoly.front();
-							var b = ite`N.elem();
-							
-							var u = ite`M.elem();
-							var itm = ite`M.next; if(itm==null) itm = pM.gverts.begin();
-							var max = -1.0; var itmo = null; var indo = 0;
-							var icnt = 0;
-							IterCycle(v, pM.gverts, itm, {
-								var t = 0.0;
-								if(intersect(a.,b.,u.,v., t)) {
-									if(t>=max) {
-										itmo = ite`M;
-										indo = ind`M;
-										if(++icnt==cnt) {
-											max = t;
-											cx_break;
-										}else
-											max = t;
-									}
-								}
-								u = v;
-								ite`M = cx_ite;
-								ind`M++; if(ind`M >= pM.edgeCnt) ind`M = 0;
-							});
-							if(itmo==null)
-								break;
-								
-							var u = itmo.elem();
-							var itm2 = itmo.next; if(itm2==null) itm2 = pM.gverts.begin();
-							var v = itm2.elem();
-							vec_new(c); vec_interp(u.,v.,max, c);
-							if(fst_vert!=null && vec_dsq(c,fst_vert.)<PR(Const).EPSILON) break;
-							flowpoly.add(PR(Vec2).get(cx,cy));
-							if(fst_vert==null) fst_vert = flowpoly.front();
-							ite`M = itmo;
-							ind`M = indo;
-							
-							poly1 = !poly1;
-							cnt = 2;
-						}
-					});
-					if(poly1) interstate(1,p1,2,p2);
-					else interstate(2,p2,1,p1);
-				}
-				
-				if(flowpoly.begin()!=null && flowpoly.begin().next!=null && flowpoly.begin().next.next!=null) {
-					var area = 0.0; vec_new(COM);
-					polygon(flowpoly,area,COM);
-					arb.inject(-area,COMx,COMy);
-					true;
-				}else false;
-			}else false;
-		}else false;
-	});
-	
-	$(mixin polygon(poly,area_ref,com_ref) {
-		vec_set(com_ref,0,0);
-		area_ref = 0.0;
-		Iter3_fast(u,v,w, poly, {
-			area_ref += v.x * (w.y - u.y);
-			var cf = vec_cross(v.,w.);
-			com_ref`x += (v.x+w.x)*cf;
-			com_ref`y += (v.y+w.y)*cf;
-		});
-		area_ref *= 0.5;
-		var ia = 1/(6*area_ref);
-		vec_muleq(com_ref,ia);
-	});
-	
-	//----------------------------------------------------------------------------------------------
-	
-	$(mixin circle2poly(circle,poly,arb,rev) {
-		var max = -PR(Const).FMAX; var minmax = -PR(Const).FMAX;
-		var cont = true;
-		var a0 = null, vi = null;
+    $(mixin poly2poly_contain(p1,p2) ForAll(a,p1.edges,{
+        var max = -PR(Const).FMAX;
+        Iter(v,p2.gverts,{
+            var k = vec_dot(a.gnorm,v.);
+            if(k>max) max = k;
+        });
+        max <= a.gprojection;
+    }));
+    
+    public static var flowpoly:List(PR(Vec2)) = new List(PR(Vec2))();
+    $(mixin poly2poly_flow(p1,p2,arb) {
+        var out1 = new Array<Bool>();
+        var out2 = new Array<Bool>();
+        
+        $(mixin evalAxis(i,j,pa,pb)
+            Iter(ax,pa.edges,{
+                var min = PR(Const).FMAX;
+                var ind = 0;
+                Iter(v,pb.gverts,{
+                    var k = vec_dot(ax.gnorm,v.);
+                    if(k<min) min = k;
+                    if(k>=ax.gprojection+PR(Const).EPSILON) {
+                        out`j[ind] = true;
+                        total = false;
+                    }
+                    ind++;
+                });
+                min -= ax.gprojection;
+                if(min>0) { cont = false; cx_break; }
+            })
+        );
+        
+        var cont = true;
+        var total = true;
+        evalAxis(1,2,p1,p2);
+        if(total) {
+            p2.validate_worldCOM();
+            arb.inject(p2.area,p2.worldCOMx,p2.worldCOMy);
+            true;
+        }else if(cont) {
+            total = true;
+            evalAxis(2,1,p2,p1);
+            if(total) {
+                p1.validate_worldCOM();
+                arb.inject(p1.area,p1.worldCOMx,p1.worldCOMy);
+                true;
+            }else if(cont) {
+                //could have used AllocList and clear, but some elements may be 'actual' vertices.
+                //so only want to release those that aren't in use.
+                while(!flowpoly.empty()) {
+                    var p = flowpoly.pop_unsafe();
+                    if(!p.inuse) Free(PR(Vec2),p);
+                }
+                
+                var fst_vert = null;
+                var poly1 = false;
+                var ite1 = p1.gverts.begin(); var ind1 = 0;
+                var ite2 = p2.gverts.begin(); var ind2 = 0;
+                
+                //attempt to find a vertex that is inside the other to start intersection.
+                for(i in 0...p2.edgeCnt) if(!out2[i]) { ind2 = i; break; } else ite2 = ite2.next;
+                if(ite2==null) {
+                    ite2 = p2.gverts.begin();
+                    poly1 = true;
+                    for(i in 0...p1.edgeCnt) if(!out1[i]) { ind1 = i; break; } else ite1 = ite1.next;
+                    if(ite1==null) ite1 = p1.gverts.begin();
+                    else {
+                        flowpoly.add(ite1.elem());
+                        fst_vert = flowpoly.front();
+                    }
+                }else {
+                    flowpoly.add(ite2.elem());
+                    fst_vert = flowpoly.front();
+                }
+                
+                $(mixin intersect(a,b,u,v, tr) {
+                    vec_new(_s); vec_sub(u,a,_s);
+                    vec_new(_v); vec_sub(v,u,_v);
+                    vec_new(_q); vec_sub(b,a,_q);
+                    
+                    var den = vec_cross(_q,_v);
+                    if(den*den > PR(Const).EPSILON) {
+                        den = 1/den;
+                        var txx = vec_cross(_s,_q)*den;
+                        if(txx>PR(Const).EPSILON && txx<1-PR(Const).EPSILON) {
+                            var sxx = vec_cross(_s,_v)*den;
+                            if(sxx>PR(Const).EPSILON && sxx<1-PR(Const).EPSILON) {
+                                tr = txx;
+                                true;
+                            }else false;
+                        }else false;
+                    }else false;
+                });
+                
+                var cnt = 1;
+                if(flowpoly.empty()) {
+                    Iter2(u,v, p1.gverts, {
+                        var min = 2.0;
+                        Iter2(a,b, p2.gverts, {
+                            var t = 0.0;
+                            if(intersect(a.,b.,u.,v.,t)) {
+                                if(t<min) {
+                                    min = t;
+                                    ite2 = cx_itei;
+                                }
+                            }
+                        });
+                        if(min!=2.0) {
+                            vec_new(c); vec_interp(u.,v.,min, c);
+                            fst_vert = PR(Vec2).get(cx,cy);
+                            flowpoly.add(fst_vert);
+                            
+                            poly1 = true;
+                            ite1 = cx_itei;
+                            cx_break;
+                        }
+                    });
+                    cnt = 2;
+                }
+                
+                while(true) {
+                    $(mixin interstate(N,pN,M,pM) {
+                        ite`N = ite`N.next;
+                        ind`N++;
+                        if(ite`N==null) {
+                            ite`N = pN.gverts.begin();
+                            ind`N = 0;
+                        }
+                        if(!out`N[ind`N]) {
+                            var ex = ite`N.elem();
+                            if(fst_vert!=null && vec_dsq(ex.,fst_vert.)<PR(Const).EPSILON) break;
+                            flowpoly.add(ex);
+                            if(fst_vert==null) fst_vert = flowpoly.front();
+                            cnt = 1;
+                        }else {
+                            var a = flowpoly.front();
+                            var b = ite`N.elem();
+                            
+                            var u = ite`M.elem();
+                            var itm = ite`M.next; if(itm==null) itm = pM.gverts.begin();
+                            var max = -1.0; var itmo = null; var indo = 0;
+                            var icnt = 0;
+                            IterCycle(v, pM.gverts, itm, {
+                                var t = 0.0;
+                                if(intersect(a.,b.,u.,v., t)) {
+                                    if(t>=max) {
+                                        itmo = ite`M;
+                                        indo = ind`M;
+                                        if(++icnt==cnt) {
+                                            max = t;
+                                            cx_break;
+                                        }else
+                                            max = t;
+                                    }
+                                }
+                                u = v;
+                                ite`M = cx_ite;
+                                ind`M++; if(ind`M >= pM.edgeCnt) ind`M = 0;
+                            });
+                            if(itmo==null)
+                                break;
+                                
+                            var u = itmo.elem();
+                            var itm2 = itmo.next; if(itm2==null) itm2 = pM.gverts.begin();
+                            var v = itm2.elem();
+                            vec_new(c); vec_interp(u.,v.,max, c);
+                            if(fst_vert!=null && vec_dsq(c,fst_vert.)<PR(Const).EPSILON) break;
+                            flowpoly.add(PR(Vec2).get(cx,cy));
+                            if(fst_vert==null) fst_vert = flowpoly.front();
+                            ite`M = itmo;
+                            ind`M = indo;
+                            
+                            poly1 = !poly1;
+                            cnt = 2;
+                        }
+                    });
+                    if(poly1) interstate(1,p1,2,p2);
+                    else interstate(2,p2,1,p1);
+                }
+                
+                if(flowpoly.begin()!=null && flowpoly.begin().next!=null && flowpoly.begin().next.next!=null) {
+                    var area = 0.0; vec_new(COM);
+                    polygon(flowpoly,area,COM);
+                    arb.inject(-area,COMx,COMy);
+                    true;
+                }else false;
+            }else false;
+        }else false;
+    });
+    
+    $(mixin polygon(poly,area_ref,com_ref) {
+        vec_set(com_ref,0,0);
+        area_ref = 0.0;
+        Iter3_fast(u,v,w, poly, {
+            area_ref += v.x * (w.y - u.y);
+            var cf = vec_cross(v.,w.);
+            com_ref`x += (v.x+w.x)*cf;
+            com_ref`y += (v.y+w.y)*cf;
+        });
+        area_ref *= 0.5;
+        var ia = 1/(6*area_ref);
+        vec_muleq(com_ref,ia);
+    });
+    
+    //----------------------------------------------------------------------------------------------
+    
+    $(mixin circle2poly(circle,poly,arb,rev) {
+        var max = -PR(Const).FMAX; var minmax = -PR(Const).FMAX;
+        var cont = true;
+        var a0 = null, vi = null;
 
         var vite = poly.gverts.begin();
         Iter(a,poly.edges,{
@@ -538,7 +538,7 @@ class PR(Collide) {
                     arb.radius = circle.radius;
                 }
 
-				co!=null;
+                co!=null;
             }else if(dt>=vec_cross(a0.gnorm,v1.)) {
                 var co = circle2circle_query(circle.worldCOM,v1.,arb,circle.radius,0,rev,0);
                 if(co!=null) {
@@ -555,7 +555,7 @@ class PR(Collide) {
                     arb.radius = circle.radius;
                 }
 
-				co!=null;
+                co!=null;
             } else {
                 vec_new(n); vec_mul(a0.gnorm, circle.radius+max*0.5, n);
                 vec_new(p); vec_sub(circle.worldCOM, n, p);
@@ -569,284 +569,284 @@ class PR(Collide) {
                 arb.radius = circle.radius;
                 vec_set(con.inner.lr1, circle.localCOM);
 
-				true;
+                true;
             }
         }else false;
-	});
-	
-	$(mixin circle2poly_test(circle,poly) {
-		var a0 = null, vi = null;
-		var cont = true;
-		var max = -PR(Const).FMAX;
-		
-		var vite = poly.gverts.begin();
-		Iter(a,poly.edges,{
-			var dist = vec_dot(a.gnorm,circle.worldCOM) - a.gprojection - circle.radius;
-			if(dist>0) { cont = false; break; }
-			if(dist>max) {
-				max = dist;
-				a0 = a;
-				vi = vite;
-			}
-			vite = vite.next;
-		});
-		
-		if(cont) {
-			var v0 = vi.elem();
-			var v1 = if(vi.next==null) poly.gverts.front() else vi.next.elem();
-			var dt = vec_cross(a0.gnorm,circle.worldCOM);
-			if     (dt<=vec_cross(a0.gnorm,v0.)) circle2circle_query_test(circle.worldCOM,v0.,circle.radius,0);
-			else if(dt>=vec_cross(a0.gnorm,v1.)) circle2circle_query_test(circle.worldCOM,v1.,circle.radius,0);
-			else true;
-		}else false;
-	});
+    });
+    
+    $(mixin circle2poly_test(circle,poly) {
+        var a0 = null, vi = null;
+        var cont = true;
+        var max = -PR(Const).FMAX;
+        
+        var vite = poly.gverts.begin();
+        Iter(a,poly.edges,{
+            var dist = vec_dot(a.gnorm,circle.worldCOM) - a.gprojection - circle.radius;
+            if(dist>0) { cont = false; break; }
+            if(dist>max) {
+                max = dist;
+                a0 = a;
+                vi = vite;
+            }
+            vite = vite.next;
+        });
+        
+        if(cont) {
+            var v0 = vi.elem();
+            var v1 = if(vi.next==null) poly.gverts.front() else vi.next.elem();
+            var dt = vec_cross(a0.gnorm,circle.worldCOM);
+            if     (dt<=vec_cross(a0.gnorm,v0.)) circle2circle_query_test(circle.worldCOM,v0.,circle.radius,0);
+            else if(dt>=vec_cross(a0.gnorm,v1.)) circle2circle_query_test(circle.worldCOM,v1.,circle.radius,0);
+            else true;
+        }else false;
+    });
 
-	$(mixin circle2poly_contain(circle,poly) ForAll(p,poly.gverts,circle2circle_query_test(circle.worldCOM,p.,circle.radius,0)));
-	$(mixin poly2circle_contain(poly,circle) ForAll(a,poly.edges,vec_dot(a.gnorm,circle.worldCOM)+circle.radius<=a.gprojection));
-	
-	public static var flowsegs = new List(PR(Vec2))();
-	$(mixin circle2poly_flow(circle,poly,arb) {
-		var inte = new Array<Bool>(); //edge could intersect circle.
-		var total = true;
-		
-		var a0 = null, vi = null;
-		var max = -PR(Const).FMAX;
-		
-		var cont = true;
-		var vite = poly.gverts.begin();
-		var ind = 0;
-		Iter(a,poly.edges,{
-			var dist = vec_dot(a.gnorm,circle.worldCOM);
-			if(dist>a.gprojection+circle.radius) { cont = false; break; }
-			else if(dist+circle.radius>a.gprojection+PR(Const).EPSILON) { total = false; inte[ind] = true; }
-			dist -= a.gprojection + circle.radius;
-			if(dist>max) {
-				max = dist;
-				a0 = a;
-				vi = vite;
-			}
-			vite = vite.next;
-			ind++;
-		});
-		
-		if(cont) {
-			if(total) {
-				arb.inject(circle.area,circle.worldCOMx,circle.worldCOMy);
-				true;
-			}else {
-				var v0 = vi.elem();
-				var v1 = if(vi.next==null) poly.gverts.front() else vi.next.elem();
-				var dt = vec_cross(a0.gnorm,circle.worldCOM);
-				if(
-					if(dt<=vec_cross(a0.gnorm,v0.))
-						circle2circle_query_test(circle.worldCOM,v0.,circle.radius,0)
-					else if(dt>=vec_cross(a0.gnorm,v1.))
-						circle2circle_query_test(circle.worldCOM,v1.,circle.radius,0)
-					else true
-				) {
-					var ins = new Array<Bool>(); //vertex inside circle
-					var ind = 0;
-					var total = true;
-					
-					var vi = null;
-					var vind = 0;
-					Iter(v,poly.gverts,{
-						var dist = vec_dsq(v.,circle.worldCOM);
-						if(!(ins[ind] = (dist <= circle.radius*circle.radius))) total = false;
-						else {
-							vind = ind;
-							vi = cx_ite;
-						}
-						ind++;
-					});
-					
-					if(total) {
-						poly.validate_worldCOM();
-						arb.inject(poly.area,poly.worldCOMx,poly.worldCOMy);
-						true;
-					}else {
-						//could have used AllocList and clear, but some elements may be 'actual' vertices.
-						//so only want to release those that aren't in use.
-						while(!flowpoly.empty()) {
-							var p = flowpoly.pop_unsafe();
-							if(!p.inuse) Free(PR(Vec2),p);
-						}
-						flowsegs.clear();
-						var fst_vert = null;
+    $(mixin circle2poly_contain(circle,poly) ForAll(p,poly.gverts,circle2circle_query_test(circle.worldCOM,p.,circle.radius,0)));
+    $(mixin poly2circle_contain(poly,circle) ForAll(a,poly.edges,vec_dot(a.gnorm,circle.worldCOM)+circle.radius<=a.gprojection));
+    
+    public static var flowsegs = new List(PR(Vec2))();
+    $(mixin circle2poly_flow(circle,poly,arb) {
+        var inte = new Array<Bool>(); //edge could intersect circle.
+        var total = true;
+        
+        var a0 = null, vi = null;
+        var max = -PR(Const).FMAX;
+        
+        var cont = true;
+        var vite = poly.gverts.begin();
+        var ind = 0;
+        Iter(a,poly.edges,{
+            var dist = vec_dot(a.gnorm,circle.worldCOM);
+            if(dist>a.gprojection+circle.radius) { cont = false; break; }
+            else if(dist+circle.radius>a.gprojection+PR(Const).EPSILON) { total = false; inte[ind] = true; }
+            dist -= a.gprojection + circle.radius;
+            if(dist>max) {
+                max = dist;
+                a0 = a;
+                vi = vite;
+            }
+            vite = vite.next;
+            ind++;
+        });
+        
+        if(cont) {
+            if(total) {
+                arb.inject(circle.area,circle.worldCOMx,circle.worldCOMy);
+                true;
+            }else {
+                var v0 = vi.elem();
+                var v1 = if(vi.next==null) poly.gverts.front() else vi.next.elem();
+                var dt = vec_cross(a0.gnorm,circle.worldCOM);
+                if(
+                    if(dt<=vec_cross(a0.gnorm,v0.))
+                        circle2circle_query_test(circle.worldCOM,v0.,circle.radius,0)
+                    else if(dt>=vec_cross(a0.gnorm,v1.))
+                        circle2circle_query_test(circle.worldCOM,v1.,circle.radius,0)
+                    else true
+                ) {
+                    var ins = new Array<Bool>(); //vertex inside circle
+                    var ind = 0;
+                    var total = true;
+                    
+                    var vi = null;
+                    var vind = 0;
+                    Iter(v,poly.gverts,{
+                        var dist = vec_dsq(v.,circle.worldCOM);
+                        if(!(ins[ind] = (dist <= circle.radius*circle.radius))) total = false;
+                        else {
+                            vind = ind;
+                            vi = cx_ite;
+                        }
+                        ind++;
+                    });
+                    
+                    if(total) {
+                        poly.validate_worldCOM();
+                        arb.inject(poly.area,poly.worldCOMx,poly.worldCOMy);
+                        true;
+                    }else {
+                        //could have used AllocList and clear, but some elements may be 'actual' vertices.
+                        //so only want to release those that aren't in use.
+                        while(!flowpoly.empty()) {
+                            var p = flowpoly.pop_unsafe();
+                            if(!p.inuse) Free(PR(Vec2),p);
+                        }
+                        flowsegs.clear();
+                        var fst_vert = null;
 
-						//no contained vertices
-						var state = 1;
-						if(vi==null) {
-							vi = poly.gverts.begin();
-							state = 2;
-						}else
-							flowpoly.add(fst_vert = vi.elem());
-						
-						//get first positive intersection with circle (a->b)
-						//assumption is there IS one!
-						$(mixin intersect1(a,b) {
-							vec_new(v); vec_sub(b,a,v);
-							vec_new(q); vec_sub(a,circle.worldCOM,q);
-							var A = vec_lsq(v);
-							var B = 2*vec_dot(q,v);
-							var C = vec_lsq(q) - circle.radius*circle.radius;
-							var D = Math.sqrt(B*B-4*A*C);
-							A = 1/(2*A);
-							var t = (-B-D)*A;
-							if(t<PR(Const).EPSILON) (-B+D)*A;
-							else t;
-						});
-						
-						//get both intersection points
-						//return true if they aren't the same point (degenerate case)
-						// t1 < 0 || t0 > 1, then no intersectino obviously.
-						$(mixin intersect2(a,b,t0_ref,t1_ref) {
-							vec_new(v); vec_sub(b,a,v);
-							vec_new(q); vec_sub(a,circle.worldCOM,q);
-							var A = vec_lsq(v);
-							var B = 2*vec_dot(q,v);
-							var C = vec_lsq(q) - circle.radius*circle.radius;
-							var D = B*B-4*A*C;
-							if(D*D<PR(Const).EPSILON) {
-								if(D<0)
-									t0_ref = 10.0;
-								else
-									t0_ref = t1_ref = -B/(2*A);
-								false;
-							}else {
-								D = Math.sqrt(D);
-								A = 1/(2*A);
-								t0_ref = (-B-D)*A;
-								t1_ref = (-B+D)*A;
-								true;
-							}
-						});
-						
-						while(state!=0) {
-							//at an inner vertex
-							if(state==1) {
-								vi = vi.next; if(vi==null) vi = poly.gverts.begin();
-								vind++; if(vind>=poly.edgeCnt) vind = 0;
-								
-								if(ins[vind]) {
-									if(vec_dsq(fst_vert.,vi.elem().)<PR(Const).EPSILON) break;
-									flowpoly.add(vi.elem());
-								}else {
-									var u = flowpoly.front();
-									var v = vi.elem();
-									var tval = intersect1(u.,v.);
-									vec_new(c); vec_interp(u.,v.,tval,c);
-									if(vec_dsq(fst_vert.,c)<PR(Const).EPSILON) break;
-									flowpoly.add(PR(Vec2).get(cx,cy));
-									state = 2;
-								}
-							}
-							//in search of an intersecting edge.
-							else if(state==2) {
-								var vi2 = vi.next; if(vi2==null) vi2 = poly.gverts.begin();
-								var u = vi.elem();
-								state = 0;
-								IterCycle(v,poly.gverts,vi2,{
-									var vind2 = vind+1; if(vind2==poly.edgeCnt) vind2 = 0;
-									if(inte[vind]) {
-										if(ins[vind2]) {
-											var tval = intersect1(u.,v.);
-											vec_new(c); vec_interp(u.,v.,tval,c);
-											if(vec_dsq(fst_vert.,c)<PR(Const).EPSILON) {
-												state = 0;
-												cx_break;
-											}
-											var cp = PR(Vec2).get(cx,cy);
-											flowsegs.add(flowpoly.front());
-											flowsegs.add(cp);
-											flowpoly.add(cp);
-											state = 1;
-											cx_break;
-										}else {
-											var t0 = 0.0; var t1 = 0.0;
-											var two = intersect2(u.,v.,t0,t1);
-											if(t0<1-PR(Const).EPSILON && t1 > PR(Const).EPSILON) {
-												vec_new(c); vec_interp(u.,v.,t0,c);
-												if(fst_vert!=null && vec_dsq(fst_vert.,c)<PR(Const).EPSILON) {
-													state = 0;
-													cx_break;
-												}
-												var cp = PR(Vec2).get(cx,cy);
-												if(!flowpoly.empty()) {
-													flowsegs.add(flowpoly.front());
-													flowsegs.add(cp);
-												}
-												flowpoly.add(cp);
-												if(fst_vert==null) fst_vert = flowpoly.front();
-												if(two) {
-													vec_new(c); vec_interp(u.,v.,t1,c);
-													flowpoly.add(PR(Vec2).get(cx,cy));
-												}
-											}
-										}
-									}
-									u = v;
-									vi = cx_ite;
-									vind = vind2;
-								});
-							}
-						}
-						
-						if(flowpoly.begin()==null) {
-							false;
-						}else if(flowpoly.begin().next==null) {
-							//an exceptional, but not impossible state
-							//could leave it and assume zero-intersection; but could be the opposite!
-							//in which case there'd be a very; very big difference so may aswell
-							//handle it.
-							var all = true;
-							Iter(e,poly.edges,{
-								var dist = vec_dot(e.gnorm,circle.worldCOM);
-								if(dist>e.gprojection) {
-									all = false;
-									cx_break;
-								}
-							});
-							if(all) {
-								arb.inject(circle.area,circle.worldCOMx,circle.worldCOMy);
-								true;
-							}else
-								false;
-						}else {
-							vec_new(COM,0,0);
-							var area = 0.0;
-							
-							if(flowpoly.begin().next.next!=null) {
-								var parea = 0.0; vec_new(pCOM);
-								polygon(flowpoly,parea,pCOM);
-								vec_addeq(COM,pCOM,-parea);
-								area -= parea;
-							}else {
-								flowsegs.add(flowpoly.front());
-								flowsegs.add(flowpoly.begin().next.elem());
-							}
-							
-							while(!flowsegs.empty()) {
-								var u = flowsegs.pop_unsafe();
-								var v = flowsegs.pop_unsafe();
-								vec_new(d); vec_sub(v.,u.,d);
-								vec_new(n); vec_set(n,d); vec_normal(n);
-								vec_new(c); vec_add(u.,v.,c); vec_diveq(c,2); vec_subeq(c,circle.worldCOM);
-								var xd = vec_dot(n,c);
-								var carea = 0.0; var ccom = 0.0;
-								circle_segment(xd,circle.radius,carea,ccom);
-								vec_set(c,circle.worldCOM); vec_addeq(c,n,ccom);
-								vec_addeq(COM,c,carea);
-								area += carea;
-							}
-							
-							vec_diveq(COM,area);
-							arb.inject(area,COMx,COMy);
-							true;
-						}
-					}
-				}else false;
-			}
-		}else false;
-	});
+                        //no contained vertices
+                        var state = 1;
+                        if(vi==null) {
+                            vi = poly.gverts.begin();
+                            state = 2;
+                        }else
+                            flowpoly.add(fst_vert = vi.elem());
+                        
+                        //get first positive intersection with circle (a->b)
+                        //assumption is there IS one!
+                        $(mixin intersect1(a,b) {
+                            vec_new(v); vec_sub(b,a,v);
+                            vec_new(q); vec_sub(a,circle.worldCOM,q);
+                            var A = vec_lsq(v);
+                            var B = 2*vec_dot(q,v);
+                            var C = vec_lsq(q) - circle.radius*circle.radius;
+                            var D = Math.sqrt(B*B-4*A*C);
+                            A = 1/(2*A);
+                            var t = (-B-D)*A;
+                            if(t<PR(Const).EPSILON) (-B+D)*A;
+                            else t;
+                        });
+                        
+                        //get both intersection points
+                        //return true if they aren't the same point (degenerate case)
+                        // t1 < 0 || t0 > 1, then no intersectino obviously.
+                        $(mixin intersect2(a,b,t0_ref,t1_ref) {
+                            vec_new(v); vec_sub(b,a,v);
+                            vec_new(q); vec_sub(a,circle.worldCOM,q);
+                            var A = vec_lsq(v);
+                            var B = 2*vec_dot(q,v);
+                            var C = vec_lsq(q) - circle.radius*circle.radius;
+                            var D = B*B-4*A*C;
+                            if(D*D<PR(Const).EPSILON) {
+                                if(D<0)
+                                    t0_ref = 10.0;
+                                else
+                                    t0_ref = t1_ref = -B/(2*A);
+                                false;
+                            }else {
+                                D = Math.sqrt(D);
+                                A = 1/(2*A);
+                                t0_ref = (-B-D)*A;
+                                t1_ref = (-B+D)*A;
+                                true;
+                            }
+                        });
+                        
+                        while(state!=0) {
+                            //at an inner vertex
+                            if(state==1) {
+                                vi = vi.next; if(vi==null) vi = poly.gverts.begin();
+                                vind++; if(vind>=poly.edgeCnt) vind = 0;
+                                
+                                if(ins[vind]) {
+                                    if(vec_dsq(fst_vert.,vi.elem().)<PR(Const).EPSILON) break;
+                                    flowpoly.add(vi.elem());
+                                }else {
+                                    var u = flowpoly.front();
+                                    var v = vi.elem();
+                                    var tval = intersect1(u.,v.);
+                                    vec_new(c); vec_interp(u.,v.,tval,c);
+                                    if(vec_dsq(fst_vert.,c)<PR(Const).EPSILON) break;
+                                    flowpoly.add(PR(Vec2).get(cx,cy));
+                                    state = 2;
+                                }
+                            }
+                            //in search of an intersecting edge.
+                            else if(state==2) {
+                                var vi2 = vi.next; if(vi2==null) vi2 = poly.gverts.begin();
+                                var u = vi.elem();
+                                state = 0;
+                                IterCycle(v,poly.gverts,vi2,{
+                                    var vind2 = vind+1; if(vind2==poly.edgeCnt) vind2 = 0;
+                                    if(inte[vind]) {
+                                        if(ins[vind2]) {
+                                            var tval = intersect1(u.,v.);
+                                            vec_new(c); vec_interp(u.,v.,tval,c);
+                                            if(vec_dsq(fst_vert.,c)<PR(Const).EPSILON) {
+                                                state = 0;
+                                                cx_break;
+                                            }
+                                            var cp = PR(Vec2).get(cx,cy);
+                                            flowsegs.add(flowpoly.front());
+                                            flowsegs.add(cp);
+                                            flowpoly.add(cp);
+                                            state = 1;
+                                            cx_break;
+                                        }else {
+                                            var t0 = 0.0; var t1 = 0.0;
+                                            var two = intersect2(u.,v.,t0,t1);
+                                            if(t0<1-PR(Const).EPSILON && t1 > PR(Const).EPSILON) {
+                                                vec_new(c); vec_interp(u.,v.,t0,c);
+                                                if(fst_vert!=null && vec_dsq(fst_vert.,c)<PR(Const).EPSILON) {
+                                                    state = 0;
+                                                    cx_break;
+                                                }
+                                                var cp = PR(Vec2).get(cx,cy);
+                                                if(!flowpoly.empty()) {
+                                                    flowsegs.add(flowpoly.front());
+                                                    flowsegs.add(cp);
+                                                }
+                                                flowpoly.add(cp);
+                                                if(fst_vert==null) fst_vert = flowpoly.front();
+                                                if(two) {
+                                                    vec_new(c); vec_interp(u.,v.,t1,c);
+                                                    flowpoly.add(PR(Vec2).get(cx,cy));
+                                                }
+                                            }
+                                        }
+                                    }
+                                    u = v;
+                                    vi = cx_ite;
+                                    vind = vind2;
+                                });
+                            }
+                        }
+                        
+                        if(flowpoly.begin()==null) {
+                            false;
+                        }else if(flowpoly.begin().next==null) {
+                            //an exceptional, but not impossible state
+                            //could leave it and assume zero-intersection; but could be the opposite!
+                            //in which case there'd be a very; very big difference so may aswell
+                            //handle it.
+                            var all = true;
+                            Iter(e,poly.edges,{
+                                var dist = vec_dot(e.gnorm,circle.worldCOM);
+                                if(dist>e.gprojection) {
+                                    all = false;
+                                    cx_break;
+                                }
+                            });
+                            if(all) {
+                                arb.inject(circle.area,circle.worldCOMx,circle.worldCOMy);
+                                true;
+                            }else
+                                false;
+                        }else {
+                            vec_new(COM,0,0);
+                            var area = 0.0;
+                            
+                            if(flowpoly.begin().next.next!=null) {
+                                var parea = 0.0; vec_new(pCOM);
+                                polygon(flowpoly,parea,pCOM);
+                                vec_addeq(COM,pCOM,-parea);
+                                area -= parea;
+                            }else {
+                                flowsegs.add(flowpoly.front());
+                                flowsegs.add(flowpoly.begin().next.elem());
+                            }
+                            
+                            while(!flowsegs.empty()) {
+                                var u = flowsegs.pop_unsafe();
+                                var v = flowsegs.pop_unsafe();
+                                vec_new(d); vec_sub(v.,u.,d);
+                                vec_new(n); vec_set(n,d); vec_normal(n);
+                                vec_new(c); vec_add(u.,v.,c); vec_diveq(c,2); vec_subeq(c,circle.worldCOM);
+                                var xd = vec_dot(n,c);
+                                var carea = 0.0; var ccom = 0.0;
+                                circle_segment(xd,circle.radius,carea,ccom);
+                                vec_set(c,circle.worldCOM); vec_addeq(c,n,ccom);
+                                vec_addeq(COM,c,carea);
+                                area += carea;
+                            }
+                            
+                            vec_diveq(COM,area);
+                            arb.inject(area,COMx,COMy);
+                            true;
+                        }
+                    }
+                }else false;
+            }
+        }else false;
+    });
 }

@@ -2,37 +2,37 @@ package nape.callbacks;
 $(import);
 
 class OptionType {
-	public var pr(inner):PR(OptionType);
+    public var pr(inner):PR(OptionType);
 
-	property(includes,CbTypeList,{
-		if(pr(inner).wrap_includes==null) pr(inner).setup_includes();
-		pr(inner).wrap_includes;
-	})
-	property(excludes,CbTypeList,{
-		if(pr(inner).wrap_excludes==null) pr(inner).setup_excludes();
-		pr(inner).wrap_excludes;
-	})
+    property(includes,CbTypeList,{
+        if(pr(inner).wrap_includes==null) pr(inner).setup_includes();
+        pr(inner).wrap_includes;
+    })
+    property(excludes,CbTypeList,{
+        if(pr(inner).wrap_excludes==null) pr(inner).setup_excludes();
+        pr(inner).wrap_excludes;
+    })
 
-	flibopts(2)
-	public function new(includes:Dynamic=null, excludes:Dynamic=null) {
-		pr(inner) = new PR(OptionType)();
-		pr(inner).outer = this;
-		if(includes!=null) including(includes);
-		if(excludes!=null) excluding(excludes);
-	}
+    flibopts(2)
+    public function new(includes:Dynamic=null, excludes:Dynamic=null) {
+        pr(inner) = new PR(OptionType)();
+        pr(inner).outer = this;
+        if(includes!=null) including(includes);
+        if(excludes!=null) excluding(excludes);
+    }
 
-	public function including(includes:Dynamic=null) {
-		pr(inner).append(pr(inner).includes,includes);
-		return this;
-	}
-	public function excluding(excludes:Dynamic=null) {
-		pr(inner).append(pr(inner).excludes,excludes);
-		return this;
-	}
+    public function including(includes:Dynamic=null) {
+        pr(inner).append(pr(inner).includes,includes);
+        return this;
+    }
+    public function excluding(excludes:Dynamic=null) {
+        pr(inner).append(pr(inner).excludes,excludes);
+        return this;
+    }
 
-	@:$keep public function toString() {
-		var inc = includes.toString();
-		var exc = excludes.toString();
-		return "@{"+inc+" excluding "+exc+"}";
-	}
+    @:$keep public function toString() {
+        var inc = includes.toString();
+        var exc = excludes.toString();
+        return "@{"+inc+" excluding "+exc+"}";
+    }
 }

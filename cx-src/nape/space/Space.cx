@@ -2,255 +2,255 @@ package nape.space;
 $(import);
 
 class Space {
-	public var pr(inner):PR(Space);
+    public var pr(inner):PR(Space);
 
-	property(id,Int,pr(inner).id)
-	public var userData:Dynamic;
-	
-	//----------------------------------------------------------------------------------------------
-	
+    property(id,Int,pr(inner).id)
+    public var userData:Dynamic;
+    
+    //----------------------------------------------------------------------------------------------
+    
     property(gravity,Vec2,{
-		if(pr(inner).wrap_gravity==null) pr(inner).getgravity();
-		pr(inner).wrap_gravity;
-	},{
-		Disposed(gravity,Vec2);
-		DEBUG(if(gravity==null) throw "Error: Space::gravity cannot be null";)
+        if(pr(inner).wrap_gravity==null) pr(inner).getgravity();
+        pr(inner).wrap_gravity;
+    },{
+        Disposed(gravity,Vec2);
+        DEBUG(if(gravity==null) throw "Error: Space::gravity cannot be null";)
         this.gravity.set(gravity);
     })
 
-	property(broadphase,Broadphase,{
-		pr(inner).bphase.is_sweep ? Broadphase.SWEEP_AND_PRUNE : Broadphase.DYNAMIC_AABB_TREE;
-	})
+    property(broadphase,Broadphase,{
+        pr(inner).bphase.is_sweep ? Broadphase.SWEEP_AND_PRUNE : Broadphase.DYNAMIC_AABB_TREE;
+    })
 
-	property(sortContacts,Bool,pr(inner).sortcontacts,{
-		pr(inner).sortcontacts = sortContacts;
-	})
-	
-	//----------------------------------------------------------------------------------------------
+    property(sortContacts,Bool,pr(inner).sortcontacts,{
+        pr(inner).sortcontacts = sortContacts;
+    })
+    
+    //----------------------------------------------------------------------------------------------
 
-	property(worldAngularDrag,Float,pr(inner).global_ang_drag,{
-		var d = worldAngularDrag;
-		DEBUG(if(isNaN(d)) throw "Error: Space::worldAngularDrag cannot be NaN";)
-		pr(inner).global_ang_drag = d;	
-	})
-	property(worldLinearDrag,Float,pr(inner).global_lin_drag,{
-		var d = worldLinearDrag;
-		DEBUG(if(isNaN(d)) throw "Error: Space::worldLinearDrag cannot be NaN";)
-		pr(inner).global_lin_drag = d;	
-	})
+    property(worldAngularDrag,Float,pr(inner).global_ang_drag,{
+        var d = worldAngularDrag;
+        DEBUG(if(isNaN(d)) throw "Error: Space::worldAngularDrag cannot be NaN";)
+        pr(inner).global_ang_drag = d;    
+    })
+    property(worldLinearDrag,Float,pr(inner).global_lin_drag,{
+        var d = worldLinearDrag;
+        DEBUG(if(isNaN(d)) throw "Error: Space::worldLinearDrag cannot be NaN";)
+        pr(inner).global_lin_drag = d;    
+    })
 
-	//----------------------------------------------------------------------------------------------
-	
+    //----------------------------------------------------------------------------------------------
+    
     //bodies ]= statics,dynamics,kinematics
     //dynamics ]= liveBodies
-	property(compounds,CompoundList,pr(inner).wrap_compounds)
+    property(compounds,CompoundList,pr(inner).wrap_compounds)
     property(bodies,    BodyList,pr(inner).wrap_bodies)
-	property(liveBodies,BodyList,pr(inner).wrap_live)
+    property(liveBodies,BodyList,pr(inner).wrap_live)
 
     //constraints ]= liveConstraints
     property(constraints,    ConstraintList,pr(inner).wrap_constraints)
     property(liveConstraints,ConstraintList,pr(inner).wrap_livecon)
 
-	public function visitBodies(lambda:Body->Void) {
-		DEBUG(if(lambda==null) throw "Error: lambda cannot be null for Space::visitBodies";)
-		for(b in bodies) lambda(b);
-		for(c in compounds) c.visitBodies(lambda);
-	}
-	public function visitConstraints(lambda:Constraint->Void) {
-		DEBUG(if(lambda==null) throw "Error: lambda cannot be null for Space::visitConstraints";)
-		for(c in constraints) lambda(c);
-		for(c in compounds) c.visitConstraints(lambda);
-	}
-	public function visitCompounds(lambda:Compound->Void) {
-		DEBUG(if(lambda==null) throw "Error: lambda cannot be null for Space::visitCompounds";)
-		for(c in compounds) {
-			lambda(c);
-			c.visitCompounds(lambda);
-		}
-	}
+    public function visitBodies(lambda:Body->Void) {
+        DEBUG(if(lambda==null) throw "Error: lambda cannot be null for Space::visitBodies";)
+        for(b in bodies) lambda(b);
+        for(c in compounds) c.visitBodies(lambda);
+    }
+    public function visitConstraints(lambda:Constraint->Void) {
+        DEBUG(if(lambda==null) throw "Error: lambda cannot be null for Space::visitConstraints";)
+        for(c in constraints) lambda(c);
+        for(c in compounds) c.visitConstraints(lambda);
+    }
+    public function visitCompounds(lambda:Compound->Void) {
+        DEBUG(if(lambda==null) throw "Error: lambda cannot be null for Space::visitCompounds";)
+        for(c in compounds) {
+            lambda(c);
+            c.visitCompounds(lambda);
+        }
+    }
 
-	//----------------------------------------------------------------------------------------------
-	
+    //----------------------------------------------------------------------------------------------
+    
     //for use with constraints for a world-constant anchor
     property(world,Body,pr(inner).__static)
-	
-	//----------------------------------------------------------------------------------------------
-	
+    
+    //----------------------------------------------------------------------------------------------
+    
     property(arbiters,ArbiterList,{
-		if(pr(inner).wrap_arbiters==null) {
-			var ret = new PR(SpaceArbiterList)();
-			ret.space = pr(inner);
-			pr(inner).wrap_arbiters = ret;
-		}
-		pr(inner).wrap_arbiters;
-	})
-	
+        if(pr(inner).wrap_arbiters==null) {
+            var ret = new PR(SpaceArbiterList)();
+            ret.space = pr(inner);
+            pr(inner).wrap_arbiters = ret;
+        }
+        pr(inner).wrap_arbiters;
+    })
+    
     //----------------------------------------------------------------------------------------------
 
     property(listeners,ListenerList,pr(inner).wrap_listeners)
 
-	//----------------------------------------------------------------------------------------------
+    //----------------------------------------------------------------------------------------------
 
-	keep public function clear() {
-		DEBUG(if(pr(inner).midstep) throw "Error: Space::clear() cannot be called during space step()";)
-		pr(inner).clear();
-	}
+    keep public function clear() {
+        DEBUG(if(pr(inner).midstep) throw "Error: Space::clear() cannot be called during space step()";)
+        pr(inner).clear();
+    }
 
-	//----------------------------------------------------------------------------------------------
-	
-	keep public function step(deltaTime:Float, ?velocityIterations:Int = 10, ?positionIterations:Int = 10) {
-		DEBUG(
-			if(isNaN(deltaTime)) throw "Error: deltaTime cannot be NaN"; //TVB is a cunt. ;)
-			if(deltaTime<=0) throw "Error: deltaTime must be strictly positive";
-			if(velocityIterations<=0) throw "Error: must use atleast one velocity iteration";
-			if(positionIterations<=0) throw "Error: must use atleast one position iteration";
-		)
-		pr(inner).step(deltaTime,velocityIterations,positionIterations);
-	}
-	
+    //----------------------------------------------------------------------------------------------
+    
+    keep public function step(deltaTime:Float, ?velocityIterations:Int = 10, ?positionIterations:Int = 10) {
+        DEBUG(
+            if(isNaN(deltaTime)) throw "Error: deltaTime cannot be NaN"; //TVB is a cunt. ;)
+            if(deltaTime<=0) throw "Error: deltaTime must be strictly positive";
+            if(velocityIterations<=0) throw "Error: must use atleast one velocity iteration";
+            if(positionIterations<=0) throw "Error: must use atleast one position iteration";
+        )
+        pr(inner).step(deltaTime,velocityIterations,positionIterations);
+    }
+    
     property(timeStamp,Int,pr(inner).stamp)
     property(elapsedTime,Float,pr(inner).time)
 
-	//----------------------------------------------------------------------------------------------
+    //----------------------------------------------------------------------------------------------
 
-	public function new(?gravity:Vec2,?broadphase:Broadphase) {
-		Disposed(gravity,Vec2);
-		pr(inner) = new PR(Space)(gravity==null?null:gravity.pr(inner),broadphase);
-		pr(inner).outer = this;
-		if(gravity!=null) WEAK(gravity);
-	}
-	
-	//----------------------------------------------------------------------------------------------
-	
-	keep public function interactionType(shape1:Shape, shape2:Shape):InteractionType {
-		DEBUG(if(shape1==null || shape2==null) throw "Error: Cannot evaluate interaction type for null shapes";)
-		DEBUG(if(shape1.body==null || shape2.body==null) throw "Error: Cannot evaluate interaction type for shapes not part of a Body";)
-		DEBUG(if((shape1.body.space!=null && shape1.body.space!=this)
-		       ||(shape2.body.space!=null && shape2.body.space!=this)) throw "Error: Either the Shape's Bodys' space's should be null, or equal to 'this' Space";)
+    public function new(?gravity:Vec2,?broadphase:Broadphase) {
+        Disposed(gravity,Vec2);
+        pr(inner) = new PR(Space)(gravity==null?null:gravity.pr(inner),broadphase);
+        pr(inner).outer = this;
+        if(gravity!=null) WEAK(gravity);
+    }
+    
+    //----------------------------------------------------------------------------------------------
+    
+    keep public function interactionType(shape1:Shape, shape2:Shape):InteractionType {
+        DEBUG(if(shape1==null || shape2==null) throw "Error: Cannot evaluate interaction type for null shapes";)
+        DEBUG(if(shape1.body==null || shape2.body==null) throw "Error: Cannot evaluate interaction type for shapes not part of a Body";)
+        DEBUG(if((shape1.body.space!=null && shape1.body.space!=this)
+               ||(shape2.body.space!=null && shape2.body.space!=this)) throw "Error: Either the Shape's Bodys' space's should be null, or equal to 'this' Space";)
 
-		if(shape1.body.isStatic() && shape2.body.isStatic()) return null;
-		if(shape1.body==shape2.body) return null;
+        if(shape1.body.isStatic() && shape2.body.isStatic()) return null;
+        if(shape1.body==shape2.body) return null;
 
-		var s1 = shape1.pr(inner);
-		var s2 = shape2.pr(inner);
-		return switch(pr(inner).interactionType(s1,s2,s1.body,s2.body)) {
-			case 0: InteractionType.FLUID;
-			case 1: InteractionType.COLLISION;
-			case 2: InteractionType.SENSOR;
-			default: null;
-		}
-	}
+        var s1 = shape1.pr(inner);
+        var s2 = shape2.pr(inner);
+        return switch(pr(inner).interactionType(s1,s2,s1.body,s2.body)) {
+            case 0: InteractionType.FLUID;
+            case 1: InteractionType.COLLISION;
+            case 2: InteractionType.SENSOR;
+            default: null;
+        }
+    }
 
-	//----------------------------------------------------------------------------------------------
+    //----------------------------------------------------------------------------------------------
 
-	keep public function shapesUnderPoint(point:Vec2,?filter:InteractionFilter=null) {
-		Disposed(point,Vec2);
-		DEBUG(if(point==null) throw "Error: Cannot evaluate shapes under a null point :)";)
-		var ret = pr(inner).shapesUnderPoint(point.x,point.y,filter==null?null:filter.pr(inner));
-		WEAK(point);
-		return ret;
-	}
-	keep public function bodiesUnderPoint(point:Vec2,?filter:InteractionFilter=null) {
-		Disposed(point,Vec2);
-		DEBUG(if(point==null) throw "Error: Cannot evaluate objects under a null point :)";)
-		var ret = pr(inner).bodiesUnderPoint(point.x,point.y,filter==null?null:filter.pr(inner));
-		WEAK(point);
-		return ret;
-	}
+    keep public function shapesUnderPoint(point:Vec2,?filter:InteractionFilter=null) {
+        Disposed(point,Vec2);
+        DEBUG(if(point==null) throw "Error: Cannot evaluate shapes under a null point :)";)
+        var ret = pr(inner).shapesUnderPoint(point.x,point.y,filter==null?null:filter.pr(inner));
+        WEAK(point);
+        return ret;
+    }
+    keep public function bodiesUnderPoint(point:Vec2,?filter:InteractionFilter=null) {
+        Disposed(point,Vec2);
+        DEBUG(if(point==null) throw "Error: Cannot evaluate objects under a null point :)";)
+        var ret = pr(inner).bodiesUnderPoint(point.x,point.y,filter==null?null:filter.pr(inner));
+        WEAK(point);
+        return ret;
+    }
 
-	keep public function shapesInAABB(aabb:AABB,?containment:Bool=false,?strict:Bool=true,?filter:InteractionFilter=null) {
-		DEBUG(
-			if(aabb==null) throw "Error: Cannot evaluate shapes in a null AABB :)";
-			if(aabb.width==0 || aabb.height==0) throw "Error: Cannot evaluate shapes in degenerate AABB :/";
-		)
-		return pr(inner).shapesInAABB(aabb,strict,containment,filter==null?null:filter.pr(inner));
-	}
-	keep public function bodiesInAABB(aabb:AABB,?containment:Bool=false,?strict:Bool=true,?filter:InteractionFilter=null) {
-		DEBUG(
-			if(aabb==null) throw "Error: Cannot evaluate objects in a null AABB :)";
-			if(aabb.width==0 || aabb.height==0) throw "Error: Cannot evaluate objects in degenerate AABB :/";
-		)
-		return pr(inner).bodiesInAABB(aabb,strict,containment,filter==null?null:filter.pr(inner));
-	}
+    keep public function shapesInAABB(aabb:AABB,?containment:Bool=false,?strict:Bool=true,?filter:InteractionFilter=null) {
+        DEBUG(
+            if(aabb==null) throw "Error: Cannot evaluate shapes in a null AABB :)";
+            if(aabb.width==0 || aabb.height==0) throw "Error: Cannot evaluate shapes in degenerate AABB :/";
+        )
+        return pr(inner).shapesInAABB(aabb,strict,containment,filter==null?null:filter.pr(inner));
+    }
+    keep public function bodiesInAABB(aabb:AABB,?containment:Bool=false,?strict:Bool=true,?filter:InteractionFilter=null) {
+        DEBUG(
+            if(aabb==null) throw "Error: Cannot evaluate objects in a null AABB :)";
+            if(aabb.width==0 || aabb.height==0) throw "Error: Cannot evaluate objects in degenerate AABB :/";
+        )
+        return pr(inner).bodiesInAABB(aabb,strict,containment,filter==null?null:filter.pr(inner));
+    }
 
-	keep public function shapesInCircle(position:Vec2,radius:Float,?containment:Bool=false,?filter:InteractionFilter=null) {
-		Disposed(position,Vec2);
-		DEBUG(
-			if(position==null) throw "Error: Cannot evaluate shapes at null circle :)";
-			if(isNaN(radius))  throw "Error: Circle radius cannot be NaN";
-			if(radius<=0)      throw "Error: Circle radius must be strictly positive";
-		)
-		var ret = pr(inner).shapesInCircle(position,radius,containment,filter==null?null:filter.pr(inner));
-		WEAK(position);
-		return ret;
-	}
-	keep public function bodiesInCircle(position:Vec2,radius:Float,?containment:Bool=false,?filter:InteractionFilter=null) {
-		Disposed(position,Vec2);
-		DEBUG(
-			if(position==null) throw "Error: Cannot evaluate objects at null circle :)";
-			if(isNaN(radius))  throw "Error: Circle radius cannot be NaN";
-			if(radius<=0)      throw "Error: Circle radius must be strictly positive";
-		)
-		var ret = pr(inner).bodiesInCircle(position,radius,containment,filter==null?null:filter.pr(inner));
-		WEAK(position);
-		return ret;
-	}
+    keep public function shapesInCircle(position:Vec2,radius:Float,?containment:Bool=false,?filter:InteractionFilter=null) {
+        Disposed(position,Vec2);
+        DEBUG(
+            if(position==null) throw "Error: Cannot evaluate shapes at null circle :)";
+            if(isNaN(radius))  throw "Error: Circle radius cannot be NaN";
+            if(radius<=0)      throw "Error: Circle radius must be strictly positive";
+        )
+        var ret = pr(inner).shapesInCircle(position,radius,containment,filter==null?null:filter.pr(inner));
+        WEAK(position);
+        return ret;
+    }
+    keep public function bodiesInCircle(position:Vec2,radius:Float,?containment:Bool=false,?filter:InteractionFilter=null) {
+        Disposed(position,Vec2);
+        DEBUG(
+            if(position==null) throw "Error: Cannot evaluate objects at null circle :)";
+            if(isNaN(radius))  throw "Error: Circle radius cannot be NaN";
+            if(radius<=0)      throw "Error: Circle radius must be strictly positive";
+        )
+        var ret = pr(inner).bodiesInCircle(position,radius,containment,filter==null?null:filter.pr(inner));
+        WEAK(position);
+        return ret;
+    }
 
-	keep public function shapesInShape(shape:Shape,containment:Bool=false,?filter:InteractionFilter) {
-		DEBUG(
-			if(shape==null) throw "Error: Cannot evaluate shapes in a null shapes :)";
-			if(shape.body==null) throw "Error: Query shape needs to be inside a Body to be well defined :)";
-			if(shape.isPolygon()) {
-				var res = shape.pr(inner).polygon.valid();
-				if(res!=ValidationResult.VALID)
-					throw "Error: Polygon query shape is invalid : "+res.toString();
-			}
-		)
-		return pr(inner).shapesInShape(shape.pr(inner),containment,filter == null ? null : filter.pr(inner));
-	}
-	keep public function bodiesInShape(shape:Shape,containment:Bool=false,?filter:InteractionFilter) {
-		DEBUG(
-			if(shape==null) throw "Error: Cannot evaluate bodies in a null shapes :)";
-			if(shape.body==null) throw "Error: Query shape needs to be inside a Body to be well defined :)";
-			if(shape.isPolygon()) {
-				var res = shape.pr(inner).polygon.valid();
-				if(res!=ValidationResult.VALID)
-					throw "Error: Polygon query shape is invalid : "+res.toString();
-			}
-		)
-		return pr(inner).bodiesInShape(shape.pr(inner),containment,filter == null ? null : filter.pr(inner));
-	}
+    keep public function shapesInShape(shape:Shape,containment:Bool=false,?filter:InteractionFilter) {
+        DEBUG(
+            if(shape==null) throw "Error: Cannot evaluate shapes in a null shapes :)";
+            if(shape.body==null) throw "Error: Query shape needs to be inside a Body to be well defined :)";
+            if(shape.isPolygon()) {
+                var res = shape.pr(inner).polygon.valid();
+                if(res!=ValidationResult.VALID)
+                    throw "Error: Polygon query shape is invalid : "+res.toString();
+            }
+        )
+        return pr(inner).shapesInShape(shape.pr(inner),containment,filter == null ? null : filter.pr(inner));
+    }
+    keep public function bodiesInShape(shape:Shape,containment:Bool=false,?filter:InteractionFilter) {
+        DEBUG(
+            if(shape==null) throw "Error: Cannot evaluate bodies in a null shapes :)";
+            if(shape.body==null) throw "Error: Query shape needs to be inside a Body to be well defined :)";
+            if(shape.isPolygon()) {
+                var res = shape.pr(inner).polygon.valid();
+                if(res!=ValidationResult.VALID)
+                    throw "Error: Polygon query shape is invalid : "+res.toString();
+            }
+        )
+        return pr(inner).bodiesInShape(shape.pr(inner),containment,filter == null ? null : filter.pr(inner));
+    }
 
-	keep public function shapesInBody(body:Body,?filter:InteractionFilter) {
-		DEBUG(if(body==null) throw "Error: Cannot evaluate shapes in null body";)
-		var ret = null;
-		for(shape in body.shapes) {
-			var cur = shapesInShape(shape,false,filter);
-			if(ret==null) ret = cur;
-			else ret.merge(cur);
-		}
-		return if(ret==null) new ShapeList() else ret;
-	}
-	keep public function bodiesInBody(body:Body,?filter:InteractionFilter) {
-		DEBUG(if(body==null) throw "Error: Cannot evaluate shapes in null body";)
-		var ret = null;
-		for(shape in body.shapes) {
-			var cur = bodiesInShape(shape,false,filter);
-			if(ret==null) ret = cur;
-			else ret.merge(cur);
-		}
-		return if(ret==null) new BodyList() else ret;
-	}
-	
-	//----------------------------------------------------------------------------------------------
-	
-	keep public function rayCast(ray:Ray, ?inner:Bool=false, ?filter:InteractionFilter=null) {
-		DEBUG(if(ray==null) throw "Error: Cannot cast null ray :)";)
-		return pr(inner).rayCast(ray,inner,filter);
-	}
-	
-	keep public function rayMultiCast(ray:Ray, ?inner:Bool=false, ?filter:InteractionFilter=null) {
-		DEBUG(if(ray==null) throw "Error: Cannot cast null ray :)";)
-		return pr(inner).rayMultiCast(ray,inner,filter);
-	}
+    keep public function shapesInBody(body:Body,?filter:InteractionFilter) {
+        DEBUG(if(body==null) throw "Error: Cannot evaluate shapes in null body";)
+        var ret = null;
+        for(shape in body.shapes) {
+            var cur = shapesInShape(shape,false,filter);
+            if(ret==null) ret = cur;
+            else ret.merge(cur);
+        }
+        return if(ret==null) new ShapeList() else ret;
+    }
+    keep public function bodiesInBody(body:Body,?filter:InteractionFilter) {
+        DEBUG(if(body==null) throw "Error: Cannot evaluate shapes in null body";)
+        var ret = null;
+        for(shape in body.shapes) {
+            var cur = bodiesInShape(shape,false,filter);
+            if(ret==null) ret = cur;
+            else ret.merge(cur);
+        }
+        return if(ret==null) new BodyList() else ret;
+    }
+    
+    //----------------------------------------------------------------------------------------------
+    
+    keep public function rayCast(ray:Ray, ?inner:Bool=false, ?filter:InteractionFilter=null) {
+        DEBUG(if(ray==null) throw "Error: Cannot cast null ray :)";)
+        return pr(inner).rayCast(ray,inner,filter);
+    }
+    
+    keep public function rayMultiCast(ray:Ray, ?inner:Bool=false, ?filter:InteractionFilter=null) {
+        DEBUG(if(ray==null) throw "Error: Cannot cast null ray :)";)
+        return pr(inner).rayMultiCast(ray,inner,filter);
+    }
 }

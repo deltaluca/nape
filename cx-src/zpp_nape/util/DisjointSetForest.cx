@@ -2,43 +2,43 @@ package zpp_nape.util;
 $(import);
 
 $(mixin global DSF(block)
-	$(mixin Mixin(T)
-		public var parent:T;
-		public var rank:Int
-	);
-	
-	$(mixin union(x,y) {
-		var xr = find(x);
-		var yr = find(y);
-		if(xr!=yr) {
-			if     (xr.rank < yr.rank) xr.parent = yr;
-			else if(xr.rank > yr.rank) yr.parent = xr;
-			else {
-				yr.parent = xr;
-				xr.rank++;
-			}
-		}
-	});
-	
-	$(mixin find(x) ({
-		if(x==x.parent) x;
-		else {
-			var obj = x;
-			var stack = null;
-			while(obj!=obj.parent) {
-				var nxt = obj.parent;
-				obj.parent = stack;
-				stack = obj;
-				obj = nxt;
-			}
-			while(stack!=null) {
-				var nxt = stack.parent;
-				stack.parent = obj;
-				stack = nxt;
-			}
-			obj;
-		}
-	}));
-	
-	block
+    $(mixin Mixin(T)
+        public var parent:T;
+        public var rank:Int
+    );
+    
+    $(mixin union(x,y) {
+        var xr = find(x);
+        var yr = find(y);
+        if(xr!=yr) {
+            if     (xr.rank < yr.rank) xr.parent = yr;
+            else if(xr.rank > yr.rank) yr.parent = xr;
+            else {
+                yr.parent = xr;
+                xr.rank++;
+            }
+        }
+    });
+    
+    $(mixin find(x) ({
+        if(x==x.parent) x;
+        else {
+            var obj = x;
+            var stack = null;
+            while(obj!=obj.parent) {
+                var nxt = obj.parent;
+                obj.parent = stack;
+                stack = obj;
+                obj = nxt;
+            }
+            while(stack!=null) {
+                var nxt = stack.parent;
+                stack.parent = obj;
+                stack = nxt;
+            }
+            obj;
+        }
+    }));
+    
+    block
 );

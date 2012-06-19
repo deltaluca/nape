@@ -2,298 +2,298 @@ package zpp_nape.geom;
 $(import);
 
 class PR(Ray) {
-	public static var internal:Bool = false;
-	
-	public var origin:Vec2;
-	public var direction:Vec2;
-	public var maxdist:Float;
-	
-	vec_new(public,origin);
-	vec_new(public,dir);
-	vec_new(public,idir);
+    public static var internal:Bool = false;
+    
+    public var origin:Vec2;
+    public var direction:Vec2;
+    public var maxdist:Float;
+    
+    vec_new(public,origin);
+    vec_new(public,dir);
+    vec_new(public,idir);
 
-	//for aabbtest
-	vec_new(public,normal);
-	vec_new(public,absnormal);
+    //for aabbtest
+    vec_new(public,normal);
+    vec_new(public,absnormal);
 
-	//previously lambdas
-	private function origin_invalidate(x:PR(Vec2)) {
-		vec_set(origin,x.);
-	}
-	private function direction_invalidate(x:PR(Vec2)) {
-		vec_set(dir,x.);
-		invalidate_dir();
-	}
+    //previously lambdas
+    private function origin_invalidate(x:PR(Vec2)) {
+        vec_set(origin,x.);
+    }
+    private function direction_invalidate(x:PR(Vec2)) {
+        vec_set(dir,x.);
+        invalidate_dir();
+    }
 
-	public function new() {
-		origin = Vec2.get();
-		direction = Vec2.get();
-		var me = this;
-		origin.pr(inner)._invalidate = origin_invalidate;
-		vec_set(origin,0,0); //otherwise an init. origin of (0,0) leaves these as NaN
-		direction.pr(inner)._invalidate = direction_invalidate;
-		vec_set(dir,0,0);
-		inv(dir) = false;
-	}
-	
-	public var inv(dir):Bool;
-	public function invalidate_dir() {
-		inv(dir) = true;
-	}
-	public function validate_dir() {
-		if(inv(dir)) {
-			inv(dir) = false;
-			DEBUG(if(vec_lsq(dir)<PR(Const).EPSILON) throw "Error: Ray::direction is degenerate";)
-			vec_normalise_slow(dir);
-			vec_set(idir,1/dirx,1/diry);
+    public function new() {
+        origin = Vec2.get();
+        direction = Vec2.get();
+        var me = this;
+        origin.pr(inner)._invalidate = origin_invalidate;
+        vec_set(origin,0,0); //otherwise an init. origin of (0,0) leaves these as NaN
+        direction.pr(inner)._invalidate = direction_invalidate;
+        vec_set(dir,0,0);
+        inv(dir) = false;
+    }
+    
+    public var inv(dir):Bool;
+    public function invalidate_dir() {
+        inv(dir) = true;
+    }
+    public function validate_dir() {
+        if(inv(dir)) {
+            inv(dir) = false;
+            DEBUG(if(vec_lsq(dir)<PR(Const).EPSILON) throw "Error: Ray::direction is degenerate";)
+            vec_normalise_slow(dir);
+            vec_set(idir,1/dirx,1/diry);
 
-			vec_set(normal,-diry,dirx);
-			vec_set(absnormal,abs(normalx),abs(normaly));
-		}
-	}
-	
-	//--------------------------------------------------------------
-	
+            vec_set(normal,-diry,dirx);
+            vec_set(absnormal,abs(normalx),abs(normaly));
+        }
+    }
+    
+    //--------------------------------------------------------------
+    
     public function rayAABB() {
-		//determine ray AABB
-		var x0 = originx; var x1 = x0;
-		var y0 = originy; var y1 = y0;
-		if(maxdist>=PR(Const).POSINF()) {
-			if(dirx>0) x1 = PR(Const).POSINF();
-			else if(dirx<0) x1 = PR(Const).NEGINF();
-			if(diry>0) y1 = PR(Const).POSINF();
-			else if(diry<0) y1 = PR(Const).NEGINF();
-		}else {
-			x1 += maxdist*dirx;
-			y1 += maxdist*diry;
-		}
-		if(x1<x0) swap(x0,x1);
-		if(y1<y0) swap(y0,y1);
-		var rayab = PR(AABB).get(x0,y0,x1,y1);
-		return rayab;
-	}
+        //determine ray AABB
+        var x0 = originx; var x1 = x0;
+        var y0 = originy; var y1 = y0;
+        if(maxdist>=PR(Const).POSINF()) {
+            if(dirx>0) x1 = PR(Const).POSINF();
+            else if(dirx<0) x1 = PR(Const).NEGINF();
+            if(diry>0) y1 = PR(Const).POSINF();
+            else if(diry<0) y1 = PR(Const).NEGINF();
+        }else {
+            x1 += maxdist*dirx;
+            y1 += maxdist*diry;
+        }
+        if(x1<x0) swap(x0,x1);
+        if(y1<y0) swap(y0,y1);
+        var rayab = PR(AABB).get(x0,y0,x1,y1);
+        return rayab;
+    }
 
-	public function aabbtest(a:PR(AABB)) {
-		// | dot(v, p1-c) | >= dot ( |v|, h )
-		var dot1 = normalx*(originx - 0.5*(a.minx+a.maxx))
-		         + normaly*(originy - 0.5*(a.miny+a.maxy));
-		var dot2 = absnormalx*0.5*(a.maxx-a.minx)
-		         + absnormaly*0.5*(a.maxy-a.miny);
-		return abs(dot1) < dot2;
-	}
+    public function aabbtest(a:PR(AABB)) {
+        // | dot(v, p1-c) | >= dot ( |v|, h )
+        var dot1 = normalx*(originx - 0.5*(a.minx+a.maxx))
+                 + normaly*(originy - 0.5*(a.miny+a.maxy));
+        var dot2 = absnormalx*0.5*(a.maxx-a.minx)
+                 + absnormaly*0.5*(a.maxy-a.miny);
+        return abs(dot1) < dot2;
+    }
 
-	public function aabbsect(a:PR(AABB)) {
-		var cx = originx >= a.minx && originx <= a.maxx;
-		var cy = originy >= a.miny && originy <= a.maxy;
-		if(cx && cy) return 0.0; //shortcut
-		else {
-			var ret = -1.0; //no intersection
-			do {
-				if(dirx>=0 && originx>=a.maxx) break;
-				if(dirx<=0 && originx<=a.minx) break;
-				if(diry>=0 && originy>=a.maxy) break;
-				if(diry<=0 && originy<=a.miny) break;
-				
-				if(dirx>0) {
-					var t = (a.minx-originx)*idirx;
-					if(t>=0 && t<=maxdist) {
-						var y = originy+t*diry;
-						if(y>=a.miny && y<=a.maxy) { ret = t; break; }
-					}
-				}else if(dirx<0) {
-					var t = (a.maxx-originx)*idirx;
-					if(t>=0 && t<=maxdist) {
-						var y = originy+t*diry;
-						if(y>=a.miny && y<=a.maxy) { ret = t; break; }
-					}
-				}
-				
-				if(diry>0) {
-					var t = (a.miny-originy)*idiry;
-					if(t>=0 && t<=maxdist) {
-						var x = originx+t*dirx;
-						if(x>=a.minx && x<=a.maxx) { ret = t; break; }
-					}
-				}else if(diry<0) {
-					var t = (a.maxy-originy)*idiry;
-					if(t>=0 && t<=maxdist) {
-						var x = originx+t*dirx;
-						if(x>=a.minx && x<=a.maxx) { ret = t; break; }
-					}
-				}
-			}while(false);
-			return ret;
-		}
-	}
-	
-	//--------------------------------------------------------------
-	
-	public function circlesect(c:PR(Circle), inner:Bool, mint:Float) {
-		c.validate_worldCOM();
-		vec_new(ac); vec_sub(origin,c.worldCOM,ac);
-		var A = vec_lsq(dir);
-		var B = 2*vec_dot(ac,dir);
-		var C = vec_lsq(ac)-c.radius*c.radius;
-		
-		$(mixin inter(t,inside) {
-			vec_new(n); vec_set(n,origin); vec_addeq(n,dir,t); vec_subeq(n,c.worldCOM);
-			vec_normalise_slow(n);
-			if(inside) vec_negate(n);
-			
-			internal = true;
-			var ret = new RayResult(Vec2.get(nx,ny),t,inside,c.outer);
-			internal = false;
-			return ret;
-		});
-		
-		var det = B*B-4*A*C;
-		if(det==0) {
-			var t = -B/2*A;
-			if((!inner || C>0) && t>0 && t<mint && t<=maxdist)
-				inter(t,C<=0);
-			else
-				return null;
-		}else {
-			det = Math.sqrt(det);
-			A = 1/(2*A);
-			var t0 = (-B-det)*A;
-			var t1 = (-B+det)*A;
-			
-			if(t0>0) {
-				if(t0<mint && t0<=maxdist) inter(t0,false);
-				else return null;
-			}else if(t1>0 && inner) {
-				if(t1<mint && t1<=maxdist) inter(t1,true);
-				else return null;
-			}else return null;
-		}
-	}
-	
-	public function circlesect2(c:PR(Circle), inner:Bool, list:RayResultList) {
-		c.validate_worldCOM();
-		vec_new(ac); vec_sub(origin,c.worldCOM,ac);
-		var A = vec_lsq(dir);
-		var B = 2*vec_dot(ac,dir);
-		var C = vec_lsq(ac)-c.radius*c.radius;
-		
-		$(mixin inter(t,inside) {
-			vec_new(n); vec_set(n,origin); vec_addeq(n,dir,t); vec_subeq(n,c.worldCOM);
-			vec_normalise_slow(n);
-			if(inside) vec_negate(n);
-			
-			internal = true;
-			var res = new RayResult(Vec2.get(nx,ny),t,inside,c.outer);
-			internal = false;
-			
-			Insert(res, list.pr(inner).inner, $(mixin lt(x,y) (x.distance<y.distance)) lt);
-		});
-		
-		var det = B*B-4*A*C;
-		if(det==0) {
-			var t = -B/2*A;
-			if((!inner || C>0) && t>0 && t<=maxdist)
-				inter(t,C<=0);
-		}else {
-			det = Math.sqrt(det);
-			A = 1/(2*A);
-			var t0 = (-B-det)*A;
-			var t1 = (-B+det)*A;
-			
-			if(t0>0 && t0<=maxdist)
-				inter(t0,false);
-			if(t1>0 && t1<=maxdist && inner)
-				inter(t1,true);
-		}
-	}
-	
-	//--------------------------------------------------------------
-	
-	public function polysect(p:PR(Polygon), inner:Bool, mint:Float) {
-		var min = mint;
-		var edge:PR(Edge) = null;
-		
-		var ei = p.edges.begin();
-		Iter2(u,v, p.gverts, {
-			var e = ei.elem();
-			if(inner || vec_dot(e.gnorm,dir)<0) {
-				vec_new(_v); vec_sub(v.,u.,_v);
-				vec_new(_s); vec_sub(u.,origin,_s);
-				
-				var den = vec_cross(dir,_v);
-				if(den*den > PR(Const).EPSILON) {
-					den = 1/den;
-					var sxx = vec_cross(_s,_v)*den;
-					if(sxx>0 && sxx<min && sxx<=maxdist) {
-						var txx = vec_cross(_s,dir)*den;
-						if(txx>-PR(Const).EPSILON && txx<1+PR(Const).EPSILON) {
-							min = sxx;
-							edge = ei.elem();
-						}
-					}
-				}
-			}
-			
-			ei = ei.next;
-		})
-		
-		if(edge!=null) {
-			vec_new(n); vec_set(n,edge.gnorm);
-			var inner = vec_dot(n,dir)>0;
-			if(inner) vec_negate(n);
-			
-			internal = true;
-			var ret = new RayResult(Vec2.get(nx,ny),min,inner,p.outer);
-			internal = false;
-			return ret;
-		}else return null;
-	}
-	
-	public function polysect2(p:PR(Polygon), inner:Bool, list:RayResultList) {
-		var min = PR(Const).POSINF(); var max = -1.0;
-		var edge:PR(Edge) = null; var edgemax:PR(Edge) = null;
-		
-		var ei = p.edges.begin();
-		Iter2(u,v, p.gverts, {
-			var e = ei.elem();
-			if(inner || vec_dot(e.gnorm,dir)<0) {
-				vec_new(_v); vec_sub(v.,u.,_v);
-				vec_new(_s); vec_sub(u.,origin,_s);
-				
-				var den = vec_cross(dir,_v);
-				if(den*den > PR(Const).EPSILON) {
-					den = 1/den;
-					var sxx = vec_cross(_s,_v)*den;
-					if(sxx>0 && sxx<=maxdist && (sxx<min || sxx>max)) {
-						var txx = vec_cross(_s,dir)*den;
-						if(txx>-PR(Const).EPSILON && txx<1+PR(Const).EPSILON) {
-							if(sxx<min) {
-								min = sxx;
-								edge = ei.elem();
-							}
-							if(sxx>max) {
-								max = sxx;
-								edgemax = ei.elem();
-							}
-						}
-					}
-				}
-			}
-			
-			ei = ei.next;
-		})
-		
-		$(mixin doit(edge,time) {
-			vec_new(n); vec_set(n,edge.gnorm);
-			var inner = vec_dot(n,dir)>0;
-			if(inner) vec_negate(n);
-			
-			internal = true;
-			var ret = new RayResult(Vec2.get(nx,ny),time,inner,p.outer);
-			internal = false;
-			
-			Insert(ret, list.pr(inner).inner, $(mixin lt(x,y) (x.distance<y.distance)) lt);
-		});
-		if(edge!=null) doit(edge,min);
-		if(edgemax!=null && edge!=edgemax) doit(edgemax,max);
-	}
+    public function aabbsect(a:PR(AABB)) {
+        var cx = originx >= a.minx && originx <= a.maxx;
+        var cy = originy >= a.miny && originy <= a.maxy;
+        if(cx && cy) return 0.0; //shortcut
+        else {
+            var ret = -1.0; //no intersection
+            do {
+                if(dirx>=0 && originx>=a.maxx) break;
+                if(dirx<=0 && originx<=a.minx) break;
+                if(diry>=0 && originy>=a.maxy) break;
+                if(diry<=0 && originy<=a.miny) break;
+                
+                if(dirx>0) {
+                    var t = (a.minx-originx)*idirx;
+                    if(t>=0 && t<=maxdist) {
+                        var y = originy+t*diry;
+                        if(y>=a.miny && y<=a.maxy) { ret = t; break; }
+                    }
+                }else if(dirx<0) {
+                    var t = (a.maxx-originx)*idirx;
+                    if(t>=0 && t<=maxdist) {
+                        var y = originy+t*diry;
+                        if(y>=a.miny && y<=a.maxy) { ret = t; break; }
+                    }
+                }
+                
+                if(diry>0) {
+                    var t = (a.miny-originy)*idiry;
+                    if(t>=0 && t<=maxdist) {
+                        var x = originx+t*dirx;
+                        if(x>=a.minx && x<=a.maxx) { ret = t; break; }
+                    }
+                }else if(diry<0) {
+                    var t = (a.maxy-originy)*idiry;
+                    if(t>=0 && t<=maxdist) {
+                        var x = originx+t*dirx;
+                        if(x>=a.minx && x<=a.maxx) { ret = t; break; }
+                    }
+                }
+            }while(false);
+            return ret;
+        }
+    }
+    
+    //--------------------------------------------------------------
+    
+    public function circlesect(c:PR(Circle), inner:Bool, mint:Float) {
+        c.validate_worldCOM();
+        vec_new(ac); vec_sub(origin,c.worldCOM,ac);
+        var A = vec_lsq(dir);
+        var B = 2*vec_dot(ac,dir);
+        var C = vec_lsq(ac)-c.radius*c.radius;
+        
+        $(mixin inter(t,inside) {
+            vec_new(n); vec_set(n,origin); vec_addeq(n,dir,t); vec_subeq(n,c.worldCOM);
+            vec_normalise_slow(n);
+            if(inside) vec_negate(n);
+            
+            internal = true;
+            var ret = new RayResult(Vec2.get(nx,ny),t,inside,c.outer);
+            internal = false;
+            return ret;
+        });
+        
+        var det = B*B-4*A*C;
+        if(det==0) {
+            var t = -B/2*A;
+            if((!inner || C>0) && t>0 && t<mint && t<=maxdist)
+                inter(t,C<=0);
+            else
+                return null;
+        }else {
+            det = Math.sqrt(det);
+            A = 1/(2*A);
+            var t0 = (-B-det)*A;
+            var t1 = (-B+det)*A;
+            
+            if(t0>0) {
+                if(t0<mint && t0<=maxdist) inter(t0,false);
+                else return null;
+            }else if(t1>0 && inner) {
+                if(t1<mint && t1<=maxdist) inter(t1,true);
+                else return null;
+            }else return null;
+        }
+    }
+    
+    public function circlesect2(c:PR(Circle), inner:Bool, list:RayResultList) {
+        c.validate_worldCOM();
+        vec_new(ac); vec_sub(origin,c.worldCOM,ac);
+        var A = vec_lsq(dir);
+        var B = 2*vec_dot(ac,dir);
+        var C = vec_lsq(ac)-c.radius*c.radius;
+        
+        $(mixin inter(t,inside) {
+            vec_new(n); vec_set(n,origin); vec_addeq(n,dir,t); vec_subeq(n,c.worldCOM);
+            vec_normalise_slow(n);
+            if(inside) vec_negate(n);
+            
+            internal = true;
+            var res = new RayResult(Vec2.get(nx,ny),t,inside,c.outer);
+            internal = false;
+            
+            Insert(res, list.pr(inner).inner, $(mixin lt(x,y) (x.distance<y.distance)) lt);
+        });
+        
+        var det = B*B-4*A*C;
+        if(det==0) {
+            var t = -B/2*A;
+            if((!inner || C>0) && t>0 && t<=maxdist)
+                inter(t,C<=0);
+        }else {
+            det = Math.sqrt(det);
+            A = 1/(2*A);
+            var t0 = (-B-det)*A;
+            var t1 = (-B+det)*A;
+            
+            if(t0>0 && t0<=maxdist)
+                inter(t0,false);
+            if(t1>0 && t1<=maxdist && inner)
+                inter(t1,true);
+        }
+    }
+    
+    //--------------------------------------------------------------
+    
+    public function polysect(p:PR(Polygon), inner:Bool, mint:Float) {
+        var min = mint;
+        var edge:PR(Edge) = null;
+        
+        var ei = p.edges.begin();
+        Iter2(u,v, p.gverts, {
+            var e = ei.elem();
+            if(inner || vec_dot(e.gnorm,dir)<0) {
+                vec_new(_v); vec_sub(v.,u.,_v);
+                vec_new(_s); vec_sub(u.,origin,_s);
+                
+                var den = vec_cross(dir,_v);
+                if(den*den > PR(Const).EPSILON) {
+                    den = 1/den;
+                    var sxx = vec_cross(_s,_v)*den;
+                    if(sxx>0 && sxx<min && sxx<=maxdist) {
+                        var txx = vec_cross(_s,dir)*den;
+                        if(txx>-PR(Const).EPSILON && txx<1+PR(Const).EPSILON) {
+                            min = sxx;
+                            edge = ei.elem();
+                        }
+                    }
+                }
+            }
+            
+            ei = ei.next;
+        })
+        
+        if(edge!=null) {
+            vec_new(n); vec_set(n,edge.gnorm);
+            var inner = vec_dot(n,dir)>0;
+            if(inner) vec_negate(n);
+            
+            internal = true;
+            var ret = new RayResult(Vec2.get(nx,ny),min,inner,p.outer);
+            internal = false;
+            return ret;
+        }else return null;
+    }
+    
+    public function polysect2(p:PR(Polygon), inner:Bool, list:RayResultList) {
+        var min = PR(Const).POSINF(); var max = -1.0;
+        var edge:PR(Edge) = null; var edgemax:PR(Edge) = null;
+        
+        var ei = p.edges.begin();
+        Iter2(u,v, p.gverts, {
+            var e = ei.elem();
+            if(inner || vec_dot(e.gnorm,dir)<0) {
+                vec_new(_v); vec_sub(v.,u.,_v);
+                vec_new(_s); vec_sub(u.,origin,_s);
+                
+                var den = vec_cross(dir,_v);
+                if(den*den > PR(Const).EPSILON) {
+                    den = 1/den;
+                    var sxx = vec_cross(_s,_v)*den;
+                    if(sxx>0 && sxx<=maxdist && (sxx<min || sxx>max)) {
+                        var txx = vec_cross(_s,dir)*den;
+                        if(txx>-PR(Const).EPSILON && txx<1+PR(Const).EPSILON) {
+                            if(sxx<min) {
+                                min = sxx;
+                                edge = ei.elem();
+                            }
+                            if(sxx>max) {
+                                max = sxx;
+                                edgemax = ei.elem();
+                            }
+                        }
+                    }
+                }
+            }
+            
+            ei = ei.next;
+        })
+        
+        $(mixin doit(edge,time) {
+            vec_new(n); vec_set(n,edge.gnorm);
+            var inner = vec_dot(n,dir)>0;
+            if(inner) vec_negate(n);
+            
+            internal = true;
+            var ret = new RayResult(Vec2.get(nx,ny),time,inner,p.outer);
+            internal = false;
+            
+            Insert(ret, list.pr(inner).inner, $(mixin lt(x,y) (x.distance<y.distance)) lt);
+        });
+        if(edge!=null) doit(edge,min);
+        if(edgemax!=null && edge!=edgemax) doit(edgemax,max);
+    }
 }

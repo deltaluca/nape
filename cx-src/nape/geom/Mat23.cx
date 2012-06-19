@@ -3,215 +3,215 @@ $(import);
 
 class Mat23 {
     public var pr(inner):PR(Mat23);
-	
-	$(mixin comp(n)
+    
+    $(mixin comp(n)
         property(n,Float,pr(inner).n,{
-			DEBUG(if(isNaN(n)) throw "Error: Mat23::"+$str(n)+" cannot be NaN";)
-			pr(inner).n = n;
-			if(pr(inner).__invalidate!=null) pr(inner).__invalidate();
-		})
-	);
-	comp(a) comp(b) comp(tx)
-	comp(c) comp(d) comp(ty)
-	
-	//----------------------------------------------------------------------------------------------
+            DEBUG(if(isNaN(n)) throw "Error: Mat23::"+$str(n)+" cannot be NaN";)
+            pr(inner).n = n;
+            if(pr(inner).__invalidate!=null) pr(inner).__invalidate();
+        })
+    );
+    comp(a) comp(b) comp(tx)
+    comp(c) comp(d) comp(ty)
+    
+    //----------------------------------------------------------------------------------------------
 
     public function new(
         ?a:Float=1.0, ?b:Float=0.0,
         ?c:Float=0.0, ?d:Float=1.0,
         ?tx:Float=0.0,?ty:Float=0.0
     ) {
-		pr(inner) = PR(Mat23).get();
-		pr(inner).outer = this;
+        pr(inner) = PR(Mat23).get();
+        pr(inner).outer = this;
         this.a = a; this.b = b; this.tx = tx;
         this.c = c; this.d = d; this.ty = ty;
     }
 
-	public function set(matrix:Mat23) {
-		DEBUG(if(matrix==null) throw "Error: Cannot set form null matrix";)
-		pr(inner).set(matrix.pr(inner));
-		if(pr(inner).__invalidate!=null) pr(inner).__invalidate();
-	}
-	public function setAs(?a:Float=1.0,?b:Float=0.0,
-	                             ?c:Float=0.0,?d:Float=1.0,
-								 ?tx:Float=0.0,?ty:Float=0.0) {
-		pr(inner).setas(a,b,c,d,tx,ty);
-		if(pr(inner).__invalidate!=null) pr(inner).__invalidate();
-	}
-	public function reset() setAs()
+    public function set(matrix:Mat23) {
+        DEBUG(if(matrix==null) throw "Error: Cannot set form null matrix";)
+        pr(inner).set(matrix.pr(inner));
+        if(pr(inner).__invalidate!=null) pr(inner).__invalidate();
+    }
+    public function setAs(?a:Float=1.0,?b:Float=0.0,
+                                 ?c:Float=0.0,?d:Float=1.0,
+                                 ?tx:Float=0.0,?ty:Float=0.0) {
+        pr(inner).setas(a,b,c,d,tx,ty);
+        if(pr(inner).__invalidate!=null) pr(inner).__invalidate();
+    }
+    public function reset() setAs()
 
-	#if (flash9||nme)
-		keep public static function fromMatrix(m:flash.geom.Matrix) {
-			return new Mat23(m.a,m.c,m.b,m.d,m.tx,m.ty);
-		}
-		keep public function toMatrix() {
-			return new flash.geom.Matrix(a,c,b,d,tx,ty);
-		}
-	#end
-	
-	keep public static function rotation(angle:Float) {
-		var cos = Math.cos(angle);
-		var sin = Math.sin(angle);
-		return new Mat23(cos,-sin,sin,cos,0,0);
-	}
-	keep public static function translation(tx:Float,ty:Float) {
-		return new Mat23(1,0,0,1,tx,ty);
-	}
-	keep public static function scale(sx:Float,?sy:Float) {
-		if(isNaN(sy)) sy = sx;
-		return new Mat23(sx,0,0,sy,0,0);
-	}
-	
-	//----------------------------------------------------------------------------------------------
-	
-	keep public function copy() return new Mat23(a,b,c,d,tx,ty)
-	
-	//----------------------------------------------------------------------------------------------
-	
+    #if (flash9||nme)
+        keep public static function fromMatrix(m:flash.geom.Matrix) {
+            return new Mat23(m.a,m.c,m.b,m.d,m.tx,m.ty);
+        }
+        keep public function toMatrix() {
+            return new flash.geom.Matrix(a,c,b,d,tx,ty);
+        }
+    #end
+    
+    keep public static function rotation(angle:Float) {
+        var cos = Math.cos(angle);
+        var sin = Math.sin(angle);
+        return new Mat23(cos,-sin,sin,cos,0,0);
+    }
+    keep public static function translation(tx:Float,ty:Float) {
+        return new Mat23(1,0,0,1,tx,ty);
+    }
+    keep public static function scale(sx:Float,?sy:Float) {
+        if(isNaN(sy)) sy = sx;
+        return new Mat23(sx,0,0,sy,0,0);
+    }
+    
+    //----------------------------------------------------------------------------------------------
+    
+    keep public function copy() return new Mat23(a,b,c,d,tx,ty)
+    
+    //----------------------------------------------------------------------------------------------
+    
     property(determinant,Float,a*d-b*c)
-	
-	keep public function singular() {
-		var d = determinant;
-		return d*d<PR(Const).EPSILON;
-	}
-	
-	//----------------------------------------------------------------------------------------------
-	
-	keep public function inverse() {
-		var det = determinant;
-		DEBUG(if(det*det<PR(Const).EPSILON)
-			throw "Error: Matrix is singular and cannot be inverted";
-		)
-		det = 1.0/det;
+    
+    keep public function singular() {
+        var d = determinant;
+        return d*d<PR(Const).EPSILON;
+    }
+    
+    //----------------------------------------------------------------------------------------------
+    
+    keep public function inverse() {
+        var det = determinant;
+        DEBUG(if(det*det<PR(Const).EPSILON)
+            throw "Error: Matrix is singular and cannot be inverted";
+        )
+        det = 1.0/det;
 
-		return new Mat23(
-			d*det, -b*det,
-			-c*det, a*det,
-			(b*ty - d*tx)*det,
-			(c*tx - a*ty)*det
-		);
-	}
-	
-	keep public function transpose() return new Mat23(a,c,b,d,tx,ty)
-	
-	//----------------------------------------------------------------------------------------------
-	
-	//x concat y = yx
-	keep public function concat(x:Mat23) {
-		return new Mat23(
-			x.a*a + x.b*c, x.a*b + x.b*d,
-			x.c*a + x.d*c, x.c*b + x.d*d,
-			x.a*tx + x.b*ty + x.tx,
-			x.c*tx + x.d*ty + x.ty
-		);
-	}
-	
-	keep public function transform(p:Vec2,?no_translation:Bool=false,?weak:Bool=false):Vec2 {
-		Disposed(p,Vec2);
-		var ret = if(no_translation)
-			Vec2.get(
-				p.x*a + p.y*b,
-				p.x*c + p.y*d,
-				weak
-			);
-		else
-			Vec2.get(
-				p.x*a + p.y*b + tx,
-				p.x*c + p.y*d + ty,
-				weak
-			);
-		WEAK(p);
-		return ret;
-	}
+        return new Mat23(
+            d*det, -b*det,
+            -c*det, a*det,
+            (b*ty - d*tx)*det,
+            (c*tx - a*ty)*det
+        );
+    }
+    
+    keep public function transpose() return new Mat23(a,c,b,d,tx,ty)
+    
+    //----------------------------------------------------------------------------------------------
+    
+    //x concat y = yx
+    keep public function concat(x:Mat23) {
+        return new Mat23(
+            x.a*a + x.b*c, x.a*b + x.b*d,
+            x.c*a + x.d*c, x.c*b + x.d*d,
+            x.a*tx + x.b*ty + x.tx,
+            x.c*tx + x.d*ty + x.ty
+        );
+    }
+    
+    keep public function transform(p:Vec2,?no_translation:Bool=false,?weak:Bool=false):Vec2 {
+        Disposed(p,Vec2);
+        var ret = if(no_translation)
+            Vec2.get(
+                p.x*a + p.y*b,
+                p.x*c + p.y*d,
+                weak
+            );
+        else
+            Vec2.get(
+                p.x*a + p.y*b + tx,
+                p.x*c + p.y*d + ty,
+                weak
+            );
+        WEAK(p);
+        return ret;
+    }
 
-	keep public function inverse_transform(p:Vec2,?no_translation:Bool=false,?weak:Bool=false):Vec2 {
-		var det = determinant;
-		DEBUG(if(det*det<PR(Const).EPSILON)
-			throw "Error: Matrix is singular and cannot be inverted in course of inverse transformation";
-		)
-		det = 1.0/det;
-		var ret = if(no_translation)
-			Vec2.get(
-				(p.x*d - p.y*b)*det,
-				(p.y*a - p.x*c)*det,
-				weak
-			);
-		else
-			Vec2.get(
-				(p.x*d - p.y*b + b*ty - d*tx)*det,
-				(p.y*a - p.x*c + c*tx - a*ty)*det,
-				weak
-			);
-		WEAK(p);
-		return ret;
-	}
-	
-	//----------------------------------------------------------------------------------------------
-	
-	//keep is only for swc, use standard metadata
+    keep public function inverse_transform(p:Vec2,?no_translation:Bool=false,?weak:Bool=false):Vec2 {
+        var det = determinant;
+        DEBUG(if(det*det<PR(Const).EPSILON)
+            throw "Error: Matrix is singular and cannot be inverted in course of inverse transformation";
+        )
+        det = 1.0/det;
+        var ret = if(no_translation)
+            Vec2.get(
+                (p.x*d - p.y*b)*det,
+                (p.y*a - p.x*c)*det,
+                weak
+            );
+        else
+            Vec2.get(
+                (p.x*d - p.y*b + b*ty - d*tx)*det,
+                (p.y*a - p.x*c + c*tx - a*ty)*det,
+                weak
+            );
+        WEAK(p);
+        return ret;
+    }
+    
+    //----------------------------------------------------------------------------------------------
+    
+    //keep is only for swc, use standard metadata
     @:$keep public function toString() {
         return "{ a: "+a+ " b: "+b+" c: "+c+" d: "+d+" tx: "+tx+" ty: "+ty+" }";
     }
-	
-	//----------------------------------------------------------------------------------------------
+    
+    //----------------------------------------------------------------------------------------------
 
     //whether transpose(M).M = kI -> can transform one circle to another.
     keep public function equiorthogonal() {
-		if(singular()) return false;
-		else {
-			var x = a*b+c*d;
-			if (x*x < PR(Const).EPSILON) {
-				//determine if all vectors are scaled equally.
-				var y = a*a+b*b-c*c-d*d;
-				return y*y < PR(Const).EPSILON;
-			}else return false;
-		}
+        if(singular()) return false;
+        else {
+            var x = a*b+c*d;
+            if (x*x < PR(Const).EPSILON) {
+                //determine if all vectors are scaled equally.
+                var y = a*a+b*b-c*c-d*d;
+                return y*y < PR(Const).EPSILON;
+            }else return false;
+        }
     }
-	
-	//transform matrix into the most similar, but [equi]orthogonal matrix
-	$(mixin alise(n,kdef)
-		keep public function n`ise() {
-			if(!n()) {
-				var k1 = Math.sqrt(a*a+c*c);
-				var k2 = Math.sqrt(b*b+d*d);
-				DEBUG(if(k1*k1<PR(Const).EPSILON || k2*k2<PR(Const).EPSILON)
-					throw "Error: Matrix is singular and cannot be "+$str(n)+"ised";
-				)
-				var k = kdef;
-				k1 = k/k1; k2 = k/k2;
-					
-				a *= k1; c *= k1;
-				b *= k2; d *= k2;
-					
-				var dot = a*b+c*d;
-				var ang = 0.25*Math.PI - 0.5*Math.acos(dot/(k*k));
-				if(determinant>0) ang = -ang;
-					
-				var sin = Math.sin(ang); var cos = Math.cos(ang);
-					
-				var a2 = a*cos-c*sin;
-				var b2 = b*cos+d*sin;
-				c = c*cos+a*sin; a = a2;
-				d = d*cos-b*sin; b = b2;
+    
+    //transform matrix into the most similar, but [equi]orthogonal matrix
+    $(mixin alise(n,kdef)
+        keep public function n`ise() {
+            if(!n()) {
+                var k1 = Math.sqrt(a*a+c*c);
+                var k2 = Math.sqrt(b*b+d*d);
+                DEBUG(if(k1*k1<PR(Const).EPSILON || k2*k2<PR(Const).EPSILON)
+                    throw "Error: Matrix is singular and cannot be "+$str(n)+"ised";
+                )
+                var k = kdef;
+                k1 = k/k1; k2 = k/k2;
+                    
+                a *= k1; c *= k1;
+                b *= k2; d *= k2;
+                    
+                var dot = a*b+c*d;
+                var ang = 0.25*Math.PI - 0.5*Math.acos(dot/(k*k));
+                if(determinant>0) ang = -ang;
+                    
+                var sin = Math.sin(ang); var cos = Math.cos(ang);
+                    
+                var a2 = a*cos-c*sin;
+                var b2 = b*cos+d*sin;
+                c = c*cos+a*sin; a = a2;
+                d = d*cos-b*sin; b = b2;
 
-				if(pr(inner).__invalidate!=null) pr(inner).__invalidate();
-			}
-			return this;
-		}
-	);
-	alise(equiorthogonal,(k1+k2)/2)
-	
-	//----------------------------------------------------------------------------------------------
+                if(pr(inner).__invalidate!=null) pr(inner).__invalidate();
+            }
+            return this;
+        }
+    );
+    alise(equiorthogonal,(k1+k2)/2)
+    
+    //----------------------------------------------------------------------------------------------
 
     keep public function orthogonal() {
         var x = a*b+c*d;
         if (x*x < PR(Const).EPSILON) {
-			var y = a*a+b*b- 1;
-			var z = c*c+d*d - 1;
-			return y*y < PR(Const).EPSILON && z*z < PR(Const).EPSILON;
-		}else
-			return false;
+            var y = a*a+b*b- 1;
+            var z = c*c+d*d - 1;
+            return y*y < PR(Const).EPSILON && z*z < PR(Const).EPSILON;
+        }else
+            return false;
     }
-	
-	alise(orthogonal,1)
+    
+    alise(orthogonal,1)
 }

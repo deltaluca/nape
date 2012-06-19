@@ -2,105 +2,105 @@ package;
 $(import);
 
 class Reference {
-	public var name:String;
-	public var obj:TObject;
-	public function new(name:String,obj:TObject) { 
-		this.name = name;
-		this.obj = obj;
-	}
+    public var name:String;
+    public var obj:TObject;
+    public function new(name:String,obj:TObject) { 
+        this.name = name;
+        this.obj = obj;
+    }
 }
 
 class PushResult {
-	public var isnew:Bool;
-	public var obj:TObject;
-	public function new(isnew:Bool,obj:TObject) {
-		this.isnew = isnew;
-		this.obj = obj;
-	}
+    public var isnew:Bool;
+    public var obj:TObject;
+    public function new(isnew:Bool,obj:TObject) {
+        this.isnew = isnew;
+        this.obj = obj;
+    }
 }
 
 class TObject {
-	public static var nextId = 0;
+    public static var nextId = 0;
 
-	public var id  :Int;
-	public var obj :Dynamic;
-	public var type:String;
+    public var id  :Int;
+    public var obj :Dynamic;
+    public var type:String;
 
-	public var references:Array<Reference>;
+    public var references:Array<Reference>;
 
-	public function new(obj:Dynamic) {
-		id = nextId++;
-		this.obj = obj;
-		type = Type.getClassName(Type.getClass(obj));
-		references = new Array<Reference>();
-	}
+    public function new(obj:Dynamic) {
+        id = nextId++;
+        this.obj = obj;
+        type = Type.getClassName(Type.getClass(obj));
+        references = new Array<Reference>();
+    }
 
-	public function toString() {
-		var ret = "#"+id+" : "+type+";\n";
-		for(r in references)
-			ret += "\t "+r.name+" = #"+r.obj.id+"\n";
-		return ret.substr(0,ret.length-1);
-	}
+    public function toString() {
+        var ret = "#"+id+" : "+type+";\n";
+        for(r in references)
+            ret += "\t "+r.name+" = #"+r.obj.id+"\n";
+        return ret.substr(0,ret.length-1);
+    }
 }
 
 class Graph {
-	public var objects:IntHash<TObject>;
-	var dict:flash.utils.Dictionary;
+    public var objects:IntHash<TObject>;
+    var dict:flash.utils.Dictionary;
 
-	public function new(?objs:Array<Dynamic>) {
-		objects = new IntHash<TObject>();
-		dict = new flash.utils.Dictionary(false);
+    public function new(?objs:Array<Dynamic>) {
+        objects = new IntHash<TObject>();
+        dict = new flash.utils.Dictionary(false);
 
-		if(objs==null) return;
+        if(objs==null) return;
 
-		for(o in objs) push(o);
-	}
+        for(o in objs) push(o);
+    }
 
-	public function push(obj:Dynamic):PushResult {
-		if(Reflect.isObject(obj)) {
-			if((untyped dict[obj])==null) {
-				var ob = new TObject(obj);
-				untyped dict[obj] = ob;
-				objects.set(ob.id, ob);
-				return new PushResult(true, ob);
-			}else
-				return new PushResult(false, untyped dict[obj]);
-		}else
-			return null;
-	}
+    public function push(obj:Dynamic):PushResult {
+        if(Reflect.isObject(obj)) {
+            if((untyped dict[obj])==null) {
+                var ob = new TObject(obj);
+                untyped dict[obj] = ob;
+                objects.set(ob.id, ob);
+                return new PushResult(true, ob);
+            }else
+                return new PushResult(false, untyped dict[obj]);
+        }else
+            return null;
+    }
 
-	public function toString() {
-		var ret = "";
-		for(o in objects)
-			ret += o.toString()+"\n";
-		return ret;
-	}
+    public function toString() {
+        var ret = "";
+        for(o in objects)
+            ret += o.toString()+"\n";
+        return ret;
+    }
 
-	public function populate(continuation:Void->Void) {
-		var stack:Array<Dynamic> = [];
-		for(o in objects) {
-			o.references = [];
-			stack.push(o);
-		}
+    public function populate(continuation:Void->Void) {
+        var stack:Array<Dynamic> = [];
+        for(o in objects) {
+            o.references = [];
+            stack.push(o);
+        }
 
-		var tim = new haxe.Timer(0);
-		tim.run = function() {
-			if(stack.length==0) { tim.stop(); continuation(); return; }
-			var pt = flash.Lib.getTimer();
-			while(flash.Lib.getTimer()-pt<50) {
-				if(stack.length==0) { tim.stop(); continuation(); return; }
+        var tim = new haxe.Timer(0);
+        tim.run = function() {
+            if(stack.length==0) { tim.stop(); continuation(); return; }
+            var pt = flash.Lib.getTimer();
+            while(flash.Lib.getTimer()-pt<50) {
+                if(stack.length==0) { tim.stop(); continuation(); return; }
 
-				var obj:TObject = stack.shift();
-				var cls = Type.resolveClass(obj.type);
-				for(o in Type.getInstanceFields(cls)) {
-					var field:Dynamic = Reflect.field(obj.obj, o);
-					if(field!=null && Reflect.isObject(field)) {
-						var ref = push(field);
-						obj.references.push(new Reference(o,ref.obj));
-						if(ref.isnew) stack.push(ref.obj);
-					}
-				}
-			}
-		}
-	}
+                var obj:TObject = stack.shift();
+                var cls = Type.resolveClass(obj.type);
+                for(o in Type.getInstanceFields(cls)) {
+                    var field:Dynamic = Reflect.field(obj.obj, o);
+                    if(field!=null && Reflect.isObject(field)) {
+                        var ref = push(field);
+                        obj.references.push(new Reference(o,ref.obj));
+                        if(ref.isnew) stack.push(ref.obj);
+                    }
+                }
+            }
+        }
+    }
 }

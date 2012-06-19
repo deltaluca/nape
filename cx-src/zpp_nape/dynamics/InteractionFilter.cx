@@ -2,45 +2,45 @@ package zpp_nape.dynamics;
 $(import);
 
 class PR(InteractionFilter) {
-	
-	PRFeatureMix(InteractionFilter,filter)
-	
-	public function new() {
-		feature_cons();
-		collisionGroup = sensorGroup = fluidGroup = 1;
-		collisionMask = sensorMask = fluidMask = -1;
-	}
-	
-	public function copy() {
-		var ret = Get(PR(InteractionFilter));
-		ret.collisionGroup = collisionGroup;
-		ret.collisionMask = collisionMask;
-		ret.sensorGroup = sensorGroup;
-		ret.sensorMask = sensorMask;
-		ret.fluidGroup = fluidGroup;
-		ret.fluidMask = fluidMask;
-		return ret;
-	}
-	
+    
+    PRFeatureMix(InteractionFilter,filter)
+    
+    public function new() {
+        feature_cons();
+        collisionGroup = sensorGroup = fluidGroup = 1;
+        collisionMask = sensorMask = fluidMask = -1;
+    }
+    
+    public function copy() {
+        var ret = Get(PR(InteractionFilter));
+        ret.collisionGroup = collisionGroup;
+        ret.collisionMask = collisionMask;
+        ret.sensorGroup = sensorGroup;
+        ret.sensorMask = sensorMask;
+        ret.fluidGroup = fluidGroup;
+        ret.fluidMask = fluidMask;
+        return ret;
+    }
+    
     //----------------------------------------------------------------------------------------------
-	
+    
     $(mixin int(n,N)
         public var n`Group:Int;
         public var n`Mask :Int;
 
         flibmdel public inline function should`N(x:PR(InteractionFilter)) {
-			return (n`Mask&x.n`Group)!=0 && (x.n`Mask&n`Group)!=0;
+            return (n`Mask&x.n`Group)!=0 && (x.n`Mask&n`Group)!=0;
         }
     );
 
     int(collision,Collide)
     int(sensor,   Sense)
     int(fluid,    Flow)
-	
-	//----------------------------------------------------------------------------------------------
+    
+    //----------------------------------------------------------------------------------------------
 
-	public function invalidate() {
-		Iter(s,shapes,s.invalidate_filter());
-	}
-	
+    public function invalidate() {
+        Iter(s,shapes,s.invalidate_filter());
+    }
+    
 }

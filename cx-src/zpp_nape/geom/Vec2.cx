@@ -2,60 +2,60 @@ package zpp_nape.geom;
 $(import);
 
 class PR(Vec2) {
-	public var _invalidate:PR(Vec2)->Dynamic;
-	public var _validate:Void->Dynamic;
-	public var immutable:Bool;
-	public var _immutable:Void->Dynamic;
-	
-	public function validate():Void {
-		if(_validate!=null) _validate();
-	}
-	public function invalidate():Void {
-		if(_invalidate!=null) _invalidate(this);
-	}
-	
-	public var outer:Vec2;
-	public function wrapper():Vec2 {
-		if(outer==null) {
-			outer = new Vec2(); //don't care
-			Free(PR(Vec2),outer.pr(inner));
-			outer.pr(inner) = this;
-		}
-		return outer;
-	}
-	
-	//----------------------------------------------------------------------------------------------
+    public var _invalidate:PR(Vec2)->Dynamic;
+    public var _validate:Void->Dynamic;
+    public var immutable:Bool;
+    public var _immutable:Void->Dynamic;
+    
+    public function validate():Void {
+        if(_validate!=null) _validate();
+    }
+    public function invalidate():Void {
+        if(_invalidate!=null) _invalidate(this);
+    }
+    
+    public var outer:Vec2;
+    public function wrapper():Vec2 {
+        if(outer==null) {
+            outer = new Vec2(); //don't care
+            Free(PR(Vec2),outer.pr(inner));
+            outer.pr(inner) = this;
+        }
+        return outer;
+    }
+    
+    //----------------------------------------------------------------------------------------------
 
-	public var weak:Bool;
-	
-	MixPoolNoNext(PR(Vec2))
-	flibmdel public inline function free():Void {
-		if(outer!=null) {
-			outer.pr(inner) = null;
-			outer = null;
-		}
-		_immutable = _validate = null;
-		_invalidate = null;
-		weak = false;
-	}
-	flibmdel public inline function alloc():Void {}
-	
-	MixListMixin(PR(Vec2))
-	vec_new(public,$(->));
-	
-	//----------------------------------------------------------------------------------------------
-	
-	public function new() { weak = false; }
-	public static function get(x:Float, y:Float, immutable:Bool=false):PR(Vec2) {
-		var ret = Get(PR(Vec2));
-		ret.immutable = immutable;
-		vec_set(ret.,);
-		return ret;
-	}
-	
-	flibmdel public inline function copy():PR(Vec2) return get(x,y)
-	
-	//----------------------------------------------------------------------------------------------
-	
-	public function toString():String return "{ x: "+x+" y: "+y+" }"
+    public var weak:Bool;
+    
+    MixPoolNoNext(PR(Vec2))
+    flibmdel public inline function free():Void {
+        if(outer!=null) {
+            outer.pr(inner) = null;
+            outer = null;
+        }
+        _immutable = _validate = null;
+        _invalidate = null;
+        weak = false;
+    }
+    flibmdel public inline function alloc():Void {}
+    
+    MixListMixin(PR(Vec2))
+    vec_new(public,$(->));
+    
+    //----------------------------------------------------------------------------------------------
+    
+    public function new() { weak = false; }
+    public static function get(x:Float, y:Float, immutable:Bool=false):PR(Vec2) {
+        var ret = Get(PR(Vec2));
+        ret.immutable = immutable;
+        vec_set(ret.,);
+        return ret;
+    }
+    
+    flibmdel public inline function copy():PR(Vec2) return get(x,y)
+    
+    //----------------------------------------------------------------------------------------------
+    
+    public function toString():String return "{ x: "+x+" y: "+y+" }"
 }

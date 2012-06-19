@@ -2,171 +2,171 @@ package zpp_nape.phys;
 $(import);
 
 class PR(Compound) extends PR(Interactor) {
-	public var outer:Compound;
+    public var outer:Compound;
 
-	//----------------------------------------------------
+    //----------------------------------------------------
 
-	public var bodies:List(PR(Body)); 
-	public var constraints:List(PR(Constraint));
-	public var compounds:List(PR(Compound)); 
+    public var bodies:List(PR(Body)); 
+    public var constraints:List(PR(Constraint));
+    public var compounds:List(PR(Compound)); 
 
-	public var wrap_bodies:BodyList;
-	public var wrap_constraints:ConstraintList;
-	public var wrap_compounds:CompoundList;
+    public var wrap_bodies:BodyList;
+    public var wrap_constraints:ConstraintList;
+    public var wrap_compounds:CompoundList;
 
-	//----------------------------------------------------
+    //----------------------------------------------------
 
-	public var depth:Int;
-	public var compound:PR(Compound);
-	public var space:PR(Space);
+    public var depth:Int;
+    public var compound:PR(Compound);
+    public var space:PR(Space);
 
-	//----------------------------------------------------
+    //----------------------------------------------------
 
-	public function __imutable_midstep(name:String) {
-		DEBUG(if(space!=null && space.midstep) throw "Error: "+name+" cannot be set during space step()";)
-	}
+    public function __imutable_midstep(name:String) {
+        DEBUG(if(space!=null && space.midstep) throw "Error: "+name+" cannot be set during space step()";)
+    }
 
-	public function addedToSpace() {
-		__iaddedToSpace();
-	}
-	public function removedFromSpace() {
-		__iremovedFromSpace();
-	}
+    public function addedToSpace() {
+        __iaddedToSpace();
+    }
+    public function removedFromSpace() {
+        __iremovedFromSpace();
+    }
 
-	//----------------------------------------------------
+    //----------------------------------------------------
 
-	//implemented so that arbiters need not be destroyed by removing compound
-	//then adding it's constituents
-	//
-	//complicated by needing to deal with callback sets that may exist!
-	public function breakApart() {
-		if(space!=null) {
-			__iremovedFromSpace();
-			space.nullInteractorType(this);
-		}
+    //implemented so that arbiters need not be destroyed by removing compound
+    //then adding it's constituents
+    //
+    //complicated by needing to deal with callback sets that may exist!
+    public function breakApart() {
+        if(space!=null) {
+            __iremovedFromSpace();
+            space.nullInteractorType(this);
+        }
 
-		if  (compound!=null) compound.compounds.remove(this);
-		elif(space   !=null) space.   compounds.remove(this);
+        if  (compound!=null) compound.compounds.remove(this);
+        elif(space   !=null) space.   compounds.remove(this);
 
-		ClearWith(b, bodies, {
-			if((b.compound = compound) != null) compound.bodies.add(b);
-			elif(space!=null) space.bodies.add(b);
-			if(space!=null) space.freshInteractorType(b);
-		});
-		ClearWith(c, constraints, {
-			if((c.compound = compound) != null) compound.constraints.add(c);
-			elif(space!=null) space.constraints.add(c);
-		});
-		ClearWith(c, compounds, {
-			if((c.compound = compound) != null) compound.compounds.add(c);
-			elif(space!=null) space.compounds.add(c);
-			if(space!=null) space.freshInteractorType(c);
-		});
+        ClearWith(b, bodies, {
+            if((b.compound = compound) != null) compound.bodies.add(b);
+            elif(space!=null) space.bodies.add(b);
+            if(space!=null) space.freshInteractorType(b);
+        });
+        ClearWith(c, constraints, {
+            if((c.compound = compound) != null) compound.constraints.add(c);
+            elif(space!=null) space.constraints.add(c);
+        });
+        ClearWith(c, compounds, {
+            if((c.compound = compound) != null) compound.compounds.add(c);
+            elif(space!=null) space.compounds.add(c);
+            if(space!=null) space.freshInteractorType(c);
+        });
 
-		compound = null;
-		space    = null;
-	}
+        compound = null;
+        space    = null;
+    }
 
-	//----------------------------------------------------
+    //----------------------------------------------------
 
-	$(expand object werelambdas(b,B,check,onadd,onsub)
-		private function b`_adder(x:B) {
-			check(x)
-			if(x.pr(inner).compound!=this) {
-				if(x.pr(inner).compound!=null) x.pr(inner).compound.wrap_`b.remove(x);
-				elif(x.pr(inner).space!=null) x.pr(inner).space.wrap_`b.remove(x);
+    $(expand object werelambdas(b,B,check,onadd,onsub)
+        private function b`_adder(x:B) {
+            check(x)
+            if(x.pr(inner).compound!=this) {
+                if(x.pr(inner).compound!=null) x.pr(inner).compound.wrap_`b.remove(x);
+                elif(x.pr(inner).space!=null) x.pr(inner).space.wrap_`b.remove(x);
 
-				x.pr(inner).compound = this;
-				onadd(x);
+                x.pr(inner).compound = this;
+                onadd(x);
 
-				if(space!=null) space.add`B(x.pr(inner));
-				return true;
-			}else return false;
-		}
-		private function b`_subber(x:B) {
-			x.pr(inner).compound = null;
-			onsub(x);
+                if(space!=null) space.add`B(x.pr(inner));
+                return true;
+            }else return false;
+        }
+        private function b`_subber(x:B) {
+            x.pr(inner).compound = null;
+            onsub(x);
 
-			if(space!=null) space.rem`B(x.pr(inner));
-		}
-		DEBUG(private function b`_modifiable() {
-			immutable_midstep("Compound::"+$str(b));
-		})
-	);
+            if(space!=null) space.rem`B(x.pr(inner));
+        }
+        DEBUG(private function b`_modifiable() {
+            immutable_midstep("Compound::"+$str(b));
+        })
+    );
 
-	public function new() {
-		super();
-		icompound = this;
-		depth = 1; //space is taken to be depth=0
+    public function new() {
+        super();
+        icompound = this;
+        depth = 1; //space is taken to be depth=0
 
-		var me = this;
-		$(mixin list(b,B) list(b,B,$(mixin check(x){}) check,$(mixin onadd(x){}) onadd,$(mixin onsub(x){}) onsub));
-		$(mixin list(b,B,check,onadd,onsub)
-			werelambdas(b,B,check,onadd,onsub)
+        var me = this;
+        $(mixin list(b,B) list(b,B,$(mixin check(x){}) check,$(mixin onadd(x){}) onadd,$(mixin onsub(x){}) onsub));
+        $(mixin list(b,B,check,onadd,onsub)
+            werelambdas(b,B,check,onadd,onsub)
 
-			b = new List(PR(B))();
-			wrap_`b = PR(B`List).get(b);
-			wrap_`b.pr(inner).adder = b`_adder;
-			wrap_`b.pr(inner).subber = b`_subber;
-			DEBUG(wrap_`b.pr(inner)._modifiable = b`_modifiable;)
-		);
+            b = new List(PR(B))();
+            wrap_`b = PR(B`List).get(b);
+            wrap_`b.pr(inner).adder = b`_adder;
+            wrap_`b.pr(inner).subber = b`_subber;
+            DEBUG(wrap_`b.pr(inner)._modifiable = b`_modifiable;)
+        );
 
-		list(bodies,Body)
-		list(constraints,Constraint)
+        list(bodies,Body)
+        list(constraints,Constraint)
 
-		list(compounds,Compound,
-		$(mixin check(x) DEBUG(
-			var cur = this;
-			while(cur!=null && cur!=x.pr(inner)) cur = cur.compound;
-			if(cur==x.pr(inner)) {
-				throw "Error: Assignment would cause a cycle in the Compound tree: assigning "+x.toString()+".compound = "+outer.toString();
-				return false;
-		})) check,
-		$(mixin onadd(x) x.pr(inner).depth = depth+1) onadd,
-		$(mixin onsub(x) x.pr(inner).depth = 1 /*space is taken to be 0*/) onsub
-		)
-	}
+        list(compounds,Compound,
+        $(mixin check(x) DEBUG(
+            var cur = this;
+            while(cur!=null && cur!=x.pr(inner)) cur = cur.compound;
+            if(cur==x.pr(inner)) {
+                throw "Error: Assignment would cause a cycle in the Compound tree: assigning "+x.toString()+".compound = "+outer.toString();
+                return false;
+        })) check,
+        $(mixin onadd(x) x.pr(inner).depth = depth+1) onadd,
+        $(mixin onsub(x) x.pr(inner).depth = 1 /*space is taken to be 0*/) onsub
+        )
+    }
 
-	//------------------------------------------
+    //------------------------------------------
 
-	//copy compound recursively matching bodies to clones for constraint lookups
-	//and deferring any missing bodies to the todo list.
-	public function copy(?dict:Array<PR(CopyHelper)>,?todo:Array<PR(CopyHelper)>):Compound {
-		var root = dict==null;
-		if(dict==null) dict = new Array<PR(CopyHelper)>();
-		if(todo==null) todo = new Array<PR(CopyHelper)>();
+    //copy compound recursively matching bodies to clones for constraint lookups
+    //and deferring any missing bodies to the todo list.
+    public function copy(?dict:Array<PR(CopyHelper)>,?todo:Array<PR(CopyHelper)>):Compound {
+        var root = dict==null;
+        if(dict==null) dict = new Array<PR(CopyHelper)>();
+        if(todo==null) todo = new Array<PR(CopyHelper)>();
 
-		var ret = new Compound();
-		//we first compounds, and then bodies followed by constraints
-		//in the case of no dangling constraints in an inner compound
-		//we guarantee the smallest todo list.
-		Iter(c, compounds, {
-			var cc = c.copy(dict,todo);
-			cc.compound = ret;
-		});
-		Iter(b, bodies, {
-			var bc = b.outer.copy();
-			dict.push(PR(CopyHelper).dict(b.id,bc));
-			bc.compound = ret;
-		});
-		Iter(c, constraints, {
-			var cc = c.copy(dict,todo);
-			cc.compound = ret;
-		});
+        var ret = new Compound();
+        //we first compounds, and then bodies followed by constraints
+        //in the case of no dangling constraints in an inner compound
+        //we guarantee the smallest todo list.
+        Iter(c, compounds, {
+            var cc = c.copy(dict,todo);
+            cc.compound = ret;
+        });
+        Iter(b, bodies, {
+            var bc = b.outer.copy();
+            dict.push(PR(CopyHelper).dict(b.id,bc));
+            bc.compound = ret;
+        });
+        Iter(c, constraints, {
+            var cc = c.copy(dict,todo);
+            cc.compound = ret;
+        });
 
-		if(root) {
-			while(todo.length>0) {
-				var xcb = todo.pop();
-				for(idc in dict) {
-					if(idc.id == xcb.id) {
-						xcb.cb(idc.bc);
-						break;
-					}
-				}
-			}
-		}
+        if(root) {
+            while(todo.length>0) {
+                var xcb = todo.pop();
+                for(idc in dict) {
+                    if(idc.id == xcb.id) {
+                        xcb.cb(idc.bc);
+                        break;
+                    }
+                }
+            }
+        }
 
-		copyto(ret);
-		return ret;
-	}
+        copyto(ret);
+        return ret;
+    }
 }

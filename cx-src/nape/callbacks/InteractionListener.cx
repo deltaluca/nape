@@ -2,61 +2,61 @@ package nape.callbacks;
 $(import);
 
 class InteractionListener extends Listener {
-	public var pr(inner_zn):PR(InteractionListener);
+    public var pr(inner_zn):PR(InteractionListener);
 
-	property(options1,OptionType,pr(inner_zn).options1.outer,pr(inner_zn).options1.set(options1.pr(inner)))
-	property(options2,OptionType,pr(inner_zn).options2.outer,pr(inner_zn).options2.set(options2.pr(inner)))
+    property(options1,OptionType,pr(inner_zn).options1.outer,pr(inner_zn).options1.set(options1.pr(inner)))
+    property(options2,OptionType,pr(inner_zn).options2.outer,pr(inner_zn).options2.set(options2.pr(inner)))
 
-	property(interactionType,InteractionType,{
-		var ret = pr(inner_zn).itype;
-		if  (ret==Flag(InteractionType,COLLISION)) InteractionType.COLLISION;
-		elif(ret==Flag(InteractionType,SENSOR))    InteractionType.SENSOR;
-		elif(ret==Flag(InteractionType,FLUID))     InteractionType.FLUID;
-		elif(ret==Flag(InteractionType,ANY))       InteractionType.ANY;
-		else null;
-	},{
+    property(interactionType,InteractionType,{
+        var ret = pr(inner_zn).itype;
+        if  (ret==Flag(InteractionType,COLLISION)) InteractionType.COLLISION;
+        elif(ret==Flag(InteractionType,SENSOR))    InteractionType.SENSOR;
+        elif(ret==Flag(InteractionType,FLUID))     InteractionType.FLUID;
+        elif(ret==Flag(InteractionType,ANY))       InteractionType.ANY;
+        else null;
+    },{
         DEBUG(if(interactionType==null) throw "Error: Cannot set listener interaction type to null";)
         if(this.interactionType!=interactionType) {
             var xtype = interactionType == InteractionType.COLLISION ? Flag(InteractionType,COLLISION) :
                         interactionType == InteractionType.SENSOR    ? Flag(InteractionType,SENSOR)    :
                         interactionType == InteractionType.FLUID     ? Flag(InteractionType,FLUID)     :
                         Flag(InteractionType,ANY);
-			pr(inner_zn).settype(xtype);
+            pr(inner_zn).settype(xtype);
         }
-	})
+    })
 
     property(handler,InteractionCallback->Void,pr(inner_zn).handleri,{
-		DEBUG(if(handler==null)throw "Error: InteractionListener::handler cannot be null";)
-		pr(inner_zn).handleri = handler;
-	})
+        DEBUG(if(handler==null)throw "Error: InteractionListener::handler cannot be null";)
+        pr(inner_zn).handleri = handler;
+    })
 
     ///---------------------------------------------------------------------------------------------
 
-	flibopts(1)
-	public function new(event:CbEvent, interactionType:InteractionType, options1:Dynamic, options2:Dynamic, handler:InteractionCallback->Void, ?precedence=0) {
-		PR(Listener).internal = true; super(); PR(Listener).internal = false;
+    flibopts(1)
+    public function new(event:CbEvent, interactionType:InteractionType, options1:Dynamic, options2:Dynamic, handler:InteractionCallback->Void, ?precedence=0) {
+        PR(Listener).internal = true; super(); PR(Listener).internal = false;
 
-		DEBUG(if(handler==null)throw "Error: InteractionListener::handler cannot be null";)
+        DEBUG(if(handler==null)throw "Error: InteractionListener::handler cannot be null";)
 
-		DEBUG(if(event==null) throw "Error: CbEvent cannot be null for InteractionListener";)
-		var xevent = -1;
-		if     (event==CbEvent.BEGIN)   xevent = Flag(CbEvent,BEGIN);
-		else if(event==CbEvent.END)     xevent = Flag(CbEvent,END);
-		else if(event==CbEvent.ONGOING) xevent = Flag(CbEvent,ONGOING);
-		else { DEBUG(throw "Error: CbEvent '"+event.toString()+"' is not a valid event type for InteractionListener";) }
-		
-		pr(inner_zn) = new PR(InteractionListener)(
-			PR(OptionType).argument(options1),
-			PR(OptionType).argument(options2),
-			xevent,Flag(ListenerType,INTERACTION)
-		);
-		pr(inner) = pr(inner_zn);
-		pr(inner).outer = this;
-		pr(inner_zn).outer_zni = this;
-		pr(inner).precedence = precedence;
+        DEBUG(if(event==null) throw "Error: CbEvent cannot be null for InteractionListener";)
+        var xevent = -1;
+        if     (event==CbEvent.BEGIN)   xevent = Flag(CbEvent,BEGIN);
+        else if(event==CbEvent.END)     xevent = Flag(CbEvent,END);
+        else if(event==CbEvent.ONGOING) xevent = Flag(CbEvent,ONGOING);
+        else { DEBUG(throw "Error: CbEvent '"+event.toString()+"' is not a valid event type for InteractionListener";) }
+        
+        pr(inner_zn) = new PR(InteractionListener)(
+            PR(OptionType).argument(options1),
+            PR(OptionType).argument(options2),
+            xevent,Flag(ListenerType,INTERACTION)
+        );
+        pr(inner) = pr(inner_zn);
+        pr(inner).outer = this;
+        pr(inner_zn).outer_zni = this;
+        pr(inner).precedence = precedence;
 
-		pr(inner_zn).handleri = handler;
-		this.interactionType = interactionType;
-	}
+        pr(inner_zn).handleri = handler;
+        this.interactionType = interactionType;
+    }
 }
 

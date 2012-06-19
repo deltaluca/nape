@@ -2,879 +2,879 @@ package zpp_nape.phys;
 $(import);
 
 class PR(Body) extends PR(Interactor) {
-	public var outer:Body;
-	
-	public var world:Bool; //used for Space::static
+    public var outer:Body;
+    
+    public var world:Bool; //used for Space::static
 
-	//----------------------------------------------------------------------------------------------
-	
-	public var type:Int;
-	flibmdel public inline function isStatic   () return type == Flag(BodyType,STATIC)
-	flibmdel public inline function isDynamic  () return type == Flag(BodyType,DYNAMIC)
-	flibmdel public inline function isKinematic() return type == Flag(BodyType,KINEMATIC)
-	
-	public function invalidate_type() {
-		invalidate_mass();
-		invalidate_inertia();
-	}
-	
-	//----------------------------------------------------------------------------------------------
+    //----------------------------------------------------------------------------------------------
+    
+    public var type:Int;
+    flibmdel public inline function isStatic   () return type == Flag(BodyType,STATIC)
+    flibmdel public inline function isDynamic  () return type == Flag(BodyType,DYNAMIC)
+    flibmdel public inline function isKinematic() return type == Flag(BodyType,KINEMATIC)
+    
+    public function invalidate_type() {
+        invalidate_mass();
+        invalidate_inertia();
+    }
+    
+    //----------------------------------------------------------------------------------------------
 
-	public var compound:PR(Compound);
-	
-	public var shapes:List(PR(Shape));
-	public var wrap_shapes:ShapeList;
-	
-	public function invalidate_shapes() {
-		//dependancy checked
-		invalidate_aabb();
-		invalidate_localCOM();
-		invalidate_mass();
-		invalidate_inertia();
-	}
-	
-	//----------------------------------------------------------------------------------------------
-	
-	public var space:PR(Space);
-	
-	public var arbiters   :List(PR(Arbiter));    public var wrap_arbiters   :ArbiterList;
-	public var constraints:List(PR(Constraint)); public var wrap_constraints:ConstraintList;
-	
-	//disjoint set forest.
-	public var component:PR(Component);
-	
-	//----------------------------------------------------------------------------------------------
+    public var compound:PR(Compound);
+    
+    public var shapes:List(PR(Shape));
+    public var wrap_shapes:ShapeList;
+    
+    public function invalidate_shapes() {
+        //dependancy checked
+        invalidate_aabb();
+        invalidate_localCOM();
+        invalidate_mass();
+        invalidate_inertia();
+    }
+    
+    //----------------------------------------------------------------------------------------------
+    
+    public var space:PR(Space);
+    
+    public var arbiters   :List(PR(Arbiter));    public var wrap_arbiters   :ArbiterList;
+    public var constraints:List(PR(Constraint)); public var wrap_constraints:ConstraintList;
+    
+    //disjoint set forest.
+    public var component:PR(Component);
+    
+    //----------------------------------------------------------------------------------------------
 
-	//avoid use of closures, and re-use list/set
-	static var bodystack:List(PR(Body)) = null;
-	static var bodyset:Set(PR(Body)) = null;
-	static function bodyset_lt(a:PR(Body), b:PR(Body)) return a.id < b.id
+    //avoid use of closures, and re-use list/set
+    static var bodystack:List(PR(Body)) = null;
+    static var bodyset:Set(PR(Body)) = null;
+    static function bodyset_lt(a:PR(Body), b:PR(Body)) return a.id < b.id
     public var graph_depth:Int;
 
-	inline function init_bodysetlist() {
-		if(bodyset==null) {
-			bodyset = new Set(PR(Body))();
-			bodyset.lt = bodyset_lt;
-			bodystack = new List(PR(Body))();
-		}
-		assert(bodyset.empty(),"non-empty bodyset in connected bodies at init.");
-		assert(bodystack.empty(),"non-empty bodystack in connected bodies at init.");
-	}
+    inline function init_bodysetlist() {
+        if(bodyset==null) {
+            bodyset = new Set(PR(Body))();
+            bodyset.lt = bodyset_lt;
+            bodystack = new List(PR(Body))();
+        }
+        assert(bodyset.empty(),"non-empty bodyset in connected bodies at init.");
+        assert(bodystack.empty(),"non-empty bodystack in connected bodies at init.");
+    }
 
-	//----------------------------------------------------------------------------------------------
-	
-	//avoid use of closures.
+    //----------------------------------------------------------------------------------------------
+    
+    //avoid use of closures.
     static var cur_graph_depth:Int;
-	function connectedBodies_cont(b:Body) {
-		if(bodyset.try_insert_bool(b.pr(inner))) {
-			bodystack.add(b.pr(inner));
+    function connectedBodies_cont(b:Body) {
+        if(bodyset.try_insert_bool(b.pr(inner))) {
+            bodystack.add(b.pr(inner));
             b.pr(inner).graph_depth = cur_graph_depth + 1;
         }
-	}
-	public function connectedBodies(depth:Int):BodyList {
-		init_bodysetlist();
+    }
+    public function connectedBodies(depth:Int):BodyList {
+        init_bodysetlist();
 
-		var ret = new BodyList();
-		bodystack.add(this);
-		bodyset.insert(this);
+        var ret = new BodyList();
+        bodystack.add(this);
+        bodyset.insert(this);
         graph_depth = 0;
-		while(!bodystack.empty()) {
-			var cur = bodystack.pop_unsafe();
+        while(!bodystack.empty()) {
+            var cur = bodystack.pop_unsafe();
             if(cur.graph_depth == depth) continue;
 
             cur_graph_depth = cur.graph_depth;
-			Iter(c, cur.constraints, c.outer.visitBodies(connectedBodies_cont));
-		}
+            Iter(c, cur.constraints, c.outer.visitBodies(connectedBodies_cont));
+        }
 
-		//clear_with inlined, so no closure generated.
-		bodyset.clear_with(function (b:PR(Body)) ret.add(b.outer));
+        //clear_with inlined, so no closure generated.
+        bodyset.clear_with(function (b:PR(Body)) ret.add(b.outer));
 
-		return ret;
-	}
+        return ret;
+    }
 
-	//----------------------------------------------------------------------------------------------
+    //----------------------------------------------------------------------------------------------
 
-	public function interactingBodies(arbiter_type:Int, depth:Int):BodyList {
-		init_bodysetlist();
+    public function interactingBodies(arbiter_type:Int, depth:Int):BodyList {
+        init_bodysetlist();
 
-		var ret = new BodyList();
-		bodyset.insert(this);
-		bodystack.add(this);
+        var ret = new BodyList();
+        bodyset.insert(this);
+        bodystack.add(this);
         graph_depth = 0;
-		while(!bodystack.empty()) {
-			var cur = bodystack.pop_unsafe();
+        while(!bodystack.empty()) {
+            var cur = bodystack.pop_unsafe();
             if(cur.graph_depth == depth) continue;
 
-			Iter(arb, cur.arbiters, {
-				if((arb.type&arbiter_type)!=0) {
-					var other = if(arb.b1==cur) arb.b2 else arb.b1;
-					if(bodyset.try_insert_bool(other)) {
-						bodystack.add(other);
+            Iter(arb, cur.arbiters, {
+                if((arb.type&arbiter_type)!=0) {
+                    var other = if(arb.b1==cur) arb.b2 else arb.b1;
+                    if(bodyset.try_insert_bool(other)) {
+                        bodystack.add(other);
                         other.graph_depth = cur.graph_depth + 1;
                     }
-				}
-			});
-		}
+                }
+            });
+        }
 
-		//clear_width inlined, so no closure generated.
-		bodyset.clear_with(function (b:PR(Body)) ret.add(b.outer));
+        //clear_width inlined, so no closure generated.
+        bodyset.clear_with(function (b:PR(Body)) ret.add(b.outer));
 
-		return ret;
-	}
+        return ret;
+    }
 
-	//----------------------------------------------------------------------------------------------
-	
-	public function atRest(dt:Float) {
-		if(!isDynamic()) return component.sleeping;
-		else {
-			var cansleep =
-				if(vec_lsq(vel) > PR(Config).SLEEP_LINEAR_SQ) false;
-				else if(vec_dsq(pos,pre_pos) > 0.25*PR(Config).SLEEP_LINEAR_SQ*dt*dt) false
-				else {
-					//approximated 'radius' (or actual radius if only shape is a circle)
-					vec_new(d); vec_sub(aabb.max,aabb.min,d);
-					var idl = vec_lsq(d);
-					if(4*angvel*angvel*idl > PR(Config).SLEEP_ANGULAR_SQ) false
-					else {
-						var dr = rot - pre_rot;
-						if(dr*dr*idl > PR(Config).SLEEP_ANGULAR_SQ*dt*dt) false
-						else true;
-					}
-				}
-				
-			if(!cansleep) component.waket = space.stamp;
-			return component.waket + PR(Config).SLEEP_DELAY < space.stamp;
-		}
-	}
-	
-	public function refreshArbiters() {
-		Iter(arb, arbiters, arb.invalidated = true);
-	}
-	
-	//----------------------------------------------------------------------------------------------
-	
-	vec_new(public,pre_pos);
-	vec_new(public,pos);   public var wrap_pos:Vec2;
-	vec_new(public,vel);   public var wrap_vel:Vec2;
-	vec_new(public,force); public var wrap_force:Vec2;
+    //----------------------------------------------------------------------------------------------
+    
+    public function atRest(dt:Float) {
+        if(!isDynamic()) return component.sleeping;
+        else {
+            var cansleep =
+                if(vec_lsq(vel) > PR(Config).SLEEP_LINEAR_SQ) false;
+                else if(vec_dsq(pos,pre_pos) > 0.25*PR(Config).SLEEP_LINEAR_SQ*dt*dt) false
+                else {
+                    //approximated 'radius' (or actual radius if only shape is a circle)
+                    vec_new(d); vec_sub(aabb.max,aabb.min,d);
+                    var idl = vec_lsq(d);
+                    if(4*angvel*angvel*idl > PR(Config).SLEEP_ANGULAR_SQ) false
+                    else {
+                        var dr = rot - pre_rot;
+                        if(dr*dr*idl > PR(Config).SLEEP_ANGULAR_SQ*dt*dt) false
+                        else true;
+                    }
+                }
+                
+            if(!cansleep) component.waket = space.stamp;
+            return component.waket + PR(Config).SLEEP_DELAY < space.stamp;
+        }
+    }
+    
+    public function refreshArbiters() {
+        Iter(arb, arbiters, arb.invalidated = true);
+    }
+    
+    //----------------------------------------------------------------------------------------------
+    
+    vec_new(public,pre_pos);
+    vec_new(public,pos);   public var wrap_pos:Vec2;
+    vec_new(public,vel);   public var wrap_vel:Vec2;
+    vec_new(public,force); public var wrap_force:Vec2;
 
-	vec_new(public,kinvel); //kinematic velocity.
-	public var wrap_kinvel:Vec2;
-	
-	vec_new(public,svel); //surface velocity
-	public var wrap_svel:Vec2;
-	
-	flibmdel public inline function invalidate_pos(skipgraphic=false) {
-		//dependancy checked
-		Iter(s,shapes,{
-			if(s.type==Flag(ShapeType,POLYGON)) {
-				s.polygon.invalidate_gverts();
-				s.polygon.invalidate_gaxi();
-			}
-			s.invalidate_worldCOM();
-		});
-		invalidate_worldCOM();
-		if(!skipgraphic)
-			validate_graphic();
-		//don't wake object here, this method is called by space each step!
-	}
+    vec_new(public,kinvel); //kinematic velocity.
+    public var wrap_kinvel:Vec2;
+    
+    vec_new(public,svel); //surface velocity
+    public var wrap_svel:Vec2;
+    
+    flibmdel public inline function invalidate_pos(skipgraphic=false) {
+        //dependancy checked
+        Iter(s,shapes,{
+            if(s.type==Flag(ShapeType,POLYGON)) {
+                s.polygon.invalidate_gverts();
+                s.polygon.invalidate_gaxi();
+            }
+            s.invalidate_worldCOM();
+        });
+        invalidate_worldCOM();
+        if(!skipgraphic)
+            validate_graphic();
+        //don't wake object here, this method is called by space each step!
+    }
 
-	//--------------------------------------------------------------------
+    //--------------------------------------------------------------------
 
-	//previously were lambdas
-	private function pos_invalidate(pos:PR(Vec2)) {
-		immutable_midstep("Body::position");
-		DEBUG(if(isStatic() && space!=null)
-			throw "Error: Cannot move a static object once inside a Space";
-		)
-		if(!vec_eq(pos,pos.)) {
-			vec_set(pos,pos.);
-			invalidate_pos();
-			wake();
-		}
-	}
-	private function pos_validate() vec_set(wrap_pos.pr(inner).,pos)
+    //previously were lambdas
+    private function pos_invalidate(pos:PR(Vec2)) {
+        immutable_midstep("Body::position");
+        DEBUG(if(isStatic() && space!=null)
+            throw "Error: Cannot move a static object once inside a Space";
+        )
+        if(!vec_eq(pos,pos.)) {
+            vec_set(pos,pos.);
+            invalidate_pos();
+            wake();
+        }
+    }
+    private function pos_validate() vec_set(wrap_pos.pr(inner).,pos)
 
-	//--------------------------------------------------------------------
+    //--------------------------------------------------------------------
 
-	//previously were lambdas
-	private function vel_invalidate(vel:PR(Vec2)) {
-		DEBUG(if(isStatic() && space!=null)
-			throw "Error: A static object within a space cannot be given a velocity";
-		)
-		vec_set(vel,vel.);
-		invalidate_wake();
-	}	
-	private function vel_validate() {
-		vec_set(wrap_vel.pr(inner).,vel);
-	}
+    //previously were lambdas
+    private function vel_invalidate(vel:PR(Vec2)) {
+        DEBUG(if(isStatic() && space!=null)
+            throw "Error: A static object within a space cannot be given a velocity";
+        )
+        vec_set(vel,vel.);
+        invalidate_wake();
+    }    
+    private function vel_validate() {
+        vec_set(wrap_vel.pr(inner).,vel);
+    }
 
-	//--------------------------------------------------------------------
+    //--------------------------------------------------------------------
 
-	//previously were lambdas
-	private function kinvel_invalidate(vel:PR(Vec2)) {
-		vec_set(kinvel,vel.);
-		invalidate_wake();
-	}
-	private function kinvel_validate() {
-		vec_set(wrap_kinvel.pr(inner).,kinvel);
-	}
+    //previously were lambdas
+    private function kinvel_invalidate(vel:PR(Vec2)) {
+        vec_set(kinvel,vel.);
+        invalidate_wake();
+    }
+    private function kinvel_validate() {
+        vec_set(wrap_kinvel.pr(inner).,kinvel);
+    }
 
-	//--------------------------------------------------------------------
+    //--------------------------------------------------------------------
 
-	//previously were lambdas
-	private function svel_invalidate(vel:PR(Vec2)) {
-		vec_set(svel,vel.);
-		invalidate_wake();
-	}	
-	private function svel_validate() {
-		vec_set(wrap_svel.pr(inner).,svel);
-	}
+    //previously were lambdas
+    private function svel_invalidate(vel:PR(Vec2)) {
+        vec_set(svel,vel.);
+        invalidate_wake();
+    }    
+    private function svel_validate() {
+        vec_set(wrap_svel.pr(inner).,svel);
+    }
 
-	//--------------------------------------------------------------------
+    //--------------------------------------------------------------------
 
-	//previously were lambdas
-	private function force_invalidate(force:PR(Vec2)) {
-		vec_set(force,force.);
-		
-		if(isDynamic())
-			invalidate_wake();
-	}
-	private function force_validate() vec_set(wrap_force.pr(inner).,force)
+    //previously were lambdas
+    private function force_invalidate(force:PR(Vec2)) {
+        vec_set(force,force.);
+        
+        if(isDynamic())
+            invalidate_wake();
+    }
+    private function force_validate() vec_set(wrap_force.pr(inner).,force)
 
-	//--------------------------------------------------------------------
+    //--------------------------------------------------------------------
 
-	public function setupPosition() {
-		wrap_pos = Vec2.get(posx,posy);
-		wrap_pos.pr(inner).inuse = true;
-		if(world) wrap_pos.pr(inner).immutable = true;
-		else {
-			wrap_pos.pr(inner)._invalidate = pos_invalidate;
-			wrap_pos.pr(inner)._validate = pos_validate;
-		}
-	}
-	public function setupVelocity() {
-		wrap_vel = Vec2.get(velx,vely);
-		wrap_vel.pr(inner).inuse = true;
-		if(world) wrap_vel.pr(inner).immutable = true;
-		else {
-			wrap_vel.pr(inner)._invalidate = vel_invalidate;
-			wrap_vel.pr(inner)._validate = vel_validate;
-		}
-	}
-	public function setupkinvel() {
-		wrap_kinvel = Vec2.get(kinvelx,kinvely);
-		wrap_kinvel.pr(inner).inuse = true;
-		if(world) wrap_kinvel.pr(inner).immutable = true;
-		else {
-			wrap_kinvel.pr(inner)._invalidate = kinvel_invalidate;
-			wrap_kinvel.pr(inner)._validate = kinvel_validate;
-		}
-	}
-	public function setupsvel() {
-		wrap_svel = Vec2.get(svelx,svely);
-		wrap_svel.pr(inner).inuse = true;
-		if(world) wrap_svel.pr(inner).immutable = true;
-		else {
-			wrap_svel.pr(inner)._invalidate = svel_invalidate;
-			wrap_svel.pr(inner)._validate = svel_validate;
-		}
-	}
-	
-	public function setupForce() {
-		wrap_force = Vec2.get(forcex,forcey);
-		wrap_force.pr(inner).inuse = true;
-		if(world) wrap_force.pr(inner).immutable = true;
-		else {
-			wrap_force.pr(inner)._invalidate = force_invalidate;
-			wrap_force.pr(inner)._validate = force_validate;
-		}
-	}
-	
-	//----------------------------------------------------------------------------------------------
+    public function setupPosition() {
+        wrap_pos = Vec2.get(posx,posy);
+        wrap_pos.pr(inner).inuse = true;
+        if(world) wrap_pos.pr(inner).immutable = true;
+        else {
+            wrap_pos.pr(inner)._invalidate = pos_invalidate;
+            wrap_pos.pr(inner)._validate = pos_validate;
+        }
+    }
+    public function setupVelocity() {
+        wrap_vel = Vec2.get(velx,vely);
+        wrap_vel.pr(inner).inuse = true;
+        if(world) wrap_vel.pr(inner).immutable = true;
+        else {
+            wrap_vel.pr(inner)._invalidate = vel_invalidate;
+            wrap_vel.pr(inner)._validate = vel_validate;
+        }
+    }
+    public function setupkinvel() {
+        wrap_kinvel = Vec2.get(kinvelx,kinvely);
+        wrap_kinvel.pr(inner).inuse = true;
+        if(world) wrap_kinvel.pr(inner).immutable = true;
+        else {
+            wrap_kinvel.pr(inner)._invalidate = kinvel_invalidate;
+            wrap_kinvel.pr(inner)._validate = kinvel_validate;
+        }
+    }
+    public function setupsvel() {
+        wrap_svel = Vec2.get(svelx,svely);
+        wrap_svel.pr(inner).inuse = true;
+        if(world) wrap_svel.pr(inner).immutable = true;
+        else {
+            wrap_svel.pr(inner)._invalidate = svel_invalidate;
+            wrap_svel.pr(inner)._validate = svel_validate;
+        }
+    }
+    
+    public function setupForce() {
+        wrap_force = Vec2.get(forcex,forcey);
+        wrap_force.pr(inner).inuse = true;
+        if(world) wrap_force.pr(inner).immutable = true;
+        else {
+            wrap_force.pr(inner)._invalidate = force_invalidate;
+            wrap_force.pr(inner)._validate = force_validate;
+        }
+    }
+    
+    //----------------------------------------------------------------------------------------------
 
-	//was previous lambda
-	private function cvel_validate() {
-		wrapcvel.pr(inner).x = velx + kinvelx;
-		wrapcvel.pr(inner).y = vely + kinvely;
-		wrapcvel.pr(inner).z = angvel + kinangvel;
-	}
+    //was previous lambda
+    private function cvel_validate() {
+        wrapcvel.pr(inner).x = velx + kinvelx;
+        wrapcvel.pr(inner).y = vely + kinvely;
+        wrapcvel.pr(inner).z = angvel + kinangvel;
+    }
 
-	public var wrapcvel:Vec3;
-	public function setup_cvel() {
-		var me = this;
-		wrapcvel = Vec3.get();
-		wrapcvel.pr(inner).immutable = true;
-		wrapcvel.pr(inner).validate = cvel_validate;
-	}
+    public var wrapcvel:Vec3;
+    public function setup_cvel() {
+        var me = this;
+        wrapcvel = Vec3.get();
+        wrapcvel.pr(inner).immutable = true;
+        wrapcvel.pr(inner).validate = cvel_validate;
+    }
 
-	//----------------------------------------------------------------------------------------------
-	
-	public var angvel:Float;
-	public var torque:Float;
-	//public var bias_angvel:Float;
-	
-	public var kinangvel:Float;
-	public var pre_rot:Float;
-	
-	public var rot:Float;
-	flibmdel public inline function invalidate_rot(?skipgraphic=false) {
-		//dual with invalidate_axis
-		//dependancy checked
-		inv(axis) = true;
-		Iter(s,shapes,{
-			if(s.type==Flag(ShapeType,POLYGON)) {
-				s.polygon.invalidate_gverts();
-				s.polygon.invalidate_gaxi();
-			}
-			s.invalidate_worldCOM();
-		});
-		invalidate_worldCOM();
-		if(!skipgraphic)
-			validate_graphic();
-		//don't wake object here, this method is called by space.step!
-	}
-	vec_new(public,axis); public var inv(axis):Bool;
-	flibmdel public inline function validate_axis() {
-		//dependancy checked
-		if(inv(axis)) {
-			inv(axis) = false;
-			quick_validate_axis();			
-		}
-	}
-	flibmdel public inline function quick_validate_axis() {
-		vec_set(axis,Math.sin(rot),Math.cos(rot));
-	}
+    //----------------------------------------------------------------------------------------------
+    
+    public var angvel:Float;
+    public var torque:Float;
+    //public var bias_angvel:Float;
+    
+    public var kinangvel:Float;
+    public var pre_rot:Float;
+    
+    public var rot:Float;
+    flibmdel public inline function invalidate_rot(?skipgraphic=false) {
+        //dual with invalidate_axis
+        //dependancy checked
+        inv(axis) = true;
+        Iter(s,shapes,{
+            if(s.type==Flag(ShapeType,POLYGON)) {
+                s.polygon.invalidate_gverts();
+                s.polygon.invalidate_gaxi();
+            }
+            s.invalidate_worldCOM();
+        });
+        invalidate_worldCOM();
+        if(!skipgraphic)
+            validate_graphic();
+        //don't wake object here, this method is called by space.step!
+    }
+    vec_new(public,axis); public var inv(axis):Bool;
+    flibmdel public inline function validate_axis() {
+        //dependancy checked
+        if(inv(axis)) {
+            inv(axis) = false;
+            quick_validate_axis();            
+        }
+    }
+    flibmdel public inline function quick_validate_axis() {
+        vec_set(axis,Math.sin(rot),Math.cos(rot));
+    }
     flibmdel public inline function delta_rot(dr:Float) {
         rot += dr;
         //stay defensive; if dr is even remotely big; recalculate axis exactly.
         if(dr*dr>0.0001) quick_validate_axis();
         else {
-			//approximation of axis rotation
-			//p, dr provide small angle approximations
-			//whilst m provides an approximation to 1/|axis| after
-			//the small angle rotation approximation to approximate
-			//the normalisation and hugely reduce errors over many calls.
-			//
-			//in testing, even with dr = 0.01 (the threshold) occuring
-			//100 times, the error in axisx and axisy is limited to 0.00002
-			//(remembering that each space.step, a true sine/cosine is performed
-			// so this accumulation of error (which is very well limited)
-			// occurs only within a step)
-			var d2 = dr*dr;
-			var p = 1-0.5*d2;
-			var m = 1-d2*d2/8;
-			var nx = (p*axisx+dr*axisy)*m;
-			axisy = (p*axisy-dr*axisx)*m;
-			axisx = nx;
+            //approximation of axis rotation
+            //p, dr provide small angle approximations
+            //whilst m provides an approximation to 1/|axis| after
+            //the small angle rotation approximation to approximate
+            //the normalisation and hugely reduce errors over many calls.
+            //
+            //in testing, even with dr = 0.01 (the threshold) occuring
+            //100 times, the error in axisx and axisy is limited to 0.00002
+            //(remembering that each space.step, a true sine/cosine is performed
+            // so this accumulation of error (which is very well limited)
+            // occurs only within a step)
+            var d2 = dr*dr;
+            var p = 1-0.5*d2;
+            var m = 1-d2*d2/8;
+            var nx = (p*axisx+dr*axisy)*m;
+            axisy = (p*axisy-dr*axisx)*m;
+            axisx = nx;
         }
     }
-	
-	//----------------------------------------------------------------------------------------------
-	
-	public var mass:Float; public var inv(mass):Bool;
-	public var massMode:Int; //DEFAULT, FIXED
-	
-	public var imass:Float; //0 when asleep
-	public var smass:Float; //1/mass even when asleep
-	public var cmass:Float; //mass even if converted to kinematic/static
-	
-	public var nomove:Bool; //stopMovement()/allowMovement() calls
-	
-	public function invalidate_mass() {
-		//dependancy checked
-		if(massMode==Flag(MassMode,DEFAULT))
-			inv(mass) = true;
-		invalidate_gravMass();
-	}
-	public function validate_mass() {
-		//dependancy checked
-		// # changes to Material memory use (see Shape.cx)
-		var exist = false;//Exists(s,shapes,s.refmaterial.density!=s.material.density);
-		// #
-		if(inv(mass)
-		// #
-		 || (massMode==Flag(MassMode,DEFAULT) && exist)
-		// #
-		) {
-			inv(mass) = false;
-			if(massMode==Flag(MassMode,DEFAULT)) {
-				cmass = 0;
-				Iter(s,shapes,{
-					// #
-					s.refmaterial.density = s.material.density;
-					// #
-					s.validate_area_inertia();
-					cmass += s.area*s.material.density;
-				});
-			}
-			if(isDynamic() && !nomove) {
-				mass = cmass;
-				imass = smass = 1.0/mass;
-			}else {
-				mass = PR(Const).POSINF();
-				imass = smass = 0.0;
-			}
-			// #
-			if(exist) invalidate_inertia();
-			// #
-		}
-	}
-	
-	public var gravMass:Float; public var inv(gravMass):Bool;
-	public var gravMassMode:Int; //DEFAULT,FIXED,SCALED
-	public var gravMassScale:Float; public var inv(gravMassScale):Bool;
-	
-	public function invalidate_gravMass() {
-		//dependancy checked
-		if(gravMassMode!=Flag(GravMassMode,FIXED))
-			inv(gravMass) = true;
-		if(gravMassMode!=Flag(GravMassMode,SCALED))
-			inv(gravMassScale) = true; //cannot recursively methods
+    
+    //----------------------------------------------------------------------------------------------
+    
+    public var mass:Float; public var inv(mass):Bool;
+    public var massMode:Int; //DEFAULT, FIXED
+    
+    public var imass:Float; //0 when asleep
+    public var smass:Float; //1/mass even when asleep
+    public var cmass:Float; //mass even if converted to kinematic/static
+    
+    public var nomove:Bool; //stopMovement()/allowMovement() calls
+    
+    public function invalidate_mass() {
+        //dependancy checked
+        if(massMode==Flag(MassMode,DEFAULT))
+            inv(mass) = true;
+        invalidate_gravMass();
+    }
+    public function validate_mass() {
+        //dependancy checked
+        // # changes to Material memory use (see Shape.cx)
+        var exist = false;//Exists(s,shapes,s.refmaterial.density!=s.material.density);
+        // #
+        if(inv(mass)
+        // #
+         || (massMode==Flag(MassMode,DEFAULT) && exist)
+        // #
+        ) {
+            inv(mass) = false;
+            if(massMode==Flag(MassMode,DEFAULT)) {
+                cmass = 0;
+                Iter(s,shapes,{
+                    // #
+                    s.refmaterial.density = s.material.density;
+                    // #
+                    s.validate_area_inertia();
+                    cmass += s.area*s.material.density;
+                });
+            }
+            if(isDynamic() && !nomove) {
+                mass = cmass;
+                imass = smass = 1.0/mass;
+            }else {
+                mass = PR(Const).POSINF();
+                imass = smass = 0.0;
+            }
+            // #
+            if(exist) invalidate_inertia();
+            // #
+        }
+    }
+    
+    public var gravMass:Float; public var inv(gravMass):Bool;
+    public var gravMassMode:Int; //DEFAULT,FIXED,SCALED
+    public var gravMassScale:Float; public var inv(gravMassScale):Bool;
+    
+    public function invalidate_gravMass() {
+        //dependancy checked
+        if(gravMassMode!=Flag(GravMassMode,FIXED))
+            inv(gravMass) = true;
+        if(gravMassMode!=Flag(GravMassMode,SCALED))
+            inv(gravMassScale) = true; //cannot recursively methods
 
-		wake();
-	}
-	public function validate_gravMass() {
-		//dependacny checked
-		if(inv(gravMass)) {
-			inv(gravMass) = false;
-			validate_mass();
-			if(gravMassMode==Flag(GravMassMode,DEFAULT)) {
-				validate_mass();
-				gravMass = cmass;
-			}else if(gravMassMode==Flag(GravMassMode,SCALED)) {
-				validate_mass();
-				//gravMassScale not verified as defined here.
-				gravMass = cmass*gravMassScale;
-			}
-		}
-	}
-	
-	public function invalidate_gravMassScale() {
-		//dependancy checked
-		if(gravMassMode!=Flag(GravMassMode,SCALED))
-			inv(gravMassScale) = true;
-		else
-			invalidate_gravMass();
-	}
-	public function validate_gravMassScale() {
-		//dependancy checked
-		if(inv(gravMassScale)) {
-			inv(gravMassScale) = false;
-			if(gravMassMode==Flag(GravMassMode,DEFAULT)) gravMassScale = 1.0;
-			else if(gravMassMode==Flag(GravMassMode,FIXED)) {
-				validate_mass();
-				//gravMass not verified as defined here
-				gravMassScale = gravMass/cmass;
-			}
-		}
-	}
-	
-	//----------------------------------------------------------------------------------------------
-	
-	public var inertiaMode:Int;
-	public var inertia:Float; public var inv(inertia):Bool;
-	public var cinertia:Float;
-	public var iinertia:Float;
-	public var sinertia:Float;
-	
-	public var norotate:Bool; //stopRotation/allowRotation() calls
-	
-	public function invalidate_inertia() {
-		//dependancy checked
-		if(inertiaMode!=Flag(InertiaMode,FIXED)) inv(inertia) = true;
-		wake();
-	}
-	public function validate_inertia() {
-		//dependancy checked
-		// # changes to Material memory use (see Shape.cx)
-		var exist = false;//Exists(s,shapes,s.refmaterial.density!=s.material.density);
-		// #
-		if(inv(inertia)
-		// #
-		 || (inertiaMode==Flag(InertiaMode,DEFAULT) && exist)
-		// #
-		) {
-			inv(inertia) = false;
-			if(inertiaMode==Flag(InertiaMode,DEFAULT)) {
-				cinertia = 0;
-				Iter(s,shapes,{
-					// #
-					s.refmaterial.density = s.material.density;
-					// #
-					s.validate_area_inertia();
-					cinertia += s.inertia*s.area*s.material.density;
-				});
-			}
-			if(isDynamic() && !norotate) {
-				inertia = cinertia;
-				sinertia = iinertia = 1.0/inertia;
-			}else {
-				inertia = PR(Const).POSINF();
-				sinertia = iinertia = 0;
-			}
-			// #
-			if(exist) invalidate_inertia();
-			// #
-		}
-	}
-	
-	//----------------------------------------------------------------------------------------------
-	
-	//called when body needs waking due to a property change.
-	public function invalidate_wake() {
-		wake();
-	}
-	
-	//----------------------------------------------------------------------------------------------
-	
-	public var aabb:PR(AABB); public var inv(aabb):Bool;
-	/*used by nape-hacks*/
-	/*flibmdel*/ public inline function validate_aabb() {
-		//dependancy checked
-		if(inv(aabb)) {
-			inv(aabb) = false;
-			vec_set(aabb.min,PR(Const).POSINF(),PR(Const).POSINF());
-			vec_set(aabb.max,PR(Const).NEGINF(),PR(Const).NEGINF());
-			Iter(s,shapes,{
-				s.validate_aabb();
-				aabb.combine(s.aabb);
-			});
-		}
-	}
-	public function invalidate_aabb() {
-		//dependancy checked
-		inv(aabb) = true;
-	}
-	
-	//----------------------------------------------------------------------------------------------
-	
-	public var flashgraphic:Bool;
-	public var graphic:Dynamic;
-	public var graphicUpdate:Body->Void;
-	public var graphicOffset:Vec2;
-		
-	public function validate_graphic() {
-		if(graphicUpdate!=null) graphicUpdate(outer);
-		else if(graphic!=null && flashgraphic) {
-			//flash graphics API certainly (I cannot speak for NME)
-			//does not like very large values for rotations, so mudulo operation
-			//is necessary to avoid lengthy simulations causes objects to simply
-			//stop rotating visually.
-			//
-			//to avoid issue in flash player of having VERY memory expensive
-			//access to properties of dynamic values. we have this restriction
-			#if (flash9 || nme)
-				var g:flash.display.DisplayObject = graphic;
-				g.rotation = ((rot+outer.graphicAngleOffset)*180/Math.PI)%360.0;
-				vec_rotate(graphicOffset.,axis,g.);
-				vec_addeq(g.,pos);
-			#end
-		}
-	}
-	
-	//----------------------------------------------------------------------------------------------
-	
-	vec_new(public,localCOM); public var inv(localCOM):Bool;
-	vec_new(public,worldCOM); public var inv(worldCOM):Bool;
-	public var wrap_localCOM:Vec2;
-	public var wrap_worldCOM:Vec2;
-	
-	public function invalidate_localCOM() {
-		//dependancy checked
-		inv(localCOM) = true;
-		invalidate_worldCOM();
-	}
-	public function invalidate_worldCOM() {
-		//dependancy checked
-		inv(worldCOM) = true;
-	}
-	
-	public function validate_localCOM() {
-		//dependancy checked
-		if(inv(localCOM)) {
-			inv(localCOM) = false;
-			
-			vec_new(temp,0,0);
-			var msum = 0.0;
-			Iter(s,shapes,{
-				s.validate_localCOM();
-				s.validate_area_inertia();
-				
-				vec_addeq(temp,s.localCOM,s.area*s.material.density);
-				msum += s.area*s.material.density;
-			});
-			vec_div(temp,msum,localCOM);
-			if(wrap_localCOM!=null) vec_set(wrap_localCOM.pr(inner).,localCOM);
-			
-			if(inv(mass) && massMode==Flag(MassMode,DEFAULT)) {
-				inv(mass) = false;
-				cmass = msum;
-				if(isDynamic()) {
-					mass = cmass;
-					imass = smass = 1.0/mass;
-				}else {
-					mass = PR(Const).POSINF();
-					imass = smass = 0.0;
-				}
-			}
-		}
-	}
-	
-	public function validate_worldCOM() {
-		//dependancy checked
-		if(inv(worldCOM)) {
-			inv(worldCOM) = false;
-			validate_localCOM();
-			validate_axis();
-			
-			vec_localglobal(axis,pos, localCOM,worldCOM);
-			if(wrap_worldCOM!=null)
-				vec_set(wrap_worldCOM.pr(inner).,worldCOM);
-		}
-	}
-	
-	public function getlocalCOM() {
-		DEBUG(if(shapes.empty()) throw "Error: localCOM only makes sense when Body has Shapes";)
-		validate_localCOM();
-	}
-	public function getworldCOM() {
-		DEBUG(if(shapes.empty()) throw "Error: worldCOM only makes sense when Body has Shapes";)
-		validate_worldCOM();
-	}
+        wake();
+    }
+    public function validate_gravMass() {
+        //dependacny checked
+        if(inv(gravMass)) {
+            inv(gravMass) = false;
+            validate_mass();
+            if(gravMassMode==Flag(GravMassMode,DEFAULT)) {
+                validate_mass();
+                gravMass = cmass;
+            }else if(gravMassMode==Flag(GravMassMode,SCALED)) {
+                validate_mass();
+                //gravMassScale not verified as defined here.
+                gravMass = cmass*gravMassScale;
+            }
+        }
+    }
+    
+    public function invalidate_gravMassScale() {
+        //dependancy checked
+        if(gravMassMode!=Flag(GravMassMode,SCALED))
+            inv(gravMassScale) = true;
+        else
+            invalidate_gravMass();
+    }
+    public function validate_gravMassScale() {
+        //dependancy checked
+        if(inv(gravMassScale)) {
+            inv(gravMassScale) = false;
+            if(gravMassMode==Flag(GravMassMode,DEFAULT)) gravMassScale = 1.0;
+            else if(gravMassMode==Flag(GravMassMode,FIXED)) {
+                validate_mass();
+                //gravMass not verified as defined here
+                gravMassScale = gravMass/cmass;
+            }
+        }
+    }
+    
+    //----------------------------------------------------------------------------------------------
+    
+    public var inertiaMode:Int;
+    public var inertia:Float; public var inv(inertia):Bool;
+    public var cinertia:Float;
+    public var iinertia:Float;
+    public var sinertia:Float;
+    
+    public var norotate:Bool; //stopRotation/allowRotation() calls
+    
+    public function invalidate_inertia() {
+        //dependancy checked
+        if(inertiaMode!=Flag(InertiaMode,FIXED)) inv(inertia) = true;
+        wake();
+    }
+    public function validate_inertia() {
+        //dependancy checked
+        // # changes to Material memory use (see Shape.cx)
+        var exist = false;//Exists(s,shapes,s.refmaterial.density!=s.material.density);
+        // #
+        if(inv(inertia)
+        // #
+         || (inertiaMode==Flag(InertiaMode,DEFAULT) && exist)
+        // #
+        ) {
+            inv(inertia) = false;
+            if(inertiaMode==Flag(InertiaMode,DEFAULT)) {
+                cinertia = 0;
+                Iter(s,shapes,{
+                    // #
+                    s.refmaterial.density = s.material.density;
+                    // #
+                    s.validate_area_inertia();
+                    cinertia += s.inertia*s.area*s.material.density;
+                });
+            }
+            if(isDynamic() && !norotate) {
+                inertia = cinertia;
+                sinertia = iinertia = 1.0/inertia;
+            }else {
+                inertia = PR(Const).POSINF();
+                sinertia = iinertia = 0;
+            }
+            // #
+            if(exist) invalidate_inertia();
+            // #
+        }
+    }
+    
+    //----------------------------------------------------------------------------------------------
+    
+    //called when body needs waking due to a property change.
+    public function invalidate_wake() {
+        wake();
+    }
+    
+    //----------------------------------------------------------------------------------------------
+    
+    public var aabb:PR(AABB); public var inv(aabb):Bool;
+    /*used by nape-hacks*/
+    /*flibmdel*/ public inline function validate_aabb() {
+        //dependancy checked
+        if(inv(aabb)) {
+            inv(aabb) = false;
+            vec_set(aabb.min,PR(Const).POSINF(),PR(Const).POSINF());
+            vec_set(aabb.max,PR(Const).NEGINF(),PR(Const).NEGINF());
+            Iter(s,shapes,{
+                s.validate_aabb();
+                aabb.combine(s.aabb);
+            });
+        }
+    }
+    public function invalidate_aabb() {
+        //dependancy checked
+        inv(aabb) = true;
+    }
+    
+    //----------------------------------------------------------------------------------------------
+    
+    public var flashgraphic:Bool;
+    public var graphic:Dynamic;
+    public var graphicUpdate:Body->Void;
+    public var graphicOffset:Vec2;
+        
+    public function validate_graphic() {
+        if(graphicUpdate!=null) graphicUpdate(outer);
+        else if(graphic!=null && flashgraphic) {
+            //flash graphics API certainly (I cannot speak for NME)
+            //does not like very large values for rotations, so mudulo operation
+            //is necessary to avoid lengthy simulations causes objects to simply
+            //stop rotating visually.
+            //
+            //to avoid issue in flash player of having VERY memory expensive
+            //access to properties of dynamic values. we have this restriction
+            #if (flash9 || nme)
+                var g:flash.display.DisplayObject = graphic;
+                g.rotation = ((rot+outer.graphicAngleOffset)*180/Math.PI)%360.0;
+                vec_rotate(graphicOffset.,axis,g.);
+                vec_addeq(g.,pos);
+            #end
+        }
+    }
+    
+    //----------------------------------------------------------------------------------------------
+    
+    vec_new(public,localCOM); public var inv(localCOM):Bool;
+    vec_new(public,worldCOM); public var inv(worldCOM):Bool;
+    public var wrap_localCOM:Vec2;
+    public var wrap_worldCOM:Vec2;
+    
+    public function invalidate_localCOM() {
+        //dependancy checked
+        inv(localCOM) = true;
+        invalidate_worldCOM();
+    }
+    public function invalidate_worldCOM() {
+        //dependancy checked
+        inv(worldCOM) = true;
+    }
+    
+    public function validate_localCOM() {
+        //dependancy checked
+        if(inv(localCOM)) {
+            inv(localCOM) = false;
+            
+            vec_new(temp,0,0);
+            var msum = 0.0;
+            Iter(s,shapes,{
+                s.validate_localCOM();
+                s.validate_area_inertia();
+                
+                vec_addeq(temp,s.localCOM,s.area*s.material.density);
+                msum += s.area*s.material.density;
+            });
+            vec_div(temp,msum,localCOM);
+            if(wrap_localCOM!=null) vec_set(wrap_localCOM.pr(inner).,localCOM);
+            
+            if(inv(mass) && massMode==Flag(MassMode,DEFAULT)) {
+                inv(mass) = false;
+                cmass = msum;
+                if(isDynamic()) {
+                    mass = cmass;
+                    imass = smass = 1.0/mass;
+                }else {
+                    mass = PR(Const).POSINF();
+                    imass = smass = 0.0;
+                }
+            }
+        }
+    }
+    
+    public function validate_worldCOM() {
+        //dependancy checked
+        if(inv(worldCOM)) {
+            inv(worldCOM) = false;
+            validate_localCOM();
+            validate_axis();
+            
+            vec_localglobal(axis,pos, localCOM,worldCOM);
+            if(wrap_worldCOM!=null)
+                vec_set(wrap_worldCOM.pr(inner).,worldCOM);
+        }
+    }
+    
+    public function getlocalCOM() {
+        DEBUG(if(shapes.empty()) throw "Error: localCOM only makes sense when Body has Shapes";)
+        validate_localCOM();
+    }
+    public function getworldCOM() {
+        DEBUG(if(shapes.empty()) throw "Error: worldCOM only makes sense when Body has Shapes";)
+        validate_worldCOM();
+    }
 
     //----------------------------------------------------------------------------------------------
 
-	public function __immutable_midstep(name:String) {
-		DEBUG(if(space!=null && space.midstep) throw "Error: "+name+" cannot be set during a space step()";)
-	}
+    public function __immutable_midstep(name:String) {
+        DEBUG(if(space!=null && space.midstep) throw "Error: "+name+" cannot be set during a space step()";)
+    }
 
     //----------------------------------------------------------------------------------------------
 
-	public function clear() {
-		DEBUG(if(space!=null) throw "Error: Cannot clear a Body if it is currently being used by a Space!";)
-		DEBUG(if(!constraints.empty()) throw "Error: Cannot clear a Body if it is currently being used by a constraint!";)
-		
-		ClearWith(s,shapes, {
-			s.removedFromBody();
-			s.body = null;
-		});
-		invalidate_shapes();
+    public function clear() {
+        DEBUG(if(space!=null) throw "Error: Cannot clear a Body if it is currently being used by a Space!";)
+        DEBUG(if(!constraints.empty()) throw "Error: Cannot clear a Body if it is currently being used by a constraint!";)
+        
+        ClearWith(s,shapes, {
+            s.removedFromBody();
+            s.body = null;
+        });
+        invalidate_shapes();
 
-		vec_set(pre_pos,0,0);
-		vec_set(pos,0,0);
-		vec_set(vel,0,0);
-		vec_set(force,0,0);
-		vec_set(kinvel,0,0);
-		vec_set(svel,0,0);
+        vec_set(pre_pos,0,0);
+        vec_set(pos,0,0);
+        vec_set(vel,0,0);
+        vec_set(force,0,0);
+        vec_set(kinvel,0,0);
+        vec_set(svel,0,0);
 
-		angvel = torque = kinangvel = pre_rot = rot = 0;
+        angvel = torque = kinangvel = pre_rot = rot = 0;
 
-		invalidate_pos();
-		invalidate_rot();
-		vec_set(axis,0,1); inv(axis) = false;
+        invalidate_pos();
+        invalidate_rot();
+        vec_set(axis,0,1); inv(axis) = false;
 
-		massMode = Flag(MassMode,DEFAULT);
-		gravMassMode = Flag(GravMassMode,DEFAULT);
-		gravMassScale = 1.0;
-		inertiaMode = Flag(InertiaMode,DEFAULT);
+        massMode = Flag(MassMode,DEFAULT);
+        gravMassMode = Flag(GravMassMode,DEFAULT);
+        gravMassScale = 1.0;
+        inertiaMode = Flag(InertiaMode,DEFAULT);
 
-		norotate = false;
-		nomove = false;
+        norotate = false;
+        nomove = false;
 
-		graphic = null;
-		graphicUpdate = null;
-	}
+        graphic = null;
+        graphicUpdate = null;
+    }
 
     //----------------------------------------------------------------------------------------------
 
-	//used for space.world static rogue body.
-	public static function __static():Body {
-		var ret = new Body(BodyType.STATIC);
-		var si = ret.pr(inner);
-		si.world = true;
-		si.wrap_shapes.pr(inner).immutable = true;
-		si.smass = si.imass = si.cmass = si.mass = si.gravMass = 0.0;
-		si.sinertia = si.iinertia = si.cinertia = si.inertia = 0.0;
+    //used for space.world static rogue body.
+    public static function __static():Body {
+        var ret = new Body(BodyType.STATIC);
+        var si = ret.pr(inner);
+        si.world = true;
+        si.wrap_shapes.pr(inner).immutable = true;
+        si.smass = si.imass = si.cmass = si.mass = si.gravMass = 0.0;
+        si.sinertia = si.iinertia = si.cinertia = si.inertia = 0.0;
 
-		//remove default ANY_BODY type.
-		si.cbTypes.clear();
+        //remove default ANY_BODY type.
+        si.cbTypes.clear();
 
-		return ret;
-	}
-	
+        return ret;
+    }
+    
     //----------------------------------------------------------------------------------------------
 
-	//was previously a lambda
-	private function aabb_validate() {
-		DEBUG(if(shapes.empty()) throw "Error: bounds only makes sense when Body has shapes";)
-		validate_aabb();
-	}
+    //was previously a lambda
+    private function aabb_validate() {
+        DEBUG(if(shapes.empty()) throw "Error: bounds only makes sense when Body has shapes";)
+        validate_aabb();
+    }
 
-	//were previously lambdas
-	private function shapes_adder(s:Shape) {
-		if(s.pr(inner).body!=this) {
-			if(s.pr(inner).body!=null) s.pr(inner).body.wrap_shapes.remove(s);
-			s.pr(inner).body = this;
-			s.pr(inner).addedToBody();
+    //were previously lambdas
+    private function shapes_adder(s:Shape) {
+        if(s.pr(inner).body!=this) {
+            if(s.pr(inner).body!=null) s.pr(inner).body.wrap_shapes.remove(s);
+            s.pr(inner).body = this;
+            s.pr(inner).addedToBody();
 
-			if(space!=null) space.added_shape(s.pr(inner));
-			
-			return true;
-		}else return false;
-	}
-	private function shapes_subber(s:Shape) {
-		if(space!=null) space.removed_shape(s.pr(inner));
-		
-		s.pr(inner).body=null;
-		s.pr(inner).removedFromBody();
-	}
-	private function shapes_invalidate(_) {
-		invalidate_shapes();
-	}
-	DEBUG(private function shapes_modifiable() {
-		immutable_midstep("Body::shapes");
-		if(isStatic() && space!=null)
-			throw "Error: Cannot modifiy shapes of static object once added to Space";
-	})
+            if(space!=null) space.added_shape(s.pr(inner));
+            
+            return true;
+        }else return false;
+    }
+    private function shapes_subber(s:Shape) {
+        if(space!=null) space.removed_shape(s.pr(inner));
+        
+        s.pr(inner).body=null;
+        s.pr(inner).removedFromBody();
+    }
+    private function shapes_invalidate(_) {
+        invalidate_shapes();
+    }
+    DEBUG(private function shapes_modifiable() {
+        immutable_midstep("Body::shapes");
+        if(isStatic() && space!=null)
+            throw "Error: Cannot modifiy shapes of static object once added to Space";
+    })
 
-	public function new() {
-		super();
-		ibody = this;
-		world = false;
-		
-		norotate = nomove = false;
-		
-		vec_set(pos,0,0);
-		rot = 0;
-		vec_set(axis,0,1);
-		
-		vec_set(svel,0,0);
-		vec_set(vel,0,0);
-		vec_set(kinvel,0,0);
-		vec_set(force,0,0);
-		torque = angvel = kinangvel = 0;
+    public function new() {
+        super();
+        ibody = this;
+        world = false;
+        
+        norotate = nomove = false;
+        
+        vec_set(pos,0,0);
+        rot = 0;
+        vec_set(axis,0,1);
+        
+        vec_set(svel,0,0);
+        vec_set(vel,0,0);
+        vec_set(kinvel,0,0);
+        vec_set(force,0,0);
+        torque = angvel = kinangvel = 0;
 
-		vec_set(pre_pos,PR(Const).POSINF(),PR(Const).POSINF());
-		pre_rot = PR(Const).POSINF();
-		
-		vec_set(localCOM,0,0);
-		vec_set(worldCOM,0,0);
-		
-		inv(aabb) = true;
-		aabb = PR(AABB).get(0,0,0,0);
-		aabb.immutable = true;
-		var me = this;
-		aabb._validate = aabb_validate;
-		
-		massMode = Flag(MassMode,DEFAULT);
-		gravMassMode = Flag(GravMassMode,DEFAULT);
-		gravMassScale = 1.0;
-		inertiaMode = Flag(InertiaMode,DEFAULT);
-		
-		arbiters = new List(PR(Arbiter))();
-		
-		constraints = new List(PR(Constraint))();
-		
-		shapes = new List(PR(Shape))();
-		wrap_shapes = PR(ShapeList).get(shapes);
-		wrap_shapes.pr(inner).adder = shapes_adder;
-		wrap_shapes.pr(inner).subber = shapes_subber;
-		wrap_shapes.pr(inner)._invalidate = shapes_invalidate;
-		DEBUG(wrap_shapes.pr(inner)._modifiable = shapes_modifiable;)
+        vec_set(pre_pos,PR(Const).POSINF(),PR(Const).POSINF());
+        pre_rot = PR(Const).POSINF();
+        
+        vec_set(localCOM,0,0);
+        vec_set(worldCOM,0,0);
+        
+        inv(aabb) = true;
+        aabb = PR(AABB).get(0,0,0,0);
+        aabb.immutable = true;
+        var me = this;
+        aabb._validate = aabb_validate;
+        
+        massMode = Flag(MassMode,DEFAULT);
+        gravMassMode = Flag(GravMassMode,DEFAULT);
+        gravMassScale = 1.0;
+        inertiaMode = Flag(InertiaMode,DEFAULT);
+        
+        arbiters = new List(PR(Arbiter))();
+        
+        constraints = new List(PR(Constraint))();
+        
+        shapes = new List(PR(Shape))();
+        wrap_shapes = PR(ShapeList).get(shapes);
+        wrap_shapes.pr(inner).adder = shapes_adder;
+        wrap_shapes.pr(inner).subber = shapes_subber;
+        wrap_shapes.pr(inner)._invalidate = shapes_invalidate;
+        DEBUG(wrap_shapes.pr(inner)._modifiable = shapes_modifiable;)
 
-		graphicOffset = Vec2.get(0,0);
-		graphicOffset.pr(inner).inuse = true;
-	}
-	
-	//----------------------------------------------------------------------------------------------
-	
-	public function addedToSpace() {
-		assert(component==null,"already has a component?");
+        graphicOffset = Vec2.get(0,0);
+        graphicOffset.pr(inner).inuse = true;
+    }
+    
+    //----------------------------------------------------------------------------------------------
+    
+    public function addedToSpace() {
+        assert(component==null,"already has a component?");
 
-		component = Get(PR(Component));
-		component.isBody = true;
-		component.body = this;
+        component = Get(PR(Component));
+        component.isBody = true;
+        component.body = this;
 
-		__iaddedToSpace();
-	}
+        __iaddedToSpace();
+    }
 
-	public function removedFromSpace() {
-		while(!arbiters.empty()) {
-			var arb = arbiters.pop_unsafe();
-			arb.lazyRetire(space,this);
-		}
+    public function removedFromSpace() {
+        while(!arbiters.empty()) {
+            var arb = arbiters.pop_unsafe();
+            arb.lazyRetire(space,this);
+        }
 
-		Free(PR(Component),component);
-		component = null;
-		
-		__iremovedFromSpace();
-	}
-	
-	//----------------------------------------------------------------------------------------------
-	
-	public function copy() {
-		var ret = new Body().pr(inner);
-		
-		ret.type = type;
-		
-		Iter(s,shapes,{
-			var s2 = Shape.copy(s.outer);
-			ret.outer.shapes.add(s2);
-		});
+        Free(PR(Component),component);
+        component = null;
+        
+        __iremovedFromSpace();
+    }
+    
+    //----------------------------------------------------------------------------------------------
+    
+    public function copy() {
+        var ret = new Body().pr(inner);
+        
+        ret.type = type;
+        
+        Iter(s,shapes,{
+            var s2 = Shape.copy(s.outer);
+            ret.outer.shapes.add(s2);
+        });
 
-		vec_set(ret.pos,pos);
-		vec_set(ret.vel,vel);
-		vec_set(ret.force,force);
+        vec_set(ret.pos,pos);
+        vec_set(ret.vel,vel);
+        vec_set(ret.force,force);
 
-		ret.rot = rot;
-		ret.angvel = angvel;
-		ret.torque = torque;
+        ret.rot = rot;
+        ret.angvel = angvel;
+        ret.torque = torque;
 
-		vec_set(ret.kinvel, kinvel);
-		ret.kinangvel = kinangvel;
+        vec_set(ret.kinvel, kinvel);
+        ret.kinangvel = kinangvel;
 
-		vec_set(ret.svel, svel);
-		
-		if(!inv(axis))
-			vec_set(ret.axis,axis);
-		else ret.invalidate_rot();
-		ret.rot = rot;
-		
-		ret.massMode = massMode;
-		ret.gravMassMode = gravMassMode;
-		ret.inertiaMode = inertiaMode;
-		
-		if(!inv(mass))
-			ret.mass = mass;
-		else ret.invalidate_mass();
-		
-		if(!inv(gravMass))
-			ret.gravMass = gravMass;
-		else ret.invalidate_gravMass();
-		
-		if(!inv(gravMassScale))
-			ret.gravMassScale = gravMassScale;
-		else ret.invalidate_gravMassScale();
-		
-		if(!inv(inertia))
-			ret.inertia = inertia;
-		else ret.invalidate_inertia();
-		
-		if(!inv(aabb)) {
-			vec_set(ret.aabb.min,aabb.min);
-			vec_set(ret.aabb.max,aabb.max);
-		}else ret.invalidate_aabb();
-		
-		if(!inv(localCOM))
-			vec_set(ret.localCOM,localCOM);
-		else ret.invalidate_localCOM();
-		
-		if(!inv(worldCOM))
-			vec_set(ret.worldCOM,worldCOM);
-		else ret.invalidate_worldCOM();
+        vec_set(ret.svel, svel);
+        
+        if(!inv(axis))
+            vec_set(ret.axis,axis);
+        else ret.invalidate_rot();
+        ret.rot = rot;
+        
+        ret.massMode = massMode;
+        ret.gravMassMode = gravMassMode;
+        ret.inertiaMode = inertiaMode;
+        
+        if(!inv(mass))
+            ret.mass = mass;
+        else ret.invalidate_mass();
+        
+        if(!inv(gravMass))
+            ret.gravMass = gravMass;
+        else ret.invalidate_gravMass();
+        
+        if(!inv(gravMassScale))
+            ret.gravMassScale = gravMassScale;
+        else ret.invalidate_gravMassScale();
+        
+        if(!inv(inertia))
+            ret.inertia = inertia;
+        else ret.invalidate_inertia();
+        
+        if(!inv(aabb)) {
+            vec_set(ret.aabb.min,aabb.min);
+            vec_set(ret.aabb.max,aabb.max);
+        }else ret.invalidate_aabb();
+        
+        if(!inv(localCOM))
+            vec_set(ret.localCOM,localCOM);
+        else ret.invalidate_localCOM();
+        
+        if(!inv(worldCOM))
+            vec_set(ret.worldCOM,worldCOM);
+        else ret.invalidate_worldCOM();
 
-		copyto(ret.outer);	
-		return ret.outer;
-	}
+        copyto(ret.outer);    
+        return ret.outer;
+    }
 }

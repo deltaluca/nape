@@ -6,11 +6,11 @@ class PR(Listener) {
     public var outer:Listener;
     public static var internal:Bool = false;
 
-	public var id:Int; //for total ordering of listeners.
+    public var id:Int; //for total ordering of listeners.
 
     public var type:Int; //Flag(ListenerType)
     public var event:Int; //Flag(CbEvent)
-	public var precedence:Int; //for ordering in the case of more than one listener existing
+    public var precedence:Int; //for ordering in the case of more than one listener existing
 
     public var body:PR(BodyListener);
     public var constraint:PR(ConstraintListener);
@@ -18,15 +18,15 @@ class PR(Listener) {
 
     public var space:PR(Space);
 
-	function new() {
-		id = ID(Listener);
-	}
+    function new() {
+        id = ID(Listener);
+    }
 
-	//ordering of listeners for CbSet/CbType etc.
-	//want highest precedence at front.
-	public inline static function set_lt(a:PR(Listener),b:PR(Listener)) {
-		return a.precedence>b.precedence || (a.precedence==b.precedence && a.id>b.id);
-	}
+    //ordering of listeners for CbSet/CbType etc.
+    //want highest precedence at front.
+    public inline static function set_lt(a:PR(Listener),b:PR(Listener)) {
+        return a.precedence>b.precedence || (a.precedence==b.precedence && a.id>b.id);
+    }
 }
 
 ///_________________________________________________________________________________________________
@@ -34,50 +34,50 @@ class PR(Listener) {
 
 //used for Body/Constraint Listener that require mostly the same attributes
 $(mixin SingleListener(t,T,FLAG)
-	public var outer_zn:T`Listener;
+    public var outer_zn:T`Listener;
 
-	public var options:PR(OptionType);
-	public var handler:T`Callback->Void;
-	DEBUG(function immutable_options() {
-		if(space!=null && space.midstep)
-			throw "Error: Cannot change listener type options during space.step()";
-	})
+    public var options:PR(OptionType);
+    public var handler:T`Callback->Void;
+    DEBUG(function immutable_options() {
+        if(space!=null && space.midstep)
+            throw "Error: Cannot change listener type options during space.step()";
+    })
 
-	public function new(options:OptionType, event:Int, handler:T`Callback->Void) {
-		super();
-		this.event = event;
-		this.handler = handler;
-		t = this;
-		type = FLAG;
-		this.options = options.pr(inner);
-	}
+    public function new(options:OptionType, event:Int, handler:T`Callback->Void) {
+        super();
+        this.event = event;
+        this.handler = handler;
+        t = this;
+        type = FLAG;
+        this.options = options.pr(inner);
+    }
 
-	public function addedToSpace() {
-		options.handler = cbtype_change;
-		Iter(cb, options.includes, cb.add`t(this));
-	}
-	public function removedFromSpace() {
-		Iter(cb, options.includes, cb.remove`t(this));
-		options.handler = null;
-	}
-	function cbtype_change(cb:PR(CbType),included:Bool,added:Bool) {
-		removedFromSpace();
+    public function addedToSpace() {
+        options.handler = cbtype_change;
+        Iter(cb, options.includes, cb.add`t(this));
+    }
+    public function removedFromSpace() {
+        Iter(cb, options.includes, cb.remove`t(this));
+        options.handler = null;
+    }
+    function cbtype_change(cb:PR(CbType),included:Bool,added:Bool) {
+        removedFromSpace();
 
-		//make change required.
-		options.effect_change(cb,included,added);
+        //make change required.
+        options.effect_change(cb,included,added);
 
-		addedToSpace();
-	}
-	public function changed_precedence() {
-		if(space!=null) {
-			removedFromSpace();
-			addedToSpace();
-		}
-	}
+        addedToSpace();
+    }
+    public function changed_precedence() {
+        if(space!=null) {
+            removedFromSpace();
+            addedToSpace();
+        }
+    }
 );
 
 class PR(BodyListener) extends PR(Listener) {
-	SingleListener(body,Body,Flag(ListenerType,BODY))
+    SingleListener(body,Body,Flag(ListenerType,BODY))
 
     public function swapEvent(newev:Int) {
         DEBUG(
@@ -91,7 +91,7 @@ class PR(BodyListener) extends PR(Listener) {
 }
 
 class PR(ConstraintListener) extends PR(Listener) {
-	SingleListener(constraint,Constraint,Flag(ListenerType,CONSTRAINT))
+    SingleListener(constraint,Constraint,Flag(ListenerType,CONSTRAINT))
 
     public function swapEvent(newev:Int) {
         DEBUG(
@@ -107,214 +107,214 @@ class PR(ConstraintListener) extends PR(Listener) {
 //shared between public InteractionListener
 //and public PreListener
 class PR(InteractionListener) extends PR(Listener) {
-	public var outer_zni:InteractionListener;
-	public var outer_znp:PreListener;
+    public var outer_zni:InteractionListener;
+    public var outer_znp:PreListener;
 
-	public var itype:Int; //InteractionType Flag
+    public var itype:Int; //InteractionType Flag
 
-	public var options1:PR(OptionType);
-	public var options2:PR(OptionType);
+    public var options1:PR(OptionType);
+    public var options2:PR(OptionType);
 
-	//for InteractionListener
+    //for InteractionListener
     public var handleri:InteractionCallback->Void;
-	//for PreListener
-	public var pure:Bool;
-	public var handlerp:PreCallback->PreFlag;
+    //for PreListener
+    public var pure:Bool;
+    public var handlerp:PreCallback->PreFlag;
 
-	//used in lookups based on cbTypes
-	public var cid:Int; public var cdi:Int;
+    //used in lookups based on cbTypes
+    public var cid:Int; public var cdi:Int;
 
-	public function settype(xtype:Int) {
-		itype = xtype;
-	}
+    public function settype(xtype:Int) {
+        itype = xtype;
+    }
 
-	public function new(options1:OptionType, options2:OptionType, event:Int,type:Int) {
-		super();
-		this.type = type;
-		interaction = this;
-		this.event = event;
-		this.options1 = options1.pr(inner);
-		this.options2 = options2.pr(inner);
-	}
+    public function new(options1:OptionType, options2:OptionType, event:Int,type:Int) {
+        super();
+        this.type = type;
+        interaction = this;
+        this.event = event;
+        this.options1 = options1.pr(inner);
+        this.options2 = options2.pr(inner);
+    }
 
-	function with_union(lambda:PR(CbType)->Void) {
-		var ite1 = options1.includes.begin();
-		var ite2 = options2.includes.begin();
-		while(ite1!=null && ite2!=null) {
-			var cb1 = ite1.elem();
-			var cb2 = ite2.elem();
-			if(cb1==cb2) { 
-				lambda(cb1);
-				ite1 = ite1.next; ite2 = ite2.next;
-			}elif(PR(CbType).set_lt(cb1,cb2)) {
-				lambda(cb1);
-				ite1 = ite1.next;
-			}else {
-				lambda(cb2);
-				ite2 = ite2.next;
-			}
-		}
-		while(ite1!=null) {
-			lambda(ite1.elem());
-			ite1 = ite1.next;
-		}
-		while(ite2!=null) {
-			lambda(ite2.elem());
-			ite2 = ite2.next;
-		}
-	}
+    function with_union(lambda:PR(CbType)->Void) {
+        var ite1 = options1.includes.begin();
+        var ite2 = options2.includes.begin();
+        while(ite1!=null && ite2!=null) {
+            var cb1 = ite1.elem();
+            var cb2 = ite2.elem();
+            if(cb1==cb2) { 
+                lambda(cb1);
+                ite1 = ite1.next; ite2 = ite2.next;
+            }elif(PR(CbType).set_lt(cb1,cb2)) {
+                lambda(cb1);
+                ite1 = ite1.next;
+            }else {
+                lambda(cb2);
+                ite2 = ite2.next;
+            }
+        }
+        while(ite1!=null) {
+            lambda(ite1.elem());
+            ite1 = ite1.next;
+        }
+        while(ite2!=null) {
+            lambda(ite2.elem());
+            ite2 = ite2.next;
+        }
+    }
 
-	//for PreListener
-	public function wake() {
-		assert(type==Flag(ListenerType,PRE),"waking non-pre?");
-		//PreListener only needs ito wake the bodies.
-		//but we iterate the cb SHAPES, not the bodies
-		//as the bodies refer to Body callbacks, not Interaction/Imm callbacks
-		with_union(function (cb:PR(CbType)) Iter(i,cb.interactors,i.wake()));
-	}
+    //for PreListener
+    public function wake() {
+        assert(type==Flag(ListenerType,PRE),"waking non-pre?");
+        //PreListener only needs ito wake the bodies.
+        //but we iterate the cb SHAPES, not the bodies
+        //as the bodies refer to Body callbacks, not Interaction/Imm callbacks
+        with_union(function (cb:PR(CbType)) Iter(i,cb.interactors,i.wake()));
+    }
 
-	//given two sorted lists, find all unique pairings of elements.
-	$(expand genmethod(T)
-	static var U`T = new List(PR(T))();
-	static var V`T = new List(PR(T))();
-	static var W`T = new List(PR(T))();
-	flibmdel inline function T`set(A:List(PR(T)), B:List(PR(T)), lambda:PR(T)->PR(T)->Void) {
-		// let A = options1.includes, B = options2.includes (sorted lists)
-		// let U = A-B, V = B-A, W = A intersect B
-		// then we require to find (UxB) ++ (VxW) ++ a_triangle_of(WxW)
-		// all duplicates are found in below/above the diagonal of WxW as a table. so easy to discard.
-		//
-		// total time O(|A||B|).
-	
-		//first find U,V,W in single O(|A|+|B|) time pass abusing sorted nature of A,B
-		var U = U`T; var V = V`T; var W = W`T;
-		var aite = A.begin(); var bite = B.begin();
-		while(aite!=null && bite!=null) {
-			var a = aite.elem(); var b = bite.elem();
-			if(a==b) {
-				W.inlined_add(a);
-				aite = aite.next;
-				bite = bite.next;
-			}else if(PR(T).set_lt(a,b)) {
-				U.inlined_add(a);
-				aite = aite.next;
-			}else {
-				V.inlined_add(b);
-				bite = bite.next;
-			}
-		}
-		while(aite!=null) { U.inlined_add(aite.elem()); aite = aite.next; }
-		while(bite!=null) { V.inlined_add(bite.elem()); bite = bite.next; }
+    //given two sorted lists, find all unique pairings of elements.
+    $(expand genmethod(T)
+    static var U`T = new List(PR(T))();
+    static var V`T = new List(PR(T))();
+    static var W`T = new List(PR(T))();
+    flibmdel inline function T`set(A:List(PR(T)), B:List(PR(T)), lambda:PR(T)->PR(T)->Void) {
+        // let A = options1.includes, B = options2.includes (sorted lists)
+        // let U = A-B, V = B-A, W = A intersect B
+        // then we require to find (UxB) ++ (VxW) ++ a_triangle_of(WxW)
+        // all duplicates are found in below/above the diagonal of WxW as a table. so easy to discard.
+        //
+        // total time O(|A||B|).
+    
+        //first find U,V,W in single O(|A|+|B|) time pass abusing sorted nature of A,B
+        var U = U`T; var V = V`T; var W = W`T;
+        var aite = A.begin(); var bite = B.begin();
+        while(aite!=null && bite!=null) {
+            var a = aite.elem(); var b = bite.elem();
+            if(a==b) {
+                W.inlined_add(a);
+                aite = aite.next;
+                bite = bite.next;
+            }else if(PR(T).set_lt(a,b)) {
+                U.inlined_add(a);
+                aite = aite.next;
+            }else {
+                V.inlined_add(b);
+                bite = bite.next;
+            }
+        }
+        while(aite!=null) { U.inlined_add(aite.elem()); aite = aite.next; }
+        while(bite!=null) { V.inlined_add(bite.elem()); bite = bite.next; }
 
-		//now product away cleaning up as we go!
-		ClearWith(x, U, Iter(y, B, lambda(x,y)));
-		ClearWith(x, V, Iter(y, W, lambda(x,y)));
-		//triangle product, works due to ClearWith
-		ClearWith(x, W, {
-			lambda(x,x); Iter(y, W, lambda(x,y));
-		});
-	});
-	genmethod(CbSet) genmethod(CbType)
+        //now product away cleaning up as we go!
+        ClearWith(x, U, Iter(y, B, lambda(x,y)));
+        ClearWith(x, V, Iter(y, W, lambda(x,y)));
+        //triangle product, works due to ClearWith
+        ClearWith(x, W, {
+            lambda(x,x); Iter(y, W, lambda(x,y));
+        });
+    });
+    genmethod(CbSet) genmethod(CbType)
 
-	//operate on all unique CbSet pairs generatable from options.
-	//had to move this to a non-inlined method specialising based on argument
-	//instead of inlined with a closure due to haxe errors.
-	function with_uniquesets(fresh:Bool) {
-		// PREVIOUSLY: This work under an assumption that we could check for an empty_intersection
-		//             and that the addition to the callback lists would then cause it to be
-		//             non-empty. ... With exclusion lists on listeners this is no longer the case!
-		//             so the method single_intersection is used now instead!
+    //operate on all unique CbSet pairs generatable from options.
+    //had to move this to a non-inlined method specialising based on argument
+    //instead of inlined with a closure due to haxe errors.
+    function with_uniquesets(fresh:Bool) {
+        // PREVIOUSLY: This work under an assumption that we could check for an empty_intersection
+        //             and that the addition to the callback lists would then cause it to be
+        //             non-empty. ... With exclusion lists on listeners this is no longer the case!
+        //             so the method single_intersection is used now instead!
 
-		var set = Get(Set(PR(CbSetPair)));
-		set.lt = PR(CbSetPair).set_lt;
+        var set = Get(Set(PR(CbSetPair)));
+        set.lt = PR(CbSetPair).set_lt;
 
-		CbTypeset(options1.includes, options2.includes, function (a:PR(CbType), b:PR(CbType)) {
-			CbSetset(a.cbsets, b.cbsets, function (a:PR(CbSet), b:PR(CbSet)) {
-				a.validate(); b.validate();
-				if(PR(CbSet).single_intersection(a,b,this)) {
-					set.try_insert(PR(CbSetPair).get(a,b));
-				}
-			});
-		});
+        CbTypeset(options1.includes, options2.includes, function (a:PR(CbType), b:PR(CbType)) {
+            CbSetset(a.cbsets, b.cbsets, function (a:PR(CbSet), b:PR(CbSet)) {
+                a.validate(); b.validate();
+                if(PR(CbSet).single_intersection(a,b,this)) {
+                    set.try_insert(PR(CbSetPair).get(a,b));
+                }
+            });
+        });
 
-		set.clear_with(function (pair:PR(CbSetPair)) {
-			if(fresh) space.freshListenerType(pair.a,pair.b);
-			else      space.nullListenerType(pair.a,pair.b);
-			Free(PR(CbSetPair),pair);
-		});
+        set.clear_with(function (pair:PR(CbSetPair)) {
+            if(fresh) space.freshListenerType(pair.a,pair.b);
+            else      space.nullListenerType(pair.a,pair.b);
+            Free(PR(CbSetPair),pair);
+        });
 
-		Free(Set(PR(CbSetPair)),set);
-	}
+        Free(Set(PR(CbSetPair)),set);
+    }
 
-	public function assign() {
-		//need to wake in the case of PRE listeners
-		//since the result of the pre-listener compositions
-		//may change
-		var pre = type==Flag(ListenerType,PRE);
-		with_union(function (cb:PR(CbType)) { cb.addint(this); if(pre) Iter(i, cb.interactors, i.wake()); });
+    public function assign() {
+        //need to wake in the case of PRE listeners
+        //since the result of the pre-listener compositions
+        //may change
+        var pre = type==Flag(ListenerType,PRE);
+        with_union(function (cb:PR(CbType)) { cb.addint(this); if(pre) Iter(i, cb.interactors, i.wake()); });
 
-		options1.handler = cbtype_change1;
-		options2.handler = cbtype_change2;
+        options1.handler = cbtype_change1;
+        options2.handler = cbtype_change2;
 
-		with_uniquesets(true);
-	}
-	public function unassign() {
-		with_uniquesets(false);
+        with_uniquesets(true);
+    }
+    public function unassign() {
+        with_uniquesets(false);
 
-		//need to wake in the case of PRE listeners
-		//since the result of the pre-listener compositions
-		//may change
-		var pre = type==Flag(ListenerType,PRE);
-		with_union(function (cb:PR(CbType)) { cb.removeint(this); if(pre) Iter(i, cb.interactors, i.wake()); });
+        //need to wake in the case of PRE listeners
+        //since the result of the pre-listener compositions
+        //may change
+        var pre = type==Flag(ListenerType,PRE);
+        with_union(function (cb:PR(CbType)) { cb.removeint(this); if(pre) Iter(i, cb.interactors, i.wake()); });
 
-		options1.handler = null;
-		options2.handler = null;
-	}
+        options1.handler = null;
+        options2.handler = null;
+    }
 
-	public function changed_precedence() {
-		if(space!=null) {
-			var pre = type==Flag(ListenerType,PRE);
-			with_union(function (cb:PR(CbType)) {
-				cb.removeint(this); cb.addint(this);
-				//need to wake in the case of PRE listeners
-				//since the result of the pre-listener compositions
-				//may change
-				if(pre) Iter(i, cb.interactors, i.wake());
-			});
-		}
-	}
+    public function changed_precedence() {
+        if(space!=null) {
+            var pre = type==Flag(ListenerType,PRE);
+            with_union(function (cb:PR(CbType)) {
+                cb.removeint(this); cb.addint(this);
+                //need to wake in the case of PRE listeners
+                //since the result of the pre-listener compositions
+                //may change
+                if(pre) Iter(i, cb.interactors, i.wake());
+            });
+        }
+    }
 
-	public function addedToSpace(?skip=false) {
-		if(!skip) assign();
-	}
-	public function removedFromSpace(?skip=false) {
-		if(!skip) unassign();
-	}
+    public function addedToSpace(?skip=false) {
+        if(!skip) assign();
+    }
+    public function removedFromSpace(?skip=false) {
+        if(!skip) unassign();
+    }
 
-	function cbtype_change1(cb:PR(CbType),included:Bool,added:Bool) cbtype_change(options1,cb,included,added)
-	function cbtype_change2(cb:PR(CbType),included:Bool,added:Bool) cbtype_change(options2,cb,included,added)
-	function cbtype_change(options:PR(OptionType), cb:PR(CbType),included:Bool,added:Bool) {
-		//deal with cleaning up any old callbacksets.
-		space.revoke_listener(this);
-		unassign();
+    function cbtype_change1(cb:PR(CbType),included:Bool,added:Bool) cbtype_change(options1,cb,included,added)
+    function cbtype_change2(cb:PR(CbType),included:Bool,added:Bool) cbtype_change(options2,cb,included,added)
+    function cbtype_change(options:PR(OptionType), cb:PR(CbType),included:Bool,added:Bool) {
+        //deal with cleaning up any old callbacksets.
+        space.revoke_listener(this);
+        unassign();
 
-		//effect changes
-		options.effect_change(cb,included,added);
+        //effect changes
+        options.effect_change(cb,included,added);
 
-		//aaand generate any new callbacksets
-		assign();
-		space.unrevoke_listener(this);
-	}
+        //aaand generate any new callbacksets
+        assign();
+        space.unrevoke_listener(this);
+    }
 
-	public function swapEvent(newev:Int) {
-		DEBUG(
-			if(type == Flag(ListenerType,PRE))
-				throw "Error: PreListener event can only be PRE";
-			elif(newev != Flag(CbEvent,BEGIN) && newev != Flag(CbEvent,END) && newev != Flag(CbEvent,ONGOING))
-				throw "Error: InteractionListener event must be either BEGIN, END, ONGOING";
-		)
-		removedFromSpace(true);
-		event = newev;
-		addedToSpace(true);
-	}
+    public function swapEvent(newev:Int) {
+        DEBUG(
+            if(type == Flag(ListenerType,PRE))
+                throw "Error: PreListener event can only be PRE";
+            elif(newev != Flag(CbEvent,BEGIN) && newev != Flag(CbEvent,END) && newev != Flag(CbEvent,ONGOING))
+                throw "Error: InteractionListener event must be either BEGIN, END, ONGOING";
+        )
+        removedFromSpace(true);
+        event = newev;
+        addedToSpace(true);
+    }
 }

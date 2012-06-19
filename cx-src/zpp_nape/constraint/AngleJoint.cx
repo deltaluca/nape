@@ -4,404 +4,404 @@ $(import);
 withConstraint(
 
 class PR(AngleJoint) extends PR(Constraint) {
-	public var outer_zn:AngleJoint;
-	
-	public var ratio:Float;
-	public var jointMin:Float;
-	public var jointMax:Float;
-	public var slack:Bool;
-	public var equal:Bool;
-	public var scale:Float;
-	//if limits are equal, treat constraint slightly differently for stability.
-	
-	$(mixin Cerr(slack) {
-		var C = ratio*b2.rot - b1.rot;
-		if(equal) {
-			C -= jointMax;
-			slack = false;
-			scale = 1.0;
-		}else {
-			if(C<jointMin) {
-				C = jointMin-C;
-				scale = -1.0;
-				slack = false;
-			} else if(C>jointMax) {
-				C -= jointMax;
-				scale = 1.0;
-				slack = false;
-			}else {
-				scale = 0.0;
-				C = 0;
-				slack = true;
-			}
-		}
-		C;
-	});
-	
-	$(mixin Verr(scale) {
-		scale*(ratio*(b2.angvel+b2.kinangvel) - b1.angvel-b1.kinangvel);
-	});
-	
-	$(mixin Keff() {
-		b1.sinertia + ratio*ratio*b2.sinertia;
-	});
-	
-	$(mixin Imp(scale,j,bias) {
-		if(bias) {
+    public var outer_zn:AngleJoint;
+    
+    public var ratio:Float;
+    public var jointMin:Float;
+    public var jointMax:Float;
+    public var slack:Bool;
+    public var equal:Bool;
+    public var scale:Float;
+    //if limits are equal, treat constraint slightly differently for stability.
+    
+    $(mixin Cerr(slack) {
+        var C = ratio*b2.rot - b1.rot;
+        if(equal) {
+            C -= jointMax;
+            slack = false;
+            scale = 1.0;
+        }else {
+            if(C<jointMin) {
+                C = jointMin-C;
+                scale = -1.0;
+                slack = false;
+            } else if(C>jointMax) {
+                C -= jointMax;
+                scale = 1.0;
+                slack = false;
+            }else {
+                scale = 0.0;
+                C = 0;
+                slack = true;
+            }
+        }
+        C;
+    });
+    
+    $(mixin Verr(scale) {
+        scale*(ratio*(b2.angvel+b2.kinangvel) - b1.angvel-b1.kinangvel);
+    });
+    
+    $(mixin Keff() {
+        b1.sinertia + ratio*ratio*b2.sinertia;
+    });
+    
+    $(mixin Imp(scale,j,bias) {
+        if(bias) {
             b1.delta_rot(-scale*j*b1.iinertia);
-			b2.delta_rot(ratio*scale*j*b2.iinertia);
-		}else {
-			b1.angvel -= scale*b1.iinertia*j;
-			b2.angvel += ratio*scale*b2.iinertia*j;
-		}
-	});
-	
-	public function bodyImpulse(b:PR(Body)) {
-		if(stepped) {
-			if(b==b1) return Vec3.get(0,0,-scale*(jAcc+pjAcc));
-			else      return Vec3.get(0,0,ratio*scale*(jAcc+pjAcc));
-		}else return Vec3.get(0,0,0);
-	}
+            b2.delta_rot(ratio*scale*j*b2.iinertia);
+        }else {
+            b1.angvel -= scale*b1.iinertia*j;
+            b2.angvel += ratio*scale*b2.iinertia*j;
+        }
+    });
+    
+    public function bodyImpulse(b:PR(Body)) {
+        if(stepped) {
+            if(b==b1) return Vec3.get(0,0,-scale*(jAcc+pjAcc));
+            else      return Vec3.get(0,0,ratio*scale*(jAcc+pjAcc));
+        }else return Vec3.get(0,0,0);
+    }
 
-	//---------------------------------------------------
+    //---------------------------------------------------
 
-	public override function activeBodies() {
-		active_body(b1);
-		if(b2!=b1)
-			active_body(b2);
-	}
+    public override function activeBodies() {
+        active_body(b1);
+        if(b2!=b1)
+            active_body(b2);
+    }
 
-	public override function inactiveBodies() {
-		inactive_body(b1);
-		if(b2!=b1)
-			inactive_body(b2);
-	}
+    public override function inactiveBodies() {
+        inactive_body(b1);
+        if(b2!=b1)
+            inactive_body(b2);
+    }
 
-	//---------------------------------------------------
-	
-	public var b1:PR(Body);
-	public var b2:PR(Body);
-	
-	public var kMass:Float;
-	public var jAcc:Float; public var pjAcc:Float; //impulse calcs.
-	public var jMax:Float;
-	
-	public var gamma:Float;
-	public var bias:Float;
-	
-	public var stepped:Bool;
-	
-	//---------------------------------------------------
+    //---------------------------------------------------
+    
+    public var b1:PR(Body);
+    public var b2:PR(Body);
+    
+    public var kMass:Float;
+    public var jAcc:Float; public var pjAcc:Float; //impulse calcs.
+    public var jMax:Float;
+    
+    public var gamma:Float;
+    public var bias:Float;
+    
+    public var stepped:Bool;
+    
+    //---------------------------------------------------
 
-	public override function copy(?dict:Array<PR(CopyHelper)>,?todo:Array<PR(CopyHelper)>):Constraint {
-		var ret = new AngleJoint(null,null,jointMin,jointMax);
-		ret.ratio = ratio;
-		copyto(ret);
+    public override function copy(?dict:Array<PR(CopyHelper)>,?todo:Array<PR(CopyHelper)>):Constraint {
+        var ret = new AngleJoint(null,null,jointMin,jointMax);
+        ret.ratio = ratio;
+        copyto(ret);
 
-		copybody(ret.pr(inner_zn),b1,dict,todo);
-		copybody(ret.pr(inner_zn),b2,dict,todo);
-		return ret;
-	}
-	
-	public function new() {
-		super();
-		
-		ratio = 1;
-		jAcc = 0;
-		jMax = PR(Const).POSINF();
-		stepped = false;
-	}
-	
-	public override function validate() {
-		if(b1==null || b2==null) throw "Error: AngleJoint cannot be simulated null bodies";
-		if(b1==b2) throw "Error: AngleJoint cannot be simulated with body1 == body2";
-		if(b1.space != space || b2.space != space) throw "Error: Constraints must have each body within the same space to which the constraint has been assigned";
-		if(jointMin>jointMax) throw "Error: AngleJoint must have jointMin <= jointMax";
-		if(!b1.isDynamic() && !b2.isDynamic()) throw "Error: Constraints cannot have both bodies non-dynamic";
-	}
-	
-	public override function wake_connected() {
-		if(b1!=null && b1.isDynamic()) b1.wake();
-		if(b2!=null && b2.isDynamic()) b2.wake();
-	}
-	
-	public override function forest() {
-		if(b1.isDynamic()) DSF(union(b1.component,component));
-		if(b2.isDynamic()) DSF(union(b2.component,component));
-	}
-	
-	public override function pair_exists(id:Int,di:Int) {
-		return (b1.id==id && b2.id==di) || (b1.id==di && b2.id==id);
-	}
-	
-	public override function destroy() {
-		//no validation has occured.
-		b1.constraints.remove(this);
+        copybody(ret.pr(inner_zn),b1,dict,todo);
+        copybody(ret.pr(inner_zn),b2,dict,todo);
+        return ret;
+    }
+    
+    public function new() {
+        super();
+        
+        ratio = 1;
+        jAcc = 0;
+        jMax = PR(Const).POSINF();
+        stepped = false;
+    }
+    
+    public override function validate() {
+        if(b1==null || b2==null) throw "Error: AngleJoint cannot be simulated null bodies";
+        if(b1==b2) throw "Error: AngleJoint cannot be simulated with body1 == body2";
+        if(b1.space != space || b2.space != space) throw "Error: Constraints must have each body within the same space to which the constraint has been assigned";
+        if(jointMin>jointMax) throw "Error: AngleJoint must have jointMin <= jointMax";
+        if(!b1.isDynamic() && !b2.isDynamic()) throw "Error: Constraints cannot have both bodies non-dynamic";
+    }
+    
+    public override function wake_connected() {
+        if(b1!=null && b1.isDynamic()) b1.wake();
+        if(b2!=null && b2.isDynamic()) b2.wake();
+    }
+    
+    public override function forest() {
+        if(b1.isDynamic()) DSF(union(b1.component,component));
+        if(b2.isDynamic()) DSF(union(b2.component,component));
+    }
+    
+    public override function pair_exists(id:Int,di:Int) {
+        return (b1.id==id && b2.id==di) || (b1.id==di && b2.id==id);
+    }
+    
+    public override function destroy() {
+        //no validation has occured.
+        b1.constraints.remove(this);
         if(b2!=b1)
             b2.constraints.remove(this);
-	}
+    }
 
     public override function clearcache() {
         jAcc = 0; pjAcc = 0;
         pre_dt = -1.0;
     }
-	
-	//---------------------------------------------------
-	
-	public override function preStep(dt:Float) {
+    
+    //---------------------------------------------------
+    
+    public override function preStep(dt:Float) {
         if(pre_dt==-1.0) pre_dt = dt;
         var dtratio = dt/pre_dt;
         pre_dt = dt;
 
-		stepped = true;
-		
-		equal = jointMin == jointMax;
-		var C = Cerr(slack);
-		if(!slack) {
-			//effective mass
-			kMass = Keff;
-			if(kMass!=0) kMass = 1/kMass;
-			else jAcc = 0;
-			
-			if(!stiff) {
-				if(breakUnderError && C*C > maxError*maxError) return true;
-				
-				var biasCoef;
-				kMass *= soft_gamma(frequency,damping,dt,gamma,biasCoef);
-				
-				bias = -C*dt*biasCoef;
-				clamp(bias,maxError);
-			}else {
-				bias = 0;
-				gamma = 0;
-			}
-			jAcc *= dtratio;
-			jMax = maxForce*dt;
-		}
-		
-		return false;
-	}
+        stepped = true;
+        
+        equal = jointMin == jointMax;
+        var C = Cerr(slack);
+        if(!slack) {
+            //effective mass
+            kMass = Keff;
+            if(kMass!=0) kMass = 1/kMass;
+            else jAcc = 0;
+            
+            if(!stiff) {
+                if(breakUnderError && C*C > maxError*maxError) return true;
+                
+                var biasCoef;
+                kMass *= soft_gamma(frequency,damping,dt,gamma,biasCoef);
+                
+                bias = -C*dt*biasCoef;
+                clamp(bias,maxError);
+            }else {
+                bias = 0;
+                gamma = 0;
+            }
+            jAcc *= dtratio;
+            jMax = maxForce*dt;
+        }
+        
+        return false;
+    }
 
     public override function warmStart() {
         if(!slack)
             Imp(scale,jAcc,false);
-		pjAcc = jAcc;
+        pjAcc = jAcc;
     }
-	
-	public override function applyImpulseVel() {
-		if(slack) return false;
-		
-		//velocity corrections
-		var E = Verr(scale);
-		var j = kMass*(bias - E) - jAcc*gamma;
-		accum(jAcc,j, {
-			if(breakUnderForce) {
-				if(jAcc>jMax || jAcc<-jMax) return true;
-				else if(!equal && jAcc>0) jAcc = 0;
-			}else if(!stiff) {
-				if(equal) clamp(jAcc,jMax);
-				else { if(jAcc>0) jAcc = 0; else if (jAcc<-jMax) jAcc = -jMax; }
-			}else if(!equal && jAcc>0) jAcc = 0;
-		});
-		Imp(scale,j,false);
-		
-		return false;
-	}
-	
-	public override function applyImpulsePos() {
-		var E; var j;
-		
-		var slack;
-		E = Cerr(slack);
-		if(!slack) {
-			if(breakUnderError && E*E > maxError*maxError) return true;
-			
-//			if(E*E < PR(Config).ANGSLOP) return false;
-			E *= 0.5;
-				
-			j = -E*kMass;
-			if(equal || j<0)
-				Imp(scale,j,true);
-		}
-		
-		return false;
-	}
+    
+    public override function applyImpulseVel() {
+        if(slack) return false;
+        
+        //velocity corrections
+        var E = Verr(scale);
+        var j = kMass*(bias - E) - jAcc*gamma;
+        accum(jAcc,j, {
+            if(breakUnderForce) {
+                if(jAcc>jMax || jAcc<-jMax) return true;
+                else if(!equal && jAcc>0) jAcc = 0;
+            }else if(!stiff) {
+                if(equal) clamp(jAcc,jMax);
+                else { if(jAcc>0) jAcc = 0; else if (jAcc<-jMax) jAcc = -jMax; }
+            }else if(!equal && jAcc>0) jAcc = 0;
+        });
+        Imp(scale,j,false);
+        
+        return false;
+    }
+    
+    public override function applyImpulsePos() {
+        var E; var j;
+        
+        var slack;
+        E = Cerr(slack);
+        if(!slack) {
+            if(breakUnderError && E*E > maxError*maxError) return true;
+            
+//            if(E*E < PR(Config).ANGSLOP) return false;
+            E *= 0.5;
+                
+            j = -E*kMass;
+            if(equal || j<0)
+                Imp(scale,j,true);
+        }
+        
+        return false;
+    }
 
-	public override function draw(g:Debug) {
-	#if (flash9||nme)
-		var me = outer_zn;
+    public override function draw(g:Debug) {
+    #if (flash9||nme)
+        var me = outer_zn;
 
-		var minrad = 10;
-		var delrad = 5/Math.PI/2;
+        var minrad = 10;
+        var delrad = 5/Math.PI/2;
 
-		$(mixin body(b, bang, col) {
-			var min = bang(jointMin);
-			var max = bang(jointMax);
-			if(min>max) swap(min,max);
+        $(mixin body(b, bang, col) {
+            var min = bang(jointMin);
+            var max = bang(jointMax);
+            if(min>max) swap(min,max);
 
-			$(mixin rad(ang) (minrad + (ang-min)*delrad));
+            $(mixin rad(ang) (minrad + (ang-min)*delrad));
 
-			if(b.rotation>min) {
-				var dr = min(b.rotation,max);
-				PR(AngleDraw).drawSpiral(g, b.position, min,dr, rad(min), rad(dr), 0xffff00);
-			}else if(!stiff && b.rotation<min) {
-				PR(AngleDraw).drawSpiralSpring(g, b.position, b.rotation,min, rad(b.rotation),rad(min), 0xffff00);
-			}
+            if(b.rotation>min) {
+                var dr = min(b.rotation,max);
+                PR(AngleDraw).drawSpiral(g, b.position, min,dr, rad(min), rad(dr), 0xffff00);
+            }else if(!stiff && b.rotation<min) {
+                PR(AngleDraw).drawSpiralSpring(g, b.position, b.rotation,min, rad(b.rotation),rad(min), 0xffff00);
+            }
 
-			if(b.rotation<max) {
-				var dr = max(b.rotation,min);
-				PR(AngleDraw).drawSpiral(g, b.position, dr,max, rad(dr), rad(max), 0xffff);
-			}else if(!stiff && b.rotation>max) {
-				PR(AngleDraw).drawSpiralSpring(g, b.position, b.rotation,max, rad(b.rotation),rad(max), 0xffff);
-			}
+            if(b.rotation<max) {
+                var dr = max(b.rotation,min);
+                PR(AngleDraw).drawSpiral(g, b.position, dr,max, rad(dr), rad(max), 0xffff);
+            }else if(!stiff && b.rotation>max) {
+                PR(AngleDraw).drawSpiralSpring(g, b.position, b.rotation,max, rad(b.rotation),rad(max), 0xffff);
+            }
 
-			PR(AngleDraw).indicator(g, b.position, b.rotation, rad(b.rotation), col);
-		});
+            PR(AngleDraw).indicator(g, b.position, b.rotation, rad(b.rotation), col);
+        });
 
-		if(me.body1 != me.body1.space.world)
-			body(me.body1, $(mixin bang(limit) (me.ratio*me.body2.rotation - limit)) bang, 0xff);
-		if(me.body2 != me.body2.space.world)
-			body(me.body2, $(mixin bang(limit) ((limit + me.body1.rotation)/me.ratio)) bang, 0xff0000);
-	#end
-	}
+        if(me.body1 != me.body1.space.world)
+            body(me.body1, $(mixin bang(limit) (me.ratio*me.body2.rotation - limit)) bang, 0xff);
+        if(me.body2 != me.body2.space.world)
+            body(me.body2, $(mixin bang(limit) ((limit + me.body1.rotation)/me.ratio)) bang, 0xff0000);
+    #end
+    }
 }
 
 )
 
 #if (flash9||nme)
 class PR(AngleDraw) {
-	public static function indicator(g:Debug, c:Vec2, ang:Float, rad:Float, col:Int) {
-		var dir = Vec2.get(Math.cos(ang),Math.sin(ang));
-		g.drawFilledCircle(c.add(dir.mul(rad,true),true),2,col);
-		dir.dispose();
-	}
+    public static function indicator(g:Debug, c:Vec2, ang:Float, rad:Float, col:Int) {
+        var dir = Vec2.get(Math.cos(ang),Math.sin(ang));
+        g.drawFilledCircle(c.add(dir.mul(rad,true),true),2,col);
+        dir.dispose();
+    }
 
-	//max angle for an arc
-	static var maxarc = Math.PI/4;
+    //max angle for an arc
+    static var maxarc = Math.PI/4;
 
-	//very similar to drawSpiral.
-	public static function drawSpiralSpring(g:Debug, c:Vec2, a0:Float,a1:Float, r0:Float,r1:Float, col:Int, ?coils:Int=4) {
-		if(a0>a1) {
-			swap(a0,a1);
-			swap(r0,r1);
-		}
-		if(a0==a1) return;
+    //very similar to drawSpiral.
+    public static function drawSpiralSpring(g:Debug, c:Vec2, a0:Float,a1:Float, r0:Float,r1:Float, col:Int, ?coils:Int=4) {
+        if(a0>a1) {
+            swap(a0,a1);
+            swap(r0,r1);
+        }
+        if(a0==a1) return;
 
-		var dr = r1-r0;
-		var da = a1-a0;
+        var dr = r1-r0;
+        var da = a1-a0;
 
-		var Delta = abs(2*Math.PI*dr/da);
-		$(mixin radius(t) ({
-			var p = r0 + dr*t;
-			p + 0.75*Delta*Math.sin(2*coils*Math.PI*t);
-		}));
-		$(mixin dradius(t) ({
-			dr + 1.5*coils*Delta*Math.PI*Math.cos(2*coils*Math.PI*t);
-		}));
+        var Delta = abs(2*Math.PI*dr/da);
+        $(mixin radius(t) ({
+            var p = r0 + dr*t;
+            p + 0.75*Delta*Math.sin(2*coils*Math.PI*t);
+        }));
+        $(mixin dradius(t) ({
+            dr + 1.5*coils*Delta*Math.PI*Math.cos(2*coils*Math.PI*t);
+        }));
 
-		var dcnt = max(Math.ceil(da/maxarc*3), 4*coils);
-		var drad = dr/dcnt;
-		var dang = da/dcnt;
-		var dtime = 1/dcnt;
+        var dcnt = max(Math.ceil(da/maxarc*3), 4*coils);
+        var drad = dr/dcnt;
+        var dang = da/dcnt;
+        var dtime = 1/dcnt;
 
-		var c0 = Math.cos(a0); var s0 = Math.sin(a0);
-		var R0 = radius(0);
-		var p0 = Vec2.get(c.x + R0*c0, c.y + R0*s0);
+        var c0 = Math.cos(a0); var s0 = Math.sin(a0);
+        var R0 = radius(0);
+        var p0 = Vec2.get(c.x + R0*c0, c.y + R0*s0);
 
-		var DR = dradius(0);
-		var ux = DR*c0 - R0*da*s0;
-		var uy = DR*s0 + R0*da*c0;
+        var DR = dradius(0);
+        var ux = DR*c0 - R0*da*s0;
+        var uy = DR*s0 + R0*da*c0;
 
-		var p1 = Vec2.get();
-		var ct = Vec2.get();
+        var p1 = Vec2.get();
+        var ct = Vec2.get();
 
-		for(i in 0...dcnt) {
-			var a1 = a0 + dang;
-			var c1 = Math.cos(a1); var s1 = Math.sin(a1);
-			var R1 = radius((i+1)*dtime);
-			p1.setxy(c.x + R1*c1, c.y + R1*s1);
-			var DR = dradius((i+1)*dtime);
-			var vx = DR*c1 - R1*da*s1;
-			var vy = DR*s1 + R1*da*c1;
+        for(i in 0...dcnt) {
+            var a1 = a0 + dang;
+            var c1 = Math.cos(a1); var s1 = Math.sin(a1);
+            var R1 = radius((i+1)*dtime);
+            p1.setxy(c.x + R1*c1, c.y + R1*s1);
+            var DR = dradius((i+1)*dtime);
+            var vx = DR*c1 - R1*da*s1;
+            var vy = DR*s1 + R1*da*c1;
 
-			var den = (ux*vy-uy*vx);
-			if(den*den<PR(Const).EPSILON || vec_dot(u,v)<=0 || vec_dot(u,v)>0.999)
-				g.drawLine(p0,p1,col);
-			else {
-				var t = ((p1.x-p0.x)*vy + (p0.y-p1.y)*vx) / den;
-				if(t<=0)
-					g.drawLine(p0,p1,col);
-				else {
-					ct.x = p0.x + ux*t;
-					ct.y = p0.y + uy*t;
-					g.drawCurve(p0,ct,p1,col);
-				}
-			}
+            var den = (ux*vy-uy*vx);
+            if(den*den<PR(Const).EPSILON || vec_dot(u,v)<=0 || vec_dot(u,v)>0.999)
+                g.drawLine(p0,p1,col);
+            else {
+                var t = ((p1.x-p0.x)*vy + (p0.y-p1.y)*vx) / den;
+                if(t<=0)
+                    g.drawLine(p0,p1,col);
+                else {
+                    ct.x = p0.x + ux*t;
+                    ct.y = p0.y + uy*t;
+                    g.drawCurve(p0,ct,p1,col);
+                }
+            }
 
-			a0 = a1;
-			c0 = c1; s0 = s1;
-			ux = vx; uy = vy;
-			p0.set(p1);
-		}
+            a0 = a1;
+            c0 = c1; s0 = s1;
+            ux = vx; uy = vy;
+            p0.set(p1);
+        }
 
-		p0.dispose();
-		p1.dispose();
-		ct.dispose();
+        p0.dispose();
+        p1.dispose();
+        ct.dispose();
 
-	}
+    }
 
-	public static function drawSpiral(g:Debug, c:Vec2, a0:Float,a1:Float,r0:Float,r1:Float, col:Int) {
-		if(a0>a1) {
-			swap(a0,a1);
-			swap(r0,r1);
-		}
-		if(a0==a1) return;
+    public static function drawSpiral(g:Debug, c:Vec2, a0:Float,a1:Float,r0:Float,r1:Float, col:Int) {
+        if(a0>a1) {
+            swap(a0,a1);
+            swap(r0,r1);
+        }
+        if(a0==a1) return;
 
-		var dr = r1-r0;
-		var da = a1-a0;
+        var dr = r1-r0;
+        var da = a1-a0;
 
-		var dcnt = Math.ceil(da/maxarc);
-		var drad = dr/dcnt;
-		var dang = da/dcnt;
+        var dcnt = Math.ceil(da/maxarc);
+        var drad = dr/dcnt;
+        var dang = da/dcnt;
 
-		var c0 = Math.cos(a0); var s0 = Math.sin(a0);
-		var p0 = Vec2.get(c.x + r0*c0, c.y + r0*s0);
-		var ux = dr*c0 - r0*da*s0;
-		var uy = dr*s0 + r0*da*c0;
+        var c0 = Math.cos(a0); var s0 = Math.sin(a0);
+        var p0 = Vec2.get(c.x + r0*c0, c.y + r0*s0);
+        var ux = dr*c0 - r0*da*s0;
+        var uy = dr*s0 + r0*da*c0;
 
-		var p1 = Vec2.get();
-		var ct = Vec2.get();
+        var p1 = Vec2.get();
+        var ct = Vec2.get();
 
-		for(i in 0...dcnt) {
-			var r1 = r0 + drad; var a1 = a0 + dang;
-			var c1 = Math.cos(a1); var s1 = Math.sin(a1);
-			p1.setxy(c.x + r1*c1, c.y + r1*s1);
-			var vx = dr*c1 - r1*da*s1;
-			var vy = dr*s1 + r1*da*c1;
+        for(i in 0...dcnt) {
+            var r1 = r0 + drad; var a1 = a0 + dang;
+            var c1 = Math.cos(a1); var s1 = Math.sin(a1);
+            p1.setxy(c.x + r1*c1, c.y + r1*s1);
+            var vx = dr*c1 - r1*da*s1;
+            var vy = dr*s1 + r1*da*c1;
 
-			var den = (ux*vy-uy*vx);
-			if(den*den<PR(Const).EPSILON)
-				g.drawLine(p0,p1,col);
-			else {
-				var t = ((p1.x-p0.x)*vy + (p0.y-p1.y)*vx) / den;
-				if(t<=0)
-					g.drawLine(p0,p1,col);
-				else {
-					ct.x = p0.x + ux*t;
-					ct.y = p0.y + uy*t;
-					g.drawCurve(p0,ct,p1,col);
-				}
-			}
+            var den = (ux*vy-uy*vx);
+            if(den*den<PR(Const).EPSILON)
+                g.drawLine(p0,p1,col);
+            else {
+                var t = ((p1.x-p0.x)*vy + (p0.y-p1.y)*vx) / den;
+                if(t<=0)
+                    g.drawLine(p0,p1,col);
+                else {
+                    ct.x = p0.x + ux*t;
+                    ct.y = p0.y + uy*t;
+                    g.drawCurve(p0,ct,p1,col);
+                }
+            }
 
-			r0 = r1; a0 = a1;
-			c0 = c1; s0 = s1;
-			ux = vx; uy = vy;
-			p0.set(p1);
-		}
+            r0 = r1; a0 = a1;
+            c0 = c1; s0 = s1;
+            ux = vx; uy = vy;
+            p0.set(p1);
+        }
 
-		p0.dispose();
-		p1.dispose();
-		ct.dispose();
-	}
+        p0.dispose();
+        p1.dispose();
+        ct.dispose();
+    }
 }
 #end

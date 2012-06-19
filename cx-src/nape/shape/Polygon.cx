@@ -2,106 +2,106 @@ package nape.shape;
 $(import);
 
 Flags(ValidationResult,
-	prop(VALID,0)
-	
-	prop(DEGENERATE,1)
-	prop(DEGENERATE_EDGES,2)
-	prop(CONCAVE,3)
-	prop(SELF_INTERSECTING,4)
+    prop(VALID,0)
+    
+    prop(DEGENERATE,1)
+    prop(DEGENERATE_EDGES,2)
+    prop(CONCAVE,3)
+    prop(SELF_INTERSECTING,4)
 )
 
 class Polygon extends Shape {
-	public var pr(inner_zn):PR(Polygon);
-	
-	//----------------------------------------------------------------------------------------------
-	
-	keep public static function copy(polygon:Polygon) {
-		DEBUG(if(polygon==null)
-			throw "Error: Cannot copy null polygon";
-		)
-		return polygon.pr(inner).copy().castPolygon;
-	}
-	
-	//----------------------------------------------------------------------------------------------
-	
-	keep public static function rect(x:Float,y:Float,width:Float,height:Float, ?weak:Bool=false):Array<Vec2> {
-		DEBUG(if(isNaN(x) || isNaN(y) || isNaN(width) || isNaN(height))
-			throw "Error: Polygon.rect cannot accept NaN arguments";
-		)
-		return [Vec2.get(x,y,weak), Vec2.get(x+width,y,weak), Vec2.get(x+width,y+height,weak), Vec2.get(x,y+height,weak)];
-	}
-	keep public static function box(width:Float, height:Float, ?weak:Bool=false):Array<Vec2> {
-		DEBUG(if(isNaN(width) || isNaN(height))
-			throw "Error: Polygon.box cannot accept NaN arguments";
-		)
-		return rect(-width/2,-height/2,width,height, weak);
-	}
-	
-	keep public static function regular(width:Float, height:Float, edgeCount:Int, ?angleOffset=0.0, ?weak:Bool=false):Array<Vec2> {
-		DEBUG(if(isNaN(width) || isNaN(height) || isNaN(angleOffset))
-			throw "Error: Polygon.regular cannot accept NaN arguments";
-		)
-		var ret = [];
-		var dangle = Math.PI*2/edgeCount;
-		for(i in 0...edgeCount) {
-			var ang = i*dangle + angleOffset;
-			var x = Vec2.get(Math.cos(ang)*width/2,Math.sin(ang)*height/2,weak);
-			ret.push(x);
-		}
-		return ret;
-	}
-	
-	//----------------------------------------------------------------------------------------------
-	
+    public var pr(inner_zn):PR(Polygon);
+    
+    //----------------------------------------------------------------------------------------------
+    
+    keep public static function copy(polygon:Polygon) {
+        DEBUG(if(polygon==null)
+            throw "Error: Cannot copy null polygon";
+        )
+        return polygon.pr(inner).copy().castPolygon;
+    }
+    
+    //----------------------------------------------------------------------------------------------
+    
+    keep public static function rect(x:Float,y:Float,width:Float,height:Float, ?weak:Bool=false):Array<Vec2> {
+        DEBUG(if(isNaN(x) || isNaN(y) || isNaN(width) || isNaN(height))
+            throw "Error: Polygon.rect cannot accept NaN arguments";
+        )
+        return [Vec2.get(x,y,weak), Vec2.get(x+width,y,weak), Vec2.get(x+width,y+height,weak), Vec2.get(x,y+height,weak)];
+    }
+    keep public static function box(width:Float, height:Float, ?weak:Bool=false):Array<Vec2> {
+        DEBUG(if(isNaN(width) || isNaN(height))
+            throw "Error: Polygon.box cannot accept NaN arguments";
+        )
+        return rect(-width/2,-height/2,width,height, weak);
+    }
+    
+    keep public static function regular(width:Float, height:Float, edgeCount:Int, ?angleOffset=0.0, ?weak:Bool=false):Array<Vec2> {
+        DEBUG(if(isNaN(width) || isNaN(height) || isNaN(angleOffset))
+            throw "Error: Polygon.regular cannot accept NaN arguments";
+        )
+        var ret = [];
+        var dangle = Math.PI*2/edgeCount;
+        for(i in 0...edgeCount) {
+            var ang = i*dangle + angleOffset;
+            var x = Vec2.get(Math.cos(ang)*width/2,Math.sin(ang)*height/2,weak);
+            ret.push(x);
+        }
+        return ret;
+    }
+    
+    //----------------------------------------------------------------------------------------------
+    
     property(localVerts,Vec2List,{
-		if(pr(inner_zn).wrap_lverts==null) pr(inner_zn).get_lverts();
-		pr(inner_zn).wrap_lverts;
-	})
-	
-	property(worldVerts,Vec2List,{
-		if(pr(inner_zn).wrap_gverts==null) pr(inner_zn).get_gverts();
-		pr(inner_zn).wrap_gverts;
-	})
-	
-	property(edges,EdgeList,{
-		if(pr(inner_zn).wrap_edges==null) pr(inner_zn).get_edges();
-		pr(inner_zn).wrap_edges;
-	})
-	
-	//----------------------------------------------------------------------------------------------
-	
-	keep public function validity() {
-		return pr(inner_zn).valid();
-	}
-	
-	//----------------------------------------------------------------------------------------------
-	
-	flibopts(2)
-	public function new(localVerts:Dynamic, ?material:Material, ?filter:InteractionFilter) {
-		DEBUG(try { super(); } catch (e:Dynamic) {})
-		RELEASE(super();)
-		
-		DEBUG(if(localVerts==null) throw "Error: localVerts cannot be null";)
-		
-		pr(inner_zn) = new PR(Polygon)();
-		pr(inner_zn).outer = this;
-		pr(inner_zn).outer_zn = this;
-		pr(inner) = pr(inner_zn);
-		pr(inner_i) = pr(inner);
-		pr(inner_i).outer_i = this;
-	
-		PolyIter(x, localVerts, this.localVerts.push(x.copy()));
-		PolyWeak(localVerts);
+        if(pr(inner_zn).wrap_lverts==null) pr(inner_zn).get_lverts();
+        pr(inner_zn).wrap_lverts;
+    })
+    
+    property(worldVerts,Vec2List,{
+        if(pr(inner_zn).wrap_gverts==null) pr(inner_zn).get_gverts();
+        pr(inner_zn).wrap_gverts;
+    })
+    
+    property(edges,EdgeList,{
+        if(pr(inner_zn).wrap_edges==null) pr(inner_zn).get_edges();
+        pr(inner_zn).wrap_edges;
+    })
+    
+    //----------------------------------------------------------------------------------------------
+    
+    keep public function validity() {
+        return pr(inner_zn).valid();
+    }
+    
+    //----------------------------------------------------------------------------------------------
+    
+    flibopts(2)
+    public function new(localVerts:Dynamic, ?material:Material, ?filter:InteractionFilter) {
+        DEBUG(try { super(); } catch (e:Dynamic) {})
+        RELEASE(super();)
+        
+        DEBUG(if(localVerts==null) throw "Error: localVerts cannot be null";)
+        
+        pr(inner_zn) = new PR(Polygon)();
+        pr(inner_zn).outer = this;
+        pr(inner_zn).outer_zn = this;
+        pr(inner) = pr(inner_zn);
+        pr(inner_i) = pr(inner);
+        pr(inner_i).outer_i = this;
+    
+        PolyIter(x, localVerts, this.localVerts.push(x.copy()));
+        PolyWeak(localVerts);
 
-		if(material==null)
-			pr(inner).material = Get(PR(Material));
-		else this.material = material;
-		
-		if(filter==null)
-			pr(inner).filter = Get(PR(InteractionFilter));
-		else this.filter = filter;
+        if(material==null)
+            pr(inner).material = Get(PR(Material));
+        else this.material = material;
+        
+        if(filter==null)
+            pr(inner).filter = Get(PR(InteractionFilter));
+        else this.filter = filter;
 
-		//implicit ANY type.
-		pr(inner_i).insert_cbtype(CbType.ANY_SHAPE.pr(inner));
-	}
+        //implicit ANY type.
+        pr(inner_i).insert_cbtype(CbType.ANY_SHAPE.pr(inner));
+    }
 }

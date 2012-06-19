@@ -7,129 +7,129 @@ WrapList(LJAngle,List(PR(BodyData)),Node(PR(BodyData)),$(mixin closure(x) x.aout
 WrapList(LJDistancePair,List(PR(DistPair)),Node(PR(DistPair)),$(mixin closure(x) x.outer) $(mixin erusolc(x) x.pr(inner)))
 
 class LJAngle {
-	public var pr(inner):PR(BodyData);
-	
-	public var weight(flibget_weight, flibset_weight):Float;
-	force_inline function flibget_weight() {
-		return pr(inner).gamma;
-	}
-	force_inline function flibset_weight(weight:Float) {
-		if(this.weight!=weight) {
-			DEBUG(if(isNaN(weight)) throw "Error: LJAngle::weight must be non-NaN";)
-			pr(inner).gamma = weight;
-			
-			if(pr(inner).self!=null) pr(inner).self.wake();
-		}
-		return this.weight;
-	}
-	
-	public var body(flibget_body, flibset_body):Body;
-	force_inline function flibget_body() {
-		return pr(inner).b.outer;
-	}
-	force_inline function flibset_body(body:Body) {
-		if(this.body != body) {
-			DEBUG(if(body==null) throw "Error: LJAngle::body cannot be null";)
-			if(pr(inner).self!=null)
-				pr(inner).self.swap_angles(pr(inner), body.pr(inner));
-			
-			pr(inner).b = body.pr(inner);
-			
-			if(pr(inner).self!=null) pr(inner).self.wake();
-		}
-		return this.body;
-	}
-	
-	public function new(body:Body, weight:Float) {
-		DEBUG(if(body==null) throw "Error: LJAngle::body cannot be null";)
-		
-		pr(inner) = new PR(BodyData)(body.pr(inner));
-		pr(inner).active = true;
-		pr(inner).aouter = this;
-		this.weight = weight;
-	}
-	
-	@:$keep public function toString() {
-		return "{LJAngle}";
-	}
+    public var pr(inner):PR(BodyData);
+    
+    public var weight(flibget_weight, flibset_weight):Float;
+    force_inline function flibget_weight() {
+        return pr(inner).gamma;
+    }
+    force_inline function flibset_weight(weight:Float) {
+        if(this.weight!=weight) {
+            DEBUG(if(isNaN(weight)) throw "Error: LJAngle::weight must be non-NaN";)
+            pr(inner).gamma = weight;
+            
+            if(pr(inner).self!=null) pr(inner).self.wake();
+        }
+        return this.weight;
+    }
+    
+    public var body(flibget_body, flibset_body):Body;
+    force_inline function flibget_body() {
+        return pr(inner).b.outer;
+    }
+    force_inline function flibset_body(body:Body) {
+        if(this.body != body) {
+            DEBUG(if(body==null) throw "Error: LJAngle::body cannot be null";)
+            if(pr(inner).self!=null)
+                pr(inner).self.swap_angles(pr(inner), body.pr(inner));
+            
+            pr(inner).b = body.pr(inner);
+            
+            if(pr(inner).self!=null) pr(inner).self.wake();
+        }
+        return this.body;
+    }
+    
+    public function new(body:Body, weight:Float) {
+        DEBUG(if(body==null) throw "Error: LJAngle::body cannot be null";)
+        
+        pr(inner) = new PR(BodyData)(body.pr(inner));
+        pr(inner).active = true;
+        pr(inner).aouter = this;
+        this.weight = weight;
+    }
+    
+    @:$keep public function toString() {
+        return "{LJAngle}";
+    }
 }
 
 class LJDistancePair {
-	public var pr(inner):PR(DistPair);
-	
-	public function new() {
-	}
-	
-	@:$keep public function toString() {
-		return "{LJDistancePair}";
-	}
+    public var pr(inner):PR(DistPair);
+    
+    public function new() {
+    }
+    
+    @:$keep public function toString() {
+        return "{LJDistancePair}";
+    }
 }
 
 class LinearJoint extends Constraint {
-	public var pr(inner_zn):PR(LinearJoint);
-	
-	public var bodies(flibget_bodies, never):BodyList;
-	force_inline function flibget_bodies() {
-		return null;
-	}
-	
-	public var angles(flibget_angles, never):LJAngleList;
-	force_inline function flibget_angles() {
-		return pr(inner_zn).wrap_angles;
-	}
-	
-	public var distancePairs(flibget_distancePairs, never):LJDistancePairList;
-	force_inline function flibget_distancePairs() {
-		return null;
-	}
-	
-		public var jointMin(flibget_jointMin,flibset_jointMin):Float;
-	force_inline function flibget_jointMin() {
-		return pr(inner_zn).jointMin;
-	}
-	force_inline function flibset_jointMin(jointMin:Float) {
-		DEBUG(
-			if(isNaN(jointMin)) throw "Error: LinearJoint::jointMin cannot be NaN";
-			if(jointMin<0) throw "Error: LinearJoint::jointMin must be >= 0";
-		)
-		if(this.jointMin != jointMin) {
-			pr(inner_zn).jointMin = jointMin;
-			pr(inner).wake();
-		}
-		return this.jointMin;
-	}
-	
-	public var jointMax(flibget_jointMax,flibset_jointMax):Float;
-	force_inline function flibget_jointMax() {
-		return pr(inner_zn).jointMax;
-	}
-	force_inline function flibset_jointMax(jointMax:Float) {
-		DEBUG(
-			if(isNaN(jointMax)) throw "Error: LinearJoint::jointMax cannot be NaN";
-			if(jointMax<0) throw "Error: LinearJoint::jointMax must be >= 0";
-		)
-		if(this.jointMax != jointMax) {
-			pr(inner_zn).jointMax = jointMax;
-			pr(inner).wake();
-		}
-		return this.jointMax;
-	}
-	
-	public var slack(flibget_slack,never):Bool;
-	force_inline function flibget_slack() return pr(inner_zn).slack
-	
-	public function new(jointMin:Float, jointMax:Float) {
-		DEBUG(try { super(); } catch (e:Dynamic) {})
-		RELEASE(super();)
-		
-		pr(inner_zn) = new PR(LinearJoint)();
-		pr(inner) = pr(inner_zn);
-		pr(inner).outer = this;
-		pr(inner_zn).outer_zn = this;
-		
-		this.jointMin = jointMin;
-		this.jointMax = jointMax;
-	}
+    public var pr(inner_zn):PR(LinearJoint);
+    
+    public var bodies(flibget_bodies, never):BodyList;
+    force_inline function flibget_bodies() {
+        return null;
+    }
+    
+    public var angles(flibget_angles, never):LJAngleList;
+    force_inline function flibget_angles() {
+        return pr(inner_zn).wrap_angles;
+    }
+    
+    public var distancePairs(flibget_distancePairs, never):LJDistancePairList;
+    force_inline function flibget_distancePairs() {
+        return null;
+    }
+    
+        public var jointMin(flibget_jointMin,flibset_jointMin):Float;
+    force_inline function flibget_jointMin() {
+        return pr(inner_zn).jointMin;
+    }
+    force_inline function flibset_jointMin(jointMin:Float) {
+        DEBUG(
+            if(isNaN(jointMin)) throw "Error: LinearJoint::jointMin cannot be NaN";
+            if(jointMin<0) throw "Error: LinearJoint::jointMin must be >= 0";
+        )
+        if(this.jointMin != jointMin) {
+            pr(inner_zn).jointMin = jointMin;
+            pr(inner).wake();
+        }
+        return this.jointMin;
+    }
+    
+    public var jointMax(flibget_jointMax,flibset_jointMax):Float;
+    force_inline function flibget_jointMax() {
+        return pr(inner_zn).jointMax;
+    }
+    force_inline function flibset_jointMax(jointMax:Float) {
+        DEBUG(
+            if(isNaN(jointMax)) throw "Error: LinearJoint::jointMax cannot be NaN";
+            if(jointMax<0) throw "Error: LinearJoint::jointMax must be >= 0";
+        )
+        if(this.jointMax != jointMax) {
+            pr(inner_zn).jointMax = jointMax;
+            pr(inner).wake();
+        }
+        return this.jointMax;
+    }
+    
+    public var slack(flibget_slack,never):Bool;
+    force_inline function flibget_slack() return pr(inner_zn).slack
+    
+    public function new(jointMin:Float, jointMax:Float) {
+        DEBUG(try { super(); } catch (e:Dynamic) {})
+        RELEASE(super();)
+        
+        pr(inner_zn) = new PR(LinearJoint)();
+        pr(inner) = pr(inner_zn);
+        pr(inner).outer = this;
+        pr(inner_zn).outer_zn = this;
+        
+        this.jointMin = jointMin;
+        this.jointMax = jointMax;
+    }
 }
 
 )*/

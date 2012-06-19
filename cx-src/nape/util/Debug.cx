@@ -3,50 +3,50 @@ $(import);
 
 class Debug {
     public static function version() {
-		return PR(HaxeMacros).cversion();
+        return PR(HaxeMacros).cversion();
     }
 
-	public static function clearObjectPools() {
-		$(expand global CLEARITERATOR(T) {
-			while(T.pr(pool)!=null) {
-				var nxt = T.pr(pool).pr(next);
-				T.pr(pool).pr(next) = null;
-				T.pr(pool) = nxt;
-			}
-		});
-		$(expand global CLEARPOOL(T) {
-			while(T.pr(pool)!=null) {
-				var nxt = T.pr(pool).next;
-				T.pr(pool).next = null;
-				T.pr(pool) = nxt;
-			}
-			#if NAPE_POOL_STATS
-			    T.POOL_TOT = T.POOL_CNT = T.POOL_ADDNEW = T.POOL_ADD = T.POOL_SUB = 0;
-			#end
-		});
-		$(expand global PUBCLEARPOOL(T) {
-			while(PR(PubPool).pool`T!=null) {
-				var nxt = PR(PubPool).pool`T.pr(pool);
-				PR(PubPool).pool`T.pr(pool) = null;
-				PR(PubPool).pool`T = nxt;
-			}
-			#if NAPE_POOL_STATS
-			    T.POOL_TOT = T.POOL_CNT = T.POOL_ADDNEW = T.POOL_ADD = T.POOL_SUB = 0;
-			#end
-		});
-	}
+    public static function clearObjectPools() {
+        $(expand global CLEARITERATOR(T) {
+            while(T.pr(pool)!=null) {
+                var nxt = T.pr(pool).pr(next);
+                T.pr(pool).pr(next) = null;
+                T.pr(pool) = nxt;
+            }
+        });
+        $(expand global CLEARPOOL(T) {
+            while(T.pr(pool)!=null) {
+                var nxt = T.pr(pool).next;
+                T.pr(pool).next = null;
+                T.pr(pool) = nxt;
+            }
+            #if NAPE_POOL_STATS
+                T.POOL_TOT = T.POOL_CNT = T.POOL_ADDNEW = T.POOL_ADD = T.POOL_SUB = 0;
+            #end
+        });
+        $(expand global PUBCLEARPOOL(T) {
+            while(PR(PubPool).pool`T!=null) {
+                var nxt = PR(PubPool).pool`T.pr(pool);
+                PR(PubPool).pool`T.pr(pool) = null;
+                PR(PubPool).pool`T = nxt;
+            }
+            #if NAPE_POOL_STATS
+                T.POOL_TOT = T.POOL_CNT = T.POOL_ADDNEW = T.POOL_ADD = T.POOL_SUB = 0;
+            #end
+        });
+    }
 
     #if NAPE_TIMES
-		static public var ltime = 0;
+        static public var ltime = 0;
         static public function TIMES(space:Space) {
             var text = "";
-			var dt = space.timeStamp - ltime;
-	    text += "Validation:    "+Std.string(Debug.VALID/dt).substr(0,5)+"ms\n";
+            var dt = space.timeStamp - ltime;
+        text += "Validation:    "+Std.string(Debug.VALID/dt).substr(0,5)+"ms\n";
             text += "Broadphase:    "+Std.string((Debug.BROAD-Debug.NARROW)/dt).substr(0,5)+"ms :: total = "+Std.string(Debug.BROAD/dt).substr(0,5)+"ms\n";
-			text += "Narrowphase:   "+Std.string(Debug.NARROW/dt).substr(0,5)+"ms\n";
+            text += "Narrowphase:   "+Std.string(Debug.NARROW/dt).substr(0,5)+"ms\n";
             text += "Set-Forest:    "+Std.string(Debug.FOR/dt).substr(0,5)+"ms\n";
             text += "Prestep:       "+Std.string(Debug.PRE/dt).substr(0,5)+"ms\n";
-			text += "Contact sort:  "+Std.string(Debug.SORT/dt).substr(0,5)+"ms\n";
+            text += "Contact sort:  "+Std.string(Debug.SORT/dt).substr(0,5)+"ms\n";
             text += "Position It.:  "+Std.string(Debug.POS/dt).substr(0,5)+"ms\n";
             text += "Velocity It.:  "+Std.string(Debug.VEL/dt).substr(0,5)+"ms\n";
             text += "Debug Draw:    "+Std.string(Debug.DRAW/dt).substr(0,5)+"ms\n";
@@ -55,15 +55,15 @@ class Debug {
             text += "active arb: "+Debug.AACNT+"\n";
             text += "con:        "+Debug.CCNT+"\n";
             text += "active con: "+Debug.ACCNT+"\n";
-			text += "\n";
-			text += "hash collisions: "+Std.string(Debug.HASH/Debug.HASHT*100).substr(0,5)+"%\n";
-			text += "\n";
-			text += "Broadphase adjustments: "+Std.string(BROADCLASH/BROADTOTAL*100).substr(0,5)+"%\n";
+            text += "\n";
+            text += "hash collisions: "+Std.string(Debug.HASH/Debug.HASHT*100).substr(0,5)+"%\n";
+            text += "\n";
+            text += "Broadphase adjustments: "+Std.string(BROADCLASH/BROADTOTAL*100).substr(0,5)+"%\n";
 
-			if(space.timeStamp-ltime > 50) {
-				Debug.FOR = Debug.BROAD = Debug.PRE = Debug.POS = Debug.VEL = Debug.DRAW = Debug.VALID = Debug.SORT = Debug.NARROW = Debug.BROADCLASH = Debug.BROADTOTAL = 0;
-				ltime = space.timeStamp;
-			}
+            if(space.timeStamp-ltime > 50) {
+                Debug.FOR = Debug.BROAD = Debug.PRE = Debug.POS = Debug.VEL = Debug.DRAW = Debug.VALID = Debug.SORT = Debug.NARROW = Debug.BROADCLASH = Debug.BROADTOTAL = 0;
+                ltime = space.timeStamp;
+            }
 
             return text;
         }
@@ -78,16 +78,16 @@ class Debug {
         static public var VEL = 0;
         static public var POS = 0;
         static public var BROAD = 0;
-		static public var NARROW = 0;
+        static public var NARROW = 0;
         static public var DRAW = 0;
-		static public var VALID = 0;
-		static public var SORT = 0;
+        static public var VALID = 0;
+        static public var SORT = 0;
 
-		static public var HASH = 0;
-		static public var HASHT = 0;
+        static public var HASH = 0;
+        static public var HASHT = 0;
 
-		static public var BROADCLASH = 0;
-		static public var BROADTOTAL = 0;
+        static public var BROADCLASH = 0;
+        static public var BROADTOTAL = 0;
     #end
 
     ///---------------------------------------------------------------------------------------------
@@ -95,121 +95,121 @@ class Debug {
     #if (flash9||nme)
 
     keep public static function createGraphic(body:Body):flash.display.Shape {
-		DEBUG(if(body==null) throw "Error: Cannot create debug graphic for null Body";)
-		var ret = new flash.display.Shape();
-		var graphics = ret.graphics;
+        DEBUG(if(body==null) throw "Error: Cannot create debug graphic for null Body";)
+        var ret = new flash.display.Shape();
+        var graphics = ret.graphics;
 
         var idc:Int = fastint(0xffffff*Math.exp(-body.id/1500));
         var _r = (((idc&0xff0000)>>16))*0.7;
         var _g = (((idc&0xff00)>>8))*0.7;
         var _b = (idc&0xff)*0.7;
-	
+    
         var col = ((fastint(_r))<<16)|((fastint(_g))<<8)|(fastint(_b));
         graphics.lineStyle(0.1,col,1);
 
-		for(s in body.shapes) {
-			if(s.isCircle()) {
-				var c = s.castCircle;
-				graphics.drawCircle(c.localCOM.x,c.localCOM.y,c.radius);	
-			} else {
-				var p = s.castPolygon;
-				graphics.moveTo(s.localCOM.x,s.localCOM.y);
-				for(i in 0...p.worldVerts.length) {
-					var px = p.localVerts.at(i);
-					graphics.lineTo(px.x,px.y);
-				}
-				var px = p.localVerts.at(0);
-				graphics.lineTo(px.x,px.y);
-			}
+        for(s in body.shapes) {
+            if(s.isCircle()) {
+                var c = s.castCircle;
+                graphics.drawCircle(c.localCOM.x,c.localCOM.y,c.radius);    
+            } else {
+                var p = s.castPolygon;
+                graphics.moveTo(s.localCOM.x,s.localCOM.y);
+                for(i in 0...p.worldVerts.length) {
+                    var px = p.localVerts.at(i);
+                    graphics.lineTo(px.x,px.y);
+                }
+                var px = p.localVerts.at(0);
+                graphics.lineTo(px.x,px.y);
+            }
 
-			if(s.isCircle()) {
-				var c = s.castCircle;
-				graphics.moveTo(c.localCOM.x+c.radius*0.3,c.localCOM.y);
-				graphics.lineTo(c.localCOM.x+c.radius,c.localCOM.y);
-			}
-		}
-			
-		return ret;
+            if(s.isCircle()) {
+                var c = s.castCircle;
+                graphics.moveTo(c.localCOM.x+c.radius*0.3,c.localCOM.y);
+                graphics.lineTo(c.localCOM.x+c.radius,c.localCOM.y);
+            }
+        }
+            
+        return ret;
     }
 
     ///---------------------------------------------------------------------------------------------
 
-	public var pr(inner):PR(Debug);
+    public var pr(inner):PR(Debug);
 
     public var drawCollisionArbiters:Bool;
-	public var drawFluidArbiters:Bool;
-	public var drawSensorArbiters:Bool;
-	
-	public var drawBodies:Bool;
-	public var drawBodyDetail:Bool; //requires drawBodies
-	public var drawShapeDetail:Bool; //requires drawBodies
-	public var drawShapeAngleIndicators:Bool; //requires drawBodies
+    public var drawFluidArbiters:Bool;
+    public var drawSensorArbiters:Bool;
+    
+    public var drawBodies:Bool;
+    public var drawBodyDetail:Bool; //requires drawBodies
+    public var drawShapeDetail:Bool; //requires drawBodies
+    public var drawShapeAngleIndicators:Bool; //requires drawBodies
 
-	public var drawConstraints:Bool;
-	public var drawConstraintSprings:Bool; //requires drawConstraints=true
-	public var drawConstraintErrors:Bool; //requires drawconstraints=true
+    public var drawConstraints:Bool;
+    public var drawConstraintSprings:Bool; //requires drawConstraints=true
+    public var drawConstraintErrors:Bool; //requires drawconstraints=true
 
     property(bgColor,Int,{
-		pr(inner).bg_col;
+        pr(inner).bg_col;
     },{
-		#if flash10
-			if(pr(inner).isbmp) pr(inner).d_bmp.setbg(bgColor);
-			else                pr(inner).d_shape.setbg(bgColor);
-		#else
-			pr(inner).d_shape.setbg(bgColor);
-		#end
+        #if flash10
+            if(pr(inner).isbmp) pr(inner).d_bmp.setbg(bgColor);
+            else                pr(inner).d_shape.setbg(bgColor);
+        #else
+            pr(inner).d_shape.setbg(bgColor);
+        #end
     })
 
-	public var colour:Int->Int;
+    public var colour:Int->Int;
 
     ///---------------------------------------------------------------------------------------------
 
-	public function new() {
+    public function new() {
         DEBUG(
             if(!PR(Debug).internal)
                 throw "Error: Cannot instantiate Debug derp! Use ShapeDebug, or BitmapDebug on flash10+";
         )
 
-		drawCollisionArbiters = false;
-		drawFluidArbiters = false;
-		drawSensorArbiters = false;
-		drawBodies = true;
+        drawCollisionArbiters = false;
+        drawFluidArbiters = false;
+        drawSensorArbiters = false;
+        drawBodies = true;
         drawShapeAngleIndicators = true;
-		drawBodyDetail = false;
-		drawShapeDetail = false;
-		drawConstraints = false;
-		drawConstraintSprings = true;
-		drawConstraintErrors = false;
+        drawBodyDetail = false;
+        drawShapeDetail = false;
+        drawConstraints = false;
+        drawConstraintSprings = true;
+        drawConstraintErrors = false;
 
-		cullingEnabled = false;
+        cullingEnabled = false;
 
-		colour = null;
-	}
+        colour = null;
+    }
 
     ///---------------------------------------------------------------------------------------------
 
     property(display, flash.display.DisplayObject, {
-		#if flash10
-			var ret:flash.display.DisplayObject;
-			if(pr(inner).isbmp) ret = pr(inner).d_bmp.bitmap;
-			else                ret = pr(inner).d_shape.shape;
-			ret;
-		#else
-			pr(inner).d_shape.shape;
-		#end
+        #if flash10
+            var ret:flash.display.DisplayObject;
+            if(pr(inner).isbmp) ret = pr(inner).d_bmp.bitmap;
+            else                ret = pr(inner).d_shape.shape;
+            ret;
+        #else
+            pr(inner).d_shape.shape;
+        #end
     })
 
-	public var cullingEnabled:Bool;
+    public var cullingEnabled:Bool;
 
     ///---------------------------------------------------------------------------------------------
 
-	property(transform, Mat23, {
-		if(pr(inner).xform==null) pr(inner).setform();
-		pr(inner).xform.outer;
-	}, {
-		DEBUG(if(transform==null) throw "Error: Cannot set Debug::transform to null";)
-		this.transform.set(transform);
-	})
+    property(transform, Mat23, {
+        if(pr(inner).xform==null) pr(inner).setform();
+        pr(inner).xform.outer;
+    }, {
+        DEBUG(if(transform==null) throw "Error: Cannot set Debug::transform to null";)
+        this.transform.set(transform);
+    })
 
     public function clear():Void {}
     public function flush():Void {}
@@ -219,17 +219,17 @@ class Debug {
     public function draw(object:Dynamic):Void {}
 
     public function drawLine  (start:Vec2, end:Vec2, colour:Int):Void {}
-	public function drawCurve (start:Vec2, control:Vec2, end:Vec2, colour:Int):Void {}
+    public function drawCurve (start:Vec2, control:Vec2, end:Vec2, colour:Int):Void {}
     public function drawCircle(position:Vec2, radius:Float, colour:Int):Void {}
     public function drawAABB  (aabb:AABB, colour:Int):Void {}
     
     public function drawFilledTriangle(p0:Vec2, p1:Vec2, p2:Vec2, colour:Int):Void {}
     public function drawFilledCircle(position:Vec2, radius:Float, colour:Int):Void {}
 
-	public function drawPolygon (polygon:Dynamic, colour:Int):Void {}
-	public function drawFilledPolygon (polygon:Dynamic, colour:Int):Void {}
+    public function drawPolygon (polygon:Dynamic, colour:Int):Void {}
+    public function drawFilledPolygon (polygon:Dynamic, colour:Int):Void {}
 
-	public function drawSpring(start:Vec2,end:Vec2,colour:Int,?coils=3,?radius=3.0):Void {}
+    public function drawSpring(start:Vec2,end:Vec2,colour:Int,?coils=3,?radius=3.0):Void {}
 
     #end
 }
@@ -238,60 +238,60 @@ class Debug {
 ///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 
 $(mixin global __debug_draw(obj) {
-	DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
+    DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
 
-	if(pr(inner).xnull) {
-	    if  (Std.is(obj,Space))      pr(inner_zn).draw_space(cast(obj,Space      ).pr(inner), null,1.0,true);
-		elif(Std.is(obj,Compound))   pr(inner_zn).draw_compound(cast(obj,Compound).pr(inner), null,1.0,true);
-	    elif(Std.is(obj,Body ))      pr(inner_zn).draw_body (cast(obj,Body       ).pr(inner), null,1.0,true);
-	    elif(Std.is(obj,Shape))      pr(inner_zn).draw_shape(cast(obj,Shape      ).pr(inner), null,1.0,true);
-	    elif(Std.is(obj,Constraint)) cast(obj,Constraint).pr(inner).draw(this); 
-		else { DEBUG(throw "Error: Unhandled object type for Debug draw";) }
-	}else {
-	    if  (Std.is(obj,Space))      pr(inner_zn).draw_space(cast(obj,Space     ).pr(inner), pr(inner).xform,pr(inner).xdet,false);
-	    elif(Std.is(obj,Body ))      pr(inner_zn).draw_body (cast(obj,Body      ).pr(inner), pr(inner).xform,pr(inner).xdet,false);
-	    elif(Std.is(obj,Shape))      pr(inner_zn).draw_shape(cast(obj,Shape     ).pr(inner), pr(inner).xform,pr(inner).xdet,false);
-	    elif(Std.is(obj,Constraint)) cast(obj,Constraint).pr(inner).draw(this);
-	    else { DEBUG(throw "Error: Unhandled object type for Debug draw";) }
-	}
+    if(pr(inner).xnull) {
+        if  (Std.is(obj,Space))      pr(inner_zn).draw_space(cast(obj,Space      ).pr(inner), null,1.0,true);
+        elif(Std.is(obj,Compound))   pr(inner_zn).draw_compound(cast(obj,Compound).pr(inner), null,1.0,true);
+        elif(Std.is(obj,Body ))      pr(inner_zn).draw_body (cast(obj,Body       ).pr(inner), null,1.0,true);
+        elif(Std.is(obj,Shape))      pr(inner_zn).draw_shape(cast(obj,Shape      ).pr(inner), null,1.0,true);
+        elif(Std.is(obj,Constraint)) cast(obj,Constraint).pr(inner).draw(this); 
+        else { DEBUG(throw "Error: Unhandled object type for Debug draw";) }
+    }else {
+        if  (Std.is(obj,Space))      pr(inner_zn).draw_space(cast(obj,Space     ).pr(inner), pr(inner).xform,pr(inner).xdet,false);
+        elif(Std.is(obj,Body ))      pr(inner_zn).draw_body (cast(obj,Body      ).pr(inner), pr(inner).xform,pr(inner).xdet,false);
+        elif(Std.is(obj,Shape))      pr(inner_zn).draw_shape(cast(obj,Shape     ).pr(inner), pr(inner).xform,pr(inner).xdet,false);
+        elif(Std.is(obj,Constraint)) cast(obj,Constraint).pr(inner).draw(this);
+        else { DEBUG(throw "Error: Unhandled object type for Debug draw";) }
+    }
 
 });
 
 $(mixin global __debug_spring(start,end,colour,coils,radius) {
-	Disposed(start,Vec2)
-	Disposed(end,Vec2)
-	DEBUG(if(start==null) throw "Error: drawCurve::start cannot be null";)
-	DEBUG(if(end==null) throw "Error: drawCurve::end cannot be null";)
-	DEBUG(if(coils<0) throw "Error: drawCurve::coils must be >= 0";)
+    Disposed(start,Vec2)
+    Disposed(end,Vec2)
+    DEBUG(if(start==null) throw "Error: drawCurve::start cannot be null";)
+    DEBUG(if(end==null) throw "Error: drawCurve::end cannot be null";)
+    DEBUG(if(coils<0) throw "Error: drawCurve::coils must be >= 0";)
 
-	if(coils==0) drawLine(start,end,colour);
-	else {
-		vec_new(d, end.x-start.x, end.y-start.y);
-		vec_diveq(d,coils*4);
-	
-		vec_new(n); vec_set(n,d);
-		if(vec_lsq(n)<0.1) return;
-		vec_normal(n); vec_muleq(n,radius*2);
-	
-		var u = start.copy();
-		var v = Vec2.get();
-		var q = Vec2.get();
-		for(i in 0...coils) {
-			v.x = u.x + dx + nx; v.y = u.y + dy + ny;
-			q.x = u.x + dx*2;    q.y = u.y + dy*2;
-			drawCurve(u,v,q,colour);
-			u.x = q.x; u.y = q.y;
+    if(coils==0) drawLine(start,end,colour);
+    else {
+        vec_new(d, end.x-start.x, end.y-start.y);
+        vec_diveq(d,coils*4);
+    
+        vec_new(n); vec_set(n,d);
+        if(vec_lsq(n)<0.1) return;
+        vec_normal(n); vec_muleq(n,radius*2);
+    
+        var u = start.copy();
+        var v = Vec2.get();
+        var q = Vec2.get();
+        for(i in 0...coils) {
+            v.x = u.x + dx + nx; v.y = u.y + dy + ny;
+            q.x = u.x + dx*2;    q.y = u.y + dy*2;
+            drawCurve(u,v,q,colour);
+            u.x = q.x; u.y = q.y;
 
-			v.x = u.x + dx - nx; v.y = u.y + dy - ny;
-			q.x = u.x + dx*2;    q.y = u.y + dy*2;
-			drawCurve(u,v,q,colour);
-			u.x = q.x; u.y = q.y;
-		}
-		u.dispose();
-		v.dispose();
-		q.dispose();
-	}
+            v.x = u.x + dx - nx; v.y = u.y + dy - ny;
+            q.x = u.x + dx*2;    q.y = u.y + dy*2;
+            drawCurve(u,v,q,colour);
+            u.x = q.x; u.y = q.y;
+        }
+        u.dispose();
+        v.dispose();
+        q.dispose();
+    }
 
-	WEAK(start);
-	WEAK(end);
+    WEAK(start);
+    WEAK(end);
 });

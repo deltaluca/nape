@@ -17,32 +17,32 @@ class Listener {
         DEBUG(if(event==null) throw "Error: Cannot set listener event type to null";)
         if(this.event!=event) {
             var xevent = event == CbEvent.BEGIN   ? Flag(CbEvent,BEGIN)   :
-						 event == CbEvent.ONGOING ? Flag(CbEvent,ONGOING) :
+                         event == CbEvent.ONGOING ? Flag(CbEvent,ONGOING) :
                          event == CbEvent.END     ? Flag(CbEvent,END)     :
                          event == CbEvent.SLEEP   ? Flag(CbEvent,SLEEP)   :
                          event == CbEvent.WAKE    ? Flag(CbEvent,WAKE)    :
-						 event == CbEvent.PRE     ? Flag(CbEvent,PRE)     :
+                         event == CbEvent.PRE     ? Flag(CbEvent,PRE)     :
                          Flag(CbEvent,BREAK);
             if(pr(inner).type == Flag(ListenerType,BODY))
                 pr(inner).body.swapEvent(xevent);
             else if(pr(inner).type == Flag(ListenerType,CONSTRAINT))
                 pr(inner).constraint.swapEvent(xevent);
-			else
-				pr(inner).interaction.swapEvent(xevent);
+            else
+                pr(inner).interaction.swapEvent(xevent);
         }
     })
 
-	property(precedence,Int,pr(inner).precedence,{
-		if(this.precedence!=precedence) {
-			pr(inner).precedence = precedence;
-			if(pr(inner).type == Flag(ListenerType,BODY))
-				pr(inner).body.changed_precedence();
-			elif(pr(inner).type == Flag(ListenerType,CONSTRAINT))
-				pr(inner).constraint.changed_precedence();
-			else
-				pr(inner).interaction.changed_precedence();
-		}
-	})
+    property(precedence,Int,pr(inner).precedence,{
+        if(this.precedence!=precedence) {
+            pr(inner).precedence = precedence;
+            if(pr(inner).type == Flag(ListenerType,BODY))
+                pr(inner).body.changed_precedence();
+            elif(pr(inner).type == Flag(ListenerType,CONSTRAINT))
+                pr(inner).constraint.changed_precedence();
+            else
+                pr(inner).interaction.changed_precedence();
+        }
+    })
 
     ///---------------------------------------------------------------------------------------------
 
@@ -72,20 +72,20 @@ class Listener {
         }else if(pr(inner).type == Flag(ListenerType,CONSTRAINT)) {
             var con = pr(inner).constraint;
             return "ConstraintListener{"+event+"::"+con.outer_zn.options+"}";
-		}else {
-			var con = pr(inner).interaction;
-			var itype = switch(con.itype) {
-				case Flag(InteractionType,COLLISION): "COLLISION";
-				case Flag(InteractionType,SENSOR):    "SENSOR";
-				case Flag(InteractionType,FLUID):     "FLUID";
-				default: "ALL";
-			}
-			return (if(pr(inner).type==Flag(ListenerType,INTERACTION))
-				"InteractionListener{"+event+"#"+itype+"::"+con.outer_zni.options1+":"+con.outer_zni.options2+"}"
-			else
-				"PreListener{"+itype+"::"+con.outer_znp.options1+":"+con.outer_znp.options2+"}")
-				+ " precedence="+pr(inner).precedence;
-		}
+        }else {
+            var con = pr(inner).interaction;
+            var itype = switch(con.itype) {
+                case Flag(InteractionType,COLLISION): "COLLISION";
+                case Flag(InteractionType,SENSOR):    "SENSOR";
+                case Flag(InteractionType,FLUID):     "FLUID";
+                default: "ALL";
+            }
+            return (if(pr(inner).type==Flag(ListenerType,INTERACTION))
+                "InteractionListener{"+event+"#"+itype+"::"+con.outer_zni.options1+":"+con.outer_zni.options2+"}"
+            else
+                "PreListener{"+itype+"::"+con.outer_znp.options1+":"+con.outer_znp.options2+"}")
+                + " precedence="+pr(inner).precedence;
+        }
     }
 }
 

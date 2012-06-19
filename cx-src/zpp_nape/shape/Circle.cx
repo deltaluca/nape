@@ -2,123 +2,123 @@ package zpp_nape.shape;
 $(import);
 
 class PR(Circle) extends PR(Shape) {
-	public var outer_zn:Circle;
-	
-	public var radius:Float;
-	
-	//----------------------------------------------------------------------------------------------
-	
-	public function new() {
-		super(Flag(ShapeType,CIRCLE));
-		circle = this;
-		inv(localCOM)=false;
-	}
-
-	public function __clear() {}
-	
-	//----------------------------------------------------------------------------------------------
-	
-	public function invalidate_radius() {
-		//dependancy checked.
-		invalidate_area_inertia();
-		invalidate_angDrag();
-		invalidate_aabb();
-		
-		if(body!=null)
-			body.wake();
-	}
-
-	//previously lambdas
-	private function localCOM_validate() vec_set(wrap_localCOM.pr(inner).,localCOM)
-	private function localCOM_invalidate(x:PR(Vec2)) {
-		vec_set(localCOM,x.);
-		invalidate_localCOM();
-		if(body!=null) body.wake();
-	}
-	DEBUG(private function localCOM_immutable() {
-		if(body!=null && body.isStatic() && body.space!=null)
-			throw "Error: Cannot modify localCOM of Circle added to a static Body whilst within a Space";
-	})
-	
-	public function setupLocalCOM() {
-		var me = this;
-		wrap_localCOM = Vec2.get(localCOMx,localCOMy);
-		wrap_localCOM.pr(inner).inuse = true;
-		//no call to validate_localCOM as unnecessary for Circle types.
-		wrap_localCOM.pr(inner)._validate = localCOM_validate;
-		wrap_localCOM.pr(inner)._invalidate = localCOM_invalidate;
-		DEBUG(wrap_localCOM.pr(inner)._immutable = localCOM_immutable;)
-	}
-	
-	flibmdel public inline function __validate_aabb() {
-		//dependancy checked
-		validate_worldCOM();
-		vec_new(r,radius,radius);
-		vec_sub(worldCOM,r,aabb.min);
-		vec_add(worldCOM,r,aabb.max);
-	}
-	
-	//----------------------------------------------------------------------------------------------
-	
-    public function __validate_area_inertia() {
-		//dependancy checked
-		var r2 = radius*radius;
-		area = r2*Math.PI;
-		inertia = r2*0.5 + vec_lsq(localCOM);
-	}
-	public function __validate_angDrag() {
-		var lc = vec_lsq(localCOM);
-		var r2 = radius*radius;
-		var skin = material.dynamicFriction*PR(Config).ANGDRAGCOEF_FRICTION;
-		angDrag = (lc + 2*r2)*skin + 0.5*PR(Config).ANGDRAGCOEF_DRAG*(1+PR(Config).ANGDRAGCOEF_VACUUM)*lc;
-		angDrag /= (2*(lc + 0.5*r2));
+    public var outer_zn:Circle;
+    
+    public var radius:Float;
+    
+    //----------------------------------------------------------------------------------------------
+    
+    public function new() {
+        super(Flag(ShapeType,CIRCLE));
+        circle = this;
+        inv(localCOM)=false;
     }
-	
-	//----------------------------------------------------------------------------------------------
-	
-	public function __scale(sx:Float,sy:Float) {
-		var factor = ((sx<0?-sx:sx)+(sy<0?-sy:sy))/2;
-		//dependancy checked
-		radius *= factor < 0 ? -factor : factor;
-		invalidate_radius();
-		if(vec_lsq(localCOM)>0) {
-			localCOMx *= sx;
-			localCOMy *= sy;
-			invalidate_localCOM();
-		}
-	}
-	public function __translate(x:Float,y:Float) {
-		//dependancy checked
-		vec_addeq(localCOM,$(->));
-		invalidate_localCOM();
-	}
-	public function __rotate(x:Float,y:Float) {
-		//dependancy checked
-		if(vec_lsq(localCOM)>0) {
-			vec_new(t); vec_rotate(localCOM,$(->),t);
-			vec_set(localCOM,t);
-			invalidate_localCOM();
-		}
-	}
-	public function __transform(m:Mat23) {
-		//dependancy checked
-		var det = mat_det(m.); if(det<0) det = -det;
-		radius *= Math.sqrt(det);
-		
-		mat_transform_hom(m.,localCOM);
-		
-		invalidate_radius();
-		invalidate_localCOM();
-	}
-	
-	//----------------------------------------------------------------------------------------------
-	
-	public function __copy() {
-		var ret = new Circle(radius).pr(inner_zn);
-		
-		vec_set(ret.localCOM,localCOM);
-		ret.inv(localCOM) = false;
 
-		return ret;
-	}
+    public function __clear() {}
+    
+    //----------------------------------------------------------------------------------------------
+    
+    public function invalidate_radius() {
+        //dependancy checked.
+        invalidate_area_inertia();
+        invalidate_angDrag();
+        invalidate_aabb();
+        
+        if(body!=null)
+            body.wake();
+    }
+
+    //previously lambdas
+    private function localCOM_validate() vec_set(wrap_localCOM.pr(inner).,localCOM)
+    private function localCOM_invalidate(x:PR(Vec2)) {
+        vec_set(localCOM,x.);
+        invalidate_localCOM();
+        if(body!=null) body.wake();
+    }
+    DEBUG(private function localCOM_immutable() {
+        if(body!=null && body.isStatic() && body.space!=null)
+            throw "Error: Cannot modify localCOM of Circle added to a static Body whilst within a Space";
+    })
+    
+    public function setupLocalCOM() {
+        var me = this;
+        wrap_localCOM = Vec2.get(localCOMx,localCOMy);
+        wrap_localCOM.pr(inner).inuse = true;
+        //no call to validate_localCOM as unnecessary for Circle types.
+        wrap_localCOM.pr(inner)._validate = localCOM_validate;
+        wrap_localCOM.pr(inner)._invalidate = localCOM_invalidate;
+        DEBUG(wrap_localCOM.pr(inner)._immutable = localCOM_immutable;)
+    }
+    
+    flibmdel public inline function __validate_aabb() {
+        //dependancy checked
+        validate_worldCOM();
+        vec_new(r,radius,radius);
+        vec_sub(worldCOM,r,aabb.min);
+        vec_add(worldCOM,r,aabb.max);
+    }
+    
+    //----------------------------------------------------------------------------------------------
+    
+    public function __validate_area_inertia() {
+        //dependancy checked
+        var r2 = radius*radius;
+        area = r2*Math.PI;
+        inertia = r2*0.5 + vec_lsq(localCOM);
+    }
+    public function __validate_angDrag() {
+        var lc = vec_lsq(localCOM);
+        var r2 = radius*radius;
+        var skin = material.dynamicFriction*PR(Config).ANGDRAGCOEF_FRICTION;
+        angDrag = (lc + 2*r2)*skin + 0.5*PR(Config).ANGDRAGCOEF_DRAG*(1+PR(Config).ANGDRAGCOEF_VACUUM)*lc;
+        angDrag /= (2*(lc + 0.5*r2));
+    }
+    
+    //----------------------------------------------------------------------------------------------
+    
+    public function __scale(sx:Float,sy:Float) {
+        var factor = ((sx<0?-sx:sx)+(sy<0?-sy:sy))/2;
+        //dependancy checked
+        radius *= factor < 0 ? -factor : factor;
+        invalidate_radius();
+        if(vec_lsq(localCOM)>0) {
+            localCOMx *= sx;
+            localCOMy *= sy;
+            invalidate_localCOM();
+        }
+    }
+    public function __translate(x:Float,y:Float) {
+        //dependancy checked
+        vec_addeq(localCOM,$(->));
+        invalidate_localCOM();
+    }
+    public function __rotate(x:Float,y:Float) {
+        //dependancy checked
+        if(vec_lsq(localCOM)>0) {
+            vec_new(t); vec_rotate(localCOM,$(->),t);
+            vec_set(localCOM,t);
+            invalidate_localCOM();
+        }
+    }
+    public function __transform(m:Mat23) {
+        //dependancy checked
+        var det = mat_det(m.); if(det<0) det = -det;
+        radius *= Math.sqrt(det);
+        
+        mat_transform_hom(m.,localCOM);
+        
+        invalidate_radius();
+        invalidate_localCOM();
+    }
+    
+    //----------------------------------------------------------------------------------------------
+    
+    public function __copy() {
+        var ret = new Circle(radius).pr(inner_zn);
+        
+        vec_set(ret.localCOM,localCOM);
+        ret.inv(localCOM) = false;
+
+        return ret;
+    }
 }

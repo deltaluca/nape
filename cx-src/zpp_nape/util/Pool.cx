@@ -3,177 +3,177 @@ $(import);
 
 /**
 
-	Intrusive object pooling.
-	
-	class Type {
-		MixPool(Type) //or MixPoolNoNext(Type) if Type already has a field 'next' of type Type
-	}
-	
-	Get (Type)      ; retrieve object from pool, or instantiate new one if empty.
-	Free(Type, obj) ; free object to pool
-	
-	NECESSARY REQUIREMENT: Type has an empty (or possibly empty) constructor.
+    Intrusive object pooling.
+    
+    class Type {
+        MixPool(Type) //or MixPoolNoNext(Type) if Type already has a field 'next' of type Type
+    }
+    
+    Get (Type)      ; retrieve object from pool, or instantiate new one if empty.
+    Free(Type, obj) ; free object to pool
+    
+    NECESSARY REQUIREMENT: Type has an empty (or possibly empty) constructor.
 
 **/
 
 //for public API types.
 $(mixin global PublicMixPool(T)
-	public var pr(pool):T;
-	DEBUG(public var pr(disp):Bool;)
-	PublicMixPoolNoNext(T)
+    public var pr(pool):T;
+    DEBUG(public var pr(disp):Bool;)
+    PublicMixPoolNoNext(T)
 );
 $(mixin global PublicMixPoolNoNext(T)
-	STATS(T)
-	PUBCLEARPOOL(T)
-	PUBLICPOOL(T)
+    STATS(T)
+    PUBCLEARPOOL(T)
+    PUBLICPOOL(T)
 );
 
 $(mixin global Disposed(o,T) { DEBUG(if(o!=null && o.pr(disp)) throw "Error: "+$str(T)+" has been disposed and cannot be used!";) });
 
 class PR(PubPool) {
-	$(expand file PUBLICPOOL(T)
-		public static var pool`T:T = null;
-		//for public pool want a disposed Vec2 to go to the BACK of the stack
-		//so that it is more likely if they have any semantic errors on using a disposed Vec2
-		//they are more likely to be caught! (only in DEBUG mode)
-		DEBUG(public static var next`T:T = null;)
-	);
+    $(expand file PUBLICPOOL(T)
+        public static var pool`T:T = null;
+        //for public pool want a disposed Vec2 to go to the BACK of the stack
+        //so that it is more likely if they have any semantic errors on using a disposed Vec2
+        //they are more likely to be caught! (only in DEBUG mode)
+        DEBUG(public static var next`T:T = null;)
+    );
 }
 
 //------------------------------------------------
 
 //for inner types.
 $(mixin global MixPool(T)
-	public var next:T;
-	MixPoolNoNext(T)
+    public var next:T;
+    MixPoolNoNext(T)
 );
 $(mixin global MixPoolNoNext(T)
-	static public var pr(pool):T;
+    static public var pr(pool):T;
 
-	STATS(T)
-	CLEARPOOL(T)
+    STATS(T)
+    CLEARPOOL(T)
 );
 
 $(mixin STATS(T)
-	#if NAPE_POOL_STATS
-		static public var POOL_CNT:Int = 0;
-		static public var POOL_TOT:Int = 0;
-		static public var POOL_ADD:Int = 0;
-		static public var POOL_ADDNEW:Int = 0;
-		static public var POOL_SUB:Int = 0;
-		POOLSTATS(T)
-	#end
+    #if NAPE_POOL_STATS
+        static public var POOL_CNT:Int = 0;
+        static public var POOL_TOT:Int = 0;
+        static public var POOL_ADD:Int = 0;
+        static public var POOL_ADDNEW:Int = 0;
+        static public var POOL_SUB:Int = 0;
+        POOLSTATS(T)
+    #end
 );
 
 //-------------------------------------------
 
 //for public API types
 $(mixin global PublicGet(T) {
-	var ret:T;
-	if(PR(PubPool).pool`T==null) {
-		ret = new T();
-		#if NAPE_POOL_STATS
-			T.POOL_TOT++;
-			T.POOL_ADDNEW++;
-		#end
-	}else {
-		ret = PR(PubPool).pool`T;
-		PR(PubPool).pool`T = ret.pr(pool);
-		ret.pr(pool) = null;
-		DEBUG(
-			ret.pr(disp) = false;
-			if(ret==PR(PubPool).next`T)
-				PR(PubPool).next`T = null;
-		)
-		#if NAPE_POOL_STATS
-			T.POOL_CNT--;
-			T.POOL_ADD++;
-		#end
-	}
-	ret;
+    var ret:T;
+    if(PR(PubPool).pool`T==null) {
+        ret = new T();
+        #if NAPE_POOL_STATS
+            T.POOL_TOT++;
+            T.POOL_ADDNEW++;
+        #end
+    }else {
+        ret = PR(PubPool).pool`T;
+        PR(PubPool).pool`T = ret.pr(pool);
+        ret.pr(pool) = null;
+        DEBUG(
+            ret.pr(disp) = false;
+            if(ret==PR(PubPool).next`T)
+                PR(PubPool).next`T = null;
+        )
+        #if NAPE_POOL_STATS
+            T.POOL_CNT--;
+            T.POOL_ADD++;
+        #end
+    }
+    ret;
 });
 
 $(mixin global Get(T) {
-	var ret:T;
-	if(T.pr(pool)==null) {
-		ret = new T();
-		#if NAPE_POOL_STATS
-			T.POOL_TOT++;
-			T.POOL_ADDNEW++;
-		#end
-	}else {
-		ret = T.pr(pool);
-		T.pr(pool) = ret.next;
-		ret.next = null;
-		#if NAPE_POOL_STATS
-			T.POOL_CNT--;
-			T.POOL_ADD++;
-		#end
-	}
-	ret.alloc();
-	ret;
+    var ret:T;
+    if(T.pr(pool)==null) {
+        ret = new T();
+        #if NAPE_POOL_STATS
+            T.POOL_TOT++;
+            T.POOL_ADDNEW++;
+        #end
+    }else {
+        ret = T.pr(pool);
+        T.pr(pool) = ret.next;
+        ret.next = null;
+        #if NAPE_POOL_STATS
+            T.POOL_CNT--;
+            T.POOL_ADD++;
+        #end
+    }
+    ret.alloc();
+    ret;
 });
 
 $(mixin global PublicFree(T,O) {
-	var o = O;
-	assert(o!=null, "PublicFree(in T: "+$str(T)+", in obj: "+$str(O)+")");
-	DEBUG(
-		o.pr(pool) = null;
-		if(PR(PubPool).next`T!=null)
-			PR(PubPool).next`T.pr(pool) = o;
-		else
-			PR(PubPool).pool`T = o;
-		PR(PubPool).next`T = o;
-	)
-	RELEASE(
-		o.pr(pool) = PR(PubPool).pool`T;
-		PR(PubPool).pool`T = o;
-	)
-	#if NAPE_POOL_STATS
-		T.POOL_CNT++;
-		T.POOL_SUB++;
-	#end
-	DEBUG(o.pr(disp)=true;)
+    var o = O;
+    assert(o!=null, "PublicFree(in T: "+$str(T)+", in obj: "+$str(O)+")");
+    DEBUG(
+        o.pr(pool) = null;
+        if(PR(PubPool).next`T!=null)
+            PR(PubPool).next`T.pr(pool) = o;
+        else
+            PR(PubPool).pool`T = o;
+        PR(PubPool).next`T = o;
+    )
+    RELEASE(
+        o.pr(pool) = PR(PubPool).pool`T;
+        PR(PubPool).pool`T = o;
+    )
+    #if NAPE_POOL_STATS
+        T.POOL_CNT++;
+        T.POOL_SUB++;
+    #end
+    DEBUG(o.pr(disp)=true;)
 });
 
 $(mixin global Free(T,O) {
-	var o = O;
-	assert(o!=null, "Free(in T: "+$str(T)+", in obj: "+$str(O)+")");
-	o.free();
-	o.next = T.pr(pool);
-	T.pr(pool) = o;
-	#if NAPE_POOL_STATS
-		T.POOL_CNT++;
-		T.POOL_SUB++;
-	#end
+    var o = O;
+    assert(o!=null, "Free(in T: "+$str(T)+", in obj: "+$str(O)+")");
+    o.free();
+    o.next = T.pr(pool);
+    T.pr(pool) = o;
+    #if NAPE_POOL_STATS
+        T.POOL_CNT++;
+        T.POOL_SUB++;
+    #end
 });
 
 #if NAPE_POOL_STATS
-	class PR(POOL_STATS) {
-		public static function pad(s:String,l:Int):String {
-			var ret = s;
-			while(ret.length<l) ret += " ";
-			return ret;
-		}
-		public static function dump():String {
-			var ret = "";
-			ret += pad("",30)+" #"
-			     + "Inuse/"
-				 + "Free  (+"
-				 + "Alloc("
-				 + "Heap )/-"
-				 + "Freed)\n";
-			$(expand file POOLSTATS(T) {
-				if(T.POOL_TOT!=0 || T.POOL_CNT!=0 || T.POOL_ADD!=0 || T.POOL_SUB!=0)
-					ret += pad($str(T),30)+" #"
-					     + pad(Std.string(T.POOL_TOT-T.POOL_CNT),5)+"/"
-						 + pad(Std.string(T.POOL_CNT),5)+" (+"
-						 + pad(Std.string(T.POOL_ADD),5)+"("
-						 + pad(Std.string(T.POOL_ADDNEW),5)+")/-"
-						 + pad(Std.string(T.POOL_SUB),5)+")\n";
-				T.POOL_ADD = T.POOL_SUB = T.POOL_ADDNEW = 0;
-			});
-			return ret;
-		}
-	}
+    class PR(POOL_STATS) {
+        public static function pad(s:String,l:Int):String {
+            var ret = s;
+            while(ret.length<l) ret += " ";
+            return ret;
+        }
+        public static function dump():String {
+            var ret = "";
+            ret += pad("",30)+" #"
+                 + "Inuse/"
+                 + "Free  (+"
+                 + "Alloc("
+                 + "Heap )/-"
+                 + "Freed)\n";
+            $(expand file POOLSTATS(T) {
+                if(T.POOL_TOT!=0 || T.POOL_CNT!=0 || T.POOL_ADD!=0 || T.POOL_SUB!=0)
+                    ret += pad($str(T),30)+" #"
+                         + pad(Std.string(T.POOL_TOT-T.POOL_CNT),5)+"/"
+                         + pad(Std.string(T.POOL_CNT),5)+" (+"
+                         + pad(Std.string(T.POOL_ADD),5)+"("
+                         + pad(Std.string(T.POOL_ADDNEW),5)+")/-"
+                         + pad(Std.string(T.POOL_SUB),5)+")\n";
+                T.POOL_ADD = T.POOL_SUB = T.POOL_ADDNEW = 0;
+            });
+            return ret;
+        }
+    }
 #end

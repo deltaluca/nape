@@ -2,198 +2,198 @@ package nape.constraint;
 $(import);
 
 class Constraint {
-	public var pr(inner):PR(Constraint);
-	
-	public var userData:Dynamic;
-	
-	//---------------------------------------------------
+    public var pr(inner):PR(Constraint);
+    
+    public var userData:Dynamic;
+    
+    //---------------------------------------------------
 
-	property(compound,Compound,{
-		if(pr(inner).compound==null) null else pr(inner).compound.outer;
-	},{
-		if(this.compound!=compound) {
-			if(this.compound!=null) this.compound.constraints.remove(this);
-			if(compound!=null) compound.constraints.add(this);
-		}
-	})
+    property(compound,Compound,{
+        if(pr(inner).compound==null) null else pr(inner).compound.outer;
+    },{
+        if(this.compound!=compound) {
+            if(this.compound!=null) this.compound.constraints.remove(this);
+            if(compound!=null) compound.constraints.add(this);
+        }
+    })
 
     property(space,Space,{
         if(pr(inner).space==null) null else pr(inner).space.outer;
     },{
-		DEBUG(if(pr(inner).compound!=null) throw "Error: Cannot set the space of a Constraint belonging to a Compound, only the root Compound space can be set";)
-		if(this.space!=space) {
+        DEBUG(if(pr(inner).compound!=null) throw "Error: Cannot set the space of a Constraint belonging to a Compound, only the root Compound space can be set";)
+        if(this.space!=space) {
             //prevent wake callback on adding to space.
-			if(pr(inner).component!=null)
-	            pr(inner).component.woken = false;
+            if(pr(inner).component!=null)
+                pr(inner).component.woken = false;
 
             pr(inner).clearcache();
 
-			if(pr(inner).space!=null) pr(inner).space.outer.constraints.remove(this);
-			if(space!=null) space.constraints.add(this);
-			else pr(inner).space = null;
-		}
-	})
-	
-	//---------------------------------------------------
-	
+            if(pr(inner).space!=null) pr(inner).space.outer.constraints.remove(this);
+            if(space!=null) space.constraints.add(this);
+            else pr(inner).space = null;
+        }
+    })
+    
+    //---------------------------------------------------
+    
     property(isSleeping,Bool,{
-		DEBUG(if(pr(inner).space==null||!pr(inner).active)
-			throw "Error: isSleeping only makes sense if constraint is active and inside a space";
-		)
-		pr(inner).component.sleeping;
-	})
+        DEBUG(if(pr(inner).space==null||!pr(inner).active)
+            throw "Error: isSleeping only makes sense if constraint is active and inside a space";
+        )
+        pr(inner).component.sleeping;
+    })
 
-	//---------------------------------------------------
+    //---------------------------------------------------
 
-	property(active,Bool,pr(inner).active,{
-		if(this.active!=active) {
+    property(active,Bool,pr(inner).active,{
+        if(this.active!=active) {
             //prevent wake callback on activation
-			if(pr(inner).component!=null)
-	            pr(inner).component.woken = false;
+            if(pr(inner).component!=null)
+                pr(inner).component.woken = false;
 
             pr(inner).clearcache();
 
-			if(active) {
+            if(active) {
                 pr(inner).active = active;
-				pr(inner).activate();
-				if(pr(inner).space!=null) {
-					if(pr(inner).component!=null)
-						pr(inner).component.sleeping = true;
-					//pr(inner).wake();
+                pr(inner).activate();
+                if(pr(inner).space!=null) {
+                    if(pr(inner).component!=null)
+                        pr(inner).component.sleeping = true;
+                    //pr(inner).wake();
                     //prevent wake callback
                     pr(inner).space.wake_constraint(pr(inner),true);
-				}
-			} else {
-				if(pr(inner).space!=null) {
+                }
+            } else {
+                if(pr(inner).space!=null) {
                     pr(inner).wake();
-					pr(inner).space.live_constraints.remove(pr(inner));
-				}
+                    pr(inner).space.live_constraints.remove(pr(inner));
+                }
                 pr(inner).active = active;
-				pr(inner).deactivate();
-			}
-		}
-	})
-	
-	//---------------------------------------------------
-	
+                pr(inner).deactivate();
+            }
+        }
+    })
+    
+    //---------------------------------------------------
+    
     property(ignore,Bool,pr(inner).ignore,{
-		if(this.ignore!=ignore) {
-			pr(inner).ignore = ignore;
-			pr(inner).wake();
-		}
-	})
-	
-	//-----------------------------------------------------------------
-	
+        if(this.ignore!=ignore) {
+            pr(inner).ignore = ignore;
+            pr(inner).wake();
+        }
+    })
+    
+    //-----------------------------------------------------------------
+    
     property(stiff,Bool,pr(inner).stiff,{
-		if(this.stiff!=stiff) {
-			pr(inner).stiff = stiff;
-			pr(inner).wake();
-		}
-	})
-	
-	//---------------------------------------------------
-	
+        if(this.stiff!=stiff) {
+            pr(inner).stiff = stiff;
+            pr(inner).wake();
+        }
+    })
+    
+    //---------------------------------------------------
+    
     property(frequency,Float,pr(inner).frequency,{
-		DEBUG(
-			if(isNaN(frequency)) throw "Error: Constraint::Frequency cannot be NaN";
-			if(frequency<=0) throw "Error: Constraint::Frequency must be >0";
-		)
-		if(this.frequency!=frequency) {
-			pr(inner).frequency = frequency;
-			if(!pr(inner).stiff) pr(inner).wake();
-		}
-	})
-	
+        DEBUG(
+            if(isNaN(frequency)) throw "Error: Constraint::Frequency cannot be NaN";
+            if(frequency<=0) throw "Error: Constraint::Frequency must be >0";
+        )
+        if(this.frequency!=frequency) {
+            pr(inner).frequency = frequency;
+            if(!pr(inner).stiff) pr(inner).wake();
+        }
+    })
+    
     property(damping,Float,pr(inner).damping,{
-		DEBUG(
-			if(isNaN(damping)) throw "Error: Constraint::Damping cannot be Nan";
-			if(damping<0) throw "Error: Constraint::Damping must be >=0";
-		)
-		if(this.damping!=damping) {
-			pr(inner).damping = damping;
-			if(!pr(inner).stiff) pr(inner).wake();
-		}
-	})
-	
-	//-----------------------------------------------------------------
-	
+        DEBUG(
+            if(isNaN(damping)) throw "Error: Constraint::Damping cannot be Nan";
+            if(damping<0) throw "Error: Constraint::Damping must be >=0";
+        )
+        if(this.damping!=damping) {
+            pr(inner).damping = damping;
+            if(!pr(inner).stiff) pr(inner).wake();
+        }
+    })
+    
+    //-----------------------------------------------------------------
+    
     property(maxForce,Float,pr(inner).maxForce,{
-		DEBUG(
-			if(isNaN(maxForce)) throw "Error: Constraint::maxForce cannot be NaN";
-			if(maxForce<0) throw "Error: Constraint::maxForce must be >=0";
-		)
-		if(this.maxForce!=maxForce) {
-			pr(inner).maxForce = maxForce;
-			pr(inner).wake();
-		}
-	})
-	
+        DEBUG(
+            if(isNaN(maxForce)) throw "Error: Constraint::maxForce cannot be NaN";
+            if(maxForce<0) throw "Error: Constraint::maxForce must be >=0";
+        )
+        if(this.maxForce!=maxForce) {
+            pr(inner).maxForce = maxForce;
+            pr(inner).wake();
+        }
+    })
+    
     property(maxError,Float,pr(inner).maxError,{
-		DEBUG(
-			if(isNaN(maxError)) throw "Error: Constraint::maxError cannot be NaN";
-			if(maxError<0) throw "Error: Constraint::maxError must be >=0";
-		)
-		if(this.maxError!=maxError) {
-			pr(inner).maxError = maxError;
-			pr(inner).wake();
-		}
-	})
-	
-	//---------------------------------------------------
-	
+        DEBUG(
+            if(isNaN(maxError)) throw "Error: Constraint::maxError cannot be NaN";
+            if(maxError<0) throw "Error: Constraint::maxError must be >=0";
+        )
+        if(this.maxError!=maxError) {
+            pr(inner).maxError = maxError;
+            pr(inner).wake();
+        }
+    })
+    
+    //---------------------------------------------------
+    
     property(breakUnderForce,Bool,pr(inner).breakUnderForce,{
-		if(this.breakUnderForce!=breakUnderForce) {
-			pr(inner).breakUnderForce = breakUnderForce;
-			pr(inner).wake();
-		}
-	})
-	
+        if(this.breakUnderForce!=breakUnderForce) {
+            pr(inner).breakUnderForce = breakUnderForce;
+            pr(inner).wake();
+        }
+    })
+    
     property(breakUnderError,Bool,pr(inner).breakUnderError,{
-		if(this.breakUnderError!=breakUnderError) {
-			pr(inner).breakUnderError = breakUnderError;
-			pr(inner).wake();
-		}
-	})
+        if(this.breakUnderError!=breakUnderError) {
+            pr(inner).breakUnderError = breakUnderError;
+            pr(inner).wake();
+        }
+    })
 
     property(removeOnBreak,Bool,pr(inner).removeOnBreak,pr(inner).removeOnBreak = removeOnBreak)
-	
-	//-----------------------------------------------------------------
-	
-	/*public function jacobian     ():MatMN { return null; }
-	public function effectiveMass():MatMN { return null; }
-	
-	//constraint space
-	public function positionError():MatMN { return null; }
-	public function velocityError():MatMN { return null; }*/
-	public function impulse      ():MatMN { return null; }
-	
-	//world space
-	public function bodyImpulse  (body:Body):Vec3 { return null; }
-	
+    
+    //-----------------------------------------------------------------
+    
+    /*public function jacobian     ():MatMN { return null; }
+    public function effectiveMass():MatMN { return null; }
+    
+    //constraint space
+    public function positionError():MatMN { return null; }
+    public function velocityError():MatMN { return null; }*/
+    public function impulse      ():MatMN { return null; }
+    
+    //world space
+    public function bodyImpulse  (body:Body):Vec3 { return null; }
+    
     //----------------------------------------------------------------------------------------------
 
-	public function visitBodies(lambda:Body->Void):Void { DEBUG(throw "Error: not overriden!";) }
+    public function visitBodies(lambda:Body->Void):Void { DEBUG(throw "Error: not overriden!";) }
 
     //----------------------------------------------------------------------------------------------
 
-	property(cbTypes,CbTypeList,{
-		if(pr(inner).wrap_cbTypes==null) pr(inner).setupcbTypes();
-		pr(inner).wrap_cbTypes;
-	})
+    property(cbTypes,CbTypeList,{
+        if(pr(inner).wrap_cbTypes==null) pr(inner).setupcbTypes();
+        pr(inner).wrap_cbTypes;
+    })
 
-	//-----------------------------------------------------------------
-	
-	public function new() {
-		//implicit ANY type
-		pr(inner).insert_cbtype(CbType.ANY_CONSTRAINT.pr(inner));
+    //-----------------------------------------------------------------
+    
+    public function new() {
+        //implicit ANY type
+        pr(inner).insert_cbtype(CbType.ANY_CONSTRAINT.pr(inner));
 
-		DEBUG(throw "Error: Constraint cannot be instantiated derp!";)
-	}
-	
-	@:$keep public function toString() {
-		return "{Constraint}";
-	}
+        DEBUG(throw "Error: Constraint cannot be instantiated derp!";)
+    }
+    
+    @:$keep public function toString() {
+        return "{Constraint}";
+    }
 
-	public function copy() return pr(inner).copy()
+    public function copy() return pr(inner).copy()
 }

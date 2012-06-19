@@ -2,31 +2,31 @@ package zpp_nape.util;
 $(import);
 
 /**
-	
-	pr(x) to mark private fields of public classes
-	PR(X) to mark private version of class X
-	inv(x) to mark invalidation flag for field x
-	
-	keep - type modifier to be used on all classes/methods to avoid removal via dead-code-elimiation
-	       when building .swc files, this is done implicitly for classes.
-	
-	inline - non-critical overriding of keyword, marks method can bed but not
-	         necessary, can be overriden by NAPE_NO_INLINE directive
-	force_inline - critical keyword, even with NAPE_NO_INLINE method will still bed.
-	
-	- mark method for physical removal (type modifier)
-	flibdel(n) - mark non-static field for removal
-	flibstaticdel(n) - mark static field for removal
-	
-	assert(assertion,errorstr) - if NAPE_ASSERT && !NAPE_RELEASE_BUILD, check assertion is true
-		                         and if not, throw errorstr.
-			- use assert_isNaN(x) rather than isNaN(x) [gives better error messages]
-			- use assert_isBig(x) to check for NaN, and values too big to be reasonable.
-			
-	DEBUG(x) - perform x, unless NAPE_RELEASE_BUILD is set.
-	RELEASE(x) - otherwise
+    
+    pr(x) to mark private fields of public classes
+    PR(X) to mark private version of class X
+    inv(x) to mark invalidation flag for field x
+    
+    keep - type modifier to be used on all classes/methods to avoid removal via dead-code-elimiation
+           when building .swc files, this is done implicitly for classes.
+    
+    inline - non-critical overriding of keyword, marks method can bed but not
+             necessary, can be overriden by NAPE_NO_INLINE directive
+    force_inline - critical keyword, even with NAPE_NO_INLINE method will still bed.
+    
+    - mark method for physical removal (type modifier)
+    flibdel(n) - mark non-static field for removal
+    flibstaticdel(n) - mark static field for removal
+    
+    assert(assertion,errorstr) - if NAPE_ASSERT && !NAPE_RELEASE_BUILD, check assertion is true
+                                 and if not, throw errorstr.
+            - use assert_isNaN(x) rather than isNaN(x) [gives better error messages]
+            - use assert_isBig(x) to check for NaN, and values too big to be reasonable.
+            
+    DEBUG(x) - perform x, unless NAPE_RELEASE_BUILD is set.
+    RELEASE(x) - otherwise
 
-	flibopts(N) - metadata for flib to denote actual optional count for constructors
+    flibopts(N) - metadata for flib to denote actual optional count for constructors
 
 **/
 
@@ -49,34 +49,34 @@ $(mixin global flibdel(n) #if NAPE_NO_INLINE #elseif (flash9&&flib) @:$keep var 
 //$(mixin global flibstaticdel(n) #if NAPE_NO_INLINE #elseif (flash9&&flib) @:$keep static var flibdel_`n:Void->Void; #end);
 $(mixin global flibstaticdel(x) $(->));
 $(mixin global assert(assertion,errorstr) {
-	#if (NAPE_ASSERT && !NAPE_RELEASE_BUILD)
-		var res = {
-			$(mixin assert_isNaN(x) (isNaN(x))); //do this to keep $str(assertion) going crazy!
-			$(mixin assert_isBig(x) (isNaN(x) || (x*x)>1e100)); //do this to keep $str(assertion) going crazy!
-			assertion;
-		};
-		if(!res) throw "assert("+$str(assertion)+") :: "+(errorstr);
-	#end
+    #if (NAPE_ASSERT && !NAPE_RELEASE_BUILD)
+        var res = {
+            $(mixin assert_isNaN(x) (isNaN(x))); //do this to keep $str(assertion) going crazy!
+            $(mixin assert_isBig(x) (isNaN(x) || (x*x)>1e100)); //do this to keep $str(assertion) going crazy!
+            assertion;
+        };
+        if(!res) throw "assert("+$str(assertion)+") :: "+(errorstr);
+    #end
 });
 
 $(mixin global DEBUG(block)
-	#if (!NAPE_RELEASE_BUILD)
-		block
-	#end
+    #if (!NAPE_RELEASE_BUILD)
+        block
+    #end
 );
 
 $(mixin global RELEASE(block)
-	#if NAPE_RELEASE_BUILD
-		block
-	#end
+    #if NAPE_RELEASE_BUILD
+        block
+    #end
 )
 
 $(mixin global ARRAY(T) #if flash10 flash.Vector<T> #else Array<T> #end);
 $(mixin global newARRAY(T,size) {
-	#if flash10 new flash.Vector<T>(size,true) #else new Array<T>() #end;
+    #if flash10 new flash.Vector<T>(size,true) #else new Array<T>() #end;
 });
 $(mixin global newARRAY(T) {
-	#if flash10 new flash.Vector<T>() #else new Array<T>() #end;
+    #if flash10 new flash.Vector<T>() #else new Array<T>() #end;
 });
 
 $(mixin global property(name,Type,getter,setter)

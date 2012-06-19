@@ -3,86 +3,86 @@ $(import);
 
 /**
 
-	Safe, cross AS3/haXe, haxe/c++ style enumerations.
-	
-	enum Type {
-		Val1 = 1,
-		Val2 = 2,
-		Val3 = 3,
-	};
-	
-	becomes:
-	
-	Flags(Type,
-		prop(Val1, 1)
-		prop(Val2, 2)
-		prop(Val3, 3)
-	)
-	
-	producing at point of call:
-	
-	class Type {
-		lazy static readonly Val1 : Type;
-		lazy static readonly Val2 : Type;
-		lazy static readonly Val3 : Type;
-	}
-	
-	with integer values (UNIQUE!) for internal use via zpp_nape.util.Flags::Flags(Type,x)
+    Safe, cross AS3/haXe, haxe/c++ style enumerations.
+    
+    enum Type {
+        Val1 = 1,
+        Val2 = 2,
+        Val3 = 3,
+    };
+    
+    becomes:
+    
+    Flags(Type,
+        prop(Val1, 1)
+        prop(Val2, 2)
+        prop(Val3, 3)
+    )
+    
+    producing at point of call:
+    
+    class Type {
+        lazy static readonly Val1 : Type;
+        lazy static readonly Val2 : Type;
+        lazy static readonly Val3 : Type;
+    }
+    
+    with integer values (UNIQUE!) for internal use via zpp_nape.util.Flags::Flags(Type,x)
 
 **/
 
 $(mixin global Flags(F,defs)
 class F {
-	public function new() {
-		DEBUG(if(!PR(Flags).internal)
-			throw "Error: Cannot instantiate "+$str(F)+" derp!";
-		)
-	}
-	
-	@:$keep public function toString() {
-		if(false) return "";
-		$(expand object tostring(N) else if(this==N) return $str(N););
-		else return "";
-	}
-	
-	$(mixin prop(N,I)
-		FlagsInit(N,F,I)
-		tostring(N)
-		
-		public static var N(flibget_`N,never):F;
-		force_inline static function flibget_`N() {
-			if(PR(Flags).F`_`N==null) {
-				PR(Flags).internal = true;
-				PR(Flags).F`_`N = new F();
-				PR(Flags).internal = false;
-			}
-			return PR(Flags).F`_`N;
-		}
-	);
-	
-	defs
+    public function new() {
+        DEBUG(if(!PR(Flags).internal)
+            throw "Error: Cannot instantiate "+$str(F)+" derp!";
+        )
+    }
+    
+    @:$keep public function toString() {
+        if(false) return "";
+        $(expand object tostring(N) else if(this==N) return $str(N););
+        else return "";
+    }
+    
+    $(mixin prop(N,I)
+        FlagsInit(N,F,I)
+        tostring(N)
+        
+        public static var N(flibget_`N,never):F;
+        force_inline static function flibget_`N() {
+            if(PR(Flags).F`_`N==null) {
+                PR(Flags).internal = true;
+                PR(Flags).F`_`N = new F();
+                PR(Flags).internal = false;
+            }
+            return PR(Flags).F`_`N;
+        }
+    );
+    
+    defs
 }
 );
 
 //--------------------------------------------------------------------------
 
 $(mixin global PRFlags(F,defs)
-	$(mixin prop(N,I)
-		FlagsInitID(N,F,I)
-	);
-	defs
+    $(mixin prop(N,I)
+        FlagsInitID(N,F,I)
+    );
+    defs
 );
 
 class PR(Flags) {
-	public static var internal:Bool = false;
+    public static var internal:Bool = false;
 
-	$(expand global FlagsInitID(N,F,I)
-		public static var id_`F`_`N = I;
-	);
-	$(expand global FlagsInit(N,F,I)
-		public static var F`_`N:F;
-		FlagsInitID(N,F,I)
-	);
+    $(expand global FlagsInitID(N,F,I)
+        public static var id_`F`_`N = I;
+    );
+    $(expand global FlagsInit(N,F,I)
+        public static var F`_`N:F;
+        FlagsInitID(N,F,I)
+    );
 }
 
 $(mixin global Flag(F,N) PR(Flags).id_`F`_`N);

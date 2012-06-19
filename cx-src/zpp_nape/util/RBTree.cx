@@ -2,452 +2,452 @@ package zpp_nape.util;
 $(import);
 
 $(mixin global SetIter(i,set,closure) ${assert/2->
-	assert(set!=null,"Iterate  null set?");
-	if(!set.empty()) {
-		var set_ite = set.parent; //root
-		while(set_ite.prev!=null) set_ite = set_ite.prev;
-	
-		while(set_ite!=null) {
-			var i = set_ite.data;
-			closure;
-	
-			if(set_ite.next!=null) {
-				set_ite = set_ite.next;
-				while(set_ite.prev!=null) set_ite = set_ite.prev;
-			}else {
-				while(set_ite.parent!=null && set_ite==set_ite.parent.next) set_ite = set_ite.parent;
-				set_ite = set_ite.parent;
-			}
-		}
-	}
+    assert(set!=null,"Iterate  null set?");
+    if(!set.empty()) {
+        var set_ite = set.parent; //root
+        while(set_ite.prev!=null) set_ite = set_ite.prev;
+    
+        while(set_ite!=null) {
+            var i = set_ite.data;
+            closure;
+    
+            if(set_ite.next!=null) {
+                set_ite = set_ite.next;
+                while(set_ite.prev!=null) set_ite = set_ite.prev;
+            }else {
+                while(set_ite.parent!=null && set_ite==set_ite.parent.next) set_ite = set_ite.parent;
+                set_ite = set_ite.parent;
+            }
+        }
+    }
 });
 
 $(mixin global SetFind(set,obj) (${assert/2,elif->
-	var cur = set.parent;
-	while(cur!=null) {
-		if  (set.lt(obj,cur.data)) cur = cur.prev;
-		elif(set.lt(cur.data,obj)) cur = cur.next;
-		else break;
-	}
-	cur;
+    var cur = set.parent;
+    while(cur!=null) {
+        if  (set.lt(obj,cur.data)) cur = cur.prev;
+        elif(set.lt(cur.data,obj)) cur = cur.next;
+        else break;
+    }
+    cur;
 }));
 
 $(mixin global SetLowerBound(obj,set,closure) ${SetIter/3,assert/2->
-	var ret = null;
-	SetIter(elt,set,{
-		if(!closure(elt,obj)) {
-			ret = elt;
-			break;
-		}
-	});
-	ret;
+    var ret = null;
+    SetIter(elt,set,{
+        if(!closure(elt,obj)) {
+            ret = elt;
+            break;
+        }
+    });
+    ret;
 });
 
 $(mixin global Set(T)
-	genSet(T)
-	ZPP_Set_`T
+    genSet(T)
+    ZPP_Set_`T
 );
 
 $(expand genSet(T) class Set(T) {
 
-	MixPoolNoNext(Set(T))
-	public function free() {
-		data = null;
-		lt = null;
-		swapped = null;
-	}
-	public function alloc() {}
+    MixPoolNoNext(Set(T))
+    public function free() {
+        data = null;
+        lt = null;
+        swapped = null;
+    }
+    public function alloc() {}
 
-	public var lt:T->T->Bool;
-	public var swapped:T->T->Void;
-	public var data:T;
+    public var lt:T->T->Bool;
+    public var swapped:T->T->Void;
+    public var data:T;
 
-	public var prev:Set(T);
-	public var next:Set(T);
-	public var parent:Set(T);
+    public var prev:Set(T);
+    public var next:Set(T);
+    public var parent:Set(T);
 
-	public var colour:Int;
-	$(mixin RED 0);
-	$(mixin BLACK 1);
-	$(mixin NEG_RED() (-1));
-	$(mixin DBL_BLACK 2);
+    public var colour:Int;
+    $(mixin RED 0);
+    $(mixin BLACK 1);
+    $(mixin NEG_RED() (-1));
+    $(mixin DBL_BLACK 2);
 
-	public function new() {}
+    public function new() {}
 
-	//parent doubles as the 'root' of the tree for the dummy object.
-	//(Like MixList intrusive lists).
+    //parent doubles as the 'root' of the tree for the dummy object.
+    //(Like MixList intrusive lists).
 
-	public function verify() {
-		SetIter(i,this,{
-			var prei = true;
-			SetIter(j,this,{
-				if(!prei) {
-					if(!lt(i,j) && lt(j,i)) return false;
-				}else if(i==j) prei = false;
-				else {
-					if(!lt(j,i) && lt(i,j)) return false;
-				}
-			});
-		});
-		return true;
-	}
+    public function verify() {
+        SetIter(i,this,{
+            var prei = true;
+            SetIter(j,this,{
+                if(!prei) {
+                    if(!lt(i,j) && lt(j,i)) return false;
+                }else if(i==j) prei = false;
+                else {
+                    if(!lt(j,i) && lt(i,j)) return false;
+                }
+            });
+        });
+        return true;
+    }
 
-	public function empty() return parent==null	
-	public function singular() return parent!=null && parent.prev==null && parent.next==null
-	public function size() { var ret = 0; SetIter(i,this,ret++); return ret; }
+    public function empty() return parent==null    
+    public function singular() return parent!=null && parent.prev==null && parent.next==null
+    public function size() { var ret = 0; SetIter(i,this,ret++); return ret; }
 
-	public function has(obj:T) return find(obj)!=null
-	public function find(obj:T) {
-		var cur = parent;
-		while(cur!=null && cur.data!=obj) {
-			if(lt(obj,cur.data)) cur = cur.prev;
-			else                 cur = cur.next;
-		}
-		return cur;
-	}
+    public function has(obj:T) return find(obj)!=null
+    public function find(obj:T) {
+        var cur = parent;
+        while(cur!=null && cur.data!=obj) {
+            if(lt(obj,cur.data)) cur = cur.prev;
+            else                 cur = cur.next;
+        }
+        return cur;
+    }
 
-	//_weak search based on comparison, not ==
-	public function has_weak(obj:T) return find_weak(obj)!=null
-	public function find_weak(obj:T) {
-		var cur = parent;
-		while(cur!=null) {
-			if  (lt(obj,cur.data)) cur = cur.prev;
-			elif(lt(cur.data,obj)) cur = cur.next;
-			else break;
-		}
-		return cur;
-	}
+    //_weak search based on comparison, not ==
+    public function has_weak(obj:T) return find_weak(obj)!=null
+    public function find_weak(obj:T) {
+        var cur = parent;
+        while(cur!=null) {
+            if  (lt(obj,cur.data)) cur = cur.prev;
+            elif(lt(cur.data,obj)) cur = cur.next;
+            else break;
+        }
+        return cur;
+    }
 
-	public function lower_bound(obj:T) {
-		return SetLowerBound(obj,this,lt);
-	}
+    public function lower_bound(obj:T) {
+        return SetLowerBound(obj,this,lt);
+    }
 
-	public function first() {
-		assert(!empty(),"first in empty");
-		var cur = parent;
-		while(cur.prev!=null) cur = cur.prev;
-		return cur.data;
-	}
+    public function first() {
+        assert(!empty(),"first in empty");
+        var cur = parent;
+        while(cur.prev!=null) cur = cur.prev;
+        return cur.data;
+    }
 
-	public function pop_front() {
-		assert(!empty(),"pop_front in empty");
-		var cur = parent;
-		while(cur.prev!=null) cur = cur.prev;
-		var ret = cur.data;
-		remove_node(cur);
-		return ret;
-	}
+    public function pop_front() {
+        assert(!empty(),"pop_front in empty");
+        var cur = parent;
+        while(cur.prev!=null) cur = cur.prev;
+        var ret = cur.data;
+        remove_node(cur);
+        return ret;
+    }
 
-	public function remove(obj:T) {
-		var node = find(obj);
-		assert(node!=null,"object not in tree");
-		remove_node(node);
-	}
+    public function remove(obj:T) {
+        var node = find(obj);
+        assert(node!=null,"object not in tree");
+        remove_node(node);
+    }
 
-	$(mixin set_link(cur,link,obj) { cur.link = obj; if(obj!=null) obj.parent = cur; });
-	$(mixin rep_node(cur,obj) {
-		var par = cur.parent;
-		if(par==null) {
-			parent = obj;
-		}else if(par.prev==cur) par.prev = obj;
-		else                    par.next = obj;
-		if(obj!=null) obj.parent = par;
-	});
+    $(mixin set_link(cur,link,obj) { cur.link = obj; if(obj!=null) obj.parent = cur; });
+    $(mixin rep_node(cur,obj) {
+        var par = cur.parent;
+        if(par==null) {
+            parent = obj;
+        }else if(par.prev==cur) par.prev = obj;
+        else                    par.next = obj;
+        if(obj!=null) obj.parent = par;
+    });
 
-	public function successor_node(cur:Set(T)) {
-		assert(cur!=null,"null node");
-		if(cur.next!=null) {
-			cur = cur.next;
-			while(cur.prev!=null) cur = cur.prev;
-		}else {
-			var pre = cur;
-			cur = cur.parent;
-			while(cur!=null && cur.prev!=pre) { pre = cur; cur = cur.parent; }
-		}
-		return cur;
-	}
-	public function predecessor_node(cur:Set(T)) {
-		assert(cur!=null,"null node");
-		if(cur.prev!=null) {
-			cur = cur.prev;
-			while(cur.next!=null) cur = cur.next;
-		}else {
-			var pre = cur;
-			cur = cur.parent;
-			while(cur!=null && cur.next!=pre) { pre = cur; cur = cur.parent; }
-		}
-		return cur;
-	}
+    public function successor_node(cur:Set(T)) {
+        assert(cur!=null,"null node");
+        if(cur.next!=null) {
+            cur = cur.next;
+            while(cur.prev!=null) cur = cur.prev;
+        }else {
+            var pre = cur;
+            cur = cur.parent;
+            while(cur!=null && cur.prev!=pre) { pre = cur; cur = cur.parent; }
+        }
+        return cur;
+    }
+    public function predecessor_node(cur:Set(T)) {
+        assert(cur!=null,"null node");
+        if(cur.prev!=null) {
+            cur = cur.prev;
+            while(cur.next!=null) cur = cur.next;
+        }else {
+            var pre = cur;
+            cur = cur.parent;
+            while(cur!=null && cur.next!=pre) { pre = cur; cur = cur.parent; }
+        }
+        return cur;
+    }
 
-	public function successor(obj:T) {
-		assert(has(obj),"not in tree!");
-		var node = successor_node(find(obj));
-		return node==null ? null : node.data;
-	}
-	public function predecessor(obj:T) {
-		assert(has(obj),"not in tree!");
-		var node = predecessor_node(find(obj));
-		return node==null ? null : node.data;
-	}
+    public function successor(obj:T) {
+        assert(has(obj),"not in tree!");
+        var node = successor_node(find(obj));
+        return node==null ? null : node.data;
+    }
+    public function predecessor(obj:T) {
+        assert(has(obj),"not in tree!");
+        var node = predecessor_node(find(obj));
+        return node==null ? null : node.data;
+    }
 
-	public function remove_node(cur:Set(T)) {
-		assert(cur!=null,"null node");
-		//cur has two children so swap with it's successor
-		if(cur.next!=null && cur.prev!=null) {
-			var sm = cur.next;
-			while(sm.prev!=null) sm = sm.prev;
-			swap(cur.data,sm.data);
-			if(swapped!=null) swapped(cur.data,sm.data);
-			cur = sm;
-		}
+    public function remove_node(cur:Set(T)) {
+        assert(cur!=null,"null node");
+        //cur has two children so swap with it's successor
+        if(cur.next!=null && cur.prev!=null) {
+            var sm = cur.next;
+            while(sm.prev!=null) sm = sm.prev;
+            swap(cur.data,sm.data);
+            if(swapped!=null) swapped(cur.data,sm.data);
+            cur = sm;
+        }
 
-		assert(cur.next==null || cur.prev==null,"node still has two children??");
-		var child = if(cur.prev==null) cur.next else cur.prev;
-		
-		//rebalance
-		if(cur.colour==BLACK) {
-			if(cur.prev!=null || cur.next!=null)
-				child.colour = BLACK;
-			else if(cur.parent!=null) {
-				//yay :(
-				var parent = cur.parent;
-				while(true) {
-					parent.colour++;
-					parent.prev.colour--;
-					parent.next.colour--;
+        assert(cur.next==null || cur.prev==null,"node still has two children??");
+        var child = if(cur.prev==null) cur.next else cur.prev;
+        
+        //rebalance
+        if(cur.colour==BLACK) {
+            if(cur.prev!=null || cur.next!=null)
+                child.colour = BLACK;
+            else if(cur.parent!=null) {
+                //yay :(
+                var parent = cur.parent;
+                while(true) {
+                    parent.colour++;
+                    parent.prev.colour--;
+                    parent.next.colour--;
 
-					$(mixin DO(D) {
-						var child = parent.D;
-						if(child.colour==NEG_RED) {
-							__fix_neg_red(child);
-							break;
-						}else if(child.colour==RED) {
-							$(mixin DO2(S) {
-								if(child.S!=null && child.S.colour==RED) {
-									__fix_dbl_red(child.S);
-									break;
-								}
-							});
-							DO2(prev) DO2(next)
-						}
-					});
-					DO(prev) DO(next)
+                    $(mixin DO(D) {
+                        var child = parent.D;
+                        if(child.colour==NEG_RED) {
+                            __fix_neg_red(child);
+                            break;
+                        }else if(child.colour==RED) {
+                            $(mixin DO2(S) {
+                                if(child.S!=null && child.S.colour==RED) {
+                                    __fix_dbl_red(child.S);
+                                    break;
+                                }
+                            });
+                            DO2(prev) DO2(next)
+                        }
+                    });
+                    DO(prev) DO(next)
 
-					if(parent.colour==DBL_BLACK) {
-						if(parent.parent==null) { parent.colour = BLACK; }
-						else { parent = parent.parent; continue; }
-					}
+                    if(parent.colour==DBL_BLACK) {
+                        if(parent.parent==null) { parent.colour = BLACK; }
+                        else { parent = parent.parent; continue; }
+                    }
 
-					break;
-				}
-			}
-		}
+                    break;
+                }
+            }
+        }
 
-		//and finally
-		rep_node(cur,child);
+        //and finally
+        rep_node(cur,child);
 
-		cur.parent = cur.prev = cur.next = null;
-		Free(Set(T),cur);
-	}
+        cur.parent = cur.prev = cur.next = null;
+        Free(Set(T),cur);
+    }
 
-/*	public function clear() {
-		if(parent!=null) clear_node(parent);
-		parent = null;
-		assert(next==null && prev==null && data==null,"wha?");
-	}
-	function clear_node(node:Set(T)) {
-		if(node.prev!=null) clear_node(node.prev);
-		if(node.next!=null) clear_node(node.next);
-		node.parent = node.prev = node.next = null;
-		Free(Set(T),node);
-	}*/
+/*    public function clear() {
+        if(parent!=null) clear_node(parent);
+        parent = null;
+        assert(next==null && prev==null && data==null,"wha?");
+    }
+    function clear_node(node:Set(T)) {
+        if(node.prev!=null) clear_node(node.prev);
+        if(node.next!=null) clear_node(node.next);
+        node.parent = node.prev = node.next = null;
+        Free(Set(T),node);
+    }*/
 
-	public function clear() clear_with(function (_) {})
-	public inline function clear_with(lambda:T->Void) {
-		if(parent==null) return;
-		else {
-			var cur = parent;
-			while(cur!=null) 
-				cur = if(cur.prev!=null) cur.prev
-				    elif(cur.next!=null) cur.next
-					else clear_node(cur,lambda);
-			parent = null;
-		}
-	}
-	inline function clear_node(node:Set(T),lambda:T->Void) {
-		assert(node.next==null && node.prev==null,"clear_node :: node not a leaf");
+    public function clear() clear_with(function (_) {})
+    public inline function clear_with(lambda:T->Void) {
+        if(parent==null) return;
+        else {
+            var cur = parent;
+            while(cur!=null) 
+                cur = if(cur.prev!=null) cur.prev
+                    elif(cur.next!=null) cur.next
+                    else clear_node(cur,lambda);
+            parent = null;
+        }
+    }
+    inline function clear_node(node:Set(T),lambda:T->Void) {
+        assert(node.next==null && node.prev==null,"clear_node :: node not a leaf");
 
-		lambda(node.data);
-		var ret = node.parent;
-		if(ret!=null) {
-			if(node==ret.prev) ret.prev = null;
-			else               ret.next = null;
-			node.parent = null;
-		}
-		return ret;
-	}
+        lambda(node.data);
+        var ret = node.parent;
+        if(ret!=null) {
+            if(node==ret.prev) ret.prev = null;
+            else               ret.next = null;
+            node.parent = null;
+        }
+        return ret;
+    }
 
-	public function __fix_neg_red(negred:Set(T)) {
-		var parent = negred.parent;
+    public function __fix_neg_red(negred:Set(T)) {
+        var parent = negred.parent;
 
-		$(mixin DO(L,R) {
-			var nl = negred.L; var nr = negred.R;
-			var trl = nr.L; var trr = nr.R;
-			nl.colour = RED;
-			negred.colour = parent.colour = BLACK;
-			set_link(negred,R,trl);
-			swap(parent.data,nr.data);
-			if(swapped!=null) swapped(parent.data,nr.data);
-			set_link(nr,L,trr);
-			set_link(nr,R,parent.R);
-			set_link(parent,R,nr);
-			nl;
-		});
+        $(mixin DO(L,R) {
+            var nl = negred.L; var nr = negred.R;
+            var trl = nr.L; var trr = nr.R;
+            nl.colour = RED;
+            negred.colour = parent.colour = BLACK;
+            set_link(negred,R,trl);
+            swap(parent.data,nr.data);
+            if(swapped!=null) swapped(parent.data,nr.data);
+            set_link(nr,L,trr);
+            set_link(nr,R,parent.R);
+            set_link(parent,R,nr);
+            nl;
+        });
 
-		var child = if(parent.prev==negred)
-			 DO(prev,next);
-		else DO(next,prev);
+        var child = if(parent.prev==negred)
+             DO(prev,next);
+        else DO(next,prev);
 
-		if  (child.prev!=null && child.prev.colour==RED) __fix_dbl_red(child.prev);
-		elif(child.next!=null && child.next.colour==RED) __fix_dbl_red(child.next);
-	}
+        if  (child.prev!=null && child.prev.colour==RED) __fix_dbl_red(child.prev);
+        elif(child.next!=null && child.next.colour==RED) __fix_dbl_red(child.next);
+    }
 
-	public function __fix_dbl_red(x:Set(T)) {
-		while(true) {
-			var par = x.parent;
-			var g = par.parent;
-			if(g==null) { par.colour = BLACK; break; }
+    public function __fix_dbl_red(x:Set(T)) {
+        while(true) {
+            var par = x.parent;
+            var g = par.parent;
+            if(g==null) { par.colour = BLACK; break; }
 
-			var n1:Set(T), n2:Set(T), n3:Set(T), t1:Set(T), t2:Set(T), t3:Set(T), t4:Set(T);
-			if(par==g.prev) {
-				n3 = g; t4 = g.next;
-				if(x==par.prev) {
-					n1 = x; n2 = par;
-					t1 = x.prev; t2 = x.next; t3 = par.next;
-				}else {
-					n1 = par; n2 = x;
-					t1 = par.prev; t2 = x.prev; t3 = x.next;
-				}
-			}else {
-				n1 = g; t1 = g.prev;
-				if(x==par.prev) {
-					n2 = x; n3 = par;
-					t2 = x.prev; t3 = x.next; t4 = par.next;
-				}else {
-					n2 = par; n3 = x;
-					t2 = par.prev; t3 = x.prev; t4 = x.next;
-				}
-			}
+            var n1:Set(T), n2:Set(T), n3:Set(T), t1:Set(T), t2:Set(T), t3:Set(T), t4:Set(T);
+            if(par==g.prev) {
+                n3 = g; t4 = g.next;
+                if(x==par.prev) {
+                    n1 = x; n2 = par;
+                    t1 = x.prev; t2 = x.next; t3 = par.next;
+                }else {
+                    n1 = par; n2 = x;
+                    t1 = par.prev; t2 = x.prev; t3 = x.next;
+                }
+            }else {
+                n1 = g; t1 = g.prev;
+                if(x==par.prev) {
+                    n2 = x; n3 = par;
+                    t2 = x.prev; t3 = x.next; t4 = par.next;
+                }else {
+                    n2 = par; n3 = x;
+                    t2 = par.prev; t3 = x.prev; t4 = x.next;
+                }
+            }
 
-			rep_node(g,n2);
+            rep_node(g,n2);
 
-			set_link(n1,prev,t1); set_link(n1,next,t2);
-			set_link(n2,prev,n1); set_link(n2,next,n3);
-			set_link(n3,prev,t3); set_link(n3,next,t4);
+            set_link(n1,prev,t1); set_link(n1,next,t2);
+            set_link(n2,prev,n1); set_link(n2,next,n3);
+            set_link(n3,prev,t3); set_link(n3,next,t4);
 
-			n2.colour = g.colour-1;
-			n1.colour = BLACK;
-			n3.colour = BLACK;
+            n2.colour = g.colour-1;
+            n1.colour = BLACK;
+            n3.colour = BLACK;
 
-			if(n2==parent) parent.colour = BLACK;
-			else if(n2.colour==RED && n2.parent.colour==RED) {
-				x = n2;
-				continue;
-			}
+            if(n2==parent) parent.colour = BLACK;
+            else if(n2.colour==RED && n2.parent.colour==RED) {
+                x = n2;
+                continue;
+            }
 
-			break;
-		}
-	}
+            break;
+        }
+    }
 
-	public function try_insert_bool(obj:T) {
-		var x:Set(T) = null;
-		var cur:Set(T) = null;
-		if(parent==null) {
-			x = Get(Set(T)); x.data = obj;
-			parent = x;
-		}else {
-			cur = parent;
-			while(true) {
-				if(lt(obj,cur.data)) {
-					if(cur.prev==null) { x = Get(Set(T)); x.data = obj; cur.prev = x; x.parent = cur; break; }
-					else cur = cur.prev;
-				}elif(lt(cur.data,obj)) {
-					if(cur.next==null) { x = Get(Set(T)); x.data = obj; cur.next = x; x.parent = cur; break; }
-					else cur = cur.next;
-				}else break;
-			}
-		}
+    public function try_insert_bool(obj:T) {
+        var x:Set(T) = null;
+        var cur:Set(T) = null;
+        if(parent==null) {
+            x = Get(Set(T)); x.data = obj;
+            parent = x;
+        }else {
+            cur = parent;
+            while(true) {
+                if(lt(obj,cur.data)) {
+                    if(cur.prev==null) { x = Get(Set(T)); x.data = obj; cur.prev = x; x.parent = cur; break; }
+                    else cur = cur.prev;
+                }elif(lt(cur.data,obj)) {
+                    if(cur.next==null) { x = Get(Set(T)); x.data = obj; cur.next = x; x.parent = cur; break; }
+                    else cur = cur.next;
+                }else break;
+            }
+        }
 
-		if(x==null) return false;
-		else {
-			if(x.parent==null) x.colour = BLACK;
-			else {
-				x.colour = RED;
-				if(x.parent.colour==RED) __fix_dbl_red(x);
-			}
-			return true;
-		}
-	}
+        if(x==null) return false;
+        else {
+            if(x.parent==null) x.colour = BLACK;
+            else {
+                x.colour = RED;
+                if(x.parent.colour==RED) __fix_dbl_red(x);
+            }
+            return true;
+        }
+    }
 
-	public function try_insert(obj:T) {
-		var x:Set(T) = null;
-		var cur:Set(T) = null;
-		if(parent==null) {
-			x = Get(Set(T)); x.data = obj;
-			parent = x;
-		}else {
-			cur = parent;
-			while(true) {
-				if(lt(obj,cur.data)) {
-					if(cur.prev==null) { x = Get(Set(T)); x.data = obj; cur.prev = x; x.parent = cur; break; }
-					else cur = cur.prev;
-				}elif(lt(cur.data,obj)) {
-					if(cur.next==null) { x = Get(Set(T)); x.data = obj; cur.next = x; x.parent = cur; break; }
-					else cur = cur.next;
-				}else break;
-			}
-		}
+    public function try_insert(obj:T) {
+        var x:Set(T) = null;
+        var cur:Set(T) = null;
+        if(parent==null) {
+            x = Get(Set(T)); x.data = obj;
+            parent = x;
+        }else {
+            cur = parent;
+            while(true) {
+                if(lt(obj,cur.data)) {
+                    if(cur.prev==null) { x = Get(Set(T)); x.data = obj; cur.prev = x; x.parent = cur; break; }
+                    else cur = cur.prev;
+                }elif(lt(cur.data,obj)) {
+                    if(cur.next==null) { x = Get(Set(T)); x.data = obj; cur.next = x; x.parent = cur; break; }
+                    else cur = cur.next;
+                }else break;
+            }
+        }
 
-		if(x==null) return cur;
-		else {
-			if(x.parent==null) x.colour = BLACK;
-			else {
-				x.colour = RED;
-				if(x.parent.colour==RED) __fix_dbl_red(x);
-			}
+        if(x==null) return cur;
+        else {
+            if(x.parent==null) x.colour = BLACK;
+            else {
+                x.colour = RED;
+                if(x.parent.colour==RED) __fix_dbl_red(x);
+            }
 
-			return x;
-		}
-	}
+            return x;
+        }
+    }
 
-	public function insert(obj:T) {
-		assert(!has(obj),"object already in set");
+    public function insert(obj:T) {
+        assert(!has(obj),"object already in set");
 
-		var x = Get(Set(T));
-		x.data = obj;
+        var x = Get(Set(T));
+        x.data = obj;
 
-		if(parent==null) parent = x; //roots
-		else {
-			var cur = parent; //root
-			while(true) {
-				if(lt(x.data,cur.data)) {
-					if(cur.prev==null) { cur.prev = x; x.parent = cur; break; }
-					else cur = cur.prev;
-				}else {
-					if(cur.next==null) { cur.next = x; x.parent = cur; break; }
-					else cur = cur.next;
-				}
-			}
-		}
+        if(parent==null) parent = x; //roots
+        else {
+            var cur = parent; //root
+            while(true) {
+                if(lt(x.data,cur.data)) {
+                    if(cur.prev==null) { cur.prev = x; x.parent = cur; break; }
+                    else cur = cur.prev;
+                }else {
+                    if(cur.next==null) { cur.next = x; x.parent = cur; break; }
+                    else cur = cur.next;
+                }
+            }
+        }
 
-		if(x.parent==null)
-			x.colour = BLACK;
-		else {
-			x.colour = RED;
-			if(x.parent.colour==RED) __fix_dbl_red(x);
-		}
+        if(x.parent==null)
+            x.colour = BLACK;
+        else {
+            x.colour = RED;
+            if(x.parent.colour==RED) __fix_dbl_red(x);
+        }
 
-		assert(x.data==obj,"...wtf?");
-		return x;
-	}
+        assert(x.data==obj,"...wtf?");
+        return x;
+    }
 });

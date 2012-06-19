@@ -2,94 +2,94 @@ package zpp_nape.space;
 $(import);
 
 class PR(Broadphase) {
-	
-	public var space:PR(Space);
+    
+    public var space:PR(Space);
 
-	//===========================================================================================================
+    //===========================================================================================================
     /// internal methods
 
-	public var is_sweep:Bool;
-	public var sweep:PR(SweepPhase);
-	public var dynab:PR(DynAABBPhase);
+    public var is_sweep:Bool;
+    public var sweep:PR(SweepPhase);
+    public var dynab:PR(DynAABBPhase);
 
-	public function insert(shape:PR(Shape)) {
-		if(is_sweep) sweep.__insert(shape);
-		else         dynab.__insert(shape);
-	}
-	public function remove(shape:PR(Shape)) {
-		if(is_sweep) sweep.__remove(shape);
-		else         dynab.__remove(shape);
-	}
-	public function sync  (shape:PR(Shape)) {
-		//sweep broadphase doesn't sync objects here
-		//it is done more effeciently as a group within it's broadphase implementation
-		if(!is_sweep) dynab.__sync(shape);
-	}
+    public function insert(shape:PR(Shape)) {
+        if(is_sweep) sweep.__insert(shape);
+        else         dynab.__insert(shape);
+    }
+    public function remove(shape:PR(Shape)) {
+        if(is_sweep) sweep.__remove(shape);
+        else         dynab.__remove(shape);
+    }
+    public function sync  (shape:PR(Shape)) {
+        //sweep broadphase doesn't sync objects here
+        //it is done more effeciently as a group within it's broadphase implementation
+        if(!is_sweep) dynab.__sync(shape);
+    }
 
     //responsible for calling space.narrowPhase(...) for each potentially interacting pairs of shapes.
-	public function broadphase() { assert(false,"not implemented"); }
+    public function broadphase() { assert(false,"not implemented"); }
 
-	public function clear() {}
+    public function clear() {}
 
-	//===========================================================================================================
-	/// external utilities
+    //===========================================================================================================
+    /// external utilities
 
     public function shapesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)):ShapeList return null
-	public function bodiesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)):BodyList  return null
+    public function bodiesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)):BodyList  return null
 
-	//===========================================================================================================
+    //===========================================================================================================
 
-	public var aabbShape:Shape;
-	public function updateAABBShape(aabb:PR(AABB)) {
-		if(aabbShape==null) {
-			var body = new Body(BodyType.STATIC);
-			body.shapes.add(aabbShape = new Polygon(Polygon.rect(aabb.minx,aabb.miny,aabb.width(),aabb.height())));
-		}else {
-			var ab = aabbShape.pr(inner).aabb;
-			var sx = aabb.width()/ab.width();
-			var sy = aabb.height()/ab.height();
-			aabbShape.transform(new Mat23(sx,0,0,sy,aabb.minx-sx*ab.minx,aabb.miny-sy*ab.miny));
-		}
-		//validate essential properties
-		aabbShape.pr(inner).validate_aabb();
-		aabbShape.pr(inner).polygon.validate_gaxi();
-	}
-	public function shapesInAABB(aabb:PR(AABB),strict:Bool,containment:Bool,filter:PR(InteractionFilter)):ShapeList return null
-	public function bodiesInAABB(aabb:PR(AABB),strict:Bool,containment:Bool,filter:PR(InteractionFilter)):BodyList  return null
+    public var aabbShape:Shape;
+    public function updateAABBShape(aabb:PR(AABB)) {
+        if(aabbShape==null) {
+            var body = new Body(BodyType.STATIC);
+            body.shapes.add(aabbShape = new Polygon(Polygon.rect(aabb.minx,aabb.miny,aabb.width(),aabb.height())));
+        }else {
+            var ab = aabbShape.pr(inner).aabb;
+            var sx = aabb.width()/ab.width();
+            var sy = aabb.height()/ab.height();
+            aabbShape.transform(new Mat23(sx,0,0,sy,aabb.minx-sx*ab.minx,aabb.miny-sy*ab.miny));
+        }
+        //validate essential properties
+        aabbShape.pr(inner).validate_aabb();
+        aabbShape.pr(inner).polygon.validate_gaxi();
+    }
+    public function shapesInAABB(aabb:PR(AABB),strict:Bool,containment:Bool,filter:PR(InteractionFilter)):ShapeList return null
+    public function bodiesInAABB(aabb:PR(AABB),strict:Bool,containment:Bool,filter:PR(InteractionFilter)):BodyList  return null
 
-	//===========================================================================================================
+    //===========================================================================================================
 
-	public var circShape:Shape;
-	public function updateCircShape(x:Float,y:Float,r:Float) {
-		if(circShape==null) {
-			var body = new Body(BodyType.STATIC);
-			body.shapes.add(circShape = new Circle(r,Vec2.get(x,y)));
-		}else {
-			var ci = circShape.pr(inner).circle;
-			var ss = r/ci.radius;
-			circShape.transform(new Mat23(ss,0,0,ss,x-ss*ci.localCOMx,y-ss*ci.localCOMy));
-		}
-		//validate essential properties
-		circShape.pr(inner).validate_aabb();
-	}
-	public function shapesInCircle(x:Float,y:Float,r:Float,containment:Bool,filter:PR(InteractionFilter)):ShapeList return null
-	public function bodiesInCircle(x:Float,y:Float,r:Float,containment:Bool,filter:PR(InteractionFilter)):BodyList  return null
+    public var circShape:Shape;
+    public function updateCircShape(x:Float,y:Float,r:Float) {
+        if(circShape==null) {
+            var body = new Body(BodyType.STATIC);
+            body.shapes.add(circShape = new Circle(r,Vec2.get(x,y)));
+        }else {
+            var ci = circShape.pr(inner).circle;
+            var ss = r/ci.radius;
+            circShape.transform(new Mat23(ss,0,0,ss,x-ss*ci.localCOMx,y-ss*ci.localCOMy));
+        }
+        //validate essential properties
+        circShape.pr(inner).validate_aabb();
+    }
+    public function shapesInCircle(x:Float,y:Float,r:Float,containment:Bool,filter:PR(InteractionFilter)):ShapeList return null
+    public function bodiesInCircle(x:Float,y:Float,r:Float,containment:Bool,filter:PR(InteractionFilter)):BodyList  return null
 
-	//===========================================================================================================
+    //===========================================================================================================
 
-	public function validateShape(s:PR(Shape)) {
-		if(s.isPolygon()) s.polygon.validate_gaxi();
-		s.validate_aabb();
-		s.validate_worldCOM();
-	}
-	public function shapesInShape(shape:PR(Shape),containment:Bool,filter:PR(InteractionFilter)):ShapeList return null
-	public function bodiesInShape(shape:PR(Shape),containment:Bool,filter:PR(InteractionFilter)):BodyList  return null
+    public function validateShape(s:PR(Shape)) {
+        if(s.isPolygon()) s.polygon.validate_gaxi();
+        s.validate_aabb();
+        s.validate_worldCOM();
+    }
+    public function shapesInShape(shape:PR(Shape),containment:Bool,filter:PR(InteractionFilter)):ShapeList return null
+    public function bodiesInShape(shape:PR(Shape),containment:Bool,filter:PR(InteractionFilter)):BodyList  return null
 
-	//===========================================================================================================
+    //===========================================================================================================
 
     public function      rayCast(ray:PR(Ray), inner:Bool,
-		filter:PR(InteractionFilter)):RayResult     return null
-	public function rayMultiCast(ray:PR(Ray), inner:Bool,
-		filter:PR(InteractionFilter)):RayResultList return null
+        filter:PR(InteractionFilter)):RayResult     return null
+    public function rayMultiCast(ray:PR(Ray), inner:Bool,
+        filter:PR(InteractionFilter)):RayResultList return null
 
 }

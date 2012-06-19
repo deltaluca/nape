@@ -3,209 +3,209 @@ $(import);
 
 GENID(Interactor)
 class PR(Interactor) {
-	public var outer_i:Interactor;
+    public var outer_i:Interactor;
 
-	public var id:Int;
+    public var id:Int;
 
-	//--------------------------------------------------------------------
+    //--------------------------------------------------------------------
 
-	public var ishape:PR(Shape);
-	public var ibody :PR(Body);
-	public var icompound:PR(Compound);
+    public var ishape:PR(Shape);
+    public var ibody :PR(Body);
+    public var icompound:PR(Compound);
 
-	flibmdel public inline function isShape() return ishape!=null
-	flibmdel public inline function isBody () return ibody !=null
-	flibmdel public inline function isCompound() return icompound != null 
+    flibmdel public inline function isShape() return ishape!=null
+    flibmdel public inline function isBody () return ibody !=null
+    flibmdel public inline function isCompound() return icompound != null 
 
-	//--------------------------------------------------------------------
+    //--------------------------------------------------------------------
 
-	public function __iaddedToSpace() {
-		if(group!=null) group.addInteractor(this);
-		alloc_cbSet();
-	}
-	public function __iremovedFromSpace() {
-		if(group!=null) group.remInteractor(this);
-		dealloc_cbSet();
-	}
+    public function __iaddedToSpace() {
+        if(group!=null) group.addInteractor(this);
+        alloc_cbSet();
+    }
+    public function __iremovedFromSpace() {
+        if(group!=null) group.remInteractor(this);
+        dealloc_cbSet();
+    }
 
-	public function wake() {
-		if(isShape()) {
-			var body = ishape.body;
-			if(body!=null && body.space!=null) body.space.wake(body);
-			true; //isn't use in this case
-		}elif(isBody()) {
-			//return value matter
-			if(ibody.space!=null) ibody.space.wake(ibody) else false;
-		}else {
-			if(icompound.space!=null) icompound.space.wakeCompound(icompound);
-			true; //isn't use in this case
-		}
-	}
+    public function wake() {
+        if(isShape()) {
+            var body = ishape.body;
+            if(body!=null && body.space!=null) body.space.wake(body);
+            true; //isn't use in this case
+        }elif(isBody()) {
+            //return value matter
+            if(ibody.space!=null) ibody.space.wake(ibody) else false;
+        }else {
+            if(icompound.space!=null) icompound.space.wakeCompound(icompound);
+            true; //isn't use in this case
+        }
+    }
 
-	//--------------------------------------------------------------------
+    //--------------------------------------------------------------------
 
-	public var cbsets:List(PR(CallbackSet));
+    public var cbsets:List(PR(CallbackSet));
 
-	public static function get(i1:PR(Interactor),i2:PR(Interactor)) {
-		assert(i1!=i2,"trying to get cbset between interactor and itself?");
-		var id = if(i1.id < i2.id) i1.id else i2.id;
-		var di = if(i1.id < i2.id) i2.id else i1.id;
-		assert(id<di,"interactor id's not ordered well when getting cbset");
+    public static function get(i1:PR(Interactor),i2:PR(Interactor)) {
+        assert(i1!=i2,"trying to get cbset between interactor and itself?");
+        var id = if(i1.id < i2.id) i1.id else i2.id;
+        var di = if(i1.id < i2.id) i2.id else i1.id;
+        assert(id<di,"interactor id's not ordered well when getting cbset");
 
-		var xs = if(i1.cbsets.length<i2.cbsets.length) i1.cbsets else i2.cbsets;
-		var ret:PR(CallbackSet) = null;
-		Iter(x, xs, {
-			assert(!(x.id==di && x.di==id),"cbset order doesn't match interactor order getting cbset?");
-			if(x.id == id && x.di==di) {
-				ret = x;
-				cx_break;
-			}
-		});
-		return ret;
-	}
+        var xs = if(i1.cbsets.length<i2.cbsets.length) i1.cbsets else i2.cbsets;
+        var ret:PR(CallbackSet) = null;
+        Iter(x, xs, {
+            assert(!(x.id==di && x.di==id),"cbset order doesn't match interactor order getting cbset?");
+            if(x.id == id && x.di==di) {
+                ret = x;
+                cx_break;
+            }
+        });
+        return ret;
+    }
 
-	//--------------------------------------------------------------------
+    //--------------------------------------------------------------------
 
-	flibmdel public inline function get_space() {
-		return
-			if(isShape())  ishape.body==null ? null : ishape.body.space
-			elif(isBody()) ibody.space
-			else           icompound.space;
-	}
+    flibmdel public inline function get_space() {
+        return
+            if(isShape())  ishape.body==null ? null : ishape.body.space
+            elif(isBody()) ibody.space
+            else           icompound.space;
+    }
 
-	//--------------------------------------------------------------------
+    //--------------------------------------------------------------------
 
-	public var group:PR(InteractionGroup);
+    public var group:PR(InteractionGroup);
 
-	public var cbTypes:List(PR(CbType));
-	public var cbSet:PR(CbSet); //assigned by Space
-	public var wrap_cbTypes:CbTypeList;
+    public var cbTypes:List(PR(CbType));
+    public var cbSet:PR(CbSet); //assigned by Space
+    public var wrap_cbTypes:CbTypeList;
 
-	public function setupcbTypes() {
-		wrap_cbTypes = PR(CbTypeList).get(cbTypes);
-		wrap_cbTypes.pr(inner).adder = wrap_cbTypes_adder;
-		wrap_cbTypes.pr(inner).subber = wrap_cbTypes_subber;
-		wrap_cbTypes.pr(inner).dontremove = true; //done by subber
-		DEBUG(wrap_cbTypes.pr(inner)._modifiable = immutable_cbTypes;)
-	}
-	DEBUG(function immutable_cbTypes() {
-		immutable_midstep("Interactor::cbTypes");
-	})
-	function wrap_cbTypes_subber(pcb:CbType):Void {
-		var cb = pcb.pr(inner);
-		if(cbTypes.has(cb)) {
-			if(get_space()!=null) dealloc_cbSet();
+    public function setupcbTypes() {
+        wrap_cbTypes = PR(CbTypeList).get(cbTypes);
+        wrap_cbTypes.pr(inner).adder = wrap_cbTypes_adder;
+        wrap_cbTypes.pr(inner).subber = wrap_cbTypes_subber;
+        wrap_cbTypes.pr(inner).dontremove = true; //done by subber
+        DEBUG(wrap_cbTypes.pr(inner)._modifiable = immutable_cbTypes;)
+    }
+    DEBUG(function immutable_cbTypes() {
+        immutable_midstep("Interactor::cbTypes");
+    })
+    function wrap_cbTypes_subber(pcb:CbType):Void {
+        var cb = pcb.pr(inner);
+        if(cbTypes.has(cb)) {
+            if(get_space()!=null) dealloc_cbSet();
 
-			cbTypes.remove(cb);
-			cb.remInteractor(this);
+            cbTypes.remove(cb);
+            cb.remInteractor(this);
 
-			if(get_space()!=null) alloc_cbSet();
+            if(get_space()!=null) alloc_cbSet();
 
-			wake();
-		}
-	}
-	function wrap_cbTypes_adder(cb:CbType):Bool {
-		insert_cbtype(cb.pr(inner));
-		return false; //always prevent wrap_list inserting into real list
-	}
-	public function insert_cbtype(cb:PR(CbType)) {
-		if(!cbTypes.has(cb)) {
-			if(get_space()!=null) dealloc_cbSet();
+            wake();
+        }
+    }
+    function wrap_cbTypes_adder(cb:CbType):Bool {
+        insert_cbtype(cb.pr(inner));
+        return false; //always prevent wrap_list inserting into real list
+    }
+    public function insert_cbtype(cb:PR(CbType)) {
+        if(!cbTypes.has(cb)) {
+            if(get_space()!=null) dealloc_cbSet();
 
-			Insert(cb,cbTypes,PR(CbType).set_lt);
-			cb.addInteractor(this);
+            Insert(cb,cbTypes,PR(CbType).set_lt);
+            cb.addInteractor(this);
 
-			if(get_space()!=null) alloc_cbSet();
+            if(get_space()!=null) alloc_cbSet();
 
-			wake();
-		}
-	}
+            wake();
+        }
+    }
 
-	//--------------------------------------------------------------------
+    //--------------------------------------------------------------------
 
-	public function alloc_cbSet() {
-		var space = get_space();
-		assert(space!=null,"space null in alloc_cbSet");
-		if((cbSet = space.cbsets.get(cbTypes))!=null) {
-			cbSet.increment();
+    public function alloc_cbSet() {
+        var space = get_space();
+        assert(space!=null,"space null in alloc_cbSet");
+        if((cbSet = space.cbsets.get(cbTypes))!=null) {
+            cbSet.increment();
 
-			cbSet.addInteractor(this);
-			
-			cbSet.validate(); //<--- !!!! otherwise freshInteractorType fails.
-			space.freshInteractorType(this);
-		}
-	}
-	public function dealloc_cbSet() {
-		var space = get_space();
-		assert(space!=null,"space null in dealloc_cbSet");
-		if(cbSet!=null) {
-			cbSet.remInteractor(this);
-			space.nullInteractorType(this);
+            cbSet.addInteractor(this);
+            
+            cbSet.validate(); //<--- !!!! otherwise freshInteractorType fails.
+            space.freshInteractorType(this);
+        }
+    }
+    public function dealloc_cbSet() {
+        var space = get_space();
+        assert(space!=null,"space null in dealloc_cbSet");
+        if(cbSet!=null) {
+            cbSet.remInteractor(this);
+            space.nullInteractorType(this);
 
-			if(cbSet.decrement()) {
-				space.cbsets.remove(cbSet);
-				Free(PR(CbSet),cbSet);
-			}
-			cbSet = null;
-		}
-	}
+            if(cbSet.decrement()) {
+                space.cbsets.remove(cbSet);
+                Free(PR(CbSet),cbSet);
+            }
+            cbSet = null;
+        }
+    }
 
-	//--------------------------------------------------------------------
+    //--------------------------------------------------------------------
 
-	public function setGroup(group:PR(InteractionGroup)) {
-		if(this.group!=group) {
-			var inspace = get_space()!=null;
+    public function setGroup(group:PR(InteractionGroup)) {
+        if(this.group!=group) {
+            var inspace = get_space()!=null;
 
-			if(inspace && this.group!=null) this.group.remInteractor(this);
-			this.group = group;
-			if(inspace && group!=null) group.addInteractor(this);
+            if(inspace && this.group!=null) this.group.remInteractor(this);
+            this.group = group;
+            if(inspace && group!=null) group.addInteractor(this);
 
-			if(inspace) {
-				if(isShape())  ishape.body.wake();
-				elif(isBody()) ibody.wake();
-				else           icompound.wake();
-			}
-		}
-	}
-	
-	//--------------------------------------------------------------------
+            if(inspace) {
+                if(isShape())  ishape.body.wake();
+                elif(isBody()) ibody.wake();
+                else           icompound.wake();
+            }
+        }
+    }
+    
+    //--------------------------------------------------------------------
 
-	public function immutable_midstep(n:String) {
-		if(isBody()) ibody.__immutable_midstep(n);
-		elif(isShape()) ishape.__immutable_midstep(n);
-		else icompound.__imutable_midstep(n);
-	}
+    public function immutable_midstep(n:String) {
+        if(isBody()) ibody.__immutable_midstep(n);
+        elif(isShape()) ishape.__immutable_midstep(n);
+        else icompound.__imutable_midstep(n);
+    }
 
-	//--------------------------------------------------------------------
+    //--------------------------------------------------------------------
 
-	public function new() {
-		id = ID(Interactor);
-		cbsets = new List(PR(CallbackSet))();
-		cbTypes = new List(PR(CbType))();
-	}
+    public function new() {
+        id = ID(Interactor);
+        cbsets = new List(PR(CallbackSet))();
+        cbTypes = new List(PR(CbType))();
+    }
 
-	//--------------------------------------------------------------------
+    //--------------------------------------------------------------------
 
-	flibmdel public inline static function int_callback(o1:PR(Interactor),o2:PR(Interactor),cb1:PR(OptionType),cb:PR(Callback)) {
-		if(cb1.compatible(o1.cbTypes)) {
-			   cb.int1 = o1; cb.int2 = o2;
-		}else{ cb.int2 = o1; cb.int1 = o2; }
-	}
+    flibmdel public inline static function int_callback(o1:PR(Interactor),o2:PR(Interactor),cb1:PR(OptionType),cb:PR(Callback)) {
+        if(cb1.compatible(o1.cbTypes)) {
+               cb.int1 = o1; cb.int2 = o2;
+        }else{ cb.int2 = o1; cb.int1 = o2; }
+    }
 
-	flibmdel public inline function lookup_group() {
-		var cur:PR(Interactor) = this;
-		while(cur!=null && cur.group==null) {
-			if(cur.isShape()) cur = cur.ishape.body;
-			elif(cur.isCompound()) cur = cur.icompound.compound;
-			else cur = cur.ibody.compound;
-		}
-		return if(cur==null) null else cur.group;
-	}
+    flibmdel public inline function lookup_group() {
+        var cur:PR(Interactor) = this;
+        while(cur!=null && cur.group==null) {
+            if(cur.isShape()) cur = cur.ishape.body;
+            elif(cur.isCompound()) cur = cur.icompound.compound;
+            else cur = cur.ibody.compound;
+        }
+        return if(cur==null) null else cur.group;
+    }
 
-	//-------------------------------------------------------------------
+    //-------------------------------------------------------------------
 
-	public function copyto(ret:Interactor) {
-		ret.pr(inner_i).group = group;
-		for(cb in outer_i.cbTypes) ret.cbTypes.add(cb);
-	}
+    public function copyto(ret:Interactor) {
+        ret.pr(inner_i).group = group;
+        for(cb in outer_i.cbTypes) ret.cbTypes.add(cb);
+    }
 }
