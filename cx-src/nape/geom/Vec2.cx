@@ -4,43 +4,89 @@ $(import);
 class Vec2 {
     public var pr(inner):PR(Vec2);
 
+    // Vec2 is poolable as a public object.
     PublicMixPool(Vec2)
 
-    $(mixin global isWEAK(x) (x.pr(inner).weak));
-    $(mixin global WEAK(x) ({ if(isWEAK(x)) { x.dispose(); true; } else false; }));
+    //
+    // Global macros to facilitate auto disposal of weak Vec2's
+    //
+    $(mixin global isWEAK(x) ({
+        x.pr(inner).weak;
+    }));
+    $(mixin global WEAK(x) ({
+        if(isWEAK(x)) {
+            x.dispose();
+            true;
+        }
+        else {
+            false;
+        }
+    }));
 
-    public static function weak(?x:Float=0,?y:Float=0) return get(x,y,true)
-    public static function get(?x:Float=0,?y:Float=0,?weak:Bool=false) {
-        DEBUG(if(isNaN(x) || isNaN(y)) throw "Error: Vec2 components cannot be NaN";)
+    //
+    // Methods to be used in constructing Vec2 objects making automatic use of
+    // object pools.
+    //
+    // 'weak' : Construct a weak Vec2 which will be automaticaly reclaimed
+    //          when supplied as an argument to a nape function
+    // 'get'  : Construction of a possibly weak Vec2 from object pool.
+    //
+    public static inline function weak(x:Float = 0, y:Float = 0) {
+        return get(x, y, true);
+    }
+
+    public static function get(x:Float = 0, y:Float = 0, weak:Bool = false) {
+        DEBUG(
+            if(isNaN(x) || isNaN(y)) {
+                throw "Error: Vec2 components cannot be NaN";
+            }
+        )
+
         var ret = PublicGet(Vec2);
-        if(ret.pr(inner)==null) ret.pr(inner) = PR(Vec2).get(x,y);
-        else ret.setxy(x,y);
-        if(weak) ret.pr(inner).weak = true;
+        assert(ret.pr(inner) != null, "Public Vec2 from pool, has no pr(inner)");
+
+        ret.setxy(x, y);
+        ret.pr(inner).weak = weak;
+
         return ret;
     }
-    public function dispose() {
-        Disposed(this,Vec2);
-        DEBUG(if(pr(inner).inuse) throw "Error: This Vec2 is not disposable";)
 
-        var pr = pr(inner);
+    //
+    // 'dispose' : Release public Vec2 to object pool.
+    //
+    public function dispose() {
+        Disposed(this, Vec2);
+        DEBUG(
+            if(pr(inner).inuse) {
+                throw "Error: This Vec2 is not disposable";
+            }
+        )
+
+        var inner = pr(inner);
         pr(inner).outer = null;
         pr(inner) = null;
-        PublicFree(Vec2,this);
-        Free(PR(Vec2),pr);
+        PublicFree(Vec2, this);
+        Free(PR(Vec2), inner);
     }
-    
-    public function new(?x:Float=0, ?y:Float=0) {
-        DEBUG(if(isNaN(x) || isNaN(y)) throw "Error: Vec2 components cannot be NaN";)
-        pr(inner) = PR(Vec2).get(x,y);
+
+    public function new(x:Float = 0, y:Float = 0) {
+        DEBUG(
+            if(isNaN(x) || isNaN(y)) {
+                throw "Error: Vec2 components cannot be NaN";
+            }
+        )
+
+        pr(inner) = PR(Vec2).get(x, y);
         pr(inner).outer = this;
     }
-    keep public function copy(?weak:Bool=false) {
-        Disposed(this,Vec2);
-        return Vec2.get(x,y,weak); 
+
+    keep public function copy(weak:Bool = false) {
+        Disposed(this, Vec2);
+        return Vec2.get(x, y, weak);
     }
 
     //----------------------------------------------------------------------------------------------
-    
+
     #if flash9
         keep public static function fromPoint(point:flash.geom.Point, ?weak:Bool=false) {
             DEBUG(
@@ -51,7 +97,7 @@ class Vec2 {
             return Vec2.get(point.x,point.y,weak);
         }
     #end
-    
+
     keep public static function fromPolar(length:Float,angle:Float, ?weak:Bool=false) {
         DEBUG(
             if(isNaN(length)) throw "Error: Vec2::length cannot be NaN";
@@ -59,9 +105,9 @@ class Vec2 {
         )
         return Vec2.get(length*Math.cos(angle),length*Math.sin(angle),weak);
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     $(mixin comp(n)
         property(n,Float,{
             Disposed(this,Vec2);
@@ -75,7 +121,7 @@ class Vec2 {
                 if(pr(inner).immutable) throw "Error: Vec2 is immutable";
                 if(pr(inner)._immutable!=null) pr(inner)._immutable();
             )
-            
+
             if(this.n!=n) {
                 DEBUG(if(isNaN(n)) throw "Error: Vec2::"+$str(n)+" cannot be NaN";)
                 pr(inner).n = n;
@@ -85,9 +131,9 @@ class Vec2 {
     );
     comp(x)
     comp(y)
-    
+
     //----------------------------------------------------------------------------------------------
-        
+
     property(length,Float,{
         Disposed(this,Vec2);
 
@@ -97,29 +143,29 @@ class Vec2 {
 
         DEBUG(
             if(pr(inner).immutable) throw "Error: Vec2 is immutable";
-        
+
             if(isNaN(length)) throw "Error: Vec2::length cannot be NaN";
             if(vec_lsq(this.)==0) throw "Error: Cannot set length of a zero vector";
         )
         vec_muleq(this., length/vec_length_slow(this.));
         pr(inner).invalidate();
     })
-    
+
     keep public function lsq() {
         Disposed(this,Vec2);
 
         return vec_lsq(this.);
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     public function set(p:Vec2) {
         Disposed(this,Vec2);
         Disposed(p,Vec2);
 
         DEBUG(
             if(pr(inner).immutable) throw "Error: Vec2 is immutable";
-        
+
             if(p==null) throw "Error: Cannot assign null Vec2";
         )
         var ret = setxy(p.x,p.y);
@@ -131,7 +177,7 @@ class Vec2 {
 
         DEBUG(
             if(pr(inner).immutable) throw "Error: Vec2 is immutable";
-        
+
             if(isNaN(x) || isNaN(y)) throw "Error: Vec2 components cannot be NaN";
         )
         if(!vec_eq(this.,$(->))) {
@@ -140,9 +186,9 @@ class Vec2 {
         }
         return this;
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     property(angle,Float, {
         Disposed(this,Vec2);
 
@@ -152,7 +198,7 @@ class Vec2 {
 
         DEBUG(
             if(pr(inner).immutable) throw "Error: Vec2 is immutable";
-        
+
             if(isNaN(angle))  throw "Error: Vec2::angle cannot be NaN";
         )
         var l = length;
@@ -172,9 +218,9 @@ class Vec2 {
 
         return this;
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     keep public function add  (a:Vec2, ?weak:Bool=false) {
         Disposed(this,Vec2);
         Disposed(a,Vec2);
@@ -220,7 +266,7 @@ class Vec2 {
             if(a==null) throw "Error: Cannot subtract null vectors";
         )
         var ret = setxy(vec_isub($(->),a.));
-        WEAK(a);    
+        WEAK(a);
         return ret;
     }
     keep public function muleq(s:Float) {
@@ -255,9 +301,9 @@ class Vec2 {
         Disposed(this,Vec2);
         return Vec2.get(-y,x,weak);
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     //keep is only for swc, use standard metadata
     @:$keep public function toString() {
         Disposed(this,Vec2);
