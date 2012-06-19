@@ -6,11 +6,11 @@ $(mixin global SetIter(i,set,closure) ${assert/2->
     if(!set.empty()) {
         var set_ite = set.parent; //root
         while(set_ite.prev!=null) set_ite = set_ite.prev;
-    
+
         while(set_ite!=null) {
             var i = set_ite.data;
             closure;
-    
+
             if(set_ite.next!=null) {
                 set_ite = set_ite.next;
                 while(set_ite.prev!=null) set_ite = set_ite.prev;
@@ -92,7 +92,7 @@ $(expand genSet(T) class Set(T) {
         return true;
     }
 
-    public function empty() return parent==null    
+    public function empty() return parent==null
     public function singular() return parent!=null && parent.prev==null && parent.next==null
     public function size() { var ret = 0; SetIter(i,this,ret++); return ret; }
 
@@ -203,7 +203,7 @@ $(expand genSet(T) class Set(T) {
 
         assert(cur.next==null || cur.prev==null,"node still has two children??");
         var child = if(cur.prev==null) cur.next else cur.prev;
-        
+
         //rebalance
         if(cur.colour==BLACK) {
             if(cur.prev!=null || cur.next!=null)
@@ -267,7 +267,7 @@ $(expand genSet(T) class Set(T) {
         if(parent==null) return;
         else {
             var cur = parent;
-            while(cur!=null) 
+            while(cur!=null)
                 cur = if(cur.prev!=null) cur.prev
                     elif(cur.next!=null) cur.next
                     else clear_node(cur,lambda);

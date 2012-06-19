@@ -49,7 +49,7 @@ class VPair {
     public var span1:Span;
     public var span2:Span;
     public var spanr:Span;
-    
+
     MixPool(VPair)
     public function free() {
         p1 = p2 = pr = pd = null;
@@ -137,7 +137,7 @@ class PR(MarchingSquares) {
                     if(pp.p2!=null) {
                         pp.span2 = pp.spanr = Get(Span);
                     }else pp.spanr = pp.span1;
-                    
+
                     if(me.combRight(pp.keyr)) pre = pp;
                     else pre = null;
                 }else {
@@ -222,7 +222,7 @@ class PR(MarchingSquares) {
                 pop(v);
                 return;
             }
-            
+
             if(pre.x==v.x && pre.y==v.y) {
                 var force = v.forced || pre.forced;
                 if(pre==poly) poly = poly.prev;
@@ -255,7 +255,7 @@ class PR(MarchingSquares) {
     //   |-#-| key = 01010101  . .`o key = 00001110  o---o key = 10001101
     //   o---o                 . . .                 . . .
     //
-    //     p                                         
+    //     p
     //   . o-o t               . . . key = 00111000  . . . key = 10011000
     //   . | | key = 00110110  . .,o pt              o---o pt
     //   . o-o                 . o-o                 o---o
@@ -302,7 +302,7 @@ class PR(MarchingSquares) {
     //   |-#-| key = 01010101  o`. . key = 10000011  o---o key = 10001101
     //   o---o                 . . .                 . . .
     //
-    //  pt                                         
+    //  pt
     //   o-o .                  . . . key = 00111000  . . . key = 10011000
     //   | | . key = 01100011 t o,. .               t o---o p
     //   o-o .                  o-o .                 o---o
@@ -342,11 +342,11 @@ class PR(MarchingSquares) {
     // possible configurations for a combDown'able VPair poly:
     // ( p = current point, t = target point)
     //
-    //   p                    
-    //   o---o                . . . key = 00111000 . . . key = 10011000 
+    //   p
+    //   o---o                . . . key = 00111000 . . . key = 10011000
     //   |-#-| key = 01010101 . .,o p              o---o p
     // t o---o                . o-o              t o---o
-    //                          t        
+    //                          t
     //   p                                           p
     //   o-o .                . . . key = 11100000 . o-o
     //   | | . key = 01100011 o,. .                . | | key = 00110110
@@ -382,7 +382,7 @@ class PR(MarchingSquares) {
     // return vertex from start of merge in combUD.
     // trivially, this is simply the start vertex.
     function linkup(poly:Polygon,key:Int) return poly
-                      
+
     function combLR(a:VPair,b:VPair) {
         //set up pointers for merge
         var ap:Polygon = linkright(a.pr,a.okeyr);
@@ -481,11 +481,11 @@ class PR(MarchingSquares) {
     }
     function combRight(key:Int) {
         var flag = (key&0x1C)>>2;
-        return comb(flag);    
+        return comb(flag);
     }
     function combUp(key:Int) {
         var flag = (key&0x07);
-        return comb(flag);    
+        return comb(flag);
     }
     function combDown(key:Int) {
         var flag = (key&0x70)>>4;
@@ -498,7 +498,7 @@ class PR(MarchingSquares) {
         if((flag&2)!=0) cnt++;
         if((flag&4)!=0) cnt++;
         return cnt>=2;
-        //return flag==5 || ((flag&2)!=0);    
+        //return flag==5 || ((flag&2)!=0);
     }
 
     // generate polygon for a single cell.
@@ -585,7 +585,7 @@ class PR(MarchingSquares) {
                 ret.okey`out = val;
                 for(i in 0...8) {
                     if((val&(1<<i))!=0) {
-                        var p:Vertex = null; 
+                        var p:Vertex = null;
                         if  (i==0) { p = Vertex.get(x0,y0); if(fstx || fsty) p.forced = true; }
                         elif(i==2) { p = Vertex.get(x1,y0); if(sndx || fsty) p.forced = true; }
                         elif(i==4) { p = Vertex.get(x1,y1); if(sndx || sndy) p.forced = true; }

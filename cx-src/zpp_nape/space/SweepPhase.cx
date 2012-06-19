@@ -4,7 +4,7 @@ $(import);
 class PR(SweepData) {
     MixPool(PR(SweepData))
     public var prev:PR(SweepData);
-    
+
     public var shape:PR(Shape);
     public var aabb:PR(AABB); //=shape.aabb
     flibmdel public inline function free() {
@@ -13,7 +13,7 @@ class PR(SweepData) {
         aabb = null;
     }
     flibmdel public inline function alloc() {}
-    
+
     public function new() {}
 
     flibmdel public inline function gt(x:PR(SweepData)) {
@@ -27,7 +27,7 @@ class PR(SweepPhase) extends PR(Broadphase) {
     public var list:PR(SweepData);
 
     public function new(space:PR(Space)) {
-        this.space = space; 
+        this.space = space;
         is_sweep = true;
         sweep = this;
     }
@@ -107,7 +107,7 @@ class PR(SweepPhase) extends PR(Broadphase) {
                 var bottom = d1.aabb.maxx;
                 while(d2!=null) {
                     if(d2.aabb.minx > bottom) break;
-                    
+
                     var s2 = d2.shape;
                     var b2 = s2.body;
 
@@ -127,7 +127,7 @@ class PR(SweepPhase) extends PR(Broadphase) {
                     if(s1.aabb.intersectY(s2.aabb)) {
                         space.narrowPhase(s1,s2, !b1.isDynamic()||!b2.isDynamic());
                     }
-                    
+
                     d2 = d2.next;
                 }
                 d1 = d1.next;
@@ -171,7 +171,7 @@ class PR(SweepPhase) extends PR(Broadphase) {
         }
         Free(PR(Vec2),v);
         return ret;
-    }    
+    }
     public override function bodiesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)) {
         sync_broadphase();
 
@@ -393,7 +393,7 @@ class PR(SweepPhase) extends PR(Broadphase) {
     public override function rayCast(ray:PR(Ray),inner:Bool,filter:PR(InteractionFilter)) {
         sync_broadphase();
         ray.validate_dir();
-        
+
         var rayab = ray.rayAABB();
 
         var mint = ray.maxdist;
@@ -408,7 +408,7 @@ class PR(SweepPhase) extends PR(Broadphase) {
                         var result =
                             if(a.shape.isCircle()) ray.circlesect(a.shape.circle,inner,mint)
                             else ray.polysect(a.shape.polygon,inner,mint);
-                            
+
                         if(result!=null) {
                             mint = result.distance;
                             minres = result;
@@ -430,7 +430,7 @@ class PR(SweepPhase) extends PR(Broadphase) {
                         var result =
                             if(a.shape.isCircle()) ray.circlesect(a.shape.circle,inner,mint)
                             else ray.polysect(a.shape.polygon,inner,mint);
-                            
+
                         if(result!=null) {
                             mint = result.distance;
                             minres = result;
@@ -448,7 +448,7 @@ class PR(SweepPhase) extends PR(Broadphase) {
                         var result =
                             if(a.shape.isCircle()) ray.circlesect(a.shape.circle,inner,mint)
                             else ray.polysect(a.shape.polygon,inner,mint);
-                            
+
                         if(result!=null) {
                             mint = result.distance;
                             minres = result;
@@ -458,18 +458,18 @@ class PR(SweepPhase) extends PR(Broadphase) {
                 a = a.next;
             }
         }
-        
+
         return minres;
     }
-    
+
     public override function rayMultiCast(ray:PR(Ray),inner:Bool,filter:PR(InteractionFilter)) {
         sync_broadphase();
         ray.validate_dir();
-        
+
         var rayab = ray.rayAABB();
 
         var ret = new RayResultList();
-        
+
         //special case for dirx <,=,> 0 to abuse sweep space a little if possible.
         if(ray.dirx==0) {
             var a = list;
@@ -512,7 +512,7 @@ class PR(SweepPhase) extends PR(Broadphase) {
                 a = a.next;
             }
         }
-        
+
         return ret;
     }
 }

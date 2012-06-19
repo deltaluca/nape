@@ -63,7 +63,7 @@ class Segment {
     }
     public function alloc() {
         vertices = Get(Set(Vertex));
-        vertices.lt = less_xy; 
+        vertices.lt = less_xy;
     }
 
     //prev,next refer to positions in sweep line tree.
@@ -95,11 +95,11 @@ $(mixin RIGHT 2);
 
 $(mixin Event() PR(SimpleEvent));
 class Event {
-    
+
     //type == LEFT  => vertex = segment.left
     //type == RIGHT => vertex = segment.right
     //type == INT   => other<>null and vertex is segment+other intersection
-    public var type:Int;    
+    public var type:Int;
 
     public var vertex:Vertex;
     public var segment :Segment;
@@ -275,10 +275,10 @@ class Sweep {
 
             var t = vec_cross(c,v)*denom;
             if(t<0 || t>1) return null;
-            
+
             var s = vec_cross(c,u)*denom;
             if(s<0 || s>1) return null;
-            
+
             var vet:Vertex;
             if(s==0||s==1||t==0||t==1) {
                 DEBUG(
@@ -298,7 +298,7 @@ class Sweep {
                 vet = Vertex.get(
                     0.5*(p.left.x + ux*t + q.left.x + vx*s),
                     0.5*(p.left.y + uy*t + q.left.y + vy*s)
-                ); 
+                );
 
             var ret = Event.get(vet);
             ret.type = INT;
@@ -323,7 +323,7 @@ class PR(Simple) {
         var vertices = Get(Set(Vertex));
         vertices.lt = Vertex.less_xy;
         vertices.swapped = Vertex.swap_nodes;
-        
+
         var queue = Get(Set(Event));
         queue.lt = Event.less_xy;
         queue.swapped = Event.swap_nodes;
@@ -463,13 +463,13 @@ class PR(Simple) {
                     var an = a.node; var bn = b.node;
                     an.data = b; bn.data = a;
                     a.node = bn; b.node = an;
-    
+
                     b.next = a.next; a.next = b;
                     a.prev = b.prev; b.prev = a;
                     if(a.prev!=null) a.prev.next = a;
                     if(b.next!=null) b.next.prev = b;
                 }
-    
+
                 do_intersect(b.next,b);
                 do_intersect(a,a.prev);
 
@@ -481,7 +481,7 @@ class PR(Simple) {
 
         assert(queue.empty(),"clean up fail");
         assert(ints.empty(),"clean up fail");
-        Free(Set(Event),queue);    
+        Free(Set(Event),queue);
         Free(Set(Event),ints);
 
         ClearHashWith(inthash,$(mixin cb(x) Free(Hashable2(Bool),x)));
@@ -516,7 +516,7 @@ class PR(Simple) {
 
         //want to walk clockwise
         if(left_turn(pre,cur,nxt) < 0) nxt = pre;
-    
+
         $(mixin popvertex(v) {
             vertices.remove(v);
             Free(Vertex,v);
@@ -541,7 +541,7 @@ class PR(Simple) {
             ret.forced = nxt.forced;
 
             assert(!nxt.links.empty(),".. no where left to go?");
-            
+
             if(nxt.links.singular()) {
                 if(cur.links.empty()) popvertex(cur);
                 cur = nxt;
@@ -575,7 +575,7 @@ class PR(Simple) {
 
         assert(fst.links.empty(),"hmm, shouldn't have any left");
         popvertex(fst);
-        
+
         //do not assert that isSimple is true
         //as the output from simple decomosition
         //are only guaranteed to be 'weakly' simple
@@ -599,7 +599,7 @@ class PR(Simple) {
         Iter2_fast(u,v,vertices,{
             var e1 = queue.add(Event.get(u));
             var e2 = queue.add(Event.get(v));
-            e1.segment = e2.segment = 
+            e1.segment = e2.segment =
                 if(Event.less_xy(e1,e2)) {
                     e1.type = LEFT; e2.type = RIGHT;
                     Segment.get(u,v);

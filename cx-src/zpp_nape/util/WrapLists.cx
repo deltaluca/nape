@@ -4,35 +4,35 @@ $(import);
 /**
 
     User exposed list types.
-    
+
     WrapList(T,ListT,IteT, defs) :
         Type name, eg: Body
         Underlying list name, eg: List(PR(Body))
         Underlying iterator name, eg: Node(PR(Body))
-        
+
         defs: list of further definitions as mixins.
             use_accept -> Bool; if true then this exposed list will transparently hide certain
                                 elements as described by accept(x)
             accept(x) -> Bool ; if true for given x, then x will be exposed to the user.
-            
+
             use_inline -> Bool; if true then whichever methods can, will be inlined, goes hand in
                                 hand with inline macro, which should simply be '$inline' if you want
                                 inlining.
-                    
+
             copy_elt(o:T) -> T ; describe how an object in the user-exposed list must be copied.
-            
+
             reversal(i:Int) -> Int ; return index of element 'i' when list has been reversed
                     IF this is not the default, then LIST CANNOT BE MUTABLE (avoids complication)
 
     assumption: use_accept <=> immutable list (avoids complication also)
 
     //-----------
-    
+
     if not using inlining, can override how the list is accessed in a more fundamental way than
     though accepting macro by overriding methods like push/pop/at, and also by overriding the
     pr(vm) and pr(gl) methods which only exist for non-inlined lists to handle validation of the list
     and length of the list respectively.
-    
+
 **/
 
 $(mixin global WrapList(T,ListT,IteT, defs)
@@ -43,28 +43,28 @@ $(mixin global WrapList(T,ListT,IteT, defs)
 $(mixin global WrapListNew(T,ListT,IteT, defs)
     $(mixin accept(x) true);
     $(mixin use_accept false);
-    
+
     $(mixin inline $inline);
     $(mixin use_inline true);
-    
+
     $(mixin copy_elt(o) { DEBUG(throw "Error: "+$str(T)+" is not a copyable type"; ) null; });
-    
+
     $(mixin reversal(i) (length-1-i));
-    
+
     class T`List {
         defs
-        
+
         public var pr(inner):PR(T`List);
-        
+
         public var length(flibget_length,never):Int;
         //this must truly be inlined for swc.
         #if use_inline
             force_inline function flibget_length() {
                 pr(inner).valmod();
-            
+
                 if(pr(inner).inv(length)) {
                     pr(inner).inv(length) = false;
-                    
+
                     if(use_accept) {
                         pr(inner).user_length = 0;
                         Iter(i,pr(inner).inner,if(accept(i)) pr(inner).user_length++);
@@ -79,10 +79,10 @@ $(mixin global WrapListNew(T,ListT,IteT, defs)
             }
             public function pr(gl)() {
                 pr(inner).valmod();
-                
+
                 if(pr(inner).inv(length)) {
                     pr(inner).inv(length) = false;
-                    
+
                     if(use_accept) {
                         pr(inner).user_length = 0;
                         Iter(i,pr(inner).inner,if(accept(i)) pr(inner).user_length++);
@@ -91,12 +91,12 @@ $(mixin global WrapListNew(T,ListT,IteT, defs)
                 }
                 return pr(inner).user_length;
             }
-            
+
             public function pr(vm)() {
                 pr(inner).valmod();
             }
         #end
-        
+
         keep public static function fromArray(array:#if flash9 Array<Dynamic> #else Array<T> #end) {
             var ret = new T`List();
             for(i in array) {
@@ -124,9 +124,9 @@ $(mixin global WrapListNew(T,ListT,IteT, defs)
         //optimised for fast sequential access when preferebal to use of iterator.
         keep public function at(index:Int):T {
             #if use_inline pr(inner).valmod(); #else pr(vm)(); #end
-            
+
             DEBUG(if(index<0 || index>=length) throw "Error: Index out of bounds";)
-            
+
             if(pr(inner).reverse_flag) index = reversal(index);
 
             if(!use_accept) {
@@ -159,15 +159,15 @@ $(mixin global WrapListNew(T,ListT,IteT, defs)
                     }
                 }
             }
-            
+
             return closure(pr(inner).at_ite.elem());
         }
-        
+
         keep public function push(obj:T) {
             DEBUG(if(pr(inner).immutable) throw "Error: "+$str(T)+"List is immutable";)
             pr(inner).modify_test();
             #if use_inline pr(inner).valmod(); #else pr(vm)(); #end
-            
+
             var cont = if(pr(inner).adder!=null) pr(inner).adder(obj) else true;
             if(cont) {
                 if(pr(inner).reverse_flag)
@@ -177,7 +177,7 @@ $(mixin global WrapListNew(T,ListT,IteT, defs)
                     pr(inner).push_ite = pr(inner).inner.insert(pr(inner).push_ite,erusolc(obj));
                 }
                 pr(inner).invalidate();
-                
+
                 if(pr(inner).post_adder!=null) pr(inner).post_adder(obj);
             }
             return cont;
@@ -186,7 +186,7 @@ $(mixin global WrapListNew(T,ListT,IteT, defs)
             DEBUG(if(pr(inner).immutable) throw "Error: "+$str(T)+"List is immutable";)
             pr(inner).modify_test();
             #if use_inline pr(inner).valmod(); #else pr(vm)(); #end
-            
+
             var cont = if(pr(inner).adder!=null) pr(inner).adder(obj) else true;
             if(cont) {
                 if(pr(inner).reverse_flag) {
@@ -195,18 +195,18 @@ $(mixin global WrapListNew(T,ListT,IteT, defs)
                 }else
                     pr(inner).inner.add(erusolc(obj));
                 pr(inner).invalidate();
-                
+
                 if(pr(inner).post_adder!=null) pr(inner).post_adder(obj);
             }
             return cont;
         }
-        
+
         keep public function pop():T {
             DEBUG(if(pr(inner).immutable) throw "Error: "+$str(T)+"List is immutable";)
             pr(inner).modify_test();
             DEBUG(if(empty()) throw "Error: Cannot remove from empty list";)
             #if use_inline pr(inner).valmod(); #else pr(vm)(); #end
-            
+
             var ret = null;
             if(pr(inner).reverse_flag) {
                 ret = pr(inner).inner.front();
@@ -223,7 +223,7 @@ $(mixin global WrapListNew(T,ListT,IteT, defs)
                 if(!pr(inner).dontremove)
                     pr(inner).inner.erase(ite);
             }
-            
+
             pr(inner).invalidate();
             var retx = closure(ret);
             return retx;
@@ -233,7 +233,7 @@ $(mixin global WrapListNew(T,ListT,IteT, defs)
             pr(inner).modify_test();
             DEBUG(if(empty()) throw "Error: Cannot remove from empty list";)
             #if use_inline pr(inner).valmod(); #else pr(vm)(); #end
-            
+
             var ret = null;
             if(pr(inner).reverse_flag) {
                 if(pr(inner).at_ite!=null && pr(inner).at_ite.next == null) pr(inner).at_ite = null;
@@ -250,18 +250,18 @@ $(mixin global WrapListNew(T,ListT,IteT, defs)
                 if(!pr(inner).dontremove)
                     pr(inner).inner.pop();
             }
-            
+
             pr(inner).invalidate();
             var retx = closure(ret);
             return retx;
         }
-        
+
         keep public function add(obj:T) return if(pr(inner).reverse_flag) push(obj) else unshift(obj)
         keep public function remove(obj:T):Bool {
             DEBUG(if(pr(inner).immutable) throw "Error: "+$str(T)+"List is immutable";)
             pr(inner).modify_test();
             #if use_inline pr(inner).valmod(); #else pr(vm)(); #end
-            
+
             var ret = Exists(x,pr(inner).inner, x==erusolc(obj));
             if(ret) {
                 if(pr(inner).subber!=null) pr(inner).subber(obj);
@@ -271,7 +271,7 @@ $(mixin global WrapListNew(T,ListT,IteT, defs)
             }
             return ret;
         }
-        
+
         keep public function clear() {
             DEBUG(if(pr(inner).immutable) throw "Error: "+$str(T)+"List is immutable";)
             if(pr(inner).reverse_flag) {
@@ -289,14 +289,14 @@ $(mixin global WrapListNew(T,ListT,IteT, defs)
                 return length==0;
             #end
         }
-        
+
         keep public function iterator() {
             #if use_inline pr(inner).valmod(); #else pr(vm)(); #end
             if(pr(inner).iterators==null) pr(inner).iterators = new List(T`Iterator)();
-            
+
             return T`Iterator.get(this);
         }
-        
+
         keep public function copy(?deep:Bool=false) {
             var ret = new T`List();
             for(i in this) ret.push(deep ? copy_elt(i) : i);
@@ -314,7 +314,7 @@ $(mixin global WrapListNew(T,ListT,IteT, defs)
             pr(inner) = new PR(T`List)();
             pr(inner).outer = this;
         }
-        
+
         @:$keep public function toString() {
             var ret = "[";
             var fst = true;
@@ -355,37 +355,37 @@ $(mixin global WrapListNew(T,ListT,IteT, defs)
             return this;
         }
     }
-    
+
     PRWrapList(T,ListT,IteT)
 );
 
 $(mixin global WrapListIterator(T,ListT,IteT, defs)
     $(mixin accept(x) true);
     $(mixin use_accept false);
-    
+
     $(mixin inline $inline);
     $(mixin use_inline true);
-    
+
     $(mixin copy_elt(o) { DEBUG(throw "Error: "+$str(T)+" is not a copyable type"; ) null; });
-    
+
     $(mixin reversal(i) (length-1-i));
-    
+
     class T`Iterator {
         public var pr(inner):T`List;
         public var pr(i):Int;
         public var pr(critical):Bool;
-        
+
         //MixPool(T`Iterator) //cannot use this due to method 'next'
         CLEARITERATOR(T`Iterator)
         public static var pr(pool):T`Iterator;
         public var pr(next):T`Iterator;
-        
+
         public function new() {
             DEBUG(if(!PR(T`List).internal)
                 throw "Error: Cannot instantiate "+$str(T)+"Iterator derp!";
             )
         }
-        
+
         public static function get(list:T`List) {
             var ret = if(pr(pool)==null) {
                 PR(T`List).internal = true;
@@ -403,19 +403,19 @@ $(mixin global WrapListIterator(T,ListT,IteT, defs)
             list.pr(inner).iterators.add(ret);
             return ret;
         }
-    
+
         $(mixin file RELEASE_ITERATOR(I,i) {
             i.pr(next) = I.pr(pool);
             I.pr(pool) = i;
             i.pr(inner).pr(inner).iterators.remove(i);
             i.pr(inner) = null;
         });
-        
+
         keep public function hasNext() {
             #if use_inline pr(inner).pr(inner).valmod(); #else pr(inner).pr(vm)(); #end
             var length = pr(inner).length;
             pr(critical) = true;
-            
+
             if(pr(i)<length) {
                 return true;
             } else {
