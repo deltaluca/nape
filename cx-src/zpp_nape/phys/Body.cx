@@ -49,6 +49,7 @@ class PR(Body) extends PR(Interactor) {
 	static var bodystack:List(PR(Body)) = null;
 	static var bodyset:Set(PR(Body)) = null;
 	static function bodyset_lt(a:PR(Body), b:PR(Body)) return a.id < b.id
+    public var graph_depth:Int;
 
 	inline function init_bodysetlist() {
 		if(bodyset==null) {
@@ -63,18 +64,25 @@ class PR(Body) extends PR(Interactor) {
 	//----------------------------------------------------------------------------------------------
 	
 	//avoid use of closures.
+    static var cur_graph_depth:Int;
 	function connectedBodies_cont(b:Body) {
-		if(bodyset.try_insert_bool(b.pr(inner)))
+		if(bodyset.try_insert_bool(b.pr(inner))) {
 			bodystack.add(b.pr(inner));
+            b.pr(inner).graph_depth = cur_graph_depth + 1;
+        }
 	}
-	public function connectedBodies():BodyList {
+	public function connectedBodies(depth:Int):BodyList {
 		init_bodysetlist();
 
 		var ret = new BodyList();
 		bodystack.add(this);
 		bodyset.insert(this);
+        graph_depth = 0;
 		while(!bodystack.empty()) {
 			var cur = bodystack.pop_unsafe();
+            if(cur.graph_depth == depth) continue;
+
+            cur_graph_depth = cur.graph_depth;
 			Iter(c, cur.constraints, c.outer.visitBodies(connectedBodies_cont));
 		}
 
@@ -86,19 +94,24 @@ class PR(Body) extends PR(Interactor) {
 
 	//----------------------------------------------------------------------------------------------
 
-	public function interactingBodies(arbiter_type:Int):BodyList {
+	public function interactingBodies(arbiter_type:Int, depth:Int):BodyList {
 		init_bodysetlist();
 
 		var ret = new BodyList();
-		bodystack.add(this);
 		bodyset.insert(this);
+		bodystack.add(this);
+        graph_depth = 0;
 		while(!bodystack.empty()) {
 			var cur = bodystack.pop_unsafe();
+            if(cur.graph_depth == depth) continue;
+
 			Iter(arb, cur.arbiters, {
 				if((arb.type&arbiter_type)!=0) {
 					var other = if(arb.b1==cur) arb.b2 else arb.b1;
-					if(bodyset.try_insert_bool(other))
+					if(bodyset.try_insert_bool(other)) {
 						bodystack.add(other);
+                        other.graph_depth = cur.graph_depth + 1;
+                    }
 				}
 			});
 		}

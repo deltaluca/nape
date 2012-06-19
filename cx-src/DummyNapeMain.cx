@@ -3,63 +3,29 @@ $(import);
 
 class DummyNapeMain {
 	static function main() {
-        var BALL = new CbType();
-        var WALL = new CbType();
+        var b0 = new Body();
+        var b1 = new Body();
+        var b2 = new Body();
+
+        var c = new PivotJoint(b0, b1, new Vec2(), new Vec2());
+        var d = new PivotJoint(b1, b2, new Vec2(), new Vec2());
 
         var space = new Space();
-        var ball = new Body();
-        ball.allowRotation = false;
-        var circle = new Circle(10, null, new Material(1, 0, 0, 1, 0));
-        circle.body = ball;
 
-        ball.position.setxy(300,300);
-        ball.cbTypes.add(BALL);
-        ball.space = space;
-        var angle;
-        ball.velocity = Vec2.fromPolar(200, angle = Math.PI*2*Math.random());
-        trace(angle);
+        trace(b0.connectedBodies(0));
+        trace(b0.connectedBodies(1));
+        trace(b0.connectedBodies(2));
 
-        var stage = flash.Lib.current.stage;
-        function createBoundary(rect:flash.geom.Rectangle, size:Float) {
-            var body = new Body(BodyType.STATIC);
-            body.shapes.add(new Polygon(Polygon.rect(rect.x-size,rect.bottom,rect.width+size*2,size)));
-            body.shapes.add(new Polygon(Polygon.rect(rect.x-size, rect.y-size,rect.width+size*2, size)));
-            body.shapes.add(new Polygon(Polygon.rect(rect.x-size, rect.y-size, size, rect.height+size*2)));
-            body.shapes.add(new Polygon(Polygon.rect(rect.right, rect.y-size, size, rect.height+size*2)));
-            return body;
-        }
-        var wall = createBoundary(new flash.geom.Rectangle(20, 20, stage.stageWidth - 40, stage.stageHeight - 40), 200);
-        wall.cbTypes.add(WALL);
-        wall.space = space;
+        c.space = space;
 
-        var debug = new BitmapDebug(stage.stageWidth, stage.stageHeight, 0);
-        stage.addChild(debug.display);
+        trace(b0.connectedBodies(0));
+        trace(b0.connectedBodies(1));
+        trace(b0.connectedBodies(2));
 
-        var icollision = 0;
-        function onCollision(cb:InteractionCallback) {
-            ball.type = BodyType.KINEMATIC;
-            ball.velocity = new Vec2();
-            var move = cb.arbiters.at(0).collisionArbiter.normal.mul(10);
-            ball.position.addeq(move);
-            icollision = 10;
-            trace("collided");
-        }
-        space.listeners.add(new InteractionListener(CbEvent.ONGOING, InteractionType.COLLISION, BALL, WALL, onCollision));
-        space.listeners.add(new InteractionListener(CbEvent.END, InteractionType.SENSOR, BALL, WALL, function (_) { throw "ended"; }));
+        d.space = space;
 
-        (new haxe.Timer(15)).run = function() {
-            trace("---");
-            if(icollision>0) {
-                icollision--;
-                if(icollision==0) {
-                    trace("changing position");
-                    ball.position.setxy(300,300);
-                }
-            }
-            debug.clear();
-            space.step(30/1000);
-            debug.draw(space);
-            debug.flush();
-        }
+        trace(b0.connectedBodies(0));
+        trace(b0.connectedBodies(1));
+        trace(b0.connectedBodies(2));
 	}
 }

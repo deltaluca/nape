@@ -309,7 +309,7 @@ class PortalManager {
 	private var listeners:Array<Listener>;
 	public function new(space:Space) {
 		for(x in listeners = [
-			new PreListener(InteractionType.COLLISION, InOut, CbType.ANY_SHAPE.exclude(Portal), prevent_back_collisions),
+			new PreListener(InteractionType.COLLISION, InOut, CbType.ANY_SHAPE.excluding(Portal), prevent_back_collisions),
 			new PreListener(InteractionType.ANY, CbType.ANY_SHAPE, Portal, ignore_portal_interaction),
 			new InteractionListener(CbEvent.BEGIN, InteractionType.ANY, Portal, Portable, start_portal),
 			new InteractionListener(CbEvent.END, InteractionType.ANY, Portal, InOut, end_portal)
