@@ -5,14 +5,14 @@ class PR(AABB) {
     public var _invalidate:PR(AABB)->Dynamic;
     public var _validate:Void->Dynamic;
     public var immutable:Bool;
-    
+
     public function validate() {
         if(_validate!=null) _validate();
     }
     public function invalidate() {
         if(_invalidate!=null) _invalidate(this);
     }
-    
+
     public var outer:AABB;
     public function wrapper() {
         if(outer==null) {
@@ -22,9 +22,9 @@ class PR(AABB) {
         }
         return outer;
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     MixPool(PR(AABB))
     flibmdel public inline function alloc() {}
     flibmdel public inline function free() {
@@ -34,9 +34,9 @@ class PR(AABB) {
         _invalidate = null;
         _validate = null;
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     public function new() {}
     flibstaticdel(get) public static inline function get(minx:Float, miny:Float, maxx:Float, maxy:Float) {
         var ret = Get(PR(AABB));
@@ -45,25 +45,25 @@ class PR(AABB) {
         return ret;
     }
     flibmdel public inline function copy() return PR(AABB).get(minx,miny,maxx,maxy)
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     flibmdel public inline function width () return maxx-minx
     flibmdel public inline function height() return maxy-miny
 
     flibmdel public inline function perimeter() return (width()+height())*2
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     $(mixin comp(n)
         vec_new(public,n);
         public var wrap_`n:Vec2;
-        
+
         public function get_`n() {
             if(wrap_`n==null) {
                 wrap_`n = Vec2.get(n`x,n`y);
-                wrap_`n.pr(inner).inuse = true;
-                if(immutable) wrap_`n.pr(inner).immutable = true;
+                wrap_`n.pr(inner)._inuse = true;
+                if(immutable) wrap_`n.pr(inner)._immutable = true;
                 else wrap_`n.pr(inner)._invalidate = mod_`n;
                 wrap_`n.pr(inner)._validate = dom_`n;
             }
@@ -82,27 +82,27 @@ class PR(AABB) {
     );
     comp(min)
     comp(max)
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     flibmdel public inline function intersectX(x:PR(AABB)) {
         return !(x.minx > maxx || minx > x.maxx);
     }
     flibmdel public inline function intersectY(x:PR(AABB)) {
         return !(x.miny > maxy || miny > x.maxy);
     }
-    
+
     flibmdel public inline function intersect(x:PR(AABB)) {
         return x.miny <= maxy && miny <= x.maxy && x.minx <= maxx && minx <= x.maxx;
     }
-    
+
     flibmdel public inline function combine(x:PR(AABB)) {
         if(x.minx<minx) minx = x.minx;
         if(x.maxx>maxx) maxx = x.maxx;
         if(x.miny<miny) miny = x.miny;
         if(x.maxy>maxy) maxy = x.maxy;
     }
-    
+
     flibmdel public inline function contains(x:PR(AABB)) {
         return x.minx >= minx && x.miny >= miny && x.maxx <= maxx && x.maxy <= maxy;
     }
@@ -130,9 +130,9 @@ class PR(AABB) {
         if(y<miny) miny = y;
         if(y>maxy) maxy = y;
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     public function toString() {
         return "{ x: "+minx+" y: "+miny+" w: "+width()+" h: "+height()+" }";
     }

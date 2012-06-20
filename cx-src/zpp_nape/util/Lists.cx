@@ -159,7 +159,7 @@ $(expand global MixDerivedList(T,ListT,IteT,defs)
             pr(inner).modify_test();
             
             pr(vm)();
-            DEBUG(if(obj.pr(inner).inuse) throw "Error: "+$str(T)+" is already in use";)
+            DEBUG(if(obj.pr(inner)._inuse) throw "Error: "+$str(T)+" is already in use";)
             
             var cont = if(pr(inner).adder!=null) pr(inner).adder(obj) else true;
             if(cont) {
@@ -180,7 +180,7 @@ $(expand global MixDerivedList(T,ListT,IteT,defs)
             pr(inner).modify_test();
             
             pr(vm)();
-            DEBUG(if(obj.pr(inner).inuse) throw "Error: "+$str(T)+" is already in use";)
+            DEBUG(if(obj.pr(inner)._inuse) throw "Error: "+$str(T)+" is already in use";)
             
             var cont = if(pr(inner).adder!=null) pr(inner).adder(obj) else true;
             if(cont) {
@@ -379,13 +379,13 @@ $(mixin global MixListMixin(T)
     flibmdel public inline function elem ():T return this
     flibmdel public inline function begin():T return next
     
-    public var inuse:Bool;
+    public var _inuse:Bool;
     
     ListMixin(
         $(mixin _setbeg(i) next=i);
-        $(mixin _new(o) { o.inuse = true; o; });
+        $(mixin _new(o) { o._inuse = true; o; });
         $(mixin _delete(o) {});
-        $(mixin _delelt(o) { o.inuse = false; });
+        $(mixin _delelt(o) { o._inuse = false; });
         $(mixin _clear false);
     ,
         T,T,T

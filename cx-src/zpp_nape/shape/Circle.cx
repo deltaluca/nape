@@ -3,11 +3,11 @@ $(import);
 
 class PR(Circle) extends PR(Shape) {
     public var outer_zn:Circle;
-    
+
     public var radius:Float;
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     public function new() {
         super(Flag(ShapeType,CIRCLE));
         circle = this;
@@ -15,15 +15,15 @@ class PR(Circle) extends PR(Shape) {
     }
 
     public function __clear() {}
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     public function invalidate_radius() {
         //dependancy checked.
         invalidate_area_inertia();
         invalidate_angDrag();
         invalidate_aabb();
-        
+
         if(body!=null)
             body.wake();
     }
@@ -39,17 +39,17 @@ class PR(Circle) extends PR(Shape) {
         if(body!=null && body.isStatic() && body.space!=null)
             throw "Error: Cannot modify localCOM of Circle added to a static Body whilst within a Space";
     })
-    
+
     public function setupLocalCOM() {
         var me = this;
         wrap_localCOM = Vec2.get(localCOMx,localCOMy);
-        wrap_localCOM.pr(inner).inuse = true;
+        wrap_localCOM.pr(inner)._inuse = true;
         //no call to validate_localCOM as unnecessary for Circle types.
         wrap_localCOM.pr(inner)._validate = localCOM_validate;
         wrap_localCOM.pr(inner)._invalidate = localCOM_invalidate;
-        DEBUG(wrap_localCOM.pr(inner)._immutable = localCOM_immutable;)
+        DEBUG(wrap_localCOM.pr(inner)._isimmutable = localCOM_immutable;)
     }
-    
+
     flibmdel public inline function __validate_aabb() {
         //dependancy checked
         validate_worldCOM();
@@ -57,9 +57,9 @@ class PR(Circle) extends PR(Shape) {
         vec_sub(worldCOM,r,aabb.min);
         vec_add(worldCOM,r,aabb.max);
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     public function __validate_area_inertia() {
         //dependancy checked
         var r2 = radius*radius;
@@ -73,9 +73,9 @@ class PR(Circle) extends PR(Shape) {
         angDrag = (lc + 2*r2)*skin + 0.5*PR(Config).ANGDRAGCOEF_DRAG*(1+PR(Config).ANGDRAGCOEF_VACUUM)*lc;
         angDrag /= (2*(lc + 0.5*r2));
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     public function __scale(sx:Float,sy:Float) {
         var factor = ((sx<0?-sx:sx)+(sy<0?-sy:sy))/2;
         //dependancy checked
@@ -104,18 +104,18 @@ class PR(Circle) extends PR(Shape) {
         //dependancy checked
         var det = mat_det(m.); if(det<0) det = -det;
         radius *= Math.sqrt(det);
-        
+
         mat_transform_hom(m.,localCOM);
-        
+
         invalidate_radius();
         invalidate_localCOM();
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     public function __copy() {
         var ret = new Circle(radius).pr(inner_zn);
-        
+
         vec_set(ret.localCOM,localCOM);
         ret.inv(localCOM) = false;
 

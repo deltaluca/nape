@@ -3,19 +3,19 @@ $(import);
 
 class PR(Polygon) extends PR(Shape) {
     public var outer_zn:Polygon;
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     public var lverts:MixList(PR(Vec2)); public var wrap_lverts:Vec2List;
     public var gverts:MixList(PR(Vec2)); public var wrap_gverts:Vec2List;
-    
+
     public var edges:List(PR(Edge)); public var wrap_edges:EdgeList;
     public var edgeCnt:Int;
-    
+
     public var reverse_flag:Bool;
 
     //----------------------------------------------------------------------------------------------
-    
+
     public function __clear() {}
 
     //----------------------------------------------------------------------------------------------
@@ -38,8 +38,8 @@ class PR(Polygon) extends PR(Shape) {
     //previously lambdas
     private function lverts_post_adder(x:Vec2) {
         x.pr(inner)._invalidate = lverts_pa_invalidate;
-        DEBUG(x.pr(inner)._immutable = lverts_pa_immutable;)
-        
+        DEBUG(x.pr(inner)._isimmutable = lverts_pa_immutable;)
+
         var ite:PR(Vec2) = null;
         var ite2:Node(PR(Edge)) = null;
         Iter(i, lverts, {
@@ -51,7 +51,7 @@ class PR(Polygon) extends PR(Shape) {
         });
         var vec = PR(Vec2).get(0,0,true);
         gverts.insert(ite,vec);
-        
+
         if(lverts.begin().next!=null) {
             if(lverts.begin().next.next==null) {
                 var ed:PR(Edge) = Get(PR(Edge)); ed.polygon = this; edges.add(ed);
@@ -63,7 +63,7 @@ class PR(Polygon) extends PR(Shape) {
                 edgeCnt++;
             }
         }
-        
+
         vec._validate = lverts_pa_validate;
     }
     private function lverts_subber(x:Vec2) {
@@ -105,23 +105,23 @@ class PR(Polygon) extends PR(Shape) {
         DEBUG(wrap_lverts.pr(inner)._modifiable = lverts_modifiable;)
         wrap_lverts.pr(inner).reverse_flag = reverse_flag;
     }
-    
+
     public function get_gverts() {
         var me = this;
         wrap_gverts = PR(MixVec2List).get(gverts,true);
         wrap_gverts.pr(inner).reverse_flag = reverse_flag;
         wrap_gverts.pr(inner)._validate = validate_gverts;
     }
-    
+
     public function get_edges() {
         var me = this;
         wrap_edges = PR(EdgeList).get(edges,true);
         wrap_edges.pr(inner).reverse_flag = reverse_flag;
         wrap_edges.pr(inner)._validate = edges_validate;
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     public var inv(lverts):Bool;
     public function invalidate_lverts() {
         ///dependancy checked
@@ -132,39 +132,39 @@ class PR(Polygon) extends PR(Shape) {
         invalidate_gverts();
         inv(lverts) = true;
         inv(valid) = true;
-        
+
         if(body!=null) body.wake();
     }
-    
+
     public var inv(laxi):Bool;
     public function invalidate_laxi() {
         ///dependancy checked
         invalidate_gaxi();
         inv(laxi) = true;
     }
-    
+
     public var inv(gverts):Bool;
     public function invalidate_gverts() {
         ///dependancy checked
         invalidate_aabb();
         inv(gverts) = true;
     }
-    
+
     public var inv(gaxi):Bool;
     public function invalidate_gaxi() {
         ///dependancy checked
         inv(gaxi) = true;
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     public var inv(valid):Bool;
     public var validation:ValidationResult;
     public function valid() {
         if(inv(valid)) {
             inv(valid) = false;
             validate_lverts();
-            
+
             if(lverts.size()<3)
                 return validation = ValidationResult.DEGENERATE;
             else {
@@ -201,11 +201,11 @@ class PR(Polygon) extends PR(Shape) {
                                 if(!cont) cx_break;
                                 Iter2_noite(a,b,lverts,{
                                     if(u==a || u==b || v==a || v==b) cx_continue;
-                                    
+
                                     vec_new(s); vec_sub(u.,a.,s);
                                     vec_new(v); vec_sub(v.,u.,v);
                                     vec_new(q); vec_sub(b.,a.,q);
-                                    
+
                                     var den = vec_cross(q,v);
                                     if(den*den > PR(Const).EPSILON) {
                                         den = 1/den;
@@ -231,7 +231,7 @@ class PR(Polygon) extends PR(Shape) {
         }else
             return validation;
     }
-    
+
     //----------------------------------------------------------------------------------------------
 
     public function validate_lverts() {
@@ -268,7 +268,7 @@ class PR(Polygon) extends PR(Shape) {
         var rem = (ite==null ? gverts.front() : ite.next.elem());
         gverts.erase(ite);
         Free(PR(Vec2),rem);
-        
+
         if(lverts.begin() != null) {
             if(lverts.begin().next==null) {
                 Free(PR(Edge),edges.front());
@@ -325,32 +325,32 @@ class PR(Polygon) extends PR(Shape) {
         var ite = edges.iterator_at(edgeCnt-1);
         var elem = edges.pop_unsafe();
         edges.insert(ite,elem);
-        
+
         reverse_flag = !reverse_flag;
         if(wrap_lverts!=null) wrap_lverts.pr(inner).reverse_flag = reverse_flag;
         if(wrap_gverts!=null) wrap_gverts.pr(inner).reverse_flag = reverse_flag;
         if(wrap_edges!=null) wrap_edges.pr(inner).reverse_flag = reverse_flag;
     }
-    
+
     public function validate_laxi() {
         ///dependancy checked
         if(inv(laxi)) {
             inv(laxi) = false;
             validate_lverts();
-            
+
             var ite = edges.begin();
             Iter2_fast(u,v, lverts, {
                 var edge = ite.elem(); ite = ite.next;
                 edge.lp0 = u;
                 edge.lp1 = v;
-                
+
                 vec_new(d); vec_sub(u.,v.,d);
                 var l = vec_length_slow(d);
                 edge.length = l;
                 vec_diveq(d,l); vec_perp(d);
-                
+
                 edge.lprojection = vec_dot(d,u.);
-                
+
                 vec_set(edge.lnorm, d);
                 if(edge.wrap_lnorm!=null) vec_set(edge.wrap_lnorm.pr(inner).,d);
             });
@@ -385,18 +385,18 @@ class PR(Polygon) extends PR(Shape) {
                     var e = ite.elem(); ite = ite.next;
                     e.gp0 = u;
                     e.gp1 = v;
-                    
+
                     vec_rotate(e.lnorm, body.axis, e.gnorm);
                     e.gprojection = vec_dot(body.pos,e.gnorm) + e.lprojection;
                     if(e.wrap_gnorm!=null) vec_set(e.wrap_gnorm.pr(inner).,e.gnorm);
-                    
+
                     e.tp0 = vec_cross(e.gnorm,e.gp0.);
                     e.tp1 = vec_cross(e.gnorm,e.gp1.);
                 });
             }
         }
     }
-    
+
     //----------------------------------------------------------------------------------------------
 
     flibmdel public inline function __validate_aabb() {
@@ -430,7 +430,7 @@ class PR(Polygon) extends PR(Shape) {
             });
             inertia = s1/(6*s2);
             area *= 0.5;
-        
+
             if(area<0) {
                 area = -area;
                 reverse_vertices();
@@ -444,7 +444,7 @@ class PR(Polygon) extends PR(Shape) {
         )
         validate_area_inertia();
         validate_laxi();
-            
+
         var accum = 0.0;
         var ei = edges.begin();
         var perim = 0.0;
@@ -452,14 +452,14 @@ class PR(Polygon) extends PR(Shape) {
             var edge = ei.elem(); ei = ei.next;
             perim += edge.length;
             vec_new(d); vec_sub(v.,u.,d);
-            
+
             accum += edge.length*PR(Config).ANGDRAGCOEF_FRICTION*material.dynamicFriction*edge.lprojection*edge.lprojection;
 
             var t = -vec_cross(edge.lnorm,u.)/vec_cross(edge.lnorm,d);
             if(t>0) {
                 var ta = if(t>1) 1 else t;
                 vec_new(c); vec_set(c,u.); vec_addeq(c,d,ta);
-                
+
                 var dota = vec_cross(u.,edge.lnorm);
                 var dotb = vec_cross(c,edge.lnorm);
                 var dots = (dotb*dotb*dotb - dota*dota*dota)/(3*(dotb-dota));
@@ -468,14 +468,14 @@ class PR(Polygon) extends PR(Shape) {
             if(t<1) {
                 var tb = if(t<0) 0 else t;
                 vec_new(c); vec_set(c,u.); vec_addeq(c,d,tb);
-                
+
                 var dota = vec_cross(c,edge.lnorm);
                 var dotb = vec_cross(v.,edge.lnorm);
                 var dots = (dotb*dotb*dotb - dota*dota*dota)/(3*(dotb-dota));
                 accum += dots*PR(Config).ANGDRAGCOEF_VACUUM*(1-tb)*edge.length*PR(Config).ANGDRAGCOEF_DRAG;
             }
         });
-        
+
         angDrag = accum/(inertia*perim);
     }
     flibmdel public inline function __validate_localCOM() {
@@ -501,7 +501,7 @@ class PR(Polygon) extends PR(Shape) {
             vec_muleq(localCOM,area);
         }
     }
-    
+
     //----------------------------------------------------------------------------------------------
 
     //used to be lambdas
@@ -518,29 +518,29 @@ class PR(Polygon) extends PR(Shape) {
 
         Iter(p, lverts, vec_addeq(p., del));
         invalidate_lverts();
-    }    
-    
+    }
+
     public function setupLocalCOM() {
         wrap_localCOM = Vec2.get(localCOMx,localCOMy);
-        wrap_localCOM.pr(inner).inuse = true;
+        wrap_localCOM.pr(inner)._inuse = true;
         wrap_localCOM.pr(inner)._validate = localCOM_validate;
         wrap_localCOM.pr(inner)._invalidate = localCOM_invalidate;
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     public function new() {
         super(Flag(ShapeType,POLYGON));
         polygon = this;
-        
+
         lverts = new MixList(PR(Vec2))();
         gverts = new MixList(PR(Vec2))();
         edges = new List(PR(Edge))();
         edgeCnt = 0;
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     public function __translate(dx:Float,dy:Float) {
         Iter(p,lverts,vec_addeq(p.,d));
         invalidate_lverts();
@@ -565,9 +565,9 @@ class PR(Polygon) extends PR(Shape) {
         });
         invalidate_lverts();
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     public function __copy() {
         var ret = new Polygon(outer_zn.localVerts).pr(inner_zn);
         return ret;

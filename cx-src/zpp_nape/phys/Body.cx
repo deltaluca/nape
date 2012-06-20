@@ -3,28 +3,28 @@ $(import);
 
 class PR(Body) extends PR(Interactor) {
     public var outer:Body;
-    
+
     public var world:Bool; //used for Space::static
 
     //----------------------------------------------------------------------------------------------
-    
+
     public var type:Int;
     flibmdel public inline function isStatic   () return type == Flag(BodyType,STATIC)
     flibmdel public inline function isDynamic  () return type == Flag(BodyType,DYNAMIC)
     flibmdel public inline function isKinematic() return type == Flag(BodyType,KINEMATIC)
-    
+
     public function invalidate_type() {
         invalidate_mass();
         invalidate_inertia();
     }
-    
+
     //----------------------------------------------------------------------------------------------
 
     public var compound:PR(Compound);
-    
+
     public var shapes:List(PR(Shape));
     public var wrap_shapes:ShapeList;
-    
+
     public function invalidate_shapes() {
         //dependancy checked
         invalidate_aabb();
@@ -32,17 +32,17 @@ class PR(Body) extends PR(Interactor) {
         invalidate_mass();
         invalidate_inertia();
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     public var space:PR(Space);
-    
+
     public var arbiters   :List(PR(Arbiter));    public var wrap_arbiters   :ArbiterList;
     public var constraints:List(PR(Constraint)); public var wrap_constraints:ConstraintList;
-    
+
     //disjoint set forest.
     public var component:PR(Component);
-    
+
     //----------------------------------------------------------------------------------------------
 
     //avoid use of closures, and re-use list/set
@@ -62,7 +62,7 @@ class PR(Body) extends PR(Interactor) {
     }
 
     //----------------------------------------------------------------------------------------------
-    
+
     //avoid use of closures.
     static var cur_graph_depth:Int;
     function connectedBodies_cont(b:Body) {
@@ -123,7 +123,7 @@ class PR(Body) extends PR(Interactor) {
     }
 
     //----------------------------------------------------------------------------------------------
-    
+
     public function atRest(dt:Float) {
         if(!isDynamic()) return component.sleeping;
         else {
@@ -141,18 +141,18 @@ class PR(Body) extends PR(Interactor) {
                         else true;
                     }
                 }
-                
+
             if(!cansleep) component.waket = space.stamp;
             return component.waket + PR(Config).SLEEP_DELAY < space.stamp;
         }
     }
-    
+
     public function refreshArbiters() {
         Iter(arb, arbiters, arb.invalidated = true);
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     vec_new(public,pre_pos);
     vec_new(public,pos);   public var wrap_pos:Vec2;
     vec_new(public,vel);   public var wrap_vel:Vec2;
@@ -160,10 +160,10 @@ class PR(Body) extends PR(Interactor) {
 
     vec_new(public,kinvel); //kinematic velocity.
     public var wrap_kinvel:Vec2;
-    
+
     vec_new(public,svel); //surface velocity
     public var wrap_svel:Vec2;
-    
+
     flibmdel public inline function invalidate_pos(skipgraphic=false) {
         //dependancy checked
         Iter(s,shapes,{
@@ -204,7 +204,7 @@ class PR(Body) extends PR(Interactor) {
         )
         vec_set(vel,vel.);
         invalidate_wake();
-    }    
+    }
     private function vel_validate() {
         vec_set(wrap_vel.pr(inner).,vel);
     }
@@ -226,7 +226,7 @@ class PR(Body) extends PR(Interactor) {
     private function svel_invalidate(vel:PR(Vec2)) {
         vec_set(svel,vel.);
         invalidate_wake();
-    }    
+    }
     private function svel_validate() {
         vec_set(wrap_svel.pr(inner).,svel);
     }
@@ -236,7 +236,7 @@ class PR(Body) extends PR(Interactor) {
     //previously were lambdas
     private function force_invalidate(force:PR(Vec2)) {
         vec_set(force,force.);
-        
+
         if(isDynamic())
             invalidate_wake();
     }
@@ -246,8 +246,8 @@ class PR(Body) extends PR(Interactor) {
 
     public function setupPosition() {
         wrap_pos = Vec2.get(posx,posy);
-        wrap_pos.pr(inner).inuse = true;
-        if(world) wrap_pos.pr(inner).immutable = true;
+        wrap_pos.pr(inner)._inuse = true;
+        if(world) wrap_pos.pr(inner)._immutable = true;
         else {
             wrap_pos.pr(inner)._invalidate = pos_invalidate;
             wrap_pos.pr(inner)._validate = pos_validate;
@@ -255,8 +255,8 @@ class PR(Body) extends PR(Interactor) {
     }
     public function setupVelocity() {
         wrap_vel = Vec2.get(velx,vely);
-        wrap_vel.pr(inner).inuse = true;
-        if(world) wrap_vel.pr(inner).immutable = true;
+        wrap_vel.pr(inner)._inuse = true;
+        if(world) wrap_vel.pr(inner)._immutable = true;
         else {
             wrap_vel.pr(inner)._invalidate = vel_invalidate;
             wrap_vel.pr(inner)._validate = vel_validate;
@@ -264,8 +264,8 @@ class PR(Body) extends PR(Interactor) {
     }
     public function setupkinvel() {
         wrap_kinvel = Vec2.get(kinvelx,kinvely);
-        wrap_kinvel.pr(inner).inuse = true;
-        if(world) wrap_kinvel.pr(inner).immutable = true;
+        wrap_kinvel.pr(inner)._inuse = true;
+        if(world) wrap_kinvel.pr(inner)._immutable = true;
         else {
             wrap_kinvel.pr(inner)._invalidate = kinvel_invalidate;
             wrap_kinvel.pr(inner)._validate = kinvel_validate;
@@ -273,24 +273,24 @@ class PR(Body) extends PR(Interactor) {
     }
     public function setupsvel() {
         wrap_svel = Vec2.get(svelx,svely);
-        wrap_svel.pr(inner).inuse = true;
-        if(world) wrap_svel.pr(inner).immutable = true;
+        wrap_svel.pr(inner)._inuse = true;
+        if(world) wrap_svel.pr(inner)._immutable = true;
         else {
             wrap_svel.pr(inner)._invalidate = svel_invalidate;
             wrap_svel.pr(inner)._validate = svel_validate;
         }
     }
-    
+
     public function setupForce() {
         wrap_force = Vec2.get(forcex,forcey);
-        wrap_force.pr(inner).inuse = true;
-        if(world) wrap_force.pr(inner).immutable = true;
+        wrap_force.pr(inner)._inuse = true;
+        if(world) wrap_force.pr(inner)._immutable = true;
         else {
             wrap_force.pr(inner)._invalidate = force_invalidate;
             wrap_force.pr(inner)._validate = force_validate;
         }
     }
-    
+
     //----------------------------------------------------------------------------------------------
 
     //was previous lambda
@@ -309,14 +309,14 @@ class PR(Body) extends PR(Interactor) {
     }
 
     //----------------------------------------------------------------------------------------------
-    
+
     public var angvel:Float;
     public var torque:Float;
     //public var bias_angvel:Float;
-    
+
     public var kinangvel:Float;
     public var pre_rot:Float;
-    
+
     public var rot:Float;
     flibmdel public inline function invalidate_rot(?skipgraphic=false) {
         //dual with invalidate_axis
@@ -339,7 +339,7 @@ class PR(Body) extends PR(Interactor) {
         //dependancy checked
         if(inv(axis)) {
             inv(axis) = false;
-            quick_validate_axis();            
+            quick_validate_axis();
         }
     }
     flibmdel public inline function quick_validate_axis() {
@@ -369,18 +369,18 @@ class PR(Body) extends PR(Interactor) {
             axisx = nx;
         }
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     public var mass:Float; public var inv(mass):Bool;
     public var massMode:Int; //DEFAULT, FIXED
-    
+
     public var imass:Float; //0 when asleep
     public var smass:Float; //1/mass even when asleep
     public var cmass:Float; //mass even if converted to kinematic/static
-    
+
     public var nomove:Bool; //stopMovement()/allowMovement() calls
-    
+
     public function invalidate_mass() {
         //dependancy checked
         if(massMode==Flag(MassMode,DEFAULT))
@@ -420,11 +420,11 @@ class PR(Body) extends PR(Interactor) {
             // #
         }
     }
-    
+
     public var gravMass:Float; public var inv(gravMass):Bool;
     public var gravMassMode:Int; //DEFAULT,FIXED,SCALED
     public var gravMassScale:Float; public var inv(gravMassScale):Bool;
-    
+
     public function invalidate_gravMass() {
         //dependancy checked
         if(gravMassMode!=Flag(GravMassMode,FIXED))
@@ -449,7 +449,7 @@ class PR(Body) extends PR(Interactor) {
             }
         }
     }
-    
+
     public function invalidate_gravMassScale() {
         //dependancy checked
         if(gravMassMode!=Flag(GravMassMode,SCALED))
@@ -469,17 +469,17 @@ class PR(Body) extends PR(Interactor) {
             }
         }
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     public var inertiaMode:Int;
     public var inertia:Float; public var inv(inertia):Bool;
     public var cinertia:Float;
     public var iinertia:Float;
     public var sinertia:Float;
-    
+
     public var norotate:Bool; //stopRotation/allowRotation() calls
-    
+
     public function invalidate_inertia() {
         //dependancy checked
         if(inertiaMode!=Flag(InertiaMode,FIXED)) inv(inertia) = true;
@@ -518,16 +518,16 @@ class PR(Body) extends PR(Interactor) {
             // #
         }
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     //called when body needs waking due to a property change.
     public function invalidate_wake() {
         wake();
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     public var aabb:PR(AABB); public var inv(aabb):Bool;
     /*used by nape-hacks*/
     /*flibmdel*/ public inline function validate_aabb() {
@@ -546,14 +546,14 @@ class PR(Body) extends PR(Interactor) {
         //dependancy checked
         inv(aabb) = true;
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     public var flashgraphic:Bool;
     public var graphic:Dynamic;
     public var graphicUpdate:Body->Void;
     public var graphicOffset:Vec2;
-        
+
     public function validate_graphic() {
         if(graphicUpdate!=null) graphicUpdate(outer);
         else if(graphic!=null && flashgraphic) {
@@ -572,14 +572,14 @@ class PR(Body) extends PR(Interactor) {
             #end
         }
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     vec_new(public,localCOM); public var inv(localCOM):Bool;
     vec_new(public,worldCOM); public var inv(worldCOM):Bool;
     public var wrap_localCOM:Vec2;
     public var wrap_worldCOM:Vec2;
-    
+
     public function invalidate_localCOM() {
         //dependancy checked
         inv(localCOM) = true;
@@ -589,24 +589,24 @@ class PR(Body) extends PR(Interactor) {
         //dependancy checked
         inv(worldCOM) = true;
     }
-    
+
     public function validate_localCOM() {
         //dependancy checked
         if(inv(localCOM)) {
             inv(localCOM) = false;
-            
+
             vec_new(temp,0,0);
             var msum = 0.0;
             Iter(s,shapes,{
                 s.validate_localCOM();
                 s.validate_area_inertia();
-                
+
                 vec_addeq(temp,s.localCOM,s.area*s.material.density);
                 msum += s.area*s.material.density;
             });
             vec_div(temp,msum,localCOM);
             if(wrap_localCOM!=null) vec_set(wrap_localCOM.pr(inner).,localCOM);
-            
+
             if(inv(mass) && massMode==Flag(MassMode,DEFAULT)) {
                 inv(mass) = false;
                 cmass = msum;
@@ -620,20 +620,20 @@ class PR(Body) extends PR(Interactor) {
             }
         }
     }
-    
+
     public function validate_worldCOM() {
         //dependancy checked
         if(inv(worldCOM)) {
             inv(worldCOM) = false;
             validate_localCOM();
             validate_axis();
-            
+
             vec_localglobal(axis,pos, localCOM,worldCOM);
             if(wrap_worldCOM!=null)
                 vec_set(wrap_worldCOM.pr(inner).,worldCOM);
         }
     }
-    
+
     public function getlocalCOM() {
         DEBUG(if(shapes.empty()) throw "Error: localCOM only makes sense when Body has Shapes";)
         validate_localCOM();
@@ -654,7 +654,7 @@ class PR(Body) extends PR(Interactor) {
     public function clear() {
         DEBUG(if(space!=null) throw "Error: Cannot clear a Body if it is currently being used by a Space!";)
         DEBUG(if(!constraints.empty()) throw "Error: Cannot clear a Body if it is currently being used by a constraint!";)
-        
+
         ClearWith(s,shapes, {
             s.removedFromBody();
             s.body = null;
@@ -702,7 +702,7 @@ class PR(Body) extends PR(Interactor) {
 
         return ret;
     }
-    
+
     //----------------------------------------------------------------------------------------------
 
     //was previously a lambda
@@ -719,13 +719,13 @@ class PR(Body) extends PR(Interactor) {
             s.pr(inner).addedToBody();
 
             if(space!=null) space.added_shape(s.pr(inner));
-            
+
             return true;
         }else return false;
     }
     private function shapes_subber(s:Shape) {
         if(space!=null) space.removed_shape(s.pr(inner));
-        
+
         s.pr(inner).body=null;
         s.pr(inner).removedFromBody();
     }
@@ -742,13 +742,13 @@ class PR(Body) extends PR(Interactor) {
         super();
         ibody = this;
         world = false;
-        
+
         norotate = nomove = false;
-        
+
         vec_set(pos,0,0);
         rot = 0;
         vec_set(axis,0,1);
-        
+
         vec_set(svel,0,0);
         vec_set(vel,0,0);
         vec_set(kinvel,0,0);
@@ -757,25 +757,25 @@ class PR(Body) extends PR(Interactor) {
 
         vec_set(pre_pos,PR(Const).POSINF(),PR(Const).POSINF());
         pre_rot = PR(Const).POSINF();
-        
+
         vec_set(localCOM,0,0);
         vec_set(worldCOM,0,0);
-        
+
         inv(aabb) = true;
         aabb = PR(AABB).get(0,0,0,0);
         aabb.immutable = true;
         var me = this;
         aabb._validate = aabb_validate;
-        
+
         massMode = Flag(MassMode,DEFAULT);
         gravMassMode = Flag(GravMassMode,DEFAULT);
         gravMassScale = 1.0;
         inertiaMode = Flag(InertiaMode,DEFAULT);
-        
+
         arbiters = new List(PR(Arbiter))();
-        
+
         constraints = new List(PR(Constraint))();
-        
+
         shapes = new List(PR(Shape))();
         wrap_shapes = PR(ShapeList).get(shapes);
         wrap_shapes.pr(inner).adder = shapes_adder;
@@ -784,11 +784,11 @@ class PR(Body) extends PR(Interactor) {
         DEBUG(wrap_shapes.pr(inner)._modifiable = shapes_modifiable;)
 
         graphicOffset = Vec2.get(0,0);
-        graphicOffset.pr(inner).inuse = true;
+        graphicOffset.pr(inner)._inuse = true;
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     public function addedToSpace() {
         assert(component==null,"already has a component?");
 
@@ -807,17 +807,17 @@ class PR(Body) extends PR(Interactor) {
 
         Free(PR(Component),component);
         component = null;
-        
+
         __iremovedFromSpace();
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     public function copy() {
         var ret = new Body().pr(inner);
-        
+
         ret.type = type;
-        
+
         Iter(s,shapes,{
             var s2 = Shape.copy(s.outer);
             ret.outer.shapes.add(s2);
@@ -835,46 +835,46 @@ class PR(Body) extends PR(Interactor) {
         ret.kinangvel = kinangvel;
 
         vec_set(ret.svel, svel);
-        
+
         if(!inv(axis))
             vec_set(ret.axis,axis);
         else ret.invalidate_rot();
         ret.rot = rot;
-        
+
         ret.massMode = massMode;
         ret.gravMassMode = gravMassMode;
         ret.inertiaMode = inertiaMode;
-        
+
         if(!inv(mass))
             ret.mass = mass;
         else ret.invalidate_mass();
-        
+
         if(!inv(gravMass))
             ret.gravMass = gravMass;
         else ret.invalidate_gravMass();
-        
+
         if(!inv(gravMassScale))
             ret.gravMassScale = gravMassScale;
         else ret.invalidate_gravMassScale();
-        
+
         if(!inv(inertia))
             ret.inertia = inertia;
         else ret.invalidate_inertia();
-        
+
         if(!inv(aabb)) {
             vec_set(ret.aabb.min,aabb.min);
             vec_set(ret.aabb.max,aabb.max);
         }else ret.invalidate_aabb();
-        
+
         if(!inv(localCOM))
             vec_set(ret.localCOM,localCOM);
         else ret.invalidate_localCOM();
-        
+
         if(!inv(worldCOM))
             vec_set(ret.worldCOM,worldCOM);
         else ret.invalidate_worldCOM();
 
-        copyto(ret.outer);    
+        copyto(ret.outer);
         return ret.outer;
     }
 }

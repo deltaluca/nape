@@ -31,15 +31,28 @@ class PR(Vec2) {
     }
 
     // (Public Vec2)
-    // 'immutable'   : If true, then public Vec2 is not permitted to be mutated
-    // '_immutable'  : Function to be called to query whether Vec2 is able to be
+    // '_immutable'   : If true, then public Vec2 is not permitted to be mutated
+    // '_isimmutable' : Function to be called to query whether Vec2 is able to be
     //                 mutated or not.
     //
-    // _immutable function is for when the nature of the Vec2's immutability is
-    // more fine grained: when Vec2 is 'sometimes' immutable and it is easier
-    // to have this quality 'asked' for instead of set directly.
-    public var immutable :Bool;
-    public var _immutable:Null<Void->Dynamic>;
+    // _isimmutable function is for when the nature of the Vec2's immutability is
+    // more fine grained: when Vec2 is 'sometimes' immutable and it is easier to
+    // have this quality 'asked' for instead of set directly.
+    public var _immutable  :Bool;
+    public var _isimmutable:Null<Void->Dynamic>;
+
+    // Wrapper used by public Vec2 to delegate logic.
+    flibmdel public inline function immutable():Void {
+        DEBUG(
+            if (_immutable) {
+                throw "Error: Vec2 is immutable";
+            }
+
+            if (_isimmutable != null) {
+                _isimmutable();
+            }
+        )
+    }
 
     // (Public Vec2)
     // Reference to public Vec2 wrapping 'this' if it exists
@@ -74,7 +87,8 @@ class PR(Vec2) {
             outer.pr(inner) = null;
             outer = null;
         }
-        _immutable = _validate = null;
+        _isimmutable = null;
+        _validate = null;
         _invalidate = null;
     }
     flibmdel public inline function alloc():Void {
@@ -94,7 +108,7 @@ class PR(Vec2) {
     public function new() {}
     public static function get(x:Float, y:Float, immutable:Bool=false):PR(Vec2) {
         var ret = Get(PR(Vec2));
-        ret.immutable = immutable;
+        ret._immutable = immutable;
         vec_set(ret.,);
         return ret;
     }
