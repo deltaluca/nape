@@ -20,24 +20,24 @@ class PR(Vec2) {
 
     // Wrappers used by public Vec2 to delegate logic.
     flibmdel public inline function validate():Void {
-        if (_validate!=null) {
+        if (_validate != null) {
             _validate();
         }
     }
     flibmdel public inline function invalidate():Void {
-        if (_invalidate!=null) {
+        if (_invalidate != null) {
             _invalidate(this);
         }
     }
 
     // (Public Vec2)
     // '_immutable'   : If true, then public Vec2 is not permitted to be mutated
-    // '_isimmutable' : Function to be called to query whether Vec2 is able to be
-    //                 mutated or not.
+    // '_isimmutable' : Function to be called to query whether Vec2 is able to
+    //                  be mutated or not.
     //
-    // _isimmutable function is for when the nature of the Vec2's immutability is
-    // more fine grained: when Vec2 is 'sometimes' immutable and it is easier to
-    // have this quality 'asked' for instead of set directly.
+    // _isimmutable function is for when the nature of the Vec2's immutability
+    // is more fine grained: when Vec2 is 'sometimes' immutable and it is easier
+    // to have this quality 'asked' for instead of set directly.
     public var _immutable  :Bool;
     public var _isimmutable:Null<Void->Dynamic>;
 
@@ -60,7 +60,8 @@ class PR(Vec2) {
 
     // Method to generate public shared wrapper if required.
     flibmdel public inline function wrapper():Vec2 {
-        if (outer==null) {
+        if (outer == null) {
+            // TODO: Get this from object pool?
             outer = new Vec2();
 
             // Vec2 constructor will create a PR(Vec2)
@@ -83,7 +84,7 @@ class PR(Vec2) {
     // Object pool definitions.
     MixPoolNoNext(PR(Vec2)) // 'next' is already created by MixListMixin below.
     flibmdel public inline function free():Void {
-        if (outer!=null) {
+        if (outer != null) {
             outer.pr(inner) = null;
             outer = null;
         }
@@ -100,20 +101,24 @@ class PR(Vec2) {
     MixListMixin(PR(Vec2))
 
     // x,y properties.
-    vec_new(public,$(->));
+    vec_new(public, $(->));
 
     // !! Constructor should not be used !!
     // Instead the static 'get' should be used to make use of object pool
     // automaticaly.
     public function new() {}
-    public static function get(x:Float, y:Float, immutable:Bool=false):PR(Vec2) {
+    public static function get(x:Float, y:Float, immutable:Bool = false):PR(Vec2) {
         var ret = Get(PR(Vec2));
         ret._immutable = immutable;
-        vec_set(ret.,);
+        vec_set(ret., $(->));
         return ret;
     }
 
-    flibmdel public inline function copy():PR(Vec2) return get(x,y)
+    flibmdel public inline function copy():PR(Vec2) {
+        return get(x, y);
+    }
 
-    public function toString():String return "{ x: "+x+" y: "+y+" }"
+    public function toString():String {
+        return "{ x: "+x+" y: "+y+" }";
+    }
 }

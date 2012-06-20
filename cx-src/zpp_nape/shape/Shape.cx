@@ -4,27 +4,27 @@ $(import);
 class PR(Shape) extends PR(Interactor) {
     public var outer:Shape;
     public var body:PR(Body);
-    
+
     public var type:Int;
-    
+
     flibmdel public inline function isCircle() return type==Flag(ShapeType,CIRCLE)
     flibmdel public inline function isPolygon() return type==Flag(ShapeType,POLYGON)
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     public var area:Float; public var inv(area_inertia):Bool;
     public var inertia:Float;
     public var angDrag:Float; public var inv(angDrag):Bool;
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     vec_new(public,localCOM); public var inv(localCOM):Bool;
     vec_new(public,worldCOM); public var inv(worldCOM):Bool;
     public var wrap_localCOM:Vec2;
     public var wrap_worldCOM:Vec2;
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     public var circle:PR(Circle);
     public var polygon:PR(Polygon);
 
@@ -41,17 +41,17 @@ class PR(Shape) extends PR(Interactor) {
     //the shape is deemed active and is known to these objects.
     public var filter:PR(InteractionFilter);
     public var fluidProperties:PR(FluidProperties);
-    
+
     public var fluidEnabled:Bool;
 
     //----------------------------------------------------------------------------------------------
-    
+
     //for sweep and prune
     public var sweep:PR(SweepData);
     //for dynamic aaabb
     public var node:PR(AABBNode);
     public var pairs:List(PR(AABBPair));
-    
+
     //----------------------------------------------------------------------------------------------
 
     public function clear() {
@@ -60,7 +60,7 @@ class PR(Shape) extends PR(Interactor) {
     }
 
     //----------------------------------------------------------------------------------------------
-    
+
     public var aabb:PR(AABB); public var inv(aabb):Bool;
     flibmdel public inline function validate_aabb() {
         //dependancy checked
@@ -77,9 +77,9 @@ class PR(Shape) extends PR(Interactor) {
         inv(aabb) = true;
         if(body!=null) body.invalidate_aabb();
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     public function validate_area_inertia() {
         //dependancy checked
         if(inv(area_inertia)) {
@@ -108,9 +108,9 @@ class PR(Shape) extends PR(Interactor) {
         //dependancy checked
         if(inv(localCOM)) {
             inv(localCOM) = false;
-            
+
             if(isPolygon()) polygon.__validate_localCOM();
-            
+
             if(wrap_localCOM!=null)
                 vec_set(wrap_localCOM.pr(inner).,localCOM);
         }
@@ -132,9 +132,9 @@ class PR(Shape) extends PR(Interactor) {
         DEBUG(if(body==null) throw "Error: worldCOM only makes sense when Shape belongs to a Body";)
         validate_worldCOM();
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     public function invalidate_area_inertia() {
         //dependancy checked
         inv(area_inertia) = true;
@@ -161,20 +161,20 @@ class PR(Shape) extends PR(Interactor) {
         inv(worldCOM) = true;
         invalidate_aabb();
     }
-    
+
     //----------------------------------------------------------------------------------------------
 
     // # things like waking are still valid
     //   as this shape will currently be active
-    //   if wake would perform any side effect.    
+    //   if wake would perform any side effect.
     public function invalidate_material(flags:Int) {
         if((flags&PR(Material).WAKE)!=0)
             wake();
-        
+
         if((flags&PR(Material).ARBITERS)!=0) {
             if(body!=null) body.refreshArbiters();
         }
-        
+
         // # these are not strictly needed any more
         //   but may aswell keep them.
         if((flags&PR(Material).PROPS)!=0) {
@@ -185,7 +185,7 @@ class PR(Shape) extends PR(Interactor) {
                 body.invalidate_inertia();
             }
         }
-        
+
         if((flags&PR(Material).ANGDRAG)!=0) {
             //dependancy checked
             invalidate_angDrag();
@@ -198,13 +198,13 @@ class PR(Shape) extends PR(Interactor) {
 
     // # again things like waking are still valid
     //   as these are called for active shapes
-    //   for which wake() will have a side effect.    
+    //   for which wake() will have a side effect.
     public function invalidate_filter() wake()
     public function invalidate_fluidprops() {
         if(fluidEnabled)
             wake();
     }
-    
+
     //----------------------------------------------------------------------------------------------
 
     //previously lambda
@@ -212,7 +212,7 @@ class PR(Shape) extends PR(Interactor) {
         DEBUG(if(body==null) throw "Error: bounds only makes sense when Shape belongs to a Body";)
         validate_aabb();
     }
-    
+
     function new(type:Int) {
         pairs = new List(PR(AABBPair))();
         ishape = this;
@@ -220,14 +220,14 @@ class PR(Shape) extends PR(Interactor) {
 
         this.type = type;
         aabb = PR(AABB).get(0,0,0,0);
-        aabb.immutable = true;
+        aabb._immutable = true;
         var me = this;
         aabb._validate = aabb_validate;
         inv(area_inertia) = inv(angDrag) = inv(localCOM) = true;
-        
+
         vec_set(localCOM,0,0);
         vec_set(worldCOM,0,0);
-        
+
         fluidEnabled = false;
         fluidProperties = null;
         body = null;
@@ -236,9 +236,9 @@ class PR(Shape) extends PR(Interactor) {
         refmaterial = new PR(Material)();
         // #
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     public function setMaterial(material:PR(Material)) {
         if(this.material!=material) {
             if(body!=null && body.space!=null) {
@@ -247,12 +247,12 @@ class PR(Shape) extends PR(Interactor) {
             this.material = material;
             if(body!=null && body.space!=null)
                 material.addShape(this);
-            
+
             wake();
             if(body!=null) body.refreshArbiters();
         }
     }
-    
+
     public function setFilter(filter:PR(InteractionFilter)) {
         if(this.filter!=filter) {
             if(body!=null && body.space!=null) {
@@ -261,11 +261,11 @@ class PR(Shape) extends PR(Interactor) {
             this.filter = filter;
             if(body!=null && body.space!=null)
                 filter.addShape(this);
-            
+
             wake();
         }
     }
-    
+
     public function setFluid(fluid:PR(FluidProperties)) {
         if(fluidProperties != fluid) {
             if(body!=null && body.space!=null) {
@@ -274,7 +274,7 @@ class PR(Shape) extends PR(Interactor) {
             fluidProperties = fluid;
             if(body!=null && body.space!=null)
                 fluid.addShape(this);
-            
+
             if(fluidEnabled)
                 wake();
         }
@@ -285,9 +285,9 @@ class PR(Shape) extends PR(Interactor) {
             throw "Error: "+name+" cannot be set during a space step()";
         )
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     public function addedToBody() {
         //dependancy checked
         invalidate_worldCOM();
@@ -310,36 +310,36 @@ class PR(Shape) extends PR(Interactor) {
         if(fluidProperties!=null)
             fluidProperties.remShape(this);
     }
-    
+
     public function copy() {
         var ret:PR(Shape) = null;
         if(isCircle()) ret = circle.__copy();
         else ret = polygon.__copy();
-        
+
         if(!inv(area_inertia)) {
             ret.area = area;
             ret.inertia = inertia;
         }else ret.invalidate_area_inertia();
-        
+
         if(!inv(angDrag))
             ret.angDrag = angDrag;
         else ret.invalidate_angDrag();
-        
+
         if(!inv(aabb)) {
             vec_set(ret.aabb.min,aabb.min);
             vec_set(ret.aabb.max,aabb.max);
         }else ret.invalidate_aabb();
-        
+
         //copied shape has default material/filter allocated, don't need it!
         Free(PR(Material),ret.material);
         Free(PR(InteractionFilter),ret.filter);
-        
+
         ret.material = material;
         ret.filter = filter;
         if(fluidProperties!=null)
             ret.fluidProperties = fluidProperties;
         ret.fluidEnabled = fluidEnabled;
-        
+
         copyto(ret.outer);
         return ret.outer;
     }

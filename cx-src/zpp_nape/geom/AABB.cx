@@ -1,81 +1,142 @@
 package zpp_nape.geom;
 $(import);
 
+//
+// Private AABB Type
+//
+
 class PR(AABB) {
-    public var _invalidate:PR(AABB)->Dynamic;
-    public var _validate:Void->Dynamic;
-    public var immutable:Bool;
 
-    public function validate() {
-        if(_validate!=null) _validate();
+    // (Public AABB)
+    // '_invalidate' : Function to be called whenever the Public AABB is mutated
+    //                 Argument is the (private) AABB that was modified.
+    // '_validate'   : Function to be called to validate that AABB values are
+    //                 correctly set for public reading: allows lazy computation
+    //
+    // Due to repetitive nature of these calls, they should be made as light
+    // weight as possible
+    //
+    // '_immutable' : If true, then public AABB is not permitted to be mutated.
+    //
+    public var _invalidate:Null<PR(AABB)->Dynamic>;
+    public var _validate  :Null<Void->Dynamic>;
+    public var _immutable :Bool;
+
+    flibmdel public inline function validate():Void {
+        if (_validate!=null) {
+            _validate();
+        }
     }
-    public function invalidate() {
-        if(_invalidate!=null) _invalidate(this);
+    flibmdel public inline function invalidate():Void {
+        if (_invalidate!=null) {
+            _invalidate(this);
+        }
     }
 
-    public var outer:AABB;
-    public function wrapper() {
-        if(outer==null) {
-            outer = new AABB(); //don't care
-            Free(PR(AABB),outer.pr(inner));
+    // (Public AABB)
+    // Reference to public AABB wrapping 'this' if it exists/
+    public var outer:Null<AABB>;
+
+    // Method to generate public shared wrapper if required.
+    public function wrapper():AABB {
+        if (outer==null) {
+            outer = new AABB();
+
+            // AABB constructor will create a PR(AABB)
+            // but we want it to wrap 'this' so we release
+            // it directly back to object pool.
+            Free(PR(AABB), outer.pr(inner));
             outer.pr(inner) = this;
         }
+
         return outer;
     }
 
-    //----------------------------------------------------------------------------------------------
-
+    // Object pool definitions.
     MixPool(PR(AABB))
-    flibmdel public inline function alloc() {}
-    flibmdel public inline function free() {
-        if(outer!=null) outer.pr(inner) = null;
-        outer = null;
+    flibmdel public inline function alloc():Void {
+    }
+
+    flibmdel public inline function free():Void {
+        if(outer != null) {
+            outer.pr(inner) = null;
+            outer = null;
+        }
+
+        // TODO: Should these be object pooled if non-null?
         wrap_min = wrap_max = null;
         _invalidate = null;
         _validate = null;
     }
 
-    //----------------------------------------------------------------------------------------------
 
+    // !! Constructor should not be used !!
+    // Instead the static 'get' should be used to make use of object pool
+    // automaticaly.
     public function new() {}
-    flibstaticdel(get) public static inline function get(minx:Float, miny:Float, maxx:Float, maxy:Float) {
+    public static inline function get(
+        minx:Float, miny:Float,
+        maxx:Float, maxy:Float
+    ):PR(AABB) {
         var ret = Get(PR(AABB));
-        vec_set(ret.min,min);
-        vec_set(ret.max,max);
+        vec_set(ret.min, min);
+        vec_set(ret.max, max);
         return ret;
     }
-    flibmdel public inline function copy() return PR(AABB).get(minx,miny,maxx,maxy)
 
-    //----------------------------------------------------------------------------------------------
+    flibmdel public inline function copy():PR(AABB) {
+        return PR(AABB).get(minx, miny, maxx, maxy);
+    }
 
-    flibmdel public inline function width () return maxx-minx
-    flibmdel public inline function height() return maxy-miny
+    //--------------------------------------------------------------------------
 
-    flibmdel public inline function perimeter() return (width()+height())*2
+    flibmdel public inline function width():Float {
+        return maxx - minx;
+    }
+    flibmdel public inline function height():Float {
+        return maxy - miny;
+    }
+    flibmdel public inline function perimeter():Float {
+        return (width() + height()) * 2;
+    }
 
-    //----------------------------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
+
+    //
+    // (Public AABB)
+    // Special min/max Vec2's tied intrinsically to the AABB
+    //
 
     $(mixin comp(n)
-        vec_new(public,n);
-        public var wrap_`n:Vec2;
+        vec_new(public, n);
+        public var wrap_`n:Null<Vec2>;
 
-        public function get_`n() {
-            if(wrap_`n==null) {
-                wrap_`n = Vec2.get(n`x,n`y);
+        public function get_`n():Vec2 {
+            if (wrap_`n == null) {
+                wrap_`n = Vec2.get(n`x, n`y);
                 wrap_`n.pr(inner)._inuse = true;
-                if(immutable) wrap_`n.pr(inner)._immutable = true;
-                else wrap_`n.pr(inner)._invalidate = mod_`n;
+
+                if(_immutable) {
+                    wrap_`n.pr(inner)._immutable = true;
+                }
+                else {
+                    wrap_`n.pr(inner)._invalidate = mod_`n;
+                }
+
                 wrap_`n.pr(inner)._validate = dom_`n;
             }
+
             return wrap_`n;
         }
-        public function dom_`n() {
+
+        public function dom_`n():Void {
             validate();
-            vec_set(wrap_`n.pr(inner).,n);
+            vec_set(wrap_`n.pr(inner)., n);
         }
-        public function mod_`n(n:PR(Vec2)) {
+
+        public function mod_`n(n:PR(Vec2)):Void {
             if(n.x != n`x || n.y != n`y) {
-                vec_set(n,n.);
+                vec_set(n, n.);
                 invalidate();
             }
         }
@@ -83,55 +144,55 @@ class PR(AABB) {
     comp(min)
     comp(max)
 
-    //----------------------------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
 
-    flibmdel public inline function intersectX(x:PR(AABB)) {
+    flibmdel public inline function intersectX(x:PR(AABB)):Bool {
         return !(x.minx > maxx || minx > x.maxx);
     }
-    flibmdel public inline function intersectY(x:PR(AABB)) {
+    flibmdel public inline function intersectY(x:PR(AABB)):Bool {
         return !(x.miny > maxy || miny > x.maxy);
     }
-
-    flibmdel public inline function intersect(x:PR(AABB)) {
-        return x.miny <= maxy && miny <= x.maxy && x.minx <= maxx && minx <= x.maxx;
+    flibmdel public inline function intersect(x:PR(AABB)):Bool {
+        return x.miny <= maxy && miny <= x.maxy
+            && x.minx <= maxx && minx <= x.maxx;
     }
 
-    flibmdel public inline function combine(x:PR(AABB)) {
-        if(x.minx<minx) minx = x.minx;
-        if(x.maxx>maxx) maxx = x.maxx;
-        if(x.miny<miny) miny = x.miny;
-        if(x.maxy>maxy) maxy = x.maxy;
+    flibmdel public inline function combine(x:PR(AABB)):Void {
+        if (x.minx < minx) minx = x.minx;
+        if (x.maxx > maxx) maxx = x.maxx;
+        if (x.miny < miny) miny = x.miny;
+        if (x.maxy > maxy) maxy = x.maxy;
     }
 
-    flibmdel public inline function contains(x:PR(AABB)) {
-        return x.minx >= minx && x.miny >= miny && x.maxx <= maxx && x.maxy <= maxy;
+    flibmdel public inline function contains(x:PR(AABB)):Bool {
+        return x.minx >= minx && x.miny >= miny
+            && x.maxx <= maxx && x.maxy <= maxy;
     }
-    flibmdel public inline function containsPoint(v:PR(Vec2)) {
-        return v.x >= minx && v.x <= maxx && v.y >= miny && v.y <= maxy;
-    }
-
-    flibmdel public inline function set_combine(a:PR(AABB),b:PR(AABB)) {
-        minx = if(a.minx<b.minx) a.minx else b.minx;
-        miny = if(a.miny<b.miny) a.miny else b.miny;
-        maxx = if(a.maxx>b.maxx) a.maxx else b.maxx;
-        maxy = if(a.maxy>b.maxy) a.maxy else b.maxy;
+    flibmdel public inline function containsPoint(v:PR(Vec2)):Bool {
+        return v.x >= minx && v.x <= maxx
+            && v.y >= miny && v.y <= maxy;
     }
 
-    flibmdel public inline function set_expand(a:PR(AABB),fatten:Float) {
+    flibmdel public inline function set_combine(a:PR(AABB), b:PR(AABB)):Void {
+        minx = if (a.minx < b.minx) a.minx else b.minx;
+        miny = if (a.miny < b.miny) a.miny else b.miny;
+        maxx = if (a.maxx > b.maxx) a.maxx else b.maxx;
+        maxy = if (a.maxy > b.maxy) a.maxy else b.maxy;
+    }
+    flibmdel public inline function set_expand(a:PR(AABB), fatten:Float):Void {
         minx = a.minx - fatten;
         miny = a.miny - fatten;
         maxx = a.maxx + fatten;
         maxy = a.maxy + fatten;
     }
-
-    flibmdel public inline function set_expand_point(x:Float, y:Float) {
-        if(x<minx) minx = x;
-        if(x>maxx) maxx = x;
-        if(y<miny) miny = y;
-        if(y>maxy) maxy = y;
+    flibmdel public inline function set_expand_point(x:Float, y:Float):Void {
+        if (x < minx) minx = x;
+        if (x > maxx) maxx = x;
+        if (y < miny) miny = y;
+        if (y > maxy) maxy = y;
     }
 
-    //----------------------------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
 
     public function toString() {
         return "{ x: "+minx+" y: "+miny+" w: "+width()+" h: "+height()+" }";

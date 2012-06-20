@@ -12,7 +12,7 @@ class Listener {
         [ListenerType.BODY,ListenerType.CONSTRAINT,ListenerType.INTERACTION,ListenerType.PRE][pr(inner).type];
     })
     property(event,CbEvent,{
-        [CbEvent.BEGIN,CbEvent.END,CbEvent.WAKE,CbEvent.SLEEP,CbEvent.BREAK,CbEvent.PRE][pr(inner).event];
+        [CbEvent.BEGIN,CbEvent.END,CbEvent.WAKE,CbEvent.SLEEP,CbEvent.BREAK,CbEvent.PRE,CbEvent.ONGOING][pr(inner).event];
     },{
         DEBUG(if(event==null) throw "Error: Cannot set listener event type to null";)
         if(this.event!=event) {
@@ -57,7 +57,7 @@ class Listener {
     },{
         if(this.space!=space) {
             if(pr(inner).space!=null) pr(inner).space.outer.listeners.remove(this);
-            if(space!=null) space.listeners.add(this); 
+            if(space!=null) space.listeners.add(this);
             else pr(inner).space = null;
         }
     })
