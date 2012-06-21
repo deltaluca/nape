@@ -83,7 +83,7 @@ class PR(Debug) {
     public function setform() {
         //don't bother not using wrapper since it'll exist ALWAYS.
         xform = new Mat23().pr(inner);
-        xform.__invalidate = xform_invalidate;
+        xform._invalidate = xform_invalidate;
     }
 
     public var tmpab:PR(AABB);
@@ -301,7 +301,7 @@ class PR(BitmapDebug) extends PR(Debug) {
             mm.dispose();
         }
     }
-    
+
     public function __tri(p0:Vec2,p1:Vec2,p2:Vec2,col:Int) {
         if(!xnull) {
             p0 = xform.outer.transform(p0);
@@ -316,7 +316,7 @@ class PR(BitmapDebug) extends PR(Debug) {
             p1.dispose();
             p2.dispose();
         }
-        
+
         //sort vertices
         if(p1y<p0y) { swap(p0x,p1x); swap(p0y,p1y); }
         if(p2y<p0y) {
@@ -359,7 +359,7 @@ class PR(BitmapDebug) extends PR(Debug) {
                     }
                 }
             });
-    
+
             if((p0x-p2x)*(p1y-p2y) - (p0y-p2y)*(p1x-p2x) < 0) //middle is to left
                  scan(true);
             else scan(false);
@@ -401,7 +401,7 @@ class PR(BitmapDebug) extends PR(Debug) {
             }
         }
     }
-    
+
     public function __fcircle(x0:Int,y0:Int,radius:Int, col:Int) {
         if(radius==0) setpixel(x0,y0,col);
         else {
@@ -508,7 +508,7 @@ $(mixin __colour(id,sleep) {
     var _r = (((idc&0xff0000)>>16))*0.7;
     var _g = (((idc&0xff00)>>8))*0.7;
     var _b = (idc&0xff)*0.7;
-    
+
     if(sleep) {
         _r = 0.4*_r + 0.6*bg_r;
         _g = 0.4*_g + 0.6*bg_g;
@@ -707,7 +707,7 @@ $(mixin pr_debug(utils)
                     var c1 = carb.contacts.at(0).position;
                     var c2 = carb.contacts.at(1).position;
                     var n = carb.normal;
-                        
+
                     var x = 0.661437828;
                     var y = 0.75;
                     if(vec_cross(c1.,n.) < vec_cross(c2.,n.)) {
@@ -729,7 +729,7 @@ $(mixin pr_debug(utils)
                     vec_set(v,c2.x-n.x*y+n.y*x,c2.y-n.y*y-n.x*x);
                     mat_xform_hom(xnull,xform,v);
                     __lineTo(vx,vy);
-                        
+
                     vec_set(p, 0.5*(c1.x+c2.x), 0.5*(c1.y+c2.y));
                     mat_xform_hom(xnull,xform,p);
                 }else {
@@ -739,7 +739,7 @@ $(mixin pr_debug(utils)
                     __lineStyle(__tint(0xff00ff,~bg_col,0.7),1);
                     __drawCircle(px,py,1);
                 }
-                    
+
                 __lineStyle(__tint(~bg_col,bg_col,0.7),1);
                 __moveTo(px,py);
                 vec_set(v,carb.normal.x*5,carb.normal.y*5);

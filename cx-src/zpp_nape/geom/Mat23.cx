@@ -1,51 +1,86 @@
 package zpp_nape.geom;
 $(import);
 
+//
+// Internal private Mat23 object.
+//
+
 class PR(Mat23) {
-    public var outer:Mat23;
-    public function wrapper() {
-        if(outer==null) {
+    // Possibly null reference to public wrapper.
+    // Should not be accessed directly, instead use of the 'wrapper' method is
+    // expected to lazily construct wrapper.
+    public var outer:Null<Mat23>;
+    public function wrapper():Mat23 {
+        if (outer == null) {
             outer = new Mat23();
+
+            // Mat23 constructor creates it's own inner objects
+            // so we dispose this directly to object pool.
             Free(PR(Mat23),outer.pr(inner));
             outer.pr(inner) = this;
         }
+
         return outer;
     }
 
-    mat_new(public,$(->));
-    vec_new(public,t);
+    // Matrix properties
+    mat_new(public, $(->));
+    vec_new(public, t);
 
-    public var __invalidate:Void->Void;
-    
-    //----------------------------------------------------------------------------------------------
-
-    public function set(m:PR(Mat23)) {
-        setas(m.a,m.b,m.c,m.d,m.tx,m.ty);
+    //
+    // When _invalidate is non null, then any (public) changes to the Mat23
+    // will invoke the method so that necessary side effects elsewhere can occur.
+    //
+    public var _invalidate:Null<Void->Void>;
+    flibmdel public inline function invalidate() {
+        if (_invalidate != null) {
+            _invalidate();
+        }
     }
-    public function setas(a:Float,b:Float,c:Float,d:Float,tx:Float,ty:Float) {
-        vec_set(this.t,t);
-        mat_set(this.,$(->));
+
+
+    //
+    // Assignment methods.
+    //
+    flibmdel public inline function set(m:PR(Mat23)):Void {
+        setas(m.a, m.b, m.c, m.d, m.tx, m.ty);
     }
 
-    //----------------------------------------------------------------------------------------------
-    
+    public function setas(
+        a:Float,  b:Float,
+        c:Float,  d:Float,
+        tx:Float, ty:Float
+    ):Void {
+        vec_set(this.t, t);
+        mat_set(this., $(->));
+    }
+
+    //
+    // Object pool implementors
+    //
     MixPool(PR(Mat23))
-    public function free() {}
-    public function alloc() {}
-    
-    //----------------------------------------------------------------------------------------------
-    
+    flibmdel public inline function free():Void {
+    }
+    flibmdel public inline function alloc():Void {
+    }
+
+    //
+    // !!Constructor should not be used!!
+    // Instead static get will auto-use object pool!
+    //
     public function new() {}
     flibstaticdel(get)
-    public static function get() {
+    public static function get():PR(Mat23) {
         var ret = Get(PR(Mat23));
         return ret;
     }
 
-    public static function identity() {
+    //
+    // Construct an identity matrix.
+    //
+    public static function identity():PR(Mat23) {
         var ret = PR(Mat23).get();
-        vec_set(ret.t, 0,0);
-        mat_set(ret.,1,0,0,1);
+        ret.setas(1, 0, 0, 1, 0, 0);
         return ret;
     }
 }
