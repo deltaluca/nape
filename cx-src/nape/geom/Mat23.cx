@@ -3,7 +3,7 @@ $(import);
 
 class Mat23 {
     public var pr(inner):PR(Mat23);
-    
+
     $(mixin comp(n)
         property(n,Float,pr(inner).n,{
             DEBUG(if(isNaN(n)) throw "Error: Mat23::"+$str(n)+" cannot be NaN";)
@@ -13,7 +13,7 @@ class Mat23 {
     );
     comp(a) comp(b) comp(tx)
     comp(c) comp(d) comp(ty)
-    
+
     //----------------------------------------------------------------------------------------------
 
     public function new(
@@ -48,7 +48,7 @@ class Mat23 {
             return new flash.geom.Matrix(a,c,b,d,tx,ty);
         }
     #end
-    
+
     keep public static function rotation(angle:Float) {
         var cos = Math.cos(angle);
         var sin = Math.sin(angle);
@@ -61,22 +61,22 @@ class Mat23 {
         if(isNaN(sy)) sy = sx;
         return new Mat23(sx,0,0,sy,0,0);
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     keep public function copy() return new Mat23(a,b,c,d,tx,ty)
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     property(determinant,Float,a*d-b*c)
-    
+
     keep public function singular() {
         var d = determinant;
         return d*d<PR(Const).EPSILON;
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     keep public function inverse() {
         var det = determinant;
         DEBUG(if(det*det<PR(Const).EPSILON)
@@ -91,11 +91,11 @@ class Mat23 {
             (c*tx - a*ty)*det
         );
     }
-    
+
     keep public function transpose() return new Mat23(a,c,b,d,tx,ty)
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     //x concat y = yx
     keep public function concat(x:Mat23) {
         return new Mat23(
@@ -105,7 +105,7 @@ class Mat23 {
             x.c*tx + x.d*ty + x.ty
         );
     }
-    
+
     keep public function transform(p:Vec2,?no_translation:Bool=false,?weak:Bool=false):Vec2 {
         Disposed(p,Vec2);
         var ret = if(no_translation)
@@ -145,14 +145,14 @@ class Mat23 {
         WEAK(p);
         return ret;
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     //keep is only for swc, use standard metadata
     @:$keep public function toString() {
         return "{ a: "+a+ " b: "+b+" c: "+c+" d: "+d+" tx: "+tx+" ty: "+ty+" }";
     }
-    
+
     //----------------------------------------------------------------------------------------------
 
     //whether transpose(M).M = kI -> can transform one circle to another.
@@ -167,7 +167,7 @@ class Mat23 {
             }else return false;
         }
     }
-    
+
     //transform matrix into the most similar, but [equi]orthogonal matrix
     $(mixin alise(n,kdef)
         keep public function n`ise() {
@@ -179,16 +179,16 @@ class Mat23 {
                 )
                 var k = kdef;
                 k1 = k/k1; k2 = k/k2;
-                    
+
                 a *= k1; c *= k1;
                 b *= k2; d *= k2;
-                    
+
                 var dot = a*b+c*d;
                 var ang = 0.25*Math.PI - 0.5*Math.acos(dot/(k*k));
                 if(determinant>0) ang = -ang;
-                    
+
                 var sin = Math.sin(ang); var cos = Math.cos(ang);
-                    
+
                 var a2 = a*cos-c*sin;
                 var b2 = b*cos+d*sin;
                 c = c*cos+a*sin; a = a2;
@@ -200,7 +200,7 @@ class Mat23 {
         }
     );
     alise(equiorthogonal,(k1+k2)/2)
-    
+
     //----------------------------------------------------------------------------------------------
 
     keep public function orthogonal() {
@@ -212,6 +212,6 @@ class Mat23 {
         }else
             return false;
     }
-    
+
     alise(orthogonal,1)
 }

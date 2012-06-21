@@ -1,44 +1,97 @@
 package nape.geom;
 $(import);
 
+//
+// Public API access to marching squares algorithm.
+//
+
 class MarchingSquares {
 
-    static public function run(iso:Float->Float->Float, bounds:AABB, cellsize:Vec2, quality:Int=2, subgrid:Vec2=null, combine:Bool=true) {
-        DEBUG(if(iso==null) throw "Error: MarchingSquares requires an iso function to define the iso-surface";)
-        DEBUG(if(bounds==null) throw "Error: MarchingSquares requires an AABB to define the bounds of the surface extraction";)
-        Disposed(cellsize,Vec2);
-        DEBUG(if(cellsize.x<=0||cellsize.y<=0) throw "Error: MarchingSquares cannot operate with non-postitive cell dimensions";)
-        DEBUG(if(quality<0) throw "Error: MarchingSquares cannot use a negative quality value";)
+    //
+    // Execute marching squares algorithm with given isofunction
+    // across given bounds, using given cellside, possible subgrid size
+    // and interpolation quality, with optional combining of sub polygons
+    // into weakly simply unions.
+    //
+    static public function run(
+        iso:Float->Float->Float,
+        bounds:AABB,
+        cellsize:Vec2,
+        quality:Int = 2,
+        subgrid:Null<Vec2> = null,
+        combine:Bool = true
+    ) {
+        Disposed(cellsize, Vec2);
+        Disposed(subgrid, Vec2);
+
         DEBUG(
-            if(subgrid!=null) Disposed(subgrid,Vec2);
-            if(subgrid!=null && (subgrid.x<=0 || subgrid.y<=0))
-                throw "Error: MarchingSquares cannot operate with non-positive subgrid dimensions";
+            if (iso == null) {
+                throw "Error: MarchingSquares requires an iso function to operate";
+            }
+            if (bounds == null) {
+                throw "Error: MarchingSquares requires an AABB to define bounds of surface extraction";
+            }
+            if (cellsize == null) {
+                throw "Error: MarchingSquares requires a Vec2 to define cell size for surface extraction";
+            }
+            if (cellsize.x <= 0 || cellsize.y <= 0) {
+                throw "Error: MarchingSquares cannot operate with non-positive cell dimensions";
+            }
+            if (quality < 0) {
+                throw "Error: MarchingSquares cannot use a negative quality value for interpolation";
+            }
+            if (subgrid != null && (subgrid.x <= 0 || subgrid.y <= 0))
+            {
+                throw "Error: MarchingSquares cannot with non-positive sub-grid dimensions";
+            }
         )
 
         var ret = new GeomPolyList();
-        if(subgrid==null) {
-            PR(MarchingSquares).run(iso,bounds.x,bounds.y,bounds.max.x,bounds.max.y,cellsize,quality,combine,ret);
+        if (subgrid == null) {
+            // Only need a single invocation for whole of bounds.
+            PR(MarchingSquares).run(
+                iso,
+                bounds.x, bounds.y,
+                bounds.max.x, bounds.max.y,
+                cellsize,
+                quality,
+                combine,
+                ret
+            );
         } else {
-            var xp = bounds.width/subgrid.x;  var xn:Int = fastint(xp);
-            var yp = bounds.height/subgrid.y; var yn:Int = fastint(yp);
-            if(xn!=xp) xn++;
-            if(yn!=yp) yn++;
+            // Split bounds into sub-grids of required size.
+            var xp = bounds.width / subgrid.x;
+            var yp = bounds.height / subgrid.y;
+            var xn:Int = fastint(xp);
+            var yn:Int = fastint(yp);
 
-            for(x in 0...xn) {
+            if (xn != xp) xn++;
+            if (yn != yp) yn++;
+
+            for (x in 0...xn) {
                 var x0 = bounds.x + subgrid.x*x;
-                var x1 = if(x==xn-1) bounds.max.x else x0 + subgrid.x;
-                for(y in 0...yn) {
+                var x1 = if(x == xn-1) bounds.max.x else (x0 + subgrid.x);
+                for (y in 0...yn) {
                     var y0 = bounds.y + subgrid.y*y;
-                    var y1 = if(y==yn-1) bounds.max.y else y0 + subgrid.y;
-                    PR(MarchingSquares).run(iso, x0,y0,x1,y1, cellsize, quality, combine,ret);
+                    var y1 = if (y==yn-1) bounds.max.y else (y0 + subgrid.y);
+                    PR(MarchingSquares).run(
+                        iso,
+                        x0, y0,
+                        x1, y1,
+                        cellsize,
+                        quality,
+                        combine,
+                        ret
+                    );
                 }
             }
         }
 
         WEAK(cellsize);
-        if(subgrid!=null) WEAK(subgrid);
+        if (subgrid != null) {
+            WEAK(subgrid);
+        }
 
         return ret;
     }
-
 }
