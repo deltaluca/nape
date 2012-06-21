@@ -1,177 +1,280 @@
 package zpp_nape.geom;
 $(import);
 
+// caxe only typedef.
 $(mixin Vertex() PR(GeomVert));
 
-class Vertex {
-    vec_new(public,$(->));
+//
+// Private GeomPoly vertex
+//
 
-    MixPoolNoNext(Vertex)
+class Vertex {
+    // x,y properties
+    vec_new(public, $(->));
+
+    // previous and next vertices in geometric polygon
+    // ALWAYS non-null (cyclic).
     public var prev:Vertex;
     public var next:Vertex;
 
-    public var wrap:Vec2;
+    // Reference to public Vec2 linked to this vertex.
+    // Access it with 'wrapper' to construct lazily.
+    public var wrap:Null<Vec2>;
 
-    //when true this vertex will not be removed
-    //by simplification
+    // when true this vertex will not be removed by simplification algorithms
     public var forced:Bool;
 
-    public function free () {
-        if(wrap!=null) {
+    // Object pool implementors
+    MixPoolNoNext(Vertex)
+    public function free():Void {
+        if (wrap != null) {
             wrap.pr(inner)._inuse = false;
             wrap.dispose();
             wrap = null;
         }
-        #if NAPE_ASSERT
-            vec_set(this.,-10,-20);
-        #end
+        prev = next = null;
+    }
+    public function alloc():Void {
         forced = false;
     }
-    public function alloc() {}
 
-    public function wrapper() {
-        if(wrap==null) {
+    // Function to access and lazily construct public warpped Vec2
+    public function wrapper():Vec2 {
+        if (wrap==null) {
             wrap = Vec2.get(x,y);
             wrap.pr(inner)._inuse = true;
             wrap.pr(inner)._invalidate = modwrap;
             wrap.pr(inner)._validate = getwrap;
         }
+
         return wrap;
     }
-
-    public function modwrap(n:PR(Vec2)) {
+    public function modwrap(n:PR(Vec2)):Void {
         vec_set(this.,n.);
     }
-    public function getwrap() {
+    public function getwrap():Void {
         vec_set(wrap.pr(inner).,this.);
     }
 
-    public static function get(x:Float,y:Float) {
+    // Function to be used to construct a Vertex so that object pool
+    // is automaticaly used. Constructor should 'not' be used here.
+    public static function get(x:Float, y:Float):Vertex {
         var ret = Get(Vertex);
-        vec_set(ret.,$(->));
+        vec_set(ret., $(->));
         return ret;
     }
     public function new() {}
 }
 
+//
+// Simple internal geompoly with refernce to circular linked list of vertices.
+//
+
 class PR(GeomPoly) {
     public var outer:GeomPoly;
-    public var vertices:Vertex;
+    public var vertices:Null<Vertex>;
 
     public function new(outer:GeomPoly) {
         this.outer = outer;
     }
 }
 
+//
+// Internal object for GeomVertexIterator
+//
+
 class PR(GeomVertexIterator) {
+
+    // pointer to current vertex in polygon
     public var ptr:Vertex;
+    // pointer to the first vertex of iteration
+    // (required for termination)
+    // and flag to denote we still need to visit it.
     public var start:Vertex;
     public var first:Bool;
+
+    // direction of iteration.
     public var forward:Bool;
 
     public var outer:GeomVertexIterator;
+
+    // Object pool implementors
     MixPool(PR(GeomVertexIterator))
-    public function free() {
+    flibmdel public inline function free():Void {
         outer.pr(inner) = null;
         ptr = start = null;
     }
-    public function alloc() {}
-
-    public static var internal = false;
-    function new() {
-        internal = true;
-        outer = new GeomVertexIterator();
-        internal = false;
+    flibmdel public inline function alloc() {
     }
 
-    public static function get(poly:PR(GeomVert),forward:Bool) {
+    DEBUG(
+        // Debug only field to catch improper use of GeomVertexIterator
+        // constructor by a user.
+        public static var internal = false;
+    )
+    function new() {
+        DEBUG(internal = true;)
+        outer = new GeomVertexIterator();
+        DEBUG(internal = false;)
+    }
+
+    // Function to be used to construct this object so that object pool can be
+    // automaticaly used.
+    public static function get(poly:PR(GeomVert), forward:Bool) {
         var ret = Get(PR(GeomVertexIterator));
         ret.outer.pr(inner) = ret;
         ret.ptr = poly;
         ret.forward = forward;
         ret.start = poly;
-        ret.first = poly!=null;
+        ret.first = poly != null;
         return ret.outer;
     }
 }
 
+//
+// Geometric environment to be used for working on private geometric polygons
+// Reason simply being that 'null' is a valid polygon! (the empty polygon)
+//
 $(mixin global geom(block)
     block
 
-    $(mixin contains(poly, Xx,Yy) ({
+    //
+    // Determine if polygon contains a point
+    // Using one sided ray casting.
+    //
+    // polygon -> Float -> Float -> Bool
+    $(mixin contains(poly, Xx, Yy) ({
         var x = Xx;
         var y = Yy;
         var ret = false;
 
         mix_circular(Vertex,
-            for_iter(p,poly,{
+            for_iter(p, poly,{
                 var q = p.prev;
-                if ((p.y < y && q.y>=y
-                 ||  q.y < y && p.y>=y)
-                 && (p.x<=x || q.x<=x)) {
-                    if(p.x+(y-p.y)/(q.y-p.y)*(q.x-p.x) < x)
+                if ((p.y < y && q.y >= y
+                 ||  q.y < y && p.y >= y)
+                 && (p.x <= x || q.x <= x)) {
+                    if ((p.x + (y - p.y) / (q.y - p.y) * (q.x - p.x)) < x) {
                         ret = !ret;
+                    }
                 }
             });
         )
 
-        ret;
+        /*return*/ ret;
     }));
 
+    //
+    // Produce clone of polygon.
+    //
+    // polygon -> polygon
     $(mixin clone(poly) {
         var ret:Vertex = null;
         mix_circular(Vertex,
-            for_iter(p,poly,ret = push_after(ret,Vertex.get(p.x,p.y)));
+            for_iter(p, poly,{
+                ret = push_after(ret, Vertex.get(p.x, p.y));
+            });
         )
-        ret;
+        /*return*/ ret;
     });
 
+    //
+    // Throw assertion if polygon is vertex-count-degenerate.
+    //
+    // polygon -> Void
     $(mixin assert_size_3(poly) {
+        #if NAPE_ASSERT
         mix_circular(Vertex,
-            #if NAPE_ASSERT if(size(poly)<3) throw "Error: Size of polygon less than 3 makes no sense: geom::area"; #end
+            if (size(poly) < 3) {
+                throw "Error: Method requires that polygon has atleast 3 vertices";
+            }
         )
+        #end
     });
 
+    //
+    // Compute signed area (positive for clockwise) of polygon
+    //
+    // polygon -> Float
     $(mixin signed_area(poly) ({
         assert_size_3(poly);
 
         var area = 0.0;
         mix_circular(Vertex,
-            for_iter(v,poly,area += v.x*(v.next.y-v.prev.y));
+            for_iter(v, poly, {
+                area += v.x * (v.next.y - v.prev.y);
+            });
         )
-        area;
+        /*return*/ area;
     }));
+
+    //
+    // Compute unsigned area of polygon.
+    //
+    // polygon -> Float
     $(mixin area(poly) ({
         var ret = signed_area(poly);
-        if(ret<0) (-ret) else ret;
+        /*return*/ if (ret < 0) (-ret) else ret;
     }));
 
-    $(mixin clockwise(poly) (signed_area(poly)>0.0));
+    //
+    // Determine if polygon is convex wound.
+    //
+    // polygon -> Bool
+    $(mixin clockwise(poly) ({
+        /*return*/ signed_area(poly) > 0.0;
+    }));
 
+    //
+    // Determine if polygon is degenerate in terms of vertex count and area.
+    //
+    // polygon -> Bool
     $(mixin degenerate(poly) ({
-        if(poly==null || poly.next==null || poly.next==poly.prev) true;
-        else { var a = signed_area(poly); a*a < PR(Const).EPSILON*PR(Const).EPSILON; }
+        if (poly == null
+         || poly.next == poly
+         || poly.next == poly.prev) {
+            /*return*/ true;
+        }
+        else {
+            var a = signed_area(poly);
+            /*return*/ (a * a) < (PR(Const).EPSILON * PR(Const).EPSILON);
+        }
     }));
 
+    //
+    // Determine if polygon is convex
+    // Performed by checking that all turns are in the same direction.
+    //
+    // polygon -> Bool
     $(mixin convex(poly) ({
         assert_size_3(poly);
+
         mix_circular(Vertex,
             var neg = false;
             var pos = false;
             var ret = true;
-            for_iter(v,poly,{
+            for_iter(v, poly, {
                 var u = v.prev;
                 var w = v.next;
 
-                vec_new(a); vec_sub(w.,v.,a);
-                vec_new(b); vec_sub(v.,u.,b);
-                var dot = vec_cross(a,b);
-                if  (dot>0.0) pos = true;
-                elif(dot<0.0) neg = true;
+                vec_new(a); vec_sub(w., v., a);
+                vec_new(b); vec_sub(v., u., b);
 
-                if(pos&&neg) { ret = false; break; }
+                var dot = vec_cross(a, b);
+                if (dot > 0.0) {
+                    pos = true;
+                }
+                elif (dot < 0.0) {
+                    neg = true;
+                }
+
+                if (pos && neg) {
+                    ret = false;
+                    break;
+                }
             });
         )
-        ret;
+
+        /*return*/ ret;
     }));
 );
