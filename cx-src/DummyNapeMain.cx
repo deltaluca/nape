@@ -3,29 +3,48 @@ $(import);
 
 class DummyNapeMain {
     static function main() {
-        var b0 = new Body();
-        var b1 = new Body();
-        var b2 = new Body();
 
-        var c = new PivotJoint(b0, b1, new Vec2(), new Vec2());
-        var d = new PivotJoint(b1, b2, new Vec2(), new Vec2());
+        var s1 = new Space();
+        var s2 = new Space();
 
-        var space = new Space();
+        var b1 = new Body(); b1.shapes.add(new Circle(10));
+        var b2 = new Body(); b2.shapes.add(new Circle(10));
+        var b3 = new Body(); b3.shapes.add(new Circle(10));
+        var b4 = new Body(); b4.shapes.add(new Circle(10));
 
-        trace(b0.connectedBodies(0));
-        trace(b0.connectedBodies(1));
-        trace(b0.connectedBodies(2));
+        b2.position.x += 5;
+        b4.position.x += 5;
 
-        c.space = space;
+        b1.space = b2.space = s1;
+        b3.space = b4.space = s2;
 
-        trace(b0.connectedBodies(0));
-        trace(b0.connectedBodies(1));
-        trace(b0.connectedBodies(2));
+        var ib1 = new BodyListener(CbEvent.SLEEP, CbType.ANY_BODY, function (b) trace([b.listener.space==b.body.space, b.body]));
+        ib1.space = s1;
 
-        d.space = space;
+        var ib2 = new BodyListener(CbEvent.SLEEP, CbType.ANY_BODY, function (b) trace([b.listener.space==b.body.space, b.body]));
+        ib2.space = s2;
 
-        trace(b0.connectedBodies(0));
-        trace(b0.connectedBodies(1));
-        trace(b0.connectedBodies(2));
+        var c1 = new PivotJoint(b1, b2, new Vec2(15, 0), new Vec2(-15, 0));
+        var c2 = new PivotJoint(b3, b4, new Vec2(15, 0), new Vec2(-15, 0));
+        c1.space = s1;
+        c2.space = s2;
+
+        var ic1 = new ConstraintListener(CbEvent.SLEEP, CbType.ANY_CONSTRAINT, function (c) trace([c.listener.space==c.constraint.space, c.constraint]));
+        ic1.space = s1;
+
+        var ic2 = new ConstraintListener(CbEvent.SLEEP, CbType.ANY_CONSTRAINT, function (c) trace([c.listener.space==c.constraint.space, c.constraint]));
+        ic2.space = s2;
+
+        var i1 = new InteractionListener(CbEvent.END, InteractionType.ANY, CbType.ANY_BODY, CbType.ANY_BODY, function (c) trace([c.listener.space==c.int1.castBody.space && c.listener.space==c.int2.castBody.space, c.int1, c.int2]));
+        i1.space = s1;
+
+        var i2 = new InteractionListener(CbEvent.END, InteractionType.ANY, CbType.ANY_BODY, CbType.ANY_BODY, function (c) trace([c.listener.space==c.int1.castBody.space && c.listener.space==c.int2.castBody.space, c.int1, c.int2]));
+        i2.space = s2;
+
+        for(i in 0...100) {
+            s1.step(1/60, 1, 1);
+            s2.step(1/60, 1, 1);
+        }
+
     }
 }

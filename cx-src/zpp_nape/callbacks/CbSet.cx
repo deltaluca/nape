@@ -60,8 +60,12 @@ class PR(CbSet) {
 
                         //only insert if valid for entire set of CbTypes!
                         // ! pairs handled separetely
-                        if(#if pairs true #else !cx.options.excluded(cbTypes) #end)
+                        //
+                        if(#if pairs true #else !cx.options.excluded(cbTypes) #end
+                           && manager.valid_listener(cx))
+                        {
                             npre = n.inlined_insert(npre,cx);
+                        }
                         cite = cite.next;
                     }else {
                         npre = nite;

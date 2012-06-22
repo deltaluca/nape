@@ -12,11 +12,11 @@ $(import);
 */
 class PR(Island) {
     MixListMixin(PR(Island))
-    
+
     public var comps:List(PR(Component));
     public var sleep:Bool;
     public var waket:Int;
-    
+
     MixPoolNoNext(PR(Island))
     flibmdel public inline function free() {
         assert(comps.empty(),"Island freed with components in island");
@@ -32,11 +32,11 @@ class PR(Island) {
 class PR(Component) {
     MixPool(PR(Component))
     DSF(Mixin(PR(Component)));
-    
+
     public var isBody:Bool;
     public var body:PR(Body);
     public var constraint:PR(Constraint);
-    
+
     public var island:PR(Island);
     public var sleeping:Bool;
     public var waket:Int;
@@ -147,6 +147,7 @@ class PR(CallbackSet) {
 
 class PR(CbSetManager) {
     public var cbsets:Set(PR(CbSet));
+    public var space:PR(Space);
 
     //look-up CbSet in Space, allocating a new one if one does not yet exist.
     public function get(cbTypes:List(PR(CbType))) {
@@ -190,9 +191,10 @@ class PR(CbSetManager) {
         assert(cbsets.empty(),"space cleared, called setmanager clear(), and tree was non-empty. wuh");
     }
 
-    public function new() {
+    public function new(space:PR(Space)) {
         cbsets = Get(Set(PR(CbSet)));
         cbsets.lt = PR(CbSet).set_lt;
+        this.space = space;
     }
 
     flibmdel public inline function validate() {
@@ -218,12 +220,17 @@ class PR(CbSetManager) {
         ret.validate();
         return ret;
     }
+
+    // Permits use of CbTypes amongst multiple Space's
+    flibmdel public inline function valid_listener(i:PR(Listener)) {
+        return i.space == this.space;
+    }
 }
 
 GENID(Space)
 class PR(Space) {
     public var outer:Space;
-    
+
     vec_new(public,gravity); public var wrap_gravity:Vec2;
     public function getgravity() {
         wrap_gravity = Vec2.get(gravityx,gravityy);
@@ -234,7 +241,7 @@ class PR(Space) {
     private function gravity_invalidate(x:PR(Vec2)) {
         DEBUG(if(midstep) throw "Error: Space::gravity cannot be set during space step";)
         vec_set(gravity,x.);
-        
+
         var stack = new List(PR(Compound))();
         Iterate(bodies, wake);
         Iterate(compounds, stack.add);
@@ -247,7 +254,7 @@ class PR(Space) {
     private function gravity_validate() {
         vec_set(wrap_gravity.pr(inner).,gravity);
     }
-    
+
     //----------------------------------------------------------------------------------------------
 
     //these model the public lists with the Space acting much like a Compound
@@ -258,19 +265,19 @@ class PR(Space) {
     //this list stores 'all' kinematics.
     //we assume kinematics will never really sleep.
     //could be improved later.
-    public var kinematics:List(PR(Body));    
-    
+    public var kinematics:List(PR(Body));
+
     public var bphase:PR(Broadphase);
-    
+
     public var __static:Body; //for constraint use.
-    
+
     //----------------------------------------------------------------------------------------------
 
     public var global_lin_drag:Float;
     public var global_ang_drag:Float;
 
     //----------------------------------------------------------------------------------------------
-    
+
     public var id:Int;
 
     //----------------------------------------------------------------------------------------------
@@ -278,28 +285,28 @@ class PR(Space) {
     public var stamp:Int;
     public var midstep:Bool;
     public var time:Float;
-    
+
     public var sortcontacts:Bool;
 
     //----------------------------------------------------------------------------------------------
-    
+
     $(define global public var c_arbiters(stat):List(PR(ColArbiter)););
     public var f_arbiters:List(PR(FluidArbiter));
     public var s_arbiters:List(PR(SensorArbiter));
 
     public var wrap_arbiters:ArbiterList;
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     public var live:List(PR(Body)); //live subset of dynamics.
     public var wrap_live:BodyList;
-    
+
     public var live_constraints:List(PR(Constraint)); //live subset of constraints
     public var wrap_livecon:ConstraintList;
-    
+
     //list of static/kinematics that need to be put to sleep after the next call to space.step()
     public var staticsleep:List(PR(Body));
-    
+
     //used by forest method
     public var islands:MixList(PR(Island));
 
@@ -312,7 +319,7 @@ class PR(Space) {
 
     //for on-going callbacks
     public var callbackset_list:MixList(PR(CallbackSet));
-    
+
     public var cbsets:PR(CbSetManager);
 
     //----------------------------------------------------------------------------------------------
@@ -394,7 +401,7 @@ class PR(Space) {
     }
 
     //----------------------------------------------------------------------------------------------
-    
+
     //were previously lambdas for wrap_lists
     private function bodies_adder(x:Body) {
         DEBUG(if(x.pr(inner).compound!=null) throw "Error: Cannot set the space of a Body belonging to a Compound, only the root Compound space can be set";)
@@ -465,7 +472,7 @@ class PR(Space) {
     })
 
     //----------------------------------------------------------------------------------------------
-    
+
     public function new(gravity:PR(Vec2),broadphase:Broadphase) {
         global_lin_drag = PR(Config).GLOBAL_LIN_DRAG;
         global_ang_drag = PR(Config).GLOBAL_ANG_DRAG;
@@ -486,11 +493,11 @@ class PR(Space) {
 
         time = 0.0;
         var me = this;
-        
+
         if(gravity!=null) vec_set(this.gravity,gravity.);
         else vec_set(this.gravity,0,0);
-    
-        bodies = new List(PR(Body))();    
+
+        bodies = new List(PR(Body))();
         wrap_bodies = PR(BodyList).get(bodies);
         wrap_bodies.pr(inner).adder = bodies_adder;
         wrap_bodies.pr(inner).subber = bodies_subber;
@@ -503,28 +510,28 @@ class PR(Space) {
         DEBUG(wrap_compounds.pr(inner)._modifiable = compounds_modifiable;)
 
         kinematics = new List(PR(Body))();
-        
+
         c_arbiters(true) = new List(PR(ColArbiter))();
         c_arbiters(false) = new List(PR(ColArbiter))();
         f_arbiters = new List(PR(FluidArbiter))();
         s_arbiters = new List(PR(SensorArbiter))();
-        
+
         islands = new MixList(PR(Island))();
-        
+
         live = new List(PR(Body))();
         wrap_live = PR(BodyList).get(live,true);
-        
+
         staticsleep = new List(PR(Body))();
-        
+
         constraints = new List(PR(Constraint))();
         wrap_constraints = PR(ConstraintList).get(constraints);
         wrap_constraints.pr(inner).adder = constraints_adder;
         wrap_constraints.pr(inner).subber = constraints_subber;
         DEBUG(wrap_constraints.pr(inner)._modifiable = constraints_modifiable;)
-        
+
         live_constraints = new List(PR(Constraint))();
         wrap_livecon = PR(ConstraintList).get(live_constraints,true);
-        
+
         __static = PR(Body).__static();
         __static.pr(inner).space = this;
 
@@ -538,16 +545,16 @@ class PR(Space) {
         DEBUG(wrap_listeners.pr(inner)._modifiable = listeners_modifiable;)
 
         callbackset_list = new MixList(PR(CallbackSet))();
-        
+
         mrca1 = new List(PR(Interactor))();
         mrca2 = new List(PR(Interactor))();
 
         //used in narrowphase
         prelisteners = new List(PR(InteractionListener))();
 
-        cbsets = new PR(CbSetManager)();
+        cbsets = new PR(CbSetManager)(this);
     }
-    
+
     //----------------------------------------------------------------------------------------------
 
     //nothing at present needs to be done inside of this.
@@ -601,21 +608,21 @@ class PR(Space) {
     public function transmitType(p:PR(Body),new_type:Int) {
         //wake object
         wake(p);
-        
+
         if     (p.type == Flag(BodyType,DYNAMIC))   { live.remove(p); }
         else if(p.type == Flag(BodyType,KINEMATIC)) { kinematics.remove(p); staticsleep.remove(p); }
         else if(p.type == Flag(BodyType,STATIC))    { staticsleep.remove(p); }
-        
+
         p.type = new_type;
-        
+
         if(p.type == Flag(BodyType,KINEMATIC)) kinematics.add(p);
-        
+
         if(p.type == Flag(BodyType,STATIC)) static_validation(p);
-        
+
         //wake again, as new type of body
         p.component.sleeping = true; wake(p,true);
     }
-    
+
     /*used by nape-hacks*/
     /*flibmdel*/ public inline function added_shape(s:PR(Shape), dontwake:Bool=false) {
         if(!dontwake) {
@@ -629,13 +636,13 @@ class PR(Space) {
 
     public function removed_shape(s:PR(Shape), ?deleting=false) {
         var body = s.body;
-        
+
         //if object is in the course of being deleted, don't want to wake it!
         if(!deleting) {
             //wake object first!
             body.wake();
         }
-        
+
         var pre = null;
         Iter(xarb,body.arbiters,{
             var rem = xarb.ws1 == s || xarb.ws2 == s;
@@ -690,22 +697,22 @@ class PR(Space) {
                 //wake connected first.
                 if(xarb.b1 != body && xarb.b1.isDynamic()) wake(xarb.b1);
                 if(xarb.b2 != body && xarb.b2.isDynamic()) wake(xarb.b2);
-                
+
                 xarb.lazyRetire(this,body);
                 cx_ite = body.arbiters.erase(pre);
                 continue;
             }
-            
+
             pre = cx_ite;
         });
-        
+
         bphase.remove(s);
 
         s.removedFromSpace();
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     public function addConstraint(con:PR(Constraint)) {
         con.space = this;
         con.addedToSpace();
@@ -715,7 +722,7 @@ class PR(Space) {
             wake_constraint(con,true);
         }
     }
-    
+
     public function remConstraint(con:PR(Constraint)) {
         if(con.active) {
             wake_constraint(con,true);
@@ -724,7 +731,7 @@ class PR(Space) {
         con.removedFromSpace();
         con.space = null;
     }
-    
+
     //----------------------------------------------------------------------------------------------
 
     //simple batching
@@ -744,7 +751,7 @@ class PR(Space) {
     }
 
     //----------------------------------------------------------------------------------------------
-    
+
     //flag = 0 if already added to bodies list, -1 if nothing has yet been done
     public function addBody(body:PR(Body),?flag:Int=-1) {
         body.space = this;
@@ -754,9 +761,9 @@ class PR(Space) {
         assert(body.component.island==null,"newly added body has an island??");
         body.component.sleeping = true;
         wake(body,true);
-            
+
         Iter(shape,body.shapes,added_shape(shape,true));
-            
+
         if(body.isStatic()) {
             //validation won't be done on statics later.
             static_validation(body);
@@ -772,9 +779,9 @@ class PR(Space) {
             }
         }
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     //flag = 0 if already removed from bodies list, -1 if nothing has yet been done
     public function remBody(body:PR(Body),?flag:Int=-1) {
         if(body.isStatic()) {
@@ -793,18 +800,18 @@ class PR(Space) {
                 assert(!live.has(body),"e3b");
             }else {
                 if(flag!=Flag(BodyType,KINEMATIC)) kinematics.remove(body);
-                
+
                 wake(body,true);
                 staticsleep.remove(body);
                 assert(!staticsleep.has(body),"e4");
             }
         }
         Iter(shape,body.shapes,removed_shape(shape,true));
-        
+
         body.removedFromSpace();
         body.space = null;
     }
-    
+
     //----------------------------------------------------------------------------------------------
 
     public function shapesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)) {
@@ -813,14 +820,14 @@ class PR(Space) {
     public function bodiesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)) {
         return bphase.bodiesUnderPoint(x,y,filter);
     }
-    
+
     public function shapesInAABB(aabb:AABB,strict:Bool,cont:Bool,filter:PR(InteractionFilter)) {
         return bphase.shapesInAABB(aabb.pr(inner),strict,cont,filter);
     }
     public function bodiesInAABB(aabb:AABB,strict:Bool,cont:Bool,filter:PR(InteractionFilter)) {
            return bphase.bodiesInAABB(aabb.pr(inner),strict,cont,filter);
     }
-    
+
     public function shapesInCircle(pos:Vec2,rad:Float,cont:Bool,filter:PR(InteractionFilter)) {
         return bphase.shapesInCircle(pos.x,pos.y,rad,cont,filter);
     }
@@ -834,16 +841,16 @@ class PR(Space) {
     public function bodiesInShape(shape:PR(Shape),cont:Bool,filter:PR(InteractionFilter)) {
         return bphase.bodiesInShape(shape,cont,filter);
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     public function rayCast(ray:Ray,inner:Bool,filter:InteractionFilter) {
            return bphase.rayCast(ray.pr(inner),inner,filter==null ? null : filter.pr(inner));
     }
     public function rayMultiCast(ray:Ray,inner:Bool,filter:InteractionFilter) {
            return bphase.rayMultiCast(ray.pr(inner),inner,filter==null ? null : filter.pr(inner));
     }
-    
+
     //----------------------------------------------------------------------------------------------
 
     public function push_callback(i:PR(Listener)) {
@@ -856,7 +863,7 @@ class PR(Space) {
 
     //----------------------------------------------------------------------------------------------
 
-    public var pre_dt:Float;    
+    public var pre_dt:Float;
     public function step(deltaTime:Float, velocityIterations:Int, positionIterations:Int) {
         DEBUG(if(midstep) throw "Error: ... REALLY?? you're going to call space.step() inside of space.step()? COME ON!!";)
 
@@ -871,9 +878,9 @@ class PR(Space) {
         #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
         validation();
         #if NAPE_TIMES Debug.VALID += flash.Lib.getTimer()-pt; #end
-        #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end 
+        #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
         bphase.broadphase();
-        #if NAPE_TIMES Debug.BROAD += flash.Lib.getTimer()-pt; #end 
+        #if NAPE_TIMES Debug.BROAD += flash.Lib.getTimer()-pt; #end
         #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
         doForests(deltaTime);
         #if NAPE_TIMES Debug.FOR += flash.Lib.getTimer()-pt; #end
@@ -915,11 +922,11 @@ class PR(Space) {
         doit(kinematics);
         doit(live);
         updatePos(deltaTime);
-                
+
         #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
         iteratePos(positionIterations);
         #if NAPE_TIMES Debug.POS += flash.Lib.getTimer()-pt; #end
-        
+
         $(mixin doit2(list) {
             Iter(cur,list,{
                 var upos = !vec_eq(cur.pos,cur.pre_pos);
@@ -939,7 +946,7 @@ class PR(Space) {
         });
         doit2(kinematics);
         doit2(live);
-    
+
         var pre = null;
         Iter(b, staticsleep, {
             assert(!b.isDynamic(), "step :: swef static/kinematics");
@@ -950,7 +957,7 @@ class PR(Space) {
             }
             pre = cx_ite;
         });
-            
+
         midstep = false;
         //generate on-going events
         var pre = null;
@@ -1000,7 +1007,7 @@ class PR(Space) {
         }
     }
 
-    
+
     //----------------------------------------------------------------------------------------------
 
     public function bodyCbWake(b:PR(Body)) {
@@ -1083,11 +1090,11 @@ class PR(Space) {
         //since this is a function that will not often be called.
         //
         //or atleast only iterate pairs of shapes once! TODO
-        var stack = new List(PR(Interactor))();    
+        var stack = new List(PR(Interactor))();
         Iterate(cb1.interactors, stack.add);
         if(cb1!=cb2)
             Iterate(cb2.interactors, stack.add);
-    
+
         while(!stack.empty()) {
             var intx = stack.pop_unsafe();
             if(intx.isCompound()) {
@@ -1125,7 +1132,7 @@ class PR(Space) {
         }
     }
 
-    //clean up all callbacksets associated with interactor    
+    //clean up all callbacksets associated with interactor
     public function nullInteractorType(intx:PR(Interactor),me:PR(Interactor)=null) {
         if(me==null) me = intx;
 
@@ -1171,17 +1178,17 @@ class PR(Space) {
             });
         }
     }
-    
+
     //create all callbacksets associated with these cbTypes
     //pre: this is valid! (aka cb1/cb2 has only one matching listener for interaction/pre)
     public function freshListenerType(cb1:PR(CbSet),cb2:PR(CbSet)) {
         //this could be improved greatly to only consider pairs of shapes once
         //but for now it will do: TODO
-        var stack = new List(PR(Interactor))();    
+        var stack = new List(PR(Interactor))();
         Iterate(cb1.interactors, stack.add);
         if(cb1!=cb2)
             Iterate(cb2.interactors, stack.add);
-    
+
         while(!stack.empty()) {
             var intx = stack.pop_unsafe();
             if(intx.isCompound()) {
@@ -1271,10 +1278,10 @@ class PR(Space) {
         Iterate(x.constraints, wake_constraint);
         Iterate(x.compounds, wakeCompound);
     }
-    
+
     public function wakeIsland(i:PR(Island)) {
         assert(i.sleep,"this island is not sleeping but referenced? wtf");
-        
+
         while(!i.comps.empty()) {
             var c = i.comps.pop_unsafe();
             assert(c.sleeping, "???");
@@ -1282,11 +1289,11 @@ class PR(Space) {
 
             if(c.isBody) {
                 var b = c.body;
-                    
-                assert(b.space==this,"wakeIsland:: body is not actually IN this space??");    
+
+                assert(b.space==this,"wakeIsland:: body is not actually IN this space??");
                 assert(b.isDynamic(),"din din");
                 live.add(b);
-                
+
                 Iter(arb, b.arbiters, {
                     if(arb.sleeping) {
                         arb.sleeping = false;
@@ -1319,10 +1326,10 @@ class PR(Space) {
                 c.reset();
             }
         }
-        
+
         Free(PR(Island),i);
     }
-    
+
     public function wake(o:PR(Body),?fst=false) {
         assert(o.space==this,"object being woken in the space... is not actually in the space!");
         if(!o.world) {
@@ -1336,9 +1343,9 @@ class PR(Space) {
                         staticsleep.inlined_add(o);
                     else
                         live.inlined_add(o);
-                    
+
                     //to allow hacky forced sleeping of dynamics, need to
-                    //wake constraints/arbiters of singular dynamics also (sigh)    
+                    //wake constraints/arbiters of singular dynamics also (sigh)
 //                    if(!o.isDynamic()) {
                         //wake any constraints that might exist
                         //check that only constraints IN the space are woken!!
@@ -1385,7 +1392,7 @@ class PR(Space) {
             }else return false;
         }else return true;
     }
-    
+
     public function wake_constraint(con:PR(Constraint),?fst=false) {
         assert(con.space==this,"constraint woken, but not actually IN the space!");
         if(con.active) {
@@ -1409,9 +1416,9 @@ class PR(Space) {
         }else
             return false;
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     public function doForests(dt:Float) {
         //build set foreset.
         //
@@ -1431,12 +1438,12 @@ class PR(Space) {
             }
         });
         Iter(con, live_constraints, con.forest());
-        
+
         //build islands
         while(!live.empty()) {
             var o = live.inlined_pop_unsafe();
             var oc = o.component;
-            
+
             var root = DSF(find(oc));
             if(root.island==null) {
                 root.island = Get(PR(Island));
@@ -1452,10 +1459,10 @@ class PR(Space) {
         while(!live_constraints.empty()) {
             var o = live_constraints.inlined_pop_unsafe();
             var oc = o.component;
-            
+
             var root = DSF(find(oc));
             assert(root.island!=null,"constraint without bodies?");
-            
+
             oc.island = root.island;
             oc.island.comps.inlined_add(oc);
             if(oc.waket > oc.island.waket) oc.island.waket = oc.waket;
@@ -1498,9 +1505,9 @@ class PR(Space) {
             }
         }
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     public function static_validation(body:PR(Body)) {
         //validate body properties needed here as they are not 'allowed' to change
         //(material can be changed, but due to static nature, mass/inertia remain infinite)
@@ -1524,7 +1531,7 @@ class PR(Space) {
         });
         //check: no other properties (Body worldCOM, shape worldCOM(polygon) are needed?)
     }
-    
+
     public function validation() {
         //validate that all CbSet's in existance of space, have correctly synced listener lists from sub CbType's
         cbsets.validate();
@@ -1534,14 +1541,14 @@ class PR(Space) {
                 DEBUG(if(cur.shapes.empty())
                     throw "Error: Cannot simulate an empty Body";
                 )
-                
+
                 cur.validate_mass();
                 cur.validate_inertia();
                 cur.validate_aabb();
                 cur.validate_gravMass();
                 cur.validate_worldCOM();
                 cur.validate_axis();
-                    
+
                 Iter(s,cur.shapes,{
                     if(s.isPolygon()) {
                         DEBUG(
@@ -1572,10 +1579,10 @@ class PR(Space) {
                     Iter(shape,cur.shapes,bphase.sync(shape));
             });
         });
-        
+
         update(live,false);
         update(kinematics,true);
-        
+
         //check validity of constraints' set-up.
         //do wake callbacks
         Iter(con,live_constraints,{
@@ -1593,9 +1600,9 @@ class PR(Space) {
             }
         });
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     public function updateVel(dt:Float) {
         var pre = null;
         Iter(cur,live,{
@@ -1603,9 +1610,9 @@ class PR(Space) {
             vec_addeq(cur.force,cur.vel,-global_lin_drag*cur.mass);
             if(cur.smass!=0.0)
                 vec_addeq(cur.vel,cur.force,dt*cur.imass);
-            
+
             vec_set(cur.force,0,0);
-            
+
             if(cur.sinertia!=0.0) {
                 vec_new(dp); vec_sub(cur.worldCOM,cur.pos,dp);
                 cur.torque += vec_cross(dp,gravity)*cur.gravMass;
@@ -1613,13 +1620,13 @@ class PR(Space) {
                 cur.angvel += cur.torque*dt*cur.iinertia;
             }
             cur.torque = 0;
-            
+
             pre = cx_ite;
         });
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     public function updatePos(dt:Float) {
         $(mixin doit(list) {
             Iter(cur,list,{
@@ -1633,7 +1640,7 @@ class PR(Space) {
     }
 
     //----------------------------------------------------------------------------------------------
-    
+
     public function prestep(dt:Float) {
         var pre = null;
         Iter(con,live_constraints,{
@@ -1683,7 +1690,7 @@ class PR(Space) {
                 //arb.present matches when arbiter was retired, but needs to be removed
                 //from it's callbacksets!
                 //deals neatly with change in interaction types at runtime
-                if(!arb.cleared || arb.present!=0 || arb.intchange) {    
+                if(!arb.cleared || arb.present!=0 || arb.intchange) {
                     //callbacks
                     var endcb = (arb.up_stamp==stamp-1) && !arb.cleared && !arb.intchange;
                     var begcb = (arb.fresh) && !arb.cleared && !arb.intchange;
@@ -1762,7 +1769,7 @@ class PR(Space) {
                     pre_continue;
                     continue;
                 }
-                
+
                 var pact = arb.active;
                 arb.active = arb.presentable = arb.up_stamp==stamp;
 
@@ -1771,7 +1778,7 @@ class PR(Space) {
                 }else if(collisiontype) {
                     if(!untyped arb.cleanupContacts()) arb.active = false;
                 }
-                
+
                 //necessary to notify lists of non structual changes for API
                 //
                 //we don't bother doing this for callbacksets
@@ -1781,13 +1788,13 @@ class PR(Space) {
                     arb.b2.arbiters.modified = true;
                     arbs.modified = true;
                 }
-                
+
                 pre = arbite;
                 arbite = arbite.next;
                 pre_continue;
             }
         });
-    
+
         //still iterate non acting arbiters
         //want to clean up contacts in collision arbiters
         //and clean up outdated arbiters also
@@ -1809,7 +1816,7 @@ class PR(Space) {
             if(fst && arbi==null) { arbi = c_arbiters(true).begin(); fst = false; }
         }
     });
-    
+
     public function warmStart() {
         Iter(arb,f_arbiters, if(arb.acting()) arb.warmStart());
         IterColArbs(arb, if(arb.acting()) arb.warmStart());
@@ -1820,7 +1827,7 @@ class PR(Space) {
         var bouncyval = bouncy ? 1.0 : 0.0;
         for(i in 0...times) {
             Iter(arb,f_arbiters,if(arb.acting()) arb.applyImpulseVel());
-            
+
             var pre = null;
             Iter(con,live_constraints, {
                 if(con.applyImpulseVel()) {
@@ -1843,7 +1850,7 @@ class PR(Space) {
                 }
                 pre = cx_ite;
             });
-                
+
             IterColArbs(arb,if(arb.acting()) arb.applyImpulseVel(bouncyval));
         }
     }
@@ -1855,7 +1862,7 @@ class PR(Space) {
                 if(!con.__velocity && con.stiff) {
                     if(con.applyImpulsePos()) {
                         cx_ite = live_constraints.erase(pre);
-                        
+
                         constraintCbBreak(con);
                         if(con.removeOnBreak) {
                             //set sleeping to true as already removed from live list.
@@ -1874,7 +1881,7 @@ class PR(Space) {
                 }
                 pre = cx_ite;
             });
-                
+
             IterColArbs(arb,if(arb.acting()) arb.applyImpulsePos());
         }
     }
@@ -2169,14 +2176,14 @@ class PR(Space) {
                     }else
                         arb = xarb.fluidarb;
                 }
-                    
+
                 ret = narrowed(arb,FLUID,PR(FluidArbiter),f_arbiters, PR(Collide).flowCollide(sa,sb,arb), true,false);
             case 1:
                 var carbs = stat ? c_arbiters(true) : c_arbiters(false);
 
                 var xarb = if(in_arb==null) arbget(sa.id,sb.id) else in_arb;
                 var first = xarb==null;
-                    
+
                 var arb; var swapped = false;
                 if(first) {
                     arb = Get(PR(ColArbiter));
@@ -2208,7 +2215,7 @@ class PR(Space) {
             case 2:
                 var xarb = if(in_arb==null) arbget(sa.id,sb.id) else in_arb;
                 var first = xarb==null;
-                    
+
                 var arb; var swapped = false;
                 if(first) arb = Get(PR(SensorArbiter))
                 else {
@@ -2222,7 +2229,7 @@ class PR(Space) {
                     }else
                         arb = xarb.sensorarb;
                 }
-                
+
                 ret = narrowed(arb,SENSOR,PR(SensorArbiter),s_arbiters, PR(Collide).testCollide(sa,sb), false,false);
             }
         }
