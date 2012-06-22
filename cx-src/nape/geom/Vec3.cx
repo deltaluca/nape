@@ -1,19 +1,31 @@
 package nape.geom;
 $(import);
 
+//
+// Public Vec3 object.
+//
+
 class Vec3 {
     public var pr(inner):PR(Vec3);
 
+    // Object poolable.
     PublicMixPool(Vec3)
 
+    //
+    // x, y, z properties
+    //
     $(mixin genprop(x)
-        property(x,Float,{
-            Disposed(this,Vec3);
-            if(pr(inner).validate!=null) pr(inner).validate();
-            pr(inner).x;
+        property(x, Float, {
+            Disposed(this, Vec3);
+            pr(inner).validate();
+            /*return*/ pr(inner).x;
         },{
-            Disposed(this,Vec3);
-            DEBUG(if(pr(inner).immutable) throw "Error: Vec3 is immutable";)
+            Disposed(this, Vec3);
+            DEBUG(
+                if (pr(inner).immutable) {
+                    throw "Error: Vec3 is immutable";
+                }
+            )
             pr(inner).x = x;
         })
     );
@@ -21,71 +33,98 @@ class Vec3 {
     genprop(y)
     genprop(z)
 
-    public static function get(?x:Float=0,?y:Float=0,?z:Float=0) {
+    //
+    // Constructor (which should not be used)
+    // and getter for automatic use of object pool.
+    //
+
+    public static function get(x:Float = 0, y:Float = 0, z:Float = 0):Vec3 {
         var ret = PublicGet(Vec3);
         ret.setxyz(x,y,z);
         ret.pr(inner).immutable = false;
-        ret.pr(inner).validate = null;
+        ret.pr(inner)._validate = null;
         return ret;
     }
-    public function new(?x:Float=0,?y:Float=0,?z:Float=0) {
+
+    public function new(x:Float = 0, y:Float = 0, z:Float = 0) {
         pr(inner) = new PR(Vec3)();
         pr(inner).outer = this;
-        vec3_set(this.,$(->));
-    }
-    public function copy() {
-        Disposed(this,Vec3);
-        return Vec3.get(x,y,z);
+        vec3_set(this., $(->));
     }
 
-    public function dispose() {
-        Disposed(this,Vec3);
-        DEBUG(if(pr(inner).immutable) throw "Error: This Vec3 is not disposable";)
-        PublicFree(Vec3,this);    
-    }    
-    
-    //------------------------
-    
-    property(length,Float,{
-        Disposed(this,Vec3);
-        vec3_length_slow(this.);
-    },{
-        Disposed(this,Vec3);
+    public function copy():Vec3 {
+        Disposed(this, Vec3);
+        return Vec3.get(x, y, z);
+    }
+
+    //
+    // Method to release Vec3 to object pool.
+    //
+    public function dispose():Void {
+        Disposed(this, Vec3);
         DEBUG(
-            if(isNaN(length)) throw "Error: Vec3::length cannot be NaN";
-            if(vec3_lsq(this.)==0) throw "Error: Cannot set length of a zero vector";
+            if (pr(inner).immutable) {
+                throw "Error: This Vec3 is not disposable";
+            }
         )
-        vec3_muleq(this., length/this.length);
+        PublicFree(Vec3, this);
+    }
+
+    //
+    // Length property.
+    //
+    property(length, Float,{
+        Disposed(this, Vec3);
+        /*return*/ vec3_length_slow(this.);
+    },{
+        Disposed(this, Vec3);
+        DEBUG(
+            if (isNaN(length)) {
+                throw "Error: Vec3::length cannot be NaN";
+            }
+            if (vec3_lsq(this.) == 0) {
+                throw "Error: Cannot set length of a zero vector";
+            }
+        )
+        vec3_muleq(this., (length/this.length));
     })
-    
-    keep public function lsq() {
-        Disposed(this,Vec3);
+
+    keep public function lsq():Float {
+        Disposed(this, Vec3);
         return vec3_lsq(this.);
     }
-    
-    public function set(p:Vec3) {
-        Disposed(this,Vec3);
-        Disposed(p,Vec3);
-        DEBUG(if(p==null) throw "Error: Cannot assign null Vec3";)
-        return setxyz(p.x,p.y,p.z);
+
+    //
+    // Setters
+    //
+    public function set(p:Vec3):Vec3 {
+        Disposed(this, Vec3);
+        Disposed(p, Vec3);
+        DEBUG(
+            if (p == null) {
+                throw "Error: Cannot assign null Vec3";
+            }
+        )
+
+        return setxyz(p.x, p.y, p.z);
     }
-    public function setxyz(x:Float,y:Float,z:Float) {
-        Disposed(this,Vec3);
-        vec3_set(this.,$(->));
+
+    public function setxyz(x:Float, y:Float, z:Float):Vec3 {
+        Disposed(this, Vec3);
+        vec3_set(this., $(->));
         return this;
     }
-    
-    //-------------------------
-    
-    public function xy(?weak:Bool=false) {
-        Disposed(this,Vec3);
-        return Vec2.get(x,y,weak);
+
+    //
+    // Extract Vec2 corresponding to x,y values
+    //
+    public function xy(weak:Bool = false):Vec2 {
+        Disposed(this, Vec3);
+        return Vec2.get(x, y, weak);
     }
-    
-    //-------------------------
-    
-    @:$keep public function toString() {
-        Disposed(this,Vec3);
+
+    @:$keep public function toString():String {
+        Disposed(this, Vec3);
         return "{ x: "+x+" y: "+y+" z: "+z+" }";
     }
 }

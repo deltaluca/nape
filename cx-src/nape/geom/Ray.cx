@@ -1,73 +1,136 @@
 package nape.geom;
 $(import);
 
+//
+// Public Ray object.
+//
+
 class Ray {
     public var pr(inner):PR(Ray);
-    
+
+    //
+    // Field for users to store whatever extra information they may like.
+    //
     public var userData:Dynamic;
-    
-    //----------------------------------------------------------------------------
-    
-    property(origin,Vec2,pr(inner).origin,{
+
+    //
+    // Paramateric ray defined with origin and direction parameters.
+    //
+    // Both of these values are not mutated by Ray.
+    // Though internally ray direction is normalised, to the user it
+    // remains whatever they set it to.
+    //
+
+    property(origin, Vec2, {
+        /*return*/ pr(inner).origin;
+    }, {
         Disposed(origin,Vec2);
-        DEBUG(if(origin==null) throw "Error: Ray::origin cannot be null";)
+        DEBUG(
+            if (origin == null) {
+                throw "Error: Ray::origin cannot be null";
+            }
+        )
+
         pr(inner).origin.set(origin);
     })
 
-    property(direction,Vec2,pr(inner).direction,{
+    property(direction, Vec2, {
+        /*return*/ pr(inner).direction;
+    }, {
         Disposed(direction,Vec2);
+
         DEBUG(
-            if(direction==null) throw "Error: Ray::direction cannot be null";
-            if(direction.lsq()<PR(Const).EPSILON) throw "Error: Ray::direction cannot be degenerate";
+            if (direction == null) {
+                throw "Error: Ray::direction cannot be null";
+            }
+            if (direction.lsq() < PR(Const).EPSILON) {
+                throw "Error: Ray::direction must not be degenerate";
+            }
         )
+
         pr(inner).direction.set(direction);
         pr(inner).invalidate_dir();
     })
-    
-    property(maxDistance,Float,pr(inner).maxdist,{
-        DEBUG(if(isNaN(maxDistance)) throw "Error: maxDistance cannot be NaN";)
+
+    //
+    // Max distance property sets a real distance limit on ray casts
+    // Whether direction is normalised or not makes no difference here.
+    //
+
+    property(maxDistance, Float, {
+        /*return*/ pr(inner).maxdist;
+    }, {
+        DEBUG(
+            if (isNaN(maxDistance)) {
+                throw "Error: maxDistance cannot be NaN";
+            }
+        )
+
         pr(inner).maxdist = maxDistance;
     })
-    
-    //----------------------------------------------------------------------------
 
-    public function aabb() return pr(inner).rayAABB().wrapper()
-
-    //----------------------------------------------------------------------------
-    
-    public function copy() {
-        var ret = new Ray(origin,direction);
-        ret.maxDistance = maxDistance;
-        return ret;
+    //
+    // Compute AABB bounding ray (possibly infinite)
+    // Takes maxDistance into account.
+    //
+    public function aabb():AABB {
+        return pr(inner).rayAABB().wrapper();
     }
-    
-    public function at(distance:Float,?weak:Bool=false) {
+
+    //
+    // Compute point along ray at given distance.
+    // Again, this is a true distance and whether direction is normalised or not
+    // makes no difference here.
+    //
+    public function at(distance:Float, weak:Bool = false):Vec2 {
         pr(inner).validate_dir();
-        return Vec2.get(origin.x+distance*pr(inner).dirx,origin.y+distance*pr(inner).diry,weak);
+        return Vec2.get(
+            origin.x + (distance * pr(inner).dirx),
+            origin.y + (distance * pr(inner).diry),
+            weak
+        );
     }
-    
-    //----------------------------------------------------------------------------
-    
+
+    //
+    // Constructor, copy and factory methods.
+    //
     flibopts(0)
     public function new(origin:Vec2, direction:Vec2) {
-        Disposed(origin,Vec2);
-        Disposed(direction,Vec2);
+        Disposed(origin, Vec2);
+        Disposed(direction, Vec2);
+
         pr(inner) = new PR(Ray)();
         this.origin = origin;
         this.direction = direction;
         pr(inner).maxdist = PR(Const).POSINF();
     }
-    
-    public static function fromSegment(start:Vec2,end:Vec2) {
+
+    public function copy() {
+        var ret = new Ray(origin,direction);
+        ret.maxDistance = maxDistance;
+        return ret;
+    }
+
+    //
+    // Create ray from line segment, with maxDistance set appropriately
+    //
+    public static function fromSegment(start:Vec2, end:Vec2) {
         Disposed(start,Vec2);
         Disposed(end,Vec2);
+
         DEBUG(
-            if(start==null) throw "Error: Ray::fromSegment::start is null";
-            if(end  ==null) throw "Error: Ray::fromSegment::end is null";
+            if (start == null) {
+                throw "Error: Ray::fromSegment::start is null";
+            }
+            if (end == null) {
+                throw "Error: Ray::fromSegment::end is null";
+            }
         )
-        var dir = end.sub(start,true);
-        var ret = new Ray(start,dir);
-        ret.maxDistance = Math.sqrt(vec_dsq(start.,end.));
+
+        var dir = end.sub(start, true);
+        var ret = new Ray(start, dir);
+        ret.maxDistance = Math.sqrt(vec_dsq(start., end.));
+
         WEAK(start);
         WEAK(end);
         return ret;
