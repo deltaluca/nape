@@ -8,68 +8,88 @@ import nape.space.Space;
 class Listener {
     public var pr(inner):PR(Listener);
 
-    property(type,ListenerType,{
-        [ListenerType.BODY,ListenerType.CONSTRAINT,ListenerType.INTERACTION,ListenerType.PRE][pr(inner).type];
+    property(type, ListenerType, {
+        /*return*/
+            [ListenerType.BODY,
+             ListenerType.CONSTRAINT,
+             ListenerType.INTERACTION,
+             ListenerType.PRE
+            ][pr(inner).type];
     })
-    property(event,CbEvent,{
-        [CbEvent.BEGIN,CbEvent.END,CbEvent.WAKE,CbEvent.SLEEP,CbEvent.BREAK,CbEvent.PRE,CbEvent.ONGOING][pr(inner).event];
-    },{
-        DEBUG(if(event==null) throw "Error: Cannot set listener event type to null";)
-        if(this.event!=event) {
-            var xevent = event == CbEvent.BEGIN   ? Flag(CbEvent,BEGIN)   :
-                         event == CbEvent.ONGOING ? Flag(CbEvent,ONGOING) :
-                         event == CbEvent.END     ? Flag(CbEvent,END)     :
-                         event == CbEvent.SLEEP   ? Flag(CbEvent,SLEEP)   :
-                         event == CbEvent.WAKE    ? Flag(CbEvent,WAKE)    :
-                         event == CbEvent.PRE     ? Flag(CbEvent,PRE)     :
-                         Flag(CbEvent,BREAK);
-            if(pr(inner).type == Flag(ListenerType,BODY))
-                pr(inner).body.swapEvent(xevent);
-            else if(pr(inner).type == Flag(ListenerType,CONSTRAINT))
-                pr(inner).constraint.swapEvent(xevent);
-            else
-                pr(inner).interaction.swapEvent(xevent);
+
+    property(event, CbEvent, {
+        /*return*/
+            [CbEvent.BEGIN,
+             CbEvent.END,
+             CbEvent.WAKE,
+             CbEvent.SLEEP,
+             CbEvent.BREAK,
+             CbEvent.PRE,
+             CbEvent.ONGOING
+            ][pr(inner).event];
+    }, {
+        DEBUG(
+            if (event == null) {
+                throw "Error: Cannot set listener event type to null";
+            }
+        )
+
+        if (this.event != event) {
+            var xevent =
+                if   (event == CbEvent.BEGIN)   Flag(CbEvent, BEGIN)
+                elif (event == CbEvent.ONGOING) Flag(CbEvent, ONGOING)
+                elif (event == CbEvent.END)     Flag(CbEvent, END)
+                elif (event == CbEvent.SLEEP)   Flag(CbEvent, SLEEP)
+                elif (event == CbEvent.WAKE)    Flag(CbEvent, WAKE)
+                elif (event == CbEvent.PRE)     Flag(CbEvent, PRE)
+                else Flag(CbEvent, BREAK);
+
+            pr(inner).swapEvent(xevent);
         }
     })
 
-    property(precedence,Int,pr(inner).precedence,{
-        if(this.precedence!=precedence) {
+    property(precedence, Int, {
+        /*return*/ pr(inner).precedence;
+    }, {
+        if (this.precedence != precedence) {
             pr(inner).precedence = precedence;
-            if(pr(inner).type == Flag(ListenerType,BODY))
-                pr(inner).body.changed_precedence();
-            elif(pr(inner).type == Flag(ListenerType,CONSTRAINT))
-                pr(inner).constraint.changed_precedence();
-            else
-                pr(inner).interaction.changed_precedence();
+            pr(inner).changed_precedence();
         }
     })
-
-    ///---------------------------------------------------------------------------------------------
 
     public function new() {
-        DEBUG(if(!PR(Listener).internal) throw "Error: Cannot instantiate Listener derp!";)
+        DEBUG(
+            if (!PR(Listener).internal) {
+                throw "Error: Cannot instantiate Listener derp!";
+            }
+        )
     }
 
-    ///---------------------------------------------------------------------------------------------
-
-    property(space,Space,{
-        if(pr(inner).space==null) null else pr(inner).space.outer;
+    property(space, Space, {
+        /*return*/ if (pr(inner).space == null) null else pr(inner).space.outer;
     },{
-        if(this.space!=space) {
-            if(pr(inner).space!=null) pr(inner).space.outer.listeners.remove(this);
-            if(space!=null) space.listeners.add(this);
-            else pr(inner).space = null;
+        if (this.space != space) {
+            // Remove from old space.
+            if (pr(inner).space != null) {
+                pr(inner).space.outer.listeners.remove(this);
+            }
+
+            // Assign to new space.
+            if (space!=null) {
+                space.listeners.add(this);
+            }
+            else {
+                pr(inner).space = null;
+            }
         }
     })
-
-    ///---------------------------------------------------------------------------------------------
 
     @:$keep public function toString() {
         var event = ["BEGIN","END","WAKE","SLEEP","BREAK","PRE","ONGOING"][pr(inner).event];
-        if(pr(inner).type == Flag(ListenerType,BODY)) {
+        if (pr(inner).type == Flag(ListenerType, BODY)) {
             var body = pr(inner).body;
             return "BodyListener{"+event+"::"+body.outer_zn.options+"}";
-        }else if(pr(inner).type == Flag(ListenerType,CONSTRAINT)) {
+        }else if (pr(inner).type == Flag(ListenerType, CONSTRAINT)) {
             var con = pr(inner).constraint;
             return "ConstraintListener{"+event+"::"+con.outer_zn.options+"}";
         }else {

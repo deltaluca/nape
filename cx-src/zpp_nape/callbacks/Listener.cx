@@ -4,7 +4,7 @@ $(import);
 GENID(Listener)
 class PR(Listener) {
     public var outer:Listener;
-    public static var internal:Bool = false;
+    DEBUG(public static var internal:Bool = false;)
 
     public var id:Int; //for total ordering of listeners.
 
@@ -27,6 +27,9 @@ class PR(Listener) {
     public inline static function set_lt(a:PR(Listener),b:PR(Listener)) {
         return a.precedence>b.precedence || (a.precedence==b.precedence && a.id>b.id);
     }
+
+    public function swapEvent(event:Int):Void {}
+    public function changed_precedence():Void {}
 }
 
 ///_________________________________________________________________________________________________
@@ -68,7 +71,7 @@ $(mixin SingleListener(t,T,FLAG)
 
         addedToSpace();
     }
-    public function changed_precedence() {
+    public override function changed_precedence() {
         if(space!=null) {
             removedFromSpace();
             addedToSpace();
@@ -79,7 +82,7 @@ $(mixin SingleListener(t,T,FLAG)
 class PR(BodyListener) extends PR(Listener) {
     SingleListener(body,Body,Flag(ListenerType,BODY))
 
-    public function swapEvent(newev:Int) {
+    public override function swapEvent(newev:Int) {
         DEBUG(
             if(newev != Flag(CbEvent,WAKE) && newev != Flag(CbEvent,SLEEP))
                 throw "Error: BodyListener event must be either WAKE or SLEEP only";
@@ -93,7 +96,7 @@ class PR(BodyListener) extends PR(Listener) {
 class PR(ConstraintListener) extends PR(Listener) {
     SingleListener(constraint,Constraint,Flag(ListenerType,CONSTRAINT))
 
-    public function swapEvent(newev:Int) {
+    public override function swapEvent(newev:Int) {
         DEBUG(
             if(newev != Flag(CbEvent,WAKE) && newev != Flag(CbEvent,SLEEP) && newev != Flag(CbEvent,BREAK))
                 throw "Error: ConstraintListener event must be either WAKE or SLEEP only";
@@ -271,7 +274,7 @@ class PR(InteractionListener) extends PR(Listener) {
         options2.handler = null;
     }
 
-    public function changed_precedence() {
+    public override function changed_precedence() {
         if(space!=null) {
             var pre = type==Flag(ListenerType,PRE);
             with_union(function (cb:PR(CbType)) {
@@ -306,7 +309,7 @@ class PR(InteractionListener) extends PR(Listener) {
         space.unrevoke_listener(this);
     }
 
-    public function swapEvent(newev:Int) {
+    public override function swapEvent(newev:Int) {
         DEBUG(
             if(type == Flag(ListenerType,PRE))
                 throw "Error: PreListener event can only be PRE";

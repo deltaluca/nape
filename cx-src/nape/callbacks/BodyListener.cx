@@ -4,27 +4,51 @@ $(import);
 class BodyListener extends Listener {
     public var pr(inner_zn):PR(BodyListener);
 
-    property(options,OptionType,pr(inner_zn).options.outer,pr(inner_zn).options.set(options.pr(inner)))
+    property(options, OptionType, {
+        /*return*/ pr(inner_zn).options.outer;
+    }, {
+        pr(inner_zn).options.set(options.pr(inner));
+    })
 
-    property(handler,BodyCallback->Void,pr(inner_zn).handler,{
-        DEBUG(if(handler==null)throw "Error: BodyListener::handler cannot be null";)
+    property(handler, BodyCallback->Void, {
+        /*return*/ pr(inner_zn).handler;
+    }, {
+        DEBUG(
+            if (handler == null) {
+                throw "Error: BodyListener::handler cannot be null";
+            }
+        )
+
         pr(inner_zn).handler = handler;
     })
 
-    ///---------------------------------------------------------------------------------------------
-
     flibopts(1)
-    public function new(event:CbEvent, options:Dynamic, handler:BodyCallback->Void, precedence=0) {
-        PR(Listener).internal = true; super(); PR(Listener).internal = false;
+    public function new(
+        event:CbEvent,
+        options:Dynamic,
+        handler:BodyCallback->Void,
+        precedence:Int = 0
+    ) {
+        DEBUG(PR(Listener).internal = true;)
+        super();
+        DEBUG(PR(Listener).internal = false;)
 
-        DEBUG(if(handler==null)throw "Error: BodyListener::handler cannot be null";)
+        DEBUG(
+            if (handler == null) {
+                throw "Error: BodyListener::handler cannot be null";
+            }
+        )
 
         var xevent = -1;
-        if     (event==CbEvent.WAKE)  xevent = Flag(CbEvent,WAKE);
-        else if(event==CbEvent.SLEEP) xevent = Flag(CbEvent,SLEEP);
-        else { DEBUG(throw "Error: cbEvent '"+event.toString()+"' is not a valid event type for a BodyListener";) }
+        if   (event == CbEvent.WAKE)  xevent = Flag(CbEvent,WAKE);
+        elif (event == CbEvent.SLEEP) xevent = Flag(CbEvent,SLEEP);
+        else {
+            DEBUG(
+                throw "Error: cbEvent '"+event.toString()+"' is not a valid event type for a BodyListener";
+            )
+        }
 
-        pr(inner_zn) = new PR(BodyListener)(PR(OptionType).argument(options),xevent,handler);
+        pr(inner_zn) = new PR(BodyListener)(PR(OptionType).argument(options), xevent, handler);
         pr(inner) = pr(inner_zn);
         pr(inner).outer = this;
         pr(inner_zn).outer_zn = this;

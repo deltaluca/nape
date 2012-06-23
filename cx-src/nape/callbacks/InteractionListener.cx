@@ -4,52 +4,94 @@ $(import);
 class InteractionListener extends Listener {
     public var pr(inner_zn):PR(InteractionListener);
 
-    property(options1,OptionType,pr(inner_zn).options1.outer,pr(inner_zn).options1.set(options1.pr(inner)))
-    property(options2,OptionType,pr(inner_zn).options2.outer,pr(inner_zn).options2.set(options2.pr(inner)))
+    property(options1, OptionType, {
+        /*return*/ pr(inner_zn).options1.outer;
+    }, {
+        pr(inner_zn).options1.set(options1.pr(inner));
+    })
 
-    property(interactionType,InteractionType,{
+    property(options2, OptionType, {
+        /*return*/ pr(inner_zn).options2.outer;
+    }, {
+        pr(inner_zn).options2.set(options2.pr(inner));
+    })
+
+    property(interactionType, InteractionType, {
         var ret = pr(inner_zn).itype;
-        if  (ret==Flag(InteractionType,COLLISION)) InteractionType.COLLISION;
-        elif(ret==Flag(InteractionType,SENSOR))    InteractionType.SENSOR;
-        elif(ret==Flag(InteractionType,FLUID))     InteractionType.FLUID;
-        elif(ret==Flag(InteractionType,ANY))       InteractionType.ANY;
-        else null;
+        /*return*/
+            if   (ret==Flag(InteractionType, COLLISION)) InteractionType.COLLISION;
+            elif (ret==Flag(InteractionType, SENSOR))    InteractionType.SENSOR;
+            elif (ret==Flag(InteractionType, FLUID))     InteractionType.FLUID;
+            elif (ret==Flag(InteractionType, ANY))       InteractionType.ANY;
+            else null;
     },{
-        DEBUG(if(interactionType==null) throw "Error: Cannot set listener interaction type to null";)
-        if(this.interactionType!=interactionType) {
-            var xtype = interactionType == InteractionType.COLLISION ? Flag(InteractionType,COLLISION) :
-                        interactionType == InteractionType.SENSOR    ? Flag(InteractionType,SENSOR)    :
-                        interactionType == InteractionType.FLUID     ? Flag(InteractionType,FLUID)     :
-                        Flag(InteractionType,ANY);
+        DEBUG(
+            if (interactionType == null) {
+                throw "Error: Cannot set listener interaction type to null";
+            }
+        )
+
+        if (this.interactionType != interactionType) {
+            var xtype =
+                if   (interactionType == InteractionType.COLLISION) Flag(InteractionType, COLLISION)
+                elif (interactionType == InteractionType.SENSOR)    Flag(InteractionType, SENSOR)
+                elif (interactionType == InteractionType.FLUID)     Flag(InteractionType, FLUID)
+                else Flag(InteractionType, ANY);
             pr(inner_zn).settype(xtype);
         }
     })
 
-    property(handler,InteractionCallback->Void,pr(inner_zn).handleri,{
-        DEBUG(if(handler==null)throw "Error: InteractionListener::handler cannot be null";)
+    property(handler, InteractionCallback->Void, {
+        /*return*/ pr(inner_zn).handleri;
+    }, {
+        DEBUG(
+            if (handler == null) {
+                throw "Error: InteractionListener::handler cannot be null";
+            }
+        )
+
         pr(inner_zn).handleri = handler;
     })
 
-    ///---------------------------------------------------------------------------------------------
-
     flibopts(1)
-    public function new(event:CbEvent, interactionType:InteractionType, options1:Dynamic, options2:Dynamic, handler:InteractionCallback->Void, precedence=0) {
-        PR(Listener).internal = true; super(); PR(Listener).internal = false;
+    public function new(
+        event:CbEvent,
+        interactionType:InteractionType,
+        options1:Dynamic,
+        options2:Dynamic,
+        handler:InteractionCallback->Void,
+        precedence:Int = 0
+    ) {
+        DEBUG(PR(Listener).internal = true;)
+        super();
+        DEBUG(PR(Listener).internal = false;)
 
-        DEBUG(if(handler==null)throw "Error: InteractionListener::handler cannot be null";)
+        DEBUG(
+            if (handler == null) {
+                throw "Error: InteractionListener::handler cannot be null";
+            }
+            if (event == null) {
+                throw "Error: CbEvent cannot be null for InteractionListener";
+            }
+        )
 
-        DEBUG(if(event==null) throw "Error: CbEvent cannot be null for InteractionListener";)
         var xevent = -1;
-        if     (event==CbEvent.BEGIN)   xevent = Flag(CbEvent,BEGIN);
-        else if(event==CbEvent.END)     xevent = Flag(CbEvent,END);
-        else if(event==CbEvent.ONGOING) xevent = Flag(CbEvent,ONGOING);
-        else { DEBUG(throw "Error: CbEvent '"+event.toString()+"' is not a valid event type for InteractionListener";) }
+        if  (event == CbEvent.BEGIN)   xevent = Flag(CbEvent, BEGIN);
+        elif(event == CbEvent.END)     xevent = Flag(CbEvent, END);
+        elif(event == CbEvent.ONGOING) xevent = Flag(CbEvent, ONGOING);
+        else {
+            DEBUG(
+                throw "Error: CbEvent '"+event.toString()+"' is not a valid event type for InteractionListener";
+            )
+        }
 
         pr(inner_zn) = new PR(InteractionListener)(
             PR(OptionType).argument(options1),
             PR(OptionType).argument(options2),
-            xevent,Flag(ListenerType,INTERACTION)
+            xevent,
+            Flag(ListenerType, INTERACTION)
         );
+
         pr(inner) = pr(inner_zn);
         pr(inner).outer = this;
         pr(inner_zn).outer_zni = this;
