@@ -3,9 +3,9 @@ $(import);
 
 class Constraint {
     public var pr(inner):PR(Constraint);
-    
+
     public var userData:Dynamic;
-    
+
     //---------------------------------------------------
 
     property(compound,Compound,{
@@ -33,9 +33,9 @@ class Constraint {
             else pr(inner).space = null;
         }
     })
-    
+
     //---------------------------------------------------
-    
+
     property(isSleeping,Bool,{
         DEBUG(if(pr(inner).space==null||!pr(inner).active)
             throw "Error: isSleeping only makes sense if constraint is active and inside a space";
@@ -73,27 +73,27 @@ class Constraint {
             }
         }
     })
-    
+
     //---------------------------------------------------
-    
+
     property(ignore,Bool,pr(inner).ignore,{
         if(this.ignore!=ignore) {
             pr(inner).ignore = ignore;
             pr(inner).wake();
         }
     })
-    
+
     //-----------------------------------------------------------------
-    
+
     property(stiff,Bool,pr(inner).stiff,{
         if(this.stiff!=stiff) {
             pr(inner).stiff = stiff;
             pr(inner).wake();
         }
     })
-    
+
     //---------------------------------------------------
-    
+
     property(frequency,Float,pr(inner).frequency,{
         DEBUG(
             if(isNaN(frequency)) throw "Error: Constraint::Frequency cannot be NaN";
@@ -104,7 +104,7 @@ class Constraint {
             if(!pr(inner).stiff) pr(inner).wake();
         }
     })
-    
+
     property(damping,Float,pr(inner).damping,{
         DEBUG(
             if(isNaN(damping)) throw "Error: Constraint::Damping cannot be Nan";
@@ -115,9 +115,9 @@ class Constraint {
             if(!pr(inner).stiff) pr(inner).wake();
         }
     })
-    
+
     //-----------------------------------------------------------------
-    
+
     property(maxForce,Float,pr(inner).maxForce,{
         DEBUG(
             if(isNaN(maxForce)) throw "Error: Constraint::maxForce cannot be NaN";
@@ -128,7 +128,7 @@ class Constraint {
             pr(inner).wake();
         }
     })
-    
+
     property(maxError,Float,pr(inner).maxError,{
         DEBUG(
             if(isNaN(maxError)) throw "Error: Constraint::maxError cannot be NaN";
@@ -139,16 +139,16 @@ class Constraint {
             pr(inner).wake();
         }
     })
-    
+
     //---------------------------------------------------
-    
+
     property(breakUnderForce,Bool,pr(inner).breakUnderForce,{
         if(this.breakUnderForce!=breakUnderForce) {
             pr(inner).breakUnderForce = breakUnderForce;
             pr(inner).wake();
         }
     })
-    
+
     property(breakUnderError,Bool,pr(inner).breakUnderError,{
         if(this.breakUnderError!=breakUnderError) {
             pr(inner).breakUnderError = breakUnderError;
@@ -157,20 +157,20 @@ class Constraint {
     })
 
     property(removeOnBreak,Bool,pr(inner).removeOnBreak,pr(inner).removeOnBreak = removeOnBreak)
-    
+
     //-----------------------------------------------------------------
-    
+
     /*public function jacobian     ():MatMN { return null; }
     public function effectiveMass():MatMN { return null; }
-    
+
     //constraint space
     public function positionError():MatMN { return null; }
     public function velocityError():MatMN { return null; }*/
     public function impulse      ():MatMN { return null; }
-    
+
     //world space
     public function bodyImpulse  (body:Body):Vec3 { return null; }
-    
+
     //----------------------------------------------------------------------------------------------
 
     public function visitBodies(lambda:Body->Void):Void { DEBUG(throw "Error: not overriden!";) }
@@ -183,14 +183,14 @@ class Constraint {
     })
 
     //-----------------------------------------------------------------
-    
+
     public function new() {
         //implicit ANY type
         pr(inner).insert_cbtype(CbType.ANY_CONSTRAINT.pr(inner));
 
         DEBUG(throw "Error: Constraint cannot be instantiated derp!";)
     }
-    
+
     @:$keep public function toString() {
         return "{Constraint}";
     }

@@ -2,28 +2,28 @@ package nape.phys;
 $(import);
 
 class FluidProperties {
-    
+
     FeatureMix(FluidProperties,fluidProperties)
-    
-    public function new(?density:Float=1,?viscosity:Float=1) {
+
+    public function new(density:Float=1,viscosity:Float=1) {
         pr(inner) = Get(PR(FluidProperties));
         pr(inner).outer = this;
         this.density = density;
         this.viscosity = viscosity;
     }
-    
+
     keep public function copy() {
         var ret = new FluidProperties(density,viscosity);
         ret.userData = userData;
         return ret;
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     public var userData:Dynamic;
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     $(mixin prop(n)
         property(n,Float,pr(inner).n * ($str(n)=="density" ? 1000 : 1),{
             if(n!=this.n) {
@@ -38,7 +38,7 @@ class FluidProperties {
     );
     prop(density)
     prop(viscosity)
-    
+
     //----------------------------------------------------------------------------------------------
 
     property(gravity,Vec2,pr(inner).wrap_gravity,{
@@ -56,11 +56,11 @@ class FluidProperties {
     })
 
     //----------------------------------------------------------------------------------------------
-    
+
     @:$keep public function toString() {
         return "{ density: "+density
                +" viscosity: "+viscosity
                +" }";
     }
-    
+
 }

@@ -17,7 +17,7 @@ class MotorJoint extends Constraint {
             pr(inner).wake();
         }
     })
-    
+
     property(rate,Float,pr(inner_zn).rate,{
         pr(inner).immutable_midstep("MotorJoint::rate");
         DEBUG(if(isNaN(rate)) throw "Error: MotorJoint::rate cannot be NaN";)
@@ -26,31 +26,31 @@ class MotorJoint extends Constraint {
             pr(inner).wake();
         }
     })
-    
+
     //-----------------------------------
-    
+
     flibopts(2)
-    public function new(body1:Body, body2:Body, ?rate:Float=0.0, ?ratio:Float=1.0) {
+    public function new(body1:Body, body2:Body, rate:Float = 0.0, ratio:Float = 1.0) {
         pr(inner_zn) = new PR(MotorJoint)();
         pr(inner) = pr(inner_zn);
         pr(inner).outer = this;
         pr(inner_zn).outer_zn = this;
-        
+
         DEBUG(try { super(); } catch (e:Dynamic) {})
         RELEASE(super();)
-        
+
         this.body1 = body1;
         this.body2 = body2;
         this.rate = rate;
         this.ratio = ratio;
     }
-    
+
     public override function impulse() {
         var ret = new MatMN(1,1);
         ret.setx(0,0, pr(inner_zn).jAcc+pr(inner_zn).pjAcc);
         return ret;
     }
-    
+
     public override function bodyImpulse(body:Body) {
         DEBUG(if(body==null) throw "Error: Cannot evaluate impulse on null body";
               if(body!=body1 && body!=body2) throw "Error: Body is not linked to this constraint";

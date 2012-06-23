@@ -103,14 +103,14 @@ class Debug {
         var _r = (((idc&0xff0000)>>16))*0.7;
         var _g = (((idc&0xff00)>>8))*0.7;
         var _b = (idc&0xff)*0.7;
-    
+
         var col = ((fastint(_r))<<16)|((fastint(_g))<<8)|(fastint(_b));
         graphics.lineStyle(0.1,col,1);
 
         for(s in body.shapes) {
             if(s.isCircle()) {
                 var c = s.castCircle;
-                graphics.drawCircle(c.localCOM.x,c.localCOM.y,c.radius);    
+                graphics.drawCircle(c.localCOM.x,c.localCOM.y,c.radius);
             } else {
                 var p = s.castPolygon;
                 graphics.moveTo(s.localCOM.x,s.localCOM.y);
@@ -128,7 +128,7 @@ class Debug {
                 graphics.lineTo(c.localCOM.x+c.radius,c.localCOM.y);
             }
         }
-            
+
         return ret;
     }
 
@@ -139,7 +139,7 @@ class Debug {
     public var drawCollisionArbiters:Bool;
     public var drawFluidArbiters:Bool;
     public var drawSensorArbiters:Bool;
-    
+
     public var drawBodies:Bool;
     public var drawBodyDetail:Bool; //requires drawBodies
     public var drawShapeDetail:Bool; //requires drawBodies
@@ -222,14 +222,14 @@ class Debug {
     public function drawCurve (start:Vec2, control:Vec2, end:Vec2, colour:Int):Void {}
     public function drawCircle(position:Vec2, radius:Float, colour:Int):Void {}
     public function drawAABB  (aabb:AABB, colour:Int):Void {}
-    
+
     public function drawFilledTriangle(p0:Vec2, p1:Vec2, p2:Vec2, colour:Int):Void {}
     public function drawFilledCircle(position:Vec2, radius:Float, colour:Int):Void {}
 
     public function drawPolygon (polygon:Dynamic, colour:Int):Void {}
     public function drawFilledPolygon (polygon:Dynamic, colour:Int):Void {}
 
-    public function drawSpring(start:Vec2,end:Vec2,colour:Int,?coils=3,?radius=3.0):Void {}
+    public function drawSpring(start:Vec2,end:Vec2,colour:Int,coils=3,radius=3.0):Void {}
 
     #end
 }
@@ -245,7 +245,7 @@ $(mixin global __debug_draw(obj) {
         elif(Std.is(obj,Compound))   pr(inner_zn).draw_compound(cast(obj,Compound).pr(inner), null,1.0,true);
         elif(Std.is(obj,Body ))      pr(inner_zn).draw_body (cast(obj,Body       ).pr(inner), null,1.0,true);
         elif(Std.is(obj,Shape))      pr(inner_zn).draw_shape(cast(obj,Shape      ).pr(inner), null,1.0,true);
-        elif(Std.is(obj,Constraint)) cast(obj,Constraint).pr(inner).draw(this); 
+        elif(Std.is(obj,Constraint)) cast(obj,Constraint).pr(inner).draw(this);
         else { DEBUG(throw "Error: Unhandled object type for Debug draw";) }
     }else {
         if  (Std.is(obj,Space))      pr(inner_zn).draw_space(cast(obj,Space     ).pr(inner), pr(inner).xform,pr(inner).xdet,false);
@@ -268,11 +268,11 @@ $(mixin global __debug_spring(start,end,colour,coils,radius) {
     else {
         vec_new(d, end.x-start.x, end.y-start.y);
         vec_diveq(d,coils*4);
-    
+
         vec_new(n); vec_set(n,d);
         if(vec_lsq(n)<0.1) return;
         vec_normal(n); vec_muleq(n,radius*2);
-    
+
         var u = start.copy();
         var v = Vec2.get();
         var q = Vec2.get();

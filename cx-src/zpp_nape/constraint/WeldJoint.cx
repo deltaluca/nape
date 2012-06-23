@@ -5,7 +5,7 @@ withConstraint(
 
 class PR(WeldJoint) extends PR(Constraint) {
     public var outer_zn:WeldJoint;
-    
+
     $(mixin Cerr(r1,r2,C) {
         C`x = (b2.posx+r2`x)-(b1.posx+r1`x);
         C`y = (b2.posy+r2`y)-(b1.posy+r1`y);
@@ -44,7 +44,7 @@ class PR(WeldJoint) extends PR(Constraint) {
             b2.angvel += (vec_cross(r2,j)+j`z)*b2.iinertia;
         }
     });
-    
+
     public function bodyImpulse(b:PR(Body)) {
         if(stepped) {
             vec3_new(jcc);
@@ -53,7 +53,7 @@ class PR(WeldJoint) extends PR(Constraint) {
             else      return Vec3.get( jccx, jccy,  vec_cross(a2rel,jcc)+jccz );
         }else return Vec3.get(0,0,0);
     }
-    
+
     //---------------------------------------------------
 
     public override function activeBodies() {
@@ -67,25 +67,25 @@ class PR(WeldJoint) extends PR(Constraint) {
         if(b2!=b1)
             inactive_body(b2);
     }
-    
+
     //---------------------------------------------------
-    
+
     public var b1:PR(Body); anchor_new(a1);
     public var b2:PR(Body); anchor_new(a2);
     public var phase:Float;
-    
+
     mat3_new(public,kMass);
     vec3_new(public,jAcc); vec3_new(public,pjAcc);
     public var jMax:Float;
-    
+
     public var gamma:Float;
     vec3_new(public,bias);
-    
+
     public var stepped:Bool;
-    
+
     //---------------------------------------------------
-    
-    public override function copy(?dict:Array<PR(CopyHelper)>,?todo:Array<PR(CopyHelper)>):Constraint {
+
+    public override function copy(dict:Array<PR(CopyHelper)>=null,todo:Array<PR(CopyHelper)>=null):Constraint {
         var ret = new PivotJoint(null,null,outer_zn.anchor1,outer_zn.anchor2);
         copyto(ret);
 
@@ -96,51 +96,51 @@ class PR(WeldJoint) extends PR(Constraint) {
 
     public function new() {
         super();
-        
+
         phase = 0;
         vec3_set(jAcc,0,0,0);
         jMax = PR(Const).POSINF();
         stepped = false;
-        
+
         anchor_init(a1);
         anchor_init(a2);
     }
-    
+
     public override function validate() {
         if(b1==null || b2==null) throw "Error: AngleJoint cannot be simulated null bodies";
         if(b1==b2) throw "Error: WeldJoint cannot be simulated with body1 == body2";
         if(b1.space != space || b2.space != space) throw "Error: Constraints must have each body within the same space to which the constraint has been assigned";
         if(!b1.isDynamic() && !b2.isDynamic()) throw "Error: Constraints cannot have both bodies non-dynamic";
     }
-    
+
     public override function wake_connected() {
         if(b1!=null && b1.isDynamic()) b1.wake();
         if(b2!=null && b2.isDynamic()) b2.wake();
     }
-    
+
     public override function forest() {
         if(b1.isDynamic()) DSF(union(b1.component,component));
         if(b2.isDynamic()) DSF(union(b2.component,component));
     }
-    
+
     public override function pair_exists(id:Int,di:Int) {
         return (b1.id==id && b2.id==di) || (b1.id==di && b2.id==id);
     }
-    
+
     public override function destroy() {
         //no validation has occured.
         b1.constraints.remove(this);
         if(b2!=b1)
             b2.constraints.remove(this);
     }
-    
+
     public override function clearcache() {
         vec3_set(jAcc,0,0,0); vec3_set(pjAcc,0,0,0);
         pre_dt = -1.0;
     }
 
     //---------------------------------------------------
-    
+
     public override function preStep(dt:Float) {
         if(pre_dt==-1.0) pre_dt = dt;
         var dtratio = dt/pre_dt;
@@ -149,7 +149,7 @@ class PR(WeldJoint) extends PR(Constraint) {
         stepped = true;
         validate_anchor(b1,a1);
         validate_anchor(b2,a2);
-        
+
         //effective mass
         Keff(a1rel,a2rel,kMass);
         var flag = mat3_invert(kMass);
@@ -161,9 +161,9 @@ class PR(WeldJoint) extends PR(Constraint) {
             var biasCoef;
             mat3_scaleq(kMass, soft_gamma(frequency,damping,dt,gamma,biasCoef));
             Cerr(a1rel,a2rel,bias);
-            
+
             if(breakUnderError && vec3_lsq(bias) > maxError*maxError) return true;
-            
+
             vec3_muleq(bias,-dt*biasCoef);
             vec3_clamp(bias,maxError);
         }else {
@@ -172,7 +172,7 @@ class PR(WeldJoint) extends PR(Constraint) {
         }
         vec3_muleq(jAcc,dtratio);
         jMax = maxForce*dt;
-        
+
         return false;
     }
 
@@ -180,14 +180,14 @@ class PR(WeldJoint) extends PR(Constraint) {
         Imp(a1rel,a2rel,jAcc,false);
         vec3_set(pjAcc,jAcc);
     }
-    
+
     public override function applyImpulseVel() {
         //velocity corrections
         vec3_new(E); Verr(E);
         vec3_new(J); vec3_sub(bias,E, J);
         mat3_xform(kMass,J);
         vec3_subeq(J,jAcc,gamma);
-        
+
         accum3(jAcc,J,{
             if(breakUnderForce) {
                 if(vec3_lsq(jAcc) > jMax*jMax)
@@ -196,18 +196,18 @@ class PR(WeldJoint) extends PR(Constraint) {
                 vec3_clamp(jAcc,jMax);
         });
         Imp(a1rel,a2rel,J,false);
-        
+
         return false;
     }
-    
+
     public override function applyImpulsePos() {
         vec_new(r1); bias_xform(b1,a1local,r1);
         vec_new(r2); bias_xform(b2,a2local,r2);
         vec3_new(E); Cerr(r1,r2,E);
         vec3_new(J);
-        
+
         if(breakUnderError && vec3_lsq(E) > maxError*maxError) return true;
-        
+
         var cont = true;
         if(vec_lsq(E) < PR(Config).SLOP) {
             cont = false;
@@ -218,7 +218,7 @@ class PR(WeldJoint) extends PR(Constraint) {
             else Ez = 0;
         }
         vec3_muleq(E,0.5);
-        
+
         //handle large detachment
         if(vec_lsq(E) > 6) {
             var k = b1.smass + b2.smass;
@@ -226,23 +226,23 @@ class PR(WeldJoint) extends PR(Constraint) {
                 k = 0.75/k; //don't completely solve error
                 vec_set(J,-Ex*k,-Ey*k);
                 vec_clamp(J,20);
-                
+
                 vec_subeq(b1.pos, J,b1.imass);
                 vec_addeq(b2.pos, J,b2.imass);
-                
+
                 //recalculate error
                 Cerr(r1,r2,E);
                 vec3_muleq(E,0.5);
             }
         }
-        
+
         mat3_new(K); Keff(r1,r2,K);
         vec3_set(J,-Ex,-Ey,-Ez);
         vec_clamp(J,6); PR(Math).clamp2(Jz,0.25);
         mat3_solve(K,J);
-        
+
         Imp(r1,r2,J,true);
-        
+
         return false;
     }
 
@@ -270,7 +270,7 @@ class PR(WeldJoint) extends PR(Constraint) {
                     var min = b.rotation;
                     if(min>max) swap(min,max);
                     $(mixin rad(ang) (minrad + (ang-min)*delrad));
-    
+
                     PR(AngleDraw).drawSpiralSpring(g, b.position, min,max,rad(min),rad(max), col);
                     PR(AngleDraw).indicator(g, b.position, b.rotation, rad(b.rotation), col);
                 }

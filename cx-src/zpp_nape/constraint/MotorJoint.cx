@@ -5,30 +5,30 @@ withConstraint(
 
 class PR(MotorJoint) extends PR(Constraint) {
     public var outer_zn:MotorJoint;
-    
+
     public var ratio:Float;
     public var rate :Float;
-    
+
     $(mixin Verr() {
         ratio*(b2.angvel + b2.kinangvel) - b1.angvel-b1.kinangvel - rate;
     });
-    
+
     $(mixin Keff() {
         b1.sinertia + ratio*ratio*b2.sinertia;
     });
-    
+
     $(mixin Imp(j) {
         b1.angvel -= b1.iinertia*j;
         b2.angvel += ratio*b2.iinertia*j;
     });
-    
+
     public function bodyImpulse(b:PR(Body)) {
         if(stepped) {
             if(b==b1) return Vec3.get(0,0,-(pjAcc+jAcc));
             else      return Vec3.get(0,0,ratio*(pjAcc+jAcc));
         }else return Vec3.get(0,0,0);
     }
-    
+
     //---------------------------------------------------
 
     public override function activeBodies() {
@@ -42,21 +42,21 @@ class PR(MotorJoint) extends PR(Constraint) {
         if(b2!=b1)
             inactive_body(b2);
     }
-    
+
     //---------------------------------------------------
-    
+
     public var b1:PR(Body);
     public var b2:PR(Body);
-    
+
     public var kMass:Float;
     public var jAcc:Float; public var pjAcc:Float;
     public var jMax:Float;
 
     public var stepped:Bool;
-    
+
     //---------------------------------------------------
-    
-    public override function copy(?dict:Array<PR(CopyHelper)>,?todo:Array<PR(CopyHelper)>):Constraint {
+
+    public override function copy(dict:Array<PR(CopyHelper)>=null,todo:Array<PR(CopyHelper)>=null):Constraint {
         var ret = new MotorJoint(null,null,rate,ratio);
         copyto(ret);
 
@@ -67,34 +67,34 @@ class PR(MotorJoint) extends PR(Constraint) {
 
     public function new() {
         super();
-        
+
         jAcc = 0;
         stepped = false;
-        
+
         __velocity = true;
     }
-    
+
     public override function validate() {
         if(b1==null || b2==null) throw "Error: AngleJoint cannot be simulated null bodies";
         if(b1==b2) throw "Error: MotorJoint cannot be simulated with body1 == body2";
         if(b1.space != space || b2.space != space) throw "Error: Constraints must have each body within the same space to which the constraint has been assigned";
         if(!b1.isDynamic() && !b2.isDynamic()) throw "Error: Constraints cannot have both bodies non-dynamic";
     }
-    
+
     public override function wake_connected() {
         if(b1!=null && b1.isDynamic()) b1.wake();
         if(b2!=null && b2.isDynamic()) b2.wake();
     }
-    
+
     public override function forest() {
         if(b1.isDynamic()) DSF(union(b1.component,component));
         if(b2.isDynamic()) DSF(union(b2.component,component));
     }
-    
+
     public override function pair_exists(id:Int,di:Int) {
         return (b1.id==id && b2.id==di) || (b1.id==di && b2.id==id);
     }
-    
+
     public override function destroy() {
         //no validation has occured.
         b1.constraints.remove(this);
@@ -106,23 +106,23 @@ class PR(MotorJoint) extends PR(Constraint) {
         jAcc = 0; pjAcc = 0.0;
         pre_dt = -1.0;
     }
-    
+
     //---------------------------------------------------
-    
+
     public override function preStep(dt:Float) {
         if(pre_dt==-1.0) pre_dt = dt;
         var dtratio = dt/pre_dt;
         pre_dt = dt;
 
         stepped = true;
-        
+
         kMass = Keff;
         assert(kMass>0.0,"kmass motorjoint");
         kMass = 1.0/kMass;
-        
+
         jAcc *= dtratio;
         jMax = maxForce*dt;
-        
+
         return false;
     }
 
@@ -130,7 +130,7 @@ class PR(MotorJoint) extends PR(Constraint) {
         Imp(jAcc);
         pjAcc = jAcc;
     }
-    
+
     public override function applyImpulseVel() {
         //velocity corrections
         var E = Verr;
@@ -142,10 +142,10 @@ class PR(MotorJoint) extends PR(Constraint) {
                 clamp(jAcc,jMax);
         });
         Imp(j);
-        
+
         return false;
     }
-    
+
     public override function applyImpulsePos() return false
 }
 

@@ -97,7 +97,7 @@ class Body extends Interactor {
     //----------------------------------------------------------------------------------------------
 
     flibopts(2)
-    public function new(?type:BodyType,?position:Vec2) {
+    public function new(type:BodyType=null,position:Vec2=null) {
         DEBUG(try { super(); } catch (e:Dynamic) {})
         RELEASE(super();)
 
@@ -384,10 +384,10 @@ class Body extends Interactor {
 
     //----------------------------------------------------------------------------------------------
 
-    keep public function connectedBodies(?depth:Int=-1):BodyList {
+    keep public function connectedBodies(depth:Int=-1):BodyList {
         return pr(inner).connectedBodies(depth);
     }
-    keep public function interactingBodies(?type:InteractionType, ?depth:Int=-1) {
+    keep public function interactingBodies(type:InteractionType=null, depth:Int=-1) {
         var arbiter_type = if(type==null) {
             PR(Arbiter).COL | PR(Arbiter).SENSOR | PR(Arbiter).FLUID;
         }elif(type==InteractionType.COLLISION) PR(Arbiter).COL
@@ -428,23 +428,23 @@ class Body extends Interactor {
 
     //----------------------------------------------------------------------------------------------
 
-    keep public function localToWorld(v:Vec2,?weak:Bool=false) return relativeToWorld(localToRelative(v,true),weak)
-    keep public function worldToLocal(v:Vec2,?weak:Bool=false) return relativeToLocal(worldToRelative(v,true),weak)
-    keep public function relativeToWorld(v:Vec2,?weak:Bool=false) {
+    keep public function localToWorld(v:Vec2,weak:Bool=false) return relativeToWorld(localToRelative(v,true),weak)
+    keep public function worldToLocal(v:Vec2,weak:Bool=false) return relativeToLocal(worldToRelative(v,true),weak)
+    keep public function relativeToWorld(v:Vec2,weak:Bool=false) {
         Disposed(v,Vec2);
         DEBUG(if(v==null) throw "Error: Cannot transform null Vec2";)
         var ret = Vec2.get(v.x+pr(inner).posx,v.y+pr(inner).posy,weak);
         WEAK(v);
         return ret;
     }
-    keep public function worldToRelative(v:Vec2,?weak:Bool=false) {
+    keep public function worldToRelative(v:Vec2,weak:Bool=false) {
         Disposed(v,Vec2);
         DEBUG(if(v==null) throw "Error: Cannot transform null Vec2";)
         var ret = Vec2.get(v.x-pr(inner).posx,v.y-pr(inner).posy,weak);
         WEAK(v);
         return ret;
     }
-    keep public function localToRelative(v:Vec2,?weak:Bool=false) {
+    keep public function localToRelative(v:Vec2,weak:Bool=false) {
         Disposed(v,Vec2);
         DEBUG(if(v==null) throw "Error: Cannot transform null Vec2";)
         pr(inner).validate_axis();
@@ -453,7 +453,7 @@ class Body extends Interactor {
         WEAK(v);
         return Vec2.get(tempx,tempy,weak);
     }
-    keep public function relativeToLocal(v:Vec2,?weak:Bool=false) {
+    keep public function relativeToLocal(v:Vec2,weak:Bool=false) {
         Disposed(v,Vec2);
         DEBUG(if(v==null) throw "Error: Cannot transform null Vec2";)
         pr(inner).validate_axis();
@@ -465,7 +465,7 @@ class Body extends Interactor {
 
     //----------------------------------------------------------------------------------------------
 
-    keep public function applyLocalForce(force:Vec2,?pos:Vec2) {
+    keep public function applyLocalForce(force:Vec2,pos:Vec2=null) {
         Disposed(force,Vec2);
         Disposed(pos,Vec2);
         DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
@@ -481,7 +481,7 @@ class Body extends Interactor {
         if(isDynamic()) pr(inner).invalidate_wake();
         WEAK(force);
     }
-    keep public function applyRelativeForce(force:Vec2,?pos:Vec2) {
+    keep public function applyRelativeForce(force:Vec2,pos:Vec2=null) {
         Disposed(force,Vec2);
         Disposed(pos,Vec2);
 
@@ -495,7 +495,7 @@ class Body extends Interactor {
         if(isDynamic()) pr(inner).invalidate_wake();
         WEAK(force);
     }
-    keep public function applyWorldForce(force:Vec2,?pos:Vec2) {
+    keep public function applyWorldForce(force:Vec2,pos:Vec2=null) {
         Disposed(force,Vec2);
         Disposed(pos,Vec2);
 
@@ -513,7 +513,7 @@ class Body extends Interactor {
 
     //----------------------------------------------------------------------------------------------
 
-    keep public function applyLocalImpulse(impulse:Vec2,?pos:Vec2) {
+    keep public function applyLocalImpulse(impulse:Vec2,pos:Vec2=null) {
         Disposed(impulse,Vec2);
         Disposed(pos,Vec2);
 
@@ -532,7 +532,7 @@ class Body extends Interactor {
         if(isDynamic()) pr(inner).invalidate_wake();
         WEAK(impulse);
     }
-    keep public function applyRelativeImpulse(impulse:Vec2,?pos:Vec2) {
+    keep public function applyRelativeImpulse(impulse:Vec2,pos:Vec2=null) {
         Disposed(impulse,Vec2);
         Disposed(pos,Vec2);
 
@@ -548,7 +548,7 @@ class Body extends Interactor {
         if(isDynamic()) pr(inner).invalidate_wake();
         WEAK(impulse);
     }
-    keep public function applyWorldImpulse(impulse:Vec2,?pos:Vec2) {
+    keep public function applyWorldImpulse(impulse:Vec2,pos:Vec2=null) {
         Disposed(impulse,Vec2);
         Disposed(pos,Vec2);
 
@@ -693,7 +693,7 @@ class Body extends Interactor {
         }
     });
 
-    keep public function normalImpulse(?body:Body=null,?freshOnly:Bool=false,?weak:Bool=false) {
+    keep public function normalImpulse(body:Body=null,freshOnly:Bool=false,weak:Bool=false) {
         vec3_new(ret,0,0,0);
         witharbs(COL,{
             var imp = arb.wrapper().collisionArbiter.normalImpulse(this,freshOnly);
@@ -702,7 +702,7 @@ class Body extends Interactor {
         });
         return Vec2.get(retx,rety,false);
     }
-    keep public function tangentImpulse(?body:Body=null,?freshOnly:Bool=false,?weak:Bool=false) {
+    keep public function tangentImpulse(body:Body=null,freshOnly:Bool=false,weak:Bool=false) {
         vec3_new(ret,0,0,0);
         witharbs(COL,{
             var imp = arb.wrapper().collisionArbiter.tangentImpulse(this,freshOnly);
@@ -711,7 +711,7 @@ class Body extends Interactor {
         });
         return Vec2.get(retx,rety,weak);
     }
-    keep public function totalContactsImpulse(?body:Body=null,?freshOnly:Bool=false) {
+    keep public function totalContactsImpulse(body:Body=null,freshOnly:Bool=false) {
         vec3_new(ret,0,0,0);
         witharbs(COL,{
             var imp = arb.wrapper().collisionArbiter.totalImpulse(this,freshOnly);
@@ -720,7 +720,7 @@ class Body extends Interactor {
         });
         return Vec3.get(retx,rety,retz);
     }
-    keep public function rollingImpulse(?body:Body=null,?freshOnly:Bool=false) {
+    keep public function rollingImpulse(body:Body=null,freshOnly:Bool=false) {
         var ret = 0.0;
         witharbs(COL,{
             ret += arb.wrapper().collisionArbiter.rollingImpulse(this,freshOnly);
@@ -730,7 +730,7 @@ class Body extends Interactor {
 
     //--------------------------------------------------------------
 
-    keep public function buoyancyImpulse(?body:Body=null) {
+    keep public function buoyancyImpulse(body:Body=null) {
         vec3_new(ret,0,0,0);
         witharbs(FLUID,{
             var imp = arb.wrapper().fluidArbiter.buoyancyImpulse(this);
@@ -740,7 +740,7 @@ class Body extends Interactor {
         return Vec3.get(retx,rety,retz);
     }
 
-    keep public function dragImpulse(?body:Body=null) {
+    keep public function dragImpulse(body:Body=null) {
         vec3_new(ret,0,0,0);
         witharbs(FLUID,{
             var imp = arb.wrapper().fluidArbiter.dragImpulse(this);
@@ -750,7 +750,7 @@ class Body extends Interactor {
         return Vec3.get(retx,rety,retz);
     }
 
-    keep public function totalFluidImpulse(?body:Body=null) {
+    keep public function totalFluidImpulse(body:Body=null) {
         vec3_new(ret,0,0,0);
         witharbs(FLUID,{
             var imp = arb.wrapper().fluidArbiter.totalImpulse(this);
@@ -774,7 +774,7 @@ class Body extends Interactor {
 
     //--------------------------------------------------------------
 
-    keep public function totalImpulse(?body:Body=null,?freshOnly:Bool=false) {
+    keep public function totalImpulse(body:Body=null,freshOnly:Bool=false) {
         vec3_new(ret,0,0,0);
         var arbs = pr(inner).arbiters;
 

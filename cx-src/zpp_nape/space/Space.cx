@@ -634,7 +634,7 @@ class PR(Space) {
         s.addedToSpace();
     }        //so re-add/re-remove object
 
-    public function removed_shape(s:PR(Shape), ?deleting=false) {
+    public function removed_shape(s:PR(Shape), deleting=false) {
         var body = s.body;
 
         //if object is in the course of being deleted, don't want to wake it!
@@ -753,7 +753,7 @@ class PR(Space) {
     //----------------------------------------------------------------------------------------------
 
     //flag = 0 if already added to bodies list, -1 if nothing has yet been done
-    public function addBody(body:PR(Body),?flag:Int=-1) {
+    public function addBody(body:PR(Body),flag:Int=-1) {
         body.space = this;
 
         body.addedToSpace();
@@ -783,7 +783,7 @@ class PR(Space) {
     //----------------------------------------------------------------------------------------------
 
     //flag = 0 if already removed from bodies list, -1 if nothing has yet been done
-    public function remBody(body:PR(Body),?flag:Int=-1) {
+    public function remBody(body:PR(Body),flag:Int=-1) {
         if(body.isStatic()) {
             wake(body,true);
 
@@ -1330,7 +1330,7 @@ class PR(Space) {
         Free(PR(Island),i);
     }
 
-    public function wake(o:PR(Body),?fst=false) {
+    public function wake(o:PR(Body),fst=false) {
         assert(o.space==this,"object being woken in the space... is not actually in the space!");
         if(!o.world) {
             assert(o.component!=null,"body woken, but no component exists?");
@@ -1393,7 +1393,7 @@ class PR(Space) {
         }else return true;
     }
 
-    public function wake_constraint(con:PR(Constraint),?fst=false) {
+    public function wake_constraint(con:PR(Constraint),fst=false) {
         assert(con.space==this,"constraint woken, but not actually IN the space!");
         if(con.active) {
             assert(con.component!=null,"constraint woken but no component exists?");
@@ -1938,7 +1938,7 @@ class PR(Space) {
 
     var precb:PreCallback;
     var prelisteners:List(PR(InteractionListener));
-    public function narrowPhase(s1:PR(Shape),s2:PR(Shape), stat:Bool, ?in_arb:PR(Arbiter)=null) {
+    public function narrowPhase(s1:PR(Shape),s2:PR(Shape), stat:Bool, in_arb:PR(Arbiter)=null) {
         #if NAPE_TIMES
             var pt = flash.Lib.getTimer();
         #end

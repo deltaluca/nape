@@ -5,7 +5,7 @@ withConstraint(
 
 class PR(AngleJoint) extends PR(Constraint) {
     public var outer_zn:AngleJoint;
-    
+
     public var ratio:Float;
     public var jointMin:Float;
     public var jointMax:Float;
@@ -13,7 +13,7 @@ class PR(AngleJoint) extends PR(Constraint) {
     public var equal:Bool;
     public var scale:Float;
     //if limits are equal, treat constraint slightly differently for stability.
-    
+
     $(mixin Cerr(slack) {
         var C = ratio*b2.rot - b1.rot;
         if(equal) {
@@ -37,15 +37,15 @@ class PR(AngleJoint) extends PR(Constraint) {
         }
         C;
     });
-    
+
     $(mixin Verr(scale) {
         scale*(ratio*(b2.angvel+b2.kinangvel) - b1.angvel-b1.kinangvel);
     });
-    
+
     $(mixin Keff() {
         b1.sinertia + ratio*ratio*b2.sinertia;
     });
-    
+
     $(mixin Imp(scale,j,bias) {
         if(bias) {
             b1.delta_rot(-scale*j*b1.iinertia);
@@ -55,7 +55,7 @@ class PR(AngleJoint) extends PR(Constraint) {
             b2.angvel += ratio*scale*b2.iinertia*j;
         }
     });
-    
+
     public function bodyImpulse(b:PR(Body)) {
         if(stepped) {
             if(b==b1) return Vec3.get(0,0,-scale*(jAcc+pjAcc));
@@ -78,22 +78,22 @@ class PR(AngleJoint) extends PR(Constraint) {
     }
 
     //---------------------------------------------------
-    
+
     public var b1:PR(Body);
     public var b2:PR(Body);
-    
+
     public var kMass:Float;
     public var jAcc:Float; public var pjAcc:Float; //impulse calcs.
     public var jMax:Float;
-    
+
     public var gamma:Float;
     public var bias:Float;
-    
+
     public var stepped:Bool;
-    
+
     //---------------------------------------------------
 
-    public override function copy(?dict:Array<PR(CopyHelper)>,?todo:Array<PR(CopyHelper)>):Constraint {
+    public override function copy(dict:Array<PR(CopyHelper)>=null,todo:Array<PR(CopyHelper)>=null):Constraint {
         var ret = new AngleJoint(null,null,jointMin,jointMax);
         ret.ratio = ratio;
         copyto(ret);
@@ -102,16 +102,16 @@ class PR(AngleJoint) extends PR(Constraint) {
         copybody(ret.pr(inner_zn),b2,dict,todo);
         return ret;
     }
-    
+
     public function new() {
         super();
-        
+
         ratio = 1;
         jAcc = 0;
         jMax = PR(Const).POSINF();
         stepped = false;
     }
-    
+
     public override function validate() {
         if(b1==null || b2==null) throw "Error: AngleJoint cannot be simulated null bodies";
         if(b1==b2) throw "Error: AngleJoint cannot be simulated with body1 == body2";
@@ -119,21 +119,21 @@ class PR(AngleJoint) extends PR(Constraint) {
         if(jointMin>jointMax) throw "Error: AngleJoint must have jointMin <= jointMax";
         if(!b1.isDynamic() && !b2.isDynamic()) throw "Error: Constraints cannot have both bodies non-dynamic";
     }
-    
+
     public override function wake_connected() {
         if(b1!=null && b1.isDynamic()) b1.wake();
         if(b2!=null && b2.isDynamic()) b2.wake();
     }
-    
+
     public override function forest() {
         if(b1.isDynamic()) DSF(union(b1.component,component));
         if(b2.isDynamic()) DSF(union(b2.component,component));
     }
-    
+
     public override function pair_exists(id:Int,di:Int) {
         return (b1.id==id && b2.id==di) || (b1.id==di && b2.id==id);
     }
-    
+
     public override function destroy() {
         //no validation has occured.
         b1.constraints.remove(this);
@@ -145,16 +145,16 @@ class PR(AngleJoint) extends PR(Constraint) {
         jAcc = 0; pjAcc = 0;
         pre_dt = -1.0;
     }
-    
+
     //---------------------------------------------------
-    
+
     public override function preStep(dt:Float) {
         if(pre_dt==-1.0) pre_dt = dt;
         var dtratio = dt/pre_dt;
         pre_dt = dt;
 
         stepped = true;
-        
+
         equal = jointMin == jointMax;
         var C = Cerr(slack);
         if(!slack) {
@@ -162,13 +162,13 @@ class PR(AngleJoint) extends PR(Constraint) {
             kMass = Keff;
             if(kMass!=0) kMass = 1/kMass;
             else jAcc = 0;
-            
+
             if(!stiff) {
                 if(breakUnderError && C*C > maxError*maxError) return true;
-                
+
                 var biasCoef;
                 kMass *= soft_gamma(frequency,damping,dt,gamma,biasCoef);
-                
+
                 bias = -C*dt*biasCoef;
                 clamp(bias,maxError);
             }else {
@@ -178,7 +178,7 @@ class PR(AngleJoint) extends PR(Constraint) {
             jAcc *= dtratio;
             jMax = maxForce*dt;
         }
-        
+
         return false;
     }
 
@@ -187,10 +187,10 @@ class PR(AngleJoint) extends PR(Constraint) {
             Imp(scale,jAcc,false);
         pjAcc = jAcc;
     }
-    
+
     public override function applyImpulseVel() {
         if(slack) return false;
-        
+
         //velocity corrections
         var E = Verr(scale);
         var j = kMass*(bias - E) - jAcc*gamma;
@@ -204,26 +204,26 @@ class PR(AngleJoint) extends PR(Constraint) {
             }else if(!equal && jAcc>0) jAcc = 0;
         });
         Imp(scale,j,false);
-        
+
         return false;
     }
-    
+
     public override function applyImpulsePos() {
         var E; var j;
-        
+
         var slack;
         E = Cerr(slack);
         if(!slack) {
             if(breakUnderError && E*E > maxError*maxError) return true;
-            
+
 //            if(E*E < PR(Config).ANGSLOP) return false;
             E *= 0.5;
-                
+
             j = -E*kMass;
             if(equal || j<0)
                 Imp(scale,j,true);
         }
-        
+
         return false;
     }
 
@@ -280,7 +280,7 @@ class PR(AngleDraw) {
     static var maxarc = Math.PI/4;
 
     //very similar to drawSpiral.
-    public static function drawSpiralSpring(g:Debug, c:Vec2, a0:Float,a1:Float, r0:Float,r1:Float, col:Int, ?coils:Int=4) {
+    public static function drawSpiralSpring(g:Debug, c:Vec2, a0:Float,a1:Float, r0:Float,r1:Float, col:Int, coils:Int=4) {
         if(a0>a1) {
             swap(a0,a1);
             swap(r0,r1);

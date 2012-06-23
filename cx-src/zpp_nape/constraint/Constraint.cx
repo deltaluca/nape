@@ -13,15 +13,15 @@ class PR(Constraint) {
 
     //assigned space
     public var space:PR(Space);
-    
+
     //whether to ignore (disable) constraint without removing it from space.
     public var active:Bool;
-    
+
     //softness parameters + switch
     public var stiff:Bool;
     public var frequency:Float;
     public var damping:Float;
-    
+
     //clamping/breaking
     public var maxForce:Float;
     public var maxError:Float;
@@ -29,18 +29,18 @@ class PR(Constraint) {
     public var breakUnderError:Bool;
 
     public var removeOnBreak:Bool; //if true, constraint is removed when broken rather than disabled.
-    
+
     public var component:PR(Component);
-    
+
     //ignore collisions between bodies
     public var ignore:Bool;
 
     //velocity only constraints
     public var __velocity:Bool;
-    
+
     public function new() {
         __velocity = false;
-        
+
         id = ID(Constraint);
 
         stiff = true;
@@ -51,7 +51,7 @@ class PR(Constraint) {
         maxForce = PR(Const).POSINF();
         maxError = PR(Const).POSINF();
         breakUnderForce = false;
-        
+
         removeOnBreak = true;
         pre_dt = -1.0;
 
@@ -176,22 +176,22 @@ class PR(Constraint) {
 
     //validate constraint assignments
     keep public function validate() { assert(false,"validate not overriden"); }
-    
+
     //wake connected bodies
     keep public function wake_connected() { assert(false,"wake_connected not overriden"); }
-    
+
     //propogate constraint links to invasive disjoint set forest
     keep public function forest() { assert(false,"forest not overriden"); }
-    
+
     //check body pair exists for ignoring.
     keep public function pair_exists(id:Int,di:Int) {
         assert(false,"pair_exists not overriden");
         return false;
     }
-    
+
     //called to destroy constraint
     keep public function destroy() { assert(false,"destroy not overriden"); }
-    
+
     keep public function warmStart() { assert(false,"warmStart not overriden"); }
 
     public var pre_dt:Float;
@@ -207,7 +207,7 @@ class PR(Constraint) {
         assert(false,"applyImpulsePos not overriden");
         return false;
     }
-    
+
     public function wake() {
         if(space!=null)
             space.wake_constraint(this);
@@ -219,7 +219,7 @@ class PR(Constraint) {
 
     //extra funky fields used in copying Compounds
     //so as to be able to resolve any dangling references external to the Compound.
-    public function copy(?dict:Array<PR(CopyHelper)>,?todo:Array<PR(CopyHelper)>):Constraint { return null; }
+    public function copy(dict:Array<PR(CopyHelper)>=null,todo:Array<PR(CopyHelper)>=null):Constraint { return null; }
 
     public function copyto(ret:Constraint) {
         var me = outer;
@@ -276,7 +276,7 @@ $(mixin global withConstraint(block)
             else todo.push(PR(CopyHelper).todo(body.id, function (b:Body) to.body=b.pr(inner)));
         }
     });
-    
+
     $(mixin anchor_init(n) {
         vec_set(n`local,0,0);
         vec_set(n`rel,0,0);
@@ -287,7 +287,7 @@ $(mixin global withConstraint(block)
         vec_new(public,n`local);
         vec_new(public,n`rel);
 
-        //were previously lambdas    
+        //were previously lambdas
         private function validate_`n() {
             vec_set(wrap_`n.pr(inner).,n`local);
         }
@@ -306,7 +306,7 @@ $(mixin global withConstraint(block)
         }
         public var wrap_`n:Vec2
     );
-    
+
     $(mixin wrap_anchor_new(N,n)
         property(N,Vec2,{
             if(pr(inner_zn).wrap_`n==null) pr(inner_zn).setup_`n();
@@ -317,11 +317,11 @@ $(mixin global withConstraint(block)
             this.N.set(N);
         })
     );
-    
+
     $(mixin validate_anchor(b,n) vec_rotate(n`local,b.axis,n`rel));
-    
+
     //-----------------------------------------------------------
-    
+
     $(mixin wrap_body_new(B,b, new)
         property(B,Body,if(pr(inner_zn).b==null) null else pr(inner_zn).b.outer,{
             pr(inner).immutable_midstep("Constraint::"+$str(B));
@@ -360,23 +360,23 @@ $(mixin global withConstraint(block)
     $(mixin inactive_body(b,this) {
         if(b!=null) b.constraints.remove(this);
     });
-    
+
     //-----------------------------------------------------------
-    
+
     //return value is scaling for mass.
     //                 {--- in ---}  {---- out ----}
     $(mixin soft_gamma(freq,damping,dt, gamma,biasCoef) {
         var omega = 2*Math.PI*freq;
         gamma = 1/(omega*dt*(2*damping+omega*dt));
         var ig = 1/(1+gamma);
-        
+
         biasCoef = omega*omega*gamma;
         gamma *= ig;
         ig;
     });
-    
+
     //-----------------------------------------------------------
-    
+
     $(mixin accum(jAcc,j, constraint) {
         assert(!assert_isNaN(j),"accum nan");
         var jOld = jAcc;
@@ -396,9 +396,9 @@ $(mixin global withConstraint(block)
         constraint;
         vec3_sub(jAcc,jOld,j);
     });
-    
+
     //-----------------------------------------------------------
-    
+
     $(mixin bias_xform(body,loc,rel) {
         vec_rotate(loc,body.axis,rel);
     });

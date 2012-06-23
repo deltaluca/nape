@@ -3,21 +3,21 @@ $(import);
 
 class Circle extends Shape {
     public var pr(inner_zn):PR(Circle);
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     flibopts(3)
-    public function new(radius:Float, ?localCOM:Vec2, ?material:Material, ?filter:InteractionFilter) {
+    public function new(radius:Float, localCOM:Vec2=null, material:Material=null, filter:InteractionFilter=null) {
         DEBUG(try { super(); } catch (e:Dynamic) {})
         RELEASE(super();)
-        
+
         pr(inner_zn) = new PR(Circle)();
         pr(inner_zn).outer = this;
         pr(inner_zn).outer_zn = this;
         pr(inner) = pr(inner_zn);
         pr(inner_i) = pr(inner);
         pr(inner_i).outer_i = this;
-        
+
         this.radius = radius;
         if(localCOM==null) vec_set(pr(inner).localCOM,0,0);
         else {
@@ -25,11 +25,11 @@ class Circle extends Shape {
             vec_set(pr(inner).localCOM,localCOM.);
             WEAK(localCOM);
         }
-        
+
         if(material==null)
             pr(inner).material = Get(PR(Material));
         else this.material = material;
-        
+
         if(filter==null)
             pr(inner).filter = Get(PR(InteractionFilter));
         else this.filter = filter;
@@ -37,14 +37,14 @@ class Circle extends Shape {
         //implicit ANY type.
         pr(inner_i).insert_cbtype(CbType.ANY_SHAPE.pr(inner));
     }
-    
+
     keep public static function copy(circle:Circle) {
         DEBUG(if(circle==null) throw "Error: Cannot copy null circle";)
         return circle.pr(inner).copy().castCircle;
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     property(radius,Float,pr(inner_zn).radius,{
         pr(inner).immutable_midstep("Circle::radius");
         DEBUG(if(pr(inner).body!=null && pr(inner).body.isStatic() && pr(inner).body.space!=null)

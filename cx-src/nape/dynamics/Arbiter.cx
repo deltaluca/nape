@@ -3,12 +3,12 @@ $(import);
 
 class Arbiter {
     public var pr(inner):PR(Arbiter);
-    
+
     property(id,Int,{
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
         pr(inner).id;
     })
-    
+
     property(active,Bool,pr(inner).active)
     property(isSleeping,Bool,{
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
@@ -16,11 +16,11 @@ class Arbiter {
     })
 
     //----------------------------------------------------------------------------------------------
-    
+
     property(type,ArbiterType,{
         [ArbiterType.COLLISION,ArbiterType.FLUID,ArbiterType.SENSOR][pr(inner).type];
     })
-    
+
     keep public function isCollisionArbiter() {
         return pr(inner).type == PR(Arbiter).COL;
     }
@@ -30,9 +30,9 @@ class Arbiter {
     keep public function isSensorArbiter() {
         return pr(inner).type == PR(Arbiter).SENSOR;
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     property(collisionArbiter,CollisionArbiter,{
         if(isCollisionArbiter()) pr(inner).colarb.outer_zn else null;
     })
@@ -40,9 +40,9 @@ class Arbiter {
     property(fluidArbiter,FluidArbiter,{
         if(isFluidArbiter()) pr(inner).fluidarb.outer_zn else null;
     })
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     $(mixin flip() (pr(inner).ws1.id > pr(inner).ws2.id));
 
     property(shape1,Shape,{
@@ -76,21 +76,21 @@ class Arbiter {
     })
 
     //----------------------------------------------------------------------------------------------
-    
-    keep public function totalImpulse(?body:Body,?freshOnly:Bool=false) {
+
+    keep public function totalImpulse(body:Body=null,freshOnly:Bool=false) {
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
         DEBUG(if(body!=null && body!=body1 && body!=body2) throw "Error: Arbiter does not relate to body";)
         return Vec3.get(0,0,0);
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     public function new() {
         if(!PR(Arbiter).internal) {
             DEBUG(throw "Error: Cannot instantiate Arbiter derp!";)
         }
     }
-    
+
     @:$keep public function toString() {
         var ret = if(isCollisionArbiter()) "CollisionArbiter";
         else if(isFluidArbiter()) "FluidArbiter";
@@ -99,9 +99,9 @@ class Arbiter {
         #if NAPE_POOL_STATS
         ret += "#"+pr(inner).arbid;
         #end
-        
+
         if(pr(inner).cleared) return ret+"(object-pooled)";
-        
+
         else
         return ret +"("+
             shape1.toString()

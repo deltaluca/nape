@@ -5,22 +5,22 @@ withConstraint(
 
 class PR(LineJoint) extends PR(Constraint) {
     public var outer_zn:LineJoint;
-    
+
     public var scale:Float;
     public var jointMin:Float;
     public var jointMax:Float;
-    
+
     public var dot1:Float;
     public var dot2:Float;
     public var cx1:Float;
     public var cx2:Float;
-    
+
     //---------------------------------------------------
-    
+
     $(mixin Cerr(r1,r2,n,d, C) {
         d`x = b2.posx+r2`x - b1.posx-r1`x;
         d`y = b2.posy+r2`y - b1.posy-r1`y;
-        
+
         C`x = vec_cross(n,d);
         C`y = vec_dot(n,d);
         if(C`y > jointMax) {
@@ -34,26 +34,26 @@ class PR(LineJoint) extends PR(Constraint) {
             scale = 0;
         }
     });
-    
+
     $(mixin Verr(V,n) {
         vec_new(dv); vec_sub(b2.vel,b1.vel,dv);
         dvx += (b2.kinvelx-b1.kinvelx);
         dvy += (b2.kinvely-b1.kinvely);
-        
+
         V`x = vec_cross(n,dv) + (b2.angvel+b2.kinangvel)*dot2 - (b1.angvel+b1.kinangvel)*dot1;
         V`y = scale*(vec_dot(n,dv) - (b2.angvel+b2.kinangvel)*cx2 + (b1.angvel+b1.kinangvel)*cx1);
     });
-    
+
     $(mixin Keff(r1,r2,n,d, K) {
         vec_new(dr); vec_add(d,r1,dr);
         dot1 = vec_dot(n,dr); cx1 = vec_cross(n,dr);
         dot2 = vec_dot(n,r2); cx2 = vec_cross(n,r2);
-        
+
         K`a = b1.smass + b2.smass + dot1*dot1*b1.sinertia + dot2*dot2*b2.sinertia;
         K`b = -scale*(dot1*cx1*b1.sinertia + dot2*cx2*b2.sinertia);
         K`c = scale*scale*(b1.smass + b2.smass + cx1*cx1*b1.sinertia + cx2*cx2*b2.sinertia);
     });
-    
+
     $(mixin Imp(r1,r2,n, j,bias) {
         vec_new(J2, scale*n`x*j`y - n`y*j`x, n`x*j`x + scale*n`y*j`y);
         if(bias) {
@@ -68,7 +68,7 @@ class PR(LineJoint) extends PR(Constraint) {
             b2.angvel += (dot2*j`x - scale*cx2*j`y) * b2.iinertia;
         }
     });
-    
+
     public function bodyImpulse(b:PR(Body)) {
         if(stepped) {
             vec_new(j, scale*nrelx*(pjAccy+jAccy) - nrely*(pjAccx+jAccx), nrelx*(pjAccx+jAccx) + scale*nrely*(pjAccy+jAccy));
@@ -76,7 +76,7 @@ class PR(LineJoint) extends PR(Constraint) {
             else      return Vec3.get( jx, jy,(scale*cx1*jy - dot1*jx));
         }else return Vec3.get(0,0,0);
     }
-    
+
     //---------------------------------------------------
 
     public override function activeBodies() {
@@ -90,12 +90,12 @@ class PR(LineJoint) extends PR(Constraint) {
         if(b2!=b1)
             inactive_body(b2);
     }
-    
+
     //---------------------------------------------------
-    
+
     public var b1:PR(Body); anchor_new(a1);
     public var b2:PR(Body); anchor_new(a2);
-    
+
     public var inv(n):Bool;
     anchor_new(n,{inv(n) = true;});
     public function validate_norm() {
@@ -104,19 +104,19 @@ class PR(LineJoint) extends PR(Constraint) {
             vec_normalise_slow(nlocal);
         }
     }
-    
+
     mat2_new(public,kMass);
     vec_new(public,jAcc); vec_new(public,pjAcc);
     public var jMax:Float;
-    
+
     public var gamma:Float;
     vec_new(public,bias);
-    
+
     public var stepped:Bool;
-    
+
     //---------------------------------------------------
-    
-    public override function copy(?dict:Array<PR(CopyHelper)>,?todo:Array<PR(CopyHelper)>):Constraint {
+
+    public override function copy(dict:Array<PR(CopyHelper)>=null,todo:Array<PR(CopyHelper)>=null):Constraint {
         var ret = new LineJoint(null,null,outer_zn.anchor1,outer_zn.anchor2,outer_zn.direction,jointMin,jointMax);
         copyto(ret);
 
@@ -130,14 +130,14 @@ class PR(LineJoint) extends PR(Constraint) {
         anchor_init(a1);
         anchor_init(a2);
         anchor_init(n);
-        
+
         vec_set(jAcc,0,0);
         jMax = PR(Const).POSINF();
         jointMin = PR(Const).NEGINF();
         jointMax = PR(Const).POSINF();
         stepped = false;
     }
-    
+
     public override function validate() {
         if(b1==null || b2==null) throw "Error: AngleJoint cannot be simulated null bodies";
         if(b1==b2) throw "Error: DistanceJoint cannot be simulated with body1 == body2";
@@ -146,21 +146,21 @@ class PR(LineJoint) extends PR(Constraint) {
         if(vec_lsq(nlocal)<PR(Const).EPSILON) throw "Error: DistanceJoint direction must be non-degenerate";
         if(!b1.isDynamic() && !b2.isDynamic()) throw "Error: Constraints cannot have both bodies non-dynamic";
     }
-    
+
     public override function wake_connected() {
         if(b1!=null && b1.isDynamic()) b1.wake();
         if(b2!=null && b2.isDynamic()) b2.wake();
     }
-    
+
     public override function forest() {
         if(b1.isDynamic()) DSF(union(b1.component,component));
         if(b2.isDynamic()) DSF(union(b2.component,component));
     }
-    
+
     public override function pair_exists(id:Int,di:Int) {
         return (b1.id==id && b2.id==di) || (b1.id==di && b2.id==id);
     }
-    
+
     public override function destroy() {
         //no validation has occured.
         b1.constraints.remove(this);
@@ -172,30 +172,30 @@ class PR(LineJoint) extends PR(Constraint) {
         vec_set(jAcc,0,0); vec_set(pjAcc,0,0);
         pre_dt = -1.0;
     }
-    
+
     //---------------------------------------------------
-    
+
     public override function preStep(dt:Float) {
         if(pre_dt==-1.0) pre_dt = dt;
         var dtratio = dt/pre_dt;
         pre_dt = dt;
 
         stepped = true;
-        
+
         validate_norm();
         validate_anchor(b1,a1); validate_anchor(b1,n);
         validate_anchor(b2,a2);
-        
+
         //calculate positional error now to find d + scale
         vec_new(d); vec_new(C);
         Cerr(a1rel,a2rel,nrel,d, C);
-        
+
         //effective mass
         Keff(a1rel,a2rel,nrel,d, kMass);
         var flag = mat2_invert(kMass);
         if((flag&1)!=0) jAccx = 0;
         if((flag&2)!=0) jAccy = 0;
-        
+
         if(!stiff) {
             if(breakUnderError && vec_lsq(C) > maxError*maxError) return true;
 
@@ -209,7 +209,7 @@ class PR(LineJoint) extends PR(Constraint) {
             vec_set(bias,0,0);
         }
         vec_muleq(jAcc,dtratio);
-        
+
         return false;
     }
 
@@ -217,12 +217,12 @@ class PR(LineJoint) extends PR(Constraint) {
         Imp(a1rel,a2rel,nrel, jAcc,false);
         vec_set(pjAcc,jAcc);
     }
-    
+
     public override function applyImpulseVel() {
         //velocity corrections
         vec_new(E); Verr(E,nrel);
         vec_new(J); vec_sub(bias,E, J);
-        
+
         mat2_xform(kMass,J);
         vec_subeq(J,jAcc,gamma);
 
@@ -235,51 +235,51 @@ class PR(LineJoint) extends PR(Constraint) {
                 vec_clamp(jAcc,jMax);
         });
         Imp(a1rel,a2rel,nrel, J,false);
-        
+
         return false;
     }
-    
+
     public override function applyImpulsePos() {
         //positional corrections (stiff)
         vec_new(n); bias_xform(b1,nlocal,n);
         vec_new(r1); bias_xform(b1,a1local,r1);
         vec_new(r2); bias_xform(b2,a2local,r2);
-            
+
         vec_new(d); var scale;
         vec_new(E);
         Cerr(r1,r2,n,d,E);
-        
-        if(breakUnderError && vec_lsq(E) > maxError*maxError) return true;    
+
+        if(breakUnderError && vec_lsq(E) > maxError*maxError) return true;
         if(vec_lsq(E) < PR(Config).SLOP) return false;
-        
+
         vec_new(J);
         vec_muleq(E,0.5);
-                    
+
         //however for VERY large detachment it is necessary to help.
         if(vec_lsq(E) > 6) {
             var k = b1.smass + b2.smass;
             if(k>PR(Const).EPSILON) {
                 k = 0.6/k; //don't completely solve error
                 vec_new(J, k*(n`y*E`x-scale*n`x*E`y), k*(n`x*E`x*scale-n`y*E`x));
-                
+
                 vec_subeq(b1.pos, J,b1.imass);
                 vec_addeq(b2.pos, J,b2.imass);
-                
+
                 //recalculate error
                 Cerr(r1,r2,n,d,E);
                 vec_muleq(E,0.5);
             }
         }
-        
+
         var dot1, dot2, cx1, cx2;
         mat2_new(K); Keff(r1,r2,n,d,K);
         vec_set(J,-Ex,-Ey);
         mat2_solve(K,J);
-            
+
         if(Jy>0) Jy = 0;
 
         Imp(r1,r2,n, J,true);
-        
+
         return false;
     }
 
@@ -311,7 +311,7 @@ class PR(LineJoint) extends PR(Constraint) {
             g.drawLine(a1.add(dir.mul(max(pn,min),true),true),e2,0xffff);
 
         if(!stiff) {
-            var anch = 
+            var anch =
             if  (pn<jointMin) e1.copy();
             elif(pn>jointMax) e2.copy();
             else              a1.add(dir.mul(pn,true));
