@@ -42,7 +42,7 @@ pre_compile:
 	mkdir src
 	caxe -o src cx-src -tc 2 --times $(DUMMYS)
 	# patch for FD auto-complete issue with #end
-	find src -name "*.hx" -type f | xargs sed -i 's/#end/#end\r\n/g' 
+	find src -name "*.hx" -type f | xargs sed -i 's/#end/#end\r\n/g'
 
 SWC_FLAGS = -cp src --dead-code-elimination --macro "include('nape')" --macro "include('zpp_nape')" -D flib -D swc
 
@@ -172,11 +172,11 @@ server-build-release9:
 server-build-externs:
 	tar -xf hx-src.tar.gz
 	unzip release_nape.swc -x catalog.xml
-	
+
 	flib --externs library.swf --include nape --include zpp_nape
 #	./fix-externs # doesn't work at present! oops
 	tar cvfz externs.tar.gz externs
 	rm -rf externs
 	rm -rf src
 	rm library.swf
-	
+

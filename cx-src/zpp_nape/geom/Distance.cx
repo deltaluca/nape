@@ -14,7 +14,7 @@ class PR(Distance) {
         }else
             return circle2circle_distance(s1.circle.worldCOM,s2.circle.worldCOM,s1.circle.radius,s2.circle.radius,outa,outb);
     }
-    
+
     $(mixin circle2circle_distance(c1,c2, r1,r2, outa,outb) {
         vec_new(d); vec_sub(c2,c1,d);
         var r = r1+r2;
@@ -31,7 +31,7 @@ class PR(Distance) {
     $(mixin circle2poly_distance(circle,poly, outa,outb) {
         var max = -PR(Const).FMAX;
         var a0 = null, vi = null;
-            
+
         var vite = poly.gverts.begin();
         Iter(a,poly.edges,{
             var dist = vec_dot(a.gnorm,circle.worldCOM) - a.gprojection - circle.radius;
@@ -42,7 +42,7 @@ class PR(Distance) {
             }
             vite = vite.next;
         });
-            
+
         var v0 = vi.elem();
         var v1 = if(vi.next==null) poly.gverts.front() else vi.next.elem();
         var dt = vec_cross(a0.gnorm,circle.worldCOM);
@@ -56,7 +56,7 @@ class PR(Distance) {
             max;
         }else -1.0;
     });
-    
+
     public static var defcache = new PR(SCache)();
     $(mixin poly2poly_distance(p1,p2, outa,outb, scache) {
         if(scache==null) {
@@ -64,15 +64,15 @@ class PR(Distance) {
             scache.set(p1,p2);
         }
         scache.validate();
-        
+
         var count = scache.count;
         var v1 = scache.v1;
         var v2 = scache.v2;
         var v3 = scache.v3;
-        
+
         var ida = [];
         var idb = [];
-        
+
         var ind = 0;
         while(ind++<2000) {
             //previous id's
@@ -82,19 +82,19 @@ class PR(Distance) {
             if(count==3) { ida[2] = v3.ia; idb[2] = v3.ib; }
 
             //break simplex
-            if       (count==2) solve2;
+            if     (count==2) solve2;
             else if(count==3) solve3;
             if(count==3) break;
-            
+
             vec_new(d); search_dir(d);
             if(vec_lsq(d) < PR(Const).EPSILON) break;
-            
+
             //form new simplex
             var vertex = (count==1 ? v2 : v3);
             support(vertex,a, p1, d,-1.0);
             support(vertex,b, p2, d, 1.0);
             vec_sub(vertex.b,vertex.a, vertex.v);
-            
+
             //check for duplication
             var dup = false;
             for(i in 0...pcount) {
@@ -104,13 +104,13 @@ class PR(Distance) {
                 }
             }
             if(dup) break;
-            
+
             count++;
         }
 
         if(scache!=defcache)
             scache.write(count, v1,v2,v3);
-        
+
         //get points on polys
         if(count==1) {
             vec_set(outa.,v1.a);
@@ -123,12 +123,12 @@ class PR(Distance) {
         }else
             -1.0;
     });
-    
+
     $(mixin support(vertex,id, poly, d,dmul) {
         vertex.i`id = 0;
         var best = poly.gverts.front();
         var bestv = vec_dot(best.,d)*dmul;
-        
+
         var ind = 1;
         IterIte(vert, poly.gverts, poly.gverts.begin().next, {
             var value = vec_dot(vert.,d)*dmul;
@@ -139,11 +139,11 @@ class PR(Distance) {
             }
             ind++;
         });
-        
+
         vertex.id = best;
         vec_set(vertex.id,best.);
     });
-    
+
     $(mixin search_dir(d) {
         if     (count==1) vec_set(d, -v1.vx,-v1.vy);
         else if(count==2) {
@@ -153,7 +153,7 @@ class PR(Distance) {
             else      vec_set(d, ey,-ex);
         }else vec_set(d,0,0);
     });
-    
+
     $(mixin solve2() {
         vec_new(e); vec_sub(v2.v,v1.v,e);
         var d2 = -vec_dot(v1.v,e);
@@ -173,7 +173,7 @@ class PR(Distance) {
             }
         }
     });
-    
+
     $(mixin solve3() {
         $(mixin vero(a,b)
             vec_new(e`a`b); vec_sub(v`b.v,v`a.v,e`a`b);
@@ -181,12 +181,12 @@ class PR(Distance) {
             var d`a`b`_2 = -vec_dot(v`a.v,e`a`b);
         );
         vero(1,2) vero(1,3) vero(2,3)
-        
+
         var dn = vec_cross(e12,e13);
         var d1 = dn*vec_cross(v2.v,v3.v);
         var d2 = dn*vec_cross(v3.v,v1.v);
         var d3 = dn*vec_cross(v1.v,v2.v);
-        
+
         if (d12_2<=0.0 && d13_2<=0.0) {
             v1.w = 1.0;
             count = 1;
@@ -227,27 +227,27 @@ class PR(Distance) {
 class PR(SVertex) {
     public var ia:Int;     public var ib:Int; //index for a,b
     public var a:PR(Vec2); public var b:PR(Vec2);
-    
+
     vec_new(public, a); vec_new(public, b);
     vec_new(public, v); // = b-a <-> minkowski vertex
     public var w:Float; //barycentric weight
-    
+
     public function new() {}
 }
 
 class PR(SCache) {
     public var metric:Float;
-    
+
     public var count:Int;
     public var v1:PR(SVertex);
     public var v2:PR(SVertex);
     public var v3:PR(SVertex);
-    
+
     public var p1:PR(Polygon);
     public var p2:PR(Polygon);
 
     public function new() {}
-    
+
     public function set(p1:PR(Polygon),p2:PR(Polygon)) {
         v1 = new PR(SVertex)();
         v2 = new PR(SVertex)();
@@ -256,7 +256,7 @@ class PR(SCache) {
         this.p2 = p2;
         count = 0;
     }
-    
+
     public function validate() {
         $(mixin up(c) {
             vec_set(c.a,c.a.);
@@ -268,7 +268,7 @@ class PR(SCache) {
         if(count>1) {
             up(v2);
             if(count==3) up(v3);
-            
+
             var old = metric;
             metric = get_metric();
             if(metric < 0.5*old || 2*old < metric || metric < PR(Const).EPSILON)
@@ -284,18 +284,18 @@ class PR(SCache) {
             v1.w = 0.0;
         }
     }
-    
+
     public function get_metric() {
         return switch(count) {
             default: 0.0;
             case 2: vec_dsq(v1.v,v2.v);
-            case 3: 
+            case 3:
                 vec_new(a); vec_sub(v2.v,v1.v,a);
                 vec_new(b); vec_sub(v3.v,v1.v,b);
                 vec_cross(a,b);
         }
     }
-    
+
     public function write(
         count:Int,
         v1:PR(SVertex),
