@@ -2,44 +2,65 @@ package nape.constraint;
 $(import);
 
 withConstraint(
-
 class DistanceJoint extends Constraint {
     public var pr(inner_zn):PR(DistanceJoint);
 
-    wrap_body_new(body1,b1, $(mixin new(b) pr(inner_zn).b2!=b) new)
-    wrap_body_new(body2,b2, $(mixin new(b) pr(inner_zn).b1!=b) new)
-    
-    wrap_anchor_new(anchor1,a1)
-    wrap_anchor_new(anchor2,a2)
+    wrap_body_new(body1, b1, $(mixin isNew(b) pr(inner_zn).b2 != b) isNew)
+    wrap_body_new(body2, b2, $(mixin isNew(b) pr(inner_zn).b1 != b) isNew)
 
-    property(jointMin,Float,pr(inner_zn).jointMin,{
+    wrap_anchor_new(anchor1, a1)
+    wrap_anchor_new(anchor2, a2)
+
+    property(jointMin, Float, {
+        /*return*/ pr(inner_zn).jointMin;
+    }, {
         pr(inner).immutable_midstep("DistanceJoint::jointMin");
         DEBUG(
-            if(isNaN(jointMin)) throw "Error: AngleJoint::jointMin cannot be NaN";
-            if(jointMin<0) throw "Error: DistanceJoint::jointMin must be >= 0";
+            if (isNaN(jointMin)) {
+                throw "Error: AngleJoint::jointMin cannot be NaN";
+            }
+            if (jointMin < 0) {
+                throw "Error: DistanceJoint::jointMin must be >= 0";
+            }
         )
-        if(this.jointMin != jointMin) {
+
+        if (this.jointMin != jointMin) {
             pr(inner_zn).jointMin = jointMin;
             pr(inner).wake();
         }
     })
-    
-    property(jointMax,Float,pr(inner_zn).jointMax,{
+
+    property(jointMax, Float, {
+        /*return*/ pr(inner_zn).jointMax;
+    }, {
         pr(inner).immutable_midstep("DistanceJoint::jointMax");
         DEBUG(
-            if(isNaN(jointMax)) throw "Error: AngleJoint::jointMax cannot be NaN";
-            if(jointMax<0) throw "Error: DistanceJoint::jointMax must be >= 0";
+            if (isNaN(jointMax)) {
+                throw "Error: AngleJoint::jointMax cannot be NaN";
+            }
+            if (jointMax < 0) {
+                throw "Error: DistanceJoint::jointMax must be >= 0";
+            }
         )
-        if(this.jointMax != jointMax) {
+        if (this.jointMax != jointMax) {
             pr(inner_zn).jointMax = jointMax;
             pr(inner).wake();
         }
     })
 
-    property(slack,Bool,pr(inner_zn).slack)
+    property(slack, Bool, {
+        /*return*/ pr(inner_zn).slack;
+    })
 
-    flibopts(0)        
-    public function new(body1:Body, body2:Body, anchor1:Vec2, anchor2:Vec2, jointMin:Float, jointMax:Float) {
+    flibopts(0)
+    public function new(
+        body1:Null<Body>,
+        body2:Null<Body>,
+        anchor1:Vec2,
+        anchor2:Vec2,
+        jointMin:Float,
+        jointMax:Float
+    ) {
         pr(inner_zn) = new PR(DistanceJoint)();
         pr(inner) = pr(inner_zn);
         pr(inner).outer = this;
@@ -47,7 +68,7 @@ class DistanceJoint extends Constraint {
 
         DEBUG(try { super(); } catch (e:Dynamic) {})
         RELEASE(super();)
-        
+
         this.body1 = body1;
         this.body2 = body2;
         this.anchor1 = anchor1;
@@ -55,25 +76,37 @@ class DistanceJoint extends Constraint {
         this.jointMin = jointMin;
         this.jointMax = jointMax;
     }
-    
-    public override function impulse() {
+
+    public override function impulse():MatMN {
         var ret = new MatMN(1,1);
-        ret.setx(0,0, pr(inner_zn).jAcc+pr(inner_zn).pjAcc);
+        ret.setx(0, 0, pr(inner_zn).jAcc + pr(inner_zn).pjAcc);
         return ret;
     }
-    
-    public override function bodyImpulse(body:Body) {
-        DEBUG(if(body==null) throw "Error: Cannot evaluate impulse on null body";
-              if(body!=body1 && body!=body2) throw "Error: Body is not linked to this constraint";
+
+    public override function bodyImpulse(body:Body):Vec3 {
+        DEBUG(
+            if (body == null) {
+                throw "Error: Cannot evaluate impulse on null body";
+            }
+            if (body != body1 && body != body2) {
+                throw "Error: Body is not linked to this constraint";
+            }
         )
-        if(!active) return Vec3.get();
-        else        return pr(inner_zn).bodyImpulse(body.pr(inner));
+
+        if (!active) {
+            return Vec3.get();
+        }
+        else {
+            return pr(inner_zn).bodyImpulse(body.pr(inner));
+        }
     }
 
     public override function visitBodies(lambda:Body->Void) {
-        if(body1!=null) lambda(body1);
-        if(body2!=null) lambda(body2);
+        if (body1 != null) {
+            lambda(body1);
+        }
+        if (body2 != null && body2 != body1) {
+            lambda(body2);
+        }
     }
-}
-
-)
+})

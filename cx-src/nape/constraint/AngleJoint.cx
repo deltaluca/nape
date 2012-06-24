@@ -2,46 +2,71 @@ package nape.constraint;
 $(import);
 
 withConstraint(
-
 class AngleJoint extends Constraint {
     public var pr(inner_zn):PR(AngleJoint);
 
-    wrap_body_new(body1,b1, $(mixin new(b) pr(inner_zn).b2!=b) new)
-    wrap_body_new(body2,b2, $(mixin new(b) pr(inner_zn).b1!=b) new)
+    wrap_body_new(body1, b1, $(mixin isNew(b) pr(inner_zn).b2 != b) isNew)
+    wrap_body_new(body2, b2, $(mixin isNew(b) pr(inner_zn).b1 != b) isNew)
 
-    property(jointMin,Float,pr(inner_zn).jointMin,{
+    property(jointMin, Float, {
+        /*return*/ pr(inner_zn).jointMin;
+    }, {
         pr(inner).immutable_midstep("AngleJoint::jointMin");
-        DEBUG(if(isNaN(jointMin)) throw "Error: AngleJoint::jointMin cannot be NaN";)
-        if(this.jointMin != jointMin) {
+        DEBUG(
+            if (isNaN(jointMin)) {
+                throw "Error: AngleJoint::jointMin cannot be NaN";
+            }
+        )
+
+        if (this.jointMin != jointMin) {
             pr(inner_zn).jointMin = jointMin;
             pr(inner).wake();
         }
     })
 
-    property(jointMax,Float,pr(inner_zn).jointMax,{
+    property(jointMax, Float, {
+        /*return*/ pr(inner_zn).jointMax;
+    }, {
         pr(inner).immutable_midstep("AngleJoint::jointMax");
-        DEBUG(if(isNaN(jointMax)) throw "Error: AngleJoint::jointMax cannot be NaN";)
-        if(this.jointMax != jointMax) {
+        DEBUG(
+            if (isNaN(jointMax)) {
+                throw "Error: AngleJoint::jointMax cannot be NaN";
+            }
+        )
+
+        if (this.jointMax != jointMax) {
             pr(inner_zn).jointMax = jointMax;
             pr(inner).wake();
         }
     })
 
-    property(ratio,Float,pr(inner_zn).ratio,{
+    property(ratio, Float, {
+        /*return*/ pr(inner_zn).ratio;
+    }, {
         pr(inner).immutable_midstep("AngleJoint::ratio");
-        DEBUG(if(isNaN(ratio)) throw "Error: AngleJoint::ratio cannot be NaN";)
-        if(this.ratio != ratio) {
+        DEBUG(
+            if (isNaN(ratio)) {
+                throw "Error: AngleJoint::ratio cannot be NaN";
+            }
+        )
+
+        if (this.ratio != ratio) {
             pr(inner_zn).ratio = ratio;
             pr(inner).wake();
         }
     })
 
-    property(slack,Bool,pr(inner_zn).slack)
-
-    //-----------------------------------
+    property(slack, Bool, {
+        /*return*/ pr(inner_zn).slack;
+    })
 
     flibopts(0)
-    public function new(body1:Body, body2:Body, jointMin:Float, jointMax:Float) {
+    public function new(
+        body1:Null<Body>,
+        body2:Null<Body>,
+        jointMin:Float,
+        jointMax:Float
+    ) {
         pr(inner_zn) = new PR(AngleJoint)();
         pr(inner) = pr(inner_zn);
         pr(inner).outer = this;
@@ -56,24 +81,42 @@ class AngleJoint extends Constraint {
         this.jointMax = jointMax;
     }
 
-    public override function impulse() {
+    public override function impulse():MatMN {
         var ret = new MatMN(1,1);
-        ret.setx(0,0, pr(inner_zn).jAcc+pr(inner_zn).pjAcc);
+        ret.setx(0, 0, pr(inner_zn).jAcc + pr(inner_zn).pjAcc);
         return ret;
     }
 
-    public override function bodyImpulse(body:Body) {
-        DEBUG(if(body==null) throw "Error: Cannot evaluate impulse on null body";
-              if(body!=body1 && body!=body2) throw "Error: Body is not linked to this constraint";
+    public override function bodyImpulse(body:Body):Vec3 {
+        DEBUG(
+            if (body == null) {
+                throw "Error: Cannot evaluate impulse on null body";
+            }
+            if (body != body1 && body != body2) {
+                throw "Error: Body is not linked to this constraint";
+            }
         )
-        if(!active) return Vec3.get();
-        else        return pr(inner_zn).bodyImpulse(body.pr(inner));
+
+        if(!active) {
+            return Vec3.get(0, 0, 0);
+        }
+        else {
+            return pr(inner_zn).bodyImpulse(body.pr(inner));
+        }
     }
 
-    public override function visitBodies(lambda:Body->Void) {
-        if(body1!=null) lambda(body1);
-        if(body2!=null) lambda(body2);
-    }
-}
+    public override function visitBodies(lambda:Body->Void):Void {
+        DEBUG(
+            if (lambda == null) {
+                throw "Error: Cannot apply null lambda to bodies";
+            }
+        )
 
-)
+        if(body1 != null) {
+            lambda(body1);
+        }
+        if(body2 != null && body2 != body1) {
+            lambda(body2);
+        }
+    }
+})

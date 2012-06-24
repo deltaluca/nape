@@ -2,27 +2,39 @@ package nape.constraint;
 $(import);
 
 withConstraint(
-
 class WeldJoint extends Constraint {
     public var pr(inner_zn):PR(WeldJoint);
 
-    wrap_body_new(body1,b1, $(mixin new(b) pr(inner_zn).b2!=b) new)
-    wrap_body_new(body2,b2, $(mixin new(b) pr(inner_zn).b1!=b) new)
+    wrap_body_new(body1, b1, $(mixin isNew(b) pr(inner_zn).b2 != b) isNew)
+    wrap_body_new(body2, b2, $(mixin isNew(b) pr(inner_zn).b1 != b) isNew)
 
-    wrap_anchor_new(anchor1,a1)
-    wrap_anchor_new(anchor2,a2)
+    wrap_anchor_new(anchor1, a1)
+    wrap_anchor_new(anchor2, a2)
 
-    property(phase,Float,pr(inner_zn).phase,{
+    property(phase, Float, {
+        /*return*/ pr(inner_zn).phase;
+    }, {
         pr(inner).immutable_midstep("WeldJoint::phase");
-        DEBUG(if(isNaN(phase)) throw "Error: WeldJoint::phase cannot be NaN";)
-        if(this.phase != phase) {
+        DEBUG(
+            if (isNaN(phase)) {
+                throw "Error: WeldJoint::phase cannot be NaN";
+            }
+        )
+
+        if (this.phase != phase) {
             pr(inner_zn).phase = phase;
             pr(inner).wake();
         }
     })
 
     flibopts(1)
-    public function new(body1:Body, body2:Body, anchor1:Vec2, anchor2:Vec2, phase:Float=0.0) {
+    public function new(
+        body1:Null<Body>,
+        body2:Null<Body>,
+        anchor1:Vec2,
+        anchor2:Vec2,
+        phase:Float = 0.0
+    ) {
         pr(inner_zn) = new PR(WeldJoint)();
         pr(inner) = pr(inner_zn);
         pr(inner).outer = this;
@@ -38,25 +50,39 @@ class WeldJoint extends Constraint {
         this.phase = phase;
     }
 
-    public override function impulse() {
-        var ret = new MatMN(3,1);
-        ret.setx(0,0, pr(inner_zn).jAccx+pr(inner_zn).pjAccx);
-        ret.setx(1,0, pr(inner_zn).jAccy+pr(inner_zn).pjAccy);
-        ret.setx(1,0, pr(inner_zn).jAccz+pr(inner_zn).pjAccz);
+    public override function impulse():MatMN {
+        var ret = new MatMN(3, 1);
+        ret.setx(0, 0, pr(inner_zn).jAccx + pr(inner_zn).pjAccx);
+        ret.setx(1, 0, pr(inner_zn).jAccy + pr(inner_zn).pjAccy);
+        ret.setx(1, 0, pr(inner_zn).jAccz + pr(inner_zn).pjAccz);
         return ret;
     }
 
-    public override function bodyImpulse(body:Body) {
-        DEBUG(if(body==null) throw "Error: Cannot evaluate impulse on null body";
-              if(body!=body1 && body!=body2) throw "Error: Body is not linked to this constraint";
+    public override function bodyImpulse(body:Body):Vec3 {
+        DEBUG(
+            if (body == null) {
+                throw "Error: Cannot evaluate impulse on null body";
+            }
+            if (body != body1 && body != body2) {
+                throw "Error: Body is not linked to this constraint";
+            }
         )
-        if(!active) return Vec3.get();
-        else        return pr(inner_zn).bodyImpulse(body.pr(inner));
+
+        if (!active) {
+            return Vec3.get();
+        }
+        else {
+            return pr(inner_zn).bodyImpulse(body.pr(inner));
+        }
     }
 
-    public override function visitBodies(lambda:Body->Void) {
-        if(body1!=null) lambda(body1);
-        if(body2!=null) lambda(body2);
+    public override function visitBodies(lambda:Body->Void):Void {
+        if (body1 != null) {
+            lambda(body1);
+        }
+        if (body2 != null && body2 != body1) {
+            lambda(body2);
+        }
     }
 }
 

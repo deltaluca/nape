@@ -4,16 +4,17 @@ $(import);
 class UserConstraint extends Constraint {
     public var pr(inner_zn):PR(UserConstraint);
 
-    //------------------------------------------------------------------------
-
-    public function bindVec2() {
+    //
+    // Function used to bind a Vec2 to this constraint which will be act like
+    // Any inbuilt constraint Vec2 parameter, with copy assignment and auto
+    // waking on mutation.
+    //
+    public function bindVec2():Vec2 {
         var ret = new Vec2();
         ret.pr(inner)._inuse = true;
         ret.pr(inner)._invalidate = pr(inner_zn).bindVec2_invalidate;
         return ret;
     }
-
-     //------------------------------------------------------------------------
 
     public function __copy():UserConstraint {
         DEBUG(throw "Error: UserConstraint::__copy must be overriden";)
@@ -24,35 +25,30 @@ class UserConstraint extends Constraint {
 
     public function __draw(debug:Debug):Void {}
 
-    //------------------------------------------------------------------------
-
-    public function __prepare() {}
-
-    public function __position(err:ARRAY(Float)) {
+    public function __prepare():Void {}
+    public function __position(err:ARRAY(Float)):Void {
         DEBUG(throw "Error: UserConstraint::__position must be overriden";)
     }
-    public function __velocity(err:ARRAY(Float)) {
+    public function __velocity(err:ARRAY(Float)):Void {
         DEBUG(throw "Error: Userconstraint::__velocity must be overriden";)
     }
-    public function __eff_mass(eff:ARRAY(Float)) {
+    public function __eff_mass(eff:ARRAY(Float)):Void {
         DEBUG(throw "Error: UserConstraint::__eff_mass must be overriden";)
     }
-
-    public function __clamp(jAcc:ARRAY(Float)) {}
-
-    //------------------------------------------------------------------------
-
-    public function __impulse(imp:ARRAY(Float),body:Body,out:Vec3) {
+    public function __clamp(jAcc:ARRAY(Float)):Void {}
+    public function __impulse(imp:ARRAY(Float), body:Body, out:Vec3):Void {
         DEBUG(throw "Error: UserConstraint::__impulse must be overriden";)
     }
 
-    //------------------------------------------------------------------------
-
     flibopts(1)
-    public function new(dimensions:Int,velocityOnly=false) {
-        DEBUG(if(dimensions<1) throw "Error: Constraint dimension must be at least 1";)
+    public function new(dimensions:Int, velocityOnly:Bool = false) {
+        DEBUG(
+            if (dimensions < 1) {
+                throw "Error: Constraint dimension must be at least 1";
+            }
+        )
 
-        pr(inner_zn) = new PR(UserConstraint)(dimensions,velocityOnly);
+        pr(inner_zn) = new PR(UserConstraint)(dimensions, velocityOnly);
         pr(inner) = pr(inner_zn);
         pr(inner).outer = this;
         pr(inner_zn).outer_zn = this;
@@ -61,56 +57,110 @@ class UserConstraint extends Constraint {
         RELEASE(super();)
     }
 
-    //------------------------------------------------------------------------
+    public override function impulse():MatMN {
+        var ret = new MatMN(pr(inner_zn).dim, 1);
+        for (i in 0...pr(inner_zn).dim) {
+            ret.setx(i, 0, pr(inner_zn).jAcc[i] + pr(inner_zn).pjAcc[i]);
+        }
 
-    public override function impulse() {
-        var ret = new MatMN(pr(inner_zn).dim,1);
-        for(i in 0...pr(inner_zn).dim)
-            ret.setx(i,0, pr(inner_zn).jAcc[i] + pr(inner_zn).pjAcc[i]);
         return ret;
     }
 
-    public override function bodyImpulse(body:Body) {
+    public override function bodyImpulse(body:Body):Vec3 {
         DEBUG(
-            if(body==null) throw "Error: Cannot evaluate impulse on null body";
-            var found = false;
-            for(b in pr(inner_zn).bodies) {
-                if(b.body==body.pr(inner)) { found = true; break; }
+            if (body == null) {
+                throw "Error: Cannot evaluate impulse on null body";
             }
-            if(!found) throw "Error: Body is not linked to this constraint";
+
+            var found = false;
+            for (b in pr(inner_zn).bodies) {
+                if (b.body == body.pr(inner)) {
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found) {
+                throw "Error: Body is not linked to this constraint";
+            }
         )
-        if(!active) return Vec3.get();
-        else        return pr(inner_zn).bodyImpulse(body.pr(inner));
+
+        if(!active) {
+            return Vec3.get();
+        }
+        else {
+            return pr(inner_zn).bodyImpulse(body.pr(inner));
+        }
     }
 
-    public override function visitBodies(lambda:Body->Void) {
-        for(b in pr(inner_zn).bodies) if(b.body!=null) lambda(b.body.outer);
+    public override function visitBodies(lambda:Body->Void):Void {
+        var i:#if flash10 UInt #else Int #end = 0;
+        var nbodies = pr(inner_zn).bodies.length;
+        while (i < nbodies) {
+            var b = pr(inner_zn).bodies[i];
+            if (b.body != null) {
+                var found = false;
+                for (j in (i+1)...nbodies) {
+                    var c = pr(inner_zn).bodies[j];
+                    if (c.body == b.body) {
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found) {
+                    lambda(b.body.outer);
+                }
+            }
+            i++;
+        }
     }
 
-    //------------------------------------------------------------------------
-
-    public function invalidate() {
+    //
+    // Method called by user for any mutated property not already
+    // intrinsically linked (such as bound Vec2)
+    //
+    public function invalidate():Void {
         pr(inner).immutable_midstep("UserConstraint::invalidate()");
-        if(active && space!=null)
+        if (active && space != null) {
             pr(inner).wake();
+        }
     }
 
-    public function registerBody(oldBody:Body,newBody:Body) {
+    //
+    // Method called by user to act as body assignment.
+    // Deals with unregistering the previous body assignment
+    // And registering the new body with the constraint
+    //
+    public function registerBody(oldBody:Body, newBody:Body):Body {
         pr(inner).immutable_midstep("UserConstraint::registerBody(..)");
-        if(oldBody!=newBody) {
-            if(oldBody!=null) {
-                if(!pr(inner_zn).remBody(oldBody.pr(inner))) {
+        if (oldBody != newBody) {
+            if (oldBody != null) {
+                // remBody has side-effect of removing the body if it
+                // exists. in Debug mode we check for success.
+                if (!pr(inner_zn).remBody(oldBody.pr(inner))) {
                     DEBUG(throw "Error: oldBody is not registered to the cosntraint";)
                 }
 
-                if(active && space!=null)
+                // Need to wake old body!
+                if(active && space != null) {
                     oldBody.pr(inner).wake();
+                }
             }
-            if(newBody!=null) pr(inner_zn).addBody(newBody.pr(inner));
 
+            if (newBody != null) {
+                pr(inner_zn).addBody(newBody.pr(inner));
+            }
+
+            // Wake constraint
             pr(inner).wake();
-            if(newBody!=null) newBody.pr(inner).wake();
+
+            // Wake new body incase constraint was already awake
+            if (newBody != null) {
+                newBody.pr(inner).wake();
+            }
         }
+
         return newBody;
     }
 
