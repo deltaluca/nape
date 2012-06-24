@@ -1,26 +1,38 @@
 package zpp_nape.callbacks;
 $(import);
 
+//
+// Tracks all listeners suitable for a given pairs of interacting objects
+// With the given CbSet's.
+//
+// Constructed to avoid continous runtime merging of the lists and set
+// lookups during the merges.
+//
+// Automatically released when CbSet's are removed from space.
+//
+
 class PR(CbSetPair) {
     public var a:PR(CbSet);
     public var b:PR(CbSet);
 
+    // Object pool implementors
     MixPool(PR(CbSetPair))
-    flibmdel public inline function free() {
+    flibmdel public inline function free():Void {
         a = b = null;
         listeners.clear();
     }
-    flibmdel public inline function alloc() {
+    flibmdel public inline function alloc():Void {
         inv(listeners) = true;
     }
 
+    // Construct not to be used directly
+    // Instead use of the getter.
     public function new() {
         listeners = new List(PR(InteractionListener))();
     }
-
-    public static inline function get(a:PR(CbSet),b:PR(CbSet)) {
+    public static inline function get(a:PR(CbSet), b:PR(CbSet)):PR(CbSetPair) {
         var ret = Get(PR(CbSetPair));
-        if(PR(CbSet).set_lt(a,b)) {
+        if (PR(CbSet).set_lt(a, b)) {
             ret.a = a; ret.b = b;
         }else {
             ret.a = b; ret.b = a;
@@ -28,41 +40,48 @@ class PR(CbSetPair) {
         return ret;
     }
 
-    public static inline function set_lt(x:PR(CbSetPair),y:PR(CbSetPair)) {
-        assert((x.a==y.a)==(!PR(CbSet).set_lt(x.a,y.a) && !PR(CbSet).set_lt(y.a,x.a)),"Assumption that CbSet's are unique!! Aka we can compare for 'equal' CbSet with == is wrong?? :(");
+    // Defines a total ordering of CbSetPair's based on lexicographical sorting of
+    // the CbSet's with == for equality due to unique nature of CbSets's
+    public static inline function set_lt(x:PR(CbSetPair), y:PR(CbSetPair)):Bool {
+        assert((x.a==y.a) == (!PR(CbSet).set_lt(x.a,y.a) && !PR(CbSet).set_lt(y.a,x.a)),
+            "Assumption that CbSet's are unique!! Aka we can compare for 'equal' CbSet with == is wrong?? :("
+        );
+
         return PR(CbSet).set_lt(x.a,y.a) || (x.a==y.a && PR(CbSet).set_lt(x.b,y.b));
     }
 
-    //-------------------------------------------
-
-    //check a given listener is actually usable for the two given cbset.
-    flibmdel inline function compatible(i:PR(InteractionListener)) {
+    // Check a given listener is actually usable for the two given cbset.
+    flibmdel inline function compatible(i:PR(InteractionListener)):Bool {
         return (i.options1.compatible(a.cbTypes) && i.options2.compatible(b.cbTypes))
             || (i.options2.compatible(a.cbTypes) && i.options1.compatible(b.cbTypes));
     }
 
+    // Lazily compute updated lists of listeners from CbSet's.
     public var inv(listeners):Bool;
     public var listeners:List(PR(InteractionListener));
-    flibmdel public inline function invalidate() {
+    flibmdel public inline function invalidate():Void {
         inv(listeners) = true;
     }
-    flibmdel public inline function validate() {
-        if(inv(listeners)) {
+    flibmdel public inline function validate():Void {
+        if (inv(listeners)) {
             inv(listeners) = false;
             __validate();
         }
     }
-    public function __validate() {
-        listeners.clear();
 
-        assert(!a.inv(listeners),"a.listeners not validated??");
-        assert(!b.inv(listeners),"b.listeners not validated??");
+    public function __validate():Void {
+        listeners.clear();
+        assert(!a.inv(listeners), "a.listeners not validated??");
+        assert(!b.inv(listeners), "b.listeners not validated??");
+
         var aite = a.listeners.begin();
         var bite = b.listeners.begin();
         while(aite!=null && bite!=null) {
             var ax = aite.elem(); var bx = bite.elem();
             if(ax==bx) {
-                if(compatible(ax)) listeners.add(ax);
+                if(compatible(ax)) {
+                    listeners.add(ax);
+                }
                 aite = aite.next;
                 bite = bite.next;
             }elif(PR(Listener).set_lt(ax,bx))
@@ -71,19 +90,24 @@ class PR(CbSetPair) {
         }
     }
 
-    //-------------------------------------------
-
-    flibmdel public inline function empty_intersection() {
-        assert(!inv(listeners),"not validated before empty_intersection");
+    // Determine if cbSetPair has no valid listeners.
+    flibmdel public inline function empty_intersection():Bool {
+        assert(!inv(listeners), "not validated before empty_intersection");
         return listeners.empty();
     }
-    flibmdel public inline function single_intersection(i:PR(InteractionListener)) {
-        assert(!inv(listeners),"not validated before single_intersection");
+
+    // Determine if cbSetPair has only the single given listener.
+    flibmdel public inline function single_intersection(i:PR(InteractionListener)):Bool {
+        assert(!inv(listeners), "not validated before single_intersection");
         var ite = listeners.begin();
-        return ite!=null && ite.elem()==i && ite.next==null;
+        return ite != null && ite.elem() == i && ite.next == null;
     }
-    flibmdel public inline function forall(event:Int, cb:PR(InteractionListener)->Void) {
-        assert(!inv(listeners),"not validated before forall");
-        Iter(x, listeners, if(x.event==event) cb(x));
+
+    // For all valid listeners given the event type, call callback.
+    flibmdel public inline function forall(event:Int, cb:PR(InteractionListener)->Void):Void {
+        assert(!inv(listeners), "not validated before forall");
+        Iter(x, listeners, {
+            if (x.event == event) cb(x);
+        });
     }
 }

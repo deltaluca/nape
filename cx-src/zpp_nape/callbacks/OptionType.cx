@@ -1,0 +1,164 @@
+package zpp_nape.callbacks;
+$(import);
+
+class PR(OptionType) {
+    public var outer:OptionType;
+
+    // Used for when changes are made for a listener to perform extra logic
+    // around the change.
+    public var handler:Null<PR(CbType)->Bool->Bool->Void>;
+
+    // Lists of included and excluded types (disjoint).
+    public var includes:List(PR(CbType));
+    public var excludes:List(PR(CbType));
+
+    public function new() {
+        includes = new List(PR(CbType))();
+        excludes = new List(PR(CbType))();
+    }
+
+    // Public wrapper lists for includes and excludes
+    public var wrap_includes:CbTypeList;
+    public var wrap_excludes:CbTypeList;
+    public function setup_includes():Void {
+        wrap_includes = PR(CbTypeList).get(includes, true);
+    }
+    public function setup_excludes():Void {
+        wrap_excludes = PR(CbTypeList).get(excludes, true);
+    }
+
+    // Determine if ordered set of CbTypes is 'excluded' or possibly 'included'
+    // That is there is a non-empty intersection.
+    public inline function excluded(xs:List(PR(CbType))):Bool {
+        return nonemptyintersection(xs, excludes);
+    }
+    public inline function included(xs:List(PR(CbType))):Bool {
+        return nonemptyintersection(xs, includes);
+    }
+    //
+    // Determine if ordered set of CbTypes is compatible with the OptionType.
+    //
+    public inline function compatible(xs:List(PR(CbType))):Bool {
+        return included(xs) && !excluded(xs);
+    }
+
+    //
+    // Determine if two sorted sets have a non-empty intersection.
+    //
+    public function nonemptyintersection(xs:List(PR(CbType)), ys:List(PR(CbType))):Bool {
+        var ret = false;
+        var xite = xs.begin();
+        var eite = ys.begin();
+        while (eite != null && xite != null) {
+            var ex = eite.elem();
+            var xi = xite.elem();
+            if(ex==xi) {
+                ret = true;
+                break;
+            }else if(PR(CbType).set_lt(ex, xi)) {
+                eite = eite.next;
+            }
+            else {
+                xite = xite.next;
+            }
+        }
+
+        return ret;
+    }
+
+    flibmdel public inline function effect_change(val:PR(CbType), included:Bool, added:Bool):Void {
+        if(included) {
+            if (added) Insert(val, includes, PR(CbType).set_lt);
+            else       includes.remove(val);
+        } else {
+            if (added) Insert(val, excludes, PR(CbType).set_lt);
+            else       excludes.remove(val);
+        }
+    }
+
+    function append_type(list:List(PR(CbType)), val:PR(CbType)) {
+        if (list == includes) {
+            if (!includes.has(val)) {
+                if (!excludes.has(val)) {
+                    if (handler != null) handler(val,true,true);
+                    else effect_change(val,true,true);
+                }else {
+                    if (handler != null) handler(val,false,false);
+                    else effect_change(val,false,false);
+                }
+            }
+        }else {
+            if (!excludes.has(val)) {
+                if (!includes.has(val)) {
+                    if (handler != null) handler(val,false,true);
+                    else effect_change(val,false,true);
+                }else {
+                    if (handler != null) handler(val,true,false);
+                    else effect_change(val,true,false);
+                }
+            }
+        }
+    }
+
+    // Set optiontype to that given by sequentially appending types
+    // Used so that required side effects by handlers are executed.
+    public function set(options:PR(OptionType)) {
+        if (options != this) {
+            while (!includes.empty()) append_type(excludes, includes.front());
+            while (!excludes.empty()) append_type(includes, excludes.front());
+            Iter(i, options.excludes, append_type(excludes, i));
+            Iter(i, options.includes, append_type(includes, i));
+        }
+
+        return this;
+    }
+
+    //
+    // Append to given list from dynamic input form user API.
+    //
+    public function append(list:List(PR(CbType)), val:Dynamic) {
+        DEBUG(
+            if (val == null) {
+                throw "Error: Cannot append null, only CbType and CbType list values";
+            }
+        )
+
+        if (Std.is(val, CbType)) {
+            var cb:CbType = val;
+            append_type(list, cb.pr(inner));
+        }elif (Std.is(val, CbTypeList)) {
+            var cbs:CbTypeList = val;
+            for(cb in cbs) append_type(list, cb.pr(inner));
+        }elif (#if flash10 Std.is(val, PR(Const).cbtypevector) #else false #end) {
+        #if flash10
+            var cbs:flash.Vector<CbType> = val;
+            for(cb in cbs) append_type(list, cb.pr(inner));
+        #end
+        }elif (Std.is(val, Array)) {
+            var cbs:Array<Dynamic> = val;
+            for(cb in cbs) {
+                DEBUG(
+                    if(!Std.is(cb, CbType)) {
+                        throw "Error: Cannot append non-CbType or CbType list value";
+                    }
+                )
+
+                var cbx:CbType = cb;
+                append_type(list, cbx.pr(inner));
+            }
+        }else {
+            DEBUG(
+                throw "Error: Cannot append non-CbType or CbType list value";
+            )
+        }
+    }
+
+    //
+    // Used to build OptionType from argument to Listener constructors.
+    //
+    public static function argument(val:Dynamic):OptionType {
+        return if (val == null) new OptionType();
+             elif (Std.is(val, OptionType)) val;
+             else new OptionType().including(val);
+    }
+}

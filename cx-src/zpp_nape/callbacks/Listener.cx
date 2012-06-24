@@ -1,53 +1,85 @@
 package zpp_nape.callbacks;
 $(import);
 
+//
+// Private Listener object.
+//
+
 GENID(Listener)
 class PR(Listener) {
+    // Reference to public object.
     public var outer:Listener;
+
+    // Used to ensure that public object constructor is not used!
     DEBUG(public static var internal:Bool = false;)
 
-    public var id:Int; //for total ordering of listeners.
+    // Used to order listeners.
+    public var id:Int;
 
-    public var type:Int; //Flag(ListenerType)
-    public var event:Int; //Flag(CbEvent)
-    public var precedence:Int; //for ordering in the case of more than one listener existing
+    public var type :Flag(ListenerType);
+    public var event:Flag(CbEvent);
 
-    public var body:PR(BodyListener);
-    public var constraint:PR(ConstraintListener);
-    public var interaction:PR(InteractionListener);
+    // Used to order listeners in cases where more than one listener is
+    //    appropriate.
+    // Higher precedence => Called first.
+    public var precedence:Int;
 
-    public var space:PR(Space);
+    // Reference to subtypes to avoid runtime casts.
+    // Only one of these will be non-null at any time.
+    // matching the value of the type property.
+    public var body       :Null<PR(BodyListener)>;
+    public var constraint :Null<PR(ConstraintListener)>;
+    public var interaction:Null<PR(InteractionListener)>;
+
+    // Reference to space listener is currently addedToSpaceed to.
+    public var space:Null<PR(Space)>;
 
     function new() {
+        // generate unique id.
         id = ID(Listener);
     }
 
-    //ordering of listeners for CbSet/CbType etc.
-    //want highest precedence at front.
-    public inline static function set_lt(a:PR(Listener),b:PR(Listener)) {
-        return a.precedence>b.precedence || (a.precedence==b.precedence && a.id>b.id);
+    // Defined ordering of listeners used in CbSet/CbType listings.
+    public inline static function set_lt(a:PR(Listener), b:PR(Listener)):Bool {
+        return (a.precedence > b.precedence)
+            || (a.precedence == b.precedence && a.id > b.id);
     }
 
-    public function swapEvent(event:Int):Void {}
-    public function changed_precedence():Void {}
+    // (Abstract)
+    public function swapEvent(event:Flag(CbEvent)):Void {}
+    public function invalidate_precedence():Void {}
+    public function addedToSpace():Void {}
+    public function removedFromSpace():Void {}
 }
 
-///_________________________________________________________________________________________________
-///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+//
+// Mixin for Body/Constraint Listeners due to great similarities between them
+//
 
-//used for Body/Constraint Listener that require mostly the same attributes
-$(mixin SingleListener(t,T,FLAG)
+$(mixin SingleListener(t, T, FLAG)
+    // Reference to public sub-typed Listener.
     public var outer_zn:T`Listener;
 
+    // OptionType listener matches against + handler.
     public var options:PR(OptionType);
     public var handler:T`Callback->Void;
-    DEBUG(function immutable_options() {
-        if(space!=null && space.midstep)
-            throw "Error: Cannot change listener type options during space.step()";
-    })
 
-    public function new(options:OptionType, event:Int, handler:T`Callback->Void) {
+    DEBUG(
+        // Debug only check for options being immutable.
+        function immutable_options() {
+            if(space != null && space.midstep) {
+                throw "Error: Cannot change listener type options during space.step()";
+            }
+        }
+    )
+
+    public function new(
+        options:OptionType,
+        event:Flag(CbEvent),
+        handler:T`Callback->Void
+    ) {
         super();
+
         this.event = event;
         this.handler = handler;
         t = this;
@@ -55,24 +87,50 @@ $(mixin SingleListener(t,T,FLAG)
         this.options = options.pr(inner);
     }
 
-    public function addedToSpace() {
+    //
+    // Logic run whenever listener is added or removed from the space.
+    //
+    public override function addedToSpace():Void {
+        // Assign handler to effect change in option type.
         options.handler = cbtype_change;
-        Iter(cb, options.includes, cb.add`t(this));
+
+        // For each 'included' type in the option type.
+        // We inform the CbType of this listener becoming active.
+        Iter(cb, options.includes, {
+            cb.add`t(this);
+        });
     }
-    public function removedFromSpace() {
-        Iter(cb, options.includes, cb.remove`t(this));
+    public override function removedFromSpace():Void {
+        // For each 'included' type in the option type.
+        // We inform the CbType of this listener becoming inactive.
+        Iter(cb, options.includes, {
+            cb.remove`t(this);
+        });
+
+        // Handling of option type changes no longed needs to be
+        // performed by listener.
         options.handler = null;
     }
-    function cbtype_change(cb:PR(CbType),included:Bool,added:Bool) {
+
+    // Function called by OptionType whenever it is mutated.
+    // Assigned only whilst listener is active in a space.
+    function cbtype_change(cb:PR(CbType), included:Bool, added:Bool):Void {
+        // A deactivation and reactivation are emulated so that all CbTypes
+        // will perform necessary operations regarding change in options.
+        //
+        /// Would be nice to only make changes on 'effected' CbTypes (TODO)
         removedFromSpace();
-
-        //make change required.
-        options.effect_change(cb,included,added);
-
+        options.effect_change(cb, included, added);
         addedToSpace();
     }
-    public override function changed_precedence() {
-        if(space!=null) {
+
+    // Function executed when listener has it's precedence changed
+    public override function invalidate_precedence():Void {
+        if (space != null) {
+            // A deactivation and reactivation are emulated so that all CbTypes
+            // will perform necessary operations regarding change in precedence
+            // (TODO): Could be nicer to do this different, perhaps iterate
+            // CbTypes and have precedence changing logic performed more succintly.
             removedFromSpace();
             addedToSpace();
         }
@@ -80,13 +138,20 @@ $(mixin SingleListener(t,T,FLAG)
 );
 
 class PR(BodyListener) extends PR(Listener) {
-    SingleListener(body,Body,Flag(ListenerType,BODY))
+    SingleListener(body, Body, Flag(ListenerType, BODY))
 
-    public override function swapEvent(newev:Int) {
+    public override function swapEvent(newev:Flag(CbEvent)):Void {
         DEBUG(
-            if(newev != Flag(CbEvent,WAKE) && newev != Flag(CbEvent,SLEEP))
+            if(newev != Flag(CbEvent,WAKE)
+            && newev != Flag(CbEvent,SLEEP)) {
                 throw "Error: BodyListener event must be either WAKE or SLEEP only";
+            }
         )
+        // A deactivation and reactivation are emulated so that all CbTypes
+        // will perform necessary operations regarding change in event type.
+        // (TODO): Could be nicer to do this different, at time of writing
+        // all that needs' to be done is invalidate CbType rather than
+        // adding/removing and invalidating twice.
         removedFromSpace();
         event = newev;
         addedToSpace();
@@ -94,45 +159,65 @@ class PR(BodyListener) extends PR(Listener) {
 }
 
 class PR(ConstraintListener) extends PR(Listener) {
-    SingleListener(constraint,Constraint,Flag(ListenerType,CONSTRAINT))
+    SingleListener(constraint, Constraint, Flag(ListenerType, CONSTRAINT))
 
     public override function swapEvent(newev:Int) {
         DEBUG(
-            if(newev != Flag(CbEvent,WAKE) && newev != Flag(CbEvent,SLEEP) && newev != Flag(CbEvent,BREAK))
+            if(newev != Flag(CbEvent,WAKE)
+            && newev != Flag(CbEvent,SLEEP)
+            && newev != Flag(CbEvent,BREAK)) {
                 throw "Error: ConstraintListener event must be either WAKE or SLEEP only";
+            }
         )
+        // A deactivation and reactivation are emulated so that all CbTypes
+        // will perform necessary operations regarding change in event type.
+        // (TODO): Could be nicer to do this different, at time of writing
+        // all that needs' to be done is invalidate CbType rather than
+        // adding/removing and invalidating twice.
         removedFromSpace();
         event = newev;
         addedToSpace();
     }
 }
 
-//shared between public InteractionListener
-//and public PreListener
+//
+// Used for both public Interaction, and Pre listeners
+// As they are both internally, and externally virtually identical!
+//
 class PR(InteractionListener) extends PR(Listener) {
-    public var outer_zni:InteractionListener;
-    public var outer_znp:PreListener;
+    // Public sub-type references.
+    // Exactly one of these is non-null.
+    public var outer_zni:Null<InteractionListener>;
+    public var outer_znp:Null<PreListener>;
 
-    public var itype:Int; //InteractionType Flag
-
+    public var itype:Flag(InteractionType);
     public var options1:PR(OptionType);
     public var options2:PR(OptionType);
 
     //for InteractionListener
-    public var handleri:InteractionCallback->Void;
+    public var handleri:Null<InteractionCallback->Void>;
+
     //for PreListener
     public var pure:Bool;
-    public var handlerp:PreCallback->PreFlag;
+    public var handlerp:Null<PreCallback->Null<PreFlag>>;
 
-    //used in lookups based on cbTypes
-    public var cid:Int; public var cdi:Int;
-
-    public function settype(xtype:Int) {
-        itype = xtype;
+    flibmdel public inline function setInteractionType(itype:Flag(InteractionType)) {
+        // Nothing else needs to be done here, but method to wrap
+        // any future logic just in case!
+        this.itype = itype;
     }
 
-    public function new(options1:OptionType, options2:OptionType, event:Int,type:Int) {
+    //
+    // Constructor.
+    //
+    public function new(
+        options1:OptionType,
+        options2:OptionType,
+        event:Flag(CbEvent),
+        type:Flag(ListenerType)
+    ) {
         super();
+
         this.type = type;
         interaction = this;
         this.event = event;
@@ -140,16 +225,143 @@ class PR(InteractionListener) extends PR(Listener) {
         this.options2 = options2.pr(inner);
     }
 
-    function with_union(lambda:PR(CbType)->Void) {
+    // Used only for PreListeners as changes to this type have side effects.
+    public function wake() {
+        assert(type==Flag(ListenerType,PRE),"waking non-pre?");
+        // Though PreListener only needs to wake 'bodies'
+        // We iterate through the CbType's interactors as the 'bodies' list
+        // Referes instead to BodyListener actors, not PreListener actors.
+        with_union(function (cb:PR(CbType)):Void {
+            Iter(i, cb.interactors, {
+                i.wake();
+            });
+        });
+    }
+
+    //
+    // Given two sorted lists, iterate and call lambda function for all unique
+    // pairings of elements.
+    $(expand genmethod(T)
+        // List temporaries used by method, reuse as there is currently no
+        // object pooling of lists themselves.
+        static var U`T = new List(PR(T))();
+        static var V`T = new List(PR(T))();
+        static var W`T = new List(PR(T))();
+        flibmdel inline function T`set(
+            A:List(PR(T)),
+            B:List(PR(T)),
+            lambda:PR(T)->PR(T)->Void
+        ):Void {
+            // Let A = options1.includes, B = options2.includes (sorted lists)
+            // Let U = A-B, V = B-A, W = A intersect B
+            // Then we require to find (UxB) ++ (VxW) ++ a_triangle_of(WxW)
+            // all duplicates are found in below/above the diagonal of WxW as a
+            // table; so easy to discard.
+            //
+            // Total time O(|A||B|).
+
+            var U = U`T; var V = V`T; var W = W`T;
+            // First find U,V,W in single O(|A|+|B|) time pass abusing sorted
+            // nature of A,B
+            var aite = A.begin();
+            var bite = B.begin();
+            while (aite != null && bite != null) {
+                var a = aite.elem();
+                var b = bite.elem();
+                if (a == b) {
+                    W.inlined_add(a);
+                    aite = aite.next;
+                    bite = bite.next;
+                }elif (PR(T).set_lt(a, b)) {
+                    U.inlined_add(a);
+                    aite = aite.next;
+                }else {
+                    V.inlined_add(b);
+                    bite = bite.next;
+                }
+            }
+            while (aite != null) {
+                U.inlined_add(aite.elem());
+                aite = aite.next;
+            }
+            while (bite != null) {
+                V.inlined_add(bite.elem());
+                bite = bite.next;
+            }
+
+            // Now we compute products UxB and VxW
+            // Clearing lists U, V as we go.
+            ClearWith(x, U, Iter(y, B, lambda(x, y)));
+            ClearWith(x, V, Iter(y, W, lambda(x, y)));
+
+            // Now we compute the triangle of product WxW
+            // Clearing up remaining temporary list W as we go.
+            ClearWith(x, W, {
+                lambda(x, x);
+                Iter(y, W, lambda(x, y));
+            });
+        }
+    );
+    genmethod(CbSet) genmethod(CbType)
+
+    // We find all unique pairings of CbSet's that are able to be generated from
+    // the two OptionTypes. These are all the pairs of CbSet's influenced by the
+    // existance of this Listener!
+    function with_uniquesets(fresh:Bool) {
+        var set = Get(Set(PR(CbSetPair)));
+        set.lt = PR(CbSetPair).set_lt;
+
+        // Generate all pairings of CbSets by first finding all unique pairings
+        // Of CbType generatable from OptionTypes.
+        CbTypeset(options1.includes, options2.includes, function (a:PR(CbType), b:PR(CbType)):Void {
+            // And then finding all unique pairings of CbSet generatable from
+            // The pairings of CbTypes.
+            CbSetset(a.cbsets, b.cbsets, function (a:PR(CbSet), b:PR(CbSet)):Void {
+                // Necessary to validate CbSet's to ensure that their set of
+                // active listeners is correct before continuing.
+                a.validate();
+                b.validate();
+                // If the pair of CbSets has only a single interaction type
+                // Listener, and that listener is 'this' listener.
+                // We insert it into the set of pairings.
+                if (PR(CbSet).single_intersection(a, b, this)) {
+                    set.try_insert(PR(CbSetPair).get(a, b));
+                }
+            });
+        });
+
+        // Total complexity of this function should be O(n^4) as each search
+        // for unique pairings is O(n^2) :( sigh. Good thing this doesn't
+        // execute often!
+
+        // Now we clear the list of unique CbSet pairs performing the
+        // necessary operation.
+        set.clear_with(function (pair:PR(CbSetPair)):Void {
+            if (fresh) space.freshListenerType(pair.a, pair.b);
+            else       space.nullListenerType (pair.a, pair.b);
+            Free(PR(CbSetPair),pair);
+        });
+
+        Free(Set(PR(CbSetPair)),set);
+    }
+
+    //
+    // Iterate unique CbTypes from the included types of each option.
+    // Calling lambda for each CbType.
+    // This is inlined to avoid actual closure generation in use.
+    //
+    flibmdel inline function with_union(lambda:PR(CbType)->Void):Void {
+        // includes list are total ordered by PR(CbType).set_lt
+        // so we can perform the union in O(N+M) time.
         var ite1 = options1.includes.begin();
         var ite2 = options2.includes.begin();
-        while(ite1!=null && ite2!=null) {
+        while (ite1!=null && ite2!=null) {
             var cb1 = ite1.elem();
             var cb2 = ite2.elem();
-            if(cb1==cb2) {
+            if (cb1==cb2) {
                 lambda(cb1);
                 ite1 = ite1.next; ite2 = ite2.next;
-            }elif(PR(CbType).set_lt(cb1,cb2)) {
+            }elif (PR(CbType).set_lt(cb1, cb2)) {
                 lambda(cb1);
                 ite1 = ite1.next;
             }else {
@@ -157,167 +369,107 @@ class PR(InteractionListener) extends PR(Listener) {
                 ite2 = ite2.next;
             }
         }
-        while(ite1!=null) {
+        while (ite1!=null) {
             lambda(ite1.elem());
             ite1 = ite1.next;
         }
-        while(ite2!=null) {
+        while (ite2!=null) {
             lambda(ite2.elem());
             ite2 = ite2.next;
         }
     }
 
-    //for PreListener
-    public function wake() {
-        assert(type==Flag(ListenerType,PRE),"waking non-pre?");
-        //PreListener only needs ito wake the bodies.
-        //but we iterate the cb SHAPES, not the bodies
-        //as the bodies refer to Body callbacks, not Interaction/Imm callbacks
-        with_union(function (cb:PR(CbType)) Iter(i,cb.interactors,i.wake()));
-    }
 
-    //given two sorted lists, find all unique pairings of elements.
-    $(expand genmethod(T)
-    static var U`T = new List(PR(T))();
-    static var V`T = new List(PR(T))();
-    static var W`T = new List(PR(T))();
-    flibmdel inline function T`set(A:List(PR(T)), B:List(PR(T)), lambda:PR(T)->PR(T)->Void) {
-        // let A = options1.includes, B = options2.includes (sorted lists)
-        // let U = A-B, V = B-A, W = A intersect B
-        // then we require to find (UxB) ++ (VxW) ++ a_triangle_of(WxW)
-        // all duplicates are found in below/above the diagonal of WxW as a table. so easy to discard.
-        //
-        // total time O(|A||B|).
-
-        //first find U,V,W in single O(|A|+|B|) time pass abusing sorted nature of A,B
-        var U = U`T; var V = V`T; var W = W`T;
-        var aite = A.begin(); var bite = B.begin();
-        while(aite!=null && bite!=null) {
-            var a = aite.elem(); var b = bite.elem();
-            if(a==b) {
-                W.inlined_add(a);
-                aite = aite.next;
-                bite = bite.next;
-            }else if(PR(T).set_lt(a,b)) {
-                U.inlined_add(a);
-                aite = aite.next;
-            }else {
-                V.inlined_add(b);
-                bite = bite.next;
-            }
-        }
-        while(aite!=null) { U.inlined_add(aite.elem()); aite = aite.next; }
-        while(bite!=null) { V.inlined_add(bite.elem()); bite = bite.next; }
-
-        //now product away cleaning up as we go!
-        ClearWith(x, U, Iter(y, B, lambda(x,y)));
-        ClearWith(x, V, Iter(y, W, lambda(x,y)));
-        //triangle product, works due to ClearWith
-        ClearWith(x, W, {
-            lambda(x,x); Iter(y, W, lambda(x,y));
-        });
-    });
-    genmethod(CbSet) genmethod(CbType)
-
-    //operate on all unique CbSet pairs generatable from options.
-    //had to move this to a non-inlined method specialising based on argument
-    //instead of inlined with a closure due to haxe errors.
-    function with_uniquesets(fresh:Bool) {
-        // PREVIOUSLY: This work under an assumption that we could check for an empty_intersection
-        //             and that the addition to the callback lists would then cause it to be
-        //             non-empty. ... With exclusion lists on listeners this is no longer the case!
-        //             so the method single_intersection is used now instead!
-
-        var set = Get(Set(PR(CbSetPair)));
-        set.lt = PR(CbSetPair).set_lt;
-
-        CbTypeset(options1.includes, options2.includes, function (a:PR(CbType), b:PR(CbType)) {
-            CbSetset(a.cbsets, b.cbsets, function (a:PR(CbSet), b:PR(CbSet)) {
-                a.validate(); b.validate();
-                if(PR(CbSet).single_intersection(a,b,this)) {
-                    set.try_insert(PR(CbSetPair).get(a,b));
-                }
-            });
-        });
-
-        set.clear_with(function (pair:PR(CbSetPair)) {
-            if(fresh) space.freshListenerType(pair.a,pair.b);
-            else      space.nullListenerType(pair.a,pair.b);
-            Free(PR(CbSetPair),pair);
-        });
-
-        Free(Set(PR(CbSetPair)),set);
-    }
-
-    public function assign() {
+    public override function addedToSpace():Void {
         //need to wake in the case of PRE listeners
         //since the result of the pre-listener compositions
         //may change
         var pre = type==Flag(ListenerType,PRE);
-        with_union(function (cb:PR(CbType)) { cb.addint(this); if(pre) Iter(i, cb.interactors, i.wake()); });
+        with_union(function (cb:PR(CbType)):Void {
+            cb.addint(this);
+            if (pre) {
+                Iter(i, cb.interactors, i.wake());
+            }
+        });
 
         options1.handler = cbtype_change1;
         options2.handler = cbtype_change2;
 
+        // issue freshListenerType for all appropriate CbSet pairs.
         with_uniquesets(true);
     }
-    public function unassign() {
+
+    public override function removedFromSpace():Void {
+        // issue nullListenerType for all appropriate CbSet pairs.
         with_uniquesets(false);
 
         //need to wake in the case of PRE listeners
         //since the result of the pre-listener compositions
         //may change
         var pre = type==Flag(ListenerType,PRE);
-        with_union(function (cb:PR(CbType)) { cb.removeint(this); if(pre) Iter(i, cb.interactors, i.wake()); });
+        with_union(function (cb:PR(CbType)):Void {
+            cb.removeint(this);
+            if (pre) {
+                Iter(i, cb.interactors, i.wake());
+            }
+        });
 
         options1.handler = null;
         options2.handler = null;
     }
 
-    public override function changed_precedence() {
-        if(space!=null) {
-            var pre = type==Flag(ListenerType,PRE);
-            with_union(function (cb:PR(CbType)) {
-                cb.removeint(this); cb.addint(this);
+    public override function invalidate_precedence() {
+        if (space != null) {
+            var pre = type==Flag(ListenerType, PRE);
+            with_union(function (cb:PR(CbType)):Void {
+                // (TODO:) Like with other listeners, should make this nicer!
+                cb.removeint(this);
+                cb.addint(this);
+
                 //need to wake in the case of PRE listeners
                 //since the result of the pre-listener compositions
                 //may change
-                if(pre) Iter(i, cb.interactors, i.wake());
+                if (pre) {
+                    Iter(i, cb.interactors, i.wake());
+                }
             });
         }
     }
 
-    public function addedToSpace(skip=false) {
-        if(!skip) assign();
+    function cbtype_change1(cb:PR(CbType), included:Bool, added:Bool):Void {
+        cbtype_change(options1, cb, included, added);
     }
-    public function removedFromSpace(skip=false) {
-        if(!skip) unassign();
+    function cbtype_change2(cb:PR(CbType), included:Bool, added:Bool):Void {
+        cbtype_change(options2, cb, included, added);
     }
-
-    function cbtype_change1(cb:PR(CbType),included:Bool,added:Bool) cbtype_change(options1,cb,included,added)
-    function cbtype_change2(cb:PR(CbType),included:Bool,added:Bool) cbtype_change(options2,cb,included,added)
-    function cbtype_change(options:PR(OptionType), cb:PR(CbType),included:Bool,added:Bool) {
+    function cbtype_change(options:PR(OptionType), cb:PR(CbType), included:Bool, added:Bool):Void {
+        // (TODO:) Probably nicer way of doing this too!
         //deal with cleaning up any old callbacksets.
         space.revoke_listener(this);
-        unassign();
+        removedFromSpace();
 
-        //effect changes
         options.effect_change(cb,included,added);
 
         //aaand generate any new callbacksets
-        assign();
+        addedToSpace();
         space.unrevoke_listener(this);
     }
 
     public override function swapEvent(newev:Int) {
         DEBUG(
-            if(type == Flag(ListenerType,PRE))
+            if(type == Flag(ListenerType,PRE)) {
                 throw "Error: PreListener event can only be PRE";
-            elif(newev != Flag(CbEvent,BEGIN) && newev != Flag(CbEvent,END) && newev != Flag(CbEvent,ONGOING))
+            }
+            elif(newev != Flag(CbEvent,BEGIN)
+              && newev != Flag(CbEvent,END)
+              && newev != Flag(CbEvent,ONGOING)) {
                 throw "Error: InteractionListener event must be either BEGIN, END, ONGOING";
+            }
         )
-        removedFromSpace(true);
+
+        // (TODO:) Probably nicer way of doing this too!
+        removedFromSpace();
         event = newev;
-        addedToSpace(true);
+        addedToSpace();
     }
 }

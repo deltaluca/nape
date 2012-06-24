@@ -1,57 +1,72 @@
 package nape.callbacks;
 $(import);
 
+//
+// Public CbType object.
+//
+
 class CbType {
     public var pr(inner):PR(CbType);
 
-    property(id,Int,pr(inner).id)
+    // Unique id for total ordering of CbType
+    property(id, Int, {
+        /*return*/ pr(inner).id;
+    })
 
     public function new() {
-        if(PR(CbType).internal) return;
-
         pr(inner) = new PR(CbType)();
         pr(inner).outer = this;
     }
 
-    ///---------------------------------------------------------------------------------------------
-    //assigned to relavent Type's cbTypes lists automaticaly on construction.
+    //
+    // Default CbTypes assigned to relevant object on construction.
+    //
+    $(expand ANY(T)
+        public static var ANY_`T(flibget_ANY_`T, never):CbType;
+        force_inline static function flibget_ANY_`T():CbType {
+            return PR(CbType).ANY_`T;
+        }
+    );
+    ANY(BODY) ANY(CONSTRAINT) ANY(SHAPE) ANY(COMPOUND)
 
-    public static var ANY_BODY       = new CbType();
-    public static var ANY_SHAPE      = new CbType();
-    public static var ANY_COMPOUND   = new CbType();
-    public static var ANY_CONSTRAINT = new CbType();
+    //
+    // Construct OptionType with 'this' as an included type.
+    // Equivalent to (new OptionType(this)).##(..)
+    //
+    public function including(includes:Dynamic):OptionType {
+        return (new OptionType(this)).including(includes);
+    }
+    public function excluding(excludes:Dynamic):OptionType {
+        return (new OptionType(this)).excluding(excludes);
+    }
 
-    ///---------------------------------------------------------------------------------------------
-    //construct OptionType's like (new OptionType(this)).##(..)
-
-    public function including(includes:Dynamic=null) return (new OptionType(this)).including(includes)
-    public function excluding(excludes:Dynamic=null) return (new OptionType(this)).excluding(excludes)
-
-    ///---------------------------------------------------------------------------------------------
-
+    //
+    // Field for user to store whatever they like.
+    //
     public var userData:Dynamic;
 
-    ///---------------------------------------------------------------------------------------------
-
-    property(interactors,InteractorList,{
-        if(pr(inner).wrap_interactors==null)
+    //
+    // Lists of all 'active' objects using this CbType in any Space.
+    //
+    property(interactors, InteractorList, {
+        if (pr(inner).wrap_interactors == null) {
             pr(inner).wrap_interactors = PR(InteractorList).get(pr(inner).interactors, true);
+        }
         pr(inner).wrap_interactors;
     })
 
-    property(constraints,ConstraintList,{
-        if(pr(inner).wrap_constraints==null)
+    property(constraints, ConstraintList, {
+        if(pr(inner).wrap_constraints == null) {
             pr(inner).wrap_constraints = PR(ConstraintList).get(pr(inner).constraints, true);
+        }
         pr(inner).wrap_constraints;
     })
 
-    ///---------------------------------------------------------------------------------------------
-
-    @:$keep public function toString() {
-        return if(this==ANY_BODY)  "ANY_BODY";
-        elif(this==ANY_SHAPE)      "ANY_SHAPE";
-        elif(this==ANY_COMPOUND)   "ANY_COMPOUND";
-        elif(this==ANY_CONSTRAINT) "ANY_CONSTRAINT";
-        else "CbType#"+id;
+    @:$keep public function toString():String {
+        return if (this == ANY_BODY)       "ANY_BODY";
+             elif (this == ANY_SHAPE)      "ANY_SHAPE";
+             elif (this == ANY_COMPOUND)   "ANY_COMPOUND";
+             elif (this == ANY_CONSTRAINT) "ANY_CONSTRAINT";
+             else "CbType#"+id;
     }
 }

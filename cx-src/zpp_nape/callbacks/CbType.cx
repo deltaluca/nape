@@ -1,205 +1,65 @@
 package zpp_nape.callbacks;
 $(import);
 
-class PR(OptionType) {
-    public var outer:OptionType;
-    //used for when changes are made for a listener
-    public var handler:PR(CbType)->Bool->Bool->Void;
-
-    public var includes:List(PR(CbType));
-    public var excludes:List(PR(CbType));
-
-    public function new() {
-        includes = new List(PR(CbType))();
-        excludes = new List(PR(CbType))();
-    }
-
-    public var wrap_includes:CbTypeList;
-    public var wrap_excludes:CbTypeList;
-    public function setup_includes() {
-        wrap_includes = PR(CbTypeList).get(includes,true);
-    }
-    public function setup_excludes() {
-        wrap_excludes = PR(CbTypeList).get(excludes,true);
-    }
-
-    //----------------------------------------------------------------------
-
-    public inline function excluded(xs:List(PR(CbType))) return nonemptyintersection(xs,excludes)
-    public inline function included(xs:List(PR(CbType))) return nonemptyintersection(xs,includes)
-    public inline function compatible(xs:List(PR(CbType))) {
-        return included(xs) && !excluded(xs);
-    }
-
-    //check if (xs intersect excludes) != nil
-    public function nonemptyintersection(xs:List(PR(CbType)),ys:List(PR(CbType))) {
-        //lists are ordered :)
-        var ret = false;
-        var xite = xs.begin();
-        var eite = ys.begin();
-        while(eite!=null && xite!=null) {
-            var ex = eite.elem();
-            var xi = xite.elem();
-            if(ex==xi) {
-                ret = true;
-                break;
-            }else if(PR(CbType).set_lt(ex,xi))
-                 eite = eite.next;
-            else xite = xite.next;
-        }
-        return ret;
-    }
-
-    //----------------------------------------------------------------------
-
-    flibmdel public inline function effect_change(val:PR(CbType),included:Bool,added:Bool) {
-        if(included) {
-            if(added) Insert(val,includes,PR(CbType).set_lt);
-            else      includes.remove(val);
-        } else {
-            if(added) Insert(val,excludes,PR(CbType).set_lt);
-            else      excludes.remove(val);
-        }
-    }
-    function append_type(list:List(PR(CbType)), val:PR(CbType)) {
-        if(list==includes) {
-            if(!includes.has(val)) {
-                if(!excludes.has(val)) {
-                    if(handler!=null)
-                         handler(val,true,true);
-                    else effect_change(val,true,true);
-                }else {
-                    if(handler!=null)
-                         handler(val,false,false);
-                    else effect_change(val,false,false);
-                }
-            }
-        }else {
-            if(!excludes.has(val)) {
-                if(!includes.has(val)) {
-                    if(handler!=null)
-                         handler(val,false,true);
-                    else effect_change(val,false,true);
-                }else {
-                    if(handler!=null)
-                         handler(val,true,false);
-                    else effect_change(val,true,false);
-                }
-            }
-        }
-    }
-
-    //set optiontype to that given by appending appropriately
-    //used so that required side effects through handler are handled simply.
-    public function set(options:PR(OptionType)) {
-        if(options!=this) {
-            while(!includes.empty()) append_type(excludes, includes.front());
-            while(!excludes.empty()) append_type(includes, excludes.front());
-            Iter(i, options.excludes, append_type(excludes, i));
-            Iter(i, options.includes, append_type(includes, i));
-        }
-        return this;
-    }
-
-    //append to list from dynamic
-    public function append(list:List(PR(CbType)), val:Dynamic) {
-        DEBUG(if(val==null) throw "Error: Cannot append null, only CbType and CbType list values";)
-        if(Std.is(val,CbType)) {
-            var cb:CbType = val;
-            append_type(list,cb.pr(inner));
-        }elif(Std.is(val,CbTypeList)) {
-            var cbs:CbTypeList = val;
-            for(cb in cbs) append_type(list,cb.pr(inner));
-        }elif(#if flash10 Std.is(val,PR(Const).cbtypevector) #else false #end) {
-        #if flash10
-            var cbs:flash.Vector<CbType> = val;
-            for(cb in cbs) append_type(list,cb.pr(inner));
-        #end
-        }elif(Std.is(val,Array)) {
-            var cbs:Array<Dynamic> = val;
-            for(cb in cbs) {
-                DEBUG(if(!Std.is(cb,CbType)) throw "Error: Cannot append non-CbType or CbType list value";)
-                var cbx:CbType = cb;
-                append_type(list,cbx.pr(inner));
-            }
-        }else { DEBUG(throw "Error: Cannot append non-CbType or CbType list value";) }
-    }
-
-    //for Listener arguments :)
-    public static function argument(val:Dynamic):OptionType {
-        if(val==null) return new OptionType();
-        if(Std.is(val,OptionType)) return val;
-        return new OptionType().including(val);
-    }
-}
-
 GENID(CbType)
 class PR(CbType) {
     public var outer:CbType;
 
-    static public var internal:Bool = false;
-    public function wrapper() {
-        if(outer==null) {
-            internal = true;
-            outer = new CbType();
-            internal = false;
-            outer.pr(inner) = this;
-        }
-        return outer;
-    }
-
-    ///---------------------------------------------------------------------------------------------
-
+    // Unique id for CbType for total ordering.
     public var id:Int;
+
+    // Set of cbsets (across all Spaces) associated with CbType.
     public var cbsets:List(PR(CbSet));
 
-    ///---------------------------------------------------------------------------------------------
-    //for ordering operations
+    // Total order for CbType's
+    public inline static function set_lt(a:PR(CbType),b:PR(CbType)):Bool {
+        return a.id < b.id;
+    }
 
-    public inline static function set_lt(a:PR(CbType),b:PR(CbType)) return a.id < b.id
-
-    ///---------------------------------------------------------------------------------------------
-
-    //only ACTIVE shape/constriants/bodies are referenced to avoid memory leaks
+    // Lists of 'active' interactors/constraints using CbType.
     public var interactors:List(PR(Interactor)); public var wrap_interactors:InteractorList;
     public var constraints:List(PR(Constraint)); public var wrap_constraints:ConstraintList;
 
-    flibmdel public inline function addConstraint(con:PR(Constraint)) constraints.add(con)
+    flibmdel public inline function addConstraint(con :PR(Constraint)) constraints.add(con)
     flibmdel public inline function addInteractor(intx:PR(Interactor)) interactors.add(intx)
 
-    flibmdel public inline function remConstraint(con:PR(Constraint)) constraints.remove(con)
+    flibmdel public inline function remConstraint(con :PR(Constraint)) constraints.remove(con)
     flibmdel public inline function remInteractor(intx:PR(Interactor)) interactors.remove(intx)
 
-    ///---------------------------------------------------------------------------------------------
-
-    $(mixin listlist(T,n,r)
+    //
+    // List of sorted active listeners of all internal types.
+    //
+    $(mixin listlist(T, n, r)
         public var n:List(PR(T));
-        flibmdel public inline function add`r(x:PR(T)) {
-            assert(!n.has(x),"listener already in list");
-            //want highest precedence at start of list
-            Insert(x,n,PR(Listener).set_lt);
+        flibmdel public inline function add`r(x:PR(T)):Void {
+            assert(!n.has(x), "listener already in list");
+            // List is sorted.
+            Insert(x, n, PR(Listener).set_lt);
             invalidate`r();
         }
-        flibmdel public inline function remove`r(x:PR(T)) {
+        flibmdel public inline function remove`r(x:PR(T)):Void {
             n.remove(x);
             invalidate`r();
         }
-        flibmdel public inline function invalidate`r() {
-            Iter(cb,cbsets,cb.invalidate_`n());
+        flibmdel public inline function invalidate`r():Void {
+            Iter(cb, cbsets, cb.invalidate_`n());
         }
-        initlist(T,n)
+        initlist(T, n)
     );
 
-    //all lists are only updated when listener is added to a space!
-    //set of interaction/pre listeners using the cbType
+    // Set of active interaction/pre listeners using CbType
     listlist(InteractionListener,listeners,int)
 
-    //set of body listeners using the cbType
+    // Set of active body listeners using the CbType
     listlist(BodyListener,bodylisteners,body)
-    //set of constraint listeners using the cbType
+
+    // Set of active constraint listeners using the CbType
     listlist(ConstraintListener,conlisteners,constraint)
 
-    ///---------------------------------------------------------------------------------------------
+    public static var ANY_SHAPE      = new CbType();
+    public static var ANY_BODY       = new CbType();
+    public static var ANY_COMPOUND   = new CbType();
+    public static var ANY_CONSTRAINT = new CbType();
 
     public function new() {
         id = ID(CbType);

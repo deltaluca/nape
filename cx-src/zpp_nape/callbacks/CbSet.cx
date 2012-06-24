@@ -1,40 +1,61 @@
 package zpp_nape.callbacks;
 $(import);
 
-//one CbSet exists for each unique combinatino of CbTypes Interactors within a Space
-//habe present so that lists can be computed per-CbSet instead of per-Interactor
+// One CbSet exists for each unique combination of CbTypes Interactors have
+//    within a Space
+// Present so that lists can be computed per-CbSet instead of per-Interactor
+
+GENID(CbSet)
 class PR(CbSet) {
-    //actually an ordered 'set'.
-    //don't use a real set so that comparisons are cheaper.
+    // Actually an ordered 'set'.
+    // Don't use a real set so that comparisons are cheaper.
     public var cbTypes:List(PR(CbType));
 
-    //reference counted
+    // Reference counted
     public var count:Int;
-    //object pooled
+
+    // Object pooled
     MixPool(PR(CbSet))
 
-    static var nextId = 0;
+    // Unique id.
     public var id:Int;
 
-    flibmdel public inline function increment() count++
-    flibmdel public inline function decrement() {
-        assert(count>0,"decrementing ref.count into negatives??");
+    // Allocated by Space.
+    public var manager:PR(CbSetManager);
+
+    // Set of CbSetPair's corresponding to pairs of Interactors using the CbSet's
+    // That have interacted at some point. Used to cache specific listeners
+    // Available to the pairing of interactors classified by CbSet.
+    public var cbpairs:List(PR(CbSetPair));
+
+    // Used whenever an Interactor matching this CbSet is activated or deactivated
+    flibmdel public inline function increment():Void {
+        count++;
+    }
+    flibmdel public inline function decrement():Bool {
+        assert(count > 0, "decrementing ref.count into negatives??");
         return (--count) == 0;
     }
 
-    //-------------------------------------------------------------------------------
+    // Called when CbSetPair's need to be invalidated due to a change to a CbType
+    // referring to this CbSet from some Space.
+    public function invalidate_pairs():Void {
+        Iter(cb, cbpairs, cb.invalidate());
+    }
 
-    public function invalidate_pairs() Iter(cb,cbpairs,cb.invalidate())
-
-    $(mixin listlist(T,n,r,pairs)
+    // Lists of listeners appropriate for this combination of CbType's.
+    // These lists are ordered
+    $(mixin listlist(T, n, r, pairs)
         public var n:List(PR(T));
+
+        // Lazily updated on demand.
         public var inv(n):Bool;
-        flibmdel public inline function invalidate_`n() {
+        flibmdel public inline function invalidate_`n():Void {
             inv(n) = true;
             #if pairs invalidate_pairs(); #end
         }
-        flibmdel public inline function validate_`n() {
-            if(inv(n)) {
+        flibmdel public inline function validate_`n():Void {
+            if (inv(n)) {
                 inv(n) = false;
                 realvalidate_`n();
             }
@@ -43,31 +64,35 @@ class PR(CbSet) {
             n.clear();
             //merge sorted list(set) from cbTypes into a new sorted list(set)
             //effeciency is not of great concern here, so we adopt a simple algorithm.
-            Iter(cb,cbTypes,{
+            Iter(cb, cbTypes,{
                 //merge n and cb.n avoiding duplicates based on ==
                 var npre = null;
                 var nite = n.begin();
                 var cite = cb.n.begin();
-                while(cite!=null) {
+                while (cite != null) {
                     var cx = cite.elem();
 
-                    if(nite!=null && nite.elem()==cx) {
+                    if (nite != null && nite.elem() == cx) {
                         cite = cite.next;
                         npre = nite;
                         nite = nite.next;
-                    }else if(nite==null || PR(Listener).set_lt(cx,nite.elem())) {
+                    }
+                    elif (nite == null || PR(Listener).set_lt(cx, nite.elem())) {
                         assert(!n.has(cx),"merged list already contains listener");
 
                         //only insert if valid for entire set of CbTypes!
                         // ! pairs handled separetely
                         //
+                        // manage.valid_listener ensures that the listener we insert
+                        // is valid for the Space associated with this CbSet.
                         if(#if pairs true #else !cx.options.excluded(cbTypes) #end
                            && manager.valid_listener(cx))
                         {
                             npre = n.inlined_insert(npre,cx);
                         }
                         cite = cite.next;
-                    }else {
+                    }
+                    else {
                         npre = nite;
                         nite = nite.next;
                     }
@@ -79,24 +104,23 @@ class PR(CbSet) {
         validlist(T,n)
     );
 
-    //all lists are only updated when listener is added to a space!
-    //set of interaction/pre listeners associated with CbSet
+    // Set of active interaction/pre listeners associated with CbSet
     listlist(InteractionListener,listeners,int,true)
 
-    //set of body listeners associated with CbSet
+    // Set of active body listeners associated with CbSet
     listlist(BodyListener,bodylisteners,body,false)
-    //set of constraint listeners associated with CbSet
+
+    // Set of active constraint listeners associated with CbSet
     listlist(ConstraintListener,conlisteners,constraint,false)
 
+    // Called by Space to ensure that all lists are valid at entry to step()
     public function validate() {
         $(expand object validlist(T,n)
             validate_`n();
         );
     }
 
-    ///---------------------------------------------------------------------------------------------
-
-    //only ACTIVE shape/constriants/bodies are referenced to avoid memory leaks
+    // List of active interactors/constraints referencing this CbSet
     public var interactors:List(PR(Interactor)); public var wrap_interactors:InteractorList;
     public var constraints:List(PR(Constraint)); public var wrap_constraints:ConstraintList;
 
@@ -106,18 +130,18 @@ class PR(CbSet) {
     flibmdel public inline function remConstraint(con:PR(Constraint)) constraints.remove(con)
     flibmdel public inline function remInteractor(intx:PR(Interactor)) interactors.remove(intx)
 
-    //-------------------------------------------------------------------------------
-
-    //for Set
-    public static function set_lt(a:PR(CbSet),b:PR(CbSet)) {
+    //
+    // Total ordering of CbSet's.
+    //
+    public static function set_lt(a:PR(CbSet), b:PR(CbSet)):Bool {
         //lexicographical sorting
         var i = a.cbTypes.begin();
         var j = b.cbTypes.begin();
-        while(i!=null && j!=null) {
+        while (i != null && j != null) {
             var ca = i.elem();
             var cb = j.elem();
-            if(PR(CbType).set_lt(ca,cb)) return true;
-            if(PR(CbType).set_lt(cb,ca)) return false;
+            if (PR(CbType).set_lt(ca, cb)) return true;
+            if (PR(CbType).set_lt(cb, ca)) return false;
             else {
                 i = i.next;
                 j = j.next;
@@ -127,11 +151,10 @@ class PR(CbSet) {
         //
         //need to ensure that (a=b) => !(a<b) ^ !(b<a)
         //a=b <=> i=null ^ j=null
-        return j!=null && i==null;
+        return j != null && i == null;
     }
 
-    //-------------------------------------------------------------------------------
-
+    // Constructor is not to be used directly.
     public function new() {
         cbTypes = new List(PR(CbType))();
         $(expand object initlist(T,n)
@@ -140,72 +163,82 @@ class PR(CbSet) {
         );
         constraints = new List(PR(Constraint))();
         interactors = new List(PR(Interactor))();
-        id = nextId++;
+        id = ID(CbSet);
         cbpairs = new List(PR(CbSetPair))();
     }
 
-    flibmdel public inline function free() {
-        assert(constraints.empty(),"non-empty constraints");
-        assert(interactors.empty(),"non-empty interactors");
-        assert(count==0,"deallocating with count!=0?");
+    //
+    // Object pool implementors
+    //
+    flibmdel public inline function free():Void {
+        assert(constraints.empty(), "non-empty constraints");
+        assert(interactors.empty(), "non-empty interactors");
+        assert(count == 0, "deallocating with count!=0?");
         $(expand object freelist(T,n)
             n.clear();
             inv(n) = true;
         );
-        ClearWith(cb,cbTypes, cb.cbsets.remove(this));
-        assert(cbpairs.empty(),"non-empty cbpairs");
+        ClearWith(cb, cbTypes, cb.cbsets.remove(this));
+        assert(cbpairs.empty(), "non-empty cbpairs");
     }
-    flibmdel public inline function alloc() {}
+    flibmdel public inline function alloc():Void {
+    }
 
     #if NAPE_ASSERT
-    //check ordering of cbTypes
-    public static function assert_cbTypes(cbTypes:List(PR(CbType))) {
-        var pre = null;
-        Iter(cur,cbTypes,{
-            if(pre!=null)
-                assert(PR(CbType).set_lt(pre,cur),"cbTypes of CbSet not well-ordered!");
-            pre = cur;
-        });
-    }
+        //check ordering of cbTypes is correct.
+        public static function assert_cbTypes(cbTypes:List(PR(CbType))):Void {
+            var pre = null;
+            Iter(cur, cbTypes,{
+                if (pre != null) {
+                    assert(PR(CbType).set_lt(pre, cur), "cbTypes of CbSet not well-ordered!");
+                }
+                pre = cur;
+            });
+        }
     #end
 
+    //
+    // Construct CbSet from list of possibly unordered CbTypes
+    //
     public static function get(cbTypes:List(PR(CbType))) {
         var ret = Get(PR(CbSet));
         var ite = null;
-        #if NAPE_ASSERT assert_cbTypes(cbTypes); #end
-        Iter(cb,cbTypes,{
-            ite = ret.cbTypes.insert(ite,cb);
+        #if NAPE_ASSERT
+            assert_cbTypes(cbTypes);
+        #end
+
+        Iter(cb, cbTypes,{
+            ite = ret.cbTypes.insert(ite, cb);
             cb.cbsets.add(ret);
         });
+
         return ret;
     }
 
-    //----------------------------------------------------------------------------------------------
-
-    public var manager:PR(CbSetManager);
-    public var cbpairs:List(PR(CbSetPair));
-
-    //----------------------------------------------------------------------------------------------
-
-    //check a given listener is actually usable for the two given cbset.
-    inline static function compatible(i:PR(InteractionListener), a:PR(CbSet), b:PR(CbSet)) {
+    // Check a given listener is actually usable for the two given cbset.
+    inline static function compatible(i:PR(InteractionListener), a:PR(CbSet), b:PR(CbSet)):Bool {
         return (i.options1.compatible(a.cbTypes) && i.options2.compatible(b.cbTypes))
             || (i.options2.compatible(a.cbTypes) && i.options1.compatible(b.cbTypes));
     }
 
-    //determines if cbSets share an interaction listener
-    public static inline function empty_intersection(a:PR(CbSet),b:PR(CbSet)) {
-        return a.manager.pair(a,b).empty_intersection();
+    // Determines if cbSets share an interaction listener
+    public static inline function empty_intersection(a:PR(CbSet), b:PR(CbSet)):Bool {
+        return a.manager.pair(a, b).empty_intersection();
     }
 
-    //determines if cbSets share exactly the given listener
-    public static function single_intersection(a:PR(CbSet),b:PR(CbSet),i:PR(InteractionListener)) {
-        return a.manager.pair(a,b).single_intersection(i);
+    // Determines if cbSets share exactly the given listener
+    public static function single_intersection(a:PR(CbSet), b:PR(CbSet), i:PR(InteractionListener)):Bool {
+        return a.manager.pair(a, b).single_intersection(i);
     }
 
-    //inlined for inline function call when used anonymously
-    inline public static function find_all(a:PR(CbSet),b:PR(CbSet), event:Int, cb:PR(InteractionListener)->Void) {
-        a.manager.pair(a,b).forall(event,cb);
+    // Inlined for inline function call when used anonymously
+    inline public static function find_all(
+        a:PR(CbSet),
+        b:PR(CbSet),
+        event:Flag(CbEvent),
+        cb:PR(InteractionListener)->Void
+    ):Void {
+        a.manager.pair(a, b).forall(event, cb);
     }
 }
 

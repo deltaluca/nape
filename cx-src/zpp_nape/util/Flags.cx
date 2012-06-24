@@ -4,31 +4,34 @@ $(import);
 /**
 
     Safe, cross AS3/haXe, haxe/c++ style enumerations.
-    
+
     enum Type {
         Val1 = 1,
         Val2 = 2,
         Val3 = 3,
     };
-    
+
     becomes:
-    
+
     Flags(Type,
         prop(Val1, 1)
         prop(Val2, 2)
         prop(Val3, 3)
     )
-    
+
     producing at point of call:
-    
+
     class Type {
         lazy static readonly Val1 : Type;
         lazy static readonly Val2 : Type;
         lazy static readonly Val3 : Type;
     }
-    
+
     with integer values (UNIQUE!) for internal use via zpp_nape.util.Flags::Flags(Type,x)
 
+    Since internally, integer values would be typed as Int, for code readability
+
+    Flag(X) can be used as a typedef to Int.
 **/
 
 $(mixin global Flags(F,defs)
@@ -38,17 +41,17 @@ class F {
             throw "Error: Cannot instantiate "+$str(F)+" derp!";
         )
     }
-    
+
     @:$keep public function toString() {
         if(false) return "";
         $(expand object tostring(N) else if(this==N) return $str(N););
         else return "";
     }
-    
+
     $(mixin prop(N,I)
         FlagsInit(N,F,I)
         tostring(N)
-        
+
         public static var N(flibget_`N,never):F;
         force_inline static function flibget_`N() {
             if(PR(Flags).F`_`N==null) {
@@ -59,7 +62,7 @@ class F {
             return PR(Flags).F`_`N;
         }
     );
-    
+
     defs
 }
 );
@@ -86,3 +89,5 @@ class PR(Flags) {
 }
 
 $(mixin global Flag(F,N) PR(Flags).id_`F`_`N);
+
+$(mixin global Flag(F) Int);

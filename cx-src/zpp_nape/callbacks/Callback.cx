@@ -2,102 +2,105 @@ package zpp_nape.callbacks;
 $(import);
 
 class PR(Callback) {
-    public var outer_body:BodyCallback;
-    public var outer_con:ConstraintCallback;
-    public var outer_int:InteractionCallback;
+    // Public sub-type references.
+    // Any one of these may be non-null as Callback objects are shared
+    // ubiquitously
+    public var outer_body:Null<BodyCallback>;
+    public var outer_con :Null<ConstraintCallback>;
+    public var outer_int :Null<InteractionCallback>;
 
-    public static var internal = false;
+    // Used to avoid user misuse of Callback constructor.
+    DEBUG(public static var internal = false;)
     public function wrapper_body() {
-        if(outer_body==null) {
-            internal = true;
+        if (outer_body == null) {
+            DEBUG(internal = true;)
             outer_body = new BodyCallback();
-            internal = false;
+            DEBUG(internal = false;)
             outer_body.pr(inner) = this;
         }
         return outer_body;
     }
     public function wrapper_con() {
-        if(outer_con==null) {
-            internal = true;
+        if (outer_con == null) {
+            DEBUG(internal = true;)
             outer_con = new ConstraintCallback();
-            internal = false;
+            DEBUG(internal = false;)
             outer_con.pr(inner) = this;
         }
         return outer_con;
     }
     public function wrapper_int() {
-        if(outer_int==null) {
-            internal = true;
+        if (outer_int == null) {
+            DEBUG(internal = true;)
             outer_int = new InteractionCallback();
-            internal = false;
+            DEBUG(internal = false;)
             outer_int.pr(inner) = this;
         }
         genarbs();
         return outer_int;
     }
-    
-    //----------------
 
-    public var event:Int;
+    // Event type and listener.
+    public var event:Flag(CbEvent);
+    public var listener:PR(Listener);
 
-    //to check for validity in API.
+    // Used to check for validity in API.
     public var space:PR(Space);
     public var index:Int;
 
-    //queue
+    // Operates as a mix-in defined queue
     QueueMix(PR(Callback))
 
-    //pool
+    // Pool implementors
     MixPoolNoNext(PR(Callback))
-    flibmdel public inline function free() {
+    flibmdel public inline function free():Void {
         int1 = int2 = null;
         body = null;
         constraint = null;
         listener = null;
-        if(wrap_arbiters!=null)
+        if(wrap_arbiters != null) {
             wrap_arbiters.pr(inner).inner = null;
+        }
         set = null;
     }
-    flibmdel public inline function alloc() {}
-    
-    //----------------
-    
-    //BEGIN/END/ONGOING/PRE
+    flibmdel public inline function alloc():Void {
+    }
+
+    // For Interaction events.
     public var int1:PR(Interactor);
     public var int2:PR(Interactor);
-    //for nteractinos
     public var set:PR(CallbackSet);
-    //for public.. could possibly improve this
+    // Public arbiter lists
     public var wrap_arbiters:ArbiterList;
 
-    //pre:
+    // For PreInteraction events
     public var pre_arbiter:PR(Arbiter);
     public var pre_swapped:Bool;
 
     flibmdel public inline function genarbs() {
-        assert(set!=null,"after ongoing event was added, this should never be the case");
-        if(wrap_arbiters==null)
+        assert(set != null, "after ongoing event was added, this should never be the case");
+        if(wrap_arbiters == null) {
             wrap_arbiters = PR(ArbiterList).get(set.arbiters,true);
-        else
+        }
+        else {
             wrap_arbiters.pr(inner).inner = set.arbiters;
-        //we 'could' have arbiters track their sets and only do this if necessary
-        //but.... the fact is these lists are either ignored, or iterated from the beginning
-        //so it is really not necessary.
+        }
+
+        // We 'could' have arbiters track their sets and only do this if necessary
+        // but.... the fact is these lists are either ignored, or iterated from the beginning
+        // so it is really not necessary. (TODO)
         wrap_arbiters.pr(inner).inv(length) = true;
         wrap_arbiters.pr(inner).at_ite = null;
     }
 
-    //SLEEP/WAKE
+    // For Body events.
     public var body:PR(Body);
-    //SLEEP/WAKE/BREAK
+
+    // For Constraint events.
     public var constraint:PR(Constraint);
 
-    //all
-    public var listener:PR(Listener);
-    
-    //----------------
-    
     public function new() {
+        // length of queue!
         length = 0;
     }
 }

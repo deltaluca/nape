@@ -1,26 +1,35 @@
 package nape.callbacks;
-
-import nape.callbacks.CbEvent;
-import zpp_nape.util.Names;
-import nape.callbacks.Listener;
-import zpp_nape.callbacks.Callback;
+$(import);
 
 class Callback {
     public var pr(inner):PR(Callback);
 
-    property(event,CbEvent,{
-        [CbEvent.BEGIN,CbEvent.END,CbEvent.WAKE,CbEvent.SLEEP,CbEvent.BREAK,CbEvent.PRE,CbEvent.ONGOING][pr(inner).event];
+    property(event, CbEvent, {
+        /*return*/
+            [CbEvent.BEGIN,
+             CbEvent.END,
+             CbEvent.WAKE,
+             CbEvent.SLEEP,
+             CbEvent.BREAK,
+             CbEvent.PRE,
+             CbEvent.ONGOING
+            ][pr(inner).event];
     })
 
-    property(listener,Listener,{
-        pr(inner).listener.outer;
+    property(listener, Listener, {
+        /*return*/ pr(inner).listener.outer;
     })
 
     ///---------------------------------------------------------------------------------------------
-    
+
     public function new() {
-        DEBUG(if(!PR(Callback).internal) throw "Error: Callback cannot be instantiated derp!";)
+        DEBUG(
+            if (!PR(Callback).internal) {
+                throw "Error: Callback cannot be instantiated derp!";
+            }
+        )
     }
 
+    // abstract
     @:$keep public function toString():String { return ""; }
 }

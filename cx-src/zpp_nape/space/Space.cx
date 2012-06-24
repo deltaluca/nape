@@ -477,10 +477,10 @@ class PR(Space) {
         global_lin_drag = PR(Config).GLOBAL_LIN_DRAG;
         global_ang_drag = PR(Config).GLOBAL_ANG_DRAG;
 
-        PR(Callback).internal = true;
+        DEBUG(PR(Callback).internal = true;)
         precb = new PreCallback();
         precb.pr(inner) = new PR(Callback)();
-        PR(Callback).internal = false;
+        DEBUG(PR(Callback).internal = false;)
 
         id = ID(Space);
         sortcontacts = true;
@@ -566,24 +566,16 @@ class PR(Space) {
 
     public function addListener(x:PR(Listener)) {
         x.space = this;
-        if(x.type==Flag(ListenerType,BODY))
-            x.body.addedToSpace();
-        else if(x.type==Flag(ListenerType,CONSTRAINT))
-            x.constraint.addedToSpace();
-        else {
-            x.interaction.addedToSpace();
+        x.addedToSpace();
+        if (x.interaction != null) {
             unrevoke_listener(x.interaction);
         }
     }
     public function remListener(x:PR(Listener)) {
-        if(x.type==Flag(ListenerType,BODY))
-            x.body.removedFromSpace();
-        else if(x.type==Flag(ListenerType,CONSTRAINT))
-            x.constraint.removedFromSpace();
-        else {
+        if (x.interaction != null) {
             revoke_listener(x.interaction);
-            x.interaction.removedFromSpace();
         }
+        x.removedFromSpace();
         x.space = null;
     }
 

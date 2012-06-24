@@ -1,36 +1,51 @@
 package nape.callbacks;
 $(import);
 
+//
+// Public OptionType object.
+//
+
 class OptionType {
     public var pr(inner):PR(OptionType);
 
-    property(includes,CbTypeList,{
+    //
+    // List of CbTypes in include and excludes set.
+    // These sets are managed to always be disjoint.
+    //
+    // As choice of present API, excluding an object
+    // will if that object is included, simply remove it from the
+    // includes list. Another exclude would then move it to excludes
+    // list.
+    //
+    // At present these lists are immutable except by these means.
+    //
+    property(includes, CbTypeList, {
         if(pr(inner).wrap_includes==null) pr(inner).setup_includes();
-        pr(inner).wrap_includes;
+        /*return*/ pr(inner).wrap_includes;
     })
-    property(excludes,CbTypeList,{
+    property(excludes, CbTypeList, {
         if(pr(inner).wrap_excludes==null) pr(inner).setup_excludes();
-        pr(inner).wrap_excludes;
+        /*return*/ pr(inner).wrap_excludes;
     })
 
     flibopts(2)
-    public function new(includes:Dynamic=null, excludes:Dynamic=null) {
+    public function new(includes:Dynamic = null, excludes:Dynamic = null) {
         pr(inner) = new PR(OptionType)();
         pr(inner).outer = this;
-        if(includes!=null) including(includes);
-        if(excludes!=null) excluding(excludes);
+        if(includes != null) including(includes);
+        if(excludes != null) excluding(excludes);
     }
 
-    public function including(includes:Dynamic=null) {
-        pr(inner).append(pr(inner).includes,includes);
+    public function including(includes:Dynamic = null):OptionType {
+        pr(inner).append(pr(inner).includes, includes);
         return this;
     }
-    public function excluding(excludes:Dynamic=null) {
-        pr(inner).append(pr(inner).excludes,excludes);
+    public function excluding(excludes:Dynamic = null):OptionType {
+        pr(inner).append(pr(inner).excludes, excludes);
         return this;
     }
 
-    @:$keep public function toString() {
+    @:$keep public function toString():String {
         var inc = includes.toString();
         var exc = excludes.toString();
         return "@{"+inc+" excluding "+exc+"}";
