@@ -286,13 +286,13 @@ class PR(LineJoint) extends PR(Constraint) {
         if(vec_lsq(E) < PR(Config).SLOP) return false;
 
         vec_new(J);
-        vec_muleq(E,0.5);
+//        vec_muleq(E,0.5);
 
         //however for VERY large detachment it is necessary to help.
         if(vec_lsq(E) > 6) {
             var k = b1.smass + b2.smass;
             if(k>PR(Const).EPSILON) {
-                k = 0.6/k; //don't completely solve error
+                k = 0.8/k; //don't completely solve error
                 vec_new(J, k*(n`y*E`x-scale*n`x*E`y), k*(n`x*E`x*scale-n`y*E`x));
 
                 vec_subeq(b1.pos, J,b1.imass);
@@ -300,7 +300,7 @@ class PR(LineJoint) extends PR(Constraint) {
 
                 //recalculate error
                 Cerr(r1,r2,n,d,E);
-                vec_muleq(E,0.5);
+//                vec_muleq(E,0.5);
             }
         }
 

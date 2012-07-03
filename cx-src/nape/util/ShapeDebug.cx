@@ -47,15 +47,15 @@ class ShapeDebug extends Debug {
         if(pr(inner).xnull) {
             g.moveTo(start.x,start.y);
             g.lineTo(end.x,end.y);
+
+            WEAK(start);
+            WEAK(end);
         }else {
             var v = pr(inner).xform.outer.transform(start);
             g.moveTo(v.x,v.y); v.dispose();
             v = pr(inner).xform.outer.transform(end);
             g.lineTo(v.x,v.y); v.dispose();
         }
-
-        WEAK(start);
-        WEAK(end);
     }
 
     public override function drawCurve (start:Vec2, control:Vec2, end:Vec2, colour:Int):Void {
@@ -75,6 +75,10 @@ class ShapeDebug extends Debug {
         if(pr(inner).xnull) {
             g.moveTo(start.x,start.y);
             g.curveTo(control.x,control.y,end.x,end.y);
+
+            WEAK(start);
+            WEAK(control);
+            WEAK(end);
         }else {
             var u = pr(inner).xform.outer.transform(start);
             var v = pr(inner).xform.outer.transform(control);
@@ -85,10 +89,6 @@ class ShapeDebug extends Debug {
             v.dispose();
             q.dispose();
         }
-
-        WEAK(start);
-        WEAK(control);
-        WEAK(end);
     }
 
     public override function drawCircle(position:Vec2, radius:Float, colour:Int) {
@@ -102,15 +102,16 @@ class ShapeDebug extends Debug {
         var g = pr(inner_zn).graphics;
 
         g.lineStyle(0.1,colour&0xffffff,1);
-        if(pr(inner).xnull)
+        if(pr(inner).xnull) {
             g.drawCircle(position.x,position.y,radius);
+
+            WEAK(position);
+        }
         else {
             var v = pr(inner).xform.outer.transform(position);
             g.drawCircle(v.x,v.y,radius*pr(inner).xdet);
             v.dispose();
         }
-
-        WEAK(position);
     }
 
     public override function drawAABB(aabb:AABB, colour:Int) {
@@ -153,6 +154,8 @@ class ShapeDebug extends Debug {
             g.moveTo(p0.x,p0.y);
             g.lineTo(p1.x,p1.y);
             g.lineTo(p2.x,p2.y);
+
+            WEAK(p0); WEAK(p1); WEAK(p2);
         }else {
             var v = pr(inner).xform.outer.transform(p0);
             g.moveTo(v.x,v.y); v.dispose();
@@ -162,8 +165,6 @@ class ShapeDebug extends Debug {
             g.lineTo(v.x,v.y); v.dispose();
         }
         g.endFill();
-
-        WEAK(p0); WEAK(p1); WEAK(p2);
     }
 
     public override function drawFilledCircle(position:Vec2, radius:Float, colour:Int) {
@@ -177,16 +178,17 @@ class ShapeDebug extends Debug {
         var g = pr(inner_zn).graphics;
         g.lineStyle(0,0,0);
         g.beginFill(colour&0xffffff,1);
-        if(pr(inner).xnull)
+        if(pr(inner).xnull) {
             g.drawCircle(position.x,position.y,radius);
+
+            WEAK(position);
+        }
         else {
             var v = pr(inner).xform.outer.transform(position);
             g.drawCircle(v.x,v.y,radius*pr(inner).xdet);
             v.dispose();
         }
         g.endFill();
-
-        WEAK(position);
     }
 
     public override function drawPolygon(polygon:Dynamic, colour:Int) {

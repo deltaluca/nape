@@ -1,5 +1,7 @@
 #!/bin/bash
 
+excludes="ConstraintStressTest"
+
 dirs=`find . -type d -wholename "\./*"`
 
 rm -rf ../doc-gen/xml/demo
@@ -11,6 +13,12 @@ do
 	then
 		echo " >> demo $d"
 		name=`echo ${d:2}`
+
+        ind=`awk -v a="$excludes" -v b="$name" 'BEGIN{print index(a,b)}'`
+        if [ "$ind" -ne 0 ]; then
+            echo " (Excluded) "
+            continue
+        fi
 
 		cd $d
 		cur=`pwd`

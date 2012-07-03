@@ -93,7 +93,7 @@ $(mixin global mat_lazy_invert(n) {
 $(mixin global mat_invert(n) {
     var det = mat_det(n);
     assert(det!=0.0, "mat_invert(in n: "+$str(n)+")");
-    
+
     det = 1.0/det;
     n`b = -n`b*det;
     n`c = -n`c*det;
@@ -104,7 +104,7 @@ $(mixin global mat_invert(n) {
 
 $(mixin global mat_safe_invert(n) {
     var det = mat_det(n);
-    if(det*det<PR(Const).EPSILON)
+    if(det*det<0)
         mat_set(n,0,0,0,0);
     else {
         det = 1.0/det;
@@ -169,18 +169,18 @@ $(mixin global mat2_new(acc, n)
 $(mixin global mat2_new(n) mat2_new(,n));
 
 $(mixin global mat2_set(m,A,B,C) {
-    m`a = A; 
+    m`a = A;
     m`b = B; m`c = C;
 });
 
 $(mixin global mat2_scaleq(m,x) {
     var X = (x);
-    m`a *= X; 
+    m`a *= X;
     m`b *= X; m`c *= X;
 });
 
 $(mixin global mat2_addeq(m,A,B,C) {
-    m`a += A; 
+    m`a += A;
     m`b += B; m`c += C;
 });
 
@@ -191,10 +191,10 @@ $(mixin global mat2_invert(m) {
     if(isNaN(det)) {
         m`a = m`b = m`c = 0;
         3;
-    } else if(det<PR(Const).EPSILON) {
+    } else if(det == 0) {
         var flag = 0;
-        if(m`a*m`a > PR(Const).EPSILON) m`a = 1/m`a; else { m`a = 0; flag |= 1; }
-        if(m`c*m`c > PR(Const).EPSILON) m`c = 1/m`c; else { m`c = 0; flag |= 2; }
+        if(m`a != 0) m`a = 1/m`a; else { m`a = 0; flag |= 1; }
+        if(m`c != 0) m`c = 1/m`c; else { m`c = 0; flag |= 2; }
         m`b = 0;
         flag;
     } else {
@@ -217,9 +217,9 @@ $(mixin global mat2_solve(m,v) {
     var det = mat2_det(m);
     if(isNaN(det))
         v`x = v`y = 0;
-    else if(det<PR(Const).EPSILON) {
-        if(m`a*m`a > PR(Const).EPSILON) v`x /= m`a; else v`x = 0;
-        if(m`c*m`c > PR(Const).EPSILON) v`y /= m`c; else v`y = 0;
+    else if(det == 0) {
+        if(m`a != 0) v`x /= m`a; else v`x = 0;
+        if(m`c != 0) v`y /= m`c; else v`y = 0;
     } else {
         det = 1/det;
         var t = det*(m`c*v`x - m`b*v`y);
@@ -238,28 +238,28 @@ $(mixin global mat3_new(acc, n)
 $(mixin global mat3_new(n) mat3_new(,n));
 
 $(mixin global mat3_set(m,A,B,D,C,E,F) {
-    m`a = A;  
-    m`b = B; m`d = D; 
+    m`a = A;
+    m`b = B; m`d = D;
     m`c = C; m`e = E; m`f = F;
 });
 
 $(mixin global mat3_set(m,n) {
-    m`a = n`a;  
-    m`b = n`b; m`d = n`d; 
+    m`a = n`a;
+    m`b = n`b; m`d = n`d;
     m`c = n`c; m`e = n`e; m`f = n`f;
 });
 
 
 $(mixin global mat3_scaleq(m,x) {
     var X = (x);
-    m`a *= X;  
-    m`b *= X; m`d *= X; 
+    m`a *= X;
+    m`b *= X; m`d *= X;
     m`c *= X; m`e *= X; m`f *= X;
 });
 
 $(mixin global mat3_addeq(m,A,B,D,C,E,F) {
-    m`a += A;  
-    m`b += B; m`d += D; 
+    m`a += A;
+    m`b += B; m`d += D;
     m`c += C; m`e += E; m`f += F;
 });
 
@@ -270,17 +270,17 @@ $(mixin global mat3_invert(m) {
     if(isNaN(det)) {
         mat3_set(m,0,0,0,0,0,0);
         7;
-    }else if(det<PR(Const).EPSILON) {
+    }else if(det == 0) {
         var flag = 0;
-        if(m`a*m`a > PR(Const).EPSILON) m`a = 1/m`a; else { m`a = 0; flag |= 1; }
-        if(m`d*m`d > PR(Const).EPSILON) m`d = 1/m`d; else { m`d = 0; flag |= 2; }
-        if(m`f*m`f > PR(Const).EPSILON) m`f = 1/m`f; else { m`f = 0; flag |= 4; }
+        if(m`a != 0) m`a = 1/m`a; else { m`a = 0; flag |= 1; }
+        if(m`d != 0) m`d = 1/m`d; else { m`d = 0; flag |= 2; }
+        if(m`f != 0) m`f = 1/m`f; else { m`f = 0; flag |= 4; }
         m`b = m`c = m`e = 0.0;
         flag;
     } else {
         det = 1/det;
-        var A = det*(m`d*m`f-m`e*m`e);  
-        var B = det*(m`e*m`c-m`b*m`f); var D = det*(m`a*m`f-m`c*m`c); 
+        var A = det*(m`d*m`f-m`e*m`e);
+        var B = det*(m`e*m`c-m`b*m`f); var D = det*(m`a*m`f-m`c*m`c);
         var C = det*(m`b*m`e-m`c*m`d); var E = det*(m`b*m`c-m`a*m`e); var F = det*(m`a*m`d-m`b*m`b);
         mat3_set(m,A,B,D,C,E,F);
         0;
@@ -298,10 +298,10 @@ $(mixin global mat3_solve(m,v) {
     var det = mat3_det(m);
     if(isNaN(det))
         v`x = v`y = v`z = 0;
-    else if(det<PR(Const).EPSILON) {
-        if(m`a*m`a > PR(Const).EPSILON) v`x /= m`a; else v`x = 0;
-        if(m`d*m`d > PR(Const).EPSILON) v`y /= m`d; else v`y = 0;
-        if(m`f*m`f > PR(Const).EPSILON) v`z /= m`f; else v`z = 0;
+    else if(det == 0) {
+        if(m`a != 0) v`x /= m`a; else v`x = 0;
+        if(m`d != 0) v`y /= m`d; else v`y = 0;
+        if(m`f != 0) v`z /= m`f; else v`z = 0;
     } else {
         det = 1/det;
         var B = m`e*m`c-m`b*m`f; var C = m`b*m`e-m`c*m`d; var E = m`b*m`c-m`a*m`e;

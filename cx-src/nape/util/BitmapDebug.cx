@@ -50,6 +50,9 @@ class BitmapDebug extends Debug {
             var x1:Int = fastint(end.x+0.5);
             var y1:Int = fastint(end.y+0.5);
             pr(inner_zn).__line(x0,y0,x1,y1,colour|0xff000000);
+
+            WEAK(start);
+            WEAK(end);
         }else {
             var v = pr(inner).xform.outer.transform(start);
             var x0:Int = fastint(v.x+0.5);
@@ -61,9 +64,6 @@ class BitmapDebug extends Debug {
             v.dispose();
             pr(inner_zn).__line(x0,y0,x1,y1,colour|0xff000000);
         }
-
-        WEAK(start);
-        WEAK(end);
     }
 
     public override function drawCurve (start:Vec2, control:Vec2, end:Vec2, colour:Int):Void {
@@ -80,6 +80,10 @@ class BitmapDebug extends Debug {
         pr(inner_zn).prepare();
         if(pr(inner).xnull) {
             pr(inner_zn).__curve(start,control,end,colour);
+
+            WEAK(start);
+            WEAK(control);
+            WEAK(end);
         }else {
             var u = pr(inner).xform.outer.transform(start);
             var v = pr(inner).xform.outer.transform(control);
@@ -89,10 +93,6 @@ class BitmapDebug extends Debug {
             v.dispose();
             q.dispose();
         }
-
-        WEAK(start);
-        WEAK(control);
-        WEAK(end);
     }
 
     public override function drawCircle(position:Vec2, radius:Float, colour:Int) {
@@ -109,6 +109,8 @@ class BitmapDebug extends Debug {
             var y:Int = fastint(position.y+0.5);
             var r:Int = fastint(radius+0.5);
             pr(inner_zn).__circle(x,y,r, colour|0xff000000);
+
+            WEAK(position);
         }else {
             var v = pr(inner).xform.outer.transform(position);
             var x:Int = fastint(v.x+0.5);
@@ -117,8 +119,6 @@ class BitmapDebug extends Debug {
             var r:Int = fastint(radius*pr(inner).xdet+0.5);
             pr(inner_zn).__circle(x,y,r, colour|0xff000000);
         }
-
-        WEAK(position);
     }
 
     public override function drawAABB(aabb:AABB, colour:Int) {
@@ -179,6 +179,8 @@ class BitmapDebug extends Debug {
             var y:Int = fastint(position.y+0.5);
             var r:Int = fastint(radius+0.5);
             pr(inner_zn).__fcircle(x,y,r, colour|0xff000000);
+
+            WEAK(position);
         }else {
             var v = pr(inner).xform.outer.transform(position);
             var x:Int = fastint(v.x+0.5);
@@ -188,7 +190,6 @@ class BitmapDebug extends Debug {
             pr(inner_zn).__fcircle(x,y,r, colour|0xff000000);
          }
 
-        WEAK(position);
     }
 
     public override function drawPolygon(polygon:Dynamic, colour:Int) {

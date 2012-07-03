@@ -35,11 +35,11 @@ class Vec2 {
     //          when supplied as an argument to a nape function
     // 'get'  : Construction of a possibly weak Vec2 from object pool.
     //
-    public static inline function weak(x:Float = 0, y:Float = 0) {
+    public static inline function weak(x:Float = 0, y:Float = 0):Vec2 {
         return get(x, y, true);
     }
 
-    public static function get(x:Float = 0, y:Float = 0, weak:Bool = false) {
+    public static function get(x:Float = 0, y:Float = 0, weak:Bool = false):Vec2 {
         DEBUG(
             if (isNaN(x) || isNaN(y)) {
                 throw "Error: Vec2 components cannot be NaN";
@@ -63,7 +63,7 @@ class Vec2 {
     //
     // 'dispose' : Release public Vec2 to object pool.
     //
-    public function dispose() {
+    public function dispose():Void {
         Disposed(this, Vec2);
         pr(inner).immutable();
 
@@ -91,7 +91,7 @@ class Vec2 {
         pr(inner).outer = this;
     }
 
-    keep public function copy(weak:Bool = false) {
+    keep public function copy(weak:Bool = false):Vec2 {
         Disposed(this, Vec2);
         return Vec2.get(x, y, weak);
     }
@@ -105,7 +105,7 @@ class Vec2 {
     #if flash9
         keep public static function fromPoint(
             point:flash.geom.Point, weak:Bool = false
-        ) {
+        ):Vec2 {
             DEBUG(
                 if (point == null) {
                     throw "Error: Cannot create Vec2 from null Point object";
@@ -121,7 +121,7 @@ class Vec2 {
 
     keep public static function fromPolar(
         length:Float, angle:Float, weak:Bool = false
-    ) {
+    ):Vec2 {
         DEBUG(
             if (isNaN(length)) {
                 throw "Error: Vec2::length cannot be NaN";
@@ -190,7 +190,7 @@ class Vec2 {
     //
     // Length squared computation
     //
-    keep public function lsq() {
+    keep public function lsq():Float {
         Disposed(this, Vec2);
 
         return vec_lsq(this.);
@@ -201,7 +201,7 @@ class Vec2 {
     //
     // 'set'   : Copy given Vec2 properties to this Vec2
     // 'setxy' : Set this Vec2's x,y to given values.
-    public inline function set(p:Vec2) {
+    public inline function set(p:Vec2):Vec2 {
         Disposed(this, Vec2);
         Disposed(p, Vec2);
         pr(inner).immutable();
@@ -216,7 +216,7 @@ class Vec2 {
         WEAK(p);
         return ret;
     }
-    public inline function setxy(x:Float, y:Float) {
+    public inline function setxy(x:Float, y:Float):Vec2 {
         Disposed(this, Vec2);
         pr(inner).immutable();
 
@@ -292,7 +292,7 @@ class Vec2 {
     // 'subeq' : Subtract another vector mutating this
     // 'muleq' : Multiple with scalar mutating this
     //
-    keep public function add(a:Vec2, weak:Bool = false) {
+    keep public function add(a:Vec2, weak:Bool = false):Vec2 {
         Disposed(this, Vec2);
         Disposed(a, Vec2);
 
@@ -308,7 +308,7 @@ class Vec2 {
         return ret;
     }
 
-    keep public function sub(a:Vec2, weak:Bool = false) {
+    keep public function sub(a:Vec2, weak:Bool = false):Vec2 {
         Disposed(this, Vec2);
         Disposed(a, Vec2);
 
@@ -324,7 +324,7 @@ class Vec2 {
         return ret;
     }
 
-    keep public function mul(s:Float, weak:Bool = false) {
+    keep public function mul(s:Float, weak:Bool = false):Vec2 {
         Disposed(this, Vec2);
 
         DEBUG(
@@ -336,7 +336,7 @@ class Vec2 {
         return Vec2.get(vec_imul($(->), s), weak);
     }
 
-    keep public function addeq(a:Vec2) {
+    keep public function addeq(a:Vec2):Vec2 {
         Disposed(this, Vec2);
         Disposed(a, Vec2);
         pr(inner).immutable();
@@ -353,7 +353,7 @@ class Vec2 {
         return ret;
     }
 
-    keep public function subeq(a:Vec2) {
+    keep public function subeq(a:Vec2):Vec2 {
         Disposed(this, Vec2);
         Disposed(a, Vec2);
         pr(inner).immutable();
@@ -370,7 +370,7 @@ class Vec2 {
         return ret;
     }
 
-    keep public function muleq(s:Float) {
+    keep public function muleq(s:Float):Vec2 {
         Disposed(this, Vec2);
         pr(inner).immutable();
 
@@ -422,13 +422,13 @@ class Vec2 {
         return ret;
     }
 
-    keep public function perp(weak = false):Vec2 {
+    keep public function perp(weak:Bool = false):Vec2 {
         Disposed(this, Vec2);
 
         return Vec2.get(-y, x, weak);
     }
 
-    @:$keep public function toString() {
+    @:$keep public function toString():String {
         Disposed(this, Vec2);
 
         pr(inner).validate();
