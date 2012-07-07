@@ -2,11 +2,12 @@ package zpp_nape.phys;
 $(import);
 
 $(mixin global FeatureMix(T,t)
-    
+
     public var pr(inner):PR(T);
-    
+    PublicUserData(pr(inner))
+
     //----------------------------------------------------------------------------------------------
-    
+
     property(shapes,ShapeList,{
         if(pr(inner).wrap_shapes==null) pr(inner).wrap_shapes = PR(ShapeList).get(pr(inner).shapes, true);
         pr(inner).wrap_shapes;
@@ -19,6 +20,8 @@ $(mixin global FeatureMix(T,t)
 $(mixin global PRFeatureMix(T,t)
 
     MixPool(PR(T))
+    PrivateUserData
+
     public var outer:T;
     public function wrapper() {
         if(outer==null) {
@@ -32,19 +35,19 @@ $(mixin global PRFeatureMix(T,t)
         outer = null;
     }
     flibmdel public inline function alloc() {}
-    
+
     //----------------------------------------------------------------------------------------------
 
     public var shapes:List(PR(Shape)); public var wrap_shapes:ShapeList;
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     flibmdel public inline function feature_cons() {
         shapes = new List(PR(Shape))();
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     flibmdel public inline function addShape(shape:PR(Shape)) shapes.add(shape)
     flibmdel public inline function remShape(shape:PR(Shape)) shapes.remove(shape)
 
