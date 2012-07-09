@@ -9,7 +9,8 @@ $(mixin Edge Vertex);
 class Vertex {
     //vertex position
     vec_new(public,$(->));
-    public var forced:Bool; //used to propogate 'fixed'ness of vertices for simplification
+    //used to propogate 'fixed'ness of vertices for simplification
+    public var forced:Bool;
 
     public var diagonals:List(Vertex);
 
@@ -28,21 +29,21 @@ class Vertex {
     public function new() {
         diagonals = new List(Vertex)();
     }
-    public function alloc() {
+    public inline function alloc() {
     }
-    public function free() {
+    public inline function free() {
         helper = null;
-        assert(diagonals.empty(),"non-empty diagonals");
+        assert(diagonals.empty(), "non-empty diagonals");
     }
 
-    public static function get(x:PR(GeomVert)) {
+    public static inline function get(x:PR(GeomVert)) {
         var ret = Get(Vertex);
-        vec_set(ret.,x.);
+        vec_set(ret., x.);
         return ret;
     }
     public function copy() {
         var ret = Get(Vertex);
-        vec_set(ret.,this.);
+        vec_set(ret., this.);
         ret.forced = forced;
         return ret;
     }
@@ -50,64 +51,69 @@ class Vertex {
     //sort diagonals in order of processing when pulling polygons out of partitions
     public function sort() {
         vec_new(u); vec_new(v);
-        $(mixin orient(a,b,c) ({
-            vec_sub(a.,b.,u);
-            vec_sub(c.,b.,v);
-            var ret = vec_cross(u,v);
-            ret > 0 ? -1 : ret == 0 ? 0 : 1;
+        $(mixin orient(a, b, c) ({
+            vec_sub(a., b., u);
+            vec_sub(c., b., v);
+            var ret = vec_cross(u, v);
+            /*return*/ if (ret > 0) -1 elif (ret == 0) 0 else 1;
         }));
-        var vorient = orient(prev,this,next);
-        assert(vorient!=0, "collinear edge on boundary of partitioned poly?");
-        Sort(diagonals,Node(Vertex),$(mixin lt(p,q) ({
-            var d1 = orient(prev,this,p);
-            var d2 = orient(prev,this,q);
-            if  (d1==d2) orient(p,this,q) == 1;
-            elif(d1==0)  d2 == vorient;
-            else         d1 != vorient;
+
+        var vorient = orient(prev, this, next);
+        assert(vorient != 0, "collinear edge on boundary of partitioned poly?");
+        Sort(diagonals, Node(Vertex), $(mixin lt(p, q) ({
+            var d1 = orient(prev, this, p);
+            var d2 = orient(prev, this, q);
+            /*return*/ if   (d1==d2) orient(p, this, q) == 1;
+                       elif (d1==0)  d2 == vorient;
+                       else          d1 != vorient;
         })) lt);
     }
 
     //determine right distance of vertex from edge, sign being important, magnitude not.
-    static function rightdistance(edge:Edge,vert:Vertex) {
+    static function rightdistance(edge:Edge, vert:Vertex) {
         //assume edge is not horizontal
         var flip = edge.next.y > edge.y;
-        vec_new(u); vec_sub(edge.next.,edge., u);
-        vec_new(v); vec_sub(vert.,edge., v);
-        return (flip ? -1.0 : 1.0) * vec_cross(u,v);
+        vec_new(u); vec_sub(edge.next., edge., u);
+        vec_new(v); vec_sub(vert., edge., v);
+        return (flip ? -1.0 : 1.0) * vec_cross(u, v);
     }
 
     //determine if edge is to the left of the vertex
     public static function vert_lt(edge:Edge,vert:Vertex) {
-        return if(vert==edge || vert==edge.next) true
-               else if(edge.y==edge.next.y) min(edge.x,edge.next.x) <= vert.x;
+        return if   (vert==edge || vert==edge.next) true
+               elif (edge.y==edge.next.y) min(edge.x,edge.next.x) <= vert.x;
                else rightdistance(edge,vert) <= 0.0;
     }
 
     //for use in RBTree Set for sorted tree of edges
     //returns true if 'this' edge should be placed to the right geometrically of 'q'
     public var node:Set(Edge);
-    public static function edge_swap(p:Edge,q:Edge) swap(p.node,q.node)
+    public static function edge_swap(p:Edge, q:Edge) swap(p.node, q.node)
 
-    public static function edge_lt(p:Edge,q:Edge) {
-        if(p==q && p.next==q.next) { assert(false,"Attempting to sort an edge with itself"); return false; }
+    public static function edge_lt(p:Edge, q:Edge) {
+        if (p == q && p.next == q.next) {
+            assert(false,"Attempting to sort an edge with itself");
+            return false;
+        }
+
         //handle shared vertices (literal) between the two edges
         // noting thiat p==q and p.next==q.next can never happen without above check being true.
         // since a vertex is shared, we want to know if the other vertex of the second edge
         // is to the right/left of the first edge.
-        if  (p==q.next) return !vert_lt(p,q);
-        elif(q==p.next) return  vert_lt(q,p);
+        if   (p == q.next) return !vert_lt(p, q);
+        elif (q == p.next) return  vert_lt(q, p);
         //if neither vertex is shared, we still need to handle horizontal edges
-        elif(p.y==p.next.y) {
+        elif (p.y == p.next.y) {
             return
-                if(q.y==q.next.y) max(p.x,p.next.x) > max(q.x,q.next.x)
-                else rightdistance(q,p) > 0.0;
+                if (q.y == q.next.y) max(p.x, p.next.x) > max(q.x, q.next.x)
+                else rightdistance(q, p) > 0.0;
         }else {
-            var qright = rightdistance(p,q);
+            var qright = rightdistance(p, q);
             var qisright = qright < 0.0;
-            var nextright = rightdistance(p,q.next) < 0.0;
+            var nextright = rightdistance(p, q.next) < 0.0;
             return
-                if  (qisright==nextright) qisright
-                elif(q.y==q.next.y) qright > 0.0
+                if   (qisright == nextright) qisright
+                elif (q.y == q.next.y) qright > 0.0
                 else rightdistance(q,p) >= 0.0;
         }
     }
@@ -117,7 +123,10 @@ mixpool_circular(Vertex,
 class PR(PartitionedPoly) {
     public var vertices:Vertex; //circular linked list.
 
-    function eq(a:PR(GeomVert),b:PR(GeomVert)) return vec_dsq(a.,b.) < PR(Const).EPSILON
+    function eq(a:PR(GeomVert), b:PR(GeomVert)) {
+        return vec_dsq(a., b.) < PR(Const).EPSILON;
+    }
+
     //we remove degenerate vertices, and collinear vertices
     //as this was the easiest way to make the monotonic decomposition robust.
     public function new(?P:PR(GeomVert)) {
