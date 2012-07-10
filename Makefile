@@ -41,8 +41,6 @@ pre_compile:
 	rm -rf src
 	mkdir src
 	caxe -o src cx-src -tc 2 --times $(DUMMYS)
-	# patch for FD auto-complete issue with #end
-	find src -name "*.hx" -type f | xargs sed -i 's/#end/#end\r\n/g'
 
 SWC_FLAGS = -cp src --dead-code-elimination --macro "include('nape')" --macro "include('zpp_nape')" -D flib -D swc
 

@@ -257,11 +257,6 @@ class Vec2 {
     $doc($$*$$n coordinate of vector)
     !! *
     $doc($$*$$n coordinate of vector.)
-    !! * <br/>
-    !! * In debug mode, attempting to access or mutate this value whilst the
-    !! * Vec2 is in the global object pool will result in an error.
-    !! * Attempting to mutate this value for an immutable Vec2 will also result
-    !! * in an error in debug mode.
     !! *
     !! * @default 0
     !! */
@@ -296,11 +291,6 @@ class Vec2 {
     !! * The length of this Vec2 in pixels. This value can be set and may
     !! * be set to negative values so that <code>length &#42= -1</code> is a
     !! * valid - if sub-optimal - way of negating a Vec2.
-    !! * <br/>
-    !! * In debug mode, attempting to access or mutate this value whilst the
-    !! * Vec2 is in the global object pool will result in an error.
-    !! * Attempting to mutate this value for an immutable Vec2 will also result
-    !! * in an error in debug mode.
     !! *
     !! * @default 0
     !! */
@@ -332,9 +322,6 @@ class Vec2 {
     !! * Computes the squared length of this Vec2.
     !! * This is exactly the same as performing <code>this.length &#42
     !! * this.length</code> except for being more effecient.
-    !! * <br/>
-    !! * Attempting to call this method on a Vec2 that is in the global
-    !! * object pool will result in an error in debug mode.
     !! *
     !! * @return The squared length of this Vec2.
     !! */
@@ -352,31 +339,24 @@ class Vec2 {
     !! * <br/>
     !! * Note that <code>set(p)</code> is semantically equivalent to
     !! * <code>setxy(p.x, p.y)</code>.
-    !! * <br/>
-    !! * Attempting to call this method on a Vec2 that is in the global
-    !! * object pool, or is immutable will result in an error in debug
-    !! * mode.
-    !! * Attempting to call this method with a Vec2 as argument that is
-    !! * in the global object pool will also result in an error in debug
-    !! * mode.
     !! *
-    !! * @param p The Vec2 to set the values of this Vec2 with. This value
-    !! *          must not be null.
-    !! * @return  A reference to 'this' Vec2.
+    !! * @param vector The Vec2 to set the values of this Vec2 with. This value
+    !! *               must not be null.
+    !! * @return       A reference to 'this' Vec2.
     !! */
-    public inline function set(p:Vec2):Vec2 {
+    public inline function set(vector:Vec2):Vec2 {
         Disposed(this, Vec2);
-        Disposed(p, Vec2);
+        Disposed(vector, Vec2);
         pr(inner).immutable();
 
         DEBUG(
-            if (p == null) {
+            if (vector == null) {
                 throw "Error: Cannot assign null Vec2";
             }
         )
-        var ret = setxy(p.x, p.y);
+        var ret = setxy(vector.x, vector.y);
 
-        WEAK(p);
+        WEAK(vector);
         return ret;
     }
 
@@ -384,10 +364,6 @@ class Vec2 {
     !! * Set values of this Vec2 given pair of x/y values.
     !! *
     !! * Set the x/y values of this Vec2 to those given as arguments.
-    !! * <br/>
-    !! * Atempting to call this method on a Vec2 that is in the global
-    !! * object pool, or is immutable will result in an error in debug
-    !! * mode.
     !! *
     !! * @param x The x value to set this Vec2's x value to.
     !! * @param y The y value to set this Vec2's y value to.
@@ -420,11 +396,6 @@ class Vec2 {
     !! * <br/>
     !! * This value can also be set (to any value) so that <code>angle +=
     !! * Math.PI</code> is a valid - if sub-optimial - way of negating a Vec2.
-    !! * <br/>
-    !! * In debug mode, attempting to access or mutate this value whilst the
-    !! * Vec2 is in the global object pool will result in an error.
-    !! * Attempting to mutate this value for an immutable Vec2 will also result
-    !! * in an error in debug mode.
     !! *
     !! * @default 0
     !! */
@@ -460,9 +431,6 @@ class Vec2 {
     !! * <br/>
     !! * The Vec2 will be mutated, with it's new x/y values being the result
     !! * of the rotation.
-    !! * <br/>
-    !! * Attempting to call this method on a Vec2 that is in the global object
-    !! * pool, or that is immutable will result in an error in debug mode.
     !! *
     !! * @param angle The number of radians to rotate Vec2 by in the clockwise
     !! *              direction.
@@ -488,152 +456,272 @@ class Vec2 {
         return this;
     }
 
-    //
-    // Arithmetic
-    //
-    // 'add' : Add this to another vector
-    // 'sub' : Subtract this and another vector
-    // 'mul' : Multiply this with scalar
-    // 'addeq' : Add another vector mutating this
-    // 'subeq' : Subtract another vector mutating this
-    // 'muleq' : Multiple with scalar mutating this
-    //
-    keep public function add(a:Vec2, weak:Bool = false):Vec2 {
+    !!/**
+    !! * Add another vector to this vector.
+    !! *
+    !! * Add this vector to another, returning a newly allocated vector so that
+    !! * this vector is not modified.
+    !! *
+    !! * @param vector The vector to add to this vector. This value can not be
+    !! *               null
+    !! * @param weak   If true then the returned vector will be automatically
+    !! *               released to the global object pool when used as an
+    !! *               argument to another Nape function. (default false)
+    !! * @return       The possibly weak vector representing the sum of this
+    !! *               and the input vector.
+    !! */
+    keep public function add(vector:Vec2, weak:Bool = false):Vec2 {
         Disposed(this, Vec2);
-        Disposed(a, Vec2);
+        Disposed(vector, Vec2);
 
         DEBUG(
-            if(a == null) {
+            if(vector == null) {
                 throw "Error: Cannot add null vectors";
             }
         )
 
-        var ret = Vec2.get(vec_iadd($(->), a.), weak);
+        var ret = Vec2.get(vec_iadd($(->), vector.), weak);
 
-        WEAK(a);
+        WEAK(vector);
         return ret;
     }
 
-    keep public function sub(a:Vec2, weak:Bool = false):Vec2 {
+    !!/**
+    !! * Subtract another vector from this vector.
+    !! *
+    !! * Subtract another vector from this vector, returning a newly allocated
+    !! * vector so that this vector is not modified.
+    !! *
+    !! * @param vector The vector to subtract from this vector. This value can
+    !! *               not be null
+    !! * @param weak   If true then the returned vector will be automatically
+    !! *               released to the global object pool when used as an
+    !! *               argument to another Nape function. (default false)
+    !! * @return       The possibly weak vector representing the subtraction of
+    !! *               the input vector from this vector.
+    !! */
+    keep public function sub(vector:Vec2, weak:Bool = false):Vec2 {
         Disposed(this, Vec2);
-        Disposed(a, Vec2);
+        Disposed(vector, Vec2);
 
         DEBUG(
-            if(a == null) {
+            if(vector == null) {
                 throw "Error: Cannot subtract null vectors";
             }
         )
 
-        var ret = Vec2.get(vec_isub($(->), a.), weak);
+        var ret = Vec2.get(vec_isub($(->), vector.), weak);
 
-        WEAK(a);
+        WEAK(vector);
         return ret;
     }
 
-    keep public function mul(s:Float, weak:Bool = false):Vec2 {
+    !!/**
+    !! * Multiply this vector with a number.
+    !! *
+    !! * Multiply this vector with a number, returning a newly allocated vector
+    !! * so that this vector is not modified.
+    !! *
+    !! * @param scalar The number to multiply this vector with.
+    !! * @param weak   If true then the returned vector will be automatically
+    !! *               released to the global object pool when used as an
+    !! *               argument to another Nape function. (default false)
+    !! * @return       The possibly weak vector representing the multiplication
+    !! *               of this vector and the input number.
+    !! */
+    keep public function mul(scalar:Float, weak:Bool = false):Vec2 {
         Disposed(this, Vec2);
 
         DEBUG(
-            if(isNaN(s)) {
+            if(isNaN(scalar)) {
                 throw "Error: Cannot multiply with NaN";
             }
         )
 
-        return Vec2.get(vec_imul($(->), s), weak);
+        return Vec2.get(vec_imul($(->), scalar), weak);
     }
 
-    keep public function addeq(a:Vec2):Vec2 {
+    !!/**
+    !! * Add another vector into this vector.
+    !! *
+    !! * Add another vector to this vector, so that this vector becomes the
+    !! * result of the addition.
+    !! * <br/>
+    !! * Semantically equivalent to (the less optimal)
+    !! * <code>this.set(this.add(vector))</code>
+    !! *
+    !! * @param vector The vector to add into this vector.
+    !! * @return       A reference to this vector.
+    !! */
+    keep public function addeq(vector:Vec2):Vec2 {
         Disposed(this, Vec2);
-        Disposed(a, Vec2);
+        Disposed(vector, Vec2);
         pr(inner).immutable();
 
         DEBUG(
-            if(a == null) {
+            if(vector == null) {
                 throw "Error: Cannot add null vectors";
             }
         )
 
-        var ret = setxy(vec_iadd($(->), a.));
+        setxy(vec_iadd($(->), vector.));
 
-        WEAK(a);
-        return ret;
+        WEAK(vector);
+        return this;
     }
 
-    keep public function subeq(a:Vec2):Vec2 {
+    !!/**
+    !! * Subtract another vector from this vector.
+    !! *
+    !! * Subtract another vector from this vector, so that this vector becomes
+    !! * the result of the subtraction.
+    !! * <br/>
+    !! * Semantically equivalent to (the less optimal)
+    !! * <code>this.set(this.sub(vector))</code>
+    !! *
+    !! * @param vector The vector to subtract from this vector.
+    !! * @return       A reference to this vector.
+    !! */
+    keep public function subeq(vector:Vec2):Vec2 {
         Disposed(this, Vec2);
-        Disposed(a, Vec2);
+        Disposed(vector, Vec2);
         pr(inner).immutable();
 
         DEBUG(
-            if(a == null) {
+            if(vector == null) {
                 throw "Error: Cannot subtract null vectors";
             }
         )
 
+        setxy(vec_isub($(->), vector.));
 
-        var ret = setxy(vec_isub($(->), a.));
-        WEAK(a);
-        return ret;
+        WEAK(vector);
+        return this;
     }
 
-    keep public function muleq(s:Float):Vec2 {
+    !!/**
+    !! * Multiply this vector with a number.
+    !! *
+    !! * Multiply this vector with a number, so that this vector becomes the
+    !! * result of the multiplication.
+    !! * <br/>
+    !! * Semantically equivalent to (the less optimal)
+    !! * <code>this.set(this.mul(scalar))</code>
+    !! *
+    !! * @param scalar The number to multiply this vector with.
+    !! * @return       A reference to this vector.
+    !! */
+    keep public function muleq(scalar:Float):Vec2 {
         Disposed(this, Vec2);
         pr(inner).immutable();
 
         DEBUG(
-            if(isNaN(s)) {
+            if(isNaN(scalar)) {
                 throw "Error: Cannot multiply with NaN";
             }
         )
 
-        return setxy(vec_imul($(->), s));
+        return setxy(vec_imul($(->), scalar));
     }
 
-    //
-    // Dot, cross and perp.
-    //
-    // 'dot'   : Compute dot product of this and another vector
-    // 'cross' : Compute cross (perp-dot) product of this and another vector
-    // 'perp'  : Produce perp vector, so that a.cross(b) == a.perp().dot(b)
-    //
-    keep public function dot(a:Vec2):Float {
+    !!/**
+    !! * Dot product with another vector.
+    !! *
+    !! * The mathematical dot product of this vector with another.
+    !! * <br/>
+    !! * The dot product is equal to the product of the length of each
+    !! * vector, multiplied by the cosine of the smallest angle between them.
+    !! * <br/>
+    !! * If one of the vectors is of length 1. Then the dot product is the
+    !! * length of the projection of the other vector onto it which may be
+    !! * computed (assuming 'this' is of length 1) like:
+    !! * <code>this.mul(this.dot(vector))</code>
+    !! *
+    !! * @param vector The vector to compute dot product with.
+    !! * @return       The dot product of this vector and the other.
+    !! */
+    keep public function dot(vector:Vec2):Float {
         Disposed(this, Vec2);
-        Disposed(a, Vec2);
+        Disposed(vector, Vec2);
 
         DEBUG(
-            if(a == null) {
+            if(vector == null) {
                 throw "Error: Cannot take dot product with null vector";
             }
         )
 
-        var ret = vec_dot($(->), a.);
+        var ret = vec_dot($(->), vector.);
 
-        WEAK(a);
+        WEAK(vector);
         return ret;
     }
 
-    keep public function cross(a:Vec2):Float {
+    !!/**
+    !! * Cross product with another vector.
+    !! *
+    !! * Also known as the perp-dot product, this operation represents
+    !! * the determinant of the matrix formed by having the 2 columns
+    !! * as the two vectors. This is also the z-value of a 3D cross product
+    !! * if you extend the input vectors with a z-value of 0.
+    !! * <br/>
+    !! * Though not technically a cross-product in the way a 3D cross product
+    !! * is, it shares many mathematical similarities.
+    !! * <br/>
+    !! * If one of the vectors is of length 1. Then the cross product is the
+    !! * length of the projection of the other vector onto the
+    !! * right-perpendicular of the unit vector.
+    !! * <br/>
+    !! * The cross and dot product are related like:
+    !! * <code>this.cross(vector) == this.perp().dot(vector)</code>
+    !! * Hence the name 'perp-dot'
+    !! *
+    !! * @param vector The vector to compute cross product with.
+    !! * @return       The cross product of this vector and the other.
+    !! */
+    keep public function cross(vector:Vec2):Float {
         Disposed(this, Vec2);
-        Disposed(a, Vec2);
+        Disposed(vector, Vec2);
 
         DEBUG(
-            if(a == null) {
+            if(vector == null) {
                 throw "Error: Cannot take cross product with null vector";
             }
         )
 
-        var ret = vec_cross($(->), a.);
+        var ret = vec_cross($(->), vector.);
 
-        WEAK(a);
+        WEAK(vector);
         return ret;
     }
 
+    !!/**
+    !! * The right-perpendicular to this vector.
+    !! *
+    !! * Computes the result of rotating this vector by 90 degrees clockwise
+    !! * returning a newly allocated vector.
+    !! * <br/>
+    !! * This is semantically equivalent to (the less optimal)
+    !! * <code>this.copy().rotate(Math.PI/2)</code>
+    !! * <br/>
+    !! * The cross and dot product are related like:
+    !! * <code>this.cross(vector) == this.perp().dot(vector)</code>
+    !! * Hence the name 'perp-dot'
+    !! *
+    !! * @param weak If true then the returned vector will be automatically
+    !! *             released to the global object pool when used as an argument
+    !! *             to another Nape function. (default false)
+    !! * @return     The possibly weakly allocated, right-perpendicular to this
+    !! *             vector.
+    !! */
     keep public function perp(weak:Bool = false):Vec2 {
         Disposed(this, Vec2);
 
         return Vec2.get(-y, x, weak);
     }
 
+    !!/**
+    !! * @private
+    !! */
     @:$keep public function toString():String {
         Disposed(this, Vec2);
 

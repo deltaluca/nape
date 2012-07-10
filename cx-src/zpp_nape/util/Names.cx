@@ -36,10 +36,14 @@ $(mixin global inv(x) zip_`x);
 
 $(mixin global elif() else if);
 
-$(mixin global keep #if swc @:$keep #end);
+$(mixin global keep()
+    #if swc @:$keep #end
+);
 $(mixin global class keep $class);
 
-$(mixin global inline #if NAPE_NO_INLINE #else $inline #end);
+$(mixin global inline()
+     #if NAPE_NO_INLINE #else $inline #end
+);
 $(mixin global force_inline $inline);
 
 $(mixin global flibopts(N) #if flib @:$keep function flibopts_`N(){} #end);
@@ -50,6 +54,7 @@ $(mixin global flibdel(n) #if NAPE_NO_INLINE #elseif (flash9&&flib) @:$keep var 
 $(mixin global flibstaticdel(x) $(->));
 $(mixin global assert(assertion,errorstr) {
     #if (NAPE_ASSERT && !NAPE_RELEASE_BUILD)
+        !!
         var res = {
             $(mixin assert_isNaN(x) (isNaN(x))); //do this to keep $str(assertion) going crazy!
             $(mixin assert_isBig(x) (isNaN(x) || (x*x)>1e100)); //do this to keep $str(assertion) going crazy!
@@ -61,12 +66,14 @@ $(mixin global assert(assertion,errorstr) {
 
 $(mixin global DEBUG(block)
     #if (!NAPE_RELEASE_BUILD)
+        !!
         block
     #end
 );
 
 $(mixin global RELEASE(block)
     #if NAPE_RELEASE_BUILD
+        !!
         block
     #end
 )

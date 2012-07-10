@@ -4,22 +4,30 @@ $(import);
 /**
 
     Intrusive object pooling.
-    
+
     class Type {
         MixPool(Type) //or MixPoolNoNext(Type) if Type already has a field 'next' of type Type
     }
-    
+
     Get (Type)      ; retrieve object from pool, or instantiate new one if empty.
     Free(Type, obj) ; free object to pool
-    
+
     NECESSARY REQUIREMENT: Type has an empty (or possibly empty) constructor.
 
 **/
 
 //for public API types.
 $(mixin global PublicMixPool(T)
+    !!/**
+    !! * @private
+    !! */
     public var pr(pool):T;
-    DEBUG(public var pr(disp):Bool;)
+    DEBUG(
+        !!/**
+        !! * @private
+        !! */
+        public var pr(disp):Bool;
+    )
     PublicMixPoolNoNext(T)
 );
 $(mixin global PublicMixPoolNoNext(T)
@@ -56,13 +64,30 @@ $(mixin global MixPoolNoNext(T)
 
 $(mixin STATS(T)
     #if NAPE_POOL_STATS
+        !!
+        !!/**
+        !! * @private
+        !! */
         static public var POOL_CNT:Int = 0;
+        !!/**
+        !! * @private
+        !! */
         static public var POOL_TOT:Int = 0;
+        !!/**
+        !! * @private
+        !! */
         static public var POOL_ADD:Int = 0;
+        !!/**
+        !! * @private
+        !! */
         static public var POOL_ADDNEW:Int = 0;
+        !!/**
+        !! * @private
+        !! */
         static public var POOL_SUB:Int = 0;
         POOLSTATS(T)
     #end
+    !!
 );
 
 //-------------------------------------------
