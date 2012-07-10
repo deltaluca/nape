@@ -173,6 +173,9 @@ class Vec2 {
     !! *
     !! * Produce a possibly weak copy of this Vec2 with the same x/y values.
     !! * The Vec2 will be allocated from the global object pool.
+    !! * <br/>
+    !! * As would be expected, if you produce a copy of an 'immutable' Vec2, then
+    !! * the copy will be 'mutable'.
     !! *
     !! * @param weak If true, then a weak Vec2 will be allocated which will be
     !! *             automatically released to the object pool when passed as an
@@ -185,40 +188,37 @@ class Vec2 {
     }
 
     #if flash9
+        !!
+        !!/**
+        !! * Allocate a Vec2 from AS3 Point object.
+        !! *
+        !! * (flash9+) Allocates a Vec2 given an AS3 flash.geom.Point object. This
+        !! * Vec2 will be allocated from the global object pool.
+        !! *
+        !! * @param point The AS3 Point to initialise Vec2 with, this value cannot
+        !! *              be equal to null.
+        !! * @param weak  If true, then a weak Vec2 will be allocated which will be
+        !! *              automatically released to the object pool when passed as
+        !! *              an argument to any Nape function. (default false)
+        !! * @return      The possibly weak Vec2 allocated with same values as input
+        !! *              Point object.
+        !! */
+        keep public static function fromPoint(
+            point:flash.geom.Point, weak:Bool = false
+        ):Vec2 {
+            DEBUG(
+                if (point == null) {
+                    throw "Error: Cannot create Vec2 from null Point object";
+                }
+                if (isNaN(point.x) || isNaN(point.y)) {
+                    throw "Error: Error: Vec2 components cannot be NaN";
+                }
+            )
 
-    !!
-    !!/**
-    !! * Allocate a Vec2 from AS3 Point object.
-    !! *
-    !! * (flash9+) Allocates a Vec2 given an AS3 flash.geom.Point object. This
-    !! * Vec2 will be allocated from the global object pool.
-    !! *
-    !! * @param point The AS3 Point to initialise Vec2 with, this value cannot
-    !! *              be equal to null.
-    !! * @param weak  If true, then a weak Vec2 will be allocated which will be
-    !! *              automatically released to the object pool when passed as
-    !! *              an argument to any Nape function. (default false)
-    !! * @return      The possibly weak Vec2 allocated with same values as input
-    !! *              Point object.
-    !! */
-    keep public static function fromPoint(
-        point:flash.geom.Point, weak:Bool = false
-    ):Vec2 {
-        DEBUG(
-            if (point == null) {
-                throw "Error: Cannot create Vec2 from null Point object";
-            }
-            if (isNaN(point.x) || isNaN(point.y)) {
-                throw "Error: Error: Vec2 components cannot be NaN";
-            }
-        )
-
-        return Vec2.get(point.x, point.y, weak);
-    }
-
+            return Vec2.get(point.x, point.y, weak);
+        }
     #end
 
-    !!
     !!/**
     !! * Allocate a Vec2 given polar coordinates.
     !! *
@@ -252,35 +252,33 @@ class Vec2 {
     }
 
     $(mixin comp(n)
+        !!/**
+        $doc($$*$$n coordinate of vector)
+        !! *
+        $doc($$*$$n coordinate of vector.)
+        !! *
+        !! * @default 0
+        !! */
+        property(n,Float,{
+            Disposed(this, Vec2);
 
-    !!/**
-    $doc($$*$$n coordinate of vector)
-    !! *
-    $doc($$*$$n coordinate of vector.)
-    !! *
-    !! * @default 0
-    !! */
-    property(n,Float,{
-        Disposed(this, Vec2);
+            pr(inner).validate();
+            /*return*/ pr(inner).n;
+        }, {
+            Disposed(this, Vec2);
+            pr(inner).immutable();
 
-        pr(inner).validate();
-        /*return*/ pr(inner).n;
-    }, {
-        Disposed(this, Vec2);
-        pr(inner).immutable();
+            if (this.n != n) {
+                DEBUG(
+                    if (isNaN(n)) {
+                        throw "Error: Vec2::"+$str(n)+" cannot be NaN";
+                    }
+                )
 
-        if (this.n != n) {
-            DEBUG(
-                if (isNaN(n)) {
-                    throw "Error: Vec2::"+$str(n)+" cannot be NaN";
-                }
-            )
-
-            pr(inner).n = n;
-            pr(inner).invalidate();
-        }
-    })
-
+                pr(inner).n = n;
+                pr(inner).invalidate();
+            }
+        })
     );
     comp(x)
     comp(y)

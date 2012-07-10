@@ -1,13 +1,42 @@
 package nape.geom;
 $(import);
 
-//
-// Public AABB object.
-//
-
+!!/**
+!! * Axis Aligned Bounding Box (AABB)
+!! *
+!! * AABB class represents an axis-aligned bounding box.
+!! * <br/>
+!! * Note that in many cases of an AABB object being returned by a Nape function
+!! * the AABB object will be marked internally as an 'immutable' AABB. This will
+!! * always be documented and trying to mutate such an AABB will result in an
+!! * error being thrown.
+!! */
 class AABB {
+    !!/**
+    !! * @private
+    !! */
     public var pr(inner):PR(AABB);
 
+    !!/**
+    !! * Construct a new AABB.
+    !! *
+    !! * Construct a new AABB.
+    !! * <br/>
+    !! * As input width/height are permitted to be negative it is not guaranteed
+    !! * that the resultant AABB will have the same parameters as those
+    !! * specified as the AABB parameters are guaranteed to always have positive
+    !! * width/height, and for x/y to always be the top-left corner.
+    !! *
+    !! * @param x      The x coordinate of the top-left corner of the AABB.
+    !! *               (default 0)
+    !! * @param y      The y coordinate of the top-left corner of the AABB
+    !! *               (default 0)
+    !! * @param width  The width of the AABB. This value may be negative.
+    !! *               (default 0)
+    !! * @param height The height of the AABB. This value may be negative.
+    !! *               (default 0)
+    !! * @return       The newly constructed AABB object.
+    !! */
     public function new(
         x:Float = 0,
         y:Float = 0,
@@ -27,11 +56,31 @@ class AABB {
         pr(inner).outer = this;
     }
 
+    !!/**
+    !! * Produce a copy of this AABB.
+    !! *
+    !! * Produce a copy of this AABB with the same x/y/width/height.
+    !! * <br/>
+    !! * As would be expected, if you produce a copy of an 'immutable' AABB then
+    !! * the copy will be 'mutable'.
+    !! *
+    !! * @return The copy of this AABB.
+    !! */
     keep public function copy() {
         return pr(inner).copy().wrapper();
     }
 
     #if flash9
+        !!
+        !!/**
+        !! * Construct an AABB from an AS3 Rectangle object.
+        !! *
+        !! * (flash9+) Construct an AABB from an AS3 Rectangle object.
+        !! *
+        !! * @param rect The AS3 Rectangle to construct AABB from, this value
+        !! *             must not be null.
+        !! * @return The constructed AABB matching the input Rectangle.
+        !! */
         keep public static function fromRect(rect:flash.geom.Rectangle) {
             DEBUG(
                 if (rect == null) {
@@ -43,14 +92,19 @@ class AABB {
         }
     #end
 
-    //
-    // min/max Vec2's
-    //
-    // Changes made to Vec2 are reflected in AABB
-    // And changes to AABB reflected in these Vec2's
-    //
-
-    $(mixin comp(n)
+    $(mixin comp(n, DESC)
+        !!/**
+        $doc($$*$$The n`imum bounds for the AABB.)
+        !! *
+        $doc($$*$$The n`imum bounds of the AABB equivalent to the DESC corner.)
+        !! * This Vec2 is intrinsically linked to the AABB so that modifications
+        !! * to this object are reflected in changes to the AABB and vice-versa.
+        !! * <br/>
+        !! * If the AABB is immutable, then this Vec2 will also be immutable.
+        !! * <br/>
+        !! * This value can be set with the = operator, equivalent to performing
+        $doc($$*$$<code>aabb.n.set(value)</code>.)
+        !! */
         property(n, Vec2, {
             /*return*/ pr(inner).get_`n();
         },{
@@ -78,14 +132,16 @@ class AABB {
             this.n.set(n);
         })
     );
-    comp(min)
-    comp(max)
-
-    //
-    // x/y properties for top-left corner.
-    //
+    comp(min, top-left)
+    comp(max, bottom-right)
 
     $(mixin coord(n)
+        !!/**
+        $doc($$*$$The n coordinate of the AABB.)
+        !! *
+        $doc($$*$$The n coordinate of the top-left corner of the AABB.)
+        $doc($$*$$Equivalent to accessing/mutating min.n.)
+        !! */
         property(n,Float,{
             pr(inner).validate();
             /*return*/ pr(inner).min`n;
@@ -110,11 +166,12 @@ class AABB {
     coord(x)
     coord(y)
 
-    //
-    // width/height properties for aabb.
-    //
-
     $(mixin dim(N,n)
+        !!/**
+        $doc($$*$$N of AABB.)
+        !! *
+        $doc($$*$$N of this AABB.$$This value is and must always be positive.)
+        !! */
         property(N,Float,{
             pr(inner).validate();
             /*return*/ pr(inner).N();
@@ -143,6 +200,9 @@ class AABB {
     dim(width, x)
     dim(height,y)
 
+    !!/**
+    !! * @private
+    !! */
     @:$keep public function toString() {
         pr(inner).validate();
         return pr(inner).toString();
