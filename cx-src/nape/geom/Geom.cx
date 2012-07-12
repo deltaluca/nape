@@ -1,11 +1,59 @@
 package nape.geom;
 $(import);
 
+!!/**
+!! * Geom class provides interface to collision detection routines in nape.
+!! */
 class Geom {
+    !!/**
+    !! * Determine distance and closest points between two Shapes.
+    !! * <br/><br/>
+    !! * The input Shapes must belong to a Body so that their world positions
+    !! * and orientations are defined; these Bodies need not be different nor
+    !! * part of any Space.
+    !! * <br/><br/>
+    !! * If the shapes are intersecting, then a negative value is returned
+    !! * and the out1/out2 vectors will contain no meaningful values.
+    !! * <br/><br/>
+    !! * On sucess (positive return value), the return defines the smallest
+    !! * distance between the two Shapes, and the out1/out2 vectors will
+    !! * contain the closest points on the Shapes in world space.
+    !! * <br/><br/>
+    !! * As the out1/out2 vectors are used to return values from the function,
+    !! * this is one of the rare cases where should out1/out2 be weak Vec2's
+    !! * they will 'not' be sent to the global object pool on being passed to
+    !! * this function.
+    !! * <pre>
+    !! * var closest1 = Vec2.get();
+    !! * var closest2 = Vec2.get();
+    !! * var distance = Geom.distance(shape1, shape2, out1, out2);
+    !! * if (distance < 0) {
+    !! *     trace("Shapes intersect!");
+    !! * }else {
+    !! *     trace("Shapes do not intersect and distance betweem them is " +
+    !! *           distance + " with closest points " + closest1.toString() +
+    !! *           " <-> " + closest2.toString());
+    !! * }
+    !! * </pre>
+    !! *
+    !! * @param shape1 this shape must belong to a Body.
+    !! * @param shape2 this shape must belong to a Body.
+    !! * @param out1 This Vec2 object will be populated with coordinates of
+    !! *             closest point on shape1.
+    !! * @param out2 This Vec2 object will be populated with coordinates of
+    !! *             closest point on shape2.
+    !! * @return The distance between the two shapes, or a negative value if
+    !! *         the shapes are intersecting.
+    !! * @throws # If shape1.body is null or shape2.body is null.
+    !! * @throws # If out1 has been disposed.
+    !! * @throws # If out2 has been disposed.
+    !! * @throws # If out1 is immutable.
+    !! * @throws # If out2 is immutable.
+    !! */
     keep public static function distance(
         shape1:Shape, shape2:Shape,
         out1:Vec2, out2:Vec2
-    ) {
+    ):Float {
         Disposed(out1,Vec2);
         Disposed(out2,Vec2);
 
@@ -39,6 +87,22 @@ class Geom {
         return ret;
     }
 
+    !!/**
+    !! * Determine if two Shapes intersect.
+    !! * <br/><br/>
+    !! * The input Shapes must belong to a Body so that their world positions
+    !! * and orientations are defined; these Bodies need not be different nor
+    !! * part of any Space.
+    !! * <br/><br/>
+    !! * If you do not need distance information in the case of non-intersection,
+    !! * then using this method will be more effecient than testing for the fail
+    !! * case of the distance method.
+    !! *
+    !! * @param shape1 this shape must belong to a Body.
+    !! * @param shape2 this shape must belong to a Body.
+    !! * @return True if the shapes are intersecting in world space.
+    !! * @throws # If shape1.body or shape2.body is null.
+    !! */
     keep public static function intersects(shape1:Shape,shape2:Shape) {
         DEBUG(if(shape1.body==null || shape2.body==null)
             throw "Error: Shape must be part of a Body to calculate intersection";
@@ -51,6 +115,18 @@ class Geom {
             && PR(Collide).testCollide_safe(shape1.pr(inner),shape2.pr(inner));
     }
 
+    !!/**
+    !! * Determine if one Shape is entirely contained within another.
+    !! * <br/><br/>
+    !! * The input Shapes must belong to a Body so that their world positions
+    !! * and orientations are defined; these Bodies need not be different nor
+    !! * part of any Space.
+    !! *
+    !! * @param shape1 this shape must belong to a Body.
+    !! * @param shape2 this shape must belong to a Body.
+    !! * @return True if shape2 is completely contained within shape1.
+    !! * @throws # If shape1.body or shape2.body is null.
+    !! */
     keep public static function contains(shape1:Shape,shape2:Shape) {
         DEBUG(if(shape1.body==null || shape2.body==null)
             throw "Error: Shape must be part of a Body to calculate containment";
