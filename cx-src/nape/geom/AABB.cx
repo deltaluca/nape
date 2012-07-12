@@ -3,9 +3,7 @@ $(import);
 
 !!/**
 !! * Axis Aligned Bounding Box (AABB)
-!! *
-!! * AABB class represents an axis-aligned bounding box.
-!! * <br/>
+!! * <br/><br/>
 !! * Note that in many cases of an AABB object being returned by a Nape function
 !! * the AABB object will be marked internally as an 'immutable' AABB. This will
 !! * always be documented and trying to mutate such an AABB will result in an
@@ -19,9 +17,7 @@ class AABB {
 
     !!/**
     !! * Construct a new AABB.
-    !! *
-    !! * Construct a new AABB.
-    !! * <br/>
+    !! * <br/><br/>
     !! * As input width/height are permitted to be negative it is not guaranteed
     !! * that the resultant AABB will have the same parameters as those
     !! * specified as the AABB parameters are guaranteed to always have positive
@@ -58,9 +54,7 @@ class AABB {
 
     !!/**
     !! * Produce a copy of this AABB.
-    !! *
-    !! * Produce a copy of this AABB with the same x/y/width/height.
-    !! * <br/>
+    !! * <br/><br/>
     !! * As would be expected, if you produce a copy of an 'immutable' AABB then
     !! * the copy will be 'mutable'.
     !! *
@@ -70,16 +64,18 @@ class AABB {
         return pr(inner).copy().wrapper();
     }
 
-    #if flash9
+    #if (flash9||nme)
         !!
         !!/**
         !! * Construct an AABB from an AS3 Rectangle object.
-        !! *
-        !! * (flash9+) Construct an AABB from an AS3 Rectangle object.
+        !! * <br/><br/>
+        !! * This method is only available on <code>flash</code> and
+        !! * <code>nme</code> targets.
         !! *
         !! * @param rect The AS3 Rectangle to construct AABB from, this value
         !! *             must not be null.
         !! * @return The constructed AABB matching the input Rectangle.
+        !! * @throws # If the input rectangle is null.
         !! */
         keep public static function fromRect(rect:flash.geom.Rectangle) {
             DEBUG(
@@ -95,13 +91,14 @@ class AABB {
     $(mixin comp(n, DESC)
         !!/**
         $doc($$*$$The n`imum bounds for the AABB.)
-        !! *
-        $doc($$*$$The n`imum bounds of the AABB equivalent to the DESC corner.)
+        !! * <br/><br/>
+        $doc($$*$$Euivalent to the DESC corner.)
+        !! * <br/>
         !! * This Vec2 is intrinsically linked to the AABB so that modifications
         !! * to this object are reflected in changes to the AABB and vice-versa.
-        !! * <br/>
+        !! * <br/><br/>
         !! * If the AABB is immutable, then this Vec2 will also be immutable.
-        !! * <br/>
+        !! * <br/><br/>
         !! * This value can be set with the = operator, equivalent to performing
         $doc($$*$$<code>aabb.n.set(value)</code>.)
         !! */
@@ -137,9 +134,8 @@ class AABB {
 
     $(mixin coord(n)
         !!/**
-        $doc($$*$$The n coordinate of the AABB.)
-        !! *
-        $doc($$*$$The n coordinate of the top-left corner of the AABB.)
+        $doc($$*$$The n coordinate of the AABB's top-left corner.)
+        !! * <br/><br/>
         $doc($$*$$Equivalent to accessing/mutating min.n.)
         !! */
         property(n,Float,{
@@ -169,8 +165,8 @@ class AABB {
     $(mixin dim(N,n)
         !!/**
         $doc($$*$$N of AABB.)
-        !! *
-        $doc($$*$$N of this AABB.$$This value is and must always be positive.)
+        !! * <br/><br/>
+        !! * This value is and must always be positive.
         !! */
         property(N,Float,{
             pr(inner).validate();
