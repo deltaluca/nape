@@ -113,12 +113,6 @@ $(expand global MixDerivedList(T,ListT,IteT,defs)
             pr(inner).validate();
 
             if(inner.modified) {
-                DEBUG(if(pr(inner).iterators!=null) {
-                    Iter(i,pr(inner).iterators,{
-                    if(i.pr(critical)) throw "Error: Lists should never be modified once hasNext() has been called, and before next() has been called on iterators to the list as it is not defined behaviour. In this case it appears that you are using api functions that modify this list between hasNext() and next() calls which bypass the usual checks.";
-                    });
-                })
-
                 inv(length) = true;
                 _length = 0;
                 at_ite = null;
@@ -290,7 +284,6 @@ $(expand global PRWrapList(T,ListT,IteT)
         public var _validate:Void->Dynamic;
         public var _modifiable:Void->Dynamic;
 
-        public var iterators:List(T`Iterator);
         public static var internal:Bool = false; //used to prevent instantiation of iterator type
 
         //to be called when object is added/removed
@@ -314,12 +307,6 @@ $(expand global PRWrapList(T,ListT,IteT)
         public function valmod():Void {
             validate();
             if(inner.modified) {
-                DEBUG(if(iterators!=null) {
-                    Iter(i,iterators,{
-                        if(i.pr(critical)) throw "Error: Lists should never be modified once hasNext() has been called, and before next() has been called on iterators to the list as it is not defined behaviour. In this case it appears that you are using api functions that modify this list between hasNext() and next() calls which bypass the usual checks.";
-                    });
-                })
-
                 if(inner.pushmod) push_ite = null;
                 at_ite = null;
 
@@ -337,12 +324,6 @@ $(expand global PRWrapList(T,ListT,IteT)
         public function modify_test():Void {
             DEBUG(
                 if(_modifiable!=null) _modifiable();
-
-                if(iterators!=null) {
-                    Iter(i,iterators,{
-                        if(i.pr(critical)) throw "Error: Lists should never be modified once hasNext() has been called, and before next() has been called on iterators to the list as it is not defined behaviour";
-                    });
-                }
             )
         }
 
