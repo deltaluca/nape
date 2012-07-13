@@ -4,43 +4,88 @@ $(import);
 // caxe only 'typedef'
 $(mixin Vertex() PR(GeomVert));
 
-//
-// Public Geometric Polygon type
-//
-
 // Using geometry environment
 geom(
+
+!!/**
+!! * Polygon class with various geometric methods
+!! * <br/><br/>
+!! * This class represents a general Polygon, rather than the Polygon class
+!! * which is physics shape.
+!! */
 class GeomPoly {
 
     // caxe only alias for vertex list
     $(mixin verts() pr(inner).vertices);
 
+    !!/**
+    !! * @private
+    !! */
     public var pr(inner):PR(GeomPoly);
 
+    !!/**
+    !! * Determine if polygon is empty.
+    !! *
+    !! * @return True if polygon is empty.
+    !! */
     public inline function empty():Bool {
         return mix_circular(Vertex, empty(verts));
     }
+
+    !!/**
+    !! * Determine number of vertices in polygon
+    !! *
+    !! * @return The number of vertices.
+    !! */
     public function size():Int {
         return mix_circular(Vertex, size(verts));
     }
 
-    //
-    // Haxe iterators
-    //
+    !!/**
+    !! * Haxe iterator over vertices of polygon.
+    !! *
+    !! * @return A Haxe iterator over the vertices of the polygon.
+    !! */
     public inline function iterator():GeomVertexIterator {
         return PR(GeomVertexIterator).get(verts, true);
     }
+
+    !!/**
+    !! * Haxe iterator over vertices of polygon.
+    !! *
+    !! * @return A Haxe iterator over the vertices of the polygon.
+    !! *         Iterating in a forward direction.
+    !! */
     public inline function forward_iterator():GeomVertexIterator {
         return PR(GeomVertexIterator).get(verts, true);
     }
+
+    !!/**
+    !! * Haxe iterator over vertices of polygon.
+    !! *
+    !! * @return A Haxe iterator over the vertices of the polygon.
+    !! *         Iterating in a backwards direction.
+    !! */
     public inline function backwards_iterator():GeomVertexIterator {
         return PR(GeomVertexIterator).get(verts, false);
     }
 
-    //
-    // 'Pointer' to current vertex in cycle.
-    //
-    public inline function current() {
+    !!/**
+    !! * Current vertex at head of polygon.
+    !! * <br/><br/>
+    !! * The current vertex will not be changed by this access.
+    !! * <br/><br/>
+    !! * This function returns a Vec2 which will be intrinsically tied
+    !! * to the values of the internal vertex so that modifications to
+    !! * this Vec2 will be reflected in the vertex of the polygon.
+    !! * <br/><br/>
+    !! * If invoked again the same Vec2 will be returned; this Vec2 is
+    !! * not able to be disposed of.
+    !! *
+    !! * @return A Vec2 representing the current vertex of polygon.
+    !! * @throws # If polygon is empty.
+    !! */
+    public inline function current():Vec2 {
         DEBUG(
             if (empty()) {
                 throw "Error: GeomPoly is empty";
@@ -50,30 +95,70 @@ class GeomPoly {
         return verts.wrapper();
     }
 
-    //
-    // Push copy of vertex after current(), advancing 'current' pointer
-    // to newly inserted vertex.
-    //
-    public function push(x:Vec2) {
-        Disposed(x, Vec2);
+    !!/**
+    !! * Push vertex to polygon.
+    !! * <br/><br/>
+    !! * A vertex will be allocated from a global object pool, and initialised
+    !! * with the values of the given Vec2.
+    !! * <br/><br/>
+    !! * This vertex will be inserted after the current head, and the head
+    !! * advanced to the newly inserted vertex, in this way successive pushes
+    !! * will insert elements in order.
+    !! * <br/><br/>
+    !! * Note that the Vec2 supplied as argument is only used to initialise the
+    !! * inner Vertex.
+    !! * <pre>
+    !! * poly := -> A <-> B <-> C <-> D <-> E <-
+    !! *                (head)
+    !! *
+    !! * poly.push(X);
+    !! *
+    !! * poly := -> A <-> B <-> X <-> C <-> D <-> E <-
+    !! *                      (head)
+    !! * </pre>
+    !! *
+    !! * @param vertex The Vec2 to be used in initialising the inner vertex.
+    !! * @return A reference to this polygon.
+    !! * @throws # If Vec2 is null, or has been disposed.
+    !! */
+    public function push(vertex:Vec2):GeomPoly {
+        Disposed(vertex, Vec2);
         DEBUG(
-            if (x == null) {
+            if (vertex == null) {
                 throw "Error: Cannot push null vertex";
             }
         )
 
         mix_circular(Vertex,
-            verts = push_after(verts, Vertex.get(x.x, x.y));
+            verts = push_after(verts, Vertex.get(vertex.x, vertex.y));
         )
 
-        WEAK(x);
+        WEAK(vertex);
         return this;
     }
 
-    //
-    // Pop current vertex, retreating 'current' pointer to previous vertex
-    //
-    public function pop() {
+    !!/**
+    !! * Pop vertex from polygon.
+    !! * <br/><br/>
+    !! * Pop the current vertex at head of polygon, retreating the 'current'
+    !! * vertex to point to the previous vertex in polygon. This inner vertex
+    !! * will be released to the global object pool.
+    !! * <br/><br/>
+    !! * In this way a pop which follows a push will act to reset the push.
+    !! * <pre>
+    !! * poly := -> A <-> B <-> C <-> D <-> E <-
+    !! *                (head)
+    !! *
+    !! * poly.pop();
+    !! *
+    !! * poly := -> A <-> C <-> D <-> E <-
+    !! *          (head)
+    !! * </pre>
+    !! *
+    !! * @return A reference to this polygon.
+    !! * @throws # If polygon is empty.
+    !! */
+    public function pop():GeomPoly {
         mix_circular(Vertex,
             DEBUG(
                 if (empty(verts)) {
@@ -89,30 +174,71 @@ class GeomPoly {
         return this;
     }
 
-    //
-    // Push copy of vertex BEFORE current(), retreating 'current' pointer
-    // to newly inserted vertex.
-    //
-    public function unshift(x:Vec2) {
-        Disposed(x, Vec2);
+    !!/**
+    !! * Unshift vertex to polygon.
+    !! * <br/><br/>
+    !! * A vertex will be allocated from a global object pool, and initialised
+    !! * with the values of the given Vec2.
+    !! * <br/><br/>
+    !! * This vertex will be inserted before the current head, and the head
+    !! * retreated to the newly inserted vertex, in this way successive unshifts
+    !! * will insert elements in the expected reverse order.
+    !! * <br/><br/>
+    !! * Note that the Vec2 supplied as argument is only used to initialise the
+    !! * inner Vertex.
+    !! * <pre>
+    !! * poly := -> A <-> B <-> C <-> D <-> E <-
+    !! *                (head)
+    !! *
+    !! * poly.unshift(X);
+    !! *
+    !! * poly := -> A <-> X <-> B <-> C <-> D <-> E <-
+    !! *                (head)
+    !! * </pre>
+    !! *
+    !! * @param vertex The Vec2 to be used in initialising the inner vertex.
+    !! * @return A reference to this polygon.
+    !! * @throws # If Vec2 is null, or has been disposed.
+    !! */
+    public function unshift(vertex:Vec2):GeomPoly {
+        Disposed(vertex, Vec2);
         DEBUG(
-            if (x == null) {
+            if (vertex == null) {
                 throw "Error: Cannot unshift null vertex";
             }
         )
 
         mix_circular(Vertex,
-            verts = push_before(verts, Vertex.get(x.x,x.y));
+            verts = push_before(verts, Vertex.get(vertex.x,vertex.y));
         )
 
-        WEAK(x);
+        WEAK(vertex);
         return this;
     }
 
-    //
-    // Pop current vertex, advancing 'current' pointer to next vertex
-    //
-    public function shift() {
+    !!/**
+    !! * Shift vertex from polygon.
+    !! * <br/><br/>
+    !! * Shift the current vertex at head of polygon, advancing the 'current'
+    !! * vertex to point to the next vertex in polygon. This inner vertex
+    !! * will be released to the global object pool.
+    !! * <br/><br/>
+    !! * In this way a shift which follows an unshift will act to reset the
+    !! * unshift operation.
+    !! * <pre>
+    !! * poly := -> A <-> B <-> C <-> D <-> E <-
+    !! *                (head)
+    !! *
+    !! * poly.shift();
+    !! *
+    !! * poly := -> A <-> C <-> D <-> E <-
+    !! *                (head)
+    !! * </pre>
+    !! *
+    !! * @return A reference to this polygon.
+    !! * @throws # If polygon is empty.
+    !! */
+    public function shift():GeomPoly {
         mix_circular(Vertex,
             DEBUG(
                 if (empty(verts)) {
@@ -128,11 +254,31 @@ class GeomPoly {
         return this;
     }
 
-    //
-    // Advance current pointer 'times' vertices forward.
-    // Retreat current pointer 'times' vertices backwards.
-    //
-    public function skip_forward(times:Int) {
+    !!/**
+    !! * Advance head of polygon forward.
+    !! * <br/><br/>
+    !! * The current head of polygon will be moved forwards
+    !! * the given number of times, with a negative value
+    !! * being equivalent to performing a backwards advance.
+    !! * <br/><br/>
+    !! * <code>poly.skip_forwards(times)</code> is equivalent to
+    !! * <code>poly.skip_backwards(-times)</code>
+    !! * <pre>
+    !! * poly := -> A <-> B <-> C <-> D <-> E <-
+    !! *                (head)
+    !! *
+    !! * poly.skip_forwards(2);
+    !! *
+    !! * poly := -> A <-> B <-> C <-> D <-> E <-
+    !! *                            (head)
+    !! * </pre>
+    !! *
+    !! * @params times The number of times to advance head forward.
+    !! *               This value can be negative indicating a backwards
+    !! *               advance.
+    !! * @return A reference to this polygon.
+    !! */
+    public function skip_forward(times:Int):GeomPoly {
         mix_circular(Vertex,
             if (!empty(verts)) {
                 if (times>0) {
@@ -145,16 +291,66 @@ class GeomPoly {
 
         return this;
     }
+
+    !!/**
+    !! * Advance head of polygon backwards.
+    !! * <br/><br/>
+    !! * The current head of polygon will be moved backwards
+    !! * the given number of times, with a negative value
+    !! * being equivalent to performing a forwards advance.
+    !! * <br/><br/>
+    !! * <code>poly.skip_backwards(times)</code> is equivalent to
+    !! * <code>poly.skip_forwards(-times)</code>
+    !! * <pre>
+    !! * poly := -> A <-> B <-> C <-> D <-> E <-
+    !! *                (head)
+    !! *
+    !! * poly.skip_backwards(2);
+    !! *
+    !! * poly := -> A <-> B <-> C <-> D <-> E <-
+    !! *                                  (head)
+    !! * </pre>
+    !! *
+    !! * @params times The number of times to advance head backwards.
+    !! *               This value can be negative indicating a forwards
+    !! *               advance.
+    !! * @return A reference to this polygon.
+    !! */
     public inline function skip_backwards(times:Int) {
         return skip_forward(-times);
     }
 
-    //
-    // Erase 'count' number of items.
-    //    For positive 'count' this is a successive unshift
-    //    For negative 'count' this is a successive popping
-    //
-    public function erase(count:Int) {
+    !!/**
+    !! * Erase count number of elements
+    !! * <br/><br/>
+    !! * For positive values of count, this is equivalent to successive
+    !! * unshift operations.
+    !! * <br/><br/>
+    !! * For negative values of count, this is equivalent to successive
+    !! * pop operations.
+    !! * <pre>
+    !! * poly := -> A <-> B <-> C <-> D <-> E <-> F <-> G <-
+    !! *                (head)
+    !! *
+    !! * poly.erase(2);
+    !! *
+    !! * poly := -> A <-> D <-> E <-> F <-> G <-
+    !! *                (head)
+    !! *
+    !! * poly.erase(-3);
+    !! *
+    !! * poly := -> E <-> F <-
+    !! *                (head)
+    !! * </pre>
+    !! * In this case that the specified number of elements to erase is
+    !! * greater than the size of the polygon, the method will simply
+    !! * terminate with the polygon being empty.
+    !! *
+    !! * @param count The number of vertices to erase, with sign indicating
+    !! *              the direction for erasing.
+    !! * @return A reference to this polygon.
+    !! */
+    public function erase(count:Int):GeomPoly {
         mix_circular(Vertex,
             while (count != 0 && !empty(verts)) {
                 var retv = verts;
@@ -173,6 +369,13 @@ class GeomPoly {
         return this;
     }
 
+    !!/**
+    !! * Clear all vertices from polygon.
+    !! * <br/><br/>
+    !! * All of the vertices will be released to the global object pool.
+    !! *
+    !! * @return A reference to this polygon.
+    !! */
     public function clear():GeomPoly {
         mix_circular(Vertex,
             clear_with(verts, $(mixin cb(x) Free(Vertex, x)) cb);
@@ -181,6 +384,26 @@ class GeomPoly {
         return this;
     }
 
+    !!/**
+    !! * Copy this polygon.
+    !! * <br/><br/>
+    !! * The copy will have its vertices in the same order as 'this' polygon.
+    !! * It will also have its current vertex at head, as the same vertex
+    !! * this polygon has.
+    !! * <br/><br/>
+    !! * This polygon will not be modified in any way.
+    !! * <pre>
+    !! * poly := -> A <-> B <-> C <-> D <-> E <-
+    !! *                (head)
+    !! *
+    !! * poly2 = poly.copy();
+    !! *
+    !! * poly2 := -> A' <-> B' <-> C' <-> D' <-> E' <-
+    !! *                  (head)
+    !! * </pre>
+    !! *
+    !! * @return The new GeomPoly representing the copy.
+    !! */
     public function copy():GeomPoly {
         var ret = new GeomPoly();
         mix_circular(Vertex,
@@ -189,7 +412,7 @@ class GeomPoly {
             });
         )
 
-        return ret;
+        return ret.skip_forward(1);
     }
 
     //
@@ -211,6 +434,9 @@ class GeomPoly {
         }
     }
 
+    !!/**
+    !! * @private
+    !! */
     @:$keep public function toString():String {
         var ret = "GeomPoly[";
         mix_circular(PR(GeomVert),{
@@ -222,16 +448,42 @@ class GeomPoly {
         return ret+"]";
     }
 
-    //--------------------------------------------------------------------------
-
     $(mixin size_lt_3() ({
         verts == null || verts.next == null || verts.prev == verts.next;
     }));
 
+    !!/**
+    !! * Compute area of weakly-simple polygon.
+    !! * <br/><br/>
+    !! * For complex polygons, this function will return an underestimate
+    !! * to the true area.
+    !! *
+    !! * @return The area of the polygon.
+    !! */
     public function area():Float {
         return if (size_lt_3) 0.0 else area(verts);
     }
 
+    !!/**
+    !! * Compute the winding order for this polygon.
+    !! * <br/><br/>
+    !! * The winding order can be conceptualised by thinking of an analog
+    !! * clock face, if your polygon is the numbers on the clock then a
+    !! * clockwise winding would have your polygon's vertices in numerical
+    !! * order.
+    !! * <br/><br/>
+    !! * In the case of a non-simple polygon with self intersections then the
+    !! * winding order is decided by how 'much' of the polygon is locally
+    !! * clockwise wound, and how much is locally anti-clockwise wound.
+    !! * <br/>
+    !! * (Think of a figure 8 style polygon where one loop is larger than the
+    !! * other. This larger loop will dictate the winding of the polygon.)
+    !! * <br/><br/>
+    !! * If no winding can be computed, then <code>Winding.UNDEFINED</code>
+    !! * will be returned.
+    !! *
+    !! * @return The winding of the polygon.
+    !! */
     public function winding():Winding {
         if (size_lt_3) {
             return Winding.UNDEFINED;
@@ -244,8 +496,21 @@ class GeomPoly {
         }
     }
 
-    //--------------------------------------------------------------------------
-
+    !!/**
+    !! * Determine if point is contained in polygon.
+    !! * <br/><br/>
+    !! * Polygon containment is performed with a ray cast through polygon
+    !! * from the vertex and counting the number of intersections. In this
+    !! * way containment will be defined for self-intersecting polygons based
+    !! * on how such a polygon would be rendered with areas of self-intersection
+    !! * treat as being 'outside' the polygon.
+    !! * <br/><br/>
+    !! * This algorithm operates in O(n) time.
+    !! *
+    !! * @param point The point to test for containment.
+    !! * @return True if point is contained in the polygon.
+    !! * @throws # If point is null or has been disposed.
+    !! */
     public function contains(point:Vec2):Bool {
         Disposed(point,Vec2);
         DEBUG(
@@ -260,28 +525,136 @@ class GeomPoly {
         return ret;
     }
 
-    public function isClockwise():Bool {
+    !!/**
+    !! * Determine if polygon is clockwise wound.
+    !! * <br/><br/>
+    !! * This is equivalent to <code>poly.winding() == Winding.CLOCKWISE</code>.
+    !! *
+    !! * @return True if polygon is clockwise wound.
+    !! */
+    public inline function isClockwise():Bool {
         return winding() == Winding.CLOCKWISE;
     }
 
+    !!/**
+    !! * Determine if weakly-simple polygon is convex.
+    !! * <br/><br/>
+    !! * This algorithm assumes that the polygon is weakly-simple. Otherwise it may
+    !! * fail (It is very easy to construct a self intersecting polygon which
+    !! * will return True for isConvex()).
+    !! * <br/><br/>
+    !! * You may wish to instead use <code>isSimple() && isConvex()</code> if
+    !! * you cannot be sure of the polygon being simple, noting that this will
+    !! * of course return false in the case of a weakly-simple polygon.
+    !! * <pre>
+    !! *  _____
+    !! * |     |
+    !! * |     |  <-- convex
+    !! * |____/
+    !! *  __
+    !! * |  \___
+    !! * |     /  <-- concave
+    !! * |____/
+    !! * </pre>
+    !! * This algorithm operates in O(n) time.
+    !! *
+    !! * @return True if polygon is found to be convex.
+    !! */
     public function isConvex():Bool {
         return if(size_lt_3) true else convex(verts);
     }
 
-    public function isSimple():Bool {
+    !!/**
+    !! * Determine if polygon is strictly simple.
+    !! * <br/><br/>
+    !! * By strict simplicity, we refer to not permitting 'glancing'
+    !! * self intersections (where boundary of polygon 'touches' but does not
+    !! * pass through another area of the polygon's boundary). This property
+    !! * is instead referred to as being 'weakly simple' for which there is no
+    !! * easy test!
+    !! * <pre>
+    !! *  _______
+    !! * |   __  |  <-- strictly simple polygon.
+    !! * |   \ \_|
+    !! *  \__/
+    !! *  _______
+    !! * |   |   |
+    !! * |  /_\  | <-- weakly simple polygon.
+    !! *  \_____/
+    !! *  ____
+    !! * | __/
+    !! *  X_  __   <-- complex polygon.
+    !! * |  \/  \
+    !! * \__/\__|
+    !! * </pre>
+    !! * This algorithm operates in O(n.log(n)) time.
+    !! *
+    !! * @return True if polygon is strictly simple.
+    !! */
+    public inline function isSimple():Bool {
         return if(size_lt_3) true else PR(Simple).isSimple(verts);
     }
 
-    public function isMonotone():Bool {
+    !!/**
+    !! * Determine if polygon is y-monotone.
+    !! * <br/><br/>
+    !! * To be classed as y-monotone, the polygon must be such that any horizontal
+    !! * line intersects the polygon in at most 2 intersections.
+    !! * <pre>
+    !! *  ___
+    !! * |   |
+    !! * |   |  <-- y-monotone
+    !! * |___|
+    !! *
+    !! * |\
+    !! * | \/|  <-- not y-monotone, offending vertex at bottom of the V.
+    !! * |___|
+    !! * </pre>
+    !! * This algorithm operates in O(n) time.
+    !! *
+    !! * @return True if polygon is y-monotone.
+    !! */
+    public inline function isMonotone():Bool {
         return if(size_lt_3) true else PR(Monotone).isMonotone(verts);
     }
 
-    public function isDegenerate():Bool {
+    !!/**
+    !! * Determine if weakly-simple polygon is degenerate.
+    !! * <br/><br/>
+    !! * Degeneracy is determined by having a zero area, if polygon is complex,
+    !! * then this function may report degeneracy erroneously.
+    !! *
+    !! * @return True if polygon is degenerate.
+    !! */
+    public inline function isDegenerate():Bool {
         return if(size_lt_3) true else area() < PR(Const).EPSILON;
     }
 
-    //--------------------------------------------------------------------------
-
+    !!/**
+    !! * Simplify polygon.
+    !! * <br/><br/>
+    !! * Simplification is performed with an implementation of the Ramer-Douglas-Peucker
+    !! * algorithm. The output polygon is formed via subset of the vertices in
+    !! * the input polygon such that any discarded vertex is at most 'epsilon' pixels
+    !! * away from the local output polygon.
+    !! * <br/><br/>
+    !! * This algorithm works on both simple and complex polygons, but please note
+    !! * that this algorithm makes no guarantees on a simple polygon remaining simple
+    !! * after simplification. This should not generally be a problem unless the epsilon
+    !! * value is large with respect to the size of the features on the polygon.
+    !! * <br/><br/>
+    !! * Many of the geometric algorithms will mark vertices as important, such that
+    !! * they will be guaranteed to exist after simplification (Such as preventing
+    !! * gaps from opening up in marching squares when simplifying output polygons).
+    !! * <br/><br/>
+    !! * The average runtime of this algorithm is O(n.log(n)). This algorithm is
+    !! * not stable in the sense that adding a new vertex to the polygon may drastically
+    !! * change the result of simplifying the polygon.
+    !! *
+    !! * @param epsilon The distance from polygon at which vertices are ignored.
+    !! * @return A new GeomPoly representing the result of the simplification.
+    !! * @throws # If epsilon is <= 0.
+    !! */
     public function simplify(epsilon:Float):GeomPoly {
         DEBUG(
             if(epsilon <= 0.0) {
@@ -300,6 +673,22 @@ class GeomPoly {
         }
     }
 
+    !!/**
+    !! * Produce a decomposition of complex polygon into simple components.
+    !! * <br/><br/>
+    !! * WARNING: This method is 'not' 100% robust. It may fail!
+    !! * <br/><br/>
+    !! * Produce a decomposition of a self intersecting, complex polygon into
+    !! * a set of weakly-simple components.
+    !! * <br/><br/>
+    !! * This algorithm operates in O(n.log(n)) time and is based on the
+    !! * Bentley-Ottmann algorithm.
+    !! *
+    !! * @return A Nape list of GeomPoly's representing the decomposition.
+    !! * @throws # If polygon is degenerate.
+    !! * @throws # Any other error may be thrown if algorithm has failed, even
+    !! *           in release builds!
+    !! */
     public function simple_decomposition():GeomPolyList {
         DEBUG(
             if(size_lt_3) {
@@ -319,6 +708,26 @@ class GeomPoly {
         return ret;
     }
 
+    !!/**
+    !! * Produce a decomposition of weakly-simple polygon into monotone components.
+    !! * <br/><br/>
+    !! * This algorithm 'should' be 100% robust and has been well tested on for
+    !! * example, the output of the Marching Squares utility which produces many
+    !! * degenerate cases of weakly-simple polygons that have not yet broken this
+    !! * algorithm!.
+    !! * <br/><br/>
+    !! * This algorithm operates in O(n.log(n)) time and may strip vertices from
+    !! * the polygon in degenerate cases where vertex is not needed to define the
+    !! * polygon.
+    !! * <br/><br/>
+    !! * This algorithm is an improved version of the one presented in: Mark de
+    !! * Berg, Marc van Kreveld, Mark Overmars, and Otfried Schwarzkopf.
+    !! * Computational Geometry: Algorithms and Applications. Springer-Verlag,
+    !! * Berlin, 1997.
+    !! *
+    !! * @return A Nape list of GeomPoly's defining the decomposition.
+    !! * @throws # If polygon is degenerate.
+    !! */
     public function monotone_decomposition():GeomPolyList {
         DEBUG(
             if(size_lt_3) {
@@ -339,6 +748,24 @@ class GeomPoly {
         return ret;
     }
 
+    !!/**
+    !! * Produce a decomposition of weakly-simple polygon into convex components.
+    !! * <br/><br/>
+    !! * This algorithm 'should' be 100% robust and has been well test on for
+    !! * example, the output of the Marching Squars utility which produces many
+    !! * degenerate cases of weakly-simple polygons that have not yet broken this
+    !! * algorithm!.
+    !! * <br/><br/>
+    !! * This algorithm operates in O(n.log(n)) time and will produce no more than
+    !! * 4 times the number of convex poylgons in a minimal decomposition in the
+    !! * worst case scenario.
+    !! * <br/><br/>
+    !! * Vertices may be stripped from the polygon that are found to not be
+    !! * necessary as part of making this algorithm robust.
+    !! *
+    !! * @return A Nape list of GeomPoly's defining the decomposition.
+    !! * @throws # If polygon is degenerate.
+    !! */
     public function convex_decomposition():GeomPolyList {
         DEBUG(
             if(size_lt_3) {
@@ -367,6 +794,22 @@ class GeomPoly {
         return ret;
     }
 
+    !!/**
+    !! * Produce a decomposition of weakly-simple polygon into triangles.
+    !! * <br/><br/>
+    !! * This algorithm 'should' be 100% robust and has been well test on for
+    !! * example, the output of the Marching Squars utility which produces many
+    !! * degenerate cases of weakly-simple polygons that have not yet broken this
+    !! * algorithm!.
+    !! * <br/><br/>
+    !! * This algorithm operates in O(n.log(n)) time.
+    !! * <br/><br/>
+    !! * Vertices may be stripped from the polygon that are found to not be
+    !! * necessary as part of making this algorithm robust.
+    !! *
+    !! * @return A Nape list of GeomPoly's defining the decomposition.
+    !! * @throws # If polygon is degenerate.
+    !! */
     public function triangular_decomposition():GeomPolyList {
         DEBUG(
             if(size_lt_3) {
