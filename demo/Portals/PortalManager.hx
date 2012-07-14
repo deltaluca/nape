@@ -135,7 +135,7 @@ class PortalManager {
 	private function start_portal(cb:InteractionCallback) {
 		var pshape = cb.int1.castShape;
 		var object = cb.int2.castShape;
-		var portal:PortalData = cast(pshape.userData,PortalData);
+		var portal:PortalData = cast(pshape.userData.__portalData,PortalData);
 
 		var info = getinfo(portal,object.body);
 		var limbo = infolimbo(info,object);
@@ -157,7 +157,7 @@ class PortalManager {
 
 		var nortal = portal.target;
 		var scale = nortal.width/portal.width;
-		
+
 		//new portal interaction!
 		if(info==null) {
 			var clone = new Body();
@@ -187,7 +187,7 @@ class PortalManager {
 			nlimbo.sshape = clone_shp;
 			info.limbos.push(nlimbo);
 			nlimbo.info = info;
-	
+
 			infos.push(info);
 			limbos.push(nlimbo);
 
@@ -205,7 +205,7 @@ class PortalManager {
 			var nlimbo = new Limbo(); nlimbo.cnt = 1;
 			nlimbo.mshape = if(info.master==object.body) clone_shp else object;
 			nlimbo.sshape = if(info.master==object.body) object else clone_shp;
-		
+
 			info.limbos.push(nlimbo);
 			nlimbo.info = info;
 
@@ -230,7 +230,7 @@ class PortalManager {
 	private function end_portal(cb:InteractionCallback) {
 		var pshape = cb.int1.castShape;
 		var object = cb.int2.castShape;
-		var portal:PortalData = cast(pshape.userData,PortalData);
+		var portal:PortalData = cast(pshape.userData.__portalData,PortalData);
 		var info = getinfo(portal,object.body);
 		var limbo = infolimbo(info,object);
 
@@ -292,7 +292,7 @@ class PortalManager {
 			//delete info, resetting cbtypes and remove body about to be made empty.
 			delfrom(infos,info);
 			info.pcon.space = null;
-		
+
 			dest.space = null;
 			var scale = kportal.width/dportal.width;
 			while(!dest.shapes.empty()) {
@@ -368,7 +368,7 @@ class PortalInfo {
 
 	//related limbos
 	public var limbos:Array<Limbo>;
-	
+
 	//constraint
 	public var pcon:PortalConstraint;
 
