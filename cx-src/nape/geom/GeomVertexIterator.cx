@@ -4,12 +4,21 @@ $(import);
 //operating in geometric environment.
 geom(
 
+!!/**
+!! * Haxe compatible iterator over vertices of GeomPoly.
+!! * <br/><br/>
+!! * Vec2's intrinsically tied to the vertices are exposed through
+!! * the iterator which does not modify the state of the polygon.
+!! */
 class GeomVertexIterator {
+    !!/**
+    !! * @private
+    !! */
     public var pr(inner):PR(GeomVertexIterator);
 
-    //
-    // Constructor (not to be used).
-    //
+    !!/**
+    !! * @private
+    !! */
     public function new() {
         DEBUG(
             if (!PR(GeomVertexIterator).internal) {
@@ -18,10 +27,11 @@ class GeomVertexIterator {
         )
     }
 
-    //
-    // Haxe Iterator methods.
-    //
-
+    !!/**
+    !! * Check if there are any vertices remaining.
+    !! *
+    !! * @return True if there are more vertices to iterate over.
+    !! */
     public function hasNext():Bool {
         DEBUG(
             if (pr(inner) == null) {
@@ -40,6 +50,14 @@ class GeomVertexIterator {
         return ret;
     }
 
+    !!/**
+    !! * Return next vertex in list.
+    !! * <br/><br/>
+    !! * The vertex is represented by an intrinsically linked Vec2
+    !! * unique to that vertex, which cannot be diposed of.
+    !! *
+    !! * @return The next vertex in iteration.
+    !! */
     public function next():Vec2 {
         DEBUG(
             if (pr(inner) == null) {
