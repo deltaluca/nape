@@ -34,6 +34,6 @@ class PortalData {
 
 		portal.cbTypes.add(PortalManager.Portal);
 		portal.filter = new InteractionFilter(-1,-1,-1,-1,-1,-1);
-		portal.userData = this;
+		portal.userData.__portalData = this;
 	}
 }

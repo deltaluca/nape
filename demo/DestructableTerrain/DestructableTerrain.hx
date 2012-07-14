@@ -56,7 +56,7 @@ class DestructableTerrain extends FixedStep {
 		stage.addEventListener(flash.events.MouseEvent.CLICK, function (_) {
 			var mp = new Vec2(mouseX,mouseY);
 			for(b in space.bodiesUnderPoint(mp)) {
-				if(b.isStatic() && b.userData==terrain) {
+				if(b.isStatic() && b.userData.terrain==terrain) {
 					explosion(mp);
 					return;
 				}
@@ -132,9 +132,9 @@ class Terrain {
 					b.space = null;
 					b.clear();
 					b.position = offset;
-					b.userData = this;
+					b.userData.terrain = this;
 				}
-				
+
 				//compute polygons in cell
 				bounds.x = x*cellsize;
 				bounds.y = y*cellsize;
@@ -144,7 +144,7 @@ class Terrain {
 				if(b==null) {
 					cells[y*width+x] = b = new Body(BodyType.STATIC);
 					b.position = offset;
-					b.userData = this;
+					b.userData.terrain = this;
 				}
 
 				//decompose polygons and generate the cell body.
@@ -156,7 +156,7 @@ class Terrain {
 
 				b.space = space;
 			}
-		}	
+		}
 	}
 
 	//iso-function for terrain, computed as a linearly-interpolated
