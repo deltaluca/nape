@@ -123,7 +123,7 @@ mixpool_circular(Vertex,
 class PR(PartitionedPoly) {
     public var vertices:Vertex; //circular linked list.
 
-    function eq(a:PR(GeomVert), b:PR(GeomVert)) {
+    function eq(a:Vertex, b:Vertex) {
         return vec_dsq(a., b.) < PR(Const).EPSILON;
     }
 
@@ -134,24 +134,43 @@ class PR(PartitionedPoly) {
         var cw = geom(clockwise(P));
         var p = P;
         do {
-            if(eq(p,p.next)) {}
+            vertices =
+                if(cw) push_after(vertices,Vertex.get(p))
+                else  push_before(vertices,Vertex.get(p))
+            vertices.forced = p.forced;
+            p = p.next;
+        }
+        while (p != P);
+        remove_collinear_vertices();
+        DEBUG(if(size(vertices)<3) throw "Error: Degenerate poly can't be decomposed";)
+    }
+
+    public function remove_collinear_vertices() {
+        var p = vertices;
+        do {
+            if(eq(p, p.next)) {
+                //remove vertex 'p'
+                if (p == vertices) vertices = vertices.prev;
+                p = pop_ret_after(p);
+            }
             else {
                 var pre = p.prev;
-                while(eq(pre,p) && pre!=p) pre = pre.prev;
-                if(pre==p) break;
+                while(eq(pre, p) && pre != p) pre = pre.prev;
+                if (pre == p) break;
 
-                vec_new(u); vec_sub(p.,pre.,u);
-                vec_new(v); vec_sub(p.next.,p.,v);
-                if(vec_cross(u,v)!=0.0) {
-                    vertices =
-                        if(cw) push_after(vertices,Vertex.get(p))
-                        else  push_before(vertices,Vertex.get(p))
-                        vertices.forced = p.forced;
+                vec_new(u); vec_sub(p., pre., u);
+                vec_new(v); vec_sub(p.next., p. , v);
+                if (vec_cross(u, v) != 0.0) {
+                    //keep vertex
+                    p = p.next;
+                }else
+                {
+                    //remove vertex 'p'
+                    if (p == vertices) vertices = vertices.prev;
+                    p = pop_ret_after(p);
                 }
             }
-            p = p.next;
-        }while(p!=P);
-        DEBUG(if(size(vertices)<3) throw "Error: Degenerate poly can't be decomposed";)
+        }while(p != vertices);
     }
 
     public function add_diagonal(p:Vertex,q:Vertex) {
@@ -166,6 +185,8 @@ class PR(PartitionedPoly) {
         for_iter(c, vertices, c.sort());
         pull_partitions(vertices, ret);
         clear(vertices);
+        // remove any collinear vertices as we seed this to new decompositions directly.
+        Iter(p, ret, p.remove_collinear_vertices());
         return ret;
     }
     private function pull_partitions(start:Vertex, ret:List(PR(PartitionedPoly))) {

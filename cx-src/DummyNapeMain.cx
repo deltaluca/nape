@@ -3,10 +3,41 @@ $(import);
 
 class DummyNapeMain {
     static function main() {
-        var b = new Material();
-        trace(b.userData);
-        b.userData.vec = new Vec2(1,0);
-        trace(b.userData);
-        trace(b.userData.vec);
+        var  shitty = [ { x: -75, y: -14.999999105930328 }, { x:
+        -71.24999994412065, y: -22.50000089406967 }, { x:75, y:
+        -22.50000089406967 }, { x:75, y: -11.250000447034836 },
+        { x:63.75000178813934, y: -7.499999552965164 }, {
+            x:52.50000357627869, y:3.7500008940696716 }, { x:41.25000536441803,
+            y:3.7500008940696716 },
+            { x:29.999998211860657, y:11.250000447034836 }, {
+                x:22.50000536441803, y:11.250000447034836 }, { x:7.500001788139343,
+                y:22.50000089406967 },
+                { x:0, y:22.50000089406967 }, { x: -18.75, y:11.250000447034836 },
+                { x: -41.25000312924385, y:9.375 }, { x: -48.750000447034836,
+                y:3.7500008940696716 },
+                { x: -56.25, y:3.7500008940696716 } ];
+
+        var verts = Lambda.array(Lambda.map(shitty, function (o) return new Vec2(o.x, o.y)));
+
+        var poly = new GeomPoly(verts);
+
+        trace(poly.isSimple());
+        trace(poly.isConvex());
+        trace(poly.winding());
+        trace(poly.area());
+        trace(poly.isDegenerate());
+
+        var debug = new ShapeDebug(1, 1);
+        debug.transform = new Mat23(3, 0, 0, 3, 300, 200);
+        flash.Lib.current.addChild(debug.display);
+
+        debug.drawPolygon(poly, 0xffffff);
+        for (p in poly) debug.drawCircle(p, 1, 0xff0000);
+
+        var polys = poly.triangular_decomposition();
+        for (p in polys) {
+            debug.drawPolygon(p, 0xff00);
+            for (v in p) debug.drawCircle(v, 1, 0xff0000);
+        }
     }
 }
