@@ -79,7 +79,8 @@ class GeomPoly {
     !! * to the values of the internal vertex so that modifications to
     !! * this Vec2 will be reflected in the vertex of the polygon.
     !! * <br/><br/>
-    !! * If invoked again the same Vec2 will be returned; this Vec2 is
+    !! * If invoked again with the head of the polygon pointing to the
+    !! * same vertex, then the same Vec2 will be returned; this Vec2 is
     !! * not able to be disposed of.
     !! *
     !! * @return A Vec2 representing the current vertex of polygon.
@@ -415,14 +416,21 @@ class GeomPoly {
         return ret.skip_forward(1);
     }
 
-    //
-    // Constructor accepting either:
-    //    Array<Vec2>
-    //    flash.Vector<Vec2>
-    //    Vec2List
-    //    GeomPoly
-    //
-    public function new(vertices:Dynamic = null) {
+    !!/**
+    !! * Create a new GeomPoly polygon.
+    !! * <br/><br/>
+    !! * The vertices argument is typed Dynamic (* in AS3), and is permitted
+    !! * to be one of: <code>Array&lt;Vec2&gt;, flash.Vector&lt;Vec2&gt;, Vec2List, GeomPoly</code>
+    !! * <br/><br/>
+    !! * The input will be used to initialise the vertices of the polygon with
+    !! * the head of the polygon pointing to the first vertex in input with vertices
+    !! * inserted in forward order.
+    !! *
+    !! * @param vertices Vertex data to initialise polygon, or null for empty polygon.
+    !! * @return New GeomPoly representing input vertex data.
+    !! * @throws # If input data is not of an expected Type.
+    !! */
+    public function new(vertices:Null<Dynamic> = null) {
         pr(inner) = new PR(GeomPoly)(this);
         if(vertices != null) {
             PolyIter(v, vertices, {
@@ -430,6 +438,7 @@ class GeomPoly {
                     verts = push_after(verts, Vertex.get(v.x, v.y));
                 )
             });
+            skip_forward(1);
             PolyWeak(vertices);
         }
     }
@@ -835,8 +844,34 @@ class GeomPoly {
         return ret;
     }
 
-    //--------------------------------------------------------------------------
-
+    !!/**
+    !! * Cut simple polygon with line.
+    !! * <br/><br/>
+    !! * The result of this operation will be a list of new GeomPoly representing
+    !! * the connected regions of the polygon after an imaginary cut is made.
+    !! * <pre>
+    !! * (Result of cut assuming
+    !! *  boundedStart = true)       _
+    !! *   /\    _             /\   / \
+    !! *  /  \  / \           /  \ '---'
+    !! * / o--\/---\-->  =>  /    \,---,
+    !! * \_________/         \_________/
+    !! * </pre>
+    !! * This algorithm runs in average case O(n.log(n)) time and worst case O(n^2).
+    !! * For convex polygons, this algorithm runs in guaranteed O(n) time.
+    !! *
+    !! * @param start The start point for line segment
+    !! * @param end The end point for line segment.
+    !! * @param boundedStart If true, then the cut will not extend
+    !! *                     beyond the start of the line segment.
+    !! *                     (default false)
+    !! * @param boundedEnd   If true, then the cut will not extend
+    !! *                     beyond the end of the line segment.
+    !! *                     (default false)
+    !! * @return A list of GeomPoly representing the result of the cut.
+    !! * @throws # If polygon is not simple.
+    !! * @throws # If start or end Vec2 are null or disposed of.
+    !! */
     public function cut(
         start:Vec2,
         end:Vec2,
@@ -862,9 +897,18 @@ class GeomPoly {
         return ret;
     }
 
-    //--------------------------------------------------------------------------
-
 mix_circular(Vertex,
+    !!/**
+    !! * Transform polygon by given matrix.
+    !! * <br/><br/>
+    !! * Any transformation (not just equiorthogonal ones) are permitted, though
+    !! * a transformation that causes polygon to be come degenerate is a bit
+    !! * pointless.
+    !! *
+    !! * @param matrix The matrix to transform polygon by.
+    !! * @return A reference to this polygon.
+    !! * @throws # If matrix is null.
+    !! */
     public function transform(matrix:Mat23):GeomPoly {
         DEBUG(
             if (matrix == null) {
@@ -879,6 +923,12 @@ mix_circular(Vertex,
         return this;
     }
 
+    !!/**
+    !! * Determine bounds of polygon.
+    !! *
+    !! * @return A new AABB representing bounds of polygon.
+    !! * @throws # If polygon is empty.
+    !! */
     public function bounds():AABB {
         DEBUG(
             if(empty()) {
@@ -898,9 +948,18 @@ mix_circular(Vertex,
         return new AABB(minx, miny, maxx-minx, maxy-miny);
     }
 
-    //
-    // Find and return mutable top/bottom/left/right vertex of polygon.
-    //
+    !!/**
+    !! * Find top most vertex of polygon.
+    !! * <br/><br/>
+    !! * If there is more than one such vertex then the result is indeterminate.
+    !! * <br/><br/>
+    !! * The Vec2 returned is intrinsically tied to the inner vertex like that
+    !! * returned by current(). This method will not alter the current vertex.
+    !! * This Vec2 is not able to be disposed of.
+    !! *
+    !! * @return A Vec2 representing the top most vertex.
+    !! * @throws # If polygon is empty.
+    !! */
     public function top():Vec2 {
         DEBUG(
             if(empty()) {
@@ -913,6 +972,19 @@ mix_circular(Vertex,
 
         return min.wrapper();
     }
+
+    !!/**
+    !! * Find bottom most vertex of polygon.
+    !! * <br/><br/>
+    !! * If there is more than one such vertex then the result is indeterminate.
+    !! * <br/><br/>
+    !! * The Vec2 returned is intrinsically tied to the inner vertex like that
+    !! * returned by current(). This method will not alter the current vertex.
+    !! * This Vec2 is not able to be disposed of.
+    !! *
+    !! * @return A Vec2 representing the bottom most vertex.
+    !! * @throws # If polygon is empty.
+    !! */
     public function bottom():Vec2 {
         DEBUG(
             if(empty()) {
@@ -925,6 +997,19 @@ mix_circular(Vertex,
 
         return max.wrapper();
     }
+
+    !!/**
+    !! * Find left most vertex of polygon.
+    !! * <br/><br/>
+    !! * If there is more than one such vertex then the result is indeterminate.
+    !! * <br/><br/>
+    !! * The Vec2 returned is intrinsically tied to the inner vertex like that
+    !! * returned by current(). This method will not alter the current vertex.
+    !! * This Vec2 is not able to be disposed of.
+    !! *
+    !! * @return A Vec2 representing the left most vertex.
+    !! * @throws # If polygon is empty.
+    !! */
     public function left():Vec2 {
         DEBUG(
             if(empty()) {
@@ -937,6 +1022,19 @@ mix_circular(Vertex,
 
         return min.wrapper();
     }
+
+    !!/**
+    !! * Find right most vertex of polygon.
+    !! * <br/><br/>
+    !! * If there is more than one such vertex then the result is indeterminate.
+    !! * <br/><br/>
+    !! * The Vec2 returned is intrinsically tied to the inner vertex like that
+    !! * returned by current(). This method will not alter the current vertex.
+    !! * This Vec2 is not able to be disposed of.
+    !! *
+    !! * @return A Vec2 representing the right most vertex.
+    !! * @throws # If polygon is empty.
+    !! */
     public function right():Vec2 {
         DEBUG(
             if(empty()) {
