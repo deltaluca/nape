@@ -3,13 +3,34 @@ $(import);
 
 class DummyNapeMain {
     static function main() {
-        var v = new Vec2();
-        v.dispose();
-        try {
-            v.dispose();
-        }
-        catch (e:Dynamic) {
-            trace(Type.getClassName(e));
+        var debug = new ShapeDebug(1, 1);
+        debug.drawConstraints = true;
+        flash.Lib.current.addChild(debug.display);
+
+        var space = new Space(new Vec2(0, 400));
+        var body = new Body();
+        body.shapes.add(new Circle(20));
+
+        var dist = new DistanceJoint(space.world, body, new Vec2(200, 50), new Vec2(0, 0), 100, 100);
+        dist.space = space;
+        dist.stiff = false;
+        dist.damping = 0;
+        dist.frequency = 1;
+
+        body.position.setxy(200,150);
+        body.velocity.y = 1000;
+        body.space = space;
+
+        space.gravity = new Vec2();
+        space.worldLinearDrag = 0;
+
+        (new haxe.Timer(13)).run = function ()
+        {
+            debug.clear();
+            for (i in 0...10)
+            space.step(1/600, 10, 10);
+            debug.draw(space);
+            debug.flush();
         }
     }
 }

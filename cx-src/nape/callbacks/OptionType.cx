@@ -5,29 +5,76 @@ $(import);
 // Public OptionType object.
 //
 
+!!/**
+!! * OptionType representing matching behaviour for Listeners.
+!! * <br/><br/>
+!! * An object's set of CbType's 'matches' against an OptionType iff.
+!! * the OptionType's includes list intersects the object's set of CbTypes
+!! * and the OptionType's excludes list 'does not' intersect the object's set
+!! * of CbTypes.
+!! * <pre>
+!! * option = new OptionType([A, B], [C, D]);
+!! * obj.cbTypes = [] // => does not match option.
+!! * obj.cbTypes = [A] // => matches the option
+!! * obj.cbTypes = [A, C] // => does not match option.
+!! * </pre>
+!! * The optionType's includes and excludes list are managed to be always
+!! * disjoint: The action of including an already excluded type serves to
+!! * remove it from the excludes list, equalliy excluding an already included
+!! * type serves to remove it from the includes list.
+!! * <pre>
+!! * var option = new OptionType();
+!! * option.including(A); // option = {[A]:[]}
+!! * option.excluding(A); // option = {[]:[]}
+!! * option.excluding(A); // option = {[]:[A]}
+!! * option.including(A); // option = {[A]:[]}
+!! * </pre>
+!! */
 class OptionType {
+    !!/**
+    !! * @private
+    !! */
     public var pr(inner):PR(OptionType);
 
-    //
-    // List of CbTypes in include and excludes set.
-    // These sets are managed to always be disjoint.
-    //
-    // As choice of present API, excluding an object
-    // will if that object is included, simply remove it from the
-    // includes list. Another exclude would then move it to excludes
-    // list.
-    //
-    // At present these lists are immutable except by these means.
-    //
+    !!/**
+    !! * List of included CbTypes.
+    !! * <br/><br/>
+    !! * This list is both readonly, and immutable. To remove an element
+    !! * from this list you can use: <code>option.excluding(cbType)</code>
+    !! *
+    !! * @default []
+    !! */
     property(includes, CbTypeList, {
         if(pr(inner).wrap_includes==null) pr(inner).setup_includes();
         /*return*/ pr(inner).wrap_includes;
     })
+
+    !!/**
+    !! * List of excluded CbTypes.
+    !! * <br/><br/>
+    !! * This list is both readonly, and immutable. To remove an element
+    !! * from this list you can use: <code>option.including(cbType)</code>
+    !! *
+    !! * @default []
+    !! */
     property(excludes, CbTypeList, {
         if(pr(inner).wrap_excludes==null) pr(inner).setup_excludes();
         /*return*/ pr(inner).wrap_excludes;
     })
 
+    !!/**
+    !! * Construct a new OptionType.
+    !! * <br/><br/>
+    !! * The type of the arguments is Dynamic, and is permitted to be one of:
+    !! * <code>CbType, CbTypeList, Array&lt;CbType&gt; flash.Vector&lt;CbType&gt;</code>
+    !! *
+    !! * @param includes The set of CbTypes to be included in the matching process.
+    !! *                 (default null)
+    !! * @param excludes The set of CbTypes to be excluded in the matching process.
+    !! *                 (default null)
+    !! * @return Return new OptionType with give sets of CbTypes.
+    !! * @throws # If either argument is not of the expected Type.
+    !! */
     flibopts(2)
     public function new(includes:Dynamic = null, excludes:Dynamic = null) {
         pr(inner) = new PR(OptionType)();
@@ -36,15 +83,47 @@ class OptionType {
         if(excludes != null) excluding(excludes);
     }
 
+    !!/**
+    !! * Append set of types to includes list.
+    !! * <br/><br/>
+    !! * This method was originally named the more appropriate 'include'
+    !! * but this conflicted with the AS3 keyword include and had to be
+    !! * change.
+    !! * <br/><br/>
+    !! * The argument is typed Dynamic, and is permitted to be one of:
+    !! * <code>CbType, CbTypeList, Array&lt;CbType&gt; flash.Vector&lt;CbType&gt;</code>
+    !! *
+    !! * @param includes The set of CbTypes to be included. (default null)
+    !! * @return A reference to this OptionType.
+    !! * @throws # If argument is not of the expected Type.
+    !! */
     public function including(includes:Dynamic = null):OptionType {
         pr(inner).append(pr(inner).includes, includes);
         return this;
     }
+
+    !!/**
+    !! * Append set of types to excludes list.
+    !! * <br/><br/>
+    !! * This method was originally named the more appropriate 'exclude'
+    !! * but to match the necessary change for the include function, this was
+    !! * renamed as excluding.
+    !! * <br/><br/>
+    !! * The argument is typed Dynamic, and is permitted to be one of:
+    !! * <code>CbType, CbTypeList, Array&lt;CbType&gt; flash.Vector&lt;CbType&gt;</code>
+    !! *
+    !! * @param excludes The set of CbTypes to be excluded. (default null)
+    !! * @return A reference to this OptionType.
+    !! * @throws # If argument is not of the expected Type.
+    !! */
     public function excluding(excludes:Dynamic = null):OptionType {
         pr(inner).append(pr(inner).excludes, excludes);
         return this;
     }
 
+    !!/**
+    !! * @private
+    !! */
     @:$keep public function toString():String {
         var inc = includes.toString();
         var exc = excludes.toString();

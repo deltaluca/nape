@@ -5,49 +5,94 @@ $(import);
 // Public CbType object.
 //
 
+!!/**
+!! * Callback Type applied to Interactors and Constraints.
+!! * <br/><br/>
+!! * Callback types are ranged over by listeners.
+!! */
 class CbType {
+    !!/**
+    !! * @private
+    !! */
     public var pr(inner):PR(CbType);
 
-    // Unique id for total ordering of CbType
+    !!/**
+    !! * Unique identifier for this CbType.
+    !! */
     property(id, Int, {
         /*return*/ pr(inner).id;
     })
 
+    !!/**
+    !! * Construct a new CbType object.
+    !! *
+    !! * @return A new CbType.
+    !! */
     public function new() {
         pr(inner) = new PR(CbType)();
         pr(inner).outer = this;
     }
 
-    //
-    // Default CbTypes assigned to relevant object on construction.
-    //
-    $(expand ANY(T)
+    $(expand ANY(T, desc)
+        !!/**
+        $doc($$*$$Default CbType given to all desc)
+        !! *
+        !! * Due to the way the Callback system in Nape works, you can use this
+        !! * CbType to match against 'all'
+        $doc($$*$$desc)
+        !! * In a Listener (Assuming you do not 'remove' this type from the object)
+        !! */
         public static var ANY_`T(flibget_ANY_`T, never):CbType;
         force_inline static function flibget_ANY_`T():CbType {
             return PR(CbType).ANY_`T;
         }
     );
-    ANY(BODY) ANY(CONSTRAINT) ANY(SHAPE) ANY(COMPOUND)
+    ANY(BODY,Bodys) ANY(CONSTRAINT,Constraints)
+    ANY(SHAPE,Shapes) ANY(COMPOUND,Compounds)
 
-    //
-    // Construct OptionType with 'this' as an included type.
-    // Equivalent to (new OptionType(this)).##(..)
-    //
+    !!/**
+    !! * Construct OptionType with given extra includes.
+    !! * <br/><br/>
+    !! * Equivalent to <code>new OptionType(this).including(includes)</code>
+    !! * <br/><br/>
+    !! * The includes argument is typed Dynamic, and is permitted to be one of:
+    !! * <code>CbType, CbTypeList, Array&lt;CbType&gt;, flash.Vector&lt;CbType&gt;</code>
+    !! *
+    !! * @param includes The CbTypes to include.
+    !! * @return A new OptionType whose includes are equal to this CbType
+    !! *         and all the CbTypes given as argument.
+    !! * @throws # If includes is null.
+    !! */
     public function including(includes:Dynamic):OptionType {
         return (new OptionType(this)).including(includes);
     }
+
+    !!/**
+    !! * Construct OptionType with given excludes.
+    !! * <br/><br/>
+    !! * Equivalent to <code>new OptionType(this).excluding(excludes)</code>
+    !! * <br/><br/>
+    !! * The excludes argument is typed Dynamic, and is permitted to be one of:
+    !! * <code>CbType, CbTypeList, Array&lt;CbType&gt;, flash.Vector&lt;CbType&gt;</code>
+    !! *
+    !! * @param excludes The CbTypes to exclude.
+    !! * @return A new OptionType whose included types are just 'this' and whose
+    !! *         excluded types are those given as argument.
+    !! * @throws # If excludes is null.
+    !! */
     public function excluding(excludes:Dynamic):OptionType {
         return (new OptionType(this)).excluding(excludes);
     }
 
-    //
-    // Field for user to store whatever they like.
-    //
     PublicUserData(pr(inner))
 
-    //
-    // Lists of all 'active' objects using this CbType in any Space.
-    //
+    !!/**
+    !! * List of all Interactors using this CbType.
+    !! * <br/><br/>
+    !! * This list contains only those Interactors that are inside of a Space
+    !! * <br/><br/>
+    !! * This list is not only readonly, but also immutable.
+    !! */
     property(interactors, InteractorList, {
         if (pr(inner).wrap_interactors == null) {
             pr(inner).wrap_interactors = PR(InteractorList).get(pr(inner).interactors, true);
@@ -55,6 +100,13 @@ class CbType {
         pr(inner).wrap_interactors;
     })
 
+    !!/**
+    !! * List of all Constraints using this CbType.
+    !! * <br/><br/>
+    !! * This list contains only those Constraints that are inside of a Space
+    !! * <br/><br/>
+    !! * This list is not only readonly, but also immutable.
+    !! */
     property(constraints, ConstraintList, {
         if(pr(inner).wrap_constraints == null) {
             pr(inner).wrap_constraints = PR(ConstraintList).get(pr(inner).constraints, true);
@@ -62,6 +114,9 @@ class CbType {
         pr(inner).wrap_constraints;
     })
 
+    !!/**
+    !! * @private
+    !! */
     @:$keep public function toString():String {
         return if (this == ANY_BODY)       "ANY_BODY";
              elif (this == ANY_SHAPE)      "ANY_SHAPE";

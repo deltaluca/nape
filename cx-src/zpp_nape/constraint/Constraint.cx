@@ -47,7 +47,7 @@ class PR(Constraint) {
         stiff = true;
         active = true;
         ignore = false;
-        frequency = 10;
+        frequency = 1;
         damping = 1;
         maxForce = PR(Const).POSINF();
         maxError = PR(Const).POSINF();
@@ -82,17 +82,25 @@ class PR(Constraint) {
         immutable_midstep("Interactor::cbTypes");
     })
     function wrap_cbTypes_adder(cb:CbType):Bool {
-        insert_cbtype(cb.pr(inner));
+        if(insert_cbtype(cb.pr(inner)))
+        {
+            if (space!=null)
+            {
+                cb.pr(inner).addConstraint(this);
+            }
+        }
+
         wrap_cbTypes_invalidate(null); //need to call due to returning false!
         return false; //always prevent wrap_list inserting into real list
     }
     function wrap_cbTypes_subber(cb:CbType):Void {
-        cb.pr(inner).remConstraint(this);
+        if (space != null)
+        {
+            cb.pr(inner).remConstraint(this);
+        }
     }
-    public function insert_cbtype(cb:PR(CbType)) {
-        //attempt to insert cb into list in correct position (check not already inside).
-        if(TryInsert(cb,cbTypes,PR(CbType).set_lt))
-            cb.addConstraint(this);
+    flibmdel public inline function insert_cbtype(cb:PR(CbType)) {
+        return TryInsert(cb, cbTypes, PR(CbType).set_lt);
     }
     function wrap_cbTypes_invalidate(_) {
         if(space!=null && active) {
@@ -138,12 +146,18 @@ class PR(Constraint) {
 
         //do body lists
         activeBodies();
+
+        //do cbTypes
+        Iter(cb, cbTypes, cb.addConstraint(this));
     }
     public function removedFromSpace() {
         if(active) inactiveOrOutSpace();
 
         //do body lists
         inactiveBodies();
+
+        //do cbTypes
+        Iter(cb, cbTypes, cb.remConstraint(this));
     }
 
     //------------------------------------------------------------------------------------
@@ -368,10 +382,10 @@ $(mixin global withConstraint(block)
     //                 {--- in ---}  {---- out ----}
     $(mixin soft_gamma(freq,damping,dt, gamma,biasCoef) {
         var omega = 2*Math.PI*freq;
-        gamma = 1/(omega*dt*(2*damping+omega*dt));
+        gamma = 1/(dt*omega*(2*damping+omega*dt));
         var ig = 1/(1+gamma);
 
-        biasCoef = omega*omega*gamma;
+        biasCoef = dt*omega*omega*gamma;
         gamma *= ig;
         ig;
     });
