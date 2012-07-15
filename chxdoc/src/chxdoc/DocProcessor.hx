@@ -61,6 +61,8 @@ class DocProcessor {
 			typeParams		: new Array(),
 			version			: new Array(),
             defaultValue    : null,
+            inheritDoc      : false,
+            inheritString   : null,
 			forcePrivate	: false,
 		};
 		this.doc = doc.split("\r\n").join("\n").split("\r").join("\n");
@@ -101,8 +103,11 @@ class DocProcessor {
 
         var trim = 0;
         var chs = ch.parsed.split("\n");
-        for (c in chs)
+        for (dc in chs)
         {
+            var c = dc;
+            while(c.length > 0 && c.charAt(c.length-1) == " ") c = c.substr(0, c.length-1);
+            if (c.length == 0) continue;
             for (i in 0...c.length)
             {
                 if (c.charAt(i) == " ")
@@ -111,7 +116,7 @@ class DocProcessor {
                 }else
                     break;
             }
-            if (trim != 0) break;
+            break;
         }
 
         docCtx.comments = Lambda.map(ch.parsed.split("\n"), function (x) return x.substr(trim)).join("\n");
@@ -245,6 +250,10 @@ class DocProcessor {
 				);
             case "default":
                 docCtx.defaultValue = packAccum(tagEreg.matched(2));
+            case "inheritDoc":
+                docCtx.inheritDoc = true;
+                accum.push(parts[i]);
+				continue;
 			default:
 				ChxDocMain.logWarning("Unrecognized tag " + parts[i]);
 			}

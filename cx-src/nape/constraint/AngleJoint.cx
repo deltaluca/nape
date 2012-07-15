@@ -2,12 +2,43 @@ package nape.constraint;
 $(import);
 
 withConstraint(
+!!/**
+!! * AngleJoint constraining the relative angles of two Bodies.
+!! * <br/><br/>
+!! * The equation for this constraint is:
+!! * <pre>
+!! * jointMin <= ratio * body2.rotation - body1.rotation <= jointMax
+!! * </pre>
+!! */
 class AngleJoint extends Constraint {
+    !!/**
+    !! * @private
+    !! */
     public var pr(inner_zn):PR(AngleJoint);
 
+    !!/**
+    !! * First Body in constraint.
+    !! * <br/><br/>
+    !! * This value may be null, but trying to simulate the constraint whilst
+    !! * this body is null will result in an error.
+    !! */
     wrap_body_new(body1, b1, $(mixin isNew(b) pr(inner_zn).b2 != b) isNew)
+
+    !!/**
+    !! * Second Body in constraint.
+    !! * <br/><br/>
+    !! * This value may be null, but trying to simulate the constraint whilst
+    !! * this body is null will result in an error.
+    !! */
     wrap_body_new(body2, b2, $(mixin isNew(b) pr(inner_zn).b1 != b) isNew)
 
+    !!/**
+    !! * Lower bound for constraint.
+    !! * <br/><br/>
+    !! * This value must be less than or equal to jointMax.
+    !! *
+    !! * @default -infinity
+    !! */
     property(jointMin, Float, {
         /*return*/ pr(inner_zn).jointMin;
     }, {
@@ -24,6 +55,13 @@ class AngleJoint extends Constraint {
         }
     })
 
+    !!/**
+    !! * Upper bound for constraint.
+    !! * <br/><br/>
+    !! * This value must be greater than or equal to jointMin.
+    !! *
+    !! * @default infinity
+    !! */
     property(jointMax, Float, {
         /*return*/ pr(inner_zn).jointMax;
     }, {
@@ -40,6 +78,11 @@ class AngleJoint extends Constraint {
         }
     })
 
+    !!/**
+    !! * Ratio property of constraint.
+    !! *
+    !! * @default 1
+    !! */
     property(ratio, Float, {
         /*return*/ pr(inner_zn).ratio;
     }, {
@@ -56,10 +99,32 @@ class AngleJoint extends Constraint {
         }
     })
 
+    !!/**
+    !! * Determine if constraint is slack.
+    !! * <br/><br/>
+    !! * This constraint is slack if the positional error is within
+    !! * the bounds of (jointMin, jointMax).
+    !! * <br/><br/>
+    !! * This value cannot be computed if either of the bodies is null.
+    !! */
     property(slack, Bool, {
-        /*return*/ pr(inner_zn).slack;
+        DEBUG(
+            if (body1 == null || body2 == null) {
+                throw "Error: Cannot compute slack for AngleJoint if either body is null.";
+            }
+        )
+        /*return*/ pr(inner_zn).is_slack();
     })
 
+    !!/**
+    !! * Construct a new AngleJoint.
+    !! *
+    !! * @param body1 The first body in AngleJoint.
+    !! * @param body2 The second body in AngleJoint.
+    !! * @param jointMin The lower bound for constraint.
+    !! * @param jointMax The upper bound for constraint.
+    !! * @return The constructed AngleJoint.
+    !! */
     flibopts(0)
     public function new(
         body1:Null<Body>,
@@ -81,12 +146,22 @@ class AngleJoint extends Constraint {
         this.jointMax = jointMax;
     }
 
+    !!/**
+    !! * @inheritDoc
+    !! * <br/><br/>
+    !! * For this constraint, the MatMN will be 1x1.
+    !! */
     public override function impulse():MatMN {
         var ret = new MatMN(1,1);
         ret.setx(0, 0, pr(inner_zn).jAcc + pr(inner_zn).pjAcc);
         return ret;
     }
 
+    !!/**
+    !! * @inheritDoc
+    !! * <br/><br/>
+    !! * For this constraint, only the z coordinate will be non-zero.
+    !! */
     public override function bodyImpulse(body:Body):Vec3 {
         DEBUG(
             if (body == null) {
@@ -105,6 +180,9 @@ class AngleJoint extends Constraint {
         }
     }
 
+    !!/**
+    !! * @inheritDoc
+    !! */
     public override function visitBodies(lambda:Body->Void):Void {
         DEBUG(
             if (lambda == null) {

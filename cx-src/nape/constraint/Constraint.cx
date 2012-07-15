@@ -1,14 +1,25 @@
 package nape.constraint;
 $(import);
 
+!!/**
+!! * Base type for all Nape joints and constraints
+!! */
 class Constraint {
+    !!/**
+    !! * @private
+    !! */
     public var pr(inner):PR(Constraint);
 
-    //
-    // Field for user to store whatever they wish.
-    //
     PublicUserData(pr(inner))
 
+    !!/**
+    !! * Compound this Constraints belong to.
+    !! * <br/><br/>
+    !! * If this constraint is in a Space or another Compound and you change
+    !! * its compound, then it will be removed from that Space or Compound.
+    !! *
+    !! * @default null
+    !! */
     property(compound, Null<Compound>, {
         /*return*/ if (pr(inner).compound == null) null
                    else pr(inner).compound.outer;
@@ -23,6 +34,17 @@ class Constraint {
         }
     })
 
+    !!/**
+    !! * Space this constraint is inside of.
+    !! * <br/><br/>
+    !! * Whether this constraint is directly in a Space, or part of a Compound
+    !! * which is inside of a space, this value will be equal to that Space.
+    !! * <br/><br/>
+    !! * If this constraint is inside of a Compound, then you cannot modify its
+    !! * Space as the constraint belongs to that Compound.
+    !! *
+    !! * @default null
+    !! */
     property(space, Null<Space>, {
         /*return*/ if (pr(inner).space == null) null
                    else pr(inner).space.outer;
@@ -54,6 +76,13 @@ class Constraint {
         }
     })
 
+    !!/**
+    !! * Whether this constraint is sleeping or not.
+    !! * <br/><br/>
+    !! * This property is only defined if the constraint is inside of a Space
+    !! * and is active, otherwise an error will be thrown should you access this
+    !! * property.
+    !! */
     property(isSleeping, Bool, {
         DEBUG(
             if (pr(inner).space == null || !pr(inner).active) {
@@ -65,6 +94,15 @@ class Constraint {
         /*return*/ pr(inner).component.sleeping;
     })
 
+    !!/**
+    !! * Whether this constraint is active or not.
+    !! * <br/><br/>
+    !! * Setting a constraint to be no longer active is a useful way of
+    !! * temporarigly disabling a constraint without having to remove it
+    !! * from a Space.
+    !! *
+    !! * @default true
+    !! */
     property(active, Bool, {
         /*return*/ pr(inner).active;
     }, {
@@ -102,6 +140,14 @@ class Constraint {
         }
     })
 
+    !!/**
+    !! * Whether interactions between related Bodys will be ignored.
+    !! * <br/><br/>
+    !! * If true, then the Bodys related to this constraint will not
+    !! * be permitted to interact in anyway, including callbacks.
+    !! *
+    !! * @default false
+    !! */
     property(ignore, Bool, {
         /*return*/ pr(inner).ignore;
     }, {
@@ -111,6 +157,21 @@ class Constraint {
         }
     })
 
+    !!/**
+    !! * Whether constraint is stiff, or elastic.
+    !! * <br/><br/>
+    !! * A stiff constraint has its positional error resolved directly
+    !! * as with contact penetrations. This is generally a more stable
+    !! * way of solving positional errors but has a side-effect that for example
+    !! * changing the pivot point on a constraint used for mouse control will not
+    !! * cause the objects to swing as the positional error is solved without
+    !! * effecting the velocity of the object which may not be wanted.
+    !! * <br/><br/>
+    !! * If false, then the positional error of the constraint will be
+    !! * resolved in an elastic way using changes in velocity.
+    !! *
+    !! * @default true
+    !! */
     property(stiff, Bool, {
         /*return*/ pr(inner).stiff;
     }, {
@@ -120,6 +181,18 @@ class Constraint {
         }
     })
 
+    !!/**
+    !! * Frequency of elastic properties of constraint.
+    !! * <br/><br/>
+    !! * This property only has an effect when constraint is not stiff.
+    !! * <br/><br/>
+    !! * This value corresponds to in an ideal situation, the number of
+    !! * spring like oscillations the constraint will make per second.
+    !! * <br/><br/>
+    !! * This value must be strictly positive (0 not allowed).
+    !! *
+    !! * @default 1
+    !! */
     property(frequency, Float, {
         /*return*/ pr(inner).frequency;
     }, {
@@ -140,6 +213,19 @@ class Constraint {
         }
     })
 
+    !!/**
+    !! * Damping ratio of elastic properties of constraint.
+    !! * <br/><br/>
+    !! * This property only has an effect when constraint is not stiff.
+    !! * <br/><br/>
+    !! * This value corresponds to in the ideal situation, the damping
+    !! * ratio of the constraints oscillations with 1 corresponding to
+    !! * a total dampening, and values greater than one being over-dampening.
+    !! * <br/><br/>
+    !! * This value must be zero or positive.
+    !! *
+    !! * @default 1
+    !! */
     property(damping, Float, {
         /*return*/ pr(inner).damping;
     }, {
@@ -160,6 +246,18 @@ class Constraint {
         }
     })
 
+    !!/**
+    !! * The maximum amount of force this constraint is allowed to use.
+    !! * <br/><br/>
+    !! * This value, whilst still used in a stiff constraint will not work
+    !! * as you might hope for; since a stiff constraint resolves positional
+    !! * error without using impulses, the maxForce will not have any effect
+    !! * on how positional errors are resolved.
+    !! * <br/><br/>
+    !! * This value must be zero or positive.
+    !! *
+    !! * @default infinity
+    !! */
     property(maxForce, Float, {
         /*return*/ pr(inner).maxForce;
     }, {
@@ -178,6 +276,18 @@ class Constraint {
         }
     })
 
+    !!/**
+    !! * The maximum amount of error this constraint is allowed to use.
+    !! * <br/><br/>
+    !! * For stiff constraints, this value only serves to work in conjunction
+    !! * with breakUnderError to permit breaking of the constraint.
+    !! * <br/><br/>
+    !! * For non-stiff constraints, this value will also effect how the constraint
+    !! * behaves when breakUnderError is false by restricting the amount of error
+    !! * that will be resolved; this will not work for stiff constraints.
+    !! *
+    !! * @default infinity
+    !! */
     property(maxError, Float, {
         /*return*/ pr(inner).maxError;
     }, {
@@ -196,6 +306,15 @@ class Constraint {
         }
     })
 
+    !!/**
+    !! * Whether constraint will break once maxForce is reached.
+    !! * <br/><br/>
+    !! * This property effects both stiff and non-stiff constraints, though
+    !! * for the same reasons as those of maxForce, does not make much sense
+    !! * to be used in stiff constraints.
+    !! *
+    !! * @default false
+    !! */
     property(breakUnderForce, Bool, {
         /*return*/ pr(inner).breakUnderForce;
     }, {
@@ -205,6 +324,13 @@ class Constraint {
         }
     })
 
+    !!/**
+    !! * Whether constraint will break once maxError is reached.
+    !! * <br/><br/>
+    !! * This property effects both stiff and non-stiff constraints.
+    !! *
+    !! * @default false
+    !! */
     property(breakUnderError, Bool, {
         /*return*/ pr(inner).breakUnderError;
     }, {
@@ -214,6 +340,14 @@ class Constraint {
         }
     })
 
+    !!/**
+    !! * Whether constraint will be removed when it breaks.
+    !! * <br/><br/>
+    !! * If true, then when constraint is broken it will be removed from
+    !! * the Space. Otherwise it will simple be made inactive.
+    !! *
+    !! * @default true
+    !! */
     property(removeOnBreak, Bool, {
         /*return*/ pr(inner).removeOnBreak;
     }, {
@@ -227,13 +361,44 @@ class Constraint {
     //constraint space
     //public function positionError():MatMN { return null; }
     //public function velocityError():MatMN { return null; }
+
+    !!/**
+    !! * Return the constraint-space impulse applied in previous step.
+    !! *
+    !! * @return A new MatMN representing the constraint space impulse.
+    !! */
     public function impulse():MatMN { return null; }
 
-    //world space
+    !!/**
+    !! * Compute impulse that was applied to the given Body.
+    !! * <br/><br/>
+    !! * This impulse is the actual (mass weighted) change in velocity
+    !! * that occured due to this constraint.
+    !! *
+    !! * @param body The Body to compute impulse for.
+    !! * @return The impulse that was applied to the body in the previous step.
+    !! * @throws # If Body is not related to the Constraint.
+    !! */
     public function bodyImpulse(body:Body):Vec3 { return null; }
 
+    !!/**
+    !! * Apply given function to all Bodys linked to the constraint.
+    !! * <br/><br/>
+    !! * If a body is duplicated in a constraint then it will only
+    !! * be visited once.
+    !! *
+    !! * @param lambda The function to apply to each Body.
+    !! * @throws # If lambda is null.
+    !! */
     public function visitBodies(lambda:Body->Void):Void {}
 
+    !!/**
+    !! * Set of CbTypes for this constraints for callbacks.
+    !! * <br/><br/>
+    !! * This value cannot at present be set, but can be modified.
+    !! *
+    !! * @default [CbType.ANY_CONSTRAINT]
+    !! */
     property(cbTypes, CbTypeList, {
         if(pr(inner).wrap_cbTypes == null) {
             pr(inner).setupcbTypes();
@@ -242,16 +407,30 @@ class Constraint {
         /*return*/ pr(inner).wrap_cbTypes;
     })
 
+    !!/**
+    !! * @private
+    !! */
     public function new() {
         //implicit ANY type
         pr(inner).insert_cbtype(CbType.ANY_CONSTRAINT.pr(inner));
         DEBUG(throw "Error: Constraint cannot be instantiated derp!";)
     }
 
+    !!/**
+    !! * @private
+    !! */
     @:$keep public function toString():String {
         return "{Constraint}";
     }
 
+    !!/**
+    !! * Produce copy of constraint.
+    !! * <br/><br/>
+    !! * All constraint properties except for internal impulse cache
+    !! * and userData field will be copied.
+    !! *
+    !! * @return The copied Constraint.
+    !! */
     public function copy():Constraint {
         return pr(inner).copy();
     }

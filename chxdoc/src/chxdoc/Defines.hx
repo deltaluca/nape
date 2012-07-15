@@ -143,6 +143,8 @@ typedef DocsContext = {
 	var typeParams			: Array<{ arg : Html, desc : Html }>;
 	var version				: Array<Html>;
     var defaultValue        : Html;
+    var inheritDoc          : Bool;
+    var inheritString       : Html;
 	/** @private tag */
 	var forcePrivate		: Bool;
 };

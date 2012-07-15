@@ -50,6 +50,11 @@ class PR(AngleJoint) extends PR(Constraint) {
         }
         C;
     });
+    flibmdel public inline function is_slack() {
+        var slack;
+        Cerr(slack);
+        return slack;
+    }
 
     $(mixin Verr(scale) {
         scale*(ratio*(b2.angvel+b2.kinangvel) - b1.angvel-b1.kinangvel);
@@ -121,6 +126,7 @@ class PR(AngleJoint) extends PR(Constraint) {
 
         ratio = 1;
         jAcc = 0;
+        slack = false;
         jMax = PR(Const).POSINF();
         stepped = false;
     }
@@ -157,6 +163,7 @@ class PR(AngleJoint) extends PR(Constraint) {
     public override function clearcache() {
         jAcc = 0; pjAcc = 0;
         pre_dt = -1.0;
+        slack = false;
     }
 
     //---------------------------------------------------

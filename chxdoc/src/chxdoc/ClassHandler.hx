@@ -117,7 +117,14 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 			if(f.isOverride) {
 				var ctx2 = getMethodOriginator(ctx, f.name);
 				if(ctx2 != null) {
-					//trace("In " + ctx.nameDots + " method "+ f.name + " originated in " + ctx2.nameDots);
+                    if (f.docs != null && f.docs.inheritDoc) {
+                        trace(f.docs.comments);
+                        f.docs.comments = (~/@inheritDoc/g).replace(f.docs.comments, fieldctx.docs.comments);
+                        trace(f.docs.comments);
+                        f.docs.params = fieldctx.docs.params;
+                        f.docs.returns = fieldctx.docs.returns;
+                        f.docs.throws = fieldctx.docs.throws;
+                    }
 					f.inheritance.owner = ctx2;
 					makeInheritedFieldLink(ctx, f);
 				}
@@ -236,6 +243,7 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 	 * @param ctx a class where the superclass will be the first to be checked
 	 * @param name A method name
 	 */
+     static var fieldctx:FieldCtx = null;
 	static function getMethodOriginator(ctx : ClassCtx, name:String) : ClassCtx {
 		var rv : ClassCtx = null;
 		var sc = ctx.scPathParams;
@@ -245,6 +253,7 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 			if(f != null) {
 				if((!f.isInherited && f.isOverride) || (!f.isInherited && !f.isOverride)) {
 					rv = ctx;
+                    fieldctx = f;
 				}
 			} else {
 			}
