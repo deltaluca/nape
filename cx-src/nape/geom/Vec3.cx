@@ -1,20 +1,26 @@
 package nape.geom;
 $(import);
 
-//
-// Public Vec3 object.
-//
-
+!!/**
+!! * A 3 dimensional vector object.
+!! * <br/><br/>
+!! * In many instances a Vec3 will be accessible from Nape which is marked
+!! * as immutable, these cases will be documented and modifying such a Vec3
+!! * will result in an error.
+!! */
 class Vec3 {
+    !!/**
+    !! * @private
+    !! */
     public var pr(inner):PR(Vec3);
 
     // Object poolable.
     PublicMixPool(Vec3)
 
-    //
-    // x, y, z properties
-    //
     $(mixin genprop(x)
+        !!/**
+        $doc($$*$$The x component of Vec3.)
+        !! */
         property(x, Float, {
             Disposed(this, Vec3);
             pr(inner).validate();
@@ -33,11 +39,16 @@ class Vec3 {
     genprop(y)
     genprop(z)
 
-    //
-    // Constructor (which should not be used)
-    // and getter for automatic use of object pool.
-    //
-
+    !!/**
+    !! * Allocate a Vec3 from the global object pool.
+    !! * <br/><br/>
+    !! * Use of this method should always be preferred to the constructor.
+    !! *
+    !! * @param x The x component of Vec3. (default 0)
+    !! * @param y The y component of Vec3. (default 0)
+    !! * @param z The z component of Vec3. (default 0)
+    !! * @return A Vec3 allocated from global object pool with given components.
+    !! */
     public static function get(x:Float = 0, y:Float = 0, z:Float = 0):Vec3 {
         var ret = PublicGet(Vec3);
         ret.setxyz(x,y,z);
@@ -46,20 +57,39 @@ class Vec3 {
         return ret;
     }
 
+    !!/**
+    !! * Construct a new Vec3.
+    !! * <br/><br/>
+    !! * This method should not generally be used with preference for the
+    !! * static get method which will make use of the global object pool.
+    !! *
+    !! * @param x The x component of Vec3. (default 0)
+    !! * @param y The y component of Vec3. (default 0)
+    !! * @param z The z component of Vec3. (default 0)
+    !! * @return A newly constructed Vec3 with given components.
+    !! */
     public function new(x:Float = 0, y:Float = 0, z:Float = 0) {
         pr(inner) = new PR(Vec3)();
         pr(inner).outer = this;
         vec3_set(this., $(->));
     }
 
+    !!/**
+    !! * Produce a copy of this Vec3.
+    !! *
+    !! * @return The copy of this Vec3.
+    !! * @throws # If this Vec3 has been disposed of.
     public function copy():Vec3 {
         Disposed(this, Vec3);
         return Vec3.get(x, y, z);
     }
 
-    //
-    // Method to release Vec3 to object pool.
-    //
+    !!/**
+    !! * Release Vec3 object to global object pool.
+    !! *
+    !! * @throws # If this Vec3 has already been disposed of.
+    !! * @throws # If this Vec3 is immutable.
+    !! */
     public function dispose():Void {
         Disposed(this, Vec3);
         DEBUG(
@@ -70,9 +100,14 @@ class Vec3 {
         PublicFree(Vec3, this);
     }
 
-    //
-    // Length property.
-    //
+    !!/**
+    !! * Length of Vec3.
+    !! * <br/><br/>
+    !! * This value may also be set to any value including negatives, though
+    !! * an error will be thrown if length of the Vec3 is already 0 as such
+    !! * a scaling would be undefined. As well as if this Vec3 has been disposed
+    !! * of, or is immutable.
+    !! */
     property(length, Float,{
         Disposed(this, Vec3);
         /*return*/ vec3_length_slow(this.);
@@ -89,40 +124,76 @@ class Vec3 {
         vec3_muleq(this., (length/this.length));
     })
 
+    !!/**
+    !! * Compute squared length of Vec3.
+    !! *
+    !! * @return The squared length of this Vec3.
+    !! * @throws # If the Vec3 has been disposed of.
+    !! */
     keep public function lsq():Float {
         Disposed(this, Vec3);
         return vec3_lsq(this.);
     }
 
-    //
-    // Setters
-    //
-    public function set(p:Vec3):Vec3 {
+    !!/**
+    !! * Set values of this Vec3 from another.
+    !! *
+    !! * @param vector The vector to set values from.
+    !! * @return A reference to this Vec3.
+    !! * @throws # If the vector argument is null.
+    !! * @throws # If this, or the vector argument are disposed of.
+    !! * @throws # If this Vec3 is immutable.
+    !! */
+    public function set(vector:Vec3):Vec3 {
         Disposed(this, Vec3);
-        Disposed(p, Vec3);
+        Disposed(vector, Vec3);
         DEBUG(
-            if (p == null) {
+            if (vector == null) {
                 throw "Error: Cannot assign null Vec3";
             }
         )
 
-        return setxyz(p.x, p.y, p.z);
+        return setxyz(vector.x, vector.y, vector.z);
     }
 
+    !!/**
+    !! * Set values of this Vec3 from numbers.
+    !! *
+    !! * @param x The new x component value for this vector.
+    !! * @param y The new y component value for this vector.
+    !! * @param z The new z component value for this vector.
+    !! * @return A reference to this Vec3.
+    !! * @throws # If this Vec3 has been disposed of.
+    !! * @throws # If this Vec3 is immutable.
+    !! */
     public function setxyz(x:Float, y:Float, z:Float):Vec3 {
         Disposed(this, Vec3);
         vec3_set(this., $(->));
         return this;
     }
 
-    //
-    // Extract Vec2 corresponding to x,y values
-    //
+    !!/**
+    !! * Produce copy of the xy components of Vec3.
+    !! * <br/><br/>
+    !! * This function will return a new Vec2 completely seperate
+    !! * from this Vec3 with values equal to the xy components of
+    !! * this Vec3.
+    !! *
+    !! * @param weak If true, then the allocated Vec2 will be weak
+    !! *             so that when used as an argument to a Nape
+    !! *             function it will be automatically released back
+    !! *             to the global object pool. (default false)
+    !! * @return An allocated Vec2 representing the xy components of
+    !! *         this vector.
+    !! */
     public function xy(weak:Bool = false):Vec2 {
         Disposed(this, Vec3);
         return Vec2.get(x, y, weak);
     }
 
+    !!/**
+    !! * @private
+    !! */
     @:$keep public function toString():String {
         Disposed(this, Vec3);
         return "{ x: "+x+" y: "+y+" z: "+z+" }";

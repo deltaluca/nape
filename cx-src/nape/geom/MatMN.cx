@@ -1,26 +1,40 @@
 package nape.geom;
 $(import);
 
-//
-// Public Matrix object for general matrices
-// Used for constraint space queries.
-//
-
+!! /**
+!! * A general MxN dimensional matrix.
+!! * <br/><br/>
+!! * This object is not often used in Nape :)
+!! */
 class MatMN {
+    !!/**
+    !! * @private
+    !! */
     public var pr(inner):PR(MatMN);
 
-    // Number of rows and columns
+    !!/**
+    !! * The number of rows in the matrix.
+    !! */
     property(rows, Int, {
         /*return*/ pr(inner).m;
     })
+
+    !!/**
+    !! * The number of columns in the matrix.
+    !! */
     property(cols, Int, {
         /*return*/ pr(inner).n;
     })
 
 
-    //
-    // Getter and setter for elements.
-    //
+    !!/**
+    !! * Access element at index.
+    !! *
+    !! * @param row The row of the matrix to access.
+    !! * @param col the column of the matrix to access.
+    !! * @return The element at given (row,col) index.
+    !! * @throws # If access is out of range.
+    !! */
     inline public function x(row:Int, col:Int):Float {
         DEBUG(
             if (row < 0 || col < 0 || row >= rows || col >= cols) {
@@ -31,6 +45,16 @@ class MatMN {
         return pr(inner).x[(row * cols) + col];
     }
 
+    !!/**
+    !! * Set element at index.
+    !! *
+    !! * @param row The row of the matrix to set.
+    !! * @param col The column of the matrix to set.
+    !! * @param x The value to set at given (row,col) index.
+    !! * @return The value of matrix at given index after set. (Always
+    !! *         equal to the x parameter)
+    !! * @throws # If index is out of range.
+    !! */
     inline public function setx(row:Int, col:Int, x:Float):Float {
         DEBUG(
             if (row < 0 || col < 0 || row >= rows || col >= cols) {
@@ -41,9 +65,14 @@ class MatMN {
         return pr(inner).x[(row * cols) + col] = x;
     }
 
-    //
-    // Constructor
-    //
+    !!/**
+    !! * Construct a new Matrix.
+    !! *
+    !! * @param rows The number of rows in matrix.
+    !! * @param cols The number of columns in matrix.
+    !! * @return The constructed Matrix.
+    !! * @throws # If rows or columns is negative or 0.
+    !! */
     flibopts(0)
     public function new(rows:Int, cols:Int) {
         DEBUG(
@@ -56,6 +85,9 @@ class MatMN {
         pr(inner).outer = this;
     }
 
+    !!/**
+    !! * @private
+    !! */
     @:$keep public function toString() {
         var ret = "{ ";
         var fst = true;
@@ -69,10 +101,11 @@ class MatMN {
         return ret;
     }
 
-    //
-    // Arithmetic operations.
-    //
-
+    !!/**
+    !! * Transpose matrix, returning a new Matrix.
+    !! *
+    !! * @return The transposed matrix.
+    !! */
     public function transpose():MatMN {
         var ret = new MatMN(cols,rows);
         for (i in 0...rows) {
@@ -82,7 +115,21 @@ class MatMN {
         return ret;
     }
 
-    public function mul(y:MatMN):MatMN {
+    !!/**
+    !! * Multiple this matrix with another.
+    !! * <br/><br/>
+    !! * This operation is only valid if the number of columns
+    !! * in this matrix, is equal to the number of rows in the input
+    !! * matrix.
+    !! * <br/>
+    !! * The result of the multiplication is returned as a new matrix.
+    !! *
+    !! * @param matrix The matrix to multiple with.
+    !! * @return The result of the multiplication
+    !! * @throws If matrix dimensions are not compatible.
+    !! */
+    public function mul(matrix:MatMN):MatMN {
+        var y = matrix;
         DEBUG(
             if(cols != y.rows) {
                 throw "Error: Matrix dimensions aren't compatible";

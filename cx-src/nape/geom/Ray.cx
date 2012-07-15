@@ -1,16 +1,15 @@
 package nape.geom;
 $(import);
 
-//
-// Public Ray object.
-//
-
+!!/**
+!! * Parametrically defined ray used in ray casting functions.
+!! */
 class Ray {
+    !!/**
+    !! * @private
+    !! */
     public var pr(inner):PR(Ray);
 
-    //
-    // Field for users to store whatever extra information they may like.
-    //
     PublicUserData(pr(inner))
 
     //
@@ -21,6 +20,12 @@ class Ray {
     // remains whatever they set it to.
     //
 
+    !!/**
+    !! * Origin of ray.
+    !! * <br/><br/>
+    !! * This property can be set, and is equivalent to performing:
+    !! * <code>ray.origin.set(newOrigin)</code>
+    !! */
     property(origin, Vec2, {
         /*return*/ pr(inner).origin;
     }, {
@@ -34,6 +39,15 @@ class Ray {
         pr(inner).origin.set(origin);
     })
 
+    !!/**
+    !! * Direction of ray.
+    !! * <br/><br/>
+    !! * This property can be set, and is equivalent to performing:
+    !! * <code>ray.direction.set(newDirection)</code> with the additional
+    !! * constraint that the input direction must not be degenerate.
+    !! * <br/><br/>
+    !! * This direction vector need not be normalised.
+    !! */
     property(direction, Vec2, {
         /*return*/ pr(inner).direction;
     }, {
@@ -57,6 +71,15 @@ class Ray {
     // Whether direction is normalised or not makes no difference here.
     //
 
+    !!/**
+    !! * The maximum distance for ray to be queried.
+    !! * <br/><br/>
+    !! * When used in ray test functions, no search will extend beyond this
+    !! * distance.
+    !! * <br/><br/>
+    !! * This value represents a true distance, even if direction vector is
+    !! * not normalised. This value may be equal to infinity.
+    !! */
     property(maxDistance, Float, {
         /*return*/ pr(inner).maxdist;
     }, {
@@ -69,10 +92,15 @@ class Ray {
         pr(inner).maxdist = maxDistance;
     })
 
-    //
-    // Compute AABB bounding ray (possibly infinite)
-    // Takes maxDistance into account.
-    //
+    !!/**
+    !! * Compute bounding box of ray.
+    !! * <br/><br/>
+    !! * This function will take into account the maxDistance property of this ray.
+    !! * <br/>
+    !! * The return AABB may have in the general case infinite values :)
+    !! *
+    !! * @return An AABB representing bounding box of ray.
+    !! */
     public function aabb():AABB {
         return pr(inner).rayAABB().wrapper();
     }
@@ -82,6 +110,20 @@ class Ray {
     // Again, this is a true distance and whether direction is normalised or not
     // makes no difference here.
     //
+    !!/**
+    !! * Compute point along ray at given distance.
+    !! * <br/><br/>
+    !! * Even if ray direction is not normalised, this value still repersents
+    !! * a true distance. The distance may also be negative.
+    !! * <br/><br/>
+    !! * The Vec2 returned will be allocated from the global object pool.
+    !! *
+    !! * @param distance The distance along ray to compute point for.
+    !! * @param weak If true then a weakly allocated Vec2 will be returned
+    !! *             which will be automatically released to global object
+    !! *             pool when used as argument to another Nape function.
+    !! * @return Vec2 representing point at given distance along ray.
+    !! */
     public function at(distance:Float, weak:Bool = false):Vec2 {
         pr(inner).validate_dir();
         return Vec2.get(
@@ -91,9 +133,14 @@ class Ray {
         );
     }
 
-    //
-    // Constructor, copy and factory methods.
-    //
+    !!/**
+    !! * Construct new Ray.
+    !! *
+    !! * @param origin Origin of ray.
+    !! * @param direction Direction of ray.
+    !! * @throws # If origin or direction are null, or disposed of.
+    !! * @throws # If direction is degenerate.
+    !! */
     flibopts(0)
     public function new(origin:Vec2, direction:Vec2) {
         Disposed(origin, Vec2);
@@ -105,15 +152,34 @@ class Ray {
         pr(inner).maxdist = PR(Const).POSINF();
     }
 
+    !!/**
+    !! * Produce a copy of this ray.
+    !! * <br/><br/>
+    !! * All ray properties will be copied including maxDistance.
+    !! *
+    !! * @return The copy of this Ray.
+    !! */
     public function copy() {
         var ret = new Ray(origin,direction);
         ret.maxDistance = maxDistance;
         return ret;
     }
 
-    //
-    // Create ray from line segment, with maxDistance set appropriately
-    //
+    !!/**
+    !! * Create ray representing a line segment.
+    !! * <br/><br/>
+    !! * This function will a ray who's origin is the start point
+    !! * and who's direction is towards the end point with the
+    !! * maxDistance property appropriately set to not extend
+    !! * beyond the end point.
+    !! *
+    !! * @param start Start point of line segment
+    !! * @param end End point of line segment
+    !! * @return A Ray representing this line segment.
+    !! * @throws # If start or end are either null or disposed of.
+    !! * @throws # If start and end point are equal so that the
+    !! *         direction of the ray would be degenerate.
+    !! */
     public static function fromSegment(start:Vec2, end:Vec2) {
         Disposed(start,Vec2);
         Disposed(end,Vec2);
