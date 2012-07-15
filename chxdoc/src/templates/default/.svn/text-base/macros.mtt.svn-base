@@ -1,0 +1,197 @@
+<macros>
+	<macro name="typeDocs()">
+		::if docs != null::
+			<!-- Comment block -->
+			::if docs.comments != null::
+			::raw docs.comments::
+			::end::
+		::end::
+	</macro>
+
+	<macro name="methodHeader(m)">
+		<h3>
+			<a name="::raw m.name::()"></a>$$showAccess(::m::)$$showDynamic(::m::)$$showInline(::m::)<span class="name">::raw m.name::</span>::m.params::(::if m.args != null::::raw m.args::::end::) : ::raw m.returns::
+		</h3>
+			::if m.isOverride::
+				<div class="overrides">overrides <a href="::raw m.inheritance.link.href::#::m.name::()">::raw m.inheritance.link.text::</a></div>
+			::elseif m.isInherited::
+				<div class="inherited">inherited from <a href="::raw m.inheritance.link.href::#::m.name::()">::raw m.inheritance.link.text::</a></div>
+			::end::
+	</macro>
+
+	<macro name="methodDocs(m)">
+		::if m.docs != null || m.platforms != null::
+			<dl>
+			::if m.docs != null::
+				<!-- deprecated -->
+				::if m.docs.deprecated::
+					<dt><span class="deprecated">deprecated</span></dt>
+					<dd>::raw m.docs.deprecatedMsg::</dd>
+				::end::
+				<!-- type params -->
+				::if m.docs.typeParams.length != 0::
+					<dt>types</dt>
+					::foreach pd m.docs.typeParams::
+					<dd><code>::pd.arg::</code> ::raw pd.desc::</dd>
+					::end::
+				::end::
+				<!-- method call parameters -->
+				::if m.docs.params.length != 0::
+					<dt>parameters</dt>
+					::foreach pd m.docs.params::
+					<dd><code>::pd.arg::</code> ::raw pd.desc::</dd>
+					::end::
+				::end::
+				<!-- method return types comments -->
+				::if m.docs.returns.length != 0::
+					<dt>returns</dt>
+					::foreach s m.docs.returns::
+					<dd>::raw s::</dd>
+					::end::
+				::end::
+				<!-- method throws -->
+				::if m.docs.throws.length != 0::
+					<dt>throws</dt>
+					::foreach td m.docs.throws::
+					<dd><a href="::raw td.uri::"><code>::td.name::</code></a> ::raw td.desc::</dd>
+					::end::
+				::end::
+				<!-- requires -->
+				::if m.docs.requires.length != 0::
+					<dt>requires</dt>
+					::foreach i m.docs.requires::
+					<dd>::raw i::</dd>
+					::end::
+				::end::
+				<!-- see -->
+				::if m.docs.see.length != 0::
+					<dt>see</dt>
+					::foreach i m.docs.see::
+					<dd>::raw i::</dd>
+					::end::
+				::end::
+				<!-- todo -->
+				::if m.docs.todos.length != 0::
+					<dt>todo</dt>
+					::foreach i m.docs.todos::
+					<dd>::raw i::</dd>
+					::end::
+				::end::
+				<!-- authors -->
+				::if m.docs.authors.length != 0::
+					<dt>authors</dt>
+					::foreach i m.docs.authors::
+					<dd>::raw i::</dd>
+					::end::
+				::end::
+			::end::
+			<!-- platforms -->
+			::if m.platforms != null::
+				::if m.platforms.length != 0 && (platforms == null || platforms.length > m.platforms.length) ::
+					<dt>platforms</dt>
+					<dd>::foreach p m.platforms::::if !repeat.p.first::, ::end::::p::::end::</dd>
+				::end::
+			::end::
+			</dl>
+		::end::
+		<!-- Comment block -->
+		::if m.docs != null && m.docs.comments != null::
+		<div class="comment">::raw m.docs.comments::</div>
+		::end::
+	</macro>
+
+	<macro name="varHeader(f)">
+		<h3>
+			<a name="::f.name::"></a>$$showAccess(::f::)<span class="name">::f.name::</span>::raw f.rights:: : ::raw f.returns::
+		</h3>
+		::if f.isInherited::
+		<div class="inherited">inherited from <a href="::raw f.inheritance.link.href::#::f.name::">::raw f.inheritance.link.text::</a></div>
+		::end::
+	</macro>
+
+	<macro name="varDocs(m)">
+		<!-- platforms -->
+		::if m.platforms != null::
+			<dl>
+			::if m.platforms.length != 0 && (platforms == null || platforms.length > m.platforms.length) ::
+				<dt>platforms</dt>
+				<dd>::foreach p m.platforms::::if !repeat.p.first::, ::end::::p::::end::</dd>
+			::end::
+			</dl>
+		::end::
+		<!-- Comment block -->
+		::if m.docs != null && m.docs.comments != null::
+		<div class="comment">::raw m.docs.comments::</div>
+		::end::
+	</macro>
+
+	<macro name="enumConstructor(m)">
+		<a name="::raw m.name::()"></a><span class="name">::raw m.name::</span>::if m.args.length > 0::(::raw m.args::)::end::
+	</macro>
+
+	<macro name="showPlatforms(l)">
+		::if l != null::
+			::if l.length > 0 && (platforms == null || platforms.length > l.length) ::
+			<div class="platforms">available in <span class="platforms-list">::foreach i l::::i:: ::end::</span></div>
+			::end::
+		::end::
+	</macro>
+
+
+
+	<macro name="showAccess(f)">
+		::if config.developer::
+		<span class="::f.access::">::f.access::</span>
+		::end::
+	</macro>
+
+	<macro name="showDynamic(m)">
+		::if m.isDynamic::
+		<span class="dynamic">dynamic</span>
+		::end::
+	</macro>
+
+	<macro name="showInline(f)">
+		::if f.isInline::
+		<span class="inline">inline</span>
+		::end::
+	</macro>
+
+	<!--
+		The following methods are for typedef.mtt, which are handled
+		differently than classes or enums
+	-->
+	<macro name="dumpPlatformsOrAll(all, l)">
+		::if l == null || l.length == 0 || l.length == all.length::
+			::foreach i all::::i:: ::end::
+		::else::
+			::foreach i l::::i:: ::end::
+		::end::
+	</macro>
+
+	<macro name="typedefVarHeader(f)">
+		<h3>
+			<a name="::f.name::"></a><span class="keyword">var</span> <span class="name">::f.name::</span> : ::raw f.returns::
+		</h3>
+	</macro>
+
+	<!-- Displays only if platform list [l] is of different length of [all] -->
+	<macro name="displayPlatformsIfDifferent(l, all)">
+		::if l.length != all.length::
+			<div class="platforms">available in <span class="platforms-list">::foreach i l::::i:: ::end::</span></div>
+		::end::
+	</macro>
+
+	<!--
+		Debug Macros
+	-->
+	<macro name="debugPlatforms(l)">
+		::if l == null::
+			NO PLATFORM DATA
+		::elseif l.length == 0::
+			ZERO LENGTH PLATFORM DATA
+		::else::
+			::foreach i l::::i:: ::end::
+		::end::
+	</macro>
+</macros>

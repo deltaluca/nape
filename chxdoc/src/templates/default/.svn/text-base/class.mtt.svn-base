@@ -1,0 +1,179 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/tr/html4/loose.dtd">
+<html>
+<head>
+	::raw build.comment::
+	<title>::name:: (::config.title::)</title>
+	<meta name="date" content="::meta.date::" />
+	::foreach kw meta.keywords::
+	<meta name="keywords" content="::kw::" />
+	::end::
+	<link rel="stylesheet" type="text/css" href="::meta.stylesheet::" />
+<script type="text/javascript">
+function windowTitle()
+{
+    if (location.href.indexOf('is-external=true') == -1) {
+        parent.document.title="::name:: (::config.title::)";
+    }
+}
+</script>
+<noscript></noscript>
+</head>
+<body onload="windowTitle();">
+	<script language="javascript" type="text/javascript" src="::rootRelative::../chxdoc.js"></script>
+	<div id="class-frame" class="type-frame">
+	<!-- ======== START OF class DATA ======== -->
+	<h1 class="::type::">::nameDots::::params::</h1>
+	<dl>
+		<dt>type</dt>
+		<dd>::type::</dd>
+	::if superClassHtml != null::
+		<dt>extends</dt>
+		<dd>::raw superClassHtml::</dd>
+	::end::
+	::if isPrivate::
+		<dt>private</dt>
+		<dd>yes</dd>
+	::end::
+	::if interfacesHtml.length > 0::
+		<dt>implements</dt>
+		::foreach i interfacesHtml::
+		<dd>::raw i::</dd>
+		::end::
+	::end::
+
+	::if module != null && module.length > 0::
+		<dt>defined in</dt>
+		<dd>::module::</dd>
+	::end::
+	::if subclasses.length > 0::
+		<dt>subclasses</dt>
+		<dd>::foreach sc subclasses::::if !repeat.sc.first::, ::end::<a href="::raw sc.href::">::raw sc.text::</a>::end::</dd>
+	::end::
+	::if platforms.length > 0::
+		<dt>available in</dt>
+		<dd>::foreach p platforms::::if !repeat.p.first::, ::end::::p::::end::</dd>
+	::end::
+	</dl>
+
+	<div class="doc">$$typeDocs()</div>
+
+
+	::if staticVars.length > 0::
+	<!-- ============ STATIC VAR DETAIL =========== -->
+	<div class="members-panel">
+		<h2><a name="static_var_detail"></a>Static Variables</h2>
+		<div class="members">
+			::foreach f staticVars::
+			<div class="member">
+				<div class="header">$$varHeader(::f::)</div>
+				<div class="body">$$varDocs(::f::)</div>
+			</div>
+			::end::
+		</div>
+	</div>
+	::end::
+
+	::if staticMethods.length > 0::
+	<!-- ============ STATIC METHOD DETAIL ========== -->
+	<div class="members-panel">
+		<h2><a name="function_detail"></a>Static Methods</h2>
+		<div class="members">
+			::foreach m staticMethods::
+			<div class="member">
+				<div class="header">$$methodHeader(::m::)</div>
+				<div class="body">$$methodDocs(::m::)</div>
+			</div>
+			::end::
+		</div>
+	</div>
+	::end::
+
+	::if constructor != null::
+	<!-- ========= CONSTRUCTOR DETAIL ======== -->
+	<div class="members-panel">
+		<h2><a name="constructor_detail"></a>Constructor</h2>
+		<div class="members">
+			<div class="member">
+				<div class="header">
+					<a name="::raw constructor.name::()"></a>$$showAccess(::constructor::)<span class="name">::raw constructor.name::</span>(::if constructor.args != null::::raw constructor.args::::end::)
+				</div>
+				<div class="body">$$methodDocs(::constructor::)</div>
+			</div>
+		</div>
+	</div>
+	::end::
+
+	::if vars.length > 0::
+	<!-- ============ FIELD field_detail =========== -->
+	<div class="members-panel">
+		<h2><a name="member_var_detail"></a>Instance Variables
+			::if superClasses.length > 0::
+			<span id="hideInheritedVar" class="hideInheritedVar">
+				<a class="showHideLink" href="#member_var_detail" onclick="javascript:showInherited('Var', false);">
+				hide inherited
+				</a>
+			</span>
+			<span id="showInheritedVar" class="showInheritedVar">
+				<a class="showHideLink" href="#member_var_detail" onclick="javascript:showInherited('Var', true);">
+				show inherited
+				</a>
+			</span>
+			::end::
+		</h2>
+		<div class="members">
+			::foreach f vars::
+			::if f.isInherited == true::
+				::set spanClass = "hideInheritedVar"::
+			::else::
+				::set spanClass = "showVar"::
+			::end::
+			<span class="::spanClass::">
+				<div class="member">
+					<div class="header">$$varHeader(::f::)</div>
+					<div class="body">$$varDocs(::f::)</div>
+				</div>
+			</span>
+			::end::
+		</div>
+	</div>
+	::end::
+
+	::if methods.length > 0::
+	<!-- ============ METHOD DETAIL ========== -->
+	<div class="members-panel">
+		<h2><a name="method_detail"></a>Instance Methods
+			::if superClasses.length > 0::
+			<span id="hideInheritedMethod" class="hideInheritedMethod">
+				<a class="showHideLink" href="#method_detail" onclick="javascript:showInherited('Method', false);">
+				hide inherited
+				</a>
+			</span>
+			<span id="showInheritedMethod" class="showInheritedMethod">
+				<a class="showHideLink" href="#method_detail" onclick="javascript:showInherited('Method', true);">
+				show inherited
+				</a>
+			</span>
+			::end::
+		</h2>
+		<div class="members">
+			::foreach m methods::
+			::if m.isInherited == true::
+				::set spanClass = "hideInheritedMethod"::
+			::else::
+				::set spanClass = "showMethod"::
+			::end::
+			<span class="::spanClass::">
+				<div class="member">
+					<div class="header">$$methodHeader(::m::)</div>
+					<div class="body">$$methodDocs(::m::)</div>
+				</div>
+			</span>
+			::end::
+		</div>
+	</div>
+	::end::
+	</div>
+<!-- ========= END OF class DATA ========= -->
+	::if config.footerText != null::<div id="footer">::raw config.footerText::</div>::end::
+</body>
+</html>

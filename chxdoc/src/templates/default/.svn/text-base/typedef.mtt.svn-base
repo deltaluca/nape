@@ -1,0 +1,76 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/tr/html4/loose.dtd">
+<html>
+<head>
+	::raw build.comment::
+	<title>::name:: (::config.title::)</title>
+	<meta name="date" content="::meta.date::" />
+	::foreach kw meta.keywords::
+	<meta name="keywords" content="::kw::" />
+	::end::
+	<link rel="stylesheet" type="text/css" href="::meta.stylesheet::" />
+<script type="text/javascript">
+function windowTitle()
+{
+    if (location.href.indexOf('is-external=true') == -1) {
+        parent.document.title="::name:: (::config.title::)";
+    }
+}
+</script>
+<noscript></noscript>
+</head>
+<body onload="windowTitle();">
+	::set hasAlias = 0::
+	::set hasFields = 0::
+	::foreach ctx contexts::
+		::if ctx.alias != null::
+			::set hasAlias = hasAlias + 1::
+		::else::
+			::set hasFields = hasFields + 1::
+		::end::
+	::end::
+
+	<div id="class-frame" class="type-frame">
+	<!-- ======== START OF class DATA ======== -->
+	<h1 class="typedef">::nameDots::::raw params::</h1>
+	<dl>
+	::if isPrivate::
+		<dt>private</dt>
+		<dd>yes</dd>
+	::end::
+	::if module != null && module.length > 0::
+		<dt>defined in</dt>
+		<dd>::module::</dd>
+	::end::
+	::if platforms.length > 0::
+		<dt>available in</dt>
+		<dd>::foreach p platforms::::if !repeat.p.first::, ::end::::p::::end::</dd>
+	::end::
+
+	</dl>
+
+	<div class="doc">$$typeDocs()</div>
+
+	::foreach ctx contexts::
+		<div class="members-panel">
+		::if ctx.isAlias::
+			<h2><a name="field_detail"></a>Alias for ::raw ctx.alias:: in $$dumpPlatformsOrAll(::platforms::, ::ctx.platforms::)</h2>
+		::else::
+			<h2><a name="static_var_detail"></a>Fields in $$dumpPlatformsOrAll(::platforms::, ::ctx.platforms::)</h2>
+			<div class="members">
+				::foreach f ctx.fields::
+				<div class="member">
+					<div class="header">$$typedefVarHeader(::f::)</div>
+					<div class="body">$$varDocs(::f::)</div>
+				</div>
+				::end::
+			</div>
+		::end::
+		</div>
+	::end::
+
+	</div>
+
+<!-- ========= END OF TYPEDEF DATA ========= -->
+	::if config.footerText != null::<div id="footer">::raw config.footerText::</div>::end::
+</body>
+</html>

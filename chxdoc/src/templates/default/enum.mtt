@@ -1,0 +1,60 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/tr/html4/loose.dtd">
+<html>
+<head>
+	::raw build.comment::
+	<title>::name:: (::config.title::)</title>
+	<meta name="date" content="::meta.date::" />
+	::foreach kw meta.keywords::
+	<meta name="keywords" content="::kw::" />
+	::end::
+	<link rel="stylesheet" type="text/css" href="::meta.stylesheet::" />
+
+<script type="text/javascript">
+function windowTitle()
+{
+    if (location.href.indexOf('is-external=true') == -1) {
+        parent.document.title="::name:: (::config.title::)";
+    }
+}
+</script>
+<noscript></noscript>
+</head>
+<body onload="windowTitle();">
+	<div id="enum-frame" class="type-frame">
+	<!-- ======== START OF class DATA ======== -->
+	<h1 class="enum">::nameDots::::raw params::</h1>
+	<dl>
+	::if isPrivate::
+		<dt>private</dt>
+		<dd>yes</dd>
+	::end::
+	::if module != null && module.length > 0::
+		<dt>defined in</dt>
+		<dd>::module::</dd>
+	::end::
+	::if platforms.length > 0::
+		<dt>available in</dt>
+		<dd>::foreach p platforms::::if !repeat.p.first::, ::end::::p::::end::</dd>
+	::end::
+	</dl>
+
+	<div class="doc">$$typeDocs()</div>
+
+	<!-- ========= CONSTRUCTOR DETAIL ======== -->
+	<div class="members-panel">
+		<h2><a name="constructor_detail"></a>Constructors</h2>
+		<div class="members">
+			::foreach c constructorInfo::
+			<div class="member">
+				<div class="header">$$enumConstructor(::c::)</div>
+				<div class="body">$$methodDocs(::c::)</div>
+			</div>
+			::end::
+		</div>
+	</div>
+
+	</div>
+<!-- ========= END OF ENUM DATA ========= -->
+	::if config.footerText != null::<div id="footer">::raw config.footerText::</div>::end::
+</body>
+</html>

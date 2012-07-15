@@ -1,15 +1,34 @@
 package nape.callbacks;
 $(import);
 
+!!/**
+!! * Event listener for Constraint type events.
+!! * <br/><br/>
+!! * The events that can be caught are WAKE, SLEEP and BREAK type events.
+!! * Theses listeners will only operate on Constraints.
+!! */
 class ConstraintListener extends Listener {
+    !!/**
+    !! * @private
+    !! */
     public var pr(inner_zn):PR(ConstraintListener);
 
+    !!/**
+    !! * The OptionType used to match against Constraints.
+    !! * <br/><br/>
+    !! * When added to the same Space, any Constraint who's CbType list matches
+    !! * against this OptionType will be issued a callback when the relevant
+    !! * event occurs.
+    !! */
     property(options, OptionType, {
         /*return*/ pr(inner_zn).options.outer;
     }, {
         pr(inner_zn).options.set(options.pr(inner));
     })
 
+    !!/**
+    !! * The callback handler for this event.
+    !! */
     property(handler, ConstraintCallback->Void, {
         /*return*/ pr(inner_zn).handler;
     }, {
@@ -22,10 +41,33 @@ class ConstraintListener extends Listener {
         pr(inner_zn).handler = handler;
     })
 
+    !!/**
+    !! * Construct a new ConstraintListener.
+    !! * <br/><br/>
+    !! * The possible event types are WAKE, SLEEP and BREAK.
+    !! * <br/><br/>
+    !! * The options argument is typed Dynamic, and is permitted to be either an
+    !! * <code>OptionType</code> or one of:
+    !! * <code>CbType, CbTypeList, Array&lt;CbType&gt;, flash.Vector&lt;CbType&gt;</code>
+    !! * In which case the input CbType's will be used to construct an OptionType
+    !! * whose included types will be the set of CbTypes supplied.
+    !! *
+    !! * @param event The event type to listen for.
+    !! * @param options The OptionType to match Constraints against, passing null
+    !! *                will equate to an empty OptionType.
+    !! * @param handler The callback handler for this listener.
+    !! * @param precedence The precedence of this listener used to sort
+    !! *                   the order of callbacks in the case of more than
+    !! *                   one suitable ConstraintListener existing for the same
+    !! *                   event on the same Constraint. (default 0)
+    !! * @return The newly constructed ConstraintListener
+    !! * @throws # If handler is null.
+    !! * @throws # If the event type is not permitted for this listener.
+    !! */
     flibopts(1)
     public function new(
         event:CbEvent,
-        options:Dynamic,
+        options:Null<Dynamic>,
         handler:ConstraintCallback->Void,
         precedence:Int = 0
     ) {

@@ -1,29 +1,53 @@
 package nape.callbacks;
 $(import);
 
+!!/**
+!! * Event listener for Interaction type events.
+!! * <br/><br/>
+!! * Interaction type events can occur between any two Interactors (whether they
+!! * be Shapes, Bodys, Compounds or a mix thereof).
+!! * <br/><br/>
+!! * The events that can be caught are BEGIN, ONGOING, and END type events.
+!! * Theses listeners will operate between pairs of Interactors.
+!! */
 class InteractionListener extends Listener {
+    !!/**
+    !! * @private
+    !! */
     public var pr(inner_zn):PR(InteractionListener);
 
+    !!/**
+    !! * The OptionType used to match against Interactors for the first object.
+    !! */
     property(options1, OptionType, {
         /*return*/ pr(inner_zn).options1.outer;
     }, {
         pr(inner_zn).options1.set(options1.pr(inner));
     })
 
+    !!/**
+    !! * The OptionType used to match against Interactors for the second object.
+    !! */
     property(options2, OptionType, {
         /*return*/ pr(inner_zn).options2.outer;
     }, {
         pr(inner_zn).options2.set(options2.pr(inner));
     })
 
+    !!/**
+    !! * The specific type of interaction that is to be listened for.
+    !! * <br/><br/>
+    !! * If we specify that we only want to listen for a fluid type interaction, then
+    !! * this listener will operate so that any other interactions for the same pair
+    !! * of objects is ignored.
+    !! */
     property(interactionType, InteractionType, {
         var ret = pr(inner_zn).itype;
         /*return*/
             if   (ret==Flag(InteractionType, COLLISION)) InteractionType.COLLISION;
             elif (ret==Flag(InteractionType, SENSOR))    InteractionType.SENSOR;
             elif (ret==Flag(InteractionType, FLUID))     InteractionType.FLUID;
-            elif (ret==Flag(InteractionType, ANY))       InteractionType.ANY;
-            else null;
+            else InteractionType.ANY;
     },{
         DEBUG(
             if (interactionType == null) {
@@ -41,6 +65,9 @@ class InteractionListener extends Listener {
         }
     })
 
+    !!/**
+    !! * The callback handler for this listener.
+    !! */
     property(handler, InteractionCallback->Void, {
         /*return*/ pr(inner_zn).handleri;
     }, {
@@ -53,12 +80,38 @@ class InteractionListener extends Listener {
         pr(inner_zn).handleri = handler;
     })
 
+    !!/**
+    !! * Construct a new InteractionListener.
+    !! * <br/><br/>
+    !! * The possible event types are BEGIN, ONGOING and END.
+    !! * <br/><br/>
+    !! * The options arguments are typed Dynamic, and are permitted to be either an
+    !! * <code>OptionType</code> or one of:
+    !! * <code>CbType, CbTypeList, Array&lt;CbType&gt;, flash.Vector&lt;CbType&gt;</code>
+    !! * In which case the input CbType's will be used to construct an OptionType
+    !! * whose included types will be the set of CbTypes supplied.
+    !! *
+    !! * @param event The event type to listen for.
+    !! * @param interactionType The interaction type to listen for.
+    !! * @param options1 The OptionType to match first Interactor against, passing null
+    !! *                will equate to an empty OptionType.
+    !! * @param options2 The OptionType to match second Interactor against, passing null
+    !! *                will equate to an empty OptionType.
+    !! * @param handler The callback handler for this listener.
+    !! * @param precedence The precedence of this listener used to sort
+    !! *                   the order of callbacks in the case of more than
+    !! *                   one suitable BodyListener existing for the same
+    !! *                   event on the same Body. (default 0)
+    !! * @return The newly constructed InteractionListener
+    !! * @throws # If handler is null.
+    !! * @throws # If the event type is not permitted for this listener.
+    !! */
     flibopts(1)
     public function new(
         event:CbEvent,
         interactionType:InteractionType,
-        options1:Dynamic,
-        options2:Dynamic,
+        options1:Null<Dynamic>,
+        options2:Null<Dynamic>,
         handler:InteractionCallback->Void,
         precedence:Int = 0
     ) {

@@ -1,27 +1,60 @@
 package nape.callbacks;
 $(import);
 
+!!/**
+!! * Event listener for Pre-Interaction type events.
+!! * <br/><br/>
+!! * Pre-Interaction type events can occur between any two Interactors (whether they
+!! * be Shapes, Bodys, Compounds or a mix thereof).
+!! */
 class PreListener extends Listener {
+    !!/**
+    !! * @private
+    !! */
     public var pr(inner_zn):PR(InteractionListener);
 
+    !!/**
+    !! * The OptionType used to match against Interactors for the first object.
+    !! */
     property(options1, OptionType, {
         /*return*/ pr(inner_zn).options1.outer;
     }, {
         pr(inner_zn).options1.set(options1.pr(inner));
     })
 
+    !!/**
+    !! * The OptionType used to match against Interactors for the second object.
+    !! */
     property(options2, OptionType, {
         /*return*/ pr(inner_zn).options2.outer;
     }, {
         pr(inner_zn).options2.set(options2.pr(inner));
     })
 
-    //do not need to wake bodies here!
-    //the contract of ACCEPT/IGNORE are that you hand control over to nape
-    //and have no further say, so any change to output is not in the domain of accepted behaviour
-    //
-    //in the case of #_ONCE, the objects are forced to stay awake (in space)
-    //and so any change to handler does not need to wake any objects already.
+    !!/**
+    !! * Callback handler for this listener.
+    !! * <br/><br/>
+    !! * This callback handler returns a possibly null PreFlag object.
+    !! * <br/>
+    !! * Passing null is equivalent to telling nape 'ignore me' so that whatever existing
+    !! * decision has been made regarding the interaction is not modified.
+    !! * Otherwise returning a non-null PreFlag will change the current decision about what
+    !! * to do with the interaction.
+    !! * <br/><br/>
+    !! * Returning ACCEPT/IGNORE inform nape to take control over all subsequent interaction
+    !! * between the two objects until they seperate. Returning these will mean that the pre
+    !! * listener will not be invoked again until the objects seperate, and then begin to interact
+    !! * afresh.
+    !! * <br/><br/>
+    !! * Returning #_ONCE, the objects will only be effected for a single step, and the following
+    !! * step should they still be candidates for interaction, this handler will be invoked again.
+    !! * <br/>
+    !! * In the case of a #_ONCE, PreFlag; Nape will 'not' permit the two objects to go to sleep
+    !! * as Nape cannot know if this callback handler will suddenly changes its mind.
+    !! * <br/>
+    !! * If this handler is a 'pure' function, then you may mark it as such and Nape will keep you
+    !! * to your word and permit the objects to sleep.
+    !! */
     property(handler, PreCallback->Null<PreFlag>, {
         /*return*/ pr(inner_zn).handlerp;
     }, {
@@ -40,9 +73,16 @@ class PreListener extends Listener {
         pr(inner_zn).wake();
     })
 
-    //pure handlers allows nape to make optimisations, specifically allowing bodies to sleep
-    //even if there is a pre-handler returning IGNORE_ONCE or ACCEPT_ONCE where otherwise
-    //we cannot allow the bodies to sleep as the handler may change it's return.
+    !!/**
+    !! * Mark this listener as having a pure callback handler.
+    !! * <br/><br/>
+    !! * A pure callback handler is one which under no circumstances will change its behaviour.
+    !! * In such a (favourable) instance, marking the callback as pure will allow Nape to permit
+    !! * objects in interaction to go to sleep even if the handler returns an IGNORE_ONCE/ACCEPT_ONCE
+    !! * PreFlag.
+    !! *
+    !! * @default false
+    !! */
     property(pure, Bool, {
         /*return*/ pr(inner_zn).pure;
     }, {
@@ -53,6 +93,13 @@ class PreListener extends Listener {
         pr(inner_zn).pure = pure;
     })
 
+    !!/**
+    !! * The specific type of interaction that is to be listened for.
+    !! * <br/><br/>
+    !! * If we specify that we only want to listen for a fluid type interaction, then
+    !! * this listener will operate so that any other interactions for the same pair
+    !! * of objects is ignored.
+    !! */
     property(interactionType, InteractionType, {
         var ret = pr(inner_zn).itype;
         /*return*/
@@ -78,11 +125,35 @@ class PreListener extends Listener {
         }
     })
 
+    !!/**
+    !! * Construct a new PreListener.
+    !! * <br/><br/>
+    !! * The options arguments are typed Dynamic, and are permitted to be either an
+    !! * <code>OptionType</code> or one of:
+    !! * <code>CbType, CbTypeList, Array&lt;CbType&gt;, flash.Vector&lt;CbType&gt;</code>
+    !! * In which case the input CbType's will be used to construct an OptionType
+    !! * whose included types will be the set of CbTypes supplied.
+    !! *
+    !! * @param interactionType The interaction type to listen for.
+    !! * @param options1 The OptionType to match first Interactor against, passing null
+    !! *                will equate to an empty OptionType.
+    !! * @param options2 The OptionType to match second Interactor against, passing null
+    !! *                will equate to an empty OptionType.
+    !! * @param handler The callback handler for this listener.
+    !! * @param precedence The precedence of this listener used to sort
+    !! *                   the order of callbacks in the case of more than
+    !! *                   one suitable BodyListener existing for the same
+    !! *                   event on the same Body. (default 0)
+    !! * @param pure If true, then the listener will be marked as having a pure handler.
+    !! *             (default false)
+    !! * @return The newly constructed InteractionListener
+    !! * @throws # If handler is null.
+    !! */
     flibopts(2)
     public function new(
         interactionType:InteractionType,
-        options1:Dynamic,
-        options2:Dynamic,
+        options1:Null<Dynamic>,
+        options2:Null<Dynamic>,
         handler:PreCallback->Null<PreFlag>,
         precedence = 0,
         pure = false
