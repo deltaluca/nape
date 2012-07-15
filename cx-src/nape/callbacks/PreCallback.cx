@@ -1,26 +1,67 @@
 package nape.callbacks;
 $(import);
 
+!!/**
+!! * Callback object for Pre-Interaction type events.
+!! * <br/><br/>
+!! * This, like all other callback objects are automatically reused
+!! * and you should not keep any reference to them.
+!! */
 class PreCallback extends Callback {
+    !!/**
+    !! * @private
+    !! */
     public function new() {
         super();
     }
 
+    !!/**
+    !! * Arbiter related to callback event.
+    !! * <br/><br/>
+    !! * In the case that this pre-event occurs between two non-Shape's
+    !! * then this is the first arbiter to be created for the related
+    !! * interactionType
+    !! */
     property(arbiter, Arbiter, {
         /*return*/ pr(inner).pre_arbiter.wrapper();
     })
 
+    !!/**
+    !! * First Interactor involved in callback event.
+    !! * <br/><br/>
+    !! * This interactor will have CbType set matched by the first
+    !! * OptionType in InteractionListener
+    !! */
     property(int1, Interactor, {
         /*return*/ pr(inner).int1.outer_i;
     })
+
+    !!/**
+    !! * Second Interactor involved in callback event.
+    !! * <br/><br/>
+    !! * This interactor will have CbType set matched by the second
+    !! * OptionType in InteractionListener
+    !! */
     property(int2, Interactor, {
         /*return*/ pr(inner).int2.outer_i;
     })
 
+    !!/**
+    !! * Describes how Arbiter's objects are related to int1/int2 properties
+    !! * <br/><br/>
+    !! * If true, then arbiter.shape1 will belong to callback.int2, and
+    !! * arbiter.shape2 will belong to callback.int1.
+    !! * <br/><br/>
+    !! * If you take the arbiter's normal, then if swapped is true, the normal
+    !! * will point from int2 towards int1 instead of from int1 towards int2.
+    !! */
     property(swapped, Bool, {
         /*return*/ pr(inner).pre_swapped;
     })
 
+    !!/**
+    !! * @private
+    !! */
     @:$keep public override function toString() {
         var ret = "Cb:PRE:";
         ret += ":"+int1.toString()+"/"+int2.toString();
