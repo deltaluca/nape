@@ -82,7 +82,7 @@ $(mixin global WrapListNew(T,ListT,IteT, defs)
     !! * list.filter(function (obj) {
     !! *     // operate on object.
     !! *     // ...
-    !! *     return (false if you want object to be removed);
+    !! *     return (true if you want object to be removed);
     !! * });
     !! * </pre>
     !! * <br/><br/>
@@ -590,7 +590,7 @@ $(mixin global WrapListNew(T,ListT,IteT, defs)
         !! * Iterate over list filtering elements.
         !! * <br/><br/>
         !! * The given function will be applied to each element, whenever the
-        !! * function returns false, the element will be removed from the list.
+        !! * function returns true, the element will be removed from the list.
         !! * <br/><br/>
         !! * Any exception thrown by the supplied function will be treat as a
         !! * signal to halt iteration acting as a 'break' statement.
@@ -603,7 +603,7 @@ $(mixin global WrapListNew(T,ListT,IteT, defs)
         !! * <pre>
         !! * list.filter(function (obj) {
         !! *    // perform clean up with obj
-        !! *    return false; // remove from list.
+        !! *    return true; // remove from list.
         !! * });
         !! * </pre>
         !! *
@@ -618,10 +618,10 @@ $(mixin global WrapListNew(T,ListT,IteT, defs)
             while(i<length) {
                 var x = at(i);
                 try {
-                    if(lambda(x)) i++;
-                    else {
+                    if(lambda(x))
                         remove(x);
-                    }
+                    else
+                        i++;
                 }catch(e:Dynamic) {
                     break;
                 }

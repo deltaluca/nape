@@ -60,7 +60,7 @@ class DynamicDestruction extends FixedStep {
 			var minarea = 400;
 
 			//function determines what is counted as area to be cut away
-			//here defined as all points within radius pixels of position 
+			//here defined as all points within radius pixels of position
 			function inside(x:Float,y:Float) {
 				return (pos.sub(new Vec2(x,y)).length < radius);
 			}
@@ -77,7 +77,7 @@ class DynamicDestruction extends FixedStep {
 			}
 
 			//otherwise we have either 0, or more than 1 resulting set of bodies
-			
+
 			//remove old body
 			b.space = null;
 
@@ -137,13 +137,13 @@ class Destructable {
 
 		if(npolys.length==1) {
 			//destructable and body can be re-used. yay
-	
-			var qolys = npolys.at(0).convex_decomposition();
+
+			var qolys = npolys.at(0).convexDecomposition();
 			for(q in qolys)
 				body.shapes.add(new Polygon(q));
 
 			body.align();
-		
+
 			return null;
 		}else {
 			//need to create new destructables and bodies for each connected component
@@ -151,14 +151,14 @@ class Destructable {
 
 			for(p in npolys) {
 				var nbody = body.copy();
-				var qolys = p.convex_decomposition();
+				var qolys = p.convexDecomposition();
 				for(q in qolys)
 					nbody.shapes.add(new Polygon(q));
 				nbody.align();
 				ret.push(nbody);
 			}
 
-			return ret;	
+			return ret;
 		}
 	}
 }

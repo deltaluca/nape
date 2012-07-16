@@ -60,7 +60,7 @@ class GeomPoly {
     !! * @return A Haxe iterator over the vertices of the polygon.
     !! *         Iterating in a forward direction.
     !! */
-    public inline function forward_iterator():GeomVertexIterator {
+    public inline function forwardIterator():GeomVertexIterator {
         return PR(GeomVertexIterator).get(verts, true);
     }
 
@@ -70,7 +70,7 @@ class GeomPoly {
     !! * @return A Haxe iterator over the vertices of the polygon.
     !! *         Iterating in a backwards direction.
     !! */
-    public inline function backwards_iterator():GeomVertexIterator {
+    public inline function backwardsIterator():GeomVertexIterator {
         return PR(GeomVertexIterator).get(verts, false);
     }
 
@@ -272,7 +272,7 @@ class GeomPoly {
     !! * poly := -> A <-> B <-> C <-> D <-> E <-
     !! *                (head)
     !! *
-    !! * poly.skip_forwards(2);
+    !! * poly.skipForwards(2);
     !! *
     !! * poly := -> A <-> B <-> C <-> D <-> E <-
     !! *                            (head)
@@ -283,7 +283,7 @@ class GeomPoly {
     !! *               advance.
     !! * @return A reference to this polygon.
     !! */
-    public function skip_forward(times:Int):GeomPoly {
+    public function skipForward(times:Int):GeomPoly {
         mix_circular(Vertex,
             if (!empty(verts)) {
                 if (times>0) {
@@ -310,7 +310,7 @@ class GeomPoly {
     !! * poly := -> A <-> B <-> C <-> D <-> E <-
     !! *                (head)
     !! *
-    !! * poly.skip_backwards(2);
+    !! * poly.skipBackwards(2);
     !! *
     !! * poly := -> A <-> B <-> C <-> D <-> E <-
     !! *                                  (head)
@@ -321,8 +321,8 @@ class GeomPoly {
     !! *               advance.
     !! * @return A reference to this polygon.
     !! */
-    public inline function skip_backwards(times:Int) {
-        return skip_forward(-times);
+    public inline function skipBackwards(times:Int) {
+        return skipForward(-times);
     }
 
     !!/**
@@ -417,7 +417,7 @@ class GeomPoly {
             });
         )
 
-        return ret.skip_forward(1);
+        return ret.skipForward(1);
     }
 
     !!/**
@@ -442,7 +442,7 @@ class GeomPoly {
                     verts = push_after(verts, Vertex.get(v.x, v.y));
                 )
             });
-            skip_forward(1);
+            skipForward(1);
             PolyWeak(vertices);
         }
     }
@@ -702,7 +702,7 @@ class GeomPoly {
     !! * @throws # Any other error may be thrown if algorithm has failed, even
     !! *           in release builds!
     !! */
-    public function simple_decomposition():GeomPolyList {
+    public function simpleDecomposition():GeomPolyList {
         DEBUG(
             if(size_lt_3) {
                 throw "Error: Cannot decompose a degenerate polygon";
@@ -741,7 +741,7 @@ class GeomPoly {
     !! * @return A Nape list of GeomPoly's defining the decomposition.
     !! * @throws # If polygon is degenerate.
     !! */
-    public function monotone_decomposition():GeomPolyList {
+    public function monotoneDecomposition():GeomPolyList {
         DEBUG(
             if(size_lt_3) {
                 throw "Error: Cannot decompose a degenerate polygon";
@@ -779,7 +779,7 @@ class GeomPoly {
     !! * @return A Nape list of GeomPoly's defining the decomposition.
     !! * @throws # If polygon is degenerate.
     !! */
-    public function convex_decomposition():GeomPolyList {
+    public function convexDecomposition():GeomPolyList {
         DEBUG(
             if(size_lt_3) {
                 throw "Error: Cannot decompose a degenerate polygon";
@@ -823,7 +823,7 @@ class GeomPoly {
     !! * @return A Nape list of GeomPoly's defining the decomposition.
     !! * @throws # If polygon is degenerate.
     !! */
-    public function triangular_decomposition():GeomPolyList {
+    public function triangularDecomposition():GeomPolyList {
         DEBUG(
             if(size_lt_3) {
                 throw "Error: Cannot decompose a degenerate polygon";

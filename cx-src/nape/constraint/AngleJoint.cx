@@ -104,17 +104,19 @@ class AngleJoint extends Constraint {
     !! * <br/><br/>
     !! * This constraint is slack if the positional error is within
     !! * the bounds of (jointMin, jointMax).
-    !! * <br/><br/>
-    !! * This value cannot be computed if either of the bodies is null.
+    !! *
+    !! * @return True if positional error of constraint is between the limits
+    !! *              indicating that the constraint is not doing any work.
+    !! * @throws # If either of the bodies is null.
     !! */
-    property(slack, Bool, {
+    public inline function isSlack():Bool {
         DEBUG(
             if (body1 == null || body2 == null) {
                 throw "Error: Cannot compute slack for AngleJoint if either body is null.";
             }
         )
-        /*return*/ pr(inner_zn).is_slack();
-    })
+        return pr(inner_zn).is_slack();
+    }
 
     !!/**
     !! * Construct a new AngleJoint.

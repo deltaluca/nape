@@ -47,7 +47,7 @@ public class Cutting extends Sprite {
 				debug.drawCircle(p,handlesize,0xaaaaaa);
 			}
 
-			var simples:GeomPolyList = poly.simple_decomposition();
+			var simples:GeomPolyList = poly.simpleDecomposition();
 			simples.foreach(function (poly:GeomPoly):void {
 				var polys:GeomPolyList = poly.cut(seg0,seg1,true,true);
 				polys.foreach(function (p:GeomPoly):void {

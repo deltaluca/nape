@@ -24,7 +24,7 @@ class BodyFromGraphic extends FixedStep {
 	function new() {
 		super(1/60);
 		var space = new Space(new Vec2(0,600));
-		
+
 		//borders
 		var border = new Body(BodyType.STATIC);
 		border.shapes.add(new Polygon(Polygon.rect(0,0,-50,450)));
@@ -42,7 +42,7 @@ class BodyFromGraphic extends FixedStep {
 			g.drawCircle(-10,-30,10+Math.random()*20);
 			g.drawCircle(0,0,10+Math.random()*20);
 			g.endFill();
-		
+
 			graphic.x = 100+i*100;
 			graphic.y = 100;
 			graphic.rotation = Math.random()*360;
@@ -103,7 +103,7 @@ class BodyFromGraphic extends FixedStep {
 	//appropriately
 	function bitmapToBody(bitmap:BitmapData,?threshold=0x80,?granularity:Vec2=null):Body {
 		var body = new Body();
-		
+
 		var bounds = new AABB(0,0,bitmap.width,bitmap.height);
 		function iso(x:Float,y:Float):Float {
 			//take 4 nearest pixels to interpolate linearlly
@@ -128,7 +128,7 @@ class BodyFromGraphic extends FixedStep {
 		var grain = if(granularity==null) new Vec2(8,8) else granularity;
 		var polys = MarchingSquares.run(iso, bounds, grain, 1);
 		for(p in polys) {
-			var qolys = p.simplify(1).convex_decomposition();
+			var qolys = p.simplify(1).convexDecomposition();
 			for(q in qolys)
 				body.shapes.add(new Polygon(q));
 		}
@@ -142,7 +142,7 @@ class BodyFromGraphic extends FixedStep {
 		body.graphicOffset = anchor;
 		return body;
 	}
-	
+
 	//take a graphical object on which hitTestPoint will work
 	//and produce a nape body with the exact same positions and shapes
 	//with input graphic assigned to the body and display appropriately
@@ -168,7 +168,7 @@ class BodyFromGraphic extends FixedStep {
 		var grain = if(granularity==null) new Vec2(8,8) else granularity;
 		var polys = MarchingSquares.run(iso, bounds, granularity, 6);
 		for(p in polys) {
-			var qolys = p.simplify(1).convex_decomposition();
+			var qolys = p.simplify(1).convexDecomposition();
 			for(q in qolys)
 				body.shapes.add(new Polygon(q));
 		}
@@ -179,7 +179,7 @@ class BodyFromGraphic extends FixedStep {
 		//but also have the graphic offset correctly
 		var anchor = body.localCOM.mul(-1);
 		body.align();
-		
+
 		body.graphic = graphic;
 		body.graphicOffset = anchor;
 		return body;

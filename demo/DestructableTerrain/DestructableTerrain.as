@@ -51,9 +51,9 @@ package {
 						b.space = null;
 						b.clear();
 						b.position = offset;
-						b.userData = this;
+						b.userData.terrain = this;
 					}
-					
+
 					//compute polygons in cell
 					bounds.x = x*cellsize;
 					bounds.y = y*cellsize;
@@ -63,12 +63,12 @@ package {
 					if(b==null) {
 						cells[y*width+x] = b = new Body(BodyType.STATIC);
 						b.position = offset;
-						b.userData = this;
+						b.userData.terrain = this;
 					}
 
 					//decompose polygons and generate the cell body.
 					polys.foreach(function (p:GeomPoly):void {
-						var qs:GeomPolyList = p.convex_decomposition();
+						var qs:GeomPolyList = p.convexDecomposition();
 						qs.foreach(function (q:GeomPoly):void {
 							b.shapes.add(new Polygon(q));
 						});
@@ -76,7 +76,7 @@ package {
 
 					b.space = space;
 				}
-			}	
+			}
 		}
 
 		//iso-function for terrain, computed as a linearly-interpolated

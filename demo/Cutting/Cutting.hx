@@ -33,7 +33,7 @@ class Cutting extends flash.display.Sprite {
 				debug.drawCircle(p,handlesize,0xaaaaaa);
 			}
 
-			var simples = poly.simple_decomposition();
+			var simples = poly.simpleDecomposition();
 			for(poly in simples) {
 				var polys = poly.cut(seg0,seg1,true,true);
 				for(p in polys) {

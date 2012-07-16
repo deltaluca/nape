@@ -28,7 +28,7 @@ class PerlinSquares extends VariableStep {
 		var z = 0.0;
 		var bnd = 0.0;
 		var iso = function(x:Float,y:Float) return Perlin3D.noise(x/40,y/30,z)-bnd;
-			
+
 		//parameters
 		var combine = true;
 		var cellsize = Vec2.get(10,10);
@@ -42,14 +42,14 @@ class PerlinSquares extends VariableStep {
 
 			z += dt;
 			bnd = 0.35*Math.cos(0.3*z);
-			
+
 			var polys = MarchingSquares.run(iso, bounds, cellsize, quality, gridsize, combine);
 			for(p in polys) {
-				var qs = p.convex_decomposition();
+				var qs = p.convexDecomposition();
 				for(q in qs) debug.drawFilledPolygon(q, colour(q));
 				debug.drawPolygon(p, 0);
 			}
-			
+
 			debug.flush();
 		});
 	}
@@ -100,7 +100,7 @@ class Perlin3D {
 
     static inline function p(i:Int) return perm[i]
     static var perm:flash.Vector<Int>;
-    
+
     public static function init_noise() {
 		  perm = new flash.Vector<Int>(512,true);
 

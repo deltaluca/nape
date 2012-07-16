@@ -149,7 +149,7 @@ class Terrain {
 
 				//decompose polygons and generate the cell body.
 				for(p in polys) {
-					var qs = p.convex_decomposition();
+					var qs = p.convexDecomposition();
 					for(q in qs)
 						b.shapes.add(new Polygon(q));
 				}

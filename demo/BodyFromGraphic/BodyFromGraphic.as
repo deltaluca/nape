@@ -23,7 +23,7 @@ public class BodyFromGraphic {
 	//appropriately
 	public static function bitmapToBody(bitmap:BitmapData,threshold:int=0x80,granularity:Vec2=null):Body {
 		var body:Body = new Body();
-		
+
 		var bounds:AABB = new AABB(0,0,bitmap.width,bitmap.height);
 		var iso:Function = function(x:Number,y:Number):Number {
 			//take 4 nearest pixels to interpolate linearlly
@@ -48,7 +48,7 @@ public class BodyFromGraphic {
 		var grain:Vec2 = (granularity==null) ? new Vec2(8,8) : granularity;
 		var polys:GeomPolyList = MarchingSquares.run(iso, bounds, grain, 1);
 		polys.foreach(function (p:GeomPoly):void {
-			var qolys:GeomPolyList = p.simplify(1).convex_decomposition();
+			var qolys:GeomPolyList = p.simplify(1).convexDecomposition();
 			qolys.foreach(function (q:GeomPoly):void {
 				body.shapes.add(new Polygon(q));
 			});
@@ -63,7 +63,7 @@ public class BodyFromGraphic {
 		body.graphicOffset = anchor;
 		return body;
 	}
-	
+
 	//take a graphical object on which hitTestPoint will work
 	//and produce a nape body with the exact same positions and shapes
 	//with input graphic assigned to the body and display appropriately
@@ -89,7 +89,7 @@ public class BodyFromGraphic {
 		var grain:Vec2 = (granularity==null) ? new Vec2(8,8) : granularity;
 		var polys:GeomPolyList = MarchingSquares.run(iso, bounds, granularity, 6);
 		polys.foreach(function (p:GeomPoly):void {
-			var qolys:GeomPolyList = p.simplify(1).convex_decomposition();
+			var qolys:GeomPolyList = p.simplify(1).convexDecomposition();
 			qolys.foreach(function (q:GeomPoly):void {
 				body.shapes.add(new Polygon(q));
 			});
@@ -101,7 +101,7 @@ public class BodyFromGraphic {
 		//but also have the graphic offset correctly
 		var anchor:Vec2 = body.localCOM.mul(-1);
 		body.align();
-		
+
 		body.graphic = graphic;
 		body.graphicOffset = anchor;
 		return body;

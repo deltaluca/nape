@@ -20,13 +20,13 @@ package {
 
 			var npolys:GeomPolyList = MarchingSquares.run(iso, body.bounds, granularity, 8);
 			if(npolys.length==0) return new Vector.<Body>();
-		
+
 			body.shapes.clear();
 			body.position.setxy(0,0);
 			body.rotation = 0;
 
 			if(npolys.length==1) {
-				var qolys:GeomPolyList = npolys.at(0).convex_decomposition();
+				var qolys:GeomPolyList = npolys.at(0).convexDecomposition();
 				qolys.foreach(function (q:GeomPoly):void {
 					body.shapes.add(new Polygon(q));
 				});
@@ -39,7 +39,7 @@ package {
 
 				npolys.foreach(function (p:GeomPoly):void {
 					var nbody:Body = body.copy();
-					var qolys:GeomPolyList = p.convex_decomposition();
+					var qolys:GeomPolyList = p.convexDecomposition();
 					qolys.foreach(function (q:GeomPoly):void {
 						nbody.shapes.add(new Polygon(q));
 					});
