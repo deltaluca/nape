@@ -8,7 +8,7 @@ local: $(FILES)
 	caxe -o src cx-src -tc 2 --times \
 		-x DummyCppMain.cx # cpp only
 	haxe -cp src -main DummyNapeMain -swf bin/nape.swf -swf-version $(SWFV) --times \
-		-swf-header 800:600:60:333333 \
+		-swf-header 800:1000:60:333333 \
 		-D NAPE_ASSERT --no-inline -debug -D NAPE_LOG
 #		-D NAPE_RELEASE_BUILD
 	debugfp bin/nape.swf
