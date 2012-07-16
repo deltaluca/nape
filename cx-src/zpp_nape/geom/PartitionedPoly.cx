@@ -147,16 +147,24 @@ class PR(PartitionedPoly) {
 
     public function remove_collinear_vertices() {
         var p = vertices;
-        do {
+        var skip = true;
+        while (skip || p != vertices) {
+            skip = false;
             if(eq(p, p.next)) {
                 //remove vertex 'p'
-                if (p == vertices) vertices = vertices.prev;
+                if (p == vertices) {
+                    vertices = p.next;
+                    skip = true;
+                }
+                if (p.forced) p.next.forced = true;
                 p = pop_ret_after(p);
             }
             else {
                 var pre = p.prev;
-                while(eq(pre, p) && pre != p) pre = pre.prev;
-                if (pre == p) break;
+                while(eq(p, pre)) {
+                    if (p.forced) pre.forced = true;
+                    pre = pre.prev;
+                }
 
                 vec_new(u); vec_sub(p., pre., u);
                 vec_new(v); vec_sub(p.next., p. , v);
@@ -166,11 +174,14 @@ class PR(PartitionedPoly) {
                 }else
                 {
                     //remove vertex 'p'
-                    if (p == vertices) vertices = vertices.prev;
+                    if (p == vertices) {
+                        vertices = p.next;
+                        skip = true;
+                    }
                     p = pop_ret_after(p);
                 }
             }
-        }while(p != vertices);
+        }
     }
 
     public function add_diagonal(p:Vertex,q:Vertex) {
@@ -205,7 +216,10 @@ class PR(PartitionedPoly) {
                 next = next.next;
         }while(next!=start);
 
-        ret.add(poly);
+        assert(geom(clockwise(poly.vertices)),"out poly is not convex :(");
+
+        if(geom(signed_area(poly.vertices))!=0)
+            ret.add(poly);
         return next;
     }
 

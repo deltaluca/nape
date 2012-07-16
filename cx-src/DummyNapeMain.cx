@@ -1,43 +1,104 @@
 package;
+
+import flash.display.Sprite;
+import flash.display.StageScaleMode;
+import flash.events.Event;
+//import game.test.testSplit;
 $(import);
 
-class DummyNapeMain {
-    static function main() {
-        var  shitty = [ { x: -75, y: -14.999999105930328 }, { x:
-        -71.24999994412065, y: -22.50000089406967 }, { x:75, y:
-        -22.50000089406967 }, { x:75, y: -11.250000447034836 },
-        { x:63.75000178813934, y: -7.499999552965164 }, {
-            x:52.50000357627869, y:3.7500008940696716 }, { x:41.25000536441803,
-            y:3.7500008940696716 },
-            { x:29.999998211860657, y:11.250000447034836 }, {
-                x:22.50000536441803, y:11.250000447034836 }, { x:7.500001788139343,
-                y:22.50000089406967 },
-                { x:0, y:22.50000089406967 }, { x: -18.75, y:11.250000447034836 },
-                { x: -41.25000312924385, y:9.375 }, { x: -48.750000447034836,
-                y:3.7500008940696716 },
-                { x: -56.25, y:3.7500008940696716 } ];
+/**
+* ...
+* @author zver
+*/
+class DummyNapeMain extends Sprite
+{
+    private static function spriteFromPoInts(poInts:Vec2List):Sprite
+    {
+        var tmp:Sprite = new Sprite();
 
-        var verts = Lambda.array(Lambda.map(shitty, function (o) return new Vec2(o.x, o.y)));
+        var k:Int = poInts.length;
+        var i:Int;
 
-        var poly = new GeomPoly(verts);
+        tmp.graphics.lineStyle(2, 0xff0000);
 
-        trace(poly.isSimple());
-        trace(poly.isConvex());
-        trace(poly.winding());
-        trace(poly.area());
-        trace(poly.isDegenerate());
+        for (i in 0...k) {
+            var v:Vec2 = poInts.at(i);
+            if (i == 0)
+            tmp.graphics.moveTo(v.x*400+150, v.y*400+150)
+            else
+            tmp.graphics.lineTo(v.x*400+150, v.y*400+150);
 
-        var debug = new ShapeDebug(1, 1);
-        debug.transform = new Mat23(3, 0, 0, 3, 300, 200);
-        flash.Lib.current.addChild(debug.display);
-
-        debug.drawPolygon(poly, 0xffffff);
-        for (p in poly) debug.drawCircle(p, 1, 0xff0000);
-
-        var polys = poly.triangular_decomposition();
-        for (p in polys) {
-            debug.drawPolygon(p, 0xff00);
-            for (v in p) debug.drawCircle(v, 1, 0xff0000);
+            tmp.graphics.drawCircle(v.x*400+150, v.y*400+150, 5);
+            tmp.graphics.moveTo(v.x*400+150, v.y*400+150);
         }
+
+        return tmp;
+    }
+
+    private static function transformPoIntsArray(poInts:Vec2List, ww:Float):Void
+    {
+        var k:Int = poInts.length;
+        var i:Int;
+
+        var max:Float = 0;
+
+        for (i in 0...k) {
+            var v:Vec2 = poInts.at(i);
+
+            if (i == 0)
+                max = v.y
+            else
+            {
+                if (max < v.y)
+                max = v.y;
+            }
+        }
+
+        for (i in 0...k) {
+            var v:Vec2 = poInts.at(i);
+
+            v.y = -v.y + max * 0.5;
+            v.x = v.x - 0.5;
+
+            v.muleq(ww);
+        }
+    }
+
+    static function main()
+    {
+        var testArray = [
+            { x: 0.02500000037252903, y: 0.30000001192092896 },
+            { x: 1, y: 0.30000001192092896 },
+            { x: 1 ,y: 0.22500000894069672 },
+            { x: 0.925000011920929 ,y: 0.20000000298023224 },
+            { x: 0.8500000238418579 ,y: 0.125 },
+            { x: 0.7750000357627869 ,y: 0.125 },
+            { x: 0.699999988079071 ,y: 0.07500000298023224 },
+            { x: 0.6500000357627869 ,y: 0.07500000298023224 },
+            { x: 0.550000011920929 ,y: 0 },
+            { x: 0.5 ,y: 0 },
+            { x: 0.375 ,y: 0.07500000298023224 },
+            { x: 0.22499997913837433 ,y: 0.08750000596046448 },
+            { x: 0.17499999701976776 ,y: 0.125 },
+            { x: 0.125 ,y: 0.125 },
+            { x: 0 ,y: 0.25 }
+        ];
+
+        var vl:Vec2List = new Vec2List();
+
+        var k:Int = testArray.length;
+        var i:Int;
+
+        for (i in 0...k) {
+            vl.push(new Vec2(testArray[i].x, testArray[i].y));
+        }
+
+        transformPoIntsArray(vl, 300);
+
+        var tmpspr:Sprite = spriteFromPoInts(vl);
+        flash.Lib.current.addChild(tmpspr);
+
+        var gp:GeomPoly = new GeomPoly(vl);
+        gp.triangular_decomposition();
     }
 }
