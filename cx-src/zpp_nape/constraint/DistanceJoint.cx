@@ -57,6 +57,15 @@ class PR(DistanceJoint) extends PR(Constraint) {
         }
         C;
     });
+    flibmdel public inline function is_slack() {
+        var slack;
+        validate_anchor(b1,a1);
+        validate_anchor(b2,a2);
+        vec_new(n);
+
+        Cerr(a1rel,a2rel,n,slack);
+        return slack;
+    }
 
     vec_new(public, n);
     public var cx1:Float;
@@ -165,13 +174,6 @@ class PR(DistanceJoint) extends PR(Constraint) {
 
     public override function pair_exists(id:Int,di:Int) {
         return (b1.id==id && b2.id==di) || (b1.id==di && b2.id==id);
-    }
-
-    public override function destroy() {
-        //no validation has occured.
-        b1.constraints.remove(this);
-        if(b2!=b1)
-            b2.constraints.remove(this);
     }
 
     public override function clearcache() {

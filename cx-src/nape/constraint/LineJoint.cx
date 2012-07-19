@@ -2,17 +2,89 @@ package nape.constraint;
 $(import);
 
 withConstraint(
+!!/**
+!! * LineJoint constraining anchor of one body, to a line segment of the other.
+!! * <br/><br/>
+!! * The equation for this constraint could be written like:
+!! * <pre>
+!! *        0  = [dir.cross(delta)]  = 0
+!! * jointMin <= [dor.dot  (delta)] <= jointMax
+!! * </pre>
+!! * where:
+!! * <pre>
+!! * dir   = body1.localToRelative(direction).unit();
+!! * delta = body2.localToWorld(anchor2).sub(body1.localToWorld(anchor1));
+!! * </pre>
+!! * This is a 2 dimensional constraint, and is (when at the limits) solved as a
+!! * block constraint for better stability. This is however not the most stable
+!! * of joint when chained and put under stress and is a rather rare case where
+!! * using a non-stiff joint can actually be more stable than
+!! * using a stiff one.
+!! * <br/><br/>
+!! * When <code> jointMin = jointMax </code>, it would be better to use a PivotJoint
+!! *instead with suitable
+!! * placed anchors.
+!! * <br/><br/>
+!! * The line segment is defined implicitly via the
+!! * <code>anchor1, direction, jointMin and jointMax</code> properties with end
+!! * points defined in local coordinate system of body1 like:
+!! * <pre>
+!! * start = anchor1.add(direction.unit().mul(jointMin))
+!! * end   = anchor1.add(direction.unit().mul(jointMax))
+!! * </pre>
+!! * The reason for this more general description of a line segment is that one or
+!! * both of jointMin, jointMax are permitted to be infinite and a line segment
+!! * defined with a start and end point is not sufficient to describe such lines.
+!! */
 class LineJoint extends Constraint {
+    !!/**
+    !! * @private
+    !! */
     public var pr(inner_zn):PR(LineJoint);
 
+    !!/**
+    !! * First Body in constraint, defining the line segment.
+    !! * <br/><br/>
+    !! * This value may be null, but trying to simulate the constraint whilst
+    !! * this body is null will result in an error.
+    !! */
     wrap_body_new(body1, b1, $(mixin isNew(b) pr(inner_zn).b2 != b) isNew)
+
+    !!/**
+    !! * Second Body in constraint.
+    !! * <br/><br/>
+    !! * This value may be null, but trying to simulate the constraint whilst
+    !! * this body is null will result in an error.
+    !! */
     wrap_body_new(body2, b2, $(mixin isNew(b) pr(inner_zn).b1 != b) isNew)
 
+    !!/**
+    !! * Anchor point on first Body, defining position on line.
+    !! * <br/><br/>
+    !! * This anchor point is defined in the local coordinate system of body1.
+    !! */
     wrap_anchor_new(anchor1, a1)
+
+    !!/**
+    !! * Anchor point on second Body.
+    !! * <br/><br/>
+    !! * This anchor point is defined in the local coordinate system of body2.
+    !! */
     wrap_anchor_new(anchor2, a2)
 
+    !!/**
+    !! * Direction of line on first Body.
+    !! * <br/><br/>
+    !! * This direction is defined in the local coordinate system of body1 and
+    !! * need not be normalised.
+    !! */
     wrap_anchor_new(direction, n)
 
+    !!/**
+    !! * Lower bound for constraint.
+    !! * <br/><br/>
+    !! * This value must be less than or equal to jointMax.
+    !! */
     property(jointMin, Float, {
         /*return*/ pr(inner_zn).jointMin;
     }, {
@@ -29,6 +101,11 @@ class LineJoint extends Constraint {
         }
     })
 
+    !!/**
+    !! * Upper bound for constraint.
+    !! * <br/><br/>
+    !! * This value must be greater than or equal to jointMin.
+    !! */
     property(jointMax, Float, {
         /*return*/ pr(inner_zn).jointMax;
     }, {
@@ -45,6 +122,18 @@ class LineJoint extends Constraint {
         }
     })
 
+    !!/**
+    !! * Construct a new LineJoint.
+    !! *
+    !! * @param body1 The first body in LineJoint.
+    !! * @param body2 The second body in LineJoint.
+    !! * @param anchor1 The first local anchor for joint.
+    !! * @param anchor2 The second local anchor for joint.
+    !! * @param direction The direction of local line for joint.
+    !! * @param jointMin The lower bound for constraint.
+    !! * @param jointMax The upper bound for constraint.
+    !! * @return The constructed LineJoint.
+    !! */
     flibopts(0)
     public function new(
         body1:Null<Body>,
@@ -72,6 +161,11 @@ class LineJoint extends Constraint {
         this.jointMax = jointMax;
     }
 
+    !!/**
+    !! * @inheritDoc
+    !! * <br/><br/>
+    !! * For this constraint, the MatMN will be 2x1.
+    !! */
     public override function impulse():MatMN {
         var ret = new MatMN(2, 1);
         ret.setx(0, 0, pr(inner_zn).jAccx + pr(inner_zn).pjAccx);
@@ -79,6 +173,9 @@ class LineJoint extends Constraint {
         return ret;
     }
 
+    !!/**
+    !! * @inheritDoc
+    !! */
     public override function bodyImpulse(body:Body):Vec3 {
         DEBUG(
             if (body == null) {
@@ -97,6 +194,9 @@ class LineJoint extends Constraint {
         }
     }
 
+    !!/**
+    !! * @inheritDoc
+    !! */
     public override function visitBodies(lambda:Body->Void):Void {
         if (body1 != null) {
             lambda(body1);

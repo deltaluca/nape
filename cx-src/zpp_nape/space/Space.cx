@@ -1639,6 +1639,7 @@ class PR(Space) {
             if(con.preStep(dt)) {
                 cx_ite = live_constraints.erase(pre);
 
+                con.broken();
                 constraintCbBreak(con);
                 if(con.removeOnBreak) {
                     //set sleeping to true as already removed from live list.
@@ -1699,7 +1700,6 @@ class PR(Space) {
                             assert(cb1!=null && cb2!=null, "null cb from MRCA_chains?");
 
                             if(PR(CbSet).empty_intersection(cb1,cb2)) cx_continue;
-                            //trace("non-empty");
 
                             var callbackset = PR(Interactor).get(i1,i2);
                             if(begcb || arb.intchange) {
@@ -1825,6 +1825,7 @@ class PR(Space) {
                 if(con.applyImpulseVel()) {
                     cx_ite = live_constraints.erase(pre);
 
+                    con.broken();
                     constraintCbBreak(con);
                     if(con.removeOnBreak) {
                         //set sleeping to true as already removed from live list.
@@ -1855,6 +1856,7 @@ class PR(Space) {
                     if(con.applyImpulsePos()) {
                         cx_ite = live_constraints.erase(pre);
 
+                        con.broken();
                         constraintCbBreak(con);
                         if(con.removeOnBreak) {
                             //set sleeping to true as already removed from live list.

@@ -118,9 +118,7 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 				var ctx2 = getMethodOriginator(ctx, f.name);
 				if(ctx2 != null) {
                     if (f.docs != null && f.docs.inheritDoc) {
-                        trace(f.docs.comments);
                         f.docs.comments = (~/@inheritDoc/g).replace(f.docs.comments, fieldctx.docs.comments);
-                        trace(f.docs.comments);
                         f.docs.params = fieldctx.docs.params;
                         f.docs.returns = fieldctx.docs.returns;
                         f.docs.throws = fieldctx.docs.throws;

@@ -2,15 +2,63 @@ package nape.constraint;
 $(import);
 
 withConstraint(
+!!/**
+!! * PivotJoint constraining two anchors points of bodies to be equal.
+!! * <br/><br/>
+!! * The equation for this constraint is:
+!! * <pre>
+!! * body2.localToWorld(anchor2) = body1.localToWorld(anchor1)
+!! * </pre>
+!! * You may view this constraint as being equal to the DistanceJoint constraint
+!! * when both its jointMin and jointMax are exactly 0 (In such a case a
+!! * DistanceJoint becomes degenerate). Compared to the DistanceJoint this is
+!! * a 2 dimensional constraint.
+!! */
 class PivotJoint extends Constraint {
+    !!/**
+    !! * @private
+    !! */
     public var pr(inner_zn):PR(PivotJoint);
 
+    !!/**
+    !! * First Body in constraint.
+    !! * <br/><br/>
+    !! * This value may be null, but trying to simulate the constraint whilst
+    !! * this body is null will result in an error.
+    !! */
     wrap_body_new(body1, b1, $(mixin isNew(b) pr(inner_zn).b2 != b) isNew)
+
+    !!/**
+    !! * Second Body in constraint.
+    !! * <br/><br/>
+    !! * This value may be null, but trying to simulate the constraint whilst
+    !! * this body is null will result in an error.
+    !! */
     wrap_body_new(body2, b2, $(mixin isNew(b) pr(inner_zn).b1 != b) isNew)
 
+    !!/**
+    !! * Anchor point on first Body.
+    !! * <br/><br/>
+    !! * This anchor point is defined in the local coordinate system of body1.
+    !! */
     wrap_anchor_new(anchor1, a1)
+
+    !!/**
+    !! * Anchor point on second Body.
+    !! * <br/><br/>
+    !! * This anchor point is defined in the local coordinate system of body2.
+    !! */
     wrap_anchor_new(anchor2, a2)
 
+    !!/**
+    !! * Construct a new PivotJoint.
+    !! *
+    !! * @param body1 The first body in PivotJoint.
+    !! * @param body2 The second body in PivotJoint.
+    !! * @param anchor1 The first local anchor for joint.
+    !! * @param anchor2 The second local anchor for joint.
+    !! * @return The constructed PivotJoint.
+    !! */
     flibopts(0)
     public function new(
         body1:Null<Body>,
@@ -32,6 +80,11 @@ class PivotJoint extends Constraint {
         this.anchor2 = anchor2;
     }
 
+    !!/**
+    !! * @inheritDoc
+    !! * <br/><br/>
+    !! * For this constraint, the MatMN will be 2x1.
+    !! */
     public override function impulse():MatMN {
         var ret = new MatMN(2, 1);
         ret.setx(0, 0, pr(inner_zn).jAccx + pr(inner_zn).pjAccx);
@@ -39,6 +92,9 @@ class PivotJoint extends Constraint {
         return ret;
     }
 
+    !!/**
+    !! * @inheritDoc
+    !! */
     public override function bodyImpulse(body:Body):Vec3 {
         DEBUG(
             if (body == null) {
@@ -57,6 +113,9 @@ class PivotJoint extends Constraint {
         }
     }
 
+    !!/**
+    !! * @inheritDoc
+    !! */
     public override function visitBodies(lambda:Body->Void):Void {
         if (body1 != null) {
             lambda(body1);

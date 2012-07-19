@@ -2,12 +2,42 @@ package nape.constraint;
 $(import);
 
 withConstraint(
+!!/**
+!! * MotorJoint constraining the angular velocities of two bodies
+!! * <br/><br/>
+!! * The equation for this constraint is:
+!! * <pre>
+!! * (ratio * body2.angularVel) - body1.angularVel = rate
+!! * </pre>
+!! * This constraint operates only on the velocities of objects.
+!! */
 class MotorJoint extends Constraint {
+    !!/**
+    !! * @private
+    !! */
     public var pr(inner_zn):PR(MotorJoint);
 
+    !!/**
+    !! * First Body in constraint.
+    !! * <br/><br/>
+    !! * This value may be null, but trying to simulate the constraint whilst
+    !! * this body is null will result in an error.
+    !! */
     wrap_body_new(body1, b1, $(mixin isNew(b) pr(inner_zn).b2 != b) isNew)
+
+    !!/**
+    !! * Second Body in constraint.
+    !! * <br/><br/>
+    !! * This value may be null, but trying to simulate the constraint whilst
+    !! * this body is null will result in an error.
+    !! */
     wrap_body_new(body2, b2, $(mixin isNew(b) pr(inner_zn).b1 != b) isNew)
 
+    !!/**
+    !! * MotorJoint ratio.
+    !! *
+    !! * @default 1
+    !! */
     property(ratio, Float, {
         /*return*/ pr(inner_zn).ratio;
     }, {
@@ -24,6 +54,11 @@ class MotorJoint extends Constraint {
         }
     })
 
+    !!/**
+    !! * MotorJoint rate
+    !! *
+    !! * @default 0
+    !! */
     property(rate, Float, {
         /*return*/ pr(inner_zn).rate;
     }, {
@@ -40,6 +75,15 @@ class MotorJoint extends Constraint {
         }
     })
 
+    !!/**
+    !! * Construct a new MotorJoint
+    !! *
+    !! * @param body1 The first body in MotorJoint
+    !! * @param body2 The second body in MotorJoint
+    !! * @param rate The rate of motor. (default 0)
+    !! * @param ratio The ratio of the motor. (default 1)
+    !! * @return The constructed MotorJoint.
+    !!**/
     flibopts(2)
     public function new(
         body1:Null<Body>,
@@ -61,12 +105,22 @@ class MotorJoint extends Constraint {
         this.ratio = ratio;
     }
 
+    !!/**
+    !! * @inheritDoc
+    !! * <br/><br/>
+    !! * For this constraint, the MatMN will be 1x1.
+    !! */
     public override function impulse():MatMN {
         var ret = new MatMN(1, 1);
         ret.setx(0, 0, pr(inner_zn).jAcc+pr(inner_zn).pjAcc);
         return ret;
     }
 
+    !!/**
+    !! * @inheritDoc
+    !! * <br/><br/>
+    !! * For this constraint, only the z coordinate will be non-zero.
+    !! */
     public override function bodyImpulse(body:Body):Vec3 {
         DEBUG(
             if (body == null) {
@@ -85,6 +139,9 @@ class MotorJoint extends Constraint {
         }
     }
 
+    !!/**
+    !! * @inheritDoc
+    !! */
     public override function visitBodies(lambda:Body->Void):Void {
         if (body1 != null) {
             lambda(body1);

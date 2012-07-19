@@ -6,13 +6,20 @@ import flash.events.Event;
 //import game.test.testSplit;
 $(import);
 
+
 class DummyNapeMain {
     static function main() {
-        var space = new Space(new Vec2(0, 400));
-        var c = new PivotJoint(null, null, new Vec2(), new Vec2());
-        var d = new Compound();
-        c.space = space;
-        c.compound = d;
-        d.space = space;
+        var b1 = new Body();
+        var b2 = new Body();
+        b1.shapes.add(new Circle(10));
+        b2.shapes.add(new Circle(10));
+        var c = new PivotJoint(b1, b2, new Vec2(), new Vec2());
+        var s = new Space();
+        c.space = b1.space = b2.space = s;
+        c.maxForce = 0.00001;
+
+        s.step(1/100, 10, 10);
+        s.step(1/100, 10, 10);
+        s.step(1/100, 10, 10);
     }
 }

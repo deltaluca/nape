@@ -9,6 +9,8 @@ withConstraint(
 !! * <pre>
 !! * jointMin <= distance(body2.localToWorld(anchor2), body1.localToWorld(anchor1)) <= jointMax
 !! * </pre>
+!! * This joint is not designed to work when <code> jointMin = jointMax = 0 </code> and constraint is
+!! * stiff. In this instance you should use a PivotJoint instead.
 !! */
 class DistanceJoint extends Constraint {
     !!/**
@@ -112,6 +114,17 @@ class DistanceJoint extends Constraint {
         return pr(inner_zn).slack;
     }
 
+    !!/**
+    !! * Construct a new DistanceJoint.
+    !! *
+    !! * @param body1 The first body in DistanceJoint.
+    !! * @param body2 The second body in DistanceJoint.
+    !! * @param anchor1 The first local anchor for joint.
+    !! * @param anchor2 The second local anchor for joint.
+    !! * @param jointMin The lower bound for constraint.
+    !! * @param jointMax The upper bound for constraint.
+    !! * @return The constructed DistanceJoint.
+    !! */
     flibopts(0)
     public function new(
         body1:Null<Body>,
@@ -137,12 +150,20 @@ class DistanceJoint extends Constraint {
         this.jointMax = jointMax;
     }
 
+    !!/**
+    !! * @inheritDoc
+    !! * <br/><br/>
+    !! * For this constraint, the MatMN will be 1x1.
+    !! */
     public override function impulse():MatMN {
         var ret = new MatMN(1,1);
         ret.setx(0, 0, pr(inner_zn).jAcc + pr(inner_zn).pjAcc);
         return ret;
     }
 
+    !!/**
+    !! * @inheritDoc
+    !! */
     public override function bodyImpulse(body:Body):Vec3 {
         DEBUG(
             if (body == null) {
@@ -161,6 +182,9 @@ class DistanceJoint extends Constraint {
         }
     }
 
+    !!/**
+    !! * @inheritDoc
+    !! */
     public override function visitBodies(lambda:Body->Void) {
         if (body1 != null) {
             lambda(body1);

@@ -452,6 +452,55 @@ class Vec2 {
     }
 
     !!/**
+    !! * Normalise this vector.
+    !! * <br/><br/>
+    !! * Equivalent to setting the length of the vector to 1, and also to the
+    !! * (less-optimal) <code>this.set(this.unit())</code>.
+    !! *
+    !! * @return A reference to 'this' vector.
+    !! * @throws # If this vector has been disposed of or is immutable.
+    !! * @throws # If length of this vector is 0.
+    !! */
+    keep public function normalise():Vec2 {
+        Disposed(this, Vec2);
+        pr(inner).immutable();
+
+        DEBUG(
+            if (this.length == 0) {
+                throw "Error: Cannot normalise vector of length 0";
+            }
+        )
+
+        vec_normalise_slow(this.);
+        pr(inner).invalidate();
+
+        return this;
+    }
+
+    !!/**
+    !! * Return normalisation of this vector.
+    !! *
+    !! * @param weak If true then the allocated Vec2 will be automatically
+    !! *             released to the global object pool when used as an argument
+    !! *             to a Nape function. (default false)
+    !! * @return A copy of this vector, normalised.
+    !! * @throws # If this vector has been disposed of.
+    !! * @throws # If length of this vector is 0.
+    !! */
+    keep public function unit(weak:Bool = false):Vec2 {
+        Disposed(this, Vec2);
+
+        DEBUG(
+            if (this.length == 0) {
+                throw "Error: Cannot normalise vector of length 0";
+            }
+        )
+
+        var scale = 1 / vec_length(this.);
+        return Vec2.get(x * scale, y * scale, weak);
+    }
+
+    !!/**
     !! * Add another vector to this vector.
     !! * <br/><br/>
     !! * Returns a newly allocated vector so that

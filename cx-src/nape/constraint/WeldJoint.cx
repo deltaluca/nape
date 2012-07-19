@@ -2,15 +2,65 @@ package nape.constraint;
 $(import);
 
 withConstraint(
+!!/**
+!! * WeldJoint constraining two bodies to be exactly locked together.
+!! * <br/><br/>
+!! * The equation for this constraint is:
+!! * <pre>
+!! * [ body2.localToWorld(anchor2) ] = [ body1.localToWorld(anchor1) ]
+!! * [       body2.rotation        ]   [   body1.rotation + phase    ]
+!! * </pre>
+!! * This constraint is equivalent to using a PivotJoint and AngleJoint
+!! * together except that it is solved as a single constraint and thus
+!! * will be more stable.
+!! * <br/><br/>
+!! * This constraint is 3 dimensional.
+!! * <br/><br/>
+!! * Although this constraint is very stable, if you chain bodies together
+!! * using this constraint, you should except to see a small amount of rotation
+!! * about the anchor points so you should chose them accordingly.
+!! */
 class WeldJoint extends Constraint {
+    !!/**
+    !! * @private
+    !! */
     public var pr(inner_zn):PR(WeldJoint);
 
+    !!/**
+    !! * First Body in constraint.
+    !! * <br/><br/>
+    !! * This value may be null, but trying to simulate the constraint whilst
+    !! * this body is null will result in an error.
+    !! */
     wrap_body_new(body1, b1, $(mixin isNew(b) pr(inner_zn).b2 != b) isNew)
+
+    !!/**
+    !! * Second Body in constraint.
+    !! * <br/><br/>
+    !! * This value may be null, but trying to simulate the constraint whilst
+    !! * this body is null will result in an error.
+    !! */
     wrap_body_new(body2, b2, $(mixin isNew(b) pr(inner_zn).b1 != b) isNew)
 
+    !!/**
+    !! * Anchor point on first Body.
+    !! * <br/><br/>
+    !! * This anchor point is defined in the local coordinate system of body1.
+    !! */
     wrap_anchor_new(anchor1, a1)
+
+    !!/**
+    !! * Anchor point on second Body.
+    !! * <br/><br/>
+    !! * This anchor point is defined in the local coordinate system of body2.
+    !! */
     wrap_anchor_new(anchor2, a2)
 
+    !!/**
+    !! * Angular phase of bodies in WeldJoint.
+    !! *
+    !! * @default 0
+    !! */
     property(phase, Float, {
         /*return*/ pr(inner_zn).phase;
     }, {
@@ -27,6 +77,16 @@ class WeldJoint extends Constraint {
         }
     })
 
+    !!/**
+    !! * Construct a new WeldJoint.
+    !! *
+    !! * @param body1 The first body in WeldJoint.
+    !! * @param body2 The second body in WeldJoint.
+    !! * @param anchor1 The first local anchor for joint.
+    !! * @param anchor2 The second local anchor for joint.
+    !! * @param phase The angular phase of joint. (default 0)
+    !! * @return The constructed WeldJoint.
+    !! */
     flibopts(1)
     public function new(
         body1:Null<Body>,
@@ -50,6 +110,11 @@ class WeldJoint extends Constraint {
         this.phase = phase;
     }
 
+    !!/**
+    !! * @inheritDoc
+    !! * <br/><br/>
+    !! * For this constraint, the MatMN will be 3x1.
+    !! */
     public override function impulse():MatMN {
         var ret = new MatMN(3, 1);
         ret.setx(0, 0, pr(inner_zn).jAccx + pr(inner_zn).pjAccx);
@@ -58,6 +123,9 @@ class WeldJoint extends Constraint {
         return ret;
     }
 
+    !!/**
+    !! * @inheritDoc
+    !! */
     public override function bodyImpulse(body:Body):Vec3 {
         DEBUG(
             if (body == null) {
@@ -76,6 +144,9 @@ class WeldJoint extends Constraint {
         }
     }
 
+    !!/**
+    !! * @inheritDoc
+    !! */
     public override function visitBodies(lambda:Body->Void):Void {
         if (body1 != null) {
             lambda(body1);
