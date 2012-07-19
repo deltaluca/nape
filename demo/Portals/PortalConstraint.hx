@@ -10,7 +10,7 @@ typedef ARRAY<T> = #if flash9 flash.Vector<T> #else Array<T> #end;
 
 /*
 	Constraint for use in portal physics.
-	
+
 	A body and it's clone are linked via this constraint to act as a single
 	entitity
 
@@ -82,51 +82,51 @@ class PortalConstraint extends UserConstraint {
 	/*
 		Portal scaling from portal1 to portal2
 	*/
-	public var scale(default,set_scale):Float;		
+	public var scale(default,set_scale):Float;
 
 	//---------------------------------------------------------------------------
 
 	function set_body1(body1:Body)
-		return this.body1 = registerBody(this.body1,body1)
+		return this.body1 = __registerBody(this.body1,body1)
 	function set_body2(body2:Body)
-		return this.body2 = registerBody(this.body2,body2)
-	
+		return this.body2 = __registerBody(this.body2,body2)
+
 	function set_portalBody1(portalBody1:Body)
-		return this.portalBody1 = registerBody(this.portalBody1,portalBody1)
+		return this.portalBody1 = __registerBody(this.portalBody1,portalBody1)
 	function set_portalBody2(portalBody2:Body)
-		return this.portalBody2 = registerBody(this.portalBody2,portalBody2)
+		return this.portalBody2 = __registerBody(this.portalBody2,portalBody2)
 
 	function set_position1(position1:Vec2) {
-		if(this.position1==null) this.position1 = bindVec2();
+		if(this.position1==null) this.position1 = __bindVec2();
 		return this.position1.set(position1);
 	}
 	function set_position2(position2:Vec2) {
-		if(this.position2==null) this.position2 = bindVec2();
+		if(this.position2==null) this.position2 = __bindVec2();
 		return this.position2.set(position2);
 	}
 
 	function set_direction1(direction1:Vec2) {
-		if(this.direction1==null) this.direction1 = bindVec2();
+		if(this.direction1==null) this.direction1 = __bindVec2();
 		return this.direction1.set(direction1);
 	}
 	function set_direction2(direction2:Vec2) {
-		if(this.direction2==null) this.direction2 = bindVec2();
+		if(this.direction2==null) this.direction2 = __bindVec2();
 		return this.direction2.set(direction2);
 	}
 
 	function set_scale(scale:Float) {
-		if(this.scale!=scale) invalidate();
+		if(this.scale!=scale) __invalidate();
 		return this.scale = scale;
 	}
 
 	//---------------------------------------------------------------------------
-	
+
 	public function new(portalBody1:Body,position1:Vec2,direction1:Vec2,
 	                    portalBody2:Body,position2:Vec2,direction2:Vec2,
 	                    scale:Float, body1:Body, body2:Body)
 	{
 		super(3); //3 dimensional constraint
-	
+
 		this.portalBody1 = portalBody1; this.portalBody2 = portalBody2;
 		this.position1   = position1;   this.position2   = position2;
 		this.direction1  = direction1;  this.direction2  = direction2;
@@ -163,7 +163,7 @@ class PortalConstraint extends UserConstraint {
 		//compute velocity error so we can set velocity correctly.
 		var v = new ARRAY<Float>();
 		__velocity(v);
-	
+
 		//modify clone so that position and velocity errors are 0
 		if(clone==body2) {
 			clone.position = portalBody2.position.add(p2,true);
@@ -217,7 +217,7 @@ class PortalConstraint extends UserConstraint {
 		err[1] = scale*s1.cross(n1) + s2.cross(n2);
 		err[2] = (body1.rotation - a1) - (body2.rotation - a2) - Math.PI;
 	}
-	
+
 	public override function __velocity(err:ARRAY<Float>) {
 		var v1 = body1.constraintVelocity;
 		var v2 = body2.constraintVelocity;

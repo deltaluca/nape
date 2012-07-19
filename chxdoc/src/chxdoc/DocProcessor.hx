@@ -105,9 +105,12 @@ class DocProcessor {
         var chs = ch.parsed.split("\n");
         for (dc in chs)
         {
+            if (dc == chs[0]) continue;
+
             var c = dc;
             while(c.length > 0 && c.charAt(c.length-1) == " ") c = c.substr(0, c.length-1);
             if (c.length == 0) continue;
+
             for (i in 0...c.length)
             {
                 if (c.charAt(i) == " ")
@@ -119,7 +122,12 @@ class DocProcessor {
             break;
         }
 
-        docCtx.comments = Lambda.map(ch.parsed.split("\n"), function (x) return x.substr(trim)).join("\n");
+        docCtx.comments = chs[0].substr(1);
+        chs.shift();
+        if (chs.length > 0)
+        {
+            docCtx.comments += "\n" + Lambda.map(chs, function (x) return x.substr(trim)).join("\n");
+        }
 
         // get rid of any newlines after <pre>
         var sk = docCtx.comments.split("\n");

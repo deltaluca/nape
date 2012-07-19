@@ -36,12 +36,12 @@ class UserConstraint extends Constraint {
     !! * //      is set at least once, likely in constructor)
     !! * public var property(default, set_property):Vec2;
     !! * inline function set_property(property:Vec2) {
-    !! *     if (this.property == null) this.property = bindVec2();
+    !! *     if (this.property == null) this.property = __bindVec2();
     !! *     return this.property.set(property);
     !! * }
     !! *
     !! * //AS3
-    !! * private var _property:Vec2 = bindVec2();
+    !! * private var _property:Vec2 = __bindVec2();
     !! * public function get property():Vec2 { return _property; }
     !! * public function set property(property:Vec2):void {
     !! *     _property.set(property);
@@ -51,7 +51,7 @@ class UserConstraint extends Constraint {
     !! * <br/><br/>
     !! * You should hide this method in your sub-type.
     !! */
-    public function bindVec2():Vec2 {
+    public function __bindVec2():Vec2 {
         var ret = new Vec2();
         ret.pr(inner)._inuse = true;
         ret.pr(inner)._invalidate = pr(inner_zn).bindVec2_invalidate;
@@ -314,7 +314,7 @@ class UserConstraint extends Constraint {
     !! *
     !! * @throws # If you call this method in the middle of a space step.
     !! */
-    public function invalidate():Void {
+    public function __invalidate():Void {
         pr(inner).immutable_midstep("UserConstraint::invalidate()");
         if (active && space != null) {
             pr(inner).wake();
@@ -331,7 +331,7 @@ class UserConstraint extends Constraint {
     !! * //Haxe
     !! * public var body1(default, set_body1):Null&lt;Body&gt;;
     !! * inline function set_body1(body1:Null&lt;Body&gt;) {
-    !! *     return this.body1 = registerBody(this.body1, body1);
+    !! *     return this.body1 = __registerBody(this.body1, body1);
     !! * }
     !! *
     !! * //AS3
@@ -340,7 +340,7 @@ class UserConstraint extends Constraint {
     !! *     return _body1;
     !! * }
     !! * public function set body1(body1:Body):void {
-    !! *     _body1 = registerBody(_body1, body1);
+    !! *     _body1 = __registerBody(_body1, body1);
     !! * }
     !! * </pre>
     !! *
@@ -350,7 +350,7 @@ class UserConstraint extends Constraint {
     !! * @throws # If oldBody is not registered with constraint.
     !! * @throws # If you call this method in the middle of a space step.
     !! */
-    public function registerBody(oldBody:Null<Body>, newBody:Null<Body>):Null<Body> {
+    public function __registerBody(oldBody:Null<Body>, newBody:Null<Body>):Null<Body> {
         pr(inner).immutable_midstep("UserConstraint::registerBody(..)");
         if (oldBody != newBody) {
             if (oldBody != null) {
