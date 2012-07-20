@@ -72,7 +72,6 @@ class ChxDocMain {
 		installImagesDir	: true,
 		installCssFile		: true,
 
-
 		title 				: "Haxe Application",
 		subtitle			: "http://www.haxe.org/",
 		developer			: false,
