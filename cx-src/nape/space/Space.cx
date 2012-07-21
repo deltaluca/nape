@@ -1,14 +1,23 @@
 package nape.space;
 $(import);
 
+!!/**
+!! * The heart of all Nape simulations.
+!! */
 class Space {
+    !!/**
+    !! * @private
+    !! */
     public var pr(inner):PR(Space);
 
-    property(id,Int,return pr(inner).id)
     PublicUserData(pr(inner))
 
-    //----------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * Space gravity.
+    !! * <br/><br/>
+    !! * Units are of pixels/second/second
+    !! * @default (0,0)
+    !! */
     property(gravity,Vec2,{
         if(pr(inner).wrap_gravity==null) pr(inner).getgravity();
         return pr(inner).wrap_gravity;
@@ -18,18 +27,43 @@ class Space {
         this.gravity.set(gravity);
     })
 
+    !!/**
+    !! * Broadphase type in use.
+    !! */
     property(broadphase,Broadphase,{
         return pr(inner).bphase.is_sweep ? Broadphase.SWEEP_AND_PRUNE : Broadphase.DYNAMIC_AABB_TREE;
     })
 
+    !!/**
+    !! * Flag controlling sorting of contact points.
+    !! * <br/><br/>
+    !! * If true, then collisions will be resolved in an order defined by their
+    !! * penetration depths. This can be shown to improve stability of the physics
+    !! * as well as making simulations more consistent regardless of which broadphase
+    !! * is used.
+    !! * <br/><br/>
+    !! * Having sorting enabled obviously incurs a cost, and you may consider
+    !! * disabling it if you are having issues with performance (Though things
+    !! * such as number of physics iterations will have much greater bearing on
+    !! * performance than this, especcialy since enabling this may permit you
+    !! * to use less iterations).
+    !! *
+    !! * @default true
+    !! */
     property(sortContacts,Bool, {
         return pr(inner).sortcontacts;
     }, {
         pr(inner).sortcontacts = sortContacts;
     })
 
-    //----------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * Angular drag applied to all bodies in Space.
+    !! * <br/><br/>
+    !! * This represents the fraction of a body's angular velocity which will be
+    !! * removed per second. This value has no unit attached.
+    !! *
+    !! * @default 0.015
+    !! */
     property(worldAngularDrag,Float, {
         return pr(inner).global_ang_drag;
     }, {
@@ -37,6 +71,15 @@ class Space {
         DEBUG(if(isNaN(d)) throw "Error: Space::worldAngularDrag cannot be NaN";)
         pr(inner).global_ang_drag = d;
     })
+
+    !!/**
+    !! * Linear drag applied to all bodies in Space.
+    !! * <br/><br/>
+    !! * This represents the fraction of a body's linear velocity which will be
+    !! * removed per second. This value has no unit attached.
+    !! *
+    !! * @default 0.015
+    !! */
     property(worldLinearDrag,Float, {
         return pr(inner).global_lin_drag;
     }, {
@@ -45,28 +88,103 @@ class Space {
         pr(inner).global_lin_drag = d;
     })
 
-    //----------------------------------------------------------------------------------------------
 
-    //bodies ]= statics,dynamics,kinematics
-    //dynamics ]= liveBodies
-    property(compounds,CompoundList,return pr(inner).wrap_compounds)
-    property(bodies,    BodyList,return pr(inner).wrap_bodies)
-    property(liveBodies,BodyList,return pr(inner).wrap_live)
+    !!/**
+    !! * List of all Compounds directly placed in space.
+    !! * <br/><br/>
+    !! * This list is mutable, and adding an element to this list is one way of
+    !! * adding a Compound to this Space equivalent to: <code>compound.space = space</code>
+    !! * <br/><br/>
+    !! * This list is only those compounds directly placed in the space, any
+    !! * compound that is a child of another compound will not be in this list.
+    !! */
+    property(compounds,CompoundList, {
+        return pr(inner).wrap_compounds;
+    })
 
-    //constraints ]= liveConstraints
-    property(constraints,    ConstraintList,return pr(inner).wrap_constraints)
-    property(liveConstraints,ConstraintList,return pr(inner).wrap_livecon)
+    !!/**
+    !! * List of all Bodys directly placed in space.
+    !! * <br/><br/>
+    !! * This list is mutable, and adding an element to this list is one way of
+    !! * adding a Body to this Space equivalent to: <code>body.space = space</code>
+    !! * <br/><br/>
+    !! * This list is only those bodies directly placed in the space, any
+    !! * body that is a child of a Compound will not be in this list.
+    !! */
+    property(bodies, BodyList, {
+        return pr(inner).wrap_bodies;
+    })
 
+    !!/**
+    !! * List of all active Bodies in space.
+    !! * <br/><br/>
+    !! * This list contains all bodies regardless of their containment in a Compound.
+    !! */
+    property(liveBodies, BodyList, {
+        return pr(inner).wrap_live;
+    })
+
+    !!/**
+    !! * List of all Constraints directly placed in space.
+    !! * <br/><br/>
+    !! * This list is mutable, and adding an element to this list is one way of
+    !! * adding a Constraint to this Space equivalent to: <code>constraint.space = space</code>
+    !! * <br/><br/>
+    !! * This list is only those bodies directly placed in the space, any
+    !! * constraint that is a child of a Compound will not be in this list.
+    !! */
+    property(constraints, ConstraintList, {
+        return pr(inner).wrap_constraints;
+    })
+
+    !!/**
+    !! * List of all active Constraints in space.
+    !! * <br/><br/>
+    !! * This list contains all constraints regardless of their containment in a Compound.
+    !! */
+    property(liveConstraints,ConstraintList, {
+        return pr(inner).wrap_livecon;
+    })
+
+    !!/**
+    !! * Apply given function to all bodies in space.
+    !! * <br/><br/>
+    !! * This method is a way to iterate over 'every' Body in the Space
+    !! * regardless of containment in a Compound.
+    !! *
+    !! * @param lambda The function to apply to each Body.
+    !! * @throws # If lambda is null.
+    !! */
     public function visitBodies(lambda:Body->Void) {
         DEBUG(if(lambda==null) throw "Error: lambda cannot be null for Space::visitBodies";)
         for(b in bodies) lambda(b);
         for(c in compounds) c.visitBodies(lambda);
     }
+
+    !!/**
+    !! * Apply given function to all constraints in space.
+    !! * <br/><br/>
+    !! * This method is a way to iterate over 'every' Constraint in the Space
+    !! * regardless of containment in a Compound.
+    !! *
+    !! * @param lambda The function to apply to each Constraint.
+    !! * @throws # If lambda is null.
+    !! */
     public function visitConstraints(lambda:Constraint->Void) {
         DEBUG(if(lambda==null) throw "Error: lambda cannot be null for Space::visitConstraints";)
         for(c in constraints) lambda(c);
         for(c in compounds) c.visitConstraints(lambda);
     }
+
+    !!/**
+    !! * Apply given function to all compounds in space.
+    !! * <br/><br/>
+    !! * This method is a way to iterate over 'every' Compound in the Space
+    !! * regardless of containment in another Compound.
+    !! *
+    !! * @param lambda The function to apply to each Compound.
+    !! * @throws # If lambda is null.
+    !! */
     public function visitCompounds(lambda:Compound->Void) {
         DEBUG(if(lambda==null) throw "Error: lambda cannot be null for Space::visitCompounds";)
         for(c in compounds) {
@@ -75,13 +193,23 @@ class Space {
         }
     }
 
-    //----------------------------------------------------------------------------------------------
+    !!/**
+    !! * Static, immutable Body for constraint purposes.
+    !! * <br/><br/>
+    !! * This is a completely static, uncollidable, uninteractable Body
+    !! * with no Shapes, that cannot be modified in any way.
+    !! * <br/><br/>
+    !! * Its purpose is to provide a means for attaching Constraints
+    !! * from one Body to the Space itself, for instance pinning a body
+    !! * against a static point in space.
+    !! */
+    property(world,Body, {
+        return pr(inner).__static;
+    })
 
-    //for use with constraints for a world-constant anchor
-    property(world,Body,return pr(inner).__static)
-
-    //----------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * List of all active arbiters in Space.
+    !! */
     property(arbiters,ArbiterList,{
         if(pr(inner).wrap_arbiters==null) {
             var ret = new PR(SpaceArbiterList)();
@@ -91,19 +219,49 @@ class Space {
         return pr(inner).wrap_arbiters;
     })
 
-    //----------------------------------------------------------------------------------------------
+    !!/**
+    !! * List of all Listeners in space.
+    !! * <br/><br/>
+    !! * This list is mutable, and adding an element to this list is one way of
+    !! * adding a Listener to this Space equivalent to: <code>listener.space = space</code>
+    !! */
+    property(listeners,ListenerList, {
+        return pr(inner).wrap_listeners;
+    })
 
-    property(listeners,ListenerList,return pr(inner).wrap_listeners)
-
-    //----------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * Clear the Space of all objects.
+    !! * <br/><br/>
+    !! * Things such as the elapsed simulation time, and time step will too be
+    !! * reset to 0.
+    !! * <br/><br/>
+    !! * Parameters such as gravity, and worldLinearDrag will be untouched by
+    !! * this operation.
+    !! */
     keep public function clear() {
         DEBUG(if(pr(inner).midstep) throw "Error: Space::clear() cannot be called during space step()";)
         pr(inner).clear();
     }
 
-    //----------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * Step simulation forward in time.
+    !! *
+    !! * @param deltaTime The number of seconds to simulate. For 60fps physics
+    !! *                  you would use a value of 1/60.
+    !! * @param velocityIterations The number of iterations to use in resolving
+    !! *                           errors in the velocities of objects. This is
+    !! *                           together with collision detection the most
+    !! *                           expensive phase of a simulation update, as well
+    !! *                           as the most important for stable results.
+    !! *                           (default 10)
+    !! * @param positionIterations The number of iterations to use in resolving
+    !! *                           errors in the positions of objects. This is
+    !! *                           far more lightweight than velocity iterations,
+    !! *                           as well as being less important for the
+    !! *                           stability of results. (default 10)
+    !! * @throws # If deltaTime is not strictly positive.
+    !! * @throws # If either of the number of iterations is not strictly positive.
+    !! */
     keep public function step(deltaTime:Float, velocityIterations:Int = 10, positionIterations:Int = 10) {
         DEBUG(
             if(isNaN(deltaTime)) throw "Error: deltaTime cannot be NaN"; //TVB is a cunt. ;)
@@ -114,11 +272,32 @@ class Space {
         pr(inner).step(deltaTime,velocityIterations,positionIterations);
     }
 
-    property(timeStamp,Int,return pr(inner).stamp)
-    property(elapsedTime,Float,return pr(inner).time)
+    !!/**
+    !! * The time stamp of this Space object.
+    !! * <br/><br/>
+    !! * This is equal to the number of times that space.step(..) has been invoked.
+    !! */
+    property(timeStamp,Int, {
+        return pr(inner).stamp;
+    })
 
-    //----------------------------------------------------------------------------------------------
+    !!/**
+    !! * The elapsed simulation time.
+    !! * <br/><br/>
+    !! * This is the total amount of 'time' that has elapsed in the Space simulation.
+    !! */
+    property(elapsedTime,Float, {
+        return pr(inner).time;
+    })
 
+    !!/**
+    !! * Construct a new Space object.
+    !! *
+    !! * @param gravity The gravity of this space. (default &#40;0,0&#41;)
+    !! * @param broadphase The broadphase type to use. (default DYNAMIC_AABB_TREE)
+    !! * @return The constructed Space object.
+    !! * @throws # If gravity is non-null, and has been disposed of.
+    !! */
     public function new(gravity:Vec2=null,broadphase:Broadphase=null) {
         Disposed(gravity,Vec2);
         pr(inner) = new PR(Space)(gravity==null?null:gravity.pr(inner),broadphase);
@@ -126,13 +305,28 @@ class Space {
         if(gravity!=null) WEAK(gravity);
     }
 
-    //----------------------------------------------------------------------------------------------
-
-    keep public function interactionType(shape1:Shape, shape2:Shape):InteractionType {
+    !!/**
+    !! * Determine the interaction type that would occur between a pair of Shapes.
+    !! * <br/><br/>
+    !! * This function takes into account everything possible, and ignoring the
+    !! * callback system will tell you precisely the type of interaction (if any
+    !! * at all) which will occur between these Shapes.
+    !! * <br/><br/>
+    !! * This function can only work if the Shapes belong to a Body.
+    !! * <br/><br/>
+    !! * This function can only make use of any constraints 'ignore' property
+    !! * to determine if 'null' should be returned if the constraints being used
+    !! * are inside of a Space.
+    !! *
+    !! * @param shape1 The first Shape to test.
+    !! * @param shape2 The second Shape to test.
+    !! * @return The interaction type that will occur between these shapes, or null
+    !! *         if no interaction will occur.
+    !! * @throws # If either shape is null, or is not contained within a body.
+    !! */
+    keep public function interactionType(shape1:Shape, shape2:Shape):Null<InteractionType> {
         DEBUG(if(shape1==null || shape2==null) throw "Error: Cannot evaluate interaction type for null shapes";)
         DEBUG(if(shape1.body==null || shape2.body==null) throw "Error: Cannot evaluate interaction type for shapes not part of a Body";)
-        DEBUG(if((shape1.body.space!=null && shape1.body.space!=this)
-               ||(shape2.body.space!=null && shape2.body.space!=this)) throw "Error: Either the Shape's Bodys' space's should be null, or equal to 'this' Space";)
 
         if(shape1.body.isStatic() && shape2.body.isStatic()) return null;
         if(shape1.body==shape2.body) return null;
@@ -147,8 +341,17 @@ class Space {
         }
     }
 
-    //----------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * Evaluate all Shapes under a given Point.
+    !! * <br/><br/>
+    !! * If the filter argument is non-null, then only shapes who's filter
+    !! * agrees to 'collide' will be considered.
+    !! *
+    !! * @param point The point to evaluate shapes.
+    !! * @param filter Optional filter to pick and choose shapes. (default null)
+    !! * @return A list of all the Shapes containing the given point.
+    !! * @throws # If point is null or disposed of.
+    !! */
     keep public function shapesUnderPoint(point:Vec2,filter:InteractionFilter=null) {
         Disposed(point,Vec2);
         DEBUG(if(point==null) throw "Error: Cannot evaluate shapes under a null point :)";)
@@ -156,6 +359,17 @@ class Space {
         WEAK(point);
         return ret;
     }
+    !!/**
+    !! * Evaluate all Bodies under a given Point.
+    !! * <br/><br/>
+    !! * If the filter argument is non-null, then only bodies with a shape containing
+    !! * the given point whose filter agrees to 'collide' will be considered.
+    !! *
+    !! * @param point The point to evaluate bodies.
+    !! * @param filter Optional filter to pick and choose shapes. (default null)
+    !! * @return A list of all the Bodies containing the given point.
+    !! * @throws # If point is null or disposed of.
+    !! */
     keep public function bodiesUnderPoint(point:Vec2,filter:InteractionFilter=null) {
         Disposed(point,Vec2);
         DEBUG(if(point==null) throw "Error: Cannot evaluate objects under a null point :)";)
@@ -164,6 +378,23 @@ class Space {
         return ret;
     }
 
+    !!/**
+    !! * Evaluate all Shapes given an AABB.
+    !! * <br/><br/>
+    !! * If the filter argument is non-null, then only shapes who's filter
+    !! * agrees to 'collide' will be considered.
+    !! *
+    !! * @param aabb The bounding box to query shapes by,
+    !! * @param containment If true, then only Shapes entirely contained (Rather
+    !! *                    than simply intersected) will be considered.
+    !! *                    (default false)
+    !! * @param strict If false, then the Shape's bounding box will be used to
+    !! *               classify the Shape, instead of the Shape itself.
+    !! *               (default true)
+    !! * @param filter Optional filter to pick and choose shapes. (default null)
+    !! * @return A list of all the shapes for given AABB.
+    !! * @throws # If AABB is null, or is degenerate.
+    !! */
     keep public function shapesInAABB(aabb:AABB,containment:Bool=false,strict:Bool=true,filter:InteractionFilter=null) {
         DEBUG(
             if(aabb==null) throw "Error: Cannot evaluate shapes in a null AABB :)";
@@ -171,6 +402,25 @@ class Space {
         )
         return pr(inner).shapesInAABB(aabb,strict,containment,filter==null?null:filter.pr(inner));
     }
+
+    !!/**
+    !! * Evaluate all Bodies given an AABB.
+    !! * <br/><br/>
+    !! * If the filter argument is non-null, then only bodies with a shape
+    !! * classified as being part of the AABB, whose filter agrees to collide
+    !! * will be considered.
+    !! *
+    !! * @param aabb The bounding box to query bodies by,
+    !! * @param containment If true, then only Bodies entirely contained (Rather
+    !! *                    than simply intersecting) will be considered.
+    !! *                    (default false)
+    !! * @param strict If false, then the body's shape's bounding box will be used to
+    !! *               classify the shapes of the body, instead of the Shape itself.
+    !! *               (default true)
+    !! * @param filter Optional filter to pick and choose shapes. (default null)
+    !! * @return A list of all the shapes for given AABB.
+    !! * @throws # If AABB is null, or is degenerate.
+    !! */
     keep public function bodiesInAABB(aabb:AABB,containment:Bool=false,strict:Bool=true,filter:InteractionFilter=null) {
         DEBUG(
             if(aabb==null) throw "Error: Cannot evaluate objects in a null AABB :)";
@@ -179,6 +429,22 @@ class Space {
         return pr(inner).bodiesInAABB(aabb,strict,containment,filter==null?null:filter.pr(inner));
     }
 
+    !!/**
+    !! * Evaluate all Shapes given a circle.
+    !! * <br/><br/>
+    !! * If the filter argument is non-null, then only shapes who's filter
+    !! * agrees to 'collide' will be considered.
+    !! *
+    !! * @param position The position of the centre of the circle.
+    !! * @param radius The radius of the circle.
+    !! * @param containment If true, then only Shapes entirely contained (Rather
+    !! *                    than simply intersected) will be considered.
+    !! *                    (default false)
+    !! * @param filter Optional filter to pick and choose shapes. (default null)
+    !! * @return A list of all the shapes for given circle.
+    !! * @throws # If positions is null or disposed of.
+    !! * @throws # If radius is not strictly positive.
+    !! */
     keep public function shapesInCircle(position:Vec2,radius:Float,containment:Bool=false,filter:InteractionFilter=null) {
         Disposed(position,Vec2);
         DEBUG(
@@ -190,6 +456,24 @@ class Space {
         WEAK(position);
         return ret;
     }
+
+    !!/**
+    !! * Evaluate all Bodies given a circle.
+    !! * <br/><br/>
+    !! * If the filter argument is non-null, then only bodies with a shape
+    !! * classified as being part of the circle, whose filter agrees to collide
+    !! * will be considered.
+    !! *
+    !! * @param position The position of the centre of the circle.
+    !! * @param radius The radius of the circle.
+    !! * @param containment If true, then only Bodies entirely contained (Rather
+    !! *                    than simply intersecting) will be considered.
+    !! *                    (default false)
+    !! * @param filter Optional filter to pick and choose shapes. (default null)
+    !! * @return A list of all the shapes for given circle.
+    !! * @throws # If positions is null or disposed of.
+    !! * @throws # If radius is not strictly positive.
+    !! */
     keep public function bodiesInCircle(position:Vec2,radius:Float,containment:Bool=false,filter:InteractionFilter=null) {
         Disposed(position,Vec2);
         DEBUG(
@@ -202,6 +486,25 @@ class Space {
         return ret;
     }
 
+    !!/**
+    !! * Evaluate all Shapes given another shape.
+    !! * <br/><br/>
+    !! * If the filter argument is non-null, then only shapes who's filter
+    !! * agrees to 'collide' will be considered. The input shape's own filter
+    !! * is never used in this method. The input shape is considered a purely
+    !! * geometric object.
+    !! * <br/><br/>
+    !! * The input shape must be part of a Body so as to be well defined.
+    !! *
+    !! * @param shape The shape to use in classifying other shapes.
+    !! * @param containment If true, then only Shapes entirely contained (Rather
+    !! *                    than simply intersected) will be considered.
+    !! *                    (default false)
+    !! * @param filter Optional filter to pick and choose shapes. (default null)
+    !! * @return A list of all the shapes for given shape.
+    !! * @throws # If shape is null or not part of a body.
+    !! * @throws # If shape is a polygon, and that polygon is not 'valid'
+    !! */
     keep public function shapesInShape(shape:Shape,containment:Bool=false,filter:InteractionFilter=null) {
         DEBUG(
             if(shape==null) throw "Error: Cannot evaluate shapes in a null shapes :)";
@@ -214,6 +517,24 @@ class Space {
         )
         return pr(inner).shapesInShape(shape.pr(inner),containment,filter == null ? null : filter.pr(inner));
     }
+    !!/**
+    !! * Evaluate all Bodies given a shape.
+    !! * <br/><br/>
+    !! * If the filter argument is non-null, then only bodies with a shape
+    !! * classified as being part of the input shape, whose filter agrees to collide
+    !! * will be considered. The input shape is considered a purely geometric
+    !! * <br/><br/>
+    !! * The input shape must be part of a Body so as to be well defined.
+    !! *
+    !! * @param shape The shape to use in classifying other shapes.
+    !! * @param containment If true, then only Bodies entirely contained (Rather
+    !! *                    than simply intersecting) will be considered.
+    !! *                    (default false)
+    !! * @param filter Optional filter to pick and choose shapes. (default null)
+    !! * @return A list of all the bodies for given shape.
+    !! * @throws # If shape is null or not part of a body.
+    !! * @throws # If shape is a polygon, and that polygon is not 'valid'
+    !! */
     keep public function bodiesInShape(shape:Shape,containment:Bool=false,filter:InteractionFilter=null) {
         DEBUG(
             if(shape==null) throw "Error: Cannot evaluate bodies in a null shapes :)";
@@ -227,6 +548,20 @@ class Space {
         return pr(inner).bodiesInShape(shape.pr(inner),containment,filter == null ? null : filter.pr(inner));
     }
 
+    !!/**
+    !! * Evaluate all Shapes given a Body.
+    !! * <br/><br/>
+    !! * If the filter argument is non-null, then only shapes who's filter
+    !! * agrees to 'collide' will be considered. The input body's shape's own filters
+    !! * are never used in this method. The input body is considered a purely
+    !! * geometric object.
+    !! *
+    !! * @param body The body to use in classifying other shapes.
+    !! * @param filter Optional filter to pick and choose shapes. (default null)
+    !! * @return A list of all the shapes for given body.
+    !! * @throws # If body is null.
+    !! * @throws # If body has a shape that is a polygon, and that polygon is not 'valid'
+    !! */
     keep public function shapesInBody(body:Body,filter:InteractionFilter=null) {
         DEBUG(if(body==null) throw "Error: Cannot evaluate shapes in null body";)
         var ret = null;
@@ -237,6 +572,20 @@ class Space {
         }
         return if(ret==null) new ShapeList() else ret;
     }
+
+    !!/**
+    !! * Evaluate all Bodies given a Body.
+    !! * <br/><br/>
+    !! * If the filter argument is non-null, then only bodies with a shape
+    !! * classified as being part of the input body, whose filter agrees to collide
+    !! * will be considered. The input body is considered a purely geometric
+    !! *
+    !! * @param body The body to use in classifying other bodies.
+    !! * @param filter Optional filter to pick and choose bodies. (default null)
+    !! * @return A list of all the bodies for given body.
+    !! * @throws # If body is null.
+    !! * @throws # If body has a shape that is a polygon, and that polygon is not 'valid'
+    !! */
     keep public function bodiesInBody(body:Body,filter:InteractionFilter=null) {
         DEBUG(if(body==null) throw "Error: Cannot evaluate shapes in null body";)
         var ret = null;
@@ -248,13 +597,44 @@ class Space {
         return if(ret==null) new BodyList() else ret;
     }
 
-    //----------------------------------------------------------------------------------------------
-
-    keep public function rayCast(ray:Ray, inner:Bool=false, filter:InteractionFilter=null) {
+    !!/**
+    !! * Perform a ray cast for closest result.
+    !! * <br/><br/>
+    !! * This method will return only the closest result (if any), to find more
+    !! * the first result, use the rayMultiCast method. The ray will not be
+    !! * cast beyond its maxDistance.
+    !! * <br/><br/>
+    !! * If the filter argument is null, then all shapes will be intersectable
+    !! * otherwise only those for whose filter agrees to 'collide'.
+    !! *
+    !! * @param ray The ray to cast through space.
+    !! * @param inner If true then inner surfaces of shapes will also be intersected.
+    !! *              otherwise only the outer surfaces. (default false)
+    !! * @param filter The optional filter to filter out shapes. (default null)
+    !! * @return The closest result (if any) of ray intersection.
+    !! * @throws # If ray is null.
+    !! */
+    keep public function rayCast(ray:Ray, inner:Bool=false, filter:InteractionFilter=null):Null<RayResult> {
         DEBUG(if(ray==null) throw "Error: Cannot cast null ray :)";)
         return pr(inner).rayCast(ray,inner,filter);
     }
 
+    !!/**
+    !! * Perform a ray cast for all valid results.
+    !! * <br/><br/>
+    !! * This method will return all intersections (in distance order) of ray
+    !! * with shapes in the space up to the ray's maxDistance.
+    !! * <br/><br/>
+    !! * If the filter argument is null, then all shapes will be intersectable
+    !! * otherwise only those for whose filter agrees to 'collide'.
+    !! *
+    !! * @param ray The ray to cast through space.
+    !! * @param inner If true then inner surfaces of shapes will also be intersected.
+    !! *              otherwise only the outer surfaces. (default false)
+    !! * @param filter The optional filter to filter out shapes. (default null)
+    !! * @return All valid results of ray cast in distance order from closest to furthest.
+    !! * @throws # If ray is null.
+    !! */
     keep public function rayMultiCast(ray:Ray, inner:Bool=false, filter:InteractionFilter=null) {
         DEBUG(if(ray==null) throw "Error: Cannot cast null ray :)";)
         return pr(inner).rayMultiCast(ray,inner,filter);

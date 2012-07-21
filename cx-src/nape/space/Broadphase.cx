@@ -1,8 +1,42 @@
 package nape.space;
 $(import);
 
+!!/**
+!! * Enumeration of available broadphase collision types that Spaces may use.
+!! */
 Flags(Broadphase,
+    !!/**
+    !! * Dynamic AABB Tree broadphase.
+    !! * <br/><br/>
+    !! * This broadphase uses a pair of binary trees with objects inserted based
+    !! * on containment of their AABB.
+    !! * <br/><br/>
+    !! * This is a general purpose broadphase which does not suffer for objects
+    !! * of varying sizes, or objects moving very quickly and is well set for such
+    !! * acts as ray casting and spatial queries like objectsInAABB of the Space type.
+    !! * <br/><br/>
+    !! * This is the default broadphase nape will use.
+    !! */
     prop(DYNAMIC_AABB_TREE, 0)
+
+    !!/**
+    !! * Sweep and prune broadphase.
+    !! * <br/><br/>
+    !! * This is a very simple broadphase using the x-axis to keep objects
+    !! * sorted by their minimum x coordinate.
+    !! * <br/><br/>
+    !! * Performance of this broadphase is generally good and in some circumstances
+    !! * superior to the DYNAMIC_AABB_TREE broadphase.
+    !! * <br/><br/>
+    !! * This broadphase will however be much slower for things such as ray casts and
+    !! * spatial queries like objectsInAABB on the Space type.
+    !! * Also in cases where lots of objects are moving very quickly or when there is a
+    !! * large variety in the size of objects.
+    !! * <br/><br/>
+    !! * Due to the simplicity of this broadphase, it serves as a good test should you
+    !! * ever feel there might be something going wrong with the DYNAMIC_AABB_TREE
+    !! * broadphase type.
+    !! */
     prop(SWEEP_AND_PRUNE, 1)
 )
 

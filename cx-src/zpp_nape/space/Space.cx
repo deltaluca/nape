@@ -279,10 +279,6 @@ class PR(Space) {
 
     //----------------------------------------------------------------------------------------------
 
-    public var id:Int;
-
-    //----------------------------------------------------------------------------------------------
-
     public var stamp:Int;
     public var midstep:Bool;
     public var time:Float;
@@ -326,9 +322,6 @@ class PR(Space) {
     //----------------------------------------------------------------------------------------------
 
     public function clear() {
-        global_lin_drag = PR(Config).GLOBAL_LIN_DRAG;
-        global_ang_drag = PR(Config).GLOBAL_ANG_DRAG;
-
         //this also deals naturally with removing all callbacksets
         ClearWith(c, listeners, remListener(c));
         ClearWith(c, callbackset_list, {
@@ -387,7 +380,6 @@ class PR(Space) {
         //nearly forgot these
         stamp = 0;
         time = 0.0;
-        vec_set(gravity,0,0);
         #if NAPE_TIMES
             Debug.FOR = Debug.BROAD = Debug.PRE = Debug.POS = Debug.VEL = Debug.DRAW = Debug.SORT = 0;
             Debug.ltime = 0;
@@ -483,7 +475,6 @@ class PR(Space) {
         precb.pr(inner) = new PR(Callback)();
         DEBUG(PR(Callback).internal = false;)
 
-        id = ID(Space);
         sortcontacts = true;
         pre_dt = 0.0;
 
