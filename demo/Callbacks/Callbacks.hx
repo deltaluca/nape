@@ -3,7 +3,11 @@ package;
 import FixedStep;
 
 import nape.space.Space;
-import nape.util.BitmapDebug;
+#if flash10
+    import nape.util.BitmapDebug;
+#else
+    import nape.util.ShapeDebug;
+#end
 
 import nape.phys.Body;
 import nape.phys.BodyType;
@@ -34,16 +38,29 @@ import nape.callbacks.CbEvent;
 import nape.constraint.PivotJoint;
 import nape.constraint.Constraint;
 
+typedef DEBUG = #if flash10 BitmapDebug #else ShapeDebug #end;
+
 class Callbacks extends FixedStep {
 	static function main() {
-		new Callbacks();
+        #if nme
+            nme.Lib.create(
+                function() { new Callbacks(); },
+                800, 600,
+                60,
+                0x333333,
+                nme.Lib.HARDWARE | nme.Lib.VSYNC,
+                "Callbacks"
+            );
+        #else
+    		new Callbacks();
+        #end
 	}
 
 	public function new() {
 		super(1/60);
 
 		var space = new Space(new Vec2(0,400));
-		var debug = new BitmapDebug(stage.stageWidth,stage.stageHeight,0x333333,false);
+		var debug = new DEBUG(stage.stageWidth,stage.stageHeight,0x333333);
 		debug.drawCollisionArbiters = true;
 		debug.drawConstraints = true;
 		addChild(debug.display);
@@ -75,7 +92,7 @@ class Callbacks extends FixedStep {
 
 		var circles = new Array<Body>();
 
-		addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function(_) {
+		stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function(_) {
 			for(c in circles) c.cbTypes.add(partial_penetration);
 			var mp = new Vec2(mouseX,mouseY);
 			for(b in space.bodiesUnderPoint(mp)) {
@@ -85,7 +102,7 @@ class Callbacks extends FixedStep {
 				hand.active = true;
 			}
 		});
-		addEventListener(flash.events.MouseEvent.MOUSE_UP, function(_) {
+		stage.addEventListener(flash.events.MouseEvent.MOUSE_UP, function(_) {
 			for(c in circles) c.cbTypes.remove(partial_penetration);
 			hand.active = false;
 		});
@@ -107,7 +124,7 @@ class Callbacks extends FixedStep {
 			shape.body = pent;
 			pent.position.setxy(800/11*(i+1),150);
 			pent.space = space;
-			
+
 			//set it's cbTypes
 			shape.cbTypes.add(partial_penetration);
 			pent.cbTypes.add(oneway_object);
@@ -150,7 +167,7 @@ class Callbacks extends FixedStep {
 			box.position.setxy(800/11*(i+1),100);
 			boxes.push(box);
 			//note box isn't added to space (# see few lines below)
-			
+
 			//set it's cbTypes
 			box.cbTypes.add(indicate_touch);
 		}
@@ -158,10 +175,10 @@ class Callbacks extends FixedStep {
 		for(i in 0...5) {
 			var b1 = boxes[i*2];
 			var b2 = boxes[i*2+1];
-		
+
 			var compound = new Compound();
 			b1.compound = b2.compound = compound;
-			
+
 			var mid = b1.position.add(b2.position).mul(0.5);
 			var link = new PivotJoint(b1,b2,b1.worldToLocal(mid),b2.worldToLocal(mid));
 			link.compound = compound;
@@ -177,17 +194,17 @@ class Callbacks extends FixedStep {
 		}
 
 		//setup listeners
-		function boxer(colour:Int) { 
+		function boxer(colour:Int) {
 			return function(cb:InteractionCallback) {
 				//we gave the box bodies the cbType, rather than the shapes so we 'know'
 				//we need to use interactor.body and not interator.shape
-			
+
 				//draw thick line using a quad.
 				var p1 = cb.int1.castBody.position;
 				var p2 = cb.int2.castBody.position;
 				var n = p1.sub(p2);
 				n.length=1; n.angle += Math.PI/2;
-	
+
 				debug.drawFilledPolygon([p1.sub(n,true),p2.sub(n,true),p2.add(n,true),p1.add(n,true)],colour);
 			};
 		}
@@ -214,7 +231,7 @@ class Callbacks extends FixedStep {
 			circ.shapes.add(new Circle(20));
 			circ.position.setxy(800/11*(i+1),50);
 			circ.space = space;
-			
+
 			//set it's cbTypes
 			circ.cbTypes.add(indicate_sleep);
 			circ.cbTypes.add(oneway_object);
@@ -237,7 +254,7 @@ class Callbacks extends FixedStep {
 		//one-way platforms :)
 		//note: though these handlers are pure, it's irrelevant whether they are marked pure
 		//      or not as purity only effects sleeping when the return flag is *_ONCE
-		
+
 		var plat = new Body(BodyType.STATIC);
 		plat.shapes.add(new Polygon(Polygon.rect(100,300-30,600,60)));
 		plat.space = space;

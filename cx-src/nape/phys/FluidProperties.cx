@@ -21,7 +21,9 @@ class FluidProperties {
     //----------------------------------------------------------------------------------------------
 
     $(mixin prop(n)
-        property(n,Float,pr(inner).n * ($str(n)=="density" ? 1000 : 1),{
+        property(n,Float, {
+            return pr(inner).n * ($str(n)=="density" ? 1000 : 1);
+        }, {
             if(n!=this.n) {
                 DEBUG(
                     if(isNaN(n)) throw "Error: FluidProperties::"+$str(n)+" cannot be NaN";
@@ -37,7 +39,9 @@ class FluidProperties {
 
     //----------------------------------------------------------------------------------------------
 
-    property(gravity,Vec2,pr(inner).wrap_gravity,{
+    property(gravity,Vec2, {
+        return pr(inner).wrap_gravity;
+    }, {
         if(gravity==null) {
             if(pr(inner).wrap_gravity!=null) {
                 pr(inner).wrap_gravity.pr(inner)._inuse = false;

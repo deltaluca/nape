@@ -5,13 +5,13 @@ class PreListener extends Listener {
     public var pr(inner_zn):PR(InteractionListener);
 
     property(options1, OptionType, {
-        /*return*/ pr(inner_zn).options1.outer;
+        return pr(inner_zn).options1.outer;
     }, {
         pr(inner_zn).options1.set(options1.pr(inner));
     })
 
     property(options2, OptionType, {
-        /*return*/ pr(inner_zn).options2.outer;
+        return pr(inner_zn).options2.outer;
     }, {
         pr(inner_zn).options2.set(options2.pr(inner));
     })
@@ -23,7 +23,7 @@ class PreListener extends Listener {
     //in the case of #_ONCE, the objects are forced to stay awake (in space)
     //and so any change to handler does not need to wake any objects already.
     property(handler, PreCallback->Null<PreFlag>, {
-        /*return*/ pr(inner_zn).handlerp;
+        return pr(inner_zn).handlerp;
     }, {
         DEBUG(
             if (handler == null) {
@@ -44,7 +44,7 @@ class PreListener extends Listener {
     //even if there is a pre-handler returning IGNORE_ONCE or ACCEPT_ONCE where otherwise
     //we cannot allow the bodies to sleep as the handler may change it's return.
     property(pure, Bool, {
-        /*return*/ pr(inner_zn).pure;
+        return pr(inner_zn).pure;
     }, {
         if(!pure) {
             pr(inner_zn).wake();
@@ -55,7 +55,7 @@ class PreListener extends Listener {
 
     property(interactionType, InteractionType, {
         var ret = pr(inner_zn).itype;
-        /*return*/
+        return
             if   (ret==Flag(InteractionType, COLLISION)) InteractionType.COLLISION;
             elif (ret==Flag(InteractionType, SENSOR))    InteractionType.SENSOR;
             elif (ret==Flag(InteractionType, FLUID))     InteractionType.FLUID;

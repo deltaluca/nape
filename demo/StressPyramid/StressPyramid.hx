@@ -5,13 +5,18 @@ import nape.phys.Body;
 import nape.phys.BodyType;
 import nape.shape.Polygon;
 import nape.geom.Vec2;
-import nape.util.BitmapDebug;
+#if flash10
+    import nape.util.BitmapDebug;
+#else
+    import nape.util.ShapeDebug;
+#end
 import nape.util.Debug;
 import nape.space.Broadphase;
 import nape.constraint.PivotJoint;
 
 import VariableStep;
-import FPS;
+
+typedef DEBUG = #if flash10 BitmapDebug #else ShapeDebug #end;
 
 //we don't use FixedStep like other demos as this is a stress test
 //and it's highly unlikely full speed is achievable and using FixedStep
@@ -21,7 +26,18 @@ import FPS;
 //time ever more unachievable :P
 class StressPyramid extends VariableStep {
 	static function main() {
-		new StressPyramid();
+        #if nme
+            nme.Lib.create(
+                function() { new StressPyramid(); },
+                500, 500,
+                60,
+                0x333333,
+                nme.Lib.HARDWARE | nme.Lib.VSYNC,
+                "StressPyramid"
+            );
+        #else
+    		new StressPyramid();
+        #end
 	}
 
 	function new() {
@@ -33,12 +49,14 @@ class StressPyramid extends VariableStep {
 		//versus sweep and prune where things aren't moving massively fast so is okay since world
 		//is not huge.
 		var space = new Space(new Vec2(0,400),Broadphase.SWEEP_AND_PRUNE);
-		var debug = new BitmapDebug(stage.stageWidth,stage.stageHeight,0x333333);
+		var debug = new DEBUG(stage.stageWidth,stage.stageHeight,0x333333);
 		addChild(debug.display);
 		debug.drawShapeAngleIndicators = false;
 
-//		addChild(new FPS(stage.stageWidth,60,0,60,0x40000000,0xffffffff,0xa0ff0000));
-		addChild(new Mem(stage.stageWidth,60,0,60,0x40000000,0xffffffff,0xa0ff0000));
+        #if flash10
+//	    	addChild(new FPS(stage.stageWidth,60,0,60,0x40000000,0xffffffff,0xa0ff0000));
+		    addChild(new Mem(stage.stageWidth,60,0,60,0x40000000,0xffffffff,0xa0ff0000));
+        #end
 
 		var border = new Body(BodyType.STATIC);
 		border.shapes.add(new Polygon(Polygon.rect(0,0,-50,stage.stageHeight)));
@@ -61,7 +79,7 @@ class StressPyramid extends VariableStep {
 				block.shapes.add(new Polygon(Polygon.box(boxw,boxh)));
 				block.space = space;
 			}
-		}		
+		}
 
 		//----------------------------------------------------------------------------------
 
@@ -69,7 +87,7 @@ class StressPyramid extends VariableStep {
 		hand.active = false;
 		hand.stiff = false;
 		hand.space = space;
-		
+
 		stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function (_) {
 			var mp = new Vec2(mouseX,mouseY);
 			for(b in space.bodiesUnderPoint(mp)) {

@@ -311,7 +311,7 @@ $(mixin global withConstraint(block)
     $(mixin wrap_anchor_new(N,n)
         property(N,Vec2,{
             if(pr(inner_zn).wrap_`n==null) pr(inner_zn).setup_`n();
-            pr(inner_zn).wrap_`n;
+            return pr(inner_zn).wrap_`n;
         },{
             Disposed(N,Vec2);
             DEBUG(if(N==null) throw "Error: Constraint::"+$str(N)+" cannot be null";)
@@ -324,7 +324,9 @@ $(mixin global withConstraint(block)
     //-----------------------------------------------------------
 
     $(mixin wrap_body_new(B,b, new)
-        property(B,Null<Body>,if(pr(inner_zn).b==null) null else pr(inner_zn).b.outer,{
+        property(B,Null<Body>, {
+            return if(pr(inner_zn).b==null) null else pr(inner_zn).b.outer;
+        }, {
             pr(inner).immutable_midstep("Constraint::"+$str(B));
             var in`B = if(B==null) null else B.pr(inner);
             if(in`B != pr(inner_zn).b) {

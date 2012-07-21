@@ -6,19 +6,19 @@ class Arbiter {
 
     property(id,Int,{
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
-        pr(inner).id;
+        return pr(inner).id;
     })
 
-    property(active,Bool,pr(inner).active)
+    property(active,Bool, return pr(inner).active)
     property(isSleeping,Bool,{
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
-        pr(inner).sleeping;
+        return pr(inner).sleeping;
     })
 
     //----------------------------------------------------------------------------------------------
 
     property(type,ArbiterType,{
-        [ArbiterType.COLLISION,ArbiterType.FLUID,ArbiterType.SENSOR][pr(inner).type];
+        return [ArbiterType.COLLISION,ArbiterType.FLUID,ArbiterType.SENSOR][pr(inner).type];
     })
 
     keep public function isCollisionArbiter() {
@@ -34,11 +34,11 @@ class Arbiter {
     //----------------------------------------------------------------------------------------------
 
     property(collisionArbiter,CollisionArbiter,{
-        if(isCollisionArbiter()) pr(inner).colarb.outer_zn else null;
+        return  if(isCollisionArbiter()) pr(inner).colarb.outer_zn else null;
     })
 
     property(fluidArbiter,FluidArbiter,{
-        if(isFluidArbiter()) pr(inner).fluidarb.outer_zn else null;
+        return if(isFluidArbiter()) pr(inner).fluidarb.outer_zn else null;
     })
 
     //----------------------------------------------------------------------------------------------
@@ -47,27 +47,27 @@ class Arbiter {
 
     property(shape1,Shape,{
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
-        flip ? pr(inner).ws2.outer : pr(inner).ws1.outer;
+        return flip ? pr(inner).ws2.outer : pr(inner).ws1.outer;
     })
     property(shape2,Shape,{
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
-        flip ? pr(inner).ws1.outer : pr(inner).ws2.outer;
+        return flip ? pr(inner).ws1.outer : pr(inner).ws2.outer;
     })
 
     property(body1,Body,{
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
-        flip ? pr(inner).b2.outer : pr(inner).b1.outer;
+        return flip ? pr(inner).b2.outer : pr(inner).b1.outer;
     })
     property(body2,Body,{
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
-        flip ? pr(inner).b1.outer : pr(inner).b2.outer;
+        return flip ? pr(inner).b1.outer : pr(inner).b2.outer;
     })
 
     //----------------------------------------------------------------------------------------------
 
     property(state,PreFlag,{
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
-        switch(pr(inner).immState) {
+        return switch(pr(inner).immState) {
             case Flag(ImmState,ACCEPT) | Flag(ImmState,ALWAYS): PreFlag.ACCEPT;
             case Flag(ImmState,ACCEPT)                        : PreFlag.ACCEPT_ONCE;
             case Flag(ImmState,IGNORE) | Flag(ImmState,ALWAYS): PreFlag.IGNORE;

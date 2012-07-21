@@ -11,3 +11,8 @@ build:
 
 buildas3:
 	mxmlc StressPyramid.as -source-path ../common -source-path . --include-libraries $(NAPELIB) --static-link-runtime-shared-libraries -debug -optimize
+
+.PHONY: cpp
+cpp:
+	haxe -cp "/" -lib nape -main StressPyramid -cpp cpp --times --remap flash:nme -lib nme -cp ../common
+	./cpp/StressPyramid

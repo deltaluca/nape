@@ -150,7 +150,7 @@ class Debug {
     public var drawConstraintErrors:Bool; //requires drawconstraints=true
 
     property(bgColor,Int,{
-        pr(inner).bg_col;
+        return pr(inner).bg_col;
     },{
         #if flash10
             if(pr(inner).isbmp) pr(inner).d_bmp.setbg(bgColor);
@@ -193,9 +193,9 @@ class Debug {
             var ret:flash.display.DisplayObject;
             if(pr(inner).isbmp) ret = pr(inner).d_bmp.bitmap;
             else                ret = pr(inner).d_shape.shape;
-            ret;
+            return ret;
         #else
-            pr(inner).d_shape.shape;
+            return pr(inner).d_shape.shape;
         #end
     })
 
@@ -205,7 +205,7 @@ class Debug {
 
     property(transform, Mat23, {
         if(pr(inner).xform==null) pr(inner).setform();
-        pr(inner).xform.outer;
+        return pr(inner).xform.outer;
     }, {
         DEBUG(if(transform==null) throw "Error: Cannot set Debug::transform to null";)
         this.transform.set(transform);

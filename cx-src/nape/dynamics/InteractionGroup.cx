@@ -4,16 +4,18 @@ $(import);
 class InteractionGroup {
     public var pr(inner):PR(InteractionGroup);
 
-    property(id,Int,pr(inner).id)
+    property(id,Int,return pr(inner).id)
 
     property(group,InteractionGroup,{
-        if(pr(inner).group==null) null else pr(inner).group.outer;
+        return if(pr(inner).group==null) null else pr(inner).group.outer;
     },{
         DEBUG(if(group==this) throw "Error: Cannot assign InteractionGroup to itself";)
         pr(inner).setGroup(group==null ? null : group.pr(inner));
     })
 
-    property(ignore,Bool,pr(inner).ignore,{
+    property(ignore,Bool, {
+        return pr(inner).ignore;
+    }, {
         if(this.ignore!=ignore) {
             pr(inner).invalidate(true);
             pr(inner).ignore = ignore;
@@ -23,12 +25,12 @@ class InteractionGroup {
     property(interactors, InteractorList, {
         if(pr(inner).wrap_interactors==null)
              pr(inner).wrap_interactors = PR(InteractorList).get(pr(inner).interactors,true);
-        pr(inner).wrap_interactors;
+        return pr(inner).wrap_interactors;
     })
     property(groups, InteractionGroupList, {
         if(pr(inner).wrap_groups==null)
              pr(inner).wrap_groups = PR(InteractionGroupList).get(pr(inner).groups,true);
-        pr(inner).wrap_groups;
+        return pr(inner).wrap_groups;
     })
 
     public function new(ignore=false) {

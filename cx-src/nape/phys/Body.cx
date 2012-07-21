@@ -4,8 +4,8 @@ $(import);
 class Body extends Interactor {
     public var pr(inner):PR(Body);
 
-    property(type,BodyType,{
-        [null,BodyType.STATIC,BodyType.DYNAMIC,BodyType.KINEMATIC][pr(inner).type];
+    property(type,BodyType, {
+        return [null,BodyType.STATIC,BodyType.DYNAMIC,BodyType.KINEMATIC][pr(inner).type];
     },{
         pr(inner).immutable_midstep("Body::type");
         DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
@@ -47,10 +47,10 @@ class Body extends Interactor {
 
     //----------------------------------------------------------------------------------------------
 
-    property(shapes,ShapeList,pr(inner).wrap_shapes)
+    property(shapes,ShapeList,return pr(inner).wrap_shapes)
 
     property(compound,Compound,{
-        if(pr(inner).compound==null) null else pr(inner).compound.outer;
+        return if(pr(inner).compound==null) null else pr(inner).compound.outer;
     },{
         if(this.compound!=compound) {
             if(this.compound!=null) this.compound.bodies.remove(this);
@@ -59,7 +59,7 @@ class Body extends Interactor {
     })
 
     property(space,Space,{
-        if(pr(inner).space==null) null else pr(inner).space.outer;
+        return if(pr(inner).space==null) null else pr(inner).space.outer;
     },{
         DEBUG(if(pr(inner).compound!=null) throw "Error: Cannot set the space of a Body belonging to a Compound, only the root Compound space can be set";)
         pr(inner).immutable_midstep("Body::space");
@@ -78,20 +78,20 @@ class Body extends Interactor {
     property(arbiters,ArbiterList,{
         if(pr(inner).wrap_arbiters==null)
             pr(inner).wrap_arbiters = PR(ArbiterList).get(pr(inner).arbiters,true);
-        pr(inner).wrap_arbiters;
+        return pr(inner).wrap_arbiters;
     })
 
     property(isSleeping,Bool,{
         DEBUG(if(pr(inner).space==null)
             throw "Error: isSleeping makes no sense if the object is not contained within a Space";
         )
-        pr(inner).component.sleeping;
+        return pr(inner).component.sleeping;
     })
 
     property(constraints,ConstraintList,{
         if(pr(inner).wrap_constraints==null)
             pr(inner).wrap_constraints = PR(ConstraintList).get(pr(inner).constraints,true);
-        pr(inner).wrap_constraints;
+        return pr(inner).wrap_constraints;
     })
 
     //----------------------------------------------------------------------------------------------
@@ -132,7 +132,7 @@ class Body extends Interactor {
     $(mixin vecprop(n,wrap,setup)
         property(n,Vec2,{
             if(pr(inner).wrap==null) pr(inner).setup();
-            pr(inner).wrap;
+            return pr(inner).wrap;
         },{
             Disposed(n,Vec2);
             DEBUG(if(n==null) throw "Error: Body::"+$str(n)+" cannot be null";)
@@ -150,12 +150,14 @@ class Body extends Interactor {
 
     property(constraintVelocity,Vec3,{
         if(pr(inner).wrapcvel==null) pr(inner).setup_cvel();
-        pr(inner).wrapcvel;
+        return pr(inner).wrapcvel;
     })
 
     //----------------------------------------------------------------------------------------------
 
-    property(rotation,Float,pr(inner).rot,{
+    property(rotation,Float, {
+        return pr(inner).rot;
+    }, {
         pr(inner).immutable_midstep("Body::rotation");
         DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
         DEBUG(if(isStatic() && pr(inner).space!=null)
@@ -169,7 +171,9 @@ class Body extends Interactor {
         }
     })
 
-    property(angularVel,Float,pr(inner).angvel,{
+    property(angularVel,Float, {
+        return pr(inner).angvel;
+    }, {
         DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
         if(this.angularVel!=angularVel) {
             DEBUG(if(isNaN(angularVel)) throw "Error: Body::angularVel cannot be NaN";)
@@ -181,7 +185,9 @@ class Body extends Interactor {
         }
     })
 
-    property(kinAngVel,Float,pr(inner).kinangvel,{
+    property(kinAngVel,Float, {
+        return pr(inner).kinangvel;
+    }, {
         DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
         if(this.kinAngVel!=kinAngVel) {
             DEBUG(if(isNaN(kinAngVel)) throw "Error: Body::kinAngVel cannot be NaN";)
@@ -190,7 +196,9 @@ class Body extends Interactor {
         }
     })
 
-    property(torque,Float,pr(inner).torque,{
+    property(torque,Float, {
+        return pr(inner).torque;
+    }, {
         DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
         DEBUG(if(isNaN(torque)) throw "Error: Body::torqur cannot be NaN";)
         if(this.torque!=torque) {
@@ -206,13 +214,15 @@ class Body extends Interactor {
         DEBUG(if(pr(inner).shapes.empty())
             throw "Error: Body bounds only makes sense if it contains shapes";
         )
-        pr(inner).aabb.wrapper();
+        return pr(inner).aabb.wrapper();
     })
 
     //----------------------------------------------------------------------------------------------
 
     $(mixin allowprop(n,flag,prop)
-        property(n,Bool,!pr(inner).flag,{
+        property(n,Bool, {
+            return !pr(inner).flag;
+        }, {
             pr(inner).immutable_midstep("Body::"+n);
             if(this.n != n) {
                 pr(inner).flag = !n;
@@ -226,7 +236,7 @@ class Body extends Interactor {
     //----------------------------------------------------------------------------------------------
 
     property(massMode,MassMode,{
-        [MassMode.DEFAULT,MassMode.FIXED][pr(inner).massMode];
+        return [MassMode.DEFAULT,MassMode.FIXED][pr(inner).massMode];
     },{
         pr(inner).immutable_midstep("Body::massMode");
         DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
@@ -239,7 +249,7 @@ class Body extends Interactor {
 
     property(constraintMass,Float,{
         if(!pr(inner).world) pr(inner).validate_mass();
-        pr(inner).smass;
+        return pr(inner).smass;
     })
 
     property(mass,Float,{
@@ -248,7 +258,7 @@ class Body extends Interactor {
         DEBUG(if(pr(inner).massMode== Flag(MassMode,DEFAULT) && pr(inner).shapes.empty())
             throw "Error: Given current mass mode, Body::mass only makes sense if it contains shapes";
         )
-        pr(inner).cmass;
+        return pr(inner).cmass;
     },{
         pr(inner).immutable_midstep("Body::mass");
         DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
@@ -265,7 +275,7 @@ class Body extends Interactor {
     //----------------------------------------------------------------------------------------------
 
     property(gravMassMode,GravMassMode,{
-        [GravMassMode.DEFAULT,GravMassMode.FIXED,GravMassMode.SCALED][pr(inner).massMode];
+        return [GravMassMode.DEFAULT,GravMassMode.FIXED,GravMassMode.SCALED][pr(inner).massMode];
     },{
         pr(inner).immutable_midstep("Body::gravMassMode");
         DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
@@ -284,7 +294,7 @@ class Body extends Interactor {
             pr(inner).gravMassMode != Flag(GravMassMode,FIXED))
                 throw "Error: Given current mass/gravMass modes; Body::gravMass only makes sense if it contains Shapes";
         })
-        pr(inner).gravMass;
+        return pr(inner).gravMass;
     },{
         pr(inner).immutable_midstep("Body::gravMass");
         DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
@@ -301,7 +311,7 @@ class Body extends Interactor {
             pr(inner).gravMassMode != Flag(GravMassMode,SCALED))
                 throw "Error: Given current mass/gravMass modes; Body::gravMassScale only makes sense if it contains Shapes";
         })
-        pr(inner).gravMassScale;
+        return pr(inner).gravMassScale;
     },{
         pr(inner).immutable_midstep("Body::gravMassScale");
         DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
@@ -315,7 +325,7 @@ class Body extends Interactor {
     //----------------------------------------------------------------------------------------------
 
     property(inertiaMode,InertiaMode,{
-        [InertiaMode.DEFAULT,InertiaMode.FIXED][pr(inner).inertiaMode];
+        return [InertiaMode.DEFAULT,InertiaMode.FIXED][pr(inner).inertiaMode];
     },{
         pr(inner).immutable_midstep("Body::inertiaMode");
         DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
@@ -328,7 +338,7 @@ class Body extends Interactor {
 
     property(constraintInertia,Float,{
         if(!pr(inner).world) pr(inner).validate_inertia();
-        pr(inner).sinertia;
+        return pr(inner).sinertia;
     })
 
     property(inertia,Float,{
@@ -337,7 +347,7 @@ class Body extends Interactor {
         DEBUG(if(pr(inner).inertiaMode == Flag(InertiaMode,DEFAULT) && shapes.empty())
             throw "Error: Given current inertia mode flag, Body::inertia only makes sense if Body contains Shapes";
         )
-        pr(inner).cinertia;
+        return pr(inner).cinertia;
     },{
         pr(inner).immutable_midstep("Body::inertia");
         DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
@@ -354,7 +364,7 @@ class Body extends Interactor {
     //----------------------------------------------------------------------------------------------
 
     property(graphicOffset,Vec2,{
-        pr(inner).graphicOffset;
+        return pr(inner).graphicOffset;
     },{
         Disposed(graphicOffset,Vec2);
         DEBUG(if(graphicOffset==null) throw "Error: Body::graphicOffset cannot be null";)
@@ -362,7 +372,9 @@ class Body extends Interactor {
     })
     public var graphicAngleOffset:Float;
 
-    property(graphic,Dynamic,pr(inner).graphic,{
+    property(graphic,Dynamic, {
+        return pr(inner).graphic;
+    }, {
         DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
         if(graphic!=this.graphic) {
             if(graphic==null) {
@@ -377,7 +389,9 @@ class Body extends Interactor {
         }
     })
 
-    property(graphicUpdate,Body->Void,pr(inner).graphicUpdate,{
+    property(graphicUpdate,Body->Void, {
+        return pr(inner).graphicUpdate;
+    }, {
         pr(inner).graphicUpdate = graphicUpdate;
         if(graphicUpdate!=null) pr(inner).validate_graphic();
     })
@@ -673,7 +687,7 @@ class Body extends Interactor {
                 pr(inner).wrap_`n.pr(inner)._immutable = true;
                 pr(inner).wrap_`n.pr(inner)._validate = pr(inner).get`n;
             }
-            pr(inner).wrap_`n;
+            return pr(inner).wrap_`n;
         })
     );
 

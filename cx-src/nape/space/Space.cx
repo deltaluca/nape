@@ -4,14 +4,14 @@ $(import);
 class Space {
     public var pr(inner):PR(Space);
 
-    property(id,Int,pr(inner).id)
+    property(id,Int,return pr(inner).id)
     PublicUserData(pr(inner))
 
     //----------------------------------------------------------------------------------------------
 
     property(gravity,Vec2,{
         if(pr(inner).wrap_gravity==null) pr(inner).getgravity();
-        pr(inner).wrap_gravity;
+        return pr(inner).wrap_gravity;
     },{
         Disposed(gravity,Vec2);
         DEBUG(if(gravity==null) throw "Error: Space::gravity cannot be null";)
@@ -19,21 +19,27 @@ class Space {
     })
 
     property(broadphase,Broadphase,{
-        pr(inner).bphase.is_sweep ? Broadphase.SWEEP_AND_PRUNE : Broadphase.DYNAMIC_AABB_TREE;
+        return pr(inner).bphase.is_sweep ? Broadphase.SWEEP_AND_PRUNE : Broadphase.DYNAMIC_AABB_TREE;
     })
 
-    property(sortContacts,Bool,pr(inner).sortcontacts,{
+    property(sortContacts,Bool, {
+        return pr(inner).sortcontacts;
+    }, {
         pr(inner).sortcontacts = sortContacts;
     })
 
     //----------------------------------------------------------------------------------------------
 
-    property(worldAngularDrag,Float,pr(inner).global_ang_drag,{
+    property(worldAngularDrag,Float, {
+        return pr(inner).global_ang_drag;
+    }, {
         var d = worldAngularDrag;
         DEBUG(if(isNaN(d)) throw "Error: Space::worldAngularDrag cannot be NaN";)
         pr(inner).global_ang_drag = d;
     })
-    property(worldLinearDrag,Float,pr(inner).global_lin_drag,{
+    property(worldLinearDrag,Float, {
+        return pr(inner).global_lin_drag;
+    }, {
         var d = worldLinearDrag;
         DEBUG(if(isNaN(d)) throw "Error: Space::worldLinearDrag cannot be NaN";)
         pr(inner).global_lin_drag = d;
@@ -43,13 +49,13 @@ class Space {
 
     //bodies ]= statics,dynamics,kinematics
     //dynamics ]= liveBodies
-    property(compounds,CompoundList,pr(inner).wrap_compounds)
-    property(bodies,    BodyList,pr(inner).wrap_bodies)
-    property(liveBodies,BodyList,pr(inner).wrap_live)
+    property(compounds,CompoundList,return pr(inner).wrap_compounds)
+    property(bodies,    BodyList,return pr(inner).wrap_bodies)
+    property(liveBodies,BodyList,return pr(inner).wrap_live)
 
     //constraints ]= liveConstraints
-    property(constraints,    ConstraintList,pr(inner).wrap_constraints)
-    property(liveConstraints,ConstraintList,pr(inner).wrap_livecon)
+    property(constraints,    ConstraintList,return pr(inner).wrap_constraints)
+    property(liveConstraints,ConstraintList,return pr(inner).wrap_livecon)
 
     public function visitBodies(lambda:Body->Void) {
         DEBUG(if(lambda==null) throw "Error: lambda cannot be null for Space::visitBodies";)
@@ -72,7 +78,7 @@ class Space {
     //----------------------------------------------------------------------------------------------
 
     //for use with constraints for a world-constant anchor
-    property(world,Body,pr(inner).__static)
+    property(world,Body,return pr(inner).__static)
 
     //----------------------------------------------------------------------------------------------
 
@@ -82,12 +88,12 @@ class Space {
             ret.space = pr(inner);
             pr(inner).wrap_arbiters = ret;
         }
-        pr(inner).wrap_arbiters;
+        return pr(inner).wrap_arbiters;
     })
 
     //----------------------------------------------------------------------------------------------
 
-    property(listeners,ListenerList,pr(inner).wrap_listeners)
+    property(listeners,ListenerList,return pr(inner).wrap_listeners)
 
     //----------------------------------------------------------------------------------------------
 
@@ -108,8 +114,8 @@ class Space {
         pr(inner).step(deltaTime,velocityIterations,positionIterations);
     }
 
-    property(timeStamp,Int,pr(inner).stamp)
-    property(elapsedTime,Float,pr(inner).time)
+    property(timeStamp,Int,return pr(inner).stamp)
+    property(elapsedTime,Float,return pr(inner).time)
 
     //----------------------------------------------------------------------------------------------
 
