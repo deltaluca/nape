@@ -5,7 +5,7 @@ class Shape extends Interactor {
     public var pr(inner):PR(Shape);
 
     property(type,ShapeType,{
-        [ShapeType.CIRCLE,ShapeType.POLYGON][pr(inner).type];
+        return [ShapeType.CIRCLE,ShapeType.POLYGON][pr(inner).type];
     })
 
     keep public function isCircle () return pr(inner).isCircle()
@@ -23,7 +23,7 @@ class Shape extends Interactor {
     //----------------------------------------------------------------------------------------------
 
     property(body,Body,{
-        if(pr(inner).body!=null) pr(inner).body.outer else null;
+        return if(pr(inner).body!=null) pr(inner).body.outer else null;
     },{
         pr(inner).immutable_midstep("Shape::body");
         if(this.body!=body) {
@@ -32,8 +32,8 @@ class Shape extends Interactor {
         }
     })
 
-    property(castCircle, Circle, if(isCircle())  pr(inner).circle.outer_zn  else null)
-    property(castPolygon,Polygon,if(isPolygon()) pr(inner).polygon.outer_zn else null)
+    property(castCircle, Circle, return if(isCircle())  pr(inner).circle.outer_zn  else null)
+    property(castPolygon,Polygon,return if(isPolygon()) pr(inner).polygon.outer_zn else null)
 
     //----------------------------------------------------------------------------------------------
 
@@ -44,7 +44,7 @@ class Shape extends Interactor {
             pr(inner).wrap_worldCOM.pr(inner)._immutable = true;
             pr(inner).wrap_worldCOM.pr(inner)._validate = pr(inner).getworldCOM;
         }
-        pr(inner).wrap_worldCOM;
+        return pr(inner).wrap_worldCOM;
     })
 
     property(localCOM,Vec2,{
@@ -52,7 +52,7 @@ class Shape extends Interactor {
             if(isCircle()) pr(inner).circle.setupLocalCOM();
             else           pr(inner).polygon.setupLocalCOM();
         }
-        pr(inner).wrap_localCOM;
+        return pr(inner).wrap_localCOM;
     },{
         pr(inner).immutable_midstep("Body::localCOM");
         Disposed(localCOM,Vec2);
@@ -62,19 +62,23 @@ class Shape extends Interactor {
 
     //----------------------------------------------------------------------------------------------
 
-    property(area,   Float, { pr(inner).validate_area_inertia(); pr(inner).area;    })
-    property(inertia,Float, { pr(inner).validate_area_inertia(); pr(inner).inertia; })
-    property(angDrag,Float, { pr(inner).validate_angDrag();      pr(inner).angDrag; })
+    property(area,   Float, { pr(inner).validate_area_inertia(); return pr(inner).area;    })
+    property(inertia,Float, { pr(inner).validate_area_inertia(); return pr(inner).inertia; })
+    property(angDrag,Float, { pr(inner).validate_angDrag();      return pr(inner).angDrag; })
 
     //----------------------------------------------------------------------------------------------
 
-    property(material,Material,pr(inner).material.wrapper(),{
+    property(material,Material, {
+        return pr(inner).material.wrapper();
+    }, {
         pr(inner).immutable_midstep("Shape::material");
         DEBUG(if(material==null) throw "Error: Cannot assign null as Shape material";)
         pr(inner).setMaterial(material.pr(inner));
     })
 
-    property(filter,InteractionFilter,pr(inner).filter.wrapper(),{
+    property(filter,InteractionFilter, {
+        return pr(inner).filter.wrapper();
+    }, {
         pr(inner).immutable_midstep("Shape::filter");
         DEBUG(if(filter==null) throw "Error: Cannot assign null as Shape filter";)
         pr(inner).setFilter(filter.pr(inner));
@@ -83,13 +87,15 @@ class Shape extends Interactor {
     property(fluidProperties,FluidProperties,{
         pr(inner).immutable_midstep("Shape::fluidProperties");
         if(pr(inner).fluidProperties==null) pr(inner).setFluid(new FluidProperties().pr(inner));
-        pr(inner).fluidProperties.wrapper();
+        return pr(inner).fluidProperties.wrapper();
     },{
         DEBUG(if(fluidProperties==null) throw "Error: Cannot assign null as Shape fluidProperties, disable fluids by setting fluidEnabled to false";)
         pr(inner).setFluid(fluidProperties.pr(inner));
     })
 
-    property(fluidEnabled,Bool,pr(inner).fluidEnabled,{
+    property(fluidEnabled,Bool, {
+        return pr(inner).fluidEnabled;
+    }, {
         pr(inner).immutable_midstep("Shape::fluidEnabled");
         pr(inner).fluidEnabled = fluidEnabled;
         if(fluidEnabled && pr(inner).fluidProperties==null) this.fluidProperties = new FluidProperties();
@@ -98,7 +104,7 @@ class Shape extends Interactor {
 
     //----------------------------------------------------------------------------------------------
 
-    property(bounds,AABB,pr(inner).aabb.wrapper())
+    property(bounds,AABB,return pr(inner).aabb.wrapper())
 
     //----------------------------------------------------------------------------------------------
 

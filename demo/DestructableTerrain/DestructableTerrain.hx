@@ -8,20 +8,39 @@ import nape.shape.Polygon;
 import nape.shape.Circle;
 import nape.geom.Vec2;
 import nape.geom.AABB;
-import nape.util.BitmapDebug;
+#if flash10
+    import nape.util.BitmapDebug;
+#else
+    import nape.util.ShapeDebug;
+#end
 
 import flash.display.BitmapData;
 import flash.display.Sprite;
 
 import FixedStep;
 
+typedef DEBUG = #if flash10 BitmapDebug #else ShapeDebug #end;
+
 class DestructableTerrain extends FixedStep {
-	static function main() { new DestructableTerrain(); }
+	static function main() {
+        #if nme
+            nme.Lib.create(
+                function() { new DestructableTerrain(); },
+                800, 600,
+                60,
+                0x333333,
+                nme.Lib.HARDWARE | nme.Lib.VSYNC,
+                "DestructableTerrain"
+            );
+        #else
+    		new DestructableTerrain();
+        #end
+    }
 	function new() {
 		super(1/60);
 
 		var space = new Space(new Vec2(0,500));
-		var debug = new BitmapDebug(stage.stageWidth,stage.stageHeight,0x333333);
+		var debug = new DEBUG(stage.stageWidth,stage.stageHeight,0x333333);
 		addChild(debug.display);
 
 		//border

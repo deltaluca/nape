@@ -3,29 +3,31 @@ $(import);
 
 class Contact {
     public var pr(inner):PR(Contact);
-    
-    property(active,Bool, pr(inner).active && pr(inner).arbiter!=null && pr(inner).arbiter.active)
-    
-    property(arbiter,CollisionArbiter,{
-        if(pr(inner).arbiter==null) null else pr(inner).arbiter.outer.collisionArbiter;
+
+    property(active,Bool, {
+        return pr(inner).active && pr(inner).arbiter!=null && pr(inner).arbiter.active;
     })
-    
+
+    property(arbiter,CollisionArbiter,{
+        return if(pr(inner).arbiter==null) null else pr(inner).arbiter.outer.collisionArbiter;
+    })
+
     //------------------------------------------------------------------------
-    
+
     property(penetration,Float,{
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Contact not currently in use";)
-        -pr(inner).dist;
+        return (-pr(inner).dist);
     },{
         DEBUG(if(!pr(inner).arbiter.colarb.mutable) throw "Error: Contact::penetration is only mutable within a pre-handler";)
         DEBUG(if(isNaN(penetration)) throw "Error: Contact::penetration cannot be NaN";)
         DEBUG(if(penetration<=0 || penetration==Math.POSITIVE_INFINITY) throw "Error: Contact::penetration must be stritly positive and non-infinite";)
         pr(inner).dist = -penetration;
     })
-    
+
     property(position,Vec2,{
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Contact not currently in use";)
         if(pr(inner).wrap_position==null) pr(inner).getposition();
-        pr(inner).wrap_position;
+        return pr(inner).wrap_position;
     },{
         DEBUG(if(!pr(inner).arbiter.colarb.mutable) throw "Error: Contact::position is only mutable within a pre-handler";)
         DEBUG(if(position==null) throw "Error: Contact::position cannot be null";)
@@ -34,11 +36,11 @@ class Contact {
 
     property(fresh,Bool,{
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Contact not currently in use";)
-        pr(inner).fresh;
+        return pr(inner).fresh;
     })
-    
+
     //------------------------------------------------------------------------
-    
+
     keep public function normalImpulse(body:Body=null) {
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Contact not currently in use";)
         var colarb = pr(inner).arbiter.colarb;
@@ -53,7 +55,7 @@ class Contact {
             else return Vec3.get(vec_imul(colarb.n,  jnAcc),  vec_cross(cin.r2,colarb.n)*jnAcc);
         }
     }
-    
+
     keep public function tangentImpulse(body:Body=null) {
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Contact not currently in use";)
         var colarb = pr(inner).arbiter.colarb;
@@ -68,7 +70,7 @@ class Contact {
             else return Vec3.get(-colarb.ny*jtAcc,  colarb.nx*jtAcc,  vec_dot(cin.r2,colarb.n)*jtAcc);
         }
     }
-    
+
     keep public function rollingImpulse(body:Body=null) {
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Contact not currently in use";)
         var colarb = pr(inner).arbiter.colarb;
@@ -81,10 +83,10 @@ class Contact {
             else                      return  jrAcc;
         }
     }
-    
+
     keep public function totalImpulse(body:Body=null) {
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Contact not currently in use";)
-        
+
         var colarb = pr(inner).arbiter.colarb;
         var cin = pr(inner).inner;
 
@@ -105,30 +107,30 @@ class Contact {
             else return Vec3.get( jx, jy, vec_cross(cin.r2,j)+jrAcc);
         }
     }
-    
+
     //------------------------------------------------------------------------
-    
+
     property(restitution,Float, {
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Contact not currently in use";)
-        pr(inner).elasticity;
+        return pr(inner).elasticity;
     })
-    
+
     property(friction,Float, {
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Contact not currently in use";)
-        pr(inner).inner.friction;
+        return pr(inner).inner.friction;
     })
-    
+
     property(rollingFriction,Float,{
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Contact not currently in use";)
-        pr(inner).arbiter.colarb.rfric;
+        return pr(inner).arbiter.colarb.rfric;
     })
-    
+
     //------------------------------------------------------------------------
-    
+
     public function new() {
         DEBUG(if(!PR(Contact).internal) throw "Error: Cannot instantiate Contact derp!";)
     }
-    
+
     @:$keep public function toString() {
         if(pr(inner).arbiter==null || pr(inner).arbiter.cleared)
             return "{object-pooled}";

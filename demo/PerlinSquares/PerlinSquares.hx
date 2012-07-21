@@ -13,7 +13,18 @@ import FPS;
 
 class PerlinSquares extends VariableStep {
 	static function main() {
-		new PerlinSquares();
+        #if nme
+            nme.Lib.create(
+                function() { new PerlinSquares(); },
+                400, 300,
+                60,
+                0x333333,
+                nme.Lib.HARDWARE | nme.Lib.VSYNC,
+                "PerlinSquares"
+            );
+        #else
+    		new PerlinSquares();
+        #end
 	}
 
 	function new() {
@@ -99,10 +110,14 @@ class Perlin3D {
     }
 
     static inline function p(i:Int) return perm[i]
-    static var perm:flash.Vector<Int>;
+    static var perm:#if flash10 flash.Vector<Int> #else Array<Int> #end;
 
     public static function init_noise() {
-		  perm = new flash.Vector<Int>(512,true);
+        #if flash10
+    		perm = new flash.Vector<Int>(512,true);
+        #else
+            perm = new Array<Int>();
+        #end
 
         var p = [151,160,137,91,90,15,
         131,13,201,95,96,53,194,233,7,225,140,36,103,30,69,142,8,99,37,240,21,10,23,

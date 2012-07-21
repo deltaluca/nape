@@ -1,7 +1,11 @@
 package;
 
 import nape.space.Space;
-import nape.util.ShapeDebug;
+#if flash10
+    import nape.util.BitmapDebug;
+#else
+    import nape.util.ShapeDebug;
+#end
 import nape.geom.Vec2;
 
 import nape.phys.Body;
@@ -20,15 +24,28 @@ import nape.constraint.WeldJoint;
 
 import FixedStep;
 
+typedef DEBUG = #if flash10 BitmapDebug #else ShapeDebug #end;
+
 class Constraints extends FixedStep {
 	static function main() {
-		new Constraints();
+        #if nme
+            nme.Lib.create(
+                function() { new Constraints(); },
+                1200, 600,
+                60,
+                0x333333,
+                nme.Lib.HARDWARE | nme.Lib.VSYNC,
+                "Constraints"
+            );
+        #else
+    		new Constraints();
+        #end
 	}
 
 	function new() {
 		super(1/60);
 
-		var debug = new ShapeDebug(stage.stageWidth,stage.stageHeight,0x333333);
+		var debug = new DEBUG(stage.stageWidth,stage.stageHeight,0x333333);
 		debug.drawConstraints = true;
 		addChild(debug.display);
 
@@ -151,16 +168,16 @@ class Constraints extends FixedStep {
 
 		//DistanceJoint ------------------------------
 		mid(3,0);
-		
+
 		var b1 = circle(cell*3+cell/3,cell/4,20);
 		var b2 = circle(cell*3+cell*2/3,cell/4,20);
-		
+
 		var dist = new DistanceJoint(b1,b2,new Vec2(20,0),new Vec2(-20,0),40,80);
 		dist.space = space;
-		
+
 		var b1 = circle(cell*3+cell/3,cell*3/4,20);
 		var b2 = circle(cell*3+cell*2/3,cell*3/4,20);
-		
+
 		var dist = new DistanceJoint(b1,b2,new Vec2(20,0),new Vec2(-20,0),40,80);
 		dist.stiff = false;
 		dist.frequency = 0.5;
@@ -217,7 +234,7 @@ class Constraints extends FixedStep {
 
 		var b1 = circle(cell*2+cell/3,cell+cell/4,20);
 		var b2 = circle(cell*2+cell*2/3,cell+cell/4,20);
-		
+
 		var mi = new Vec2(cell*2+cell/2,cell+cell/4);
 		var line = new LineJoint(b1,b2,b1.worldToLocal(mi),b2.worldToLocal(mi),
 			new Vec2(0,1),-20,20);
@@ -225,7 +242,7 @@ class Constraints extends FixedStep {
 
 		var b1 = circle(cell*2+cell/3,cell+cell*3/4,20);
 		var b2 = circle(cell*2+cell*2/3,cell+cell*3/4,20);
-		
+
 		var mi = new Vec2(cell*2+cell/2,cell+cell*3/4);
 		var line = new LineJoint(b1,b2,b1.worldToLocal(mi),b2.worldToLocal(mi),
 			new Vec2(0,1),-20,20);
@@ -272,7 +289,7 @@ class Constraints extends FixedStep {
 		spr1.frequency = 5;
 		spr1.damping = 1;
 		spr1.space = space;
-		
+
 		var spr2 = new DistanceJoint(body,w2,new Vec2(50,-10), new Vec2(),40,40);
 		spr2.stiff = false;
 		spr2.frequency = 5;

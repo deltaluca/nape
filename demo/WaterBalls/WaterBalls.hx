@@ -14,24 +14,42 @@ import nape.geom.MarchingSquares;
 import nape.geom.Vec2;
 import nape.geom.AABB;
 
-import nape.util.BitmapDebug;
+#if flash10
+    import nape.util.BitmapDebug;
+#else
+    import nape.util.ShapeDebug;
+#end
 
 import FixedStep;
-import FPS;
+
+typedef DEBUG = #if flash10 BitmapDebug #else ShapeDebug #end;
 
 class WaterBalls extends FixedStep {
 	static function main() {
-		new WaterBalls();
+        #if nme
+            nme.Lib.create(
+                function() { new WaterBalls(); },
+                800, 400,
+                60,
+                0x333333,
+                nme.Lib.HARDWARE | nme.Lib.VSYNC,
+                "WaterBalls"
+            );
+        #else
+    		new WaterBalls();
+        #end
 	}
 
 	function new() {
 		super(1/60);
 
-		var debug = new BitmapDebug(800,400,0x333333);
+		var debug = new DEBUG(800,400,0x333333);
 		debug.drawShapeAngleIndicators = false;
 		addChild(debug.display);
 
-		addChild(new FPS(800,60,0,60,0x40000000,0xffffffff,0xa0ff0000));
+        #if flash10
+    		addChild(new FPS(800,60,0,60,0x40000000,0xffffffff,0xa0ff0000));
+        #end
 
 		var space = new Space(new Vec2(0,400));
 
@@ -69,8 +87,8 @@ class WaterBalls extends FixedStep {
 			circle.fluidProperties.viscosity = 10;
 			//so they don't flow into eachother
 			circle.filter.fluidGroup = 2;
-			circle.filter.fluidMask = ~2;	
-			
+			circle.filter.fluidMask = ~2;
+
 			circle.body = ball;
 			ball.space = space;
 		}
@@ -96,7 +114,7 @@ class WaterBalls extends FixedStep {
 		hand.maxForce = 60000;
 
 		stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function(_) {
-			var mouse = new Vec2(root.mouseX,root.mouseY);
+			var mouse = new Vec2(stage.mouseX,stage.mouseY);
 			var bodies = space.bodiesUnderPoint(mouse);
 
 			var grab = null;
@@ -118,7 +136,7 @@ class WaterBalls extends FixedStep {
 		});
 
 		run(function(dt) {
-			hand.anchor1.setxy(root.mouseX,root.mouseY);
+			hand.anchor1.setxy(stage.mouseX,stage.mouseY);
 			space.step(dt, 6,6);
 
 			debug.clear();

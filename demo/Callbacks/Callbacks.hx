@@ -3,7 +3,11 @@ package;
 import FixedStep;
 
 import nape.space.Space;
-import nape.util.BitmapDebug;
+#if flash10
+    import nape.util.BitmapDebug;
+#else
+    import nape.util.ShapeDebug;
+#end
 
 import nape.phys.Body;
 import nape.phys.BodyType;
@@ -34,16 +38,29 @@ import nape.callbacks.CbEvent;
 import nape.constraint.PivotJoint;
 import nape.constraint.Constraint;
 
+typedef DEBUG = #if flash10 BitmapDebug #else ShapeDebug #end;
+
 class Callbacks extends FixedStep {
 	static function main() {
-		new Callbacks();
+        #if nme
+            nme.Lib.create(
+                function() { new Callbacks(); },
+                800, 600,
+                60,
+                0x333333,
+                nme.Lib.HARDWARE | nme.Lib.VSYNC,
+                "Callbacks"
+            );
+        #else
+    		new Callbacks();
+        #end
 	}
 
 	public function new() {
 		super(1/60);
 
 		var space = new Space(new Vec2(0,400));
-		var debug = new BitmapDebug(stage.stageWidth,stage.stageHeight,0x333333,false);
+		var debug = new DEBUG(stage.stageWidth,stage.stageHeight,0x333333);
 		debug.drawCollisionArbiters = true;
 		debug.drawConstraints = true;
 		addChild(debug.display);
@@ -75,7 +92,7 @@ class Callbacks extends FixedStep {
 
 		var circles = new Array<Body>();
 
-		addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function(_) {
+		stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function(_) {
 			for(c in circles) c.cbTypes.add(partial_penetration);
 			var mp = new Vec2(mouseX,mouseY);
 			for(b in space.bodiesUnderPoint(mp)) {
@@ -85,7 +102,7 @@ class Callbacks extends FixedStep {
 				hand.active = true;
 			}
 		});
-		addEventListener(flash.events.MouseEvent.MOUSE_UP, function(_) {
+		stage.addEventListener(flash.events.MouseEvent.MOUSE_UP, function(_) {
 			for(c in circles) c.cbTypes.remove(partial_penetration);
 			hand.active = false;
 		});

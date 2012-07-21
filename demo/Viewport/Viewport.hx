@@ -6,7 +6,11 @@ import nape.phys.BodyType;
 import nape.shape.Circle;
 import nape.shape.Polygon;
 import nape.geom.Vec2;
-import nape.util.BitmapDebug;
+#if flash10
+    import nape.util.BitmapDebug;
+#else
+    import nape.util.ShapeDebug;
+#end
 import nape.dynamics.InteractionFilter;
 import nape.phys.Compound;
 import nape.callbacks.CbType;
@@ -19,13 +23,28 @@ import nape.constraint.PivotJoint;
 
 import FixedStep;
 
+typedef DEBUG = #if flash10 BitmapDebug #else ShapeDebug #end;
+
 class Viewport extends FixedStep {
-	static function main() new Viewport()
+	static function main() {
+        #if nme
+            nme.Lib.create(
+                function() { new Viewport(); },
+                800, 600,
+                60,
+                0x333333,
+                nme.Lib.HARDWARE | nme.Lib.VSYNC,
+                "Viewport"
+            );
+        #else
+    		new Viewport();
+        #end
+    }
 	function new() {
 		super(1/60);
 
 		var space = new Space(new Vec2(0,0));
-		var debug = new BitmapDebug(stage.stageWidth, stage.stageHeight, 0x333333);
+		var debug = new DEBUG(stage.stageWidth, stage.stageHeight, 0x333333);
 		addChild(debug.display);
 
 		//=================================================================================
@@ -41,7 +60,8 @@ class Viewport extends FixedStep {
 			var new_body = cb.int2.castBody;
 			if(new_body.compound==viewport) return; //ignore viewport bodies.
 
-			new_body.graphic.alpha = 1.0;
+            if(new_body.graphic != null)
+    			new_body.graphic.alpha = 1.0;
 		}));
 
 		//called when a body has left any part of viewport.
@@ -50,7 +70,8 @@ class Viewport extends FixedStep {
 			var old_body = cb.int2.castBody;
 			if(old_body.compound==viewport) return; //ignore viewport bodies.
 
-			old_body.graphic.alpha = 0.25;
+            if(old_body.graphic != null)
+    			old_body.graphic.alpha = 0.25;
 		}));
 
 		//------------------------------------------------------
@@ -88,7 +109,7 @@ class Viewport extends FixedStep {
 
 		//=================================================================================
 		//border body
-		
+
 		var border = new Body(BodyType.STATIC);
 		border.shapes.add(new Polygon(Polygon.rect(0,0,-50,stage.stageHeight)));
 		border.shapes.add(new Polygon(Polygon.rect(stage.stageWidth,0,50,stage.stageHeight)));
@@ -117,7 +138,7 @@ class Viewport extends FixedStep {
 		hand.active = false;
 		hand.space = space;
 		hand.stiff = false;
-		
+
 		stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function (_) {
 			var mp = new Vec2(mouseX,mouseY);
 			for(b in space.bodiesUnderPoint(mp)) {
