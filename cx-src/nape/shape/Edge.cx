@@ -1,36 +1,69 @@
 package nape.shape;
 $(import);
 
+!!/**
+!! * Edge class providing internal details of Polygon.
+!! */
 class Edge {
+    !!/**
+    !! * @private
+    !! */
     public var pr(inner):PR(Edge);
 
+    !!/**
+    !! * @private
+    !! */
     public function new() {
         DEBUG(if(!PR(Edge).internal) throw "Error: Cannot instantiate an Edge derp!";)
     }
 
+    !!/**
+    !! * Normal of edge in local coordinates.
+    !! * <br/><br/>
+    !! * This Vec2 is immutable.
+    !! */
     property(localNormal,Vec2,{
         DEBUG(if(pr(inner).polygon==null) throw "Error: Edge not current in use";)
         if(pr(inner).wrap_lnorm==null) pr(inner).get_lnorm();
         return pr(inner).wrap_lnorm;
     })
+
+    !!/**
+    !! * Normal of edge in world coordinates.
+    !! * <br/><br/>
+    !! * This Vec2 is immutable, and may be accessed even if the related Polygon
+    !! * is not part of a Body but queries to its values will result in a debug
+    !! * build error.
+    !! */
     property(worldNormal,Vec2,{
         DEBUG(if(pr(inner).polygon==null) throw "Error: Edge not current in use";)
         if(pr(inner).wrap_gnorm==null) pr(inner).get_gnorm();
         return pr(inner).wrap_gnorm;
     })
 
+    !!/**
+    !! * Length of edge.
+    !! */
     property(length,Float,{
         DEBUG(if(pr(inner).polygon==null) throw "Error: Edge not current in use";)
         pr(inner).polygon.validate_laxi();
         return pr(inner).length;
     })
 
+    !!/**
+    !! * Local projection of polygon onto edge axis.
+    !! */
     property(localProjection,Float,{
         DEBUG(if(pr(inner).polygon==null) throw "Error: Edge not current in use";)
         pr(inner).polygon.validate_laxi();
         return pr(inner).lprojection;
     })
 
+    !!/**
+    !! * World projection of polygon to edge axis.
+    !! * <br/><br/>
+    !! * This value can only be accessed if related Polygon is part of a Body.
+    !! */
     property(worldProjection,Float,{
         DEBUG(
             if(pr(inner).polygon==null) throw "Error: Edge not current in use";
@@ -41,6 +74,9 @@ class Edge {
         return pr(inner).gprojection;
     })
 
+    !!/**
+    !! * @private
+    !! */
     @:$keep public function toString() {
         if(pr(inner).polygon==null)
             return "Edge(object-pooled)";

@@ -1,11 +1,27 @@
 package nape.shape;
 $(import);
 
+!!/**
+!! * Shape subtype representing a Circle
+!! */
 class Circle extends Shape {
+    !!/**
+    !! * @private
+    !! */
     public var pr(inner_zn):PR(Circle);
 
-    //----------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * Construct a new Circle
+    !! *
+    !! * @param radius The radius of the circle, this value must be positive.
+    !! * @param localCOM The local offset for the circle. (default &#40;0,0&#41;)
+    !! * @param material The material for this circle. (default new Material&#40;&#41;)
+    !! * @param filter The interaction filter for this circle.
+    !! *               (default new InteractionFilter&#40;&#41;)
+    !! * @return The constructed Circle
+    !! * @throws # If radius is not strictly positive
+    !! * @throws # If localCOM is non-null, but has been disposed of.
+    !! */
     flibopts(3)
     public function new(radius:Float, localCOM:Vec2=null, material:Material=null, filter:InteractionFilter=null) {
         DEBUG(try { super(); } catch (e:Dynamic) {})
@@ -38,13 +54,13 @@ class Circle extends Shape {
         pr(inner_i).insert_cbtype(CbType.ANY_SHAPE.pr(inner));
     }
 
-    keep public static function copy(circle:Circle) {
-        DEBUG(if(circle==null) throw "Error: Cannot copy null circle";)
-        return circle.pr(inner).copy().castCircle;
-    }
-
-    //----------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * Radius of circle
+    !! * <br/><br/>
+    !! * This value must be strictly positive, and attempting to set this value
+    !! * whilst this Circle is part of a static Body inside a Space will result
+    !! * in a debug time error.
+    !! */
     property(radius,Float, {
         return pr(inner_zn).radius;
     }, {

@@ -1,18 +1,43 @@
 package nape.shape;
 $(import);
 
+!!/**
+!! * Base type for Nape Shape's
+!! */
 class Shape extends Interactor {
+    !!/**
+    !! * @private
+    !! */
     public var pr(inner):PR(Shape);
 
+    !!/**
+    !! * Type of shape.
+    !! */
     property(type,ShapeType,{
         return [ShapeType.CIRCLE,ShapeType.POLYGON][pr(inner).type];
     })
 
-    keep public function isCircle () return pr(inner).isCircle()
-    keep public function isPolygon() return pr(inner).isPolygon()
+    !!/**
+    !! * Faster equivalent to <code>type == ShapeType.CIRCLE</code>
+    !! *
+    !! * @return True if shape is a Circle type.
+    !! */
+    keep public inline function isCircle () {
+        return pr(inner).isCircle();
+    }
 
-    //----------------------------------------------------------------------------------------------
+    !!/**
+    !! * Faster equivalent to <code>type == ShapeType.POLYGON</code>
+    !! *
+    !! * @return True if shape is a Polygon type.
+    !! */
+    keep public inline function isPolygon() {
+        return pr(inner).isPolygon();
+    }
 
+    !!/**
+    !! * @private
+    !! */
     function new() {
         DEBUG(try { super(); } catch (e:Dynamic) {})
         RELEASE(super();)
@@ -20,9 +45,15 @@ class Shape extends Interactor {
         DEBUG(throw "Error: Shape cannot be instantiated derp!";)
     }
 
-    //----------------------------------------------------------------------------------------------
-
-    property(body,Body,{
+    !!/**
+    !! * Body this Shape is assigned to.
+    !! * <br/><br/>
+    !! * This value can be set to add Shape to the given Body, and set to null
+    !! * to remove it from its present Body.
+    !! *
+    !! * @default null
+    !! */
+    property(body,Null<Body>,{
         return if(pr(inner).body!=null) pr(inner).body.outer else null;
     },{
         pr(inner).immutable_midstep("Shape::body");
@@ -32,11 +63,29 @@ class Shape extends Interactor {
         }
     })
 
-    property(castCircle, Circle, return if(isCircle())  pr(inner).circle.outer_zn  else null)
-    property(castPolygon,Polygon,return if(isPolygon()) pr(inner).polygon.outer_zn else null)
+    !!/**
+    !! * Faster equivalent to casting this to Circle type
+    !! */
+    property(castCircle, Null<Circle>, {
+        return if(isCircle()) pr(inner).circle.outer_zn else null;
+    })
 
-    //----------------------------------------------------------------------------------------------
+    !!/**
+    !! * Faster equivalent to casting this to Polygon type
+    !! */
+    property(castPolygon, Null<Polygon>, {
+        return if(isPolygon()) pr(inner).polygon.outer_zn else null;
+    })
 
+    !!/**
+    !! * World space centre of mass of this Shape.
+    !! * <br/><br/>
+    !! * This value can be accessed even if Shape is not in a Body, but
+    !! * attempting to query the values of it will return an error in debug
+    !! * builds unless the Shape is in a Body.
+    !! * <br/><br/>
+    !! * This Vec2 is immutable.
+    !! */
     property(worldCOM,Vec2,{
         if(pr(inner).wrap_worldCOM==null) {
             pr(inner).wrap_worldCOM = Vec2.get(pr(inner).worldCOMx,pr(inner).worldCOMy);
@@ -47,6 +96,16 @@ class Shape extends Interactor {
         return pr(inner).wrap_worldCOM;
     })
 
+    !!/**
+    !! * Local space centre of mass of this Shape.
+    !! * <br/><br/>
+    !! * This Vec2 can be set and is equivalent to performing the necessary
+    !! * translation of the Shape in local coordinates, and also equivalent
+    !! * to <code>this.localCOM.set(value)</code>.
+    !! * <br/>
+    !! * Setting this value whilst this shape is part of a static Body that
+    !! * is part of a Space is not permitted.
+    !! */
     property(localCOM,Vec2,{
         if(pr(inner).wrap_localCOM==null) {
             if(isCircle()) pr(inner).circle.setupLocalCOM();
@@ -56,18 +115,34 @@ class Shape extends Interactor {
     },{
         pr(inner).immutable_midstep("Body::localCOM");
         Disposed(localCOM,Vec2);
-        DEBUG(if(localCOM==null) throw "Error: Shape::localCOM cannot be null";)
+        DEBUG(
+            if(pr(inner).body!=null && pr(inner).body.space!=null && pr(inner).body.isStatic())
+                throw "Error: Cannot modify Shape belonging to a static Object once inside a Space";
+            if(localCOM==null) throw "Error: Shape::localCOM cannot be null";
+        )
         this.localCOM.set(localCOM);
     })
 
-    //----------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * Area of the Hhape.
+    !! */
     property(area,   Float, { pr(inner).validate_area_inertia(); return pr(inner).area;    })
+
+    !!/**
+    !! * Non-mass weighted moment of inertia for Shape.
+    !! */
     property(inertia,Float, { pr(inner).validate_area_inertia(); return pr(inner).inertia; })
+
+    !!/**
+    !! * Coeffecient of angular fluid drag for this Shape.
+    !! */
     property(angDrag,Float, { pr(inner).validate_angDrag();      return pr(inner).angDrag; })
 
-    //----------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * Material used by this shape.
+    !! *
+    !! * @default new Material()
+    !! */
     property(material,Material, {
         return pr(inner).material.wrapper();
     }, {
@@ -76,6 +151,11 @@ class Shape extends Interactor {
         pr(inner).setMaterial(material.pr(inner));
     })
 
+    !!/**
+    !! * InteractionFilter used by this shape.
+    !! *
+    !! * @default new InteractionFilter()
+    !! */
     property(filter,InteractionFilter, {
         return pr(inner).filter.wrapper();
     }, {
@@ -84,6 +164,14 @@ class Shape extends Interactor {
         pr(inner).setFilter(filter.pr(inner));
     })
 
+    !!/**
+    !! * FluidProperties used by this shape.
+    !! * <br/><br/>
+    !! * This object provides information for buoyancy and fluid drag computations
+    !! * when this shape is interacting as a fluid.
+    !! *
+    !! * @default new FluidProperties();
+    !! */
     property(fluidProperties,FluidProperties,{
         pr(inner).immutable_midstep("Shape::fluidProperties");
         if(pr(inner).fluidProperties==null) pr(inner).setFluid(new FluidProperties().pr(inner));
@@ -93,6 +181,17 @@ class Shape extends Interactor {
         pr(inner).setFluid(fluidProperties.pr(inner));
     })
 
+    !!/**
+    !! * Whether this shape is to interact as a fluid.
+    !! * <br/><br/>
+    !! * Unless this field is true, this Shape can never interact as a fluid.
+    !! * <br/><br/>
+    !! * Just because this field is true however, does not mean this shape will always
+    !! * interact as a fluid, the final result is down to the combination of
+    !! * InteractionFilters on the pairing of shapes.
+    !! *
+    !! * @default false
+    !! */
     property(fluidEnabled,Bool, {
         return pr(inner).fluidEnabled;
     }, {
@@ -102,42 +201,82 @@ class Shape extends Interactor {
         pr(inner).wake();
     })
 
-    //----------------------------------------------------------------------------------------------
+    !!/**
+    !! * World space bounding box for this shape.
+    !! * <br/><br/>
+    !! * This value can be accessed even if the Shape is not part of a Body,
+    !! * however attempting to query its values would result in an error in
+    !! * debug builds.
+    !! * <br/><br/>
+    !! * This AABB is immutable.
+    !! */
+    property(bounds,AABB, {
+        return pr(inner).aabb.wrapper();
+    })
 
-    property(bounds,AABB,return pr(inner).aabb.wrapper())
-
-    //----------------------------------------------------------------------------------------------
-
-    keep public function translate(displacement:Vec2) {
+    !!/**
+    !! * Translate this shape in its local coordinate system.
+    !! * <br/><br/>
+    !! * This is equivalent to: <code>shape.localCOM.addeq(displacement)</code>
+    !! *
+    !! * @param translation The local translation to apply to Shape.
+    !! * @return A reference to 'this' Shape.
+    !! * @throws # If translation is null or has been disposed of.
+    !! * @throws # If this shape is part of a static body that is inside of a Space.
+    !! */
+    keep public function translate(translation:Vec2) {
         pr(inner).immutable_midstep("Shape::translate()");
-        Disposed(displacement,Vec2);
+        Disposed(translation,Vec2);
         DEBUG(
             if(pr(inner).body!=null && pr(inner).body.space!=null && pr(inner).body.isStatic())
                 throw "Error: Cannot modify Shape belonging to a static Object once inside a Space";
-            if(displacement==null) throw "Error: Cannot displace Shape by null Vec2";
+            if(translation==null) throw "Error: Cannot displace Shape by null Vec2";
         )
-        if(displacement.lsq() > 0) {
-            if(isCircle()) pr(inner).circle.__translate(displacement.x,displacement.y);
-            else           pr(inner).polygon.__translate(displacement.x,displacement.y);
+        if(translation.lsq() > 0) {
+            if(isCircle()) pr(inner).circle.__translate(translation.x,translation.y);
+            else           pr(inner).polygon.__translate(translation.x,translation.y);
         }
-        WEAK(displacement);
+        WEAK(translation);
+        return this;
     }
+
+    !!/**
+    !! * Scale this shape in its local coordinate system.
+    !! * <br/><br/>
+    !! * For Circle shapes, scalex and scaley must be exactly equal.
+    !! *
+    !! * @param scalex The x-coordinate scaling to apply to Shape.
+    !! * @param scaley The y-coordinate scaling to apply to Shape.
+    !! * @return A reference to 'this' Shape.
+    !! * @throws # If this shape is part of a static body that is inside of a Space.
+    !! * @throws # If scalex or scaley is 0. Negative values 'are' permitted.
+    !! */
     keep public function scale(scalex:Float,scaley:Float) {
         pr(inner).immutable_midstep("Shape::scale()");
         DEBUG(
             if(pr(inner).body!=null && pr(inner).body.space!=null && pr(inner).body.isStatic())
                 throw "Error: Cannot modify Shape belonging to a static Object once inside a Space";
             if(isNaN(scalex) || isNaN(scaley)) throw "Error: Cannot scale Shape by NaN";
+            if (scalex == 0 || scaley == 0)
+                throw "Error: Cannot Scale shape by a factor of 0";
         )
-        if(scalex!=0 && scaley!=0) {
-            if(isCircle()) {
-                var d = scalex*scalex-scaley*scaley;
-                if(d*d<PR(Const).EPSILON) {
-                    pr(inner).circle.__scale(scalex,scaley);
-                }else { DEBUG(throw "Error: Cannot perform a non equal scaling on a Circle";) }
-            }else pr(inner).polygon.__scale(scalex,scaley);
-        }
+        if(isCircle()) {
+            var d = scalex*scalex-scaley*scaley;
+            if(d*d<PR(Const).EPSILON) {
+                pr(inner).circle.__scale(scalex,scaley);
+            }else { DEBUG(throw "Error: Cannot perform a non equal scaling on a Circle";) }
+        }else pr(inner).polygon.__scale(scalex,scaley);
+        return this;
     }
+
+    !!/**
+    !! * Rotate this shape in its local coordinate system.
+    !! *
+    !! * @param angle The number of radians to rotate this Shape by in a clockwise
+    !! *              direction.
+    !! * @return A reference to 'this' Shape.
+    !! * @throws # If this shape is part of a static body that is inside of a Space.
+    !! */
     keep public function rotate(angle:Float) {
         pr(inner).immutable_midstep("Shape::rotate()");
         DEBUG(
@@ -152,8 +291,20 @@ class Shape extends Interactor {
             if(isCircle()) pr(inner).circle.__rotate(sin,cos);
             else           pr(inner).polygon.__rotate(sin,cos);
         }
+        return this;
     }
 
+    !!/**
+    !! * Apply local transformation matrix to Shape.
+    !! * <br/><br/>
+    !! * For Circle shapes, the matrix must be equiorthogonal.
+    !! *
+    !! * @param matrix The matrix to transform Shape by.
+    !! * @return A reference to 'this' Shape.
+    !! * @throws # If matrix is null or singular.
+    !! * @throws # If shape is a Circle, and matrix is not equiorthogonal.
+    !! * @throws # If this shape is part of a static body that is inside of a Space.
+    !! */
     keep public function transform(matrix:Mat23) {
         pr(inner).immutable_midstep("Shape::transform()");
         DEBUG(
@@ -169,10 +320,20 @@ class Shape extends Interactor {
             }else { DEBUG(throw "Error: Cannot transform Circle by a non equiorthogonal matrix";) }
         }else
             pr(inner).polygon.__transform(matrix);
+        return this;
     }
 
-    //----------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * Test containment of world-space coordinate in Shape.
+    !! * <br/><br/>
+    !! * This Shape must be part of a Body so that world coordinates are
+    !! * defined.
+    !! *
+    !! * @param point The point to check for containment.
+    !! * @return True if point is contained within the Shape.
+    !! * @throws If point is null or disposed of.
+    !! * @throws If this shape is not part of a Body.
+    !! */
     keep public function contains(point:Vec2) {
         Disposed(point,Vec2);
         DEBUG(if(point==null) throw "Cannot check null point for containment";)
@@ -182,19 +343,20 @@ class Shape extends Interactor {
         return PR(Collide).shapeContains(pr(inner),point.pr(inner));
     }
 
-    //----------------------------------------------------------------------------------------------
-
-    keep public static function copy(shape:Shape) {
-        DEBUG(if(shape==null)
-            throw "Error: Cannot copy null Shape";
-        )
-        var ret = shape.pr(inner).copy();
-        ret.pr(inner).userData = shape.pr(inner).userData;
-        return ret;
+    !!/**
+    !! * Produce a copy of this Shape.
+    !! * <br/><br/>
+    !! * The copied shape will be identical with the copied Shape's userData
+    !! * object being assigned the same fields as 'this' Shape with the same
+    !! * values copied over by reference for object types.
+    !! */
+    keep public function copy() {
+        return pr(inner).copy();
     }
 
-    //----------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * @private
+    !! */
     @:$keep public override function toString() {
         var ret = isCircle() ? "Circle" : "Polygon";
         return ret + "#" + id;

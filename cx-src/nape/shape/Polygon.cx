@@ -1,35 +1,63 @@
 package nape.shape;
 $(import);
 
-Flags(ValidationResult,
-    prop(VALID,0)
-
-    prop(DEGENERATE,1)
-    prop(DEGENERATE_EDGES,2)
-    prop(CONCAVE,3)
-    prop(SELF_INTERSECTING,4)
-)
-
+!!/**
+!! * Polygon subtype of Shape.
+!! * <br/><br/>
+!! * Can be used to simulate any convex polygon.
+!! */
 class Polygon extends Shape {
+    !!/**
+    !! * @private
+    !! */
     public var pr(inner_zn):PR(Polygon);
 
-    //----------------------------------------------------------------------------------------------
-
-    keep public static function copy(polygon:Polygon) {
-        DEBUG(if(polygon==null)
-            throw "Error: Cannot copy null polygon";
-        )
-        return polygon.pr(inner).copy().castPolygon;
-    }
-
-    //----------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * Construct a polygon representing a rectangle.
+    !! * <br/><br/>
+    !! * For a dynamic object, you may consider use of the box method instead
+    !! * as dynamic bodies will only respond as expected if their centre of mass
+    !! * is equal to the origin.
+    !! * <br/><br/>
+    !! * The generate polygon will have coordinates equal to:
+    !! * <pre>
+    !! * (x, y) -> (x + width, y + height)
+    !! * </pre>
+    !! * Negative values of width/height are permitted so that the given x/y values
+    !! * may not necessarigly be the top-left corner of rectangle.
+    !! *
+    !! * @param x The x coordinate of rectangle.
+    !! * @param y The y coordinate of rectangle.
+    !! * @param width The width of the ractangle. This value may be negative.
+    !! * @param height The height of the rectangle This value may be negative.
+    !! * @param weak If true, the generated list of vertices will be allocated as
+    !! *             weak Vec2s so that when this list is passed to a Nape function
+    !! *             these Vec2s will be automatically sent back to object pool.
+    !! *             (default false)
+    !! * @return An array of Vec2 representing the given rectangle.
+    !! */
     keep public static function rect(x:Float,y:Float,width:Float,height:Float, weak:Bool=false):Array<Vec2> {
         DEBUG(if(isNaN(x) || isNaN(y) || isNaN(width) || isNaN(height))
             throw "Error: Polygon.rect cannot accept NaN arguments";
         )
         return [Vec2.get(x,y,weak), Vec2.get(x+width,y,weak), Vec2.get(x+width,y+height,weak), Vec2.get(x,y+height,weak)];
     }
+
+    !!/**
+    !! * Construct a polygon representing an origin centred box.
+    !! * <br/><br/>
+    !! * This method is equivalent to calling: <code>Polygon.rect(-width/2,-height/2,width,height)</code>
+    !! *
+    !! * @param width The width of the box (This value may be negative but will
+    !! *              make no difference).
+    !! * @param height The height of the box (This value may be negative but will
+    !! *              make no difference).
+    !! * @param weak If true, the generated list of vertices will be allocated as
+    !! *             weak Vec2s so that when this list is passed to a Nape function
+    !! *             these Vec2s will be automatically sent back to object pool.
+    !! *             (default false)
+    !! * @return An array of Vec2 representing the given box.
+    !! */
     keep public static function box(width:Float, height:Float, weak:Bool=false):Array<Vec2> {
         DEBUG(if(isNaN(width) || isNaN(height))
             throw "Error: Polygon.box cannot accept NaN arguments";
@@ -37,45 +65,95 @@ class Polygon extends Shape {
         return rect(-width/2,-height/2,width,height, weak);
     }
 
-    keep public static function regular(width:Float, height:Float, edgeCount:Int, angleOffset=0.0, weak:Bool=false):Array<Vec2> {
-        DEBUG(if(isNaN(width) || isNaN(height) || isNaN(angleOffset))
+    !!/**
+    !! * Construct a regular polygon centred at origin.
+    !! * <br/><br/>
+    !! * Vertices are created at positions on the edge of an ellipsoid of given
+    !! * radii, when radii are not equal the vertices will not have an equal
+    !! * angle between them; it will be as though an actual regular polygon were
+    !! * created, and then squashed to conform to the input radii.
+    !! *
+    !! * @param xRadius The x radius of polygon before angleOffset rotation.
+    !! * @param yRadius The y radius of polygon before angleOffset rotation.
+    !! * @param edgeCount The number of edges/vertices in polygon.
+    !! * @param angleOffset The clockwise angular offset to generate vertices at
+    !! *                    in radians. (default 0.0)
+    !! * @param weak If true, the generated list of vertices will be allocated as
+    !! *             weak Vec2s so that when this list is passed to a Nape function
+    !! *             these Vec2s will be automatically sent back to object pool.
+    !! *             (default false)
+    !! * @return An array of Vec2 representing the polygon.
+    !! */
+    keep public static function regular(xRadius:Float, yRadius:Float, edgeCount:Int, angleOffset=0.0, weak:Bool=false):Array<Vec2> {
+        DEBUG(if(isNaN(xRadius) || isNaN(yRadius) || isNaN(angleOffset))
             throw "Error: Polygon.regular cannot accept NaN arguments";
         )
         var ret = [];
         var dangle = Math.PI*2/edgeCount;
         for(i in 0...edgeCount) {
             var ang = i*dangle + angleOffset;
-            var x = Vec2.get(Math.cos(ang)*width/2,Math.sin(ang)*height/2,weak);
+            var x = Vec2.get(Math.cos(ang)*xRadius/2,Math.sin(ang)*yRadius/2,weak);
             ret.push(x);
         }
         return ret;
     }
 
-    //----------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * Local coordinates of vertices.
+    !! * <br/><br/>
+    !! * This list can be modified, but modifications to a Polygon that is
+    !! * part of a static Body inside of a Space will given an error in
+    !! * debug builds.
+    !! */
     property(localVerts,Vec2List,{
         if(pr(inner_zn).wrap_lverts==null) pr(inner_zn).get_lverts();
         return pr(inner_zn).wrap_lverts;
     })
 
+    !!/**
+    !! * World coordinates of vertices.
+    !! * <br/><br/>
+    !! * This list can be accessed, but any queries of values will result
+    !! * in an error in debug builds unless this Polygon is part of a Body.
+    !! * <br/><br/>
+    !! * This list is immutable.
+    !! */
     property(worldVerts,Vec2List,{
         if(pr(inner_zn).wrap_gverts==null) pr(inner_zn).get_gverts();
         return pr(inner_zn).wrap_gverts;
     })
 
+    !!/**
+    !! * Set of edges on polygon.
+    !! * <br/><br/>
+    !! * This list is immutable.
+    !! */
     property(edges,EdgeList,{
         if(pr(inner_zn).wrap_edges==null) pr(inner_zn).get_edges();
         return pr(inner_zn).wrap_edges;
     })
 
-    //----------------------------------------------------------------------------------------------
-
-    keep public function validity() {
+    !!/**
+    !! * Determine validity of polygon for use in a Nape simulation.
+    !! */
+    keep public function validity():ValidationResult {
         return pr(inner_zn).valid();
     }
 
-    //----------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * Construct a new Polygon.
+    !! * <br/><br/>
+    !! * The localVerts parameter is typed Dynamic and may be one of:
+    !! * <code>Array&lt;Vec2&gt;, flash.Vector&lt;Vec2&gt;, Vec2List, GeomPoly</code>
+    !! *
+    !! * @param localVerts The local vertices of polygon.
+    !! * @param material The material for this polygon. (default new Material&#40;&#41;)
+    !! * @param filter The interaction filter for this polygon.
+    !! *               (default new InteractionFilter&#40;&#41;)
+    !! * @return The constructed Polygon.
+    !! * @throws # If localVerts is null, or not of the expected Type.
+    !! * @throws # If localVerts contains any disposed or null Vec2.
+    !! */
     flibopts(2)
     public function new(localVerts:Dynamic, material:Material=null, filter:InteractionFilter=null) {
         DEBUG(try { super(); } catch (e:Dynamic) {})
