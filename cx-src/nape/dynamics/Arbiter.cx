@@ -1,70 +1,135 @@
 package nape.dynamics;
 $(import);
 
+!!/**
+!! * Arbiter representing the state of an interaction between two Bodys.
+!! * <br/><br/>
+!! * These objects are automatically reused, and you should not keep your own
+!! * references to them.
+!! */
 class Arbiter {
+    !!/**
+    !! * @private
+    !! */
     public var pr(inner):PR(Arbiter);
 
-    property(id,Int,{
-        DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
-        return pr(inner).id;
-    })
-
-    property(active,Bool, return pr(inner).active)
+    !!/**
+    !! * Flag representing arbiter sleep state.
+    !! * <br/><br/>
+    !! * When true, this arbiter is sleeping.
+    !! */
     property(isSleeping,Bool,{
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
         return pr(inner).sleeping;
     })
 
-    //----------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * The type of this Arbiter.
+    !! */
     property(type,ArbiterType,{
         return [ArbiterType.COLLISION,ArbiterType.FLUID,ArbiterType.SENSOR][pr(inner).type];
     })
 
-    keep public function isCollisionArbiter() {
+    !!/**
+    !! * Equivalent to: <code>arb.type == ArbiterType.COLLISION</code>
+    !! * </br><br/>
+    !! *
+    !! * @return True if this Arbiter is a Collision type arbiter.
+    !! */
+    keep public inline function isCollisionArbiter() {
         return pr(inner).type == PR(Arbiter).COL;
     }
-    keep public function isFluidArbiter() {
+
+    !!/**
+    !! * Equivalent to: <code>arb.type == ArbiterType.FLUID</code>
+    !! * </br><br/>
+    !! *
+    !! * @return True if this Arbiter is a Fluid type arbiter.
+    !! */
+    keep public inline function isFluidArbiter() {
         return pr(inner).type == PR(Arbiter).FLUID;
     }
-    keep public function isSensorArbiter() {
+
+    !!/**
+    !! * Equivalent to: <code>arb.type == ArbiterType.SENSOR</code>
+    !! * </br><br/>
+    !! *
+    !! * @return True if this Arbiter is a Sensor type arbiter.
+    !! */
+    keep public inline function isSensorArbiter() {
         return pr(inner).type == PR(Arbiter).SENSOR;
     }
 
-    //----------------------------------------------------------------------------------------------
-
-    property(collisionArbiter,CollisionArbiter,{
+    !!/**
+    !! * Fast equivalent to casting this object to a CollisionArbiter.
+    !! * <br/><br/>
+    !! * This value is null when this arbiter is not a collision type.
+    !! */
+    property(collisionArbiter,Null<CollisionArbiter>,{
         return  if(isCollisionArbiter()) pr(inner).colarb.outer_zn else null;
     })
 
-    property(fluidArbiter,FluidArbiter,{
+    !!/**
+    !! * Fast equivalent to casting this object to a FluidArbiter.
+    !! * <br/><br/>
+    !! * This value is null when this arbiter is not a fluid type.
+    !! */
+    property(fluidArbiter,Null<FluidArbiter>,{
         return if(isFluidArbiter()) pr(inner).fluidarb.outer_zn else null;
     })
 
-    //----------------------------------------------------------------------------------------------
-
     $(mixin flip() (pr(inner).ws1.id > pr(inner).ws2.id));
 
+    !!/**
+    !! * The first shape in Arbiter interaction.
+    !! * <br/><br/>
+    !! * It will always be the case that <code>arb.shape1.id < arb.shape2.id</code>
+    !! */
     property(shape1,Shape,{
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
         return flip ? pr(inner).ws2.outer : pr(inner).ws1.outer;
     })
+
+    !!/**
+    !! * The second shape in Arbiter interaction.
+    !! * <br/><br/>
+    !! * It will always be the case that <code>arb.shape1.id < arb.shape2.id</code>
+    !! */
     property(shape2,Shape,{
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
         return flip ? pr(inner).ws1.outer : pr(inner).ws2.outer;
     })
 
+    !!/**
+    !! * The first body in Arbiter interaction.
+    !! * <br/><br/>
+    !! * It will always be the case that <code>arb.shape1.body == arb.body1</code>
+    !! */
     property(body1,Body,{
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
         return flip ? pr(inner).b2.outer : pr(inner).b1.outer;
     })
+
+    !!/**
+    !! * The second body in Arbiter interaction.
+    !! * <br/><br/>
+    !! * It will always be the case that <code>arb.shape2.body == arb.body2</code>
+    !! */
     property(body2,Body,{
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
         return flip ? pr(inner).b1.outer : pr(inner).b2.outer;
     })
 
-    //----------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * The interaction state of this Arbiter.
+    !! * <br/><br/>
+    !! * This flag will, except for in a PreListener handler, always be either
+    !! * <code>ImmState.ACCEPT</code> or <code>ImmState.IGNORE</code>
+    !! * <br/>
+    !! * During a PreListener handler, you can query this property to see what
+    !! * the current state of the arbiter has been set to, and returning null from
+    !! * the handler will keep the state unchanged.
+    !! */
     property(state,PreFlag,{
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
         return switch(pr(inner).immState) {
@@ -75,22 +140,39 @@ class Arbiter {
         }
     })
 
-    //----------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * Evaluate the total impulse this arbiter applied to the given body for
+    !! * the previous space step including angular impulse based on things like
+    !! * contact position, or centre of buoyancy etc.
+    !! * <br/><br/>
+    !! * If body is null, then the constraint space impulse will be returned instead
+    !! *
+    !! * @param body The body to query impulse for. (default null)
+    !! * @param freshOnly If true, then only 'new' contact points will be queried for
+    !! *                  collision type arbiters. This field has no use on fluid type
+    !! *                  arbiters. (default false)
+    !! * @return The total impulse applied to the given body, or the constraint
+    !! *         space impule if the body is null.
+    !! * @throws # If body is non-null, but not related to this Arbiter.
+    !! */
     keep public function totalImpulse(body:Body=null,freshOnly:Bool=false) {
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
         DEBUG(if(body!=null && body!=body1 && body!=body2) throw "Error: Arbiter does not relate to body";)
         return Vec3.get(0,0,0);
     }
 
-    //----------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * @private
+    !! */
     public function new() {
         if(!PR(Arbiter).internal) {
             DEBUG(throw "Error: Cannot instantiate Arbiter derp!";)
         }
     }
 
+    !!/**
+    !! * @private
+    !! */
     @:$keep public function toString() {
         var ret = if(isCollisionArbiter()) "CollisionArbiter";
         else if(isFluidArbiter()) "FluidArbiter";

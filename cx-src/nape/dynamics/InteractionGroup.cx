@@ -1,18 +1,71 @@
 package nape.dynamics;
 $(import);
 
+!!/**
+!! * InteractionGroups are another way of filtering interactions.
+!! * <br/><br/>
+!! * InteractionGroups form tree structures which are checked along side InteractionFilters
+!! * when deciding if two Shapes should interact.
+!! * <br/><br/>
+!! * InteractionGroups are assigned to any Interactor (not just Shapes), and two Shapes will
+!! * interact only if the most recent common ancestor in the InteractionGroup tree permits it.
+!! * <br/><br/>
+!! * For the purposes of the search, if any Interactor has no InteractionGroup assigned, we
+!! * search up the Compound tree first.
+!! * <pre>
+!! *            _Group1
+!! *           /   |
+!! *          /  Group2      Group3
+!! *         /    |    \       |                 Group1
+!! *     Body1   /      Cmp1   |                 /   \           Group3
+!! *    /    \  /      /    \  |      ==>    Shp1    Group2        |
+!! * Shp1   Shp2   Body2     Cmp2                    /    \      Shp4
+!! *                 |         |                  Shp2    Shp3
+!! *                Shp3     Body3
+!! *                           |
+!! *                         Shp4
+!! * </pre>
+!! * If we look at which InteractionGroup is used for which Shape following this rule, then
+!! * the left graph can be transformed into an InteractionGroup tree on the right and we get
+!! * that the MRCA (Most recent common ancestors) are such that:
+!! * <pre>
+!! * MRCA(Shp1, Shp3) == Group1;
+!! * MRCA(Shp2, Shp3) == Group2;
+!! * MRCA(Shp4,   # ) == null;
+!! * </pre>
+!! * If we were to set up the groups such that <code>Group1.ignore = false</code> and
+!! * <code>Group2.ignore = true</code>; then shapes 1 and 3 would not be permitted to
+!! * interact, whilst shapes 2 and 3 would be permitted.
+!! * <br/>
+!! * As the MRCA for shape 4 with any other is null, then the value of Group3's ignore field
+!! * is irrelevant, but the existance of Group3 is not as it serves to otherwise prevent Shape 4
+!! * from being permitted to interact with shapes 2 and 3.
+!! * <br/><br/>
+!! * InteractionGroup's can be fairly expressive, but they are strictly less powerful than
+!! * InteractionFilters. InteractionGroup's have their place however as there is no limit
+!! * to the number of Groups you can use.
+!! */
 class InteractionGroup {
+    !!/**
+    !! * @private
+    !! */
     public var pr(inner):PR(InteractionGroup);
 
-    property(id,Int,return pr(inner).id)
-
-    property(group,InteractionGroup,{
+    !!/**
+    !! * Parent group in InteractionGroup tree.
+    !! * @default null
+    !! */
+    property(group,Null<InteractionGroup>,{
         return if(pr(inner).group==null) null else pr(inner).group.outer;
     },{
         DEBUG(if(group==this) throw "Error: Cannot assign InteractionGroup to itself";)
         pr(inner).setGroup(group==null ? null : group.pr(inner));
     })
 
+    !!/**
+    !! * Ignore property, set to true so that objects will not interact.
+    !! * @default false
+    !! */
     property(ignore,Bool, {
         return pr(inner).ignore;
     }, {
@@ -22,25 +75,45 @@ class InteractionGroup {
         }
     })
 
+    !!/**
+    !! * Set of active interactors using this group.
+    !! * <br/><br/>
+    !! * Active interactors meaning those that are part of a Space.
+    !! */
     property(interactors, InteractorList, {
         if(pr(inner).wrap_interactors==null)
              pr(inner).wrap_interactors = PR(InteractorList).get(pr(inner).interactors,true);
         return pr(inner).wrap_interactors;
     })
+
+    !!/**
+    !! * Immutable set of children of Interaction groups.
+    !! * <br/><br/>
+    !! * You cannot assign or remove children in this manner, you must do it via setting
+    !! * the childs parent group to this/null.
+    !! */
     property(groups, InteractionGroupList, {
         if(pr(inner).wrap_groups==null)
              pr(inner).wrap_groups = PR(InteractionGroupList).get(pr(inner).groups,true);
         return pr(inner).wrap_groups;
     })
 
+    !!/**
+    !! * Construct a new InteractionGroup.
+    !! *
+    !! * @param ignore Whether interactors should be ignored. (default false)
+    !! */
     public function new(ignore=false) {
         pr(inner) = new PR(InteractionGroup)();
         pr(inner).outer = this;
         this.ignore = ignore;
     }
 
+    !!/**
+    !! * @private
+    !! */
     public function toString() {
-        var ret = "InteractionGroup#"+id;
+        var ret = "InteractionGroup"
         if(ignore) ret += ":ignore";
         return ret;
     }

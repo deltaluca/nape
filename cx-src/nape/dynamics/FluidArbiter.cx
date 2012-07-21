@@ -1,8 +1,16 @@
 package nape.dynamics;
 $(import);
 
+!!/**
+!! * Fluid interaction subtype for Arbiter.
+!! */
 class FluidArbiter extends Arbiter {
 
+    !!/**
+    !! * Centre of buoyancy for fluid interaction.
+    !! * <br/><br/>
+    !! * This value can be modified during a related PreListener handler.
+    !! */
     property(position,Vec2, {
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
         if(pr(inner).fluidarb.wrap_position==null) pr(inner).fluidarb.getposition();
@@ -13,6 +21,14 @@ class FluidArbiter extends Arbiter {
         this.position.set(position);
     })
 
+    !!/**
+    !! * Overlap area of Shapes in fluid interaction.
+    !! * <br/><br/>
+    !! * This value is strictly positive, and represents the amount of overlap between the Shapes
+    !! * used in buoyancy computations.
+    !! * <br/><br/>
+    !! * This value can be modified during a related PreListener handler.
+    !! */
     property(overlap,Float,{
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
         return pr(inner).fluidarb.overlap;
@@ -23,9 +39,17 @@ class FluidArbiter extends Arbiter {
         pr(inner).fluidarb.overlap = overlap;
     })
 
-    //----------------------------------------------------------------------------------------------
-
-    keep public function buoyancyImpulse(body:Body=null) {
+    !!/**
+    !! * Determine impulse on a given body due to buoyancy.
+    !! * <br/><br/>
+    !! * If the body is null, then the buoyancy impulse will be returned without consideration to any specific
+    !! * body involved, and no angular impulses can be derived.
+    !! *
+    !! * @param body The body to query impulse for. (default null)
+    !! * @return The buoyancy impulse for given body.
+    !! * @throws # If body is non-null, and unrelated to this Arbiter.
+    !! */
+    keep public function buoyancyImpulse(body:Body=null):Vec3 {
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
         DEBUG(if(body!=null && body!=body1 && body!=body2) throw "Error: Arbiter does not relate to body";)
 
@@ -33,7 +57,17 @@ class FluidArbiter extends Arbiter {
         return Vec3.get(farb.buoyx,farb.buoyy);
     }
 
-    keep public function dragImpulse(body:Body=null) {
+    !!/**
+    !! * Determine impulse on a given body due to fluid drag.
+    !! * <br/><br/>
+    !! * If the body is null, then the drag impulse will be returned without consideration to any specific
+    !! * body involved, and no angular impulses can be derived for the linear portion of the drag impulses.
+    !! *
+    !! * @param body The body to query impulse for. (default null)
+    !! * @return The drag impulse for given body.
+    !! * @throws # If body is non-null, and unrelated to this Arbiter.
+    !! */
+    keep public function dragImpulse(body:Body=null):Vec3 {
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
         DEBUG(if(body!=null && body!=body1 && body!=body2) throw "Error: Arbiter does not relate to body";)
 
@@ -41,6 +75,17 @@ class FluidArbiter extends Arbiter {
         return Vec3.get(farb.dampx+farb.pdampx,farb.dampy+farb.pdampy,farb.adamp+farb.padamp);
     }
 
+    !!/**
+    !! * Determine total impulse on a given body due to fluid interaction.
+    !! * <br/><br/>
+    !! * If the body is null, then the total impulse will be computed without consideration to any specific
+    !! * body involved, and no angular impulses can be derived for the linear portion of the impulses.
+    !! *
+    !! * @param body The body to query impulse for. (default null)
+    !! * @param freshOnly This parameter is unused for FluidArbiters. (default false)
+    !! * @return The total impulse for given body.
+    !! * @throws # If body is non-null, and unrelated to this Arbiter.
+    !! */
     keep public override function totalImpulse(body:Body=null,freshOnly:Bool=false) {
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
         DEBUG(if(body!=null && body!=body1 && body!=body2) throw "Error: Arbiter does not relate to body";)
@@ -49,8 +94,9 @@ class FluidArbiter extends Arbiter {
         return Vec3.get(farb.dampx+farb.pdampx+farb.buoyx,farb.dampy+farb.pdampy+farb.buoyy,farb.adamp+farb.padamp);
     }
 
-    //----------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * @private
+    !! */
     public function new() {
         DEBUG(if(!PR(Arbiter).internal)
             throw "Error: Cannot instantiate FluidArbiter derp!";
