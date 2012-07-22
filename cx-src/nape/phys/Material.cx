@@ -1,10 +1,28 @@
 package nape.phys;
 $(import);
 
+!!/**
+!! * Material property providing physical attributes to a Shape.
+!! */
 class Material {
 
     FeatureMix(Material,material)
 
+    !!/**
+    !! * Construct a new Material object.
+    !! *
+    !! * @param elasticity The coeffecient of elasticity for material.
+    !! *                   (default 0.0)
+    !! * @param dynamicFriction The coeffecient of dynamic friction for
+    !! *                        material. (default 1.0)
+    !! * @param staticFriction The coeffecient of static friction for
+    !! *                       material. (default 2.0)
+    !! * @param density The density of the shape using this material in units
+    !! *                of g/pixel/pixel. (default 1.0)
+    !! * @param rollingFriction The coeffecient of rolling friction for material
+    !! *                        used in circle friction computations. (default 0.01)
+    !! * @return The constructed Material object.
+    !! */
     public function new(elasticity:Float=0.0,dynamicFriction:Float=1.0,staticFriction:Float=2.0,density:Float=1,rollingFriction:Float=0.01) {
         pr(inner) = Get(PR(Material));
         pr(inner).outer = this;
@@ -16,13 +34,21 @@ class Material {
         this.rollingFriction = rollingFriction;
     }
 
+    !!/**
+    !! * Produce a copy of this Material object.
+    !! * <br/><br/>
+    !! * The copied object will be identical in all properties with the the
+    !! * copied userData being assigned the same fields as 'this' Shape with the
+    !! * same values copied over by reference for object types.
+    !! *
+    !! * @return The copied Material.
+    !! */
     keep public function copy() {
         var ret = new Material(elasticity,dynamicFriction,staticFriction,density,rollingFriction);
-        ret.pr(inner).userData = pr(inner).userData;
+        if (pr(inner).userData != null)
+            ret.pr(inner).userData = Reflect.copy(pr(inner).userData);
         return ret;
     }
-
-    //----------------------------------------------------------------------------------------------
 
     $(mixin prop(n,flags)
         property(n,Float, {
@@ -31,23 +57,91 @@ class Material {
             if(n!=this.n) {
                 DEBUG(
                     if(isNaN(n)) throw "Error: Material::"+$str(n)+" cannot be NaN";
-                    if($str(n)!="elasticity" && n<0) throw "Error: Material::"+$str(n)+" ("+n+") must be >= 0";
-                    if($str(n)=="density" && n==0) throw "Error: Material::density cannot be 0";
-                    if($str(n)!="elasticity" && n>=PR(Const).POSINF()) throw "Error: Material::"+$str(n)+" cannot be infinite";
+                    if($str(n)=="density" && n<=0) throw "Error: Material::density must be strictly positive";
+                    if($str(n)!="elasticity" && n<0) throw "Error: Material::"+$str(n)+" cannot be negative";
                 )
                 pr(inner).n = n / ($str(n)=="density" ? 1000 : 1);
                 pr(inner).invalidate(flags);
             }
         })
     );
+    !!/**
+    !! * Elasticity of material.
+    !! * <br/><br/>
+    !! * This property may take any value. Coeffecients of elasticity are combined
+    !! * by taking their average, and then clamping to the range [0,1]. In this way
+    !! * you may give very large values (even infinites) to this property to bias
+    !! * the result of combining elasticities.
+    !! * <br/><br/>
+    !! * A combined, clamped value of 0 results in no bouncing whatsoever.
+    !! * <br/>
+    !! * A combine, clamped value of 1 results in complete elasticity where if
+    !! * possible, the objects will not lose any energy at all. Nape favours
+    !! * stability over accuracy in this regard, and things such as large piles
+    !! * of even fully elastic objects will not keep their energy as doing so
+    !! * would result in unstable jittering in most of the pile. Engines such as
+    !! * Box2D use a threshold to decide when elasticity will be used; Nape uses
+    !! * a different approach that does not require a threshold but is also more
+    !! * conservative.
+    !! *
+    !! * @default 0.0
+    !! */
     prop(elasticity,PR(Material).WAKE|PR(Material).ARBITERS)
+
+    !!/**
+    !! * Coeffecient of dynamic friction for material.
+    !! * <br/><br/>
+    !! * This property may take any zero or positive value. Coeffecients of
+    !! * dynamicFriction are combined by taking the square root of their product.
+    !! * <br/><br/>
+    !! * The higher this value the more quickly objects will slow down from speed
+    !! * when sliding.
+    !! *
+    !! * @default 1
+    !! */
     prop(dynamicFriction,PR(Material).WAKE|PR(Material).ANGDRAG|PR(Material).ARBITERS)
+
+    !!/**
+    !! * Coeffecient of static friction for material.
+    !! * <br/><br/>
+    !! * This property may take any zero or positive value. Coeffecients of
+    !! * staticFriction are combined by taking the square root of their product.
+    !! * <br/><br/>
+    !! * The higher this value the more quickly objects will come to rest once moving
+    !! * very slowly, and the harder it will be to cause the objcet to begin to slide.
+    !! *
+    !! * @default 2
+    !! */
     prop(staticFriction,PR(Material).WAKE|PR(Material).ARBITERS)
+
+    !!/**
+    !! * Density of Shape's using this Material.
+    !! * <br/><br/>
+    !! * This property has units of g/pixel/pixel, not Kg/pixel/pixel for the
+    !! * simple reason that we get more reasonable values like 1 instead of 0.001
+    !! * to attain reasonable mass values for Bodys.
+    !! *
+    !! * @default 1
+    !! */
     prop(density,PR(Material).WAKE|PR(Material).PROPS)
+
+    !!/**
+    !! * Coeffecient of rolling friction for circle interactions.
+    !! * <br/><br/>
+    !! * This property may take any zero or positive value. Coeffecients of
+    !! * staticFriction are combined by taking the square root of their product.
+    !! * <br/><br/>
+    !! * The higher this value, the more quickly a rolling circle - which would
+    !! * otherwise roll forever ignoring drag and numerical issues - will come to
+    !! * rest.
+    !! *
+    !! * @default 0.01
+    !! */
     prop(rollingFriction,PR(Material).WAKE|PR(Material).ARBITERS)
 
-    //----------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * @private
+    !! */
     @:$keep public function toString() {
         return "{ elasticity: "+elasticity
                +" dynamicFriction: "+dynamicFriction
@@ -57,16 +151,22 @@ class Material {
                +" }";
     }
 
-    //----------------------------------------------------------------------------------------------
-
-    $(mixin mat(N,x,y,z,w,r) keep public static function N() return new Material(x,y,z,w,r));
+    $(mixin mat(N,x,y,z,w,r)
+        !!/**
+        $doc($$*$$Predefined constructor for a N style Material.)
+        !! *
+        $doc($$*$$@return$$<code>new Material(x,y,z,w,r)</code>)
+        !! */
+        keep public static function N() {
+            return new Material(x,y,z,w,r);
+        }
+    );
 
     mat(wood,   0.4,0.2, 0.38,0.7, 0.005)
     mat(steel,  0.2,0.57,0.74,7.8, 0.001)
     mat(ice,    0.3,0.03,0.1 ,0.9, 0.0001)
     mat(rubber, 0.8,1.0, 1.4, 1.5, 0.01)
     mat(glass,  0.4,0.4, 0.94,2.6, 0.002)
-
     mat(sand,  -1.0,0.45,0.6, 1.6, 16.0)
 
 }

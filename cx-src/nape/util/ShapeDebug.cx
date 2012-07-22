@@ -3,13 +3,41 @@ $(import);
 
 #if (flash9||nme)
 
+!!/**
+!! * Implementation of nape debug draw using flash/nme graphics API.
+!! * <br/><br/>
+!! * This debug draw is slower than BitmapDebug which is available in flash10+
+!! * however the BitmapDebug draw makes use of Alchemy opcodes so you may wish
+!! * not to use it if you are also using Stage3D and do not wish to be subject
+!! * to Adobe licensing.
+!! */
 class ShapeDebug extends Debug {
+    !!/**
+    !! * @private
+    !! */
     public var pr(inner_zn):PR(ShapeDebug);
 
+    !!/**
+    !! * Thickness to draw lines with.
+    !! * @default 0.1
+    !! */
     public var thickness:Float;
 
+    !!/**
+    !! * Construct new ShapeDebug with given viewport size and backgruond.
+    !! * <br/><br/>
+    !! * Background colour does not have much weight for a ShapeDebug which
+    !! * always has a transparent background, but serves to bias the colours
+    !! * chosen for drawing objects.
+    !! *
+    !! * @param width The width of Debug draw viewport.
+    !! * @param height The height of Debug draw viewport.
+    !! * @param bgColour the background colour for debug draw. (default 0x333333)
+    !! * @return The constructed ShapeDebug.
+    !! * @throws # If width or height are not strictly positive.
+    !! */
     flibopts(1)
-    public function new(width:Int,height:Int,bgColor=0x333333) {
+    public function new(width:Int,height:Int,bgColour=0x333333) {
         DEBUG(if(width <=0) throw "Error: Debug width must be > 0";)
         DEBUG(if(height<=0) throw "Error: Debug height must be > 0";)
 
@@ -22,16 +50,18 @@ class ShapeDebug extends Debug {
         pr(inner) = pr(inner_zn);
         pr(inner).outer = this;
 
-        this.bgColor = bgColor;
+        this.bgColour = bgColour;
         this.thickness = 0.1;
     }
 
-    ///---------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * @inheritDoc
+    !! */
     public override function clear() pr(inner_zn).graphics.clear()
 
-    ///---------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * @inheritDoc
+    !! */
     public override function drawLine(start:Vec2, end:Vec2, colour:Int) {
         DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
 
@@ -58,6 +88,9 @@ class ShapeDebug extends Debug {
         }
     }
 
+    !!/**
+    !! * @inheritDoc
+    !! */
     public override function drawCurve (start:Vec2, control:Vec2, end:Vec2, colour:Int):Void {
         DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
 
@@ -91,6 +124,9 @@ class ShapeDebug extends Debug {
         }
     }
 
+    !!/**
+    !! * @inheritDoc
+    !! */
     public override function drawCircle(position:Vec2, radius:Float, colour:Int) {
         DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
 
@@ -114,6 +150,9 @@ class ShapeDebug extends Debug {
         }
     }
 
+    !!/**
+    !! * @inheritDoc
+    !! */
     public override function drawAABB(aabb:AABB, colour:Int) {
         DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
 
@@ -140,6 +179,9 @@ class ShapeDebug extends Debug {
         }
     }
 
+    !!/**
+    !! * @inheritDoc
+    !! */
     public override function drawFilledTriangle(p0:Vec2, p1:Vec2, p2:Vec2, colour:Int) {
         DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
 
@@ -167,6 +209,9 @@ class ShapeDebug extends Debug {
         g.endFill();
     }
 
+    !!/**
+    !! * @inheritDoc
+    !! */
     public override function drawFilledCircle(position:Vec2, radius:Float, colour:Int) {
         DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
 
@@ -191,6 +236,9 @@ class ShapeDebug extends Debug {
         g.endFill();
     }
 
+    !!/**
+    !! * @inheritDoc
+    !! */
     public override function drawPolygon(polygon:Dynamic, colour:Int) {
         DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
         DEBUG(if(polygon==null) throw "Error: Cannot draw null polygon";)
@@ -216,6 +264,9 @@ class ShapeDebug extends Debug {
         PolyWeak(polygon);
     }
 
+    !!/**
+    !! * @inheritDoc
+    !! */
     public override function drawFilledPolygon (polygon:Dynamic, colour:Int) {
         DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
         DEBUG(if(polygon==null) throw "Error: Cannot draw null polygon!";)
@@ -242,9 +293,15 @@ class ShapeDebug extends Debug {
         g.endFill();
         PolyWeak(polygon);
     }
-    ///---------------------------------------------------------------------------------------------
 
+    !!/**
+    !! * @inheritDoc
+    !! */
     public override function draw(object:Dynamic) __debug_draw(object)
+
+    !!/**
+    !! * @inheritDoc
+    !! */
     public override function drawSpring(start:Vec2,end:Vec2,colour:Int,coils=3,radius=3.0) __debug_spring(start,end,colour,coils,radius)
 }
 

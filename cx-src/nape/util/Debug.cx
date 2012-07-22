@@ -1,11 +1,25 @@
 package nape.util;
 $(import);
 
+!!/**
+!! * Debug class providing general utilities
+!! * <br/><br/>
+!! * Also serves as the base type for Debug draws.
+!! */
 class Debug {
+    !!/**
+    !! * Query the version of Nape library.
+    !! *
+    !! * @returns String representing Nape version.
+    !! */
     public static function version() {
         return PR(HaxeMacros).cversion();
     }
 
+    !!/**
+    !! * Force clear all object pools, both internal
+    !! * and public.
+    !! */
     public static function clearObjectPools() {
         $(expand global CLEARITERATOR(T) {
             while(T.pr(pool)!=null) {
@@ -90,10 +104,15 @@ class Debug {
         static public var BROADTOTAL = 0;
     #end
 
-    ///---------------------------------------------------------------------------------------------
-
     #if (flash9||nme)
 
+    !!/**
+    !! * Create a flash/nme Shape representing the given Body.
+    !! *
+    !! * @param body The body to create display Shape for.
+    !! * @return A flash/nme.display.Shape representing Body.
+    !! * @throws # If body is null.
+    !! */
     keep public static function createGraphic(body:Body):flash.display.Shape {
         DEBUG(if(body==null) throw "Error: Cannot create debug graphic for null Body";)
         var ret = new flash.display.Shape();
@@ -132,38 +151,99 @@ class Debug {
         return ret;
     }
 
-    ///---------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * @private
+    !! */
     public var pr(inner):PR(Debug);
 
+    !!/**
+    !! * If true, a representation of contact patches will be drawn.
+    !! * <br/><br/>
+    !! * Only active arbiters are drawn.
+    !! * @default false
+    !! */
     public var drawCollisionArbiters:Bool;
+    !!/**
+    !! * If true, a representation of centres of buoyancy and overlap will be drawn.
+    !! * <br/><br/>
+    !! * Only active arbiters are drawn.
+    !! * @default false
+    !! */
     public var drawFluidArbiters:Bool;
+    !!/**
+    !! * If true, a representation of sensor interactions will be drawn.
+    !! * <br/><br/>
+    !! * Only active arbiters are drawn.
+    !! * @default false
+    !! */
     public var drawSensorArbiters:Bool;
 
+    !!/**
+    !! * If true, then all bodies in the space (whether active or not) will be drawn.
+    !! * @default true
+    !! */
     public var drawBodies:Bool;
+    !!/**
+    !! * If true, then things like the body centre of mass, and bouncing box will be drawn.
+    !! * <br/><br/>
+    !! * This will only have an effect if drawBodies is true.
+    !! * @default false
+    !! */
     public var drawBodyDetail:Bool; //requires drawBodies
+    !!/**
+    !! * If true, then things like shape centre of mass and bounding box will be drawn.
+    !! * <br/><br/>
+    !! * This will only have an effect if drawBodies is true.
+    !! * @default false
+    !! */
     public var drawShapeDetail:Bool; //requires drawBodies
+    !!/**
+    !! * If true, then indicators of the shapes rotation will be drawn.
+    !! * <br/><br/>
+    !! * This will only have an effect if drawBodies is true.
+    !! * @default true
+    !! */
     public var drawShapeAngleIndicators:Bool; //requires drawBodies
 
+    !!/**
+    !! * If true, then representations of the active constraints will be drawn.
+    !! * @default false
+    !! */
     public var drawConstraints:Bool;
-    public var drawConstraintSprings:Bool; //requires drawConstraints=true
-    public var drawConstraintErrors:Bool; //requires drawconstraints=true
 
-    property(bgColor,Int,{
+    !!/**
+    !! * Background colour for debug draw display.
+    !! * <br/><br/>
+    !! * This value does not have much use for ShapeDebug, or for
+    !! * a transparent BitmapDebug but will still be used in tinting
+    !! * object colours to better fit an idealised background colour.
+    !! */
+    property(bgColour,Int,{
         return pr(inner).bg_col;
     },{
         #if flash10
-            if(pr(inner).isbmp) pr(inner).d_bmp.setbg(bgColor);
-            else                pr(inner).d_shape.setbg(bgColor);
+            if(pr(inner).isbmp) pr(inner).d_bmp.setbg(bgColour);
+            else                pr(inner).d_shape.setbg(bgColour);
         #else
-            pr(inner).d_shape.setbg(bgColor);
+            pr(inner).d_shape.setbg(bgColour);
         #end
     })
 
-    public var colour:Int->Int;
+    !!/**
+    !! * User defined colour picking.
+    !! * <br/><br/>
+    !! * When not null, this method will be called to decide which colour
+    !! * to use for an object with argument being the id of that object.
+    !! * <br/><br/>
+    !! * The return value should be an RGB value.
+    !! *
+    !! * @default null
+    !! */
+    public var colour:Null<Int->Int>;
 
-    ///---------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * @private
+    !! */
     public function new() {
         DEBUG(
             if(!PR(Debug).internal)
@@ -178,16 +258,17 @@ class Debug {
         drawBodyDetail = false;
         drawShapeDetail = false;
         drawConstraints = false;
-        drawConstraintSprings = true;
-        drawConstraintErrors = false;
 
         cullingEnabled = false;
 
         colour = null;
     }
 
-    ///---------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * The flash/nme native display object representing debug draw.
+    !! * <br/><br/>
+    !! * When using debug drawer, you should add this to your display list.
+    !! */
     property(display, flash.display.DisplayObject, {
         #if flash10
             var ret:flash.display.DisplayObject;
@@ -199,10 +280,31 @@ class Debug {
         #end
     })
 
+    !!/**
+    !! * When true, objects outside the debug draw screen will not be drawn.
+    !! * <br/><br/>
+    !! * The debug draw screen is defined as the rectangle (0,0) -> (width,height).
+    !! * To 'move' the debug draw screen in your world, you should modify the transform
+    !! * property.
+    !! * <br/><br/>
+    !! * This culling has a cost, so is not worth enabling if everything is always on
+    !! * screen anyways.
+    !! *
+    !! * @default false
+    !! */
     public var cullingEnabled:Bool;
 
-    ///---------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * Transformation to apply to all debug draw operations.
+    !! * <br/><br/>
+    !! * This transform can be used to 'move' the debug draw screen through your
+    !! * world as well as rotating and zooming in etc.
+    !! * <br/><br/>
+    !! * This transform effects 'all' debug draw operations and optimisation is in
+    !! * place to not perform any transformation if matrix is the identity matrix.
+    !! *
+    !! * @default new Mat23()
+    !! */
     property(transform, Mat23, {
         if(pr(inner).xform==null) pr(inner).setform();
         return pr(inner).xform.outer;
@@ -211,24 +313,154 @@ class Debug {
         this.transform.set(transform);
     })
 
+    !!/**
+    !! * Clear the debug view.
+    !! */
     public function clear():Void {}
+
+    !!/**
+    !! * Flush any pending draw operations to debug view.
+    !! * <br/><br/>
+    !! * This operation is not needed for ShapeDebug at present.
+    !! */
     public function flush():Void {}
 
-    ///---------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * Draw a Nape object to debug draw.
+    !! * <br/><br/>
+    !! * Possible argument types are: <code>Space, Compound, Body, Shape, Constraint</code>
+    !! * <br/><br/>
+    !! * To draw a Shape it must be part of a Body.
+    !! * <br/><br/>
+    !! * Debug draw settings like 'drawBodies' are overriden by a direct call to draw
+    !! * with a Body or Shape. Equally even if drawConstraints is false, should
+    !! * you call draw with a Constraint object directly it will be drawn regardless.
+    !! *
+    !! * @param object The object to draw.
+    !! * @throws # If object is null or not of the expected Type.
+    !! */
     public function draw(object:Dynamic):Void {}
 
+    !!/**
+    !! * Draw a line segment.
+    !! * <br/><br/>
+    !! * This line will be drawn with no thickness.
+    !! *
+    !! * @param start The start point of line segment.
+    !! * @param end   The end point of line segment.
+    !! * @param colour The colour of line in RGB.
+    !! * @throws # If either start or end are null or disposed of.
+    !! */
     public function drawLine  (start:Vec2, end:Vec2, colour:Int):Void {}
+
+    !!/**
+    !! * Draw quadratic bezier curve.
+    !! * <br/><br/>
+    !! * This curve will be drawn with no thickness.
+    !! *
+    !! * @param start The start point of curve.
+    !! * @param control The control point for curve.
+    !! * @param end The end point of curve.
+    !! * @param colour The colour of curve in RGB.
+    !! * @throws # If any Vec2 argument is null or disposed of.
+    !! */
     public function drawCurve (start:Vec2, control:Vec2, end:Vec2, colour:Int):Void {}
+
+    !!/**
+    !! * Draw circle.
+    !! * <br/><br/>
+    !! * This circle will be drawn with no thickness or fill.
+    !! *
+    !! * @param position The position of circle centre.
+    !! * @param radius The radius of the circle.
+    !! * @param colour The colour of circle in RGB.
+    !! * @throws # If position is null or disposed of.
+    !! * @throws # If radius is negative.
+    !! * @throws # If transform is not equiorthogonal.
+    !! */
     public function drawCircle(position:Vec2, radius:Float, colour:Int):Void {}
+
+    !!/**
+    !! * Draw AABB.
+    !! * <br/><br/>
+    !! * This AABB will be drawn with no thickness or fill.
+    !! *
+    !! * @param aabb The AABB to draw.
+    !! * @param colour The colour to draw AABB with in RGB.
+    !! * @throws # If AABB is null.
+    !! */
     public function drawAABB  (aabb:AABB, colour:Int):Void {}
 
+    !!/**
+    !! * Draw filled triangle.
+    !! * <br/><br/>
+    !! * This triangle will be drawn with no edges, only a solid fill.
+    !! *
+    !! * @param p0 The first point in triangle.
+    !! * @param p1 The second point in triangle.
+    !! * @param p2 The third point in triangle.
+    !! * @param colour The colour to draw triangle with in RGB.
+    !! * @throws # If any point argument is null or disposed of.
+    !! */
     public function drawFilledTriangle(p0:Vec2, p1:Vec2, p2:Vec2, colour:Int):Void {}
+
+    !!/**
+    !! * Draw filled circle.
+    !! * <br/><br/>
+    !! * This circle will be drawn with no edges, only a solid fill.
+    !! *
+    !! * @param position The position of centre of circle.
+    !! * @param radius The radius of circle.
+    !! * @param colour The colour to draw circle with in RGB.
+    !! * @throws # If position is null or disposed of.
+    !! * @throws # If radius is negative.
+    !! * @throws # If transform is not equiorthogonal.
+    !! */
     public function drawFilledCircle(position:Vec2, radius:Float, colour:Int):Void {}
 
+    !!/**
+    !! * Draw polygon.
+    !! * <br/><br/>
+    !! * This polygon will be drawn with no thickness or fill.
+    !! * <br/><br/>
+    !! * The polygon argument is typed Dynamic and may be one of:
+    !! * <code>Array&lt;Vec2&gt;, flash.Vector&lt;Vec2&gt;, Vec2List, GeomPoly</code>
+    !! *
+    !! * @param polygon The polygon to draw.
+    !! * @param colour The colour to draw polygon with in RGB.
+    !! * @throws # If polygon is null, or not of expected type.
+    !! * @throws # If polygon contains disposed Vec2.
+    !! */
     public function drawPolygon (polygon:Dynamic, colour:Int):Void {}
+
+    !!/**
+    !! * Draw filled polygon.
+    !! * <br/><br/>
+    !! * This polygon will be drawn no edges, only a solid fill.
+    !! * <br/><br/>
+    !! * The polygon argument is typed Dynamic and may be one of:
+    !! * <code>Array&lt;Vec2&gt;, flash.Vector&lt;Vec2&gt;, Vec2List, GeomPoly</code>
+    !! *
+    !! * @param polygon The polygon to draw.
+    !! * @param colour The colour to draw polygon with in RGB.
+    !! * @throws # If polygon is null, or not of expected type.
+    !! * @throws # If polygon contains disposed Vec2.
+    !! */
     public function drawFilledPolygon (polygon:Dynamic, colour:Int):Void {}
 
+    !!/**
+    !! * Draw linear spring.
+    !! * <br/><br/>
+    !! * This spring will be drawn with no thickness.
+    !! *
+    !! * @param start The start point of spring.
+    !! * @param end The end point of spring.
+    !! * @param colour The colour of spring in RGB.
+    !! * @param coils The number of coils in spring. (default 3)
+    !! * @param radius The radius of spring. (default 3.0)
+    !! * @throws # If start or end are either null or disposed of.
+    !! * @throws # If number of coils is negative.
+    !! */
     public function drawSpring(start:Vec2,end:Vec2,colour:Int,coils=3,radius=3.0):Void {}
 
     #end

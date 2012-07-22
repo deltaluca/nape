@@ -1,10 +1,21 @@
 package nape.phys;
 $(import);
 
+!!/**
+!! * FluidProperties providing shared parameters for fluid interaction.
+!! */
 class FluidProperties {
 
     FeatureMix(FluidProperties,fluidProperties)
 
+    !!/**
+    !! * Construct a new FluidProperties objects.
+    !! *
+    !! * @param density The density of the fluid in g/px/px. (default 1)
+    !! * @param viscosity The viscosity of the fluid for drag computations.
+    !! *                  (default 1)
+    !! * @return The constructed FluidProperties object.
+    !! */
     public function new(density:Float=1,viscosity:Float=1) {
         pr(inner) = Get(PR(FluidProperties));
         pr(inner).outer = this;
@@ -12,13 +23,22 @@ class FluidProperties {
         this.viscosity = viscosity;
     }
 
+    !!/**
+    !! * Produce a copy of this FluidProperties object.
+    !! * <br/><br/>
+    !! * The copied object will be identical in all properties with the the
+    !! * copied userData being assigned the same fields as 'this' Shape with the
+    !! * same values copied over by reference for object types.
+    !! *
+    !! * @return The copied FluidProperties.
+    !! */
     keep public function copy() {
         var ret = new FluidProperties(density,viscosity);
-        ret.pr(inner).userData = pr(inner).userData;
+        if (pr(inner).userData != null)
+            ret.pr(inner).userData = Reflect.copy(pr(inner).userData);
+        ret.gravity = this.gravity;
         return ret;
     }
-
-    //----------------------------------------------------------------------------------------------
 
     $(mixin prop(n)
         property(n,Float, {
@@ -34,12 +54,30 @@ class FluidProperties {
             }
         })
     );
+    !!/**
+    !! * Density of fluid.
+    !! * <br/><br/>
+    !! * This value, like Material density is of g/pixel/pixel.
+    !! * @default 1
+    !! */
     prop(density)
+
+    !!/**
+    !! * Viscosity of fluid.
+    !! * <br/><br/>
+    !! * This value is used in drag comutations, the higher the viscosity the
+    !! * more quickly objects will come to rest in the fluid.
+    !! * @default 1
+    !! */
     prop(viscosity)
 
-    //----------------------------------------------------------------------------------------------
-
-    property(gravity,Vec2, {
+    !!/**
+    !! * Local gravity for buoyancy computations.
+    !! * <br/><br/>
+    !! * When this value is not null, it will be used in place of the Space gravity
+    !! * when performing buoyancy computations.
+    !! */
+    property(gravity,Null<Vec2>, {
         return pr(inner).wrap_gravity;
     }, {
         if(gravity==null) {
@@ -55,11 +93,13 @@ class FluidProperties {
         }
     })
 
-    //----------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * @private
+    !! */
     @:$keep public function toString() {
         return "{ density: "+density
                +" viscosity: "+viscosity
+               +" gravity: "+gravity
                +" }";
     }
 

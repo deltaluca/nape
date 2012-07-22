@@ -3,11 +3,37 @@ $(import);
 
 #if flash10
 
+!!/**
+!! * BitmapDebug available on flash10+ only.
+!! * <br/><br/>
+!! * This debug draw makes use of Alchemy opcodes so you may wish to forgo it
+!! * if you do not want to be subjcet to Adobe licensing rules should you also
+!! * be using Stage3D.
+!! * <br/><br/>
+!! * This debug draw draws things pixel by pixel into alchemy memory, flushing
+!! * to a BitmapData object. Believe it or not, this is in almost all cases
+!! * 'faster' than flash's built in graphics API.
+!! */
 class BitmapDebug extends Debug {
+    !!/**
+    !! * @private
+    !! */
     public var pr(inner_zn):PR(BitmapDebug);
 
+    !!/**
+    !! * Construct new BitmapDebug object.
+    !! *
+    !! * @param width The width of Debug draw viewport.
+    !! * @param height The height of Debug draw viewport.
+    !! * @param bgColour The background colour for debug draw. (default 0x333333)
+    !! * @param transparent If true, then the debug draw will use an ARGB bitmap
+    !! *                    with a transparent background. This will be slower.
+    !! *                    (default false)
+    !! * @return The constructed BitmapDebug.
+    !! * @throws # If width or height are not strictly positive.
+    !! */
     flibopts(2)
-    public function new(width:Int, height:Int, bgColor:Int = 0x333333, transparent:Bool=false) {
+    public function new(width:Int, height:Int, bgColour:Int = 0x333333, transparent:Bool=false) {
         DEBUG(if(width <=0) throw "Error: Debug width must be > 0";)
         DEBUG(if(height<=0) throw "Error: Debug height must be > 0";)
 
@@ -15,25 +41,30 @@ class BitmapDebug extends Debug {
         super();
         DEBUG(PR(Debug).internal = false;)
 
-        pr(inner_zn) = new PR(BitmapDebug)(width,height,bgColor,transparent);
+        pr(inner_zn) = new PR(BitmapDebug)(width,height,bgColour,transparent);
         pr(inner_zn).outer_zn = this;
         pr(inner) = pr(inner_zn);
         pr(inner).outer = this;
     }
 
-    ///---------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * @inheritDoc
+    !! */
     public override function clear() {
         pr(inner_zn).prepare();
         pr(inner_zn).clear();
     }
+    !!/**
+    !! * @inheritDoc
+    !! */
     public override function flush() {
         pr(inner_zn).prepare();
         pr(inner_zn).flush();
     }
 
-    ///---------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * @inheritDoc
+    !! */
     public override function drawLine(start:Vec2, end:Vec2, colour:Int) {
         DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
 
@@ -66,6 +97,9 @@ class BitmapDebug extends Debug {
         }
     }
 
+    !!/**
+    !! * @inheritDoc
+    !! */
     public override function drawCurve (start:Vec2, control:Vec2, end:Vec2, colour:Int):Void {
         DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
 
@@ -95,6 +129,9 @@ class BitmapDebug extends Debug {
         }
     }
 
+    !!/**
+    !! * @inheritDoc
+    !! */
     public override function drawCircle(position:Vec2, radius:Float, colour:Int) {
         DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
 
@@ -121,6 +158,9 @@ class BitmapDebug extends Debug {
         }
     }
 
+    !!/**
+    !! * @inheritDoc
+    !! */
     public override function drawAABB(aabb:AABB, colour:Int) {
         DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
 
@@ -154,6 +194,9 @@ class BitmapDebug extends Debug {
         }
     }
 
+    !!/**
+    !! * @inheritDoc
+    !! */
     public override function drawFilledTriangle(p0:Vec2, p1:Vec2, p2:Vec2, colour:Int) {
         DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
 
@@ -165,6 +208,9 @@ class BitmapDebug extends Debug {
         WEAK(p0); WEAK(p1); WEAK(p2);
     }
 
+    !!/**
+    !! * @inheritDoc
+    !! */
     public override function drawFilledCircle(position:Vec2, radius:Float, colour:Int) {
         DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
 
@@ -192,6 +238,9 @@ class BitmapDebug extends Debug {
 
     }
 
+    !!/**
+    !! * @inheritDoc
+    !! */
     public override function drawPolygon(polygon:Dynamic, colour:Int) {
         DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
         DEBUG(if(polygon==null) throw "Error: Cannot draw null Vec2 list";)
@@ -231,6 +280,9 @@ class BitmapDebug extends Debug {
         PolyWeak(polygon);
     }
 
+    !!/**
+    !! * @inheritDoc
+    !! */
     public override function drawFilledPolygon(polygon:Dynamic, colour:Int) {
         DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
         DEBUG(if(polygon==null) throw "Error: Cannot render null polygon";)
@@ -296,13 +348,17 @@ class BitmapDebug extends Debug {
         while(vertices.length>0) vertices.pop().dispose();
     }
 
-    ///---------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * @inheritDoc
+    !! */
     public override function draw(object:Dynamic) {
         pr(inner_zn).prepare();
         __debug_draw(object);
     }
 
+    !!/**
+    !! * @inheritDoc
+    !! */
     public override function drawSpring(start:Vec2,end:Vec2,colour:Int,coils=3,radius=3.0) {
         pr(inner_zn).prepare();
         __debug_spring(start,end,colour,coils,radius);
