@@ -1,14 +1,73 @@
 package nape.phys;
 $(import);
 
+!!/**
+!! * Compound represents a grouping of physics objects into a single object.
+!! * <br/><br/>
+!! * This compound owns its constituents and works in the callback system and with
+!! * respect to adding/removing from a Space as a single object.
+!! * <pre>
+!! *       ____Cmp1____
+!! *      /    /    \   \
+!! * Body1 Body2--Joint Cmp2
+!! *   |     |        \  |
+!! * Shp1  Shp2        Body3
+!! *                     |
+!! *                    Shp3
+!! * </pre>
+!! * For example if you have a complex car built with several bodies and
+!! * constraints you might store this in a Compound providing an easy way
+!! * of removing/adding/copying the Car as well as being able to get a single
+!! * callback for when the car collides with something.
+!! * <br/><br/>
+!! * When you add a compound to a Space, all of it's constituents get added
+!! * and furthermore, those constituents cannot be added seperately.
+!! */
 class Compound extends Interactor {
+    !!/**
+    !! * @private
+    !! */
     public var pr(inner):PR(Compound);
 
-    property(bodies,BodyList,return pr(inner).wrap_bodies)
-    property(constraints,ConstraintList,return pr(inner).wrap_constraints)
-    property(compounds,CompoundList,return pr(inner).wrap_compounds)
+    !!/**
+    !! * List of bodies directly owned by this Compound.
+    !! * <br/><br/>
+    !! * This list does not include those bodies belonging to sub-compounds.
+    !! *
+    !! * @default []
+    !! */
+    property(bodies,BodyList, {
+        return pr(inner).wrap_bodies;
+    })
 
-    property(compound,Compound,{
+    !!/**
+    !! * List of constraints directly owned by this Compound.
+    !! * <br/><br/>
+    !! * This list does not include those constraints belonging to sub-compounds.
+    !! *
+    !! * @default []
+    !! */
+    property(constraints,ConstraintList, {
+        return pr(inner).wrap_constraints;
+    })
+
+    !!/**
+    !! * List of compounds directly owned by this Compound.
+    !! * <br/><br/>
+    !! * This list does not include those compounds belonging to sub-compounds.
+    !! *
+    !! * @default []
+    !! */
+    property(compounds,CompoundList, {
+        return pr(inner).wrap_compounds;
+    })
+
+    !!/**
+    !! * Compound that this compound belongs to.
+    !! *
+    !! * @default null
+    !! */
+    property(compound,Null<Compound>,{
         return if(pr(inner).compound==null) null else pr(inner).compound.outer;
     },{
         pr(inner).immutable_midstep("Compound::compound");
@@ -18,7 +77,14 @@ class Compound extends Interactor {
         }
     })
 
-    property(space,Space,{
+    !!/**
+    !! * Space this compound belongs to.
+    !! * <br/><br/>
+    !! * This value is immutable when this compound belongs to another parent Compound.
+    !! *
+    !! * @default null
+    !! */
+    property(space,Null<Space>,{
         return if(pr(inner).space==null) null else pr(inner).space.outer;
     },{
         DEBUG(if(pr(inner).compound!=null) throw "Error: Cannot set the space of an inner Compound, only the root Compound space can be set";)
@@ -29,6 +95,11 @@ class Compound extends Interactor {
         }
     })
 
+    !!/**
+    !! * Construct a new Compound.
+    !! *
+    !! * @result The constructed Compound.
+    !! */
     public function new() {
         DEBUG(try { super(); } catch (e:Dynamic) {})
         RELEASE(super();)
@@ -42,28 +113,86 @@ class Compound extends Interactor {
         pr(inner).insert_cbtype(CbType.ANY_COMPOUND.pr(inner));
     }
 
+    !!/**
+    !! * @private
+    !! */
     @:$keep public override function toString() {
-        return "Compound#"+id;
+        return "Compound" + this.id;
     }
 
+    !!/**
+    !! * Produce an exact copy of this Compound.
+    !! * <br/><br/>
+    !! * This copy will remap owned constraints so that their body properties
+    !! * refer to the newly copied bodies also owned by this compound.
+    !! * <br/><br/>
+    !! * If this compound tree contains any constraints that make references
+    !! * to outside of this constraint; then these properties will be made null.
+    !! * <pre>
+    !! *       ____Cmp1____               [Cmp2.copy()]
+    !! *      /    /        \
+    !! * Body1 Body2___     Cmp2        null    Cmp2'
+    !! *   |     |     \     /  \         \    /    \
+    !! * Shp1  Shp2     Joint  Body3       Joint'  Body3'
+    !! *                         |                   |
+    !! *                        Shp3               Shp3'
+    !! * </pre>
+    !! * For instance if copying Cmp1 then all is well, but if we copy Cmp2 the
+    !! * copied Joint will have one of it's body references null as that body is
+    !! * not owned directly, or indirectly by the compound.
+    !! */
     public function copy() {
         return pr(inner).copy();
     }
 
+    !!/**
+    !! * Breaking compound apart in-place.
+    !! * <br/><br/>
+    !! * This method will destroy the compound, moving all of it's components
+    !! * to the assigned Space if this is the root compound, otherwise to the
+    !! * parent compound.
+    !! * <br/><br/>
+    !! * Apart from being easier than doing this manually it also means that we
+    !! * do not have to temporarigly remove objects from the space meaning that
+    !! * things like PreListener ignored interactions will be unaffected.
+    !! */
     public function breakApart() {
         pr(inner).breakApart();
     }
 
+    !!/**
+    !! * Method to iterate over all bodies contained directly or indirectly by
+    !! * this Compound.
+    !! *
+    !! * @param lambda The method to apply to each Body.
+    !! * @throws # If lambda is null.
+    !! */
     public function visitBodies(lambda:Body->Void) {
         DEBUG(if(lambda==null) throw "Error: lambda cannot be null for Compound::visitBodies";)
         for(b in bodies) lambda(b);
         for(c in compounds) c.visitBodies(lambda);
     }
+
+    !!/**
+    !! * Method to iterate over all constraints contained directly or indirectly by
+    !! * this Compound.
+    !! *
+    !! * @param lambda The method to apply to each Constraint.
+    !! * @throws # If lambda is null.
+    !! */
     public function visitConstraints(lambda:Constraint->Void) {
         DEBUG(if(lambda==null) throw "Error: lambda cannot be null for Compound::visitConstraints";)
         for(c in constraints) lambda(c);
         for(c in compounds) c.visitConstraints(lambda);
     }
+
+    !!/**
+    !! * Method to iterate over all compounds contained directly or indirectly by
+    !! * this Compound.
+    !! *
+    !! * @param lambda The method to apply to each Compound.
+    !! * @throws # If lambda is null.
+    !! */
     public function visitCompounds(lambda:Compound->Void) {
         DEBUG(if(lambda==null) throw "Error: lambda cannot be null for Compound::visitConstraints";)
         for(c in compounds) {
@@ -72,18 +201,41 @@ class Compound extends Interactor {
         }
     }
 
-    public function COM() {
-        var ret = new Vec2();
+    !!/**
+    !! * Compute centre of mass of Compound.
+    !! *
+    !! * @param weak If true, the returned Vec2 will be automatically released
+    !! *             to the object pool when passed as an argument to a Nape
+    !! *             function. (default false)
+    !! * @return The centre of mass of compound.
+    !! * @throws # If Compound has no Bodies contained directly or indirectly
+    !! *           that contain at least one Shape.
+    !! */
+    public function COM(weak:Bool=false) {
+        var ret = Vec2.get(0, 0, weak);
         var total = 0.0;
         visitBodies(function (b) {
-            ret.addeq(b.worldCOM.mul(b.mass,true));
-            total += b.mass;
+            if (!b.shapes.empty())
+            {
+                ret.addeq(b.worldCOM.mul(b.mass,true));
+                total += b.mass;
+            }
         });
         DEBUG(if(total==0.0) throw "Error: COM of an empty Compound is undefined silly";)
         ret.muleq(1/total);
         return ret;
     }
 
+    !!/**
+    !! * Translate entire compound.
+    !! * <br/><br/>
+    !! * This is equivalent to: <code>compound.visitBodies(function (b) b.translate(translation))</code>
+    !! *
+    !! * @param translation The translation to apply to the Compound.
+    !! * @return A reference to this Compound.
+    !! * @throws # If translation is null or disposed of.
+    !! * @throws # If any Body in the compound is static, and this compound is in a Space.
+    !! */
     public function translate(translation:Vec2) {
         Disposed(translation,Vec2);
         DEBUG(if(translation==null) throw "Error: Cannot translate by null Vec2";)
@@ -94,8 +246,20 @@ class Compound extends Interactor {
 
         translation.pr(inner).weak = weak;
         WEAK(translation);
+        return this;
     }
 
+    !!/**
+    !! * Rotate entire compound about a point.
+    !! * <br/><br/>
+    !! * This is equivalent to: <code>compound.visitBodies(function (b) b.rotate(centre, angle))</code>
+    !! *
+    !! * @param centre The centre of rotation in world coordinates.
+    !! * @param angle The clockwise angle of rotation in radians.
+    !! * @return A reference to this Compound.
+    !! * @throws # If centre is null or disposed of.
+    !! * @throws # If any Body in the compound is static, and this compound is in a Space.
+    !! */
     public function rotate(centre:Vec2,angle:Float) {
         Disposed(centre,Vec2);
         DEBUG(if(centre==null) throw "Error: Cannot rotate about a null Vec2";)
@@ -107,6 +271,7 @@ class Compound extends Interactor {
 
         centre.pr(inner).weak = weak;
         WEAK(centre);
+        return this;
     }
 
 }

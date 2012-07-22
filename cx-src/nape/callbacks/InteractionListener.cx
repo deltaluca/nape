@@ -9,6 +9,30 @@ $(import);
 !! * <br/><br/>
 !! * The events that can be caught are BEGIN, ONGOING, and END type events.
 !! * Theses listeners will operate between pairs of Interactors.
+!! * <pre>
+!! *          _Space
+!! *         /      \
+!! *     Cmp1        Cmp3
+!! *    /    \         |
+!! * Body1  Cmp2     Body3
+!! *   |      |        |
+!! * Shp1   Body2    Shp3
+!! *          |
+!! *        Shp2
+!! * </pre>
+!! * The possible interactor pairs for callbacks are formed by finding the most
+!! * recent common ancestor in the world for the given pair of shapes and taking all
+!! * possible pairings. In the above situation we have:
+!! * <pre>
+!! * MRCA(Shp1, Shp2) = Cmp1  --> Possible pairings = [Shp1, Body1] x [Shp2, Body2, Cmp2]
+!! * MRCA(Shp1, Shp3) = Space --> Possible pairings = [Shp1, Body1, Cmp1] x [Shp3, Body3, Cmp3]
+!! * MRCA(Shp2, Shp3) = Space --> Possible pairings = [Shp2, Body2, Cmp2, Cmp1] x [Shp3, Body3, Cmp3]
+!! * </pre>
+!! * Of course, not all of these pairings will generate callbacks, only those for which
+!! * a valid listener exists for the event type, and for the cbtypes of each interactor.
+!! * <br/><br/>
+!! * Furthermore, the listener specifies an interaction type which works even in mixed
+!! * cases where many types of interaction between two objects is happening at once.
 !! */
 class InteractionListener extends Listener {
     !!/**

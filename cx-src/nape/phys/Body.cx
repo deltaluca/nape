@@ -1,9 +1,20 @@
 package nape.phys;
 $(import);
 
+!!/**
+!! * Class representing a physics Rigid Body.
+!! */
 class Body extends Interactor {
+    !!/**
+    !! * @private
+    !! */
     public var pr(inner):PR(Body);
 
+    !!/**
+    !! * Type of body.
+    !! * <br/><br/>
+    !! * This value can be changed even if Body is inside of a Space.
+    !! */
     property(type,BodyType, {
         return [null,BodyType.STATIC,BodyType.DYNAMIC,BodyType.KINEMATIC][pr(inner).type];
     },{
@@ -29,27 +40,49 @@ class Body extends Interactor {
         }
     })
 
-    keep public function isStatic   () return pr(inner).isStatic()
-    keep public function isDynamic  () return pr(inner).isDynamic()
-    keep public function isKinematic() return pr(inner).isKinematic()
-
-    //----------------------------------------------------------------------------------------------
-
-    public function clear() {
-        pr(inner).immutable_midstep("Body::clear()");
-        DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
-        pr(inner).clear();
-        pr(inner).userData = null;
-
-        group = null;
-        compound = null;
+    !!/**
+    !! * Fast equivalent to <code>body.type == BodyType.STATIC</code>
+    !! * @return True if body is Static.
+    !! */
+    keep public inline function isStatic() {
+        return pr(inner).isStatic();
+    }
+    !!/**
+    !! * Fast equivalent to <code>body.type == BodyType.DYNAMIC</code>
+    !! * @return True if body is Dynamic.
+    !! */
+    keep public inline function isDynamic() {
+        return pr(inner).isDynamic();
+    }
+    !!/**
+    !! * Fast equivalent to <code>body.type == BodyType.KINEMATIC</code>
+    !! * @return True if body is Kinematic.
+    !! */
+    keep public inline function isKinematic() {
+        return pr(inner).isKinematic();
     }
 
-    //----------------------------------------------------------------------------------------------
+    !!/**
+    !! * List of shapes owned by Body.
+    !! * <br/><br/>
+    !! * Appending a Shape to this list is equivalent to <code>shape.body = this</code>
+    !! *
+    !! * @default []
+    !! */
+    property(shapes,ShapeList, {
+        return pr(inner).wrap_shapes;
+    })
 
-    property(shapes,ShapeList,return pr(inner).wrap_shapes)
-
-    property(compound,Compound,{
+    !!/**
+    !! * Compound this Body belongs to.
+    !! * <br/><br/>
+    !! * If this Body belongs to a Compound, then the Compound 'owns' this Body and
+    !! * it is the Compound which would be added/removed from a Space rather than
+    !! * this Body.
+    !! *
+    !! * @default null
+    !! */
+    property(compound,Null<Compound>,{
         return if(pr(inner).compound==null) null else pr(inner).compound.outer;
     },{
         if(this.compound!=compound) {
@@ -58,7 +91,15 @@ class Body extends Interactor {
         }
     })
 
-    property(space,Space,{
+    !!/**
+    !! * Space this Body is assigned to.
+    !! * <br/><br/>
+    !! * When this Body is part of a Compound, this value is immutable.
+    !! * <br/>
+    !! * When a Body is part of a Compound it is owned by that Compound and it
+    !! * is the Compound that is added/removed from a Space.
+    !! */
+    property(space,Null<Space>,{
         return if(pr(inner).space==null) null else pr(inner).space.outer;
     },{
         DEBUG(if(pr(inner).compound!=null) throw "Error: Cannot set the space of a Body belonging to a Compound, only the root Compound space can be set";)
@@ -75,12 +116,27 @@ class Body extends Interactor {
         }
     })
 
+    !!/**
+    !! * Set of active arbiters related to this Body.
+    !! * <br/><br/>
+    !! * This list is immutable.
+    !! */
     property(arbiters,ArbiterList,{
         if(pr(inner).wrap_arbiters==null)
             pr(inner).wrap_arbiters = PR(ArbiterList).get(pr(inner).arbiters,true);
         return pr(inner).wrap_arbiters;
     })
 
+    !!/**
+    !! * Whether this body is sleeping.
+    !! * <br/><br/>
+    !! * This value is immutable, In Nape you do not ever need to manually wake up a Body.
+    !! * It will always be done automatically without error.
+    !! * <br/><br/>
+    !! * To manually put a Body to sleep is against the very nature of Nape API
+    !! * and so is excluded from the core of Nape. If you really want to do this
+    !! * then you should make use of the nape-hacks module.
+    !! */
     property(isSleeping,Bool,{
         DEBUG(if(pr(inner).space==null)
             throw "Error: isSleeping makes no sense if the object is not contained within a Space";
@@ -88,14 +144,27 @@ class Body extends Interactor {
         return pr(inner).component.sleeping;
     })
 
+    !!/**
+    !! * Set of constraints using this Body.
+    !! * <br/><br/>
+    !! * This list contains those constraints that are inside of a Space only.
+    !! * <br/><br/>
+    !! * This list is immutable.
+    !! */
     property(constraints,ConstraintList,{
         if(pr(inner).wrap_constraints==null)
             pr(inner).wrap_constraints = PR(ConstraintList).get(pr(inner).constraints,true);
         return pr(inner).wrap_constraints;
     })
 
-    //----------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * Construct a new Body.
+    !! * <br/><br/>
+    !! * @param type The type of Body to create. (default DYNAMIC)
+    !! * @param position The initial position for object. (default &#40;0,0&#41;)
+    !! * @return The newly constructed Body.
+    !! * @throws # If position is non-null, and has been disposed of.
+    !! */
     flibopts(2)
     public function new(type:BodyType=null,position:Vec2=null) {
         DEBUG(try { super(); } catch (e:Dynamic) {})
@@ -114,20 +183,24 @@ class Body extends Interactor {
         this.type = type == null ? BodyType.DYNAMIC : type;
         if(position!=null) WEAK(position);
 
-        graphicAngleOffset = 0.0;
-
         //implicit ANY type.
         pr(inner_i).insert_cbtype(CbType.ANY_BODY.pr(inner));
     }
 
+    !!/**
+    !! * Construct an exact copy of this Body.
+    !! * <br/><br/>
+    !! * All properties will be exactly copied, with Shapes also
+    !! * being copied with the copied Body's and Shape's userData
+    !! * objects being assigned the same fields as the existing ones with
+    !! * values copied over by reference for object types.
+    !! *
+    !! * @return A copy of this Body.
+    !! */
     keep public function copy() {
         DEBUG(if(pr(inner).world) throw "Error: Space::world cannot be copied";)
-        var ret = pr(inner).copy();
-        ret.pr(inner).userData = pr(inner).userData;
-        return ret;
+        return pr(inner).copy();
     }
-
-    //----------------------------------------------------------------------------------------------
 
     $(mixin vecprop(n,wrap,setup)
         property(n,Vec2,{
@@ -140,21 +213,96 @@ class Body extends Interactor {
         })
     );
 
-    vecprop(position,    wrap_pos,   setupPosition)
-    vecprop(velocity,    wrap_vel,   setupVelocity)
-    vecprop(kinematicVel,wrap_kinvel,setupkinvel)
-    vecprop(surfaceVel,  wrap_svel,  setupsvel)
-    vecprop(force,       wrap_force, setupForce)
+    !!/**
+    !! * Position of Body's origin in px.
+    !! * <br/><br/>
+    !! * This value can be set and is equivalent to: <code>this.position.set(value)</code>
+    !! * <br/><br/>
+    !! * Attempting to set this value on a static Body that is in a Space will result
+    !! * in a debug build error.
+    !! * <br/><br/>
+    !! * Please note that for kinematic objects, setting this value is equiavalent
+    !! * to 'teleporting' the object, and for normal movement you should be using
+    !! * the kinematic body's velocity.
+    !! *
+    !! * @default (0,0)
+    !! */
+    vecprop(position, wrap_pos, setupPosition)
 
-    //----------------------------------------------------------------------------------------------
+    !!/**
+    !! * Linear velocity of Body's origin in px/s.
+    !! * <br/><br/>
+    !! * This value can be set and is equivalent to: <code>this.velocity.set(value)</code>
+    !! * <br/><br/>
+    !! * A static body cannot have its velocity set.
+    !! *
+    !! * @default (0,0)
+    !! */
+    vecprop(velocity, wrap_vel, setupVelocity)
 
+    !!/**
+    !! * Additional kinematic velocity of Body in px/s.
+    !! * <br/><br/>
+    !! * A bodies 'kinematic' velocity is an added velocity bias used in all physics
+    !! * computations but that will not effect how the Body moves directly.
+    !! * <br/><br/>
+    !! * Even a static body can be given a kinematic velocity, and can be used for
+    !! * such things as giving a body of water a fluid-velocity for fluid drag
+    !! * computations.
+    !! *
+    !! * @default (0,0)
+    !! */
+    vecprop(kinematicVel, wrap_kinvel, setupkinvel)
+
+    !!/**
+    !! * Additional surface velocity for Body in px/s.
+    !! * <br/><br/>
+    !! * A bodies 'surface' velocity is an added velocity bias that is rotated to match
+    !! * the angle of the contact surface used in contact physics and will not
+    !! * effect how the Body moves directly.
+    !! * <br/><br/>
+    !! * Even a static body can be given a surface velocity, and can be used for
+    !! * such things as conveyor belts (By setting the x-component of surfaceVel).
+    !! *
+    !! * @default (0,0)
+    !! */
+    vecprop(surfaceVel, wrap_svel, setupsvel)
+
+    !!/**
+    !! * Accumulated force acting on body in px.kg/s/s
+    !! * <br/><br/>
+    !! * This value is not used internally for any physics computations.
+    !! * <br/><br/>
+    !! * You may set this property only on dynamic bodies, and after a space step
+    !! * this value will be reset back to default.
+    !! *
+    !! * @default (0,0)
+    !! */
+    vecprop(force, wrap_force, setupForce)
+
+    !!/**
+    !! * This property represents the velocity seen by constraint physics.
+    !! * <br/><br/>
+    !! * You should not need to use this property unless writing your own
+    !! * constraints using the UserConstraint API.
+    !! */
     property(constraintVelocity,Vec3,{
         if(pr(inner).wrapcvel==null) pr(inner).setup_cvel();
         return pr(inner).wrapcvel;
     })
 
-    //----------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * Rotation of Body in clockwise rad.
+    !! * <br/><br/>
+    !! * Attempting to set this value on a static Body that is in a Space will result
+    !! * in a debug build error.
+    !! * <br/><br/>
+    !! * Please note that for kinematic objects, setting this value is equiavalent
+    !! * to 'teleporting' the object, and for normal movement you should be using
+    !! * the kinematic body's angularVel.
+    !! *
+    !! * @default 0
+    !! */
     property(rotation,Float, {
         return pr(inner).rot;
     }, {
@@ -171,20 +319,39 @@ class Body extends Interactor {
         }
     })
 
+    !!/**
+    !! * Angular velocity of Body in clockwise rad/s
+    !! * <br/><br/>
+    !! * A static body cannot have its angular velocity set.
+    !! *
+    !! * @default 0
+    !! */
     property(angularVel,Float, {
         return pr(inner).angvel;
     }, {
         DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
         if(this.angularVel!=angularVel) {
             DEBUG(if(isNaN(angularVel)) throw "Error: Body::angularVel cannot be NaN";)
-            DEBUG(if(pr(inner).isStatic() && pr(inner).space!=null)
-                throw "Error: A static object within a space cannot be given a velocity";
+            DEBUG(if(pr(inner).isStatic())
+                throw "Error: A static object cannot be given a velocity";
             )
             pr(inner).angvel = angularVel;
             pr(inner).invalidate_wake();
         }
     })
 
+    !!/**
+    !! * Additional kinematic angular velocity of Body in rad/s.
+    !! * <br/><br/>
+    !! * A bodies 'kinematic' velocity is an added velocity bias used in all physics
+    !! * computations but that will not effect how the Body moves directly.
+    !! * <br/><br/>
+    !! * Even a static body can be given a kinematic velocity, and can be used for
+    !! * such things as giving a body of water a fluid-velocity for fluid drag
+    !! * computations.
+    !! *
+    !! * @default 0
+    !! */
     property(kinAngVel,Float, {
         return pr(inner).kinangvel;
     }, {
@@ -196,28 +363,43 @@ class Body extends Interactor {
         }
     })
 
+    !!/**
+    !! * Accumulated torque acting on body in px.px.kg/s/s
+    !! * <br/><br/>
+    !! * This value is not used internally for any physics computations.
+    !! * <br/><br/>
+    !! * You may set this property only on dynamic bodies, and after a space step
+    !! * this value will be reset back to default.
+    !! *
+    !! * @default 0
+    !! */
     property(torque,Float, {
         return pr(inner).torque;
     }, {
         DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
-        DEBUG(if(isNaN(torque)) throw "Error: Body::torqur cannot be NaN";)
+        DEBUG(
+            if(!isDynamic()) throw "Error: Non-dynamic body cannot have torque applied."
+        )
+        DEBUG(if(isNaN(torque)) throw "Error: Body::torque cannot be NaN";)
         if(this.torque!=torque) {
             pr(inner).torque = torque;
             pr(inner).invalidate_wake();
         }
     })
 
-    //----------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * Bounding box of Body in world space.
+    !! * <br/><br/>
+    !! * This value can be accessed even if there are no Shapes in the Body, but
+    !! * attempting to query its values whilst there are no Shapes will result
+    !! * in a debug build error.
+    !! * <br/><br/>
+    !! * This AABB is immutable.
+    !! */
     property(bounds,AABB,{
         DEBUG(if(pr(inner).world) throw "Error: Space::world has no bounds";)
-        DEBUG(if(pr(inner).shapes.empty())
-            throw "Error: Body bounds only makes sense if it contains shapes";
-        )
         return pr(inner).aabb.wrapper();
     })
-
-    //----------------------------------------------------------------------------------------------
 
     $(mixin allowprop(n,flag,prop)
         property(n,Bool, {
@@ -230,10 +412,28 @@ class Body extends Interactor {
             }
         })
     );
-    allowprop(allowMovement,nomove,  mass)
-    allowprop(allowRotation,norotate,inertia)
 
-    //----------------------------------------------------------------------------------------------
+    !!/**
+    !! * Whether dynamic Body is permitted to be moved by physics linearly.
+    !! * <br/><br/>
+    !! * When this field is false, no physics will be able to cause a change in the
+    !! * bodies linear velocity (It can still move, but only if you tell it to like
+    !! * a kinematic body).
+    !! *
+    !! * @default true
+    !! */
+    allowprop(allowMovement, nomove, mass)
+
+    !!/**
+    !! * Whether dynamic Body is permitted to be rotated by physics.
+    !! * <br/><br/>
+    !! * When this field is false, no physics will be able to cause a change in the
+    !! * bodies angular velocity (It can still rotate, but only if you tell it to like
+    !! * a kinematic body).
+    !! *
+    !! * @default true
+    !! */
+    allowprop(allowRotation, norotate, inertia)
 
     property(massMode,MassMode,{
         return [MassMode.DEFAULT,MassMode.FIXED][pr(inner).massMode];
@@ -271,8 +471,6 @@ class Body extends Interactor {
         pr(inner).cmass = mass;
         pr(inner).invalidate_mass();
     })
-
-    //----------------------------------------------------------------------------------------------
 
     property(gravMassMode,GravMassMode,{
         return [GravMassMode.DEFAULT,GravMassMode.FIXED,GravMassMode.SCALED][pr(inner).massMode];
@@ -322,8 +520,6 @@ class Body extends Interactor {
         pr(inner).invalidate_gravMassScale();
     })
 
-    //----------------------------------------------------------------------------------------------
-
     property(inertiaMode,InertiaMode,{
         return [InertiaMode.DEFAULT,InertiaMode.FIXED][pr(inner).inertiaMode];
     },{
@@ -361,46 +557,36 @@ class Body extends Interactor {
         pr(inner).invalidate_inertia();
     })
 
-    //----------------------------------------------------------------------------------------------
-
-    property(graphicOffset,Vec2,{
-        return pr(inner).graphicOffset;
-    },{
-        Disposed(graphicOffset,Vec2);
-        DEBUG(if(graphicOffset==null) throw "Error: Body::graphicOffset cannot be null";)
-        this.graphicOffset.set(graphicOffset);
-    })
-    public var graphicAngleOffset:Float;
-
-    property(graphic,Dynamic, {
-        return pr(inner).graphic;
-    }, {
-        DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
-        if(graphic!=this.graphic) {
-            if(graphic==null) {
-                pr(inner).graphic = null;
-            }else {
-                #if (flash9||nme)
-                    pr(inner).graphic = graphic;
-                    pr(inner).flashgraphic = Std.is(graphic,flash.display.DisplayObject);
-                    pr(inner).validate_graphic();
-                #end
-            }
-        }
-    })
-
-    property(graphicUpdate,Body->Void, {
-        return pr(inner).graphicUpdate;
-    }, {
-        pr(inner).graphicUpdate = graphicUpdate;
-        if(graphicUpdate!=null) pr(inner).validate_graphic();
-    })
-
-    //----------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * Compute set of bodies connected via constraints.
+    !! * <br/><br/>
+    !! * Only constraints that are inside of a Space will be considered the
+    !! * same way that the body's constraints list only tracks constraints
+    !! * that are part of a simulation.
+    !! *
+    !! * @param depth Control the depth limit of the graph search. Negative
+    !! *              values indicate an unlimited search. A depth value of
+    !! *              0 would cause only the current Body to be returned.
+    !! *              (default -1)
+    !! * @return A list of the connected bodies including this body up to
+    !! *         the given graph depth.
+    !! */
     keep public function connectedBodies(depth:Int=-1):BodyList {
         return pr(inner).connectedBodies(depth);
     }
+
+    !!/**
+    !! * Compute set of bodies interacting with this body.
+    !! *
+    !! * @param type When not equal to null, this parameter controls what sort
+    !! *             of interaction we permit in the search.
+    !! * @param depth Control the depth limit of the graph search. Negative
+    !! *              values indicate an unlimited search. A depth value of
+    !! *              0 would cause only the current Body to be returned.
+    !! *              (default -1)
+    !! * @return A list of the interacting bodies including this body up to
+    !! *         the given graph depth.
+    !! */
     keep public function interactingBodies(type:InteractionType=null, depth:Int=-1) {
         var arbiter_type = if(type==null) {
             PR(Arbiter).COL | PR(Arbiter).SENSOR | PR(Arbiter).FLUID;
@@ -411,10 +597,23 @@ class Body extends Interactor {
         return pr(inner).interactingBodies(arbiter_type, depth);
     }
 
-    //----------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * Determine how much this body is being crushed.
+    !! * <br/><br/>
+    !! * This is an approximate value, computed as:
+    !! * <code>crushFactor = (sum(magnitude(impulse)) - magnitude(sum(impulse))) / mass</code>
+    !! * <br/><br/>
+    !! * In this way, it is a mass and time step invariant value which is 0 when all impulses
+    !! * are acting on body in the same direction, and has maximum value when impulses
+    !! * act in opposing directions 'crushing' the Body.
+    !! *
+    !! * @return A positive value representing an approximation to how much the
+    !! *         body is being crushed.
+    !! * @throws # If body is not in a Space.
+    !! */
     keep public function crushFactor():Float {
-        DEBUG(if(space==null) throw "Error: Makes no sense to see how much an object not taking part in a simulation is being crushed";)
+        DEBUG(
+            if(space==null) throw "Error: Makes no sense to see how much an object not taking part in a simulation is being crushed";)
         var msum = 0.0;
         var jsum = Vec2.get();
 
@@ -435,45 +634,118 @@ class Body extends Interactor {
             imp3.dispose();
         }
 
-        var ret = (msum - jsum.length)*space.pr(inner).pre_dt;
+        var ret = (msum - jsum.length) / (this.mass * space.pr(inner).pre_dt);
         jsum.dispose();
         return ret;
     }
 
-    //----------------------------------------------------------------------------------------------
+    !!/**
+    !! * Transform a point from Body's local coordinates to world coordinates.
+    !! *
+    !! * @param point The point to transform.
+    !! * @param weak If true the returned Vec2 will be automatically released
+    !! *             back to object pool when used as an argument to a Nape function.
+    !! *             (default false)
+    !! * @return The result of the transformation.
+    !! * @throws # If point is null or disposed of.
+    !! */
+    keep public function localToWorld(point:Vec2,weak:Bool=false) {
+        return relativeToWorld(localToRelative(point,true),weak);
+    }
+    !!/**
+    !! * Transform a point from world coordinates to Body's local coordinates.
+    !! *
+    !! * @param point The point to transform.
+    !! * @param weak If true the returned Vec2 will be automatically released
+    !! *             back to object pool when used as an argument to a Nape function.
+    !! *             (default false)
+    !! * @return The result of the transformation.
+    !! * @throws # If point is null or disposed of.
+    !! */
+    keep public function worldToLocal(point:Vec2,weak:Bool=false) {
+        return relativeToLocal(worldToRelative(point,true),weak);
+    }
 
-    keep public function localToWorld(v:Vec2,weak:Bool=false) return relativeToWorld(localToRelative(v,true),weak)
-    keep public function worldToLocal(v:Vec2,weak:Bool=false) return relativeToLocal(worldToRelative(v,true),weak)
-    keep public function relativeToWorld(v:Vec2,weak:Bool=false) {
-        Disposed(v,Vec2);
-        DEBUG(if(v==null) throw "Error: Cannot transform null Vec2";)
-        var ret = Vec2.get(v.x+pr(inner).posx,v.y+pr(inner).posy,weak);
-        WEAK(v);
+    !!/**
+    !! * Transform point from relative coordinates to normal world coordinates.
+    !! * <br/><br/>
+    !! * Relative meaning world coordinates, relative to the position of the Body.
+    !! *
+    !! * @param point The point to transform.
+    !! * @param weak If true the returned Vec2 will be automatically released
+    !! *             back to object pool when used as an argument to a Nape function.
+    !! *             (default false)
+    !! * @return The result of the transformation.
+    !! * @throws # If point is null or disposed of.
+    !! */
+    keep public function relativeToWorld(point:Vec2,weak:Bool=false) {
+        Disposed(point,Vec2);
+        DEBUG(if(point==null) throw "Error: Cannot transform null Vec2";)
+        var ret = Vec2.get(point.x+pr(inner).posx,point.y+pr(inner).posy,weak);
+        WEAK(point);
         return ret;
     }
-    keep public function worldToRelative(v:Vec2,weak:Bool=false) {
-        Disposed(v,Vec2);
-        DEBUG(if(v==null) throw "Error: Cannot transform null Vec2";)
-        var ret = Vec2.get(v.x-pr(inner).posx,v.y-pr(inner).posy,weak);
-        WEAK(v);
+    !!/**
+    !! * Transform point from normal world coordinates to relative coordinates
+    !! * <br/><br/>
+    !! * Relative meaning world coordinates, relative to the position of the Body.
+    !! *
+    !! * @param point The point to transform.
+    !! * @param weak If true the returned Vec2 will be automatically released
+    !! *             back to object pool when used as an argument to a Nape function.
+    !! *             (default false)
+    !! * @return The result of the transformation.
+    !! * @throws # If point is null or disposed of.
+    !! */
+    keep public function worldToRelative(point:Vec2,weak:Bool=false) {
+        Disposed(point,Vec2);
+        DEBUG(if(point==null) throw "Error: Cannot transform null Vec2";)
+        var ret = Vec2.get(point.x-pr(inner).posx,point.y-pr(inner).posy,weak);
+        WEAK(point);
         return ret;
     }
-    keep public function localToRelative(v:Vec2,weak:Bool=false) {
-        Disposed(v,Vec2);
-        DEBUG(if(v==null) throw "Error: Cannot transform null Vec2";)
+
+    !!/**
+    !! * Transform point from Body's local coordinates into relative coordinates.
+    !! * <br/><br/>
+    !! * Relative meaning world coordinates, relative to the position of the Body.
+    !! *
+    !! * @param point The point to transform.
+    !! * @param weak If true the returned Vec2 will be automatically released
+    !! *             back to object pool when used as an argument to a Nape function.
+    !! *             (default false)
+    !! * @return The result of the transformation.
+    !! * @throws # If point is null or disposed of.
+    !! */
+    keep public function localToRelative(point:Vec2,weak:Bool=false) {
+        Disposed(point,Vec2);
+        DEBUG(if(point==null) throw "Error: Cannot transform null Vec2";)
         pr(inner).validate_axis();
         vec_new(temp);
-        vec_rotate(v.,pr(inner).axis,temp);
-        WEAK(v);
+        vec_rotate(point.,pr(inner).axis,temp);
+        WEAK(point);
         return Vec2.get(tempx,tempy,weak);
     }
-    keep public function relativeToLocal(v:Vec2,weak:Bool=false) {
-        Disposed(v,Vec2);
-        DEBUG(if(v==null) throw "Error: Cannot transform null Vec2";)
+
+    !!/**
+    !! * Transform point from relative coordinates to Body's local coordinates
+    !! * <br/><br/>
+    !! * Relative meaning world coordinates, relative to the position of the Body.
+    !! *
+    !! * @param point The point to transform.
+    !! * @param weak If true the returned Vec2 will be automatically released
+    !! *             back to object pool when used as an argument to a Nape function.
+    !! *             (default false)
+    !! * @return The result of the transformation.
+    !! * @throws # If point is null or disposed of.
+    !! */
+    keep public function relativeToLocal(point:Vec2,weak:Bool=false) {
+        Disposed(point,Vec2);
+        DEBUG(if(point==null) throw "Error: Cannot transform null Vec2";)
         pr(inner).validate_axis();
         vec_new(temp);
-        vec_revrot(v.,pr(inner).axis,temp);
-        WEAK(v);
+        vec_revrot(point.,pr(inner).axis,temp);
+        WEAK(point);
         return Vec2.get(tempx,tempy,weak);
     }
 
@@ -580,41 +852,107 @@ class Body extends Interactor {
         WEAK(impulse);
     }
 
-    //----------------------------------------------------------------------------------------------
-
-    keep public function translateShapes(displacement:Vec2) {
+    !!/**
+    !! * Translate each shape in local coordinates.
+    !! * <br/><br/>
+    !! * This operation does not effect the Body's position, but the position
+    !! * of the shapes 'inside' of the Body.
+    !! *
+    !! * @param translation The local translation to apply to Shapes.
+    !! * @return A reference to this Body.
+    !! * @throws # If translation is null or has been disposed of.
+    !! * @throws # If this Body is static, and inside of a Space.
+    !! */
+    keep public function translateShapes(translation:Vec2) {
         pr(inner).immutable_midstep("Body::translateShapes()");
-        Disposed(displacement,Vec2);
+        Disposed(translation,Vec2);
         DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
-        DEBUG(if(displacement==null) throw "Error: Cannot displace by null Vec2";)
+        DEBUG(if(translation==null) throw "Error: Cannot displace by null Vec2";)
 
-        var weak = displacement.pr(inner).weak;
-        displacement.pr(inner).weak = false;
+        var weak = translation.pr(inner).weak;
+        translation.pr(inner).weak = false;
 
-        Iter(s,pr(inner).shapes,s.outer.translate(displacement));
+        Iter(s,pr(inner).shapes,s.outer.translate(translation));
 
-        displacement.pr(inner).weak = weak;
-        WEAK(displacement);
+        translation.pr(inner).weak = weak;
+        WEAK(translation);
+        return this;
     }
+
+    !!/**
+    !! * Rotate each shape in local coordinates.
+    !! * <br/><br/>
+    !! * This operation does not effect the Body's rotation, but rotates
+    !! * each of the shapes 'inside' of the Body.
+    !! *
+    !! * @param angle The angle to rotate shapes by in clockwise radians.
+    !! * @return A reference to this Body.
+    !! * @throws # If this Body is static, and inside of a Space.
+    !! */
     keep public function rotateShapes(angle:Float) {
         pr(inner).immutable_midstep("Body::rotateShapes()");
         DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 
         Iter(s,pr(inner).shapes,s.outer.rotate(angle));
+        return this;
     }
-    keep public function scaleShapes(scalex:Float,scaley:Float) {
+
+    !!/**
+    !! * Scale each shape in local coordinates.
+    !! * <br/><br/>
+    !! * This operation does not affect the Body itself, but affects each
+    !! * Shape 'inside' of the Body instead.
+    !! *
+    !! * @param scaleX The x-coordinate factor of scaling.
+    !! * @param scaleY The y-coordinate factor of scaling.
+    !! * @return A reference to this Body.
+    !! * @throws # If this Body is static, and inside of a Space.
+    !! * @throws # If Body contains Circle shapes, and scaleX != scaleY
+    !! */
+    keep public function scaleShapes(scaleX:Float,scaleY:Float) {
         pr(inner).immutable_midstep("Body::scaleShapes()");
         DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 
-        Iter(s,pr(inner).shapes,s.outer.scale(scalex,scaley));
+        Iter(s,pr(inner).shapes,s.outer.scale(scaleX,scaleY));
+        return this;
     }
+
+    !!/**
+    !! * Transform each shape in local coordiantes.
+    !! * <br/><br/>
+    !! * This operation does not affect the Body itself, but affects each
+    !! * Shape 'inside' of the Body instead.
+    !! *
+    !! * @param matrix The transformation matrix to apply to each Shape.
+    !! * @return A reference to this Body.
+    !! * @throws # If this Body is static, and inside of a Space.
+    !! * @throws # If matrix is null or singular.
+    !! * @throws # If Body contains Circle shapes, and input matrix is
+    !! *           not equiorthogonal.
+    !! */
     keep public function transformShapes(matrix:Mat23) {
         pr(inner).immutable_midstep("Body::transformShapes()");
         DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 
         Iter(s,pr(inner).shapes,s.outer.transform(matrix));
+        return this;
     }
 
+    !!/**
+    !! * Align rigid body so that its origin is also its centre of mass.
+    !! * <br/><br/>
+    !! * This operation will both translate the Shapes inside of the Body,
+    !! * as well as translating the Body itself so that its 'apparent' position
+    !! * has not been modified.
+    !! * <br/><br/>
+    !! * Alignment of Rigid bodies is necessary for dynamic bodies so that
+    !! * they will interact and rotate as expected.
+    !! * <br/><br/>
+    !! * Simple Body's created with a single Polygon.box() or basic Circle
+    !! * will already be aligned.
+    !! *
+    !! * @return A reference to this Body.
+    !! */
     keep public function align() {
         pr(inner).immutable_midstep("Body::align()");
         DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
@@ -632,11 +970,22 @@ class Body extends Interactor {
             vec_subeq(pr(inner).pre_pos,dx2.);
         dx.dispose();
         dx2.dispose();
+        return this;
     }
 
-    //----------------------------------------------------------------------------------------------
-
-    keep public function rotate(centre:Vec2,angle:Float) {
+    !!/**
+    !! * Rotate body about about given point.
+    !! * <br/><br/>
+    !! * Please note that this method is equivalent to teleporting the body,
+    !! * the same way direct manipulation of position and rotation is.
+    !! *
+    !! * @param centre The centre of rotation in world coordinates.
+    !! * @param angle The angle to rotate body by in clockwise radians.
+    !! * @return A reference to this Body.
+    !! * @throws # If this Body is static, and inside of a Space.
+    !! * @throws # If centre is null or disposed of.
+    !! */
+    keep public function rotate(centre:Vec2, angle:Float) {
         Disposed(centre,Vec2);
         DEBUG(if(centre==null) throw "Error: Cannot rotate about a null Vec2";)
         DEBUG(if(isNaN(angle)) throw "Error: Cannot rotate by NaN radians";)
@@ -653,30 +1002,56 @@ class Body extends Interactor {
 
         centre.pr(inner).weak = weak;
         WEAK(centre);
+        return this;
     }
 
-    //----------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * Set material of all shapes.
+    !! * <br/><br/>
+    !! * Equivalent to: <code>body.shapes.foreach(function (shape) shape.material = material)</code>
+    !! *
+    !! * @param material The material to set Shape's material to.
+    !! * @return A reference to this Body.
+    !! */
     keep public function setShapeMaterials(material:Material) {
         pr(inner).immutable_midstep("Body::setShapeMaterials()");
         DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 
         Iter(s,pr(inner).shapes,s.outer.material = material);
+        return this;
     }
+
+    !!/**
+    !! * Set interaction filter of all shapes.
+    !! * <br/><br/>
+    !! * Equivalent to: <code>body.shapes.foreach(function (shape) shape.filter = filter)</code>
+    !! *
+    !! * @param filter The filter to set Shape's filter to.
+    !! * @return A reference to this Body.
+    !! */
     keep public function setShapeFilters(filter:InteractionFilter) {
         pr(inner).immutable_midstep("Body::setShapeFilters()");
         DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 
         Iter(s,pr(inner).shapes,s.outer.filter = filter);
+        return this;
     }
+
+    !!/**
+    !! * Set fluidProperties of all shapes.
+    !! * <br/><br/>
+    !! * Equivalent to: <code>body.shapes.foreach(function (shape) shape.fluidProperties = fluidProperties)</code>
+    !! *
+    !! * @param fluidProperties The fluidProperties to set Shape's fluidProperties to.
+    !! * @return A reference to this Body.
+    !! */
     keep public function setShapeFluidProperties(fluidProperties:FluidProperties) {
         pr(inner).immutable_midstep("Body::setShapeFluidProperties()");
         DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
 
         Iter(s,pr(inner).shapes,s.outer.fluidProperties = fluidProperties);
+        return this;
     }
-
-    //----------------------------------------------------------------------------------------------
 
     $(mixin comprop(n)
         property(n,Vec2,{
@@ -691,10 +1066,25 @@ class Body extends Interactor {
         })
     );
 
+    !!/**
+    !! * Local centre of mass of Body.
+    !! * <br/><br/>
+    !! * This value can be accessed even if Body has no shapes, but attempting
+    !! * to query its values will result in a debug build error.
+    !! * <br/><br/>
+    !! * This Vec2 is immutable.
+    !! */
     comprop(localCOM)
-    comprop(worldCOM)
 
-    //----------------------------------------------------------------------------------------------
+    !!/**
+    !! * World centre of mass of Body.
+    !! * <br/><br/>
+    !! * This value can be accessed even if Body has no shapes, but attempting
+    !! * to query its values will result in a debug build error.
+    !! * <br/><br/>
+    !! * This Vec2 is immutable.
+    !! */
+    comprop(worldCOM)
 
     $(mixin witharbs(TYPE, block) {
         var arbs = pr(inner).arbiters;
@@ -812,16 +1202,22 @@ class Body extends Interactor {
         return Vec3.get(retx,rety,retz);
     }
 
-    //----------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * Determine if point is contained in Body.
+    !! *
+    !! * @param point The point to test containment for in world coordinates.
+    !! * @return True if point is contained.
+    !! * @throws # If point is null or has been disposed.
+    !! */
     keep public function contains(point:Vec2) {
         Disposed(point,Vec2);
         DEBUG(if(point==null) throw "Error: Cannot check containment of null point";)
         return Exists(s, pr(inner).shapes, s.outer.contains(point));
     }
 
-    //----------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * @private
+    !! */
     @:$keep public override function toString() {
         return (pr(inner).world?"(space::world":("("+(isDynamic()?"dynamic":isStatic()?"static":"kinematic")))+")#"+id;
     }

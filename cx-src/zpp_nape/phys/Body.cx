@@ -164,7 +164,7 @@ class PR(Body) extends PR(Interactor) {
     vec_new(public,svel); //surface velocity
     public var wrap_svel:Vec2;
 
-    flibmdel public inline function invalidate_pos(skipgraphic=false) {
+    flibmdel public inline function invalidate_pos() {
         //dependancy checked
         Iter(s,shapes,{
             if(s.type==Flag(ShapeType,POLYGON)) {
@@ -174,8 +174,6 @@ class PR(Body) extends PR(Interactor) {
             s.invalidate_worldCOM();
         });
         invalidate_worldCOM();
-        if(!skipgraphic)
-            validate_graphic();
         //don't wake object here, this method is called by space each step!
     }
 
@@ -199,8 +197,8 @@ class PR(Body) extends PR(Interactor) {
 
     //previously were lambdas
     private function vel_invalidate(vel:PR(Vec2)) {
-        DEBUG(if(isStatic() && space!=null)
-            throw "Error: A static object within a space cannot be given a velocity";
+        DEBUG(
+            if (isStatic()) throw "Error: Static body cannot have its velocity set."
         )
         vec_set(vel,vel.);
         invalidate_wake();
@@ -235,10 +233,11 @@ class PR(Body) extends PR(Interactor) {
 
     //previously were lambdas
     private function force_invalidate(force:PR(Vec2)) {
+        DEBUG(
+            if(!isDynamic()) throw "Error: Non-dynamic body cannot have force applied."
+        )
         vec_set(force,force.);
-
-        if(isDynamic())
-            invalidate_wake();
+        invalidate_wake();
     }
     private function force_validate() vec_set(wrap_force.pr(inner).,force)
 
@@ -318,7 +317,7 @@ class PR(Body) extends PR(Interactor) {
     public var pre_rot:Float;
 
     public var rot:Float;
-    flibmdel public inline function invalidate_rot(skipgraphic=false) {
+    flibmdel public inline function invalidate_rot() {
         //dual with invalidate_axis
         //dependancy checked
         inv(axis) = true;
@@ -330,8 +329,6 @@ class PR(Body) extends PR(Interactor) {
             s.invalidate_worldCOM();
         });
         invalidate_worldCOM();
-        if(!skipgraphic)
-            validate_graphic();
         //don't wake object here, this method is called by space.step!
     }
     vec_new(public,axis); public var inv(axis):Bool;
@@ -531,6 +528,9 @@ class PR(Body) extends PR(Interactor) {
     public var aabb:PR(AABB); public var inv(aabb):Bool;
     /*used by nape-hacks*/
     /*flibmdel*/ public inline function validate_aabb() {
+        DEBUG(if(shapes.empty())
+            throw "Error: Body bounds only makes sense if it contains shapes";
+        )
         //dependancy checked
         if(inv(aabb)) {
             inv(aabb) = false;
@@ -545,32 +545,6 @@ class PR(Body) extends PR(Interactor) {
     public function invalidate_aabb() {
         //dependancy checked
         inv(aabb) = true;
-    }
-
-    //----------------------------------------------------------------------------------------------
-
-    public var flashgraphic:Bool;
-    public var graphic:Dynamic;
-    public var graphicUpdate:Body->Void;
-    public var graphicOffset:Vec2;
-
-    public function validate_graphic() {
-        if(graphicUpdate!=null) graphicUpdate(outer);
-        else if(graphic!=null && flashgraphic) {
-            //flash graphics API certainly (I cannot speak for NME)
-            //does not like very large values for rotations, so mudulo operation
-            //is necessary to avoid lengthy simulations causes objects to simply
-            //stop rotating visually.
-            //
-            //to avoid issue in flash player of having VERY memory expensive
-            //access to properties of dynamic values. we have this restriction
-            #if (flash9 || nme)
-                var g:flash.display.DisplayObject = graphic;
-                g.rotation = ((rot+outer.graphicAngleOffset)*180/Math.PI)%360.0;
-                vec_rotate(graphicOffset.,axis,g.);
-                vec_addeq(g.,pos);
-            #end
-        }
     }
 
     //----------------------------------------------------------------------------------------------
@@ -681,9 +655,6 @@ class PR(Body) extends PR(Interactor) {
 
         norotate = false;
         nomove = false;
-
-        graphic = null;
-        graphicUpdate = null;
     }
 
     //----------------------------------------------------------------------------------------------
@@ -782,9 +753,6 @@ class PR(Body) extends PR(Interactor) {
         wrap_shapes.pr(inner).subber = shapes_subber;
         wrap_shapes.pr(inner)._invalidate = shapes_invalidate;
         DEBUG(wrap_shapes.pr(inner)._modifiable = shapes_modifiable;)
-
-        graphicOffset = Vec2.get(0,0);
-        graphicOffset.pr(inner)._inuse = true;
     }
 
     //----------------------------------------------------------------------------------------------

@@ -2,42 +2,95 @@ package nape.phys;
 $(import);
 
 class Interactor {
+    !!/**
+    !! * @private
+    !! */
     public var pr(inner_i):PR(Interactor);
 
-    property(id,Int,return pr(inner_i).id)
+    !!/**
+    !! * Unique id of this Interactor.
+    !! */
+    property(id,Int, {
+        return pr(inner_i).id;
+    })
 
     PublicUserData(pr(inner_i))
 
-    //------------------------------------------------------------------------------
+    !!/**
+    !! * Fast equivalent to <code>Std.is(interactor, Shape)</code>
+    !! * @return true if this Interactor is a Shape.
+    !! */
+    public inline function isShape() {
+        return pr(inner_i).ishape!=null;
+    }
+    !!/**
+    !! * Fast equivalent to <code>Std.is(interactor, Body)</code>
+    !! * @return true if this Interactor is a Body.
+    !! */
+    public inline function isBody() {
+        return pr(inner_i).ibody!=null;
+    }
+    !!/**
+    !! * Fast equivalent to <code>Std.is(interactor, Compound)</code>
+    !! * @return true if this Interactor is a Compound.
+    !! */
+    public inline function isCompound() {
+        return pr(inner_i).icompound!=null;
+    }
 
-    public function isShape   () return pr(inner_i).ishape   !=null
-    public function isBody    () return pr(inner_i).ibody    !=null
-    public function isCompound() return pr(inner_i).icompound!=null
+    !!/**
+    !! * Fast equivalent to <code>cast(interactor, Shape)</code>
+    !! */
+    property(castShape, Null<Shape>, {
+        return if(isShape()) pr(inner_i).ishape.outer else null;
+    })
 
-    property(castShape,   Shape,   return if(isShape())    pr(inner_i).ishape.outer    else null)
-    property(castBody,    Body,    return if(isBody())     pr(inner_i).ibody.outer     else null)
-    property(castCompound,Compound,return if(isCompound()) pr(inner_i).icompound.outer else null)
+    !!/**
+    !! * Fast equivalent to <code>cast(interactor, Body)</code>
+    !! */
+    property(castBody, Null<Body>, {
+        return if(isBody()) pr(inner_i).ibody.outer else null;
+    })
 
-    //------------------------------------------------------------------------------
+    !!/**
+    !! * Fast equivalent to <code>cast(interactor, Compound)</code>
+    !! */
+    property(castCompound, Null<Compound>, {
+        return if(isCompound()) pr(inner_i).icompound.outer else null;
+    })
 
-    property(group,InteractionGroup,{
+    !!/**
+    !! * InteractionGroup assigned to this Interactor.
+    !! *
+    !! * @default null
+    !! */
+    property(group,Null<InteractionGroup>,{
         return if(pr(inner_i).group==null) null else pr(inner_i).group.outer;
     },{
         pr(inner_i).immutable_midstep("Interactor::group");
         pr(inner_i).setGroup(group==null ? null : group.pr(inner));
     })
 
+    !!/**
+    !! * Set of CbType's assigned to this Interactor.
+    !! *
+    !! * @default []
+    !! */
     property(cbTypes,CbTypeList,{
         if(pr(inner_i).wrap_cbTypes==null) pr(inner_i).setupcbTypes();
         return pr(inner_i).wrap_cbTypes;
     })
 
-    //------------------------------------------------------------------------------
-
+    !!/**
+    !! * @private
+    !! */
     public function new() {
         DEBUG(throw "Error: Cannot instantiate an Interactor, only Shape/Body/Compound";)
     }
 
+    !!/**
+    !! * @private
+    !! */
     @:$keep public function toString() return ""
 }
 
