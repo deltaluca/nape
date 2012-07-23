@@ -138,7 +138,9 @@ class PR(CallbackSet) {
     //we check that for this specific interaction type
     //there is no arbiter in the callback set.
     public function empty_arb(type:Int) {
-        return ForAll(x, arbiters, (x.type&type)==0);
+        var retvar;
+        ForAll(x, arbiters, (x.type&type)==0, retvar);
+        return retvar;
     }
     flibmdel public inline function really_empty() {
         return arbiters.empty();
@@ -961,6 +963,7 @@ class PR(Space) {
             //since this occurs whether an END callback should
             //be generated or not (for instance in the case
             //of a listener being removed)
+
             if(set.really_empty()) {
                 cx_ite = callbackset_list.inlined_erase(pre);
                 assert(!set.int1.cbsets.has(set), "freeing set that wasn't lazy del'ed");
@@ -1347,7 +1350,6 @@ class PR(Space) {
                             if(arb.sleeping) {
                                 arb.sleeping = false;
                                 arb.up_stamp += stamp + (midstep ? 0 : 1) - arb.sleep_stamp;
-                                //trace(["wake",arb.id,arb.up_stamp,stamp]);
                                 if(arb.type == PR(Arbiter).COL) {
                                     var carb = arb.colarb;
                                     if(carb.stat)
@@ -1670,7 +1672,6 @@ class PR(Space) {
                 var arb = arbite.elem();
                 if(!arb.cleared && (arb.b1.component.sleeping && arb.b2.component.sleeping)) {
                     arb.sleep_stamp = stamp;
-                    //trace(["sleep",arb.id,arb.sleep_stamp,arb.up_stamp]);
                     arb.sleeping = true;
                     arbite = arbs.inlined_erase(pre);
                     pre_continue;
@@ -1688,8 +1689,6 @@ class PR(Space) {
                     var begcb = (arb.fresh) && !arb.cleared && !arb.intchange;
                     assert(!begcb||arb.up_stamp==stamp, " fresh -> active=true hasn't held :(");
 
-                    //trace([arb.id, begcb, endcb, arb.cleared, arb.intchange, arb.present, arb.up_stamp]);
-
                     if(begcb || endcb || arb.cleared || arb.intchange) {
                         inlined_MRCA_chains(arb.ws1,arb.ws2);
                         Iter(i1,mrca1,{
@@ -1699,7 +1698,6 @@ class PR(Space) {
                             assert(cb1!=null && cb2!=null, "null cb from MRCA_chains?");
 
                             if(PR(CbSet).empty_intersection(cb1,cb2)) cx_continue;
-                            //trace("non-empty");
 
                             var callbackset = PR(Interactor).get(i1,i2);
                             if(begcb || arb.intchange) {
@@ -1742,7 +1740,6 @@ class PR(Space) {
                                     //Free(PR(CallbackSet),callbackset);
                                 }
                             }
-                            //trace([arb.id, arb.present]);
 //                        RELEASE(cx_break;)
                         });
                         });
@@ -1755,7 +1752,6 @@ class PR(Space) {
                 if(arb.cleared //always retire
                   || arb.up_stamp + (arb.type==PR(Arbiter).COL ? PR(Config).PERSIST : 0) < stamp //possibly delayed age-death
                 ) {
-                    //trace([arb.id, "retire", arb.cleared, arb.up_stamp, stamp]);
                     arb.retire();
                     arbite = arbs.inlined_erase(pre);
                     pre_continue;
@@ -1906,8 +1902,9 @@ class PR(Space) {
 
         //check if constraints exists such that this should be ignored
         //check if the two bodies belong to a group hierarchy to be ignored.
-        if(!Exists(con, b1.constraints, con.ignore && con.pair_exists(b1.id,b2.id))
-        && !group_ignore(s1,s2)) {
+        var con_ignore;
+        Exists(con, b1.constraints, con.ignore && con.pair_exists(b1.id, b2.id), con_ignore);
+        if (!con_ignore && !group_ignore(s1,s2)) {
             //fluid has preference
             if((s1.fluidEnabled || s2.fluidEnabled) && s1.filter.shouldFlow(s2.filter) &&
                   ! (  (s1.fluidEnabled &&  b1.isDynamic() && !s2.fluidEnabled && !b2.isDynamic())
@@ -1961,7 +1958,6 @@ class PR(Space) {
                         }else
                             arb.fresh = arb.up_stamp<stamp-1; //handler persistance
                         arb.up_stamp = arb.stamp;
-                        //trace(["narrow", arb.id, arb.up_stamp]);
 
                         if(arb.fresh || (arb.immState&Flag(ImmState,ALWAYS))==0) {
                             arb.immState = Flag(ImmState,ACCEPT);
@@ -2161,7 +2157,6 @@ class PR(Space) {
                     if(xarb.fluidarb==null) {
                         xarb.lazyRetire(this,null);
                         arb = Get(PR(FluidArbiter));
-                        //trace("now fluid");
                         arb.intchange = true;
                         first = true;
                         swapped = true;
@@ -2185,7 +2180,6 @@ class PR(Space) {
                         xarb.lazyRetire(this,null);
                         arb = Get(PR(ColArbiter));
                         arb.intchange = true;
-                        //trace("now collision");
                         arb.stat = stat;
                         first = true;
                         swapped = true;
@@ -2214,7 +2208,6 @@ class PR(Space) {
                     if(xarb.sensorarb==null) {
                         xarb.lazyRetire(this,null);
                         arb = Get(PR(SensorArbiter));
-                        //trace("now sensor");
                         arb.intchange = true;
                         first = true;
                         swapped = true;

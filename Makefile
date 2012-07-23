@@ -44,7 +44,7 @@ pre_compile:
 	# patch for FD auto-complete issue with #end
 	find src -name "*.hx" -type f | xargs sed -i 's/#end/#end\r\n/g'
 
-SWC_FLAGS = -cp src --dead-code-elimination --macro "include('nape')" --macro "include('zpp_nape')" -D flib -D swc
+SWC_FLAGS = -cp src --dead-code-elimination --macro "include('nape')" --macro "include('zpp_nape')" -D flib -D nape_swc
 
 ASSERT_FLAGS = $(SWC_FLAGS) -D NAPE_NO_INLINE -D NAPE_ASSERT
 DEBUG_FLAGS  = $(SWC_FLAGS)

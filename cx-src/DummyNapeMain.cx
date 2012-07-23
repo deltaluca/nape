@@ -1,104 +1,17 @@
 package;
-
-import flash.display.Sprite;
-import flash.display.StageScaleMode;
-import flash.events.Event;
-//import game.test.testSplit;
 $(import);
-
-/**
-* ...
-* @author zver
-*/
-class DummyNapeMain extends Sprite
+import flash.Lib;
+class DummyNapeMain
 {
-    private static function spriteFromPoInts(poInts:Vec2List):Sprite
-    {
-        var tmp:Sprite = new Sprite();
-
-        var k:Int = poInts.length;
-        var i:Int;
-
-        tmp.graphics.lineStyle(2, 0xff0000);
-
-        for (i in 0...k) {
-            var v:Vec2 = poInts.at(i);
-            if (i == 0)
-            tmp.graphics.moveTo(v.x*400+150, v.y*400+150)
-            else
-            tmp.graphics.lineTo(v.x*400+150, v.y*400+150);
-
-            tmp.graphics.drawCircle(v.x*400+150, v.y*400+150, 5);
-            tmp.graphics.moveTo(v.x*400+150, v.y*400+150);
-        }
-
-        return tmp;
-    }
-
-    private static function transformPoIntsArray(poInts:Vec2List, ww:Float):Void
-    {
-        var k:Int = poInts.length;
-        var i:Int;
-
-        var max:Float = 0;
-
-        for (i in 0...k) {
-            var v:Vec2 = poInts.at(i);
-
-            if (i == 0)
-                max = v.y
-            else
-            {
-                if (max < v.y)
-                max = v.y;
-            }
-        }
-
-        for (i in 0...k) {
-            var v:Vec2 = poInts.at(i);
-
-            v.y = -v.y + max * 0.5;
-            v.x = v.x - 0.5;
-
-            v.muleq(ww);
-        }
-    }
-
     static function main()
     {
-        var testArray = [
-            { x: 0.02500000037252903, y: 0.30000001192092896 },
-            { x: 1, y: 0.30000001192092896 },
-            { x: 1 ,y: 0.22500000894069672 },
-            { x: 0.925000011920929 ,y: 0.20000000298023224 },
-            { x: 0.8500000238418579 ,y: 0.125 },
-            { x: 0.7750000357627869 ,y: 0.125 },
-            { x: 0.699999988079071 ,y: 0.07500000298023224 },
-            { x: 0.6500000357627869 ,y: 0.07500000298023224 },
-            { x: 0.550000011920929 ,y: 0 },
-            { x: 0.5 ,y: 0 },
-            { x: 0.375 ,y: 0.07500000298023224 },
-            { x: 0.22499997913837433 ,y: 0.08750000596046448 },
-            { x: 0.17499999701976776 ,y: 0.125 },
-            { x: 0.125 ,y: 0.125 },
-            { x: 0 ,y: 0.25 }
-        ];
-
-        var vl:Vec2List = new Vec2List();
-
-        var k:Int = testArray.length;
-        var i:Int;
-
-        for (i in 0...k) {
-            vl.push(new Vec2(testArray[i].x, testArray[i].y));
+        var pt = Lib.getTimer();
+        var sum = 0;
+        for (i in 0...1000000)
+        {
+            sum += (function (j) return (j%2)==0 ? 1 : 0)(i);
+//            sum += (i%2)==0 ? 1 : 0;
         }
-
-        transformPoIntsArray(vl, 300);
-
-        var tmpspr:Sprite = spriteFromPoInts(vl);
-        flash.Lib.current.addChild(tmpspr);
-
-        var gp:GeomPoly = new GeomPoly(vl);
-        gp.triangular_decomposition();
+        trace(Lib.getTimer()-pt);
     }
 }
