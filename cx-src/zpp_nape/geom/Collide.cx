@@ -50,11 +50,11 @@ class PR(Collide) {
 
     public static function contactCollide(s1:PR(Shape),s2:PR(Shape),arb:PR(ColArbiter), rev:Bool) {
         if(s2.isPolygon()) {
-            return if(s1.isPolygon())
+            if(s1.isPolygon())
                 poly2poly(s1.polygon,s2.polygon,arb,rev);
             else circle2poly(s1.circle,s2.polygon,arb,rev);
         }else
-            return circle2circle(s1.circle,s2.circle,arb,rev);
+            circle2circle(s1.circle,s2.circle,arb,rev);
     }
 
     flibstaticdel(testCollide_safe)
@@ -99,9 +99,9 @@ class PR(Collide) {
             }
             arb.radius = c1.radius + c2.radius;
             arb.ptype = PR(ColArbiter).CIRCLE;
-            true;
+            return true;
         }else
-            false;
+            return false;
     });
 
     $(mixin circle2circle_query(p1,p2,arb,r1,r2,rev,hash) {
@@ -213,7 +213,7 @@ class PR(Collide) {
         evalAxis2(1,p1,p2);
         if(cont) {
             evalAxis2(2,p2,p1);
-            if(!cont) false;
+            if(!cont) return false;
             else {
                 var q1, q2, ax, scale;
                 if(maxi==1) { q1 = p1; q2 = p2; ax = axis1; scale = 1.0; }
@@ -273,9 +273,9 @@ class PR(Collide) {
                     vec_revrot(c1,q2.body.axis,con.inner.lr1);
                 }
 
-                c0d <=0 || c1d <= 0;
+                return c0d <=0 || c1d <= 0;
             }
-        }else false;
+        }else return false;
     });
 
     $(mixin evalAxis(i,pa,pb)
@@ -546,7 +546,7 @@ class PR(Collide) {
                     arb.radius = circle.radius;
                 }
 
-                co!=null;
+                return co!=null;
             }else if(dt>=vec_cross(a0.gnorm,v1.)) {
                 var co = circle2circle_query(circle.worldCOM,v1.,arb,circle.radius,0,rev,0);
                 if(co!=null) {
@@ -563,7 +563,7 @@ class PR(Collide) {
                     arb.radius = circle.radius;
                 }
 
-                co!=null;
+                return co!=null;
             } else {
                 vec_new(n); vec_mul(a0.gnorm, circle.radius+max*0.5, n);
                 vec_new(p); vec_sub(circle.worldCOM, n, p);
@@ -577,9 +577,9 @@ class PR(Collide) {
                 arb.radius = circle.radius;
                 vec_set(con.inner.lr1, circle.localCOM);
 
-                true;
+                return true;
             }
-        }else false;
+        }else return false;
     });
 
     $(mixin circle2poly_test(circle,poly) {

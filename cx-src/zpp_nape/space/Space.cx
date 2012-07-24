@@ -246,11 +246,14 @@ class PR(Space) {
         vec_set(gravity,x.);
 
         var stack = new List(PR(Compound))();
-        Iterate(bodies, wake);
+        // TODO: When haxe bug fixed, move this back
+        //Iterate(bodies, wake);
+        Iter(x, bodies, wake(x));
         Iterate(compounds, stack.add);
         while(!stack.empty()) {
             var s = stack.pop_unsafe();
-            Iterate(s.bodies, wake);
+            //Iterate(s.bodies, wake);
+            Iter(x, s.bodies, wake(x));
             Iterate(s.compounds, stack.add);
         }
     }
@@ -1269,7 +1272,9 @@ class PR(Space) {
     //----------------------------------------------------------------------------------------------
 
     public function wakeCompound(x:PR(Compound)) {
-        Iterate(x.bodies, wake);
+        //TODO: When haxe bug is fixed for 'wake' can move this back.
+        //Iterate(x.bodies, wake);
+        Iter(y, x.bodies, wake(y));
         Iterate(x.constraints, wake_constraint);
         Iterate(x.compounds, wakeCompound);
     }
@@ -1325,20 +1330,35 @@ class PR(Space) {
         Free(PR(Island),i);
     }
 
-    //TODO: Haxe bug.
-    /*flibmdel inline*/ public function wake(o:PR(Body), fst=false) {
+    //TODO: Haxe bug. When fixed, should move this back to an inline method.
+    /*flibmdel inline public function wake(o:PR(Body), fst=false) {
         assert(o.space==this,"object being woken in the space... is not actually in the space!");
         if(!o.world) {
             assert(o.component!=null,"body woken, but no component exists?");
             o.component.waket = stamp + (midstep ? 0 : 1);
             if(o.component.sleeping) {
                 really_wake(o, fst);
-                return true;
             }
-            else return false;
         }
-        else return true;
+    }*/
+
+    $(mixin file wake(o) wake(o, false));
+    $(mixin file wake(__o, fst) {
+        var o = __o;
+        assert(o.space==this,"object being woken in the space... is not actually in the space!");
+        if(!o.world) {
+            assert(o.component!=null,"body woken, but no component exists?");
+            o.component.waket = stamp + (midstep ? 0 : 1);
+            if(o.component.sleeping) {
+                really_wake(o, fst);
+            }
+        }
+    });
+    public function non_inlined_wake(o:PR(Body), fst=false) {
+        wake(o, fst);
     }
+
+    /* end TODO */
 
     public function really_wake(o:PR(Body),fst=false) {
         if(o.component.island==null) {
@@ -1885,18 +1905,21 @@ class PR(Space) {
     flibmdel public inline function group_ignore(s1:PR(Shape),s2:PR(Shape)) {
         //find closest group from interactor
         var g1 = s1.lookup_group();
-        var g2 = s2.lookup_group();
-        if(g1==null || g2==null) return false;
+        if (g1==null) return false;
         else {
-            //lookup ignore on most recent shared ancestor
-            var ret = false;
-            while(g1!=null && g2!=null) {
-                if(g1==g2) { ret = g1.ignore; break; }
-                if(g1.depth<g2.depth)
-                     g2 = g2.group;
-                else g1 = g1.group;
+            var g2 = s2.lookup_group();
+            if(g2==null) return false;
+            else {
+                //lookup ignore on most recent shared ancestor
+                var ret = false;
+                while(g1!=null && g2!=null) {
+                    if(g1==g2) { ret = g1.ignore; break; }
+                    if(g1.depth<g2.depth)
+                         g2 = g2.group;
+                    else g1 = g1.group;
+                }
+                return ret;
             }
-            return ret;
         }
     }
 
@@ -2152,8 +2175,7 @@ class PR(Space) {
                 ret;
             }));
 
-            switch(itype) {
-            case 0:
+            if (itype == 0) {
                 var xarb = if(in_arb==null) arbget(sa.id,sb.id) else in_arb;
                 var first = xarb==null;
 
@@ -2171,7 +2193,7 @@ class PR(Space) {
                 }
 
                 ret = narrowed(arb,FLUID,PR(FluidArbiter),f_arbiters, PR(Collide).flowCollide(sa,sb,arb), true,false);
-            case 1:
+            }else if (itype == 1) {
                 var carbs = stat ? c_arbiters(true) : c_arbiters(false);
 
                 var xarb = if(in_arb==null) arbget(sa.id,sb.id) else in_arb;
@@ -2204,7 +2226,7 @@ class PR(Space) {
                 }
 
                 ret = narrowed(arb,COLLISION,PR(ColArbiter),carbs, PR(Collide).contactCollide(sa,sb,arb,reverse), true,true);
-            case 2:
+            } else {
                 var xarb = if(in_arb==null) arbget(sa.id,sb.id) else in_arb;
                 var first = xarb==null;
 
