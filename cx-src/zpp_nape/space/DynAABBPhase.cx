@@ -145,7 +145,7 @@ class PR(AABBTree) {
                 var child2 = node.child2;
 
                 var area = node.aabb.perimeter();
-                tmpaabb.set_combine(node.aabb,leafaabb);
+                tmpaabb.setCombine(node.aabb,leafaabb);
                 var carea = tmpaabb.perimeter();
 
                 //cost of creating a new parent for this node and the new leaf
@@ -155,7 +155,7 @@ class PR(AABBTree) {
 
                 //cost of descending into child
                 $(mixin cost_descend(child) ({
-                    tmpaabb.set_combine(leafaabb,child.aabb);
+                    tmpaabb.setCombine(leafaabb,child.aabb);
                     if(child.isLeaf()) tmpaabb.perimeter() + icost;
                     else {
                         var oarea = child.aabb.perimeter();
@@ -178,7 +178,7 @@ class PR(AABBTree) {
             var oparent = sibling.parent;
             var nparent = Get(PR(AABBNode));
             nparent.parent = oparent;
-            nparent.aabb.set_combine(leafaabb,sibling.aabb);
+            nparent.aabb.setCombine(leafaabb,sibling.aabb);
             nparent.height = sibling.height + 1;
 
             if(oparent != null) {
@@ -208,7 +208,7 @@ class PR(AABBTree) {
                 var child1 = node.child1;
                 var child2 = node.child2;
                 node.height = 1 + max(child1.height, child2.height);
-                node.aabb.set_combine(child1.aabb,child2.aabb);
+                node.aabb.setCombine(child1.aabb,child2.aabb);
 
                 node = node.parent;
             }
@@ -242,7 +242,7 @@ class PR(AABBTree) {
                     var child1 = node.child1;
                     var child2 = node.child2;
 
-                    node.aabb.set_combine(child1.aabb,child2.aabb);
+                    node.aabb.setCombine(child1.aabb,child2.aabb);
                     node.height = 1 + max(child1.height, child2.height);
                     node = node.parent;
                 }
@@ -283,8 +283,8 @@ class PR(AABBTree) {
                     rot.child2 = f;
                     a.childN = g;
                     g.parent = a;
-                    a.aabb.  set_combine(other.aabb,g.aabb);
-                    rot.aabb.set_combine(a.aabb,    f.aabb);
+                    a.aabb.  setCombine(other.aabb,g.aabb);
+                    rot.aabb.setCombine(a.aabb,    f.aabb);
 
                     a.  height = 1 + max(other.height, g.height);
                     rot.height = 1 + max(a.height,     f.height);
@@ -450,7 +450,7 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 
         var aabb = node.aabb;
         shape.validate_aabb();
-        aabb.set_expand(shape.aabb,FATTEN);
+        aabb.setExpand(shape.aabb,FATTEN);
 
         //add a velocity contribution
 /*

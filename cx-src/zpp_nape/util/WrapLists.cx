@@ -56,10 +56,10 @@ $(mixin global WrapListNew(T,ListT,IteT, defs)
 
         public var pr(inner):PR(T`List);
 
-        public var length(flibget_length,never):Int;
+        public var length(get_length,never):Int;
         //this must truly be inlined for nape_swc.
         #if use_inline
-            force_inline function flibget_length() {
+            force_inline function get_length() {
                 pr(inner).valmod();
 
                 if(pr(inner).inv(length)) {
@@ -74,7 +74,7 @@ $(mixin global WrapListNew(T,ListT,IteT, defs)
                 return pr(inner).user_length;
             }
         #else
-            force_inline function flibget_length() {
+            force_inline function get_length() {
                 return pr(gl)();
             }
             public function pr(gl)() {

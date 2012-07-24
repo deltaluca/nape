@@ -1325,66 +1325,72 @@ class PR(Space) {
         Free(PR(Island),i);
     }
 
-    public function wake(o:PR(Body),fst=false) {
+    //TODO: Haxe bug.
+    /*flibmdel inline*/ public function wake(o:PR(Body), fst=false) {
         assert(o.space==this,"object being woken in the space... is not actually in the space!");
         if(!o.world) {
             assert(o.component!=null,"body woken, but no component exists?");
             o.component.waket = stamp + (midstep ? 0 : 1);
             if(o.component.sleeping) {
-                if(o.component.island==null) {
-                    //new body, or forced wake, or kinematic/static
-                    o.component.sleeping = false;
-                    if(o.isKinematic() || o.isStatic())
-                        staticsleep.inlined_add(o);
-                    else
-                        live.inlined_add(o);
-
-                    //to allow hacky forced sleeping of dynamics, need to
-                    //wake constraints/arbiters of singular dynamics also (sigh)
-//                    if(!o.isDynamic()) {
-                        //wake any constraints that might exist
-                        //check that only constraints IN the space are woken!!
-                        Iter(con,o.constraints,if(con.space==this) wake_constraint(con));
-                        //wake any touching bodies
-                        Iter(arb,o.arbiters,{
-                            if(arb.sleeping) {
-                                arb.sleeping = false;
-                                arb.up_stamp += stamp + (midstep ? 0 : 1) - arb.sleep_stamp;
-                                if(arb.type == PR(Arbiter).COL) {
-                                    var carb = arb.colarb;
-                                    if(carb.stat)
-                                        c_arbiters(true).inlined_add(carb);
-                                    else
-                                        c_arbiters(false).inlined_add(carb);
-                                }else if(arb.type == PR(Arbiter).FLUID)
-                                        f_arbiters.inlined_add(arb.fluidarb);
-                                else
-                                    s_arbiters.inlined_add(arb.sensorarb);
-                            }
-                            //we do not know anything about arb.active
-                            //so base this on information we do know.
-                            //that is to say up_stamp and immState
-                            if(arb.type != PR(Arbiter).SENSOR && !arb.cleared
-                            && arb.up_stamp==stamp && ((arb.immState&Flag(ImmState,ACCEPT))!=0)) {
-                                if(arb.b1.isDynamic() && arb.b1.component.sleeping) wake(arb.b1);
-                                if(arb.b2.isDynamic() && arb.b2.component.sleeping) wake(arb.b2);
-                            }
-                        });
-//                    }else if(!fst) bodyCbWake(o);
-                    if(!fst && o.isDynamic()) bodyCbWake(o);
-
-                    //sync with aabb broadphase
-                    if(!fst && !bphase.is_sweep && !o.isStatic())
-                        Iter(shape, o.shapes, if(shape.node!=null) bphase.sync(shape));
-                }else {
-                    //wake island
-                    wakeIsland(o.component.island);
-                }
-                assert(o.component.island==null,"woken, but island non-null?");
-
+                really_wake(o, fst);
                 return true;
-            }else return false;
-        }else return true;
+            }
+            else return false;
+        }
+        else return true;
+    }
+
+    public function really_wake(o:PR(Body),fst=false) {
+        if(o.component.island==null) {
+            //new body, or forced wake, or kinematic/static
+            o.component.sleeping = false;
+            if(o.isKinematic() || o.isStatic())
+                staticsleep.inlined_add(o);
+            else
+                live.inlined_add(o);
+
+            //to allow hacky forced sleeping of dynamics, need to
+            //wake constraints/arbiters of singular dynamics also (sigh)
+//                    if(!o.isDynamic()) {
+                //wake any constraints that might exist
+                //check that only constraints IN the space are woken!!
+                Iter(con,o.constraints,if(con.space==this) wake_constraint(con));
+                //wake any touching bodies
+                Iter(arb,o.arbiters,{
+                    if(arb.sleeping) {
+                        arb.sleeping = false;
+                        arb.up_stamp += stamp + (midstep ? 0 : 1) - arb.sleep_stamp;
+                        if(arb.type == PR(Arbiter).COL) {
+                            var carb = arb.colarb;
+                            if(carb.stat)
+                                c_arbiters(true).inlined_add(carb);
+                            else
+                                c_arbiters(false).inlined_add(carb);
+                        }else if(arb.type == PR(Arbiter).FLUID)
+                                f_arbiters.inlined_add(arb.fluidarb);
+                        else
+                            s_arbiters.inlined_add(arb.sensorarb);
+                    }
+                    //we do not know anything about arb.active
+                    //so base this on information we do know.
+                    //that is to say up_stamp and immState
+                    if(arb.type != PR(Arbiter).SENSOR && !arb.cleared
+                    && arb.up_stamp==stamp && ((arb.immState&Flag(ImmState,ACCEPT))!=0)) {
+                        if(arb.b1.isDynamic()) wake(arb.b1);
+                        if(arb.b2.isDynamic()) wake(arb.b2);
+                    }
+                });
+//                    }else if(!fst) bodyCbWake(o);
+            if(!fst && o.isDynamic()) bodyCbWake(o);
+
+            //sync with aabb broadphase
+            if(!fst && !bphase.is_sweep && !o.isStatic())
+                Iter(shape, o.shapes, if(shape.node!=null) bphase.sync(shape));
+        }else {
+            //wake island
+            wakeIsland(o.component.island);
+        }
+        assert(o.component.island==null,"woken, but island non-null?");
     }
 
     public function wake_constraint(con:PR(Constraint),fst=false) {
@@ -2114,9 +2120,9 @@ class PR(Space) {
                         }
                         //optimisation, none-accept arbiter need not wake it's constituents
                         if(waking && (arb.immState & Flag(ImmState, ACCEPT)) !=0) {
-                            if(arb.b1.component.sleeping && arb.b1.isDynamic())
+                            if(arb.b1.isDynamic())
                                 wake(arb.b1);
-                            if(arb.b2.component.sleeping && arb.b2.isDynamic())
+                            if(arb.b2.isDynamic())
                                 wake(arb.b2);
                         }
 
