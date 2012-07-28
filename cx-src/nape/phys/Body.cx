@@ -435,6 +435,15 @@ class Body extends Interactor {
     !! */
     allowprop(allowRotation, norotate, inertia)
 
+    !!/**
+    !! * Method of mass computation for Body.
+    !! * <br/><br/>
+    !! * This value will be set implicitly to FIXED when mass property is set.
+    !! * <br/>Setting back to DEFAULT will then set mass implicitly back to the default
+    !! * computed mass.
+    !! *
+    !! * @default MassMode.DEFAULT
+    !! */
     property(massMode,MassMode,{
         return [MassMode.DEFAULT,MassMode.FIXED][pr(inner).massMode];
     },{
@@ -447,11 +456,30 @@ class Body extends Interactor {
         pr(inner).invalidate_mass();
     })
 
+    !!/**
+    !! * Mass to be used for a Body in User built constraints.
+    !! * <br/><br/>
+    !! * This value is given as the inverse mass of the Body taking into account
+    !! * Body type (Static and Kinematic Bodies will have constraintMass of 0)
+    !! * as well as properties like allowMovement.
+    !! */
     property(constraintMass,Float,{
         if(!pr(inner).world) pr(inner).validate_mass();
         return pr(inner).smass;
     })
 
+    !!/**
+    !! * Mass of the Body.
+    !! * <br/><br/>
+    !! * This value is computed by default based on the Body's Shape's areas and
+    !! * Material densities.
+    !! * <br/>
+    !! * When massMode is DEFAULT, accessing this value for an empty Body will thus
+    !! * give an error as the value is undefined.
+    !! * <br/><br/>
+    !! * Setting this value will permit you to give a fixed mass to the Body
+    !! * implicitly changing the massMode to MassMode.FIXED
+    !! */
     property(mass,Float,{
         DEBUG(if(pr(inner).world) throw "Error: Space::world has no mass";)
         pr(inner).validate_mass();
@@ -472,6 +500,13 @@ class Body extends Interactor {
         pr(inner).invalidate_mass();
     })
 
+    !!/**
+    !! * Method of computing mass as seen by gravity.
+    !! * <br/><br/>
+    !! * This value will be implicitly set by modifying gravMass or gravMassScale properties.
+    !! *
+    !! * @default GravMassMode.DEFAULT
+    !! */
     property(gravMassMode,GravMassMode,{
         return [GravMassMode.DEFAULT,GravMassMode.FIXED,GravMassMode.SCALED][pr(inner).massMode];
     },{
@@ -484,6 +519,13 @@ class Body extends Interactor {
         pr(inner).invalidate_gravMass();
     })
 
+    !!/**
+    !! * Mass used in gravity computations in a Space.
+    !! * <br/><br/>
+    !! * Setting this value will implicitly change the gravMassMode to FIXED.
+    !! * <br/>
+    !! * Set to 0 to disable gravity for this Body.
+    !! */
     property(gravMass,Float,{
         DEBUG(if(pr(inner).world) throw "Error: Space::world has no gravMass";)
         pr(inner).validate_gravMass();
@@ -502,6 +544,14 @@ class Body extends Interactor {
         pr(inner).invalidate_gravMass();
     })
 
+    !!/**
+    !! * Mass scale used in computation of gravity for Body in Space.
+    !! * <br/><br/>
+    !! * Setting this value will implicitly change the gravMassMode to SCALED.
+    !! * <br/>
+    !! * When set, the gravMass of Body will be computed as this scaling factor
+    !! * multiplied with the Body's mass.
+    !! */
     property(gravMassScale,Float,{
         pr(inner).validate_gravMassScale();
         DEBUG(if(pr(inner).shapes.empty()) {
@@ -520,6 +570,13 @@ class Body extends Interactor {
         pr(inner).invalidate_gravMassScale();
     })
 
+    !!/**
+    !! * Method of computing Body moment of inertia.
+    !! * <br/><br/>
+    !! * This value will be set implicitly by modifying Body inertia property.
+    !! *
+    !! * @default InertiaMode.DEFAULT
+    !! */
     property(inertiaMode,InertiaMode,{
         return [InertiaMode.DEFAULT,InertiaMode.FIXED][pr(inner).inertiaMode];
     },{
@@ -532,11 +589,23 @@ class Body extends Interactor {
         pr(inner).invalidate_inertia();
     })
 
+    !!/**
+    !! * Moment of inertia to be used in user defined Constraints.
+    !! * <br/><br/>
+    !! * This value is equal to the inverse inertia of the Body taking into account
+    !! * Body type (Static and Kinematic bodies will have constraintInertia of 0).
+    !! * As well as properties like allowRotation.
+    !! */
     property(constraintInertia,Float,{
         if(!pr(inner).world) pr(inner).validate_inertia();
         return pr(inner).sinertia;
     })
 
+    !!/**
+    !! * Moment of inertia of this Body.
+    !! * <br/><br/>
+    !! * Setting this value will implicitly change the inertiaMode to FIXED.
+    !! */
     property(inertia,Float,{
         DEBUG(if(pr(inner).world) throw "Error: Space::world has no inertia";)
         pr(inner).validate_inertia();
@@ -749,12 +818,25 @@ class Body extends Interactor {
         return Vec2.get(tempx,tempy,weak);
     }
 
-    //----------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * Apply force to a point on Body defined in local coordinates.
+    !! * <br/><br/>
+    !! * This is equivalent to: <code>body.applyWorldForce(force, body.localToWorld(pos))</code>
+    !! * <br/><br/>
+    !! * If position argument is not given, then (0,0) is assumed so that force
+    !! * is applied at centre of Body.
+    !! *
+    !! * @param force The force to apply given in world coordinates.
+    !! * @param pos The position to apply force given in local coordinates.
+    !! *            (default &#40;0,0&#41;)
+    !! * @throws # If force is null or disposed of.
+    !! * @throws # If pos is non-null and disposed of.
+    !! */
     keep public function applyLocalForce(force:Vec2,pos:Vec2=null) {
         Disposed(force,Vec2);
         Disposed(pos,Vec2);
         DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
+        DEBUG(if(force == null) throw "Error: Cannot apply null force to Body";)
 
         vec_addeq(pr(inner).force,force.);
         if(pos!=null) {
@@ -767,11 +849,27 @@ class Body extends Interactor {
         if(isDynamic()) pr(inner).invalidate_wake();
         WEAK(force);
     }
+
+    !!/**
+    !! * Apply force to a point on Body defined in relative coordinates.
+    !! * <br/><br/>
+    !! * This is equivalent to: <code>body.applyWorldForce(force, body.relativeToWorld(pos))</code>
+    !! * <br/><br/>
+    !! * If position argument is not given, then (0,0) is assumed so that force
+    !! * is applied at centre of Body.
+    !! *
+    !! * @param force The force to apply given in world coordinates.
+    !! * @param pos The position to apply force given in relative coordinates.
+    !! *            (default &#40;0,0&#41;)
+    !! * @throws # If force is null or disposed of.
+    !! * @throws # If pos is non-null and disposed of.
+    !! */
     keep public function applyRelativeForce(force:Vec2,pos:Vec2=null) {
         Disposed(force,Vec2);
         Disposed(pos,Vec2);
 
         DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
+        DEBUG(if(force == null) throw "Error: Cannot apply null force to Body";)
 
         vec_addeq(pr(inner).force,force.);
         if(pos!=null) {
@@ -781,11 +879,25 @@ class Body extends Interactor {
         if(isDynamic()) pr(inner).invalidate_wake();
         WEAK(force);
     }
+
+    !!/**
+    !! * Apply force to a point on Body defined in world coordinates.
+    !! * <br/><br/>
+    !! * If position argument is not given, then body.position is assumed so that force
+    !! * is applied at centre of Body.
+    !! *
+    !! * @param force The force to apply given in world coordinates.
+    !! * @param pos The position to apply force given in local coordinates.
+    !! *            (default body.position)
+    !! * @throws # If force is null or disposed of.
+    !! * @throws # If pos is non-null and disposed of.
+    !! */
     keep public function applyWorldForce(force:Vec2,pos:Vec2=null) {
         Disposed(force,Vec2);
         Disposed(pos,Vec2);
 
         DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
+        DEBUG(if(force == null) throw "Error: Cannot apply null force to Body";)
 
         vec_addeq(pr(inner).force,force.);
         if(pos!=null) {
@@ -797,13 +909,26 @@ class Body extends Interactor {
         WEAK(force);
     }
 
-    //----------------------------------------------------------------------------------------------
-
+    !!/**
+    !! * Apply impulse to a point on Body defined in local coordinates.
+    !! * <br/><br/>
+    !! * This is equivalent to: <code>body.applyWorldImpulse(impulse, body.localToWorld(pos))</code>
+    !! * <br/><br/>
+    !! * If position argument is not given, then (0,0) is assumed so that impulse
+    !! * is applied at centre of Body.
+    !! *
+    !! * @param impulse The impulse to apply given in world coordinates.
+    !! * @param pos The position to apply impulse given in local coordinates.
+    !! *            (default &#40;0,0&#41;)
+    !! * @throws # If impulse is null or disposed of.
+    !! * @throws # If pos is non-null and disposed of.
+    !! */
     keep public function applyLocalImpulse(impulse:Vec2,pos:Vec2=null) {
         Disposed(impulse,Vec2);
         Disposed(pos,Vec2);
 
         DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
+        DEBUG(if(impulse == null) throw "Error: Cannot apply null impulse to Body";)
 
         pr(inner).validate_mass();
         vec_addeq(pr(inner).vel,impulse.,pr(inner).imass);
@@ -818,11 +943,27 @@ class Body extends Interactor {
         if(isDynamic()) pr(inner).invalidate_wake();
         WEAK(impulse);
     }
+
+    !!/**
+    !! * Apply impulse to a point on Body defined in relative coordinates.
+    !! * <br/><br/>
+    !! * This is equivalent to: <code>body.applyWorldImpulse(impulse, body.relativeToWorld(pos))</code>
+    !! * <br/><br/>
+    !! * If position argument is not given, then (0,0) is assumed so that impulse
+    !! * is applied at centre of Body.
+    !! *
+    !! * @param impulse The impulse to apply given in world coordinates.
+    !! * @param pos The position to apply impulse given in relative coordinates.
+    !! *            (default &#40;0,0&#41;)
+    !! * @throws # If impulse is null or disposed of.
+    !! * @throws # If pos is non-null and disposed of.
+    !! */
     keep public function applyRelativeImpulse(impulse:Vec2,pos:Vec2=null) {
         Disposed(impulse,Vec2);
         Disposed(pos,Vec2);
 
         DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
+        DEBUG(if(impulse == null) throw "Error: Cannot apply null impulse to Body";)
 
         pr(inner).validate_mass();
         vec_addeq(pr(inner).vel,impulse.,pr(inner).imass);
@@ -834,11 +975,25 @@ class Body extends Interactor {
         if(isDynamic()) pr(inner).invalidate_wake();
         WEAK(impulse);
     }
+
+    !!/**
+    !! * Apply impulse to a point on Body defined in world coordinates.
+    !! * <br/><br/>
+    !! * If position argument is not given, then body.position is assumed so that impulse
+    !! * is applied at centre of Body.
+    !! *
+    !! * @param impulse The impulse to apply given in world coordinates.
+    !! * @param pos The position to apply impulse given in relative coordinates.
+    !! *            (default body.position)
+    !! * @throws # If impulse is null or disposed of.
+    !! * @throws # If pos is non-null and disposed of.
+    !! */
     keep public function applyWorldImpulse(impulse:Vec2,pos:Vec2=null) {
         Disposed(impulse,Vec2);
         Disposed(pos,Vec2);
 
         DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
+        DEBUG(if(impulse == null) throw "Error: Cannot apply null impulse to Body";)
 
         pr(inner).validate_mass();
         vec_addeq(pr(inner).vel,impulse.,pr(inner).imass);
@@ -1097,24 +1252,62 @@ class Body extends Interactor {
         }
     });
 
-    keep public function normalImpulse(body:Body=null,freshOnly:Bool=false,weak:Bool=false) {
+    !!/**
+    !! * Evaluate sum effect of all normal contact impulses on Body.
+    !! * <br/><br/>
+    !! * If the body argument is non-null, then only impulses between 'this' and
+    !! * the given Body will be considered.
+    !! *
+    !! * @param body The Body to restrict consideration of impulses with.
+    !! *             (default null)
+    !! * @param freshOnly If true, then only 'new' contact points will be considered.
+    !! *             (default false)
+    !! * @return The summed effect of impulses acting on Body.
+    !! */
+    keep public function normalImpulse(body:Body=null,freshOnly:Bool=false) {
         vec3_new(ret,0,0,0);
         witharbs(COL,{
             var imp = arb.wrapper().collisionArbiter.normalImpulse(this,freshOnly);
             vec3_addeq(ret, imp.);
             imp.dispose();
         });
-        return Vec2.get(retx,rety,false);
+        return Vec3.get(retx,rety,retz);
     }
-    keep public function tangentImpulse(body:Body=null,freshOnly:Bool=false,weak:Bool=false) {
+
+    !!/**
+    !! * Evaluate sum effect of all tangent contact impulses on Body.
+    !! * <br/><br/>
+    !! * If the body argument is non-null, then only impulses between 'this' and
+    !! * the given Body will be considered.
+    !! *
+    !! * @param body The Body to restrict consideration of impulses with.
+    !! *             (default null)
+    !! * @param freshOnly If true, then only 'new' contact points will be considered.
+    !! *             (default false)
+    !! * @return The summed effect of impulses acting on Body.
+    !! */
+    keep public function tangentImpulse(body:Body=null,freshOnly:Bool=false) {
         vec3_new(ret,0,0,0);
         witharbs(COL,{
             var imp = arb.wrapper().collisionArbiter.tangentImpulse(this,freshOnly);
             vec3_addeq(ret, imp.);
             imp.dispose();
         });
-        return Vec2.get(retx,rety,weak);
+        return Vec3.get(retx,rety,retz);
     }
+
+    !!/**
+    !! * Evaluate sum effect of all contact impulses on Body.
+    !! * <br/><br/>
+    !! * If the body argument is non-null, then only impulses between 'this' and
+    !! * the given Body will be considered.
+    !! *
+    !! * @param body The Body to restrict consideration of impulses with.
+    !! *             (default null)
+    !! * @param freshOnly If true, then only 'new' contact points will be considered.
+    !! *             (default false)
+    !! * @return The summed effect of impulses acting on Body.
+    !! */
     keep public function totalContactsImpulse(body:Body=null,freshOnly:Bool=false) {
         vec3_new(ret,0,0,0);
         witharbs(COL,{
@@ -1124,6 +1317,19 @@ class Body extends Interactor {
         });
         return Vec3.get(retx,rety,retz);
     }
+
+    !!/**
+    !! * Evaluate sum effect of all rolling friction contact impulses on Body.
+    !! * <br/><br/
+    !! * If the body argument is non-null, then only impulses between 'this' and
+    !! * the given Body will be considered.
+    !! *
+    !! * @param body The Body to restrict consideration of impulses with.
+    !! *             (default null)
+    !! * @param freshOnly If true, then only 'new' contact points will be considered.
+    !! *             (default false)
+    !! * @return The summed effect of impulses acting on Body.
+    !! */
     keep public function rollingImpulse(body:Body=null,freshOnly:Bool=false) {
         var ret = 0.0;
         witharbs(COL,{
@@ -1132,8 +1338,16 @@ class Body extends Interactor {
         return ret;
     }
 
-    //--------------------------------------------------------------
-
+    !!/**
+    !! * Evaluate sum effect of all buoyancy impulses acting on Body.
+    !! * <br/><br/
+    !! * If the body argument is non-null, then only impulses between 'this' and
+    !! * the given Body will be considered.
+    !! *
+    !! * @param body The Body to restrict consideration of impulses with.
+    !! *             (default null)
+    !! * @return The summed effect of impulses acting on Body.
+    !! */
     keep public function buoyancyImpulse(body:Body=null) {
         vec3_new(ret,0,0,0);
         witharbs(FLUID,{
@@ -1144,6 +1358,16 @@ class Body extends Interactor {
         return Vec3.get(retx,rety,retz);
     }
 
+    !!/**
+    !! * Evaluate sum effect of all fluid drag impulses acting on Body.
+    !! * <br/><br/
+    !! * If the body argument is non-null, then only impulses between 'this' and
+    !! * the given Body will be considered.
+    !! *
+    !! * @param body The Body to restrict consideration of impulses with.
+    !! *             (default null)
+    !! * @return The summed effect of impulses acting on Body.
+    !! */
     keep public function dragImpulse(body:Body=null) {
         vec3_new(ret,0,0,0);
         witharbs(FLUID,{
@@ -1154,6 +1378,16 @@ class Body extends Interactor {
         return Vec3.get(retx,rety,retz);
     }
 
+    !!/**
+    !! * Evaluate sum effect of all fluid impulses acting on Body.
+    !! * <br/><br/
+    !! * If the body argument is non-null, then only impulses between 'this' and
+    !! * the given Body will be considered.
+    !! *
+    !! * @param body The Body to restrict consideration of impulses with.
+    !! *             (default null)
+    !! * @return The summed effect of impulses acting on Body.
+    !! */
     keep public function totalFluidImpulse(body:Body=null) {
         vec3_new(ret,0,0,0);
         witharbs(FLUID,{
@@ -1164,8 +1398,11 @@ class Body extends Interactor {
         return Vec3.get(retx,rety,retz);
     }
 
-    //--------------------------------------------------------------
-
+    !!/**
+    !! * Evaluate sum effect of all constraint impulses on this Body.
+    !! *
+    !! * @return The summed effect of constraint impulses acting on Body.
+    !! */
     keep public function constraintsImpulse() {
         vec3_new(ret,0,0,0);
         Iter(con,pr(inner).constraints,{
@@ -1176,8 +1413,21 @@ class Body extends Interactor {
         return Vec3.get(retx,rety,retz);
     }
 
-    //--------------------------------------------------------------
-
+    !!/**
+    !! * Evaluate sum effect of all impulses on Body.
+    !! * <br/><br/
+    !! * If the body argument is non-null, then only impulses between 'this' and
+    !! * the given Body will be considered when evaluating interaction impulses.
+    !! * <br/>
+    !! * Constraint impulses are not effected by the body argument.
+    !! *
+    !! * @param body The Body to restrict consideration of impulses with.
+    !! *             (default null)
+    !! * @param freshOnly If true, then only 'new' contact points will be considered
+    !! *             when evaluating contact impulses.
+    !! *             (default false)
+    !! * @return The summed effect of impulses acting on Body.
+    !! */
     keep public function totalImpulse(body:Body=null,freshOnly:Bool=false) {
         vec3_new(ret,0,0,0);
         var arbs = pr(inner).arbiters;
