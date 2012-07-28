@@ -28,7 +28,7 @@ class PR(Polygon) extends PR(Shape) {
         if(body!=null && body.isStatic() && body.space!=null)
             throw "Error: Cannot modify local vertex of Polygon added to a static body whilst within a Space";
     })
-    private function lverts_pa_validate() {
+    private function gverts_pa_validate() {
         DEBUG(if(body==null)
             throw "Error: World vertex only makes sense when Polygon is contained in a rigid body";
         )
@@ -64,7 +64,7 @@ class PR(Polygon) extends PR(Shape) {
             }
         }
 
-        vec._validate = lverts_pa_validate;
+        vec._validate = gverts_pa_validate;
     }
     private function lverts_subber(x:Vec2) {
         cleanup_lvert(x.pr(inner));
@@ -110,7 +110,7 @@ class PR(Polygon) extends PR(Shape) {
         var me = this;
         wrap_gverts = PR(MixVec2List).get(gverts,true);
         wrap_gverts.pr(inner).reverse_flag = reverse_flag;
-        wrap_gverts.pr(inner)._validate = validate_gverts;
+        wrap_gverts.pr(inner)._validate = gverts_validate;
     }
 
     public function get_edges() {
@@ -269,26 +269,24 @@ class PR(Polygon) extends PR(Shape) {
         gverts.erase(ite);
         Free(PR(Vec2),rem);
 
-        if(lverts.begin() != null) {
-            if(lverts.begin().next==null) {
-                Free(PR(Edge),edges.front());
-                edges.pop();
-                Free(PR(Edge),edges.front());
-                edges.pop();
-                edgeCnt-=2;
-            }else {
-                var rem = (ite2==null ? edges.front() : ite2.next.elem());
-                edges.erase(ite2);
-                Free(PR(Edge),rem);
-                edgeCnt--;
-            }
+        if (edgeCnt == 2) {
+            var rem = edges.pop_unsafe();
+            Free(PR(Edge),rem);
+            rem = edges.pop_unsafe();
+            Free(PR(Edge),rem);
+            edgeCnt = 0;
+        }else if (edgeCnt != 0) {
+            var rem = (ite2==null ? edges.front() : ite2.next.elem());
+            edges.erase(ite2);
+            Free(PR(Edge),rem);
+            edgeCnt--;
         }
     }
 
     //remove any collinear and thus dangerously redundant vertices.
     public function splice_collinear() {
         var pre = lverts.begin();
-        var cur = pre.next;
+        var cur = if (pre == null) null else pre.next;
 
         var cnt = lverts.size();
         while(cnt>2) {
