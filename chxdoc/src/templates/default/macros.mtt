@@ -10,6 +10,9 @@
 
 	<macro name="methodHeader(m)">
 		<h3>
+            <a href="javascript:show::m.name::()" id="::m.name::link">
+                <img class="descript" alt="expand"/>
+            </a>
 			<a name="::raw m.name::()"></a>$$showAccess(::m::)$$showDynamic(::m::)$$showInline(::m::)<span class="name">::raw m.name::</span>::m.params::(::if m.args != null::::raw m.args::::end::):::raw m.returns::
 		</h3>
 			::if m.isOverride::
@@ -19,69 +22,59 @@
 			::end::
 	</macro>
 
-	<macro name="methodDocs(m)">
-		<!-- Comment block -->
+	<macro name="methodDocs(m)">\
 		::if m.docs != null && m.docs.comments != null::
-		<div class="comment">::raw m.docs.comments::</div>
+		<div class="comment">::raw m.docs.comments::</div>\
 		::end::
 		::if m.docs != null || m.platforms != null::
-			<dl>
+			<dl>\
 			::if m.docs != null::
-				<!-- deprecated -->
 				::if m.docs.deprecated::
 					<dt><span class="deprecated">deprecated</span></dt>
 					<dd>::raw m.docs.deprecatedMsg::</dd>
 				::end::
-				<!-- type params -->
 				::if m.docs.typeParams.length != 0::
 					<dt>types</dt>
 					::foreach pd m.docs.typeParams::
 					<dd><font class="inlinecode">::pd.arg::</font> ::raw pd.desc::</dd>
 					::end::
 				::end::
-				<!-- method call parameters -->
 				::if m.docs.params.length != 0::
-					<dt>parameters</dt>
+					<dt>parameters</dt>\
 					::foreach pd m.docs.params::
-					<dd><font class="inlinecode">::pd.arg::</font> ::raw pd.desc::</dd>
+					<dd><font class="inlinecode">::pd.arg::</font> ::raw pd.desc::</dd>\
 					::end::
 				::end::
-				<!-- method return types comments -->
 				::if m.docs.returns.length != 0::
-					<dt>returns</dt>
+					<dt>returns</dt>\
 					::foreach s m.docs.returns::
-					<dd>::raw s::</dd>
+					<dd>::raw s::</dd>\
 					::end::
 				::end::
-				<!-- method throws -->
 				::if m.docs.throws.length != 0::
-					<dt>debug error</dt>
+					<dt>debug error</dt>\
 					::foreach td m.docs.throws::
-					<dd><a href="::raw td.uri::"><font class="inlinecode">::td.name::</font></a> ::raw td.desc::</dd>
+					<dd><a href="::raw td.uri::"><font class="inlinecode">::td.name::</font></a> ::raw td.desc::</dd>\
 					::end::
 				::end::
-				<!-- requires -->
 				::if m.docs.requires.length != 0::
 					<dt>requires</dt>
 					::foreach i m.docs.requires::
 					<dd>::raw i::</dd>
 					::end::
 				::end::
-				<!-- see -->
 				::if m.docs.see.length != 0::
 					<dt>see</dt>
 					::foreach i m.docs.see::
 					<dd>::raw i::</dd>
 					::end::
 				::end::
-				<!-- todo -->
 				::if m.docs.todos.length != 0::
 					<dt>todo</dt>
 					::foreach i m.docs.todos::
 					<dd>::raw i::</dd>
 					::end::
 				::end::
-				<!-- authors -->
 				::if m.docs.authors.length != 0::
 					<dt>authors</dt>
 					::foreach i m.docs.authors::
@@ -89,19 +82,21 @@
 					::end::
 				::end::
 			::end::
-			<!-- platforms -->
 			::if m.platforms != null::
 				::if m.platforms.length != 0 && (platforms == null || platforms.length > m.platforms.length) ::
 					<dt>platforms</dt>
 					<dd>::foreach p m.platforms::::if !repeat.p.first::, ::end::::p::::end::</dd>
 				::end::
 			::end::
-			</dl>
+			</dl>\
 		::end::
 	</macro>
 
 	<macro name="varHeader(f)">
 		<h3>
+            <a href="javascript:show::f.name::()" id="::f.name::link">
+                <img class="descript" alt="expand"/>
+            </a>
 			<a name="::f.name::"></a>$$showAccess(::f::)<span class="name">::f.name::</span>::raw f.rights:: : ::raw f.returns::
 		</h3>
 		::if f.isInherited::
@@ -109,19 +104,9 @@
 		::end::
 	</macro>
 
-	<macro name="varDocs(m)">
-		<!-- platforms -->
-		::if m.platforms != null::
-			<dl>
-			::if m.platforms.length != 0 && (platforms == null || platforms.length > m.platforms.length) ::
-				<dt>platforms</dt>
-				<dd>::foreach p m.platforms::::if !repeat.p.first::, ::end::::p::::end::</dd>
-			::end::
-			</dl>
-		::end::
-		<!-- Comment block -->
+	<macro name="varDocs(m)">\
 		::if m.docs != null && m.docs.comments != null::
-		<div class="comment">::raw m.docs.comments::</div>
+		<div class="comment">::raw m.docs.comments::</div>\
 		::end::
 	</macro>
 

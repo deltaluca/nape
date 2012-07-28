@@ -168,10 +168,10 @@ class TypeHandler<T> {
 
 	function makePathUrl( path : Path, css ) {
 		if(Utils.isFiltered(path, false))
-			return "<font class='fakelink'>"+path+"</font>";
+			return "<font class=\"fakelink\">"+path+"</font>";
 
         if (path == "Float" || path == "Int" || path == "Bool" || path == "Array" || path == "String" || path == "Void" || path == "Dynamic")
-			return "<font class='fakelink'>"+path+"</font>";
+			return "<font class=\"fakelink\">"+path+"</font>";
 
 		var p = path.split(".");
 		var name = p.pop();

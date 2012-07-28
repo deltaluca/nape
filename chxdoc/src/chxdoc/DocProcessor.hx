@@ -82,7 +82,7 @@ class DocProcessor {
 		// trim stars
 		doc = ~/^([ \t]*)\*+/gm.replace(doc, "$1");
 		doc = ~/\**[ \t]*$/gm.replace(doc, "");
-        doc = ~/<code>/gm.replace(doc, "<font class='inlinecode'>");
+        doc = ~/<code>/gm.replace(doc, "<font class=\"inlinecode\">");
         doc = ~/<\/code>/gm.replace(doc, "</font>");
 
 		var parts = doTags(doc.split("\n"));
@@ -132,6 +132,30 @@ class DocProcessor {
         // get rid of any newlines after <pre>
         var sk = docCtx.comments.split("\n");
         docCtx.comments = Lambda.map(sk, function (x) return if (x == "<pre>") x else x + "\n").join("");
+
+        // keep newlines in <pre> blocks!
+        var spres = docCtx.comments.split("</pre>");
+        var spres2 = [];
+        for(s in spres)
+        {
+            var pres = s.split("<pre>");
+            if (pres.length == 2)
+            {
+                pres[1] = (~/\n/g).replace(pres[1], "#NL#");
+            }
+            s = pres.join("<pre>");
+            spres2.push(s);
+        }
+        docCtx.comments = spres2.join("</pre>");
+
+        // convert newline characters into ' ' for multiline strings in output.
+        docCtx.comments = (~/\n/g).replace(docCtx.comments, " ");
+
+        // convert #NL# into newline with slash for javascript multiline strings
+        docCtx.comments = (~/#NL#/g).replace(docCtx.comments, "&#13;&#10;");
+
+        // convert ' into \' for output.
+        docCtx.comments = (~/'/g).replace(docCtx.comments, "&#39;");
 
 		// since tags are parsed bottom->up, we will reverse all the
 		// arrays just so docs reflect the same order
@@ -210,9 +234,11 @@ class DocProcessor {
                     str = str.substr(0, i) + str.substr(j + 1);
                 }
 				var p = str.split(" ");
+                var desc = doEmbeddedTags(p.join(" "));
+                desc = (~/'/g).replace(desc, "\\'");
 				docCtx.params.push({
 					arg : p.shift() + " ::",
-					desc : doEmbeddedTags(p.join(" ")),
+					desc : desc,
                     def : def
 				});
 			case "requires":
@@ -220,8 +246,10 @@ class DocProcessor {
 					doEmbeddedTags(packAccum(tagEreg.matched(2)))
 				);
 			case "return", "returns":
+                var desc = doEmbeddedTags(packAccum(tagEreg.matched(2)));
+                desc = (~/'/g).replace(desc, "\\'");
 				docCtx.returns.push(
-					doEmbeddedTags(packAccum(tagEreg.matched(2)))
+				    desc
 				);
 			case "see":
 				docCtx.see.push(
@@ -234,10 +262,12 @@ class DocProcessor {
 			case "throw", "throws":
 				var p = packAccum(tagEreg.matched(2)).split(" ");
 				var e = p.shift();
+                var desc = doEmbeddedTags(p.join(" "));
+                desc = (~/'/g).replace(desc, "\\'");
 				docCtx.throws.push( {
 					name : "", //e,
 					uri : "", //pkg.rootRelative + (StringTools.replace(e,".","/")) + ChxDocMain.config.htmlFileExtension,
-					desc : doEmbeddedTags(p.join(" ")),
+					desc : desc,
 				});
 			case "private":
 				docCtx.forcePrivate = true;
@@ -308,7 +338,7 @@ class DocProcessor {
 				buf.add("</pre>");
 				codes.push(code.split("\t").join("    "));
 			} else {
-				buf.add("<font class='inlinecode'>");
+				buf.add("<font class=\"inlinecode\">");
 				buf.add(tag);
 				buf.add("</font>");
 				codes.push(code);

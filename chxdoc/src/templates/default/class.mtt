@@ -9,12 +9,70 @@
 	::end::
 	<link rel="stylesheet" type="text/css" href="::meta.stylesheet::" />
 <script type="text/javascript">
-function windowTitle()
-{
+function windowTitle() {
     if (location.href.indexOf('is-external=true') == -1) {
         parent.document.title="::name:: (::config.title::)";
     }
 }
+
+::foreach f staticVars::
+function show::f.name::() {
+    var div = document.getElementById("::f.name::");
+    div.innerHTML = '$$varDocs(::f::)';
+    var link = document.getElementById("::f.name::link");
+    link.href = "javascript:hide(\"::f.name::\")";
+    link.alt = "contract";
+}
+::end::
+
+::foreach m staticMethods::
+function show::m.name::() {
+    var div = document.getElementById("::m.name::");
+    div.innerHTML = '$$methodDocs(::m::)';
+    var link = document.getElementById("::m.name::link");
+    link.href = "javascript:hide(\"::m.name::\")";
+    link.alt = "contract";
+}
+::end::
+
+::foreach f vars::
+function show::f.name::() {
+    var div = document.getElementById("::f.name::");
+    div.innerHTML = '$$varDocs(::f::)';
+    var link = document.getElementById("::f.name::link");
+    link.href = "javascript:hide(\"::f.name::\")";
+    link.alt = "contract";
+}
+::end::
+
+::foreach m methods::
+function show::m.name::() {
+    var div = document.getElementById("::m.name::");
+    div.innerHTML = '$$methodDocs(::m::)';
+    var link = document.getElementById("::m.name::link");
+    link.href = "javascript:hide(\"::m.name::\")";
+    link.alt = "contract";
+}
+::end::
+
+::if constructor != null::
+function shownew() {
+    var div = document.getElementById("new");
+    div.innerHTML = '$$methodDocs(::constructor::)';
+    var link = document.getElementById("newlink");
+    link.href = "javascript:hide(\"new\")";
+    link.alt = "contract";
+}
+::end::
+
+function hide(name) {
+    var div = document.getElementById(name);
+    div.innerHTML = '';
+    var link = document.getElementById(name+"link");
+    link.href = "javascript:show"+name+"()";
+    link.alt = "expand";
+}
+
 </script>
 <noscript></noscript>
 </head>
@@ -66,7 +124,7 @@ function windowTitle()
 			::foreach f staticVars::
 			<div class="member">
 				<div class="header">$$varHeader(::f::)</div>
-				<div class="body">$$varDocs(::f::)</div>
+				<div class="body" id="::f.name::"></div>
 			</div>
 			::end::
 		</div>
@@ -81,7 +139,7 @@ function windowTitle()
 			::foreach m staticMethods::
 			<div class="member">
 				<div class="header">$$methodHeader(::m::)</div>
-				<div class="body">$$methodDocs(::m::)</div>
+				<div class="body" id="::m.name::"></div>
 			</div>
 			::end::
 		</div>
@@ -95,9 +153,12 @@ function windowTitle()
 		<div class="members">
 			<div class="member">
 				<div class="header">
+                    <a href="javascript:shownew()" id="newlink">
+                        <img class="descript" alt="expand"/>
+                    </a>
 					<a name="::raw constructor.name::()"></a>$$showAccess(::constructor::)<span class="name">::raw constructor.name::</span>(::if constructor.args != null::::raw constructor.args::::end::)
 				</div>
-				<div class="body">$$methodDocs(::constructor::)</div>
+				<div class="body" id="new"></div>
 			</div>
 		</div>
 	</div>
@@ -129,8 +190,10 @@ function windowTitle()
 			::end::
 			<span class="::spanClass::">
 				<div class="member">
-					<div class="header">$$varHeader(::f::)</div>
-					<div class="body">$$varDocs(::f::)</div>
+					<div class="header">
+                        $$varHeader(::f::)
+                    </div>
+					<div class="body" id="::f.name::"></div>
 				</div>
 			</span>
 			::end::
@@ -165,7 +228,7 @@ function windowTitle()
 			<span class="::spanClass::">
 				<div class="member">
 					<div class="header">$$methodHeader(::m::)</div>
-					<div class="body">$$methodDocs(::m::)</div>
+					<div class="body" id="::m.name::"></div>
 				</div>
 			</span>
 			::end::
