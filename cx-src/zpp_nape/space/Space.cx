@@ -195,7 +195,7 @@ class PR(CbSetManager) {
 
     public function new(space:PR(Space)) {
         Get(Set(PR(CbSet)), cbsets);
-        cbsets.lt = PR(CbSet).set_lt;
+        cbsets.lt = PR(CbSet).setlt;
         this.space = space;
     }
 
@@ -1396,8 +1396,8 @@ class PR(Space) {
                     //that is to say up_stamp and immState
                     if(arb.type != PR(Arbiter).SENSOR && !arb.cleared
                     && arb.up_stamp==stamp && ((arb.immState&Flag(ImmState,ACCEPT))!=0)) {
-                        if(arb.b1.isDynamic()) wake(arb.b1);
-                        if(arb.b2.isDynamic()) wake(arb.b2);
+                        if(arb.b1.isDynamic() && arb.b1.component.sleeping) wake(arb.b1);
+                        if(arb.b2.isDynamic() && arb.b2.component.sleeping) wake(arb.b2);
                     }
                 });
 //                    }else if(!fst) bodyCbWake(o);
@@ -2143,9 +2143,9 @@ class PR(Space) {
                         }
                         //optimisation, none-accept arbiter need not wake it's constituents
                         if(waking && (arb.immState & Flag(ImmState, ACCEPT)) !=0) {
-                            if(arb.b1.isDynamic())
+                            if(arb.b1.isDynamic() && arb.b1.component.sleeping)
                                 wake(arb.b1);
-                            if(arb.b2.isDynamic())
+                            if(arb.b2.isDynamic() && arb.b2.component.sleeping)
                                 wake(arb.b2);
                         }
 

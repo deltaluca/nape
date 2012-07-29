@@ -32,7 +32,7 @@ class PR(CbSetPair) {
     }
     public static inline function get(a:PR(CbSet), b:PR(CbSet)):PR(CbSetPair) {
         var ret; Get(PR(CbSetPair), ret);
-        if (PR(CbSet).set_lt(a, b)) {
+        if (PR(CbSet).setlt(a, b)) {
             ret.a = a; ret.b = b;
         }else {
             ret.a = b; ret.b = a;
@@ -42,12 +42,12 @@ class PR(CbSetPair) {
 
     // Defines a total ordering of CbSetPair's based on lexicographical sorting of
     // the CbSet's with == for equality due to unique nature of CbSets's
-    public static inline function set_lt(x:PR(CbSetPair), y:PR(CbSetPair)):Bool {
-        assert((x.a==y.a) == (!PR(CbSet).set_lt(x.a,y.a) && !PR(CbSet).set_lt(y.a,x.a)),
+    public static inline function setlt(x:PR(CbSetPair), y:PR(CbSetPair)):Bool {
+        assert((x.a==y.a) == (!PR(CbSet).setlt(x.a,y.a) && !PR(CbSet).setlt(y.a,x.a)),
             "Assumption that CbSet's are unique!! Aka we can compare for 'equal' CbSet with == is wrong?? :("
         );
 
-        return PR(CbSet).set_lt(x.a,y.a) || (x.a==y.a && PR(CbSet).set_lt(x.b,y.b));
+        return PR(CbSet).setlt(x.a,y.a) || (x.a==y.a && PR(CbSet).setlt(x.b,y.b));
     }
 
     // Check a given listener is actually usable for the two given cbset.
@@ -84,7 +84,7 @@ class PR(CbSetPair) {
                 }
                 aite = aite.next;
                 bite = bite.next;
-            }elif(PR(Listener).set_lt(ax,bx))
+            }elif(PR(Listener).setlt(ax,bx))
                  aite = aite.next;
             else bite = bite.next;
         }
