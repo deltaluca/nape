@@ -48,13 +48,13 @@ class PR(Body) extends PR(Interactor) {
     //avoid use of closures, and re-use list/set
     static var bodystack:List(PR(Body)) = null;
     static var bodyset:Set(PR(Body)) = null;
-    static function bodyset_lt(a:PR(Body), b:PR(Body)) return a.id < b.id
+    static function bodysetlt(a:PR(Body), b:PR(Body)) return a.id < b.id
     public var graph_depth:Int;
 
     inline function init_bodysetlist() {
         if(bodyset==null) {
             bodyset = new Set(PR(Body))();
-            bodyset.lt = bodyset_lt;
+            bodyset.lt = bodysetlt;
             bodystack = new List(PR(Body))();
         }
         assert(bodyset.empty(),"non-empty bodyset in connected bodies at init.");
@@ -760,7 +760,7 @@ class PR(Body) extends PR(Interactor) {
     public function addedToSpace() {
         assert(component==null,"already has a component?");
 
-        component = Get(PR(Component));
+        Get(PR(Component), component);
         component.isBody = true;
         component.body = this;
 

@@ -363,16 +363,16 @@ $(expand genSet(T) class Set(T) {
         var x:Set(T) = null;
         var cur:Set(T) = null;
         if(parent==null) {
-            x = Get(Set(T)); x.data = obj;
+            Get(Set(T), x); x.data = obj;
             parent = x;
         }else {
             cur = parent;
             while(true) {
                 if(lt(obj,cur.data)) {
-                    if(cur.prev==null) { x = Get(Set(T)); x.data = obj; cur.prev = x; x.parent = cur; break; }
+                    if(cur.prev==null) { Get(Set(T), x); x.data = obj; cur.prev = x; x.parent = cur; break; }
                     else cur = cur.prev;
                 }elif(lt(cur.data,obj)) {
-                    if(cur.next==null) { x = Get(Set(T)); x.data = obj; cur.next = x; x.parent = cur; break; }
+                    if(cur.next==null) { Get(Set(T), x); x.data = obj; cur.next = x; x.parent = cur; break; }
                     else cur = cur.next;
                 }else break;
             }
@@ -393,16 +393,16 @@ $(expand genSet(T) class Set(T) {
         var x:Set(T) = null;
         var cur:Set(T) = null;
         if(parent==null) {
-            x = Get(Set(T)); x.data = obj;
+            Get(Set(T), x); x.data = obj;
             parent = x;
         }else {
             cur = parent;
             while(true) {
                 if(lt(obj,cur.data)) {
-                    if(cur.prev==null) { x = Get(Set(T)); x.data = obj; cur.prev = x; x.parent = cur; break; }
+                    if(cur.prev==null) { Get(Set(T), x); x.data = obj; cur.prev = x; x.parent = cur; break; }
                     else cur = cur.prev;
                 }elif(lt(cur.data,obj)) {
-                    if(cur.next==null) { x = Get(Set(T)); x.data = obj; cur.next = x; x.parent = cur; break; }
+                    if(cur.next==null) { Get(Set(T), x); x.data = obj; cur.next = x; x.parent = cur; break; }
                     else cur = cur.next;
                 }else break;
             }
@@ -423,7 +423,7 @@ $(expand genSet(T) class Set(T) {
     public function insert(obj:T) {
         assert(!has(obj),"object already in set");
 
-        var x = Get(Set(T));
+        var x; Get(Set(T), x);
         x.data = obj;
 
         if(parent==null) parent = x; //roots

@@ -77,7 +77,7 @@ class PR(CbSet) {
                         npre = nite;
                         nite = nite.next;
                     }
-                    elif (nite == null || PR(Listener).set_lt(cx, nite.elem())) {
+                    elif (nite == null || PR(Listener).setlt(cx, nite.elem())) {
                         assert(!n.has(cx),"merged list already contains listener");
 
                         //only insert if valid for entire set of CbTypes!
@@ -133,15 +133,15 @@ class PR(CbSet) {
     //
     // Total ordering of CbSet's.
     //
-    public static function set_lt(a:PR(CbSet), b:PR(CbSet)):Bool {
+    public static function setlt(a:PR(CbSet), b:PR(CbSet)):Bool {
         //lexicographical sorting
         var i = a.cbTypes.begin();
         var j = b.cbTypes.begin();
         while (i != null && j != null) {
             var ca = i.elem();
             var cb = j.elem();
-            if (PR(CbType).set_lt(ca, cb)) return true;
-            if (PR(CbType).set_lt(cb, ca)) return false;
+            if (PR(CbType).setlt(ca, cb)) return true;
+            if (PR(CbType).setlt(cb, ca)) return false;
             else {
                 i = i.next;
                 j = j.next;
@@ -190,7 +190,7 @@ class PR(CbSet) {
             var pre = null;
             Iter(cur, cbTypes,{
                 if (pre != null) {
-                    assert(PR(CbType).set_lt(pre, cur), "cbTypes of CbSet not well-ordered!");
+                    assert(PR(CbType).setlt(pre, cur), "cbTypes of CbSet not well-ordered!");
                 }
                 pre = cur;
             });
@@ -201,7 +201,7 @@ class PR(CbSet) {
     // Construct CbSet from list of possibly unordered CbTypes
     //
     public static function get(cbTypes:List(PR(CbType))) {
-        var ret = Get(PR(CbSet));
+        var ret; Get(PR(CbSet), ret);
         var ite = null;
         #if NAPE_ASSERT
             assert_cbTypes(cbTypes);

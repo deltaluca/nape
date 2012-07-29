@@ -67,7 +67,7 @@ class PR(Interactor) {
 
     //--------------------------------------------------------------------
 
-    flibmdel public inline function get_space() {
+    flibmdel public inline function getSpace() {
         return
             if(isShape())  ishape.body==null ? null : ishape.body.space
             elif(isBody()) ibody.space
@@ -95,12 +95,12 @@ class PR(Interactor) {
     function wrap_cbTypes_subber(pcb:CbType):Void {
         var cb = pcb.pr(inner);
         if(cbTypes.has(cb)) {
-            if(get_space()!=null) dealloc_cbSet();
+            if(getSpace()!=null) dealloc_cbSet();
 
             cbTypes.remove(cb);
             cb.remInteractor(this);
 
-            if(get_space()!=null) alloc_cbSet();
+            if(getSpace()!=null) alloc_cbSet();
 
             wake();
         }
@@ -111,12 +111,12 @@ class PR(Interactor) {
     }
     public function insert_cbtype(cb:PR(CbType)) {
         if(!cbTypes.has(cb)) {
-            if(get_space()!=null) dealloc_cbSet();
+            if(getSpace()!=null) dealloc_cbSet();
 
-            Insert(cb,cbTypes,PR(CbType).set_lt);
+            Insert(cb,cbTypes,PR(CbType).setlt);
             cb.addInteractor(this);
 
-            if(get_space()!=null) alloc_cbSet();
+            if(getSpace()!=null) alloc_cbSet();
 
             wake();
         }
@@ -125,7 +125,7 @@ class PR(Interactor) {
     //--------------------------------------------------------------------
 
     public function alloc_cbSet() {
-        var space = get_space();
+        var space = getSpace();
         assert(space!=null,"space null in alloc_cbSet");
         if((cbSet = space.cbsets.get(cbTypes))!=null) {
             cbSet.increment();
@@ -137,7 +137,7 @@ class PR(Interactor) {
         }
     }
     public function dealloc_cbSet() {
-        var space = get_space();
+        var space = getSpace();
         assert(space!=null,"space null in dealloc_cbSet");
         if(cbSet!=null) {
             cbSet.remInteractor(this);
@@ -155,7 +155,7 @@ class PR(Interactor) {
 
     public function setGroup(group:PR(InteractionGroup)) {
         if(this.group!=group) {
-            var inspace = get_space()!=null;
+            var inspace = getSpace()!=null;
 
             if(inspace && this.group!=null) this.group.remInteractor(this);
             this.group = group;

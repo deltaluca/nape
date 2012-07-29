@@ -93,8 +93,7 @@ $(mixin STATS(T)
 //-------------------------------------------
 
 //for public API types
-$(mixin global PublicGet(T) {
-    var ret:T;
+$(mixin global PublicGet(T, ret) {
     if(PR(PubPool).pool`T==null) {
         ret = new T();
         #if NAPE_POOL_STATS
@@ -115,11 +114,9 @@ $(mixin global PublicGet(T) {
             T.POOL_ADD++;
         #end
     }
-    ret;
 });
 
-$(mixin global Get(T) {
-    var ret:T;
+$(mixin global Get(T, ret) {
     if(T.pr(pool)==null) {
         ret = new T();
         #if NAPE_POOL_STATS
@@ -136,7 +133,6 @@ $(mixin global Get(T) {
         #end
     }
     ret.alloc();
-    ret;
 });
 
 $(mixin global PublicFree(T,O) {

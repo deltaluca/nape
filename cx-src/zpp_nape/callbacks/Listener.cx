@@ -40,7 +40,7 @@ class PR(Listener) {
     }
 
     // Defined ordering of listeners used in CbSet/CbType listings.
-    public inline static function set_lt(a:PR(Listener), b:PR(Listener)):Bool {
+    public inline static function setlt(a:PR(Listener), b:PR(Listener)):Bool {
         return (a.precedence > b.precedence)
             || (a.precedence == b.precedence && a.id > b.id);
     }
@@ -272,7 +272,7 @@ class PR(InteractionListener) extends PR(Listener) {
                     W.inlined_add(a);
                     aite = aite.next;
                     bite = bite.next;
-                }elif (PR(T).set_lt(a, b)) {
+                }elif (PR(T).setlt(a, b)) {
                     U.inlined_add(a);
                     aite = aite.next;
                 }else {
@@ -308,8 +308,8 @@ class PR(InteractionListener) extends PR(Listener) {
     // the two OptionTypes. These are all the pairs of CbSet's influenced by the
     // existance of this Listener!
     function with_uniquesets(fresh:Bool) {
-        var set = Get(Set(PR(CbSetPair)));
-        set.lt = PR(CbSetPair).set_lt;
+        var set; Get(Set(PR(CbSetPair)), set);
+        set.lt = PR(CbSetPair).setlt;
 
         // Generate all pairings of CbSets by first finding all unique pairings
         // Of CbType generatable from OptionTypes.
@@ -351,7 +351,7 @@ class PR(InteractionListener) extends PR(Listener) {
     // This is inlined to avoid actual closure generation in use.
     //
     flibmdel inline function with_union(lambda:PR(CbType)->Void):Void {
-        // includes list are total ordered by PR(CbType).set_lt
+        // includes list are total ordered by PR(CbType).setlt
         // so we can perform the union in O(N+M) time.
         var ite1 = options1.includes.begin();
         var ite2 = options2.includes.begin();
@@ -361,7 +361,7 @@ class PR(InteractionListener) extends PR(Listener) {
             if (cb1==cb2) {
                 lambda(cb1);
                 ite1 = ite1.next; ite2 = ite2.next;
-            }elif (PR(CbType).set_lt(cb1, cb2)) {
+            }elif (PR(CbType).setlt(cb1, cb2)) {
                 lambda(cb1);
                 ite1 = ite1.next;
             }else {

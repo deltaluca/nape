@@ -32,7 +32,7 @@ class Filtering extends FixedStep {
 		hand.active = false;
 		hand.stiff = false;
 		hand.space = space;
-		
+
 		stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function (_) {
 			var mp = new Vec2(mouseX,mouseY);
 			for(b in space.bodiesUnderPoint(mp)) {
@@ -106,7 +106,7 @@ class Filtering extends FixedStep {
 			b.shapes.add(new Polygon(Polygon.box(40,40)));
 			b.group = boxgroup; //again could use Shapes instead
 			b.space = space;
-	
+
 			var c = new Body(BodyType.DYNAMIC, new Vec2((i+1)*stage.stageWidth/11,400));
 			c.shapes.add(new Circle(20));
 			c.group = circgroup;
