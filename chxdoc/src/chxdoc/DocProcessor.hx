@@ -241,10 +241,11 @@ class DocProcessor {
                     str = str.substr(0, i) + str.substr(j + 1);
                 }
 				var p = str.split(" ");
+                var arg = p.shift() + " ::";
                 var desc = doEmbeddedTags(p.join(" "));
                 desc = (~/'/g).replace(desc, "\\'");
 				docCtx.params.push({
-					arg : p.shift() + " ::",
+                    arg : arg,
 					desc : desc,
                     def : def
 				});
