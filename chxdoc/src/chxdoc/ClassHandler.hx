@@ -132,6 +132,9 @@ class ClassHandler extends TypeHandler<ClassCtx> {
                         lines.shift(); //remove empty line between header and body.
                         f.docs.comments = lines.join("\n");
 
+                        // convert newline characters into ' ' for multiline strings in output.
+                        f.docs.comments = (~/\n/g).replace(f.docs.comments, " ");
+
                         f.docs.params = fieldctx.docs.params;
                         f.docs.returns = fieldctx.docs.returns;
                         f.docs.throws = fieldctx.docs.throws;

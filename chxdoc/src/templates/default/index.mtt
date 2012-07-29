@@ -1,13 +1,88 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Frameset//EN" "http://www.w3.org/tr/html4/frameset.dtd">
 <html>
-	<head>
-		<title>::config.title::</title>
-	</head>
-	<frameset cols="180px,*" border="1" frameborder="1" framespacing="0" bordercolor="#000000">
-		<frameset rows="40%,60%" border="1" frameborder="1" framespacing="0" bordercolor="#000000">
-			<frame src="all_packages::config.htmlFileExtension::" name="packageListFrame" title="All Packages" />
-			<frame src="all_classes::config.htmlFileExtension::" name="packageFrame" title="All classes and interfaces" />
-		</frameset>
-		<frame src="overview::config.htmlFileExtension::" name="classFrame" title="Package, class and interface descriptions" scrolling="yes" />
-	</frameset>
+<head>
+    <title>::config.title::</title>
+	<link rel="stylesheet" type="text/css" href="::meta.stylesheet::" />
+<script type="text/javascript">
+function windowTitle() {
+    if (location.href.indexOf('is-external=true') == -1) {
+        parent.document.title="Overview (::config.title::)";
+    }
+}
+
+function show(name) {
+    var link = document.getElementById(name+"link");
+    link.href = "javascript:hide(\""+name+"\")";
+    var img = link.children[0];
+    img.alt = "-";
+    img.src = "images/hide.png";
+}
+
+function hide(name) {
+    var div = document.getElementById(name);
+    div.innerHTML = '';
+    var link = document.getElementById(name+"link");
+    link.href = "javascript:show"+name+"()";
+    var img = link.children[0];
+    img.alt = "+";
+    img.src = "images/show.png";
+}
+
+::foreach p config.allPackages::
+function show::p.fullnodot::() {
+    var div = document.getElementById("::p.fullnodot::");
+    var html = '';
+    ::foreach i p.types::
+    html += '<li class="::i.type::"><a href="types/::i.subdir::::i.name::::config.htmlFileExtension::" title="::i.name::">::i.name::</a></li>';
+    ::end::
+    div.innerHTML = html;
+    show("::p.fullnodot::");
+}fullnodotV
+::end::
+</script>
+
+<noscript></noscript>
+</head>
+<body onload="windowTitle();">
+
+<script language="javascript" type="text/javascript" src="chxdoc.js"></script>
+
+<div class="tdoc">
+    <div class="tdoctitle">
+        <h1 class="::type::">Overview</h1>
+    </div>
+    <div class="tdoclink">
+        <a href="#top">Top</a>
+    </div>
+</div>
+
+<div id="menu" class="tmenu">
+<ul class="types">
+    <li class="overview">
+        <a href="index.html" title="Overview">&nbsp;&nbsp;Overview</a>
+    </li>
+    ::foreach p config.allPackages::
+    <li class="pckg">
+        <a class="expand" href="javascript:show::p.fullnodot::()" id="::p.fullnodot::link">
+            <img class="descript" alt="+" src="images/show.png"/>
+        </a>
+        ::p.full::
+    </li>
+    <div class="pckgtypes" id="::p.fullnodot::">
+    </div>
+    ::end::
+</ul>
+</div>
+
+<div class="gdoc" id="main">
+<a name="top"></a>
+	<div id="class-frame" class="type-frame">
+    <h1>API Documentation for Nape Physics Library</h1>
+    UML Diagram of relationships between Nape classes.
+    <br/><br/>
+    <img src="images/structure.png"/>
+    </div>
+</div>
+
+</body>
 </html>
