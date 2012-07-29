@@ -22,7 +22,7 @@ class Vertex {
         forced = false;
     }
     public function alloc() {
-        links = Get(Set(Vertex));
+        links; Get(Set(Vertex), links);
         links.lt = less_xy;
     }
 
@@ -35,7 +35,7 @@ class Vertex {
     public static function swap_nodes(p:Vertex,q:Vertex) swap(p.node,q.node)
 
     public static function get(x:Float,y:Float) {
-        var ret = Get(Vertex);
+        var ret; Get(Vertex, ret);
         vec_set(ret.,$(->));
         return ret;
     }
@@ -62,7 +62,7 @@ class Segment {
         vertices = null;
     }
     public function alloc() {
-        vertices = Get(Set(Vertex));
+        Get(Set(Vertex), vertices);
         vertices.lt = less_xy;
     }
 
@@ -80,7 +80,7 @@ class Segment {
         id = ID(Segment);
     }
     public static function get(left:Vertex,right:Vertex) {
-        var ret = Get(Segment);
+        var ret; Get(Segment, ret);
         ret.left  = left;
         ret.right = right;
         ret.vertices.insert(left);
@@ -128,7 +128,7 @@ class Event {
     function new() {}
 
     public static function get(v:Vertex) {
-        var ret = Get(Event);
+        var ret; Get(Event, ret);
         ret.vertex = v;
         return ret;
     }
@@ -141,7 +141,7 @@ class Sweep {
     public var tree:Set(Segment);
 
     public function new() {
-        tree = Get(Set(Segment));
+        Get(Set(Segment), tree);
         tree.lt = edge_lt;
         tree.swapped = swap_nodes;
     }
@@ -320,11 +320,11 @@ class PR(Simple) {
             inthash = new FastHash2(Hashable2(Bool))();
         }
 
-        var vertices = Get(Set(Vertex));
+        var vertices; Get(Set(Vertex), vertices);
         vertices.lt = Vertex.less_xy;
         vertices.swapped = Vertex.swap_nodes;
 
-        var queue = Get(Set(Event));
+        var queue; Get(Set(Event), queue);
         queue.lt = Event.less_xy;
         queue.swapped = Event.swap_nodes;
 
@@ -365,7 +365,7 @@ class PR(Simple) {
         )
         do_seg(pre,fst);
 
-        var ints = Get(Set(Event));
+        var ints; Get(Set(Event), ints);
         ints.lt = Event.less_xy;
 
         while(!queue.empty()) {

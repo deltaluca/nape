@@ -2,25 +2,25 @@ package zpp_nape.phys;
 $(import);
 
 class PR(FluidProperties) {
-    
+
     PRFeatureMix(FluidProperties,fluidProperties)
-    
+
     public function copy() {
-        var ret = Get(PR(FluidProperties));
+        var ret; Get(PR(FluidProperties), ret);
         ret.viscosity = viscosity;
         ret.density = density;
         return ret;
     }
-    
+
     public function new() {
         feature_cons();
         density = viscosity = 1;
         wrap_gravity = null;
         vec_set(gravity,0,0);
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     public var viscosity:Float;
     public var density:Float;
     vec_new(public, gravity); public var wrap_gravity:Vec2;
@@ -39,8 +39,8 @@ class PR(FluidProperties) {
         wrap_gravity.pr(inner)._inuse = true;
         wrap_gravity.pr(inner)._invalidate = gravity_invalidate;
         wrap_gravity.pr(inner)._validate = gravity_validate;
-    } 
-    
+    }
+
     public function invalidate() {
         Iter(shape,shapes,shape.invalidate_fluidprops());
     }

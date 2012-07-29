@@ -69,7 +69,7 @@ class PR(CallbackSet) {
     public var int2:PR(Interactor);
 
     public static function get(i1:PR(Interactor),i2:PR(Interactor)) {
-        var ret = Get(PR(CallbackSet));
+        var ret; Get(PR(CallbackSet), ret);
         assert(i1!=i2,"CallbackSet between the same interactor?");
         if(i1.id<i2.id) { ret.int1 = i1; ret.int2 = i2; }
         else            { ret.int1 = i2; ret.int2 = i1; }
@@ -157,7 +157,7 @@ class PR(CbSetManager) {
 
         #if NAPE_ASSERT PR(CbSet).assert_cbTypes(cbTypes); #end
         //allocate a 'fake' CbSet for lookup by comparison in cbsets set.
-        var fake = Get(PR(CbSet));
+        var fake; Get(PR(CbSet), fake);
         var faketypes = fake.cbTypes;
         fake.cbTypes = cbTypes;
 
@@ -194,7 +194,7 @@ class PR(CbSetManager) {
     }
 
     public function new(space:PR(Space)) {
-        cbsets = Get(Set(PR(CbSet)));
+        Get(Set(PR(CbSet)), cbsets);
         cbsets.lt = PR(CbSet).set_lt;
         this.space = space;
     }
@@ -853,7 +853,7 @@ class PR(Space) {
 
     public function push_callback(i:PR(Listener)) {
         assert(i!=null,"null listenere for push_callback?");
-        var cb = Get(PR(Callback));
+        var cb; Get(PR(Callback), cb);
         callbacks.push(cb);
         cb.listener = i;
         return cb;
@@ -1466,7 +1466,7 @@ class PR(Space) {
 
             var root = DSF(find(oc));
             if(root.island==null) {
-                root.island = Get(PR(Island));
+                Get(PR(Island), root.island);
                 islands.inlined_add(root.island);
                 root.island.sleep = true;
             }
@@ -2180,11 +2180,11 @@ class PR(Space) {
                 var first = xarb==null;
 
                 var arb; var swapped = false;
-                if(first) arb = Get(PR(FluidArbiter))
+                if(first) Get(PR(FluidArbiter), arb)
                 else {
                     if(xarb.fluidarb==null) {
                         xarb.lazyRetire(this,null);
-                        arb = Get(PR(FluidArbiter));
+                        Get(PR(FluidArbiter), arb);
                         arb.intchange = true;
                         first = true;
                         swapped = true;
@@ -2201,12 +2201,12 @@ class PR(Space) {
 
                 var arb; var swapped = false;
                 if(first) {
-                    arb = Get(PR(ColArbiter));
+                    Get(PR(ColArbiter), arb);
                     arb.stat = stat;
                 } else {
                     if(xarb.colarb==null) {
                         xarb.lazyRetire(this,null);
-                        arb = Get(PR(ColArbiter));
+                        Get(PR(ColArbiter), arb);
                         arb.intchange = true;
                         arb.stat = stat;
                         first = true;
@@ -2231,11 +2231,11 @@ class PR(Space) {
                 var first = xarb==null;
 
                 var arb; var swapped = false;
-                if(first) arb = Get(PR(SensorArbiter))
+                if(first) Get(PR(SensorArbiter), arb)
                 else {
                     if(xarb.sensorarb==null) {
                         xarb.lazyRetire(this,null);
-                        arb = Get(PR(SensorArbiter));
+                        Get(PR(SensorArbiter), arb);
                         arb.intchange = true;
                         first = true;
                         swapped = true;

@@ -54,7 +54,7 @@ class PR(AABBNode) {
 
     MixPool(PR(AABBNode))
     flibmdel public inline function alloc() {
-        aabb = Get(PR(AABB));
+        Get(PR(AABB), aabb);
         moved = false;
         synced = false;
         first_sync = false;
@@ -176,7 +176,7 @@ class PR(AABBTree) {
 
             //create a new parent
             var oparent = sibling.parent;
-            var nparent = Get(PR(AABBNode));
+            var nparent; Get(PR(AABBNode), nparent);
             nparent.parent = oparent;
             nparent.aabb.setCombine(leafaabb,sibling.aabb);
             nparent.height = sibling.height + 1;
@@ -341,7 +341,7 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
         assert(shape.node==null,"shape has been inserted already");
         assert(shape.body!=null,"shape inserted with no body");
 
-        var node = Get(PR(AABBNode));
+        var node; Get(PR(AABBNode), node);
         node.shape = shape;
         shape.node = node;
 
@@ -569,7 +569,7 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
                                         continue;
                                     }
 
-                                    p = Get(PR(AABBPair));
+                                    Get(PR(AABBPair), p);
                                     p.n1 = leaf;
                                     p.n2 = node;
                                     p.id = id; p.di = di;
