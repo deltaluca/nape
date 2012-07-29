@@ -118,7 +118,20 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 				var ctx2 = getMethodOriginator(ctx, f.name);
 				if(ctx2 != null) {
                     if (f.docs != null && f.docs.inheritDoc && fieldctx.docs != null) {
-                        f.docs.comments = (~/@inheritDoc/g).replace(f.docs.comments, fieldctx.docs.comments);
+                        var ctx = f.docs.firstline;
+                        if (f.docs.comments.length!=0) ctx += "\n<br/><br/>\n"+f.docs.comments;
+
+                        var fctx = fieldctx.docs.firstline;
+                        if (fieldctx.docs.comments.length!=0) fctx += "\n<br/><br/>\n"+fieldctx.docs.comments;
+
+                        ctx = (~/@inheritDoc/g).replace(ctx, fctx);
+
+                        var lines = ctx.split("\n");
+                        f.docs.firstline = lines[0];
+                        lines.shift();
+                        lines.shift(); //remove empty line between header and body.
+                        f.docs.comments = lines.join("\n");
+
                         f.docs.params = fieldctx.docs.params;
                         f.docs.returns = fieldctx.docs.returns;
                         f.docs.throws = fieldctx.docs.throws;
