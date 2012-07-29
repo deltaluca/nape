@@ -127,6 +127,7 @@ typedef MetaData = {
 
 typedef DocsContext = {
 	/** Html block for everything not a tag **/
+    var firstline : Html;
 	var comments			: Html;
 	var authors				: Array<Html>;
 	/** method/class/whatever is deprectated **/

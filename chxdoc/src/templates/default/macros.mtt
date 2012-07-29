@@ -2,7 +2,11 @@
 	<macro name="typeDocs()">
 		::if docs != null::
 			<!-- Comment block -->
+            ::if docs.firstline != null::
+            ::raw docs.firstline::
+            ::end::
 			::if docs.comments != null::
+            <br/><br/>
 			::raw docs.comments::
 			::end::
 		::end::
@@ -10,9 +14,6 @@
 
 	<macro name="methodHeader(m)">
 		<h3>
-            <a href="javascript:show::m.name::()" id="::m.name::link">
-                <img class="descript" alt="expand"/>
-            </a>
 			<a name="::raw m.name::()"></a>$$showAccess(::m::)$$showDynamic(::m::)$$showInline(::m::)<span class="name">::raw m.name::</span>::m.params::(::if m.args != null::::raw m.args::::end::):::raw m.returns::
 		</h3>
 			::if m.isOverride::
@@ -94,9 +95,6 @@
 
 	<macro name="varHeader(f)">
 		<h3>
-            <a href="javascript:show::f.name::()" id="::f.name::link">
-                <img class="descript" alt="expand"/>
-            </a>
 			<a name="::f.name::"></a>$$showAccess(::f::)<span class="name">::f.name::</span>::raw f.rights:: : ::raw f.returns::
 		</h3>
 		::if f.isInherited::

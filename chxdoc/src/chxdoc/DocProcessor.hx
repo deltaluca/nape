@@ -47,6 +47,7 @@ class DocProcessor {
 		this.pkg = pkg;
 		this.ctx = ctx;
 		this.docCtx = {
+            firstline : null,
 			comments 		: null,
 			authors			: new Array(),
 			deprecated		: false,
@@ -147,6 +148,12 @@ class DocProcessor {
             spres2.push(s);
         }
         docCtx.comments = spres2.join("</pre>");
+
+        var lines = docCtx.comments.split("\n");
+        docCtx.firstline = lines[0];
+        lines.shift();
+        lines.shift(); //remove empty line between header and body.
+        docCtx.comments = lines.join("\n");
 
         // convert newline characters into ' ' for multiline strings in output.
         docCtx.comments = (~/\n/g).replace(docCtx.comments, " ");

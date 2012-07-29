@@ -15,13 +15,19 @@ function windowTitle() {
     }
 }
 
+function show(name) {
+    var link = document.getElementById(name+"link");
+    link.href = "javascript:hide(\""+name+"\")";
+    var img = link.children[0];
+    img.alt = "-";
+    img.src = "::rootRelative::../images/hide.png";
+}
+
 ::foreach f staticVars::
 function show::f.name::() {
     var div = document.getElementById("::f.name::");
     div.innerHTML = '$$varDocs(::f::)';
-    var link = document.getElementById("::f.name::link");
-    link.href = "javascript:hide(\"::f.name::\")";
-    link.alt = "contract";
+    show("::f.name::");
 }
 ::end::
 
@@ -29,9 +35,7 @@ function show::f.name::() {
 function show::m.name::() {
     var div = document.getElementById("::m.name::");
     div.innerHTML = '$$methodDocs(::m::)';
-    var link = document.getElementById("::m.name::link");
-    link.href = "javascript:hide(\"::m.name::\")";
-    link.alt = "contract";
+    show("::m.name::");
 }
 ::end::
 
@@ -39,9 +43,7 @@ function show::m.name::() {
 function show::f.name::() {
     var div = document.getElementById("::f.name::");
     div.innerHTML = '$$varDocs(::f::)';
-    var link = document.getElementById("::f.name::link");
-    link.href = "javascript:hide(\"::f.name::\")";
-    link.alt = "contract";
+    show("::f.name::");
 }
 ::end::
 
@@ -49,9 +51,7 @@ function show::f.name::() {
 function show::m.name::() {
     var div = document.getElementById("::m.name::");
     div.innerHTML = '$$methodDocs(::m::)';
-    var link = document.getElementById("::m.name::link");
-    link.href = "javascript:hide(\"::m.name::\")";
-    link.alt = "contract";
+    show("::m.name::");
 }
 ::end::
 
@@ -59,9 +59,7 @@ function show::m.name::() {
 function shownew() {
     var div = document.getElementById("new");
     div.innerHTML = '$$methodDocs(::constructor::)';
-    var link = document.getElementById("newlink");
-    link.href = "javascript:hide(\"new\")";
-    link.alt = "contract";
+    show("new");
 }
 ::end::
 
@@ -70,7 +68,9 @@ function hide(name) {
     div.innerHTML = '';
     var link = document.getElementById(name+"link");
     link.href = "javascript:show"+name+"()";
-    link.alt = "expand";
+    var img = link.children[0];
+    img.alt = "+";
+    img.src = "::rootRelative::../images/show.png";
 }
 
 </script>
@@ -124,6 +124,16 @@ function hide(name) {
 			::foreach f staticVars::
 			<div class="member">
 				<div class="header">$$varHeader(::f::)</div>
+                <div class="body">
+                    ::if f.docs != null && f.docs.firstline != null::
+                    <div class="comment">
+                        <a href="javascript:show::f.name::()" id="::f.name::link">
+                            <img class="descript" alt="+" src="::rootRelative::../images/show.png"/>
+                        </a>
+                        ::raw f.docs.firstline::
+                    </div>
+                    ::end::
+                </div>
 				<div class="body" id="::f.name::"></div>
 			</div>
 			::end::
@@ -139,6 +149,16 @@ function hide(name) {
 			::foreach m staticMethods::
 			<div class="member">
 				<div class="header">$$methodHeader(::m::)</div>
+                <div class="body">
+                    ::if m.docs != null && m.docs.firstline != null::
+                    <div class="comment">
+                        <a href="javascript:show::m.name::()" id="::m.name::link">
+                            <img class="descript" alt="+" src="::rootRelative::../images/show.png"/>
+                        </a>
+                        ::raw m.docs.firstline::
+                    </div>
+                    ::end::
+                </div>
 				<div class="body" id="::m.name::"></div>
 			</div>
 			::end::
@@ -153,11 +173,18 @@ function hide(name) {
 		<div class="members">
 			<div class="member">
 				<div class="header">
-                    <a href="javascript:shownew()" id="newlink">
-                        <img class="descript" alt="expand"/>
-                    </a>
 					<a name="::raw constructor.name::()"></a>$$showAccess(::constructor::)<span class="name">::raw constructor.name::</span>(::if constructor.args != null::::raw constructor.args::::end::)
 				</div>
+                <div class="body">
+                    ::if constructor.docs != null && constructor.docs.firstline != null::
+                    <div class="comment">
+                        <a href="javascript:shownew()" id="newlink">
+                            <img class="descript" alt="+" src="::rootRelative::../images/show.png"/>
+                        </a>
+                        ::raw constructor.docs.firstline::
+                    </div>
+                    ::end::
+                </div>
 				<div class="body" id="new"></div>
 			</div>
 		</div>
@@ -192,6 +219,16 @@ function hide(name) {
 				<div class="member">
 					<div class="header">
                         $$varHeader(::f::)
+                    </div>
+                    <div class="body">
+                        ::if f.docs != null && f.docs.firstline != null::
+                        <div class="comment">
+                            <a href="javascript:show::f.name::()" id="::f.name::link">
+                                <img class="descript" alt="+" src="::rootRelative::../images/show.png"/>
+                            </a>
+                            ::raw f.docs.firstline::
+                        </div>
+                        ::end::
                     </div>
 					<div class="body" id="::f.name::"></div>
 				</div>
@@ -228,6 +265,16 @@ function hide(name) {
 			<span class="::spanClass::">
 				<div class="member">
 					<div class="header">$$methodHeader(::m::)</div>
+                    <div class="body">
+                        ::if m.docs != null && m.docs.firstline != null::
+                        <div class="comment">
+                            <a href="javascript:show::m.name::()" id="::m.name::link">
+                                <img class="descript" alt="+" src="::rootRelative::../images/show.png"/>
+                            </a>
+                            ::raw m.docs.firstline::
+                        </div>
+                        ::end::
+                    </div>
 					<div class="body" id="::m.name::"></div>
 				</div>
 			</span>
