@@ -251,7 +251,8 @@ $(expand global MixDerivedList(T,ListT,IteT,defs)
 
             pr(vm)();
 
-            var ret = Exists(x,inner,erusolc(obj)==x);
+            var ret;
+            Exists(x,inner,erusolc(obj)==x, ret);
             if(ret) {
                 if(pr(inner).subber!=null) pr(inner).subber(obj);
                 if(!pr(inner).dontremove)
@@ -349,6 +350,7 @@ $(expand global PRWrapList(T,ListT,IteT)
 
         public function new() {
             inner = new ListT();
+            _invalidated = true;
         }
     }
 );
@@ -561,7 +563,9 @@ $(mixin global ListMixin(defs,Cons,T,I)
     public function has(obj:T):Bool return inlined_has(obj)
     flibmdel public inline function inlined_has(obj:T):Bool {
         assert(obj!=null,"[ListMixin("+$str(T)+"] has -> "+obj);
-        return Exists(npite, this, npite==obj);
+        var ret;
+        Exists(npite, this, npite==obj, ret);
+        return ret;
     }
 
     //----------------------------------------------------------------------------------------------
@@ -671,18 +675,27 @@ $(mixin global Sort(L,NodeT, lt) {
 
 //--------------------------------------------------------------------------------------------------
 
-$(mixin global Exists(i,list,predicate) ({
-    var ret = false;
-    Iter(i,list,{
-        if($predicate) {
-            ret = true;
-            break;
+$(mixin global Exists(i, list, predicate, outvar) {
+    outvar = false;
+    Iter(i, list, {
+        if ($predicate) {
+            outvar = true;
+            cx_break;
         }
     });
-    ret;
-}));
+});
 
-$(mixin global ForAll(i,list,predicate) (!Exists(i,list,!($predicate))));
+$(mixin global ForAll(i, list, predicate, outvar) {
+    outvar = true;
+    Iter(i, list, {
+        if ($predicate) {
+            cx_continue;
+        }else {
+            outvar = false;
+            cx_break;
+        }
+    });
+});
 
 //--------------------------------------------------------------------------------------------------
 

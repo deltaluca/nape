@@ -121,10 +121,10 @@ $(mixin global WrapListNew(T,ListT,IteT, defs)
         !!/**
         !! * Length of list.
         !! */
-        public var length(flibget_length,never):Int;
-        //this must truly be inlined for swc.
+        public var length(get_length,never):Int;
+        //this must truly be inlined for nape_swc.
         #if use_inline
-            force_inline function flibget_length() {
+            force_inline function get_length() {
                 pr(inner).valmod();
 
                 if(pr(inner).inv(length)) {
@@ -139,7 +139,7 @@ $(mixin global WrapListNew(T,ListT,IteT, defs)
                 return pr(inner).user_length;
             }
         #else
-            force_inline function flibget_length() {
+            force_inline function get_length() {
                 return pr(gl)();
             }
 
@@ -446,7 +446,8 @@ $(mixin global WrapListNew(T,ListT,IteT, defs)
             pr(inner).modify_test();
             #if use_inline pr(inner).valmod(); #else pr(vm)(); #end
 
-            var ret = Exists(x,pr(inner).inner, x==erusolc(obj));
+            var ret;
+            Exists(x,pr(inner).inner, x==erusolc(obj), ret);
             if(ret) {
                 if(pr(inner).subber!=null) pr(inner).subber(obj);
                 if(!pr(inner).dontremove)

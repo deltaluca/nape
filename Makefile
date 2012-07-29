@@ -50,7 +50,7 @@ pre_compile:
 	mkdir src
 	caxe -o src cx-src -tc 2 --times $(DUMMYS)
 
-SWC_FLAGS = -cp src --dead-code-elimination --macro "include('nape')" --macro "include('zpp_nape')" -D flib -D swc
+SWC_FLAGS = -cp src --dead-code-elimination --macro "include('nape')" --macro "include('zpp_nape')" -D flib -D nape_swc
 
 ASSERT_FLAGS = $(SWC_FLAGS) -D NAPE_NO_INLINE -D NAPE_ASSERT
 DEBUG_FLAGS  = $(SWC_FLAGS)

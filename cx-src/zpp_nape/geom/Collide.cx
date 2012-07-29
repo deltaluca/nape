@@ -2,18 +2,20 @@ package zpp_nape.geom;
 $(import);
 
 class PR(Collide) {
-    
+
     flibstaticdel(circleContains)
     public static function circleContains(c:PR(Circle),p:PR(Vec2)) {
         vec_new(d); vec_sub(p.,c.worldCOM,d);
         return vec_lsq(d) < c.radius*c.radius;
     }
-    
+
     flibstaticdel(polyContains)
     public static function polyContains(s:PR(Polygon),p:PR(Vec2)) {
-        return ForAll(a, s.edges, vec_dot(a.gnorm, p.) <= a.gprojection);
+        var retvar;
+        ForAll(a, s.edges, vec_dot(a.gnorm, p.) <= a.gprojection, retvar);
+        return retvar;
     }
-    
+
     //----------------------------------------------------------------------------------------------
 
     flibstaticdel(shapeContains)
@@ -21,12 +23,14 @@ class PR(Collide) {
         return if(s.isCircle()) circleContains(s.circle,p);
                else             polyContains(s.polygon,p);
     }
-    
+
     flibstaticdel(bodyContains)
     public static function bodyContains(b:PR(Body),p:PR(Vec2)) {
-        return Exists(s,b.shapes,shapeContains(s,p));
+        var retvar;
+        Exists(s,b.shapes,shapeContains(s,p), retvar);
+        return retvar;
     }
-    
+
     //----------------------------------------------------------------------------------------------
 
     flibstaticdel(containTest)
@@ -43,14 +47,14 @@ class PR(Collide) {
     }
 
     //----------------------------------------------------------------------------------------------
-    
+
     public static function contactCollide(s1:PR(Shape),s2:PR(Shape),arb:PR(ColArbiter), rev:Bool) {
         if(s2.isPolygon()) {
-            return if(s1.isPolygon())
+            if(s1.isPolygon())
                 poly2poly(s1.polygon,s2.polygon,arb,rev);
             else circle2poly(s1.circle,s2.polygon,arb,rev);
         }else
-            return circle2circle(s1.circle,s2.circle,arb,rev);
+            circle2circle(s1.circle,s2.circle,arb,rev);
     }
 
     flibstaticdel(testCollide_safe)
@@ -58,7 +62,7 @@ class PR(Collide) {
         if(s2.isCircle()) swap(s1,s2);
         return testCollide(s1,s2);
     }
-    
+
     flibstaticdel(testCollide)
     public static function testCollide(s1:PR(Shape),s2:PR(Shape)) {
         if(s2.isPolygon()) {
@@ -68,7 +72,7 @@ class PR(Collide) {
         }else
             return circle2circle_test(s1.circle,s2.circle);
     }
-    
+
     flibstaticdel(flowCollide)
     public static function flowCollide(s1:PR(Shape),s2:PR(Shape),arb:PR(FluidArbiter)) {
         if(s2.isPolygon()) {
@@ -78,9 +82,9 @@ class PR(Collide) {
         }else
             return circle2circle_flow(s1.circle,s2.circle,arb);
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     $(mixin circle2circle(c1,c2,arb,rev) {
         var co = circle2circle_query(c1.worldCOM,c2.worldCOM,arb,c1.radius,c2.radius,rev,0);
         if(co != null) {
@@ -95,11 +99,11 @@ class PR(Collide) {
             }
             arb.radius = c1.radius + c2.radius;
             arb.ptype = PR(ColArbiter).CIRCLE;
-            true;
+            return true;
         }else
-            false;
+            return false;
     });
-    
+
     $(mixin circle2circle_query(p1,p2,arb,r1,r2,rev,hash) {
         var minDist = r1+r2;
         vec_new(p); vec_sub(p2,p1,p);
@@ -111,15 +115,15 @@ class PR(Collide) {
             var invDist = PR(Math).invsqrt(distSqr);
             var dist = if(invDist<PR(Const).EPSILON) PR(Const).FMAX else 1.0 / invDist;
             var df = 0.5 + (r1 - 0.5*minDist) * invDist;
-            
+
             if(rev) arb.injectContact(p1`x + px*df, p1`y + py*df, -px*invDist, -py*invDist, dist-minDist, hash);
             else    arb.injectContact(p1`x + px*df, p1`y + py*df,  px*invDist,  py*invDist, dist-minDist, hash);
         }
     });
-    
-    
+
+
     $(mixin circle2circle_test(c1,c2) circle2circle_query_test(c1.worldCOM,c2.worldCOM,c1.radius,c2.radius));
-    
+
     $(mixin circle2circle_query_test(p1,p2,r1,r2) {
         var minDist = r1+r2;
         vec_new(p); vec_sub(p2,p1,p);
@@ -128,14 +132,14 @@ class PR(Collide) {
     });
 
     $(mixin circle2circle_contain(c1,c2) circle2circle_query_test(c1.worldCOM,c1.worldCOM,c1.radius,(-c2.radius)));
-    
+
     $(mixin circle2circle_flow(cx1,cx2,arb) {
         var c1 = cx1; var c2 = cx2;
-        
+
         vec_new(delta); vec_sub(c2.worldCOM,c1.worldCOM,delta);
         var cr = c1.radius+c2.radius;
         var ds = vec_lsq(delta);
-        
+
         if(ds>cr*cr)
             false;
         else if(ds<PR(Const).EPSILON) {
@@ -158,26 +162,26 @@ class PR(Collide) {
                     var area2 = 0.0; var y2 = 0.0;
                     circle_segment(x1,c1.radius, area1,y1);
                     circle_segment(x2,c2.radius, area2,y2);
-                    
+
                     var tarea = area1+area2;
                     var ya = (y1*area1 + (d-y2)*area2)/tarea*id;
-                    
+
                     arb.inject(tarea,c1.worldCOMx+deltax*ya,c1.worldCOMy+deltay*ya);
                 }
             }
             true;
         }
     });
-    
+
     $(mixin circle_segment(x,r, ref_area, ref_com) {
         var X = x;
         var cos = X/r; var sin = Math.sqrt(1-cos*cos); var theta = Math.acos(cos);
         ref_area = r*(r*theta - X*sin);
         ref_com = (2/3)*r*sin*sin*sin / (theta - cos*sin);
     });
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     $(mixin evalAxis2(i,pa,pb)
         Iter(ax,pa.edges,{
             var min = PR(Const).FMAX;
@@ -195,7 +199,7 @@ class PR(Collide) {
             }
         })
     );
-    
+
     $(mixin poly2poly(p1,p2,arb,rev) {
         var cont = true;
 
@@ -209,11 +213,11 @@ class PR(Collide) {
         evalAxis2(1,p1,p2);
         if(cont) {
             evalAxis2(2,p2,p1);
-            if(!cont) false;
+            if(!cont) return false;
             else {
                 var q1, q2, ax, scale;
                 if(maxi==1) { q1 = p1; q2 = p2; ax = axis1; scale = 1.0; }
-                else        { q1 = p2; q2 = p1; ax = axis2; scale =-1.0; } 
+                else        { q1 = p2; q2 = p1; ax = axis2; scale =-1.0; }
 
                 var ay:PR(Edge) = null;
                 var min = PR(Const).FMAX;
@@ -269,9 +273,9 @@ class PR(Collide) {
                     vec_revrot(c1,q2.body.axis,con.inner.lr1);
                 }
 
-                c0d <=0 || c1d <= 0;
+                return c0d <=0 || c1d <= 0;
             }
-        }else false;
+        }else return false;
     });
 
     $(mixin evalAxis(i,pa,pb)
@@ -285,7 +289,7 @@ class PR(Collide) {
             if(min>0) { cont = false; cx_break; }
         })
     );
-    
+
     $(mixin poly2poly_test(p1,p2) {
         var cont = true;
         evalAxis(1,p1,p2);
@@ -295,20 +299,24 @@ class PR(Collide) {
         }else false;
     });
 
-    $(mixin poly2poly_contain(p1,p2) ForAll(a,p1.edges,{
-        var max = -PR(Const).FMAX;
-        Iter(v,p2.gverts,{
-            var k = vec_dot(a.gnorm,v.);
-            if(k>max) max = k;
-        });
-        max <= a.gprojection;
+    $(mixin poly2poly_contain(p1,p2) ({
+        var retvar;
+        ForAll(a, p1.edges, {
+            var max = -PR(Const).FMAX;
+            Iter(v,p2.gverts,{
+                var k = vec_dot(a.gnorm,v.);
+                if(k>max) max = k;
+            });
+            max <= a.gprojection;
+        }, retvar);
+        retvar;
     }));
-    
+
     public static var flowpoly:List(PR(Vec2)) = new List(PR(Vec2))();
     $(mixin poly2poly_flow(p1,p2,arb) {
         var out1 = new Array<Bool>();
         var out2 = new Array<Bool>();
-        
+
         $(mixin evalAxis(i,j,pa,pb)
             Iter(ax,pa.edges,{
                 var min = PR(Const).FMAX;
@@ -326,7 +334,7 @@ class PR(Collide) {
                 if(min>0) { cont = false; cx_break; }
             })
         );
-        
+
         var cont = true;
         var total = true;
         evalAxis(1,2,p1,p2);
@@ -348,12 +356,12 @@ class PR(Collide) {
                     var p = flowpoly.pop_unsafe();
                     if(!p._inuse) Free(PR(Vec2),p);
                 }
-                
+
                 var fst_vert = null;
                 var poly1 = false;
                 var ite1 = p1.gverts.begin(); var ind1 = 0;
                 var ite2 = p2.gverts.begin(); var ind2 = 0;
-                
+
                 //attempt to find a vertex that is inside the other to start intersection.
                 for(i in 0...p2.edgeCnt) if(!out2[i]) { ind2 = i; break; } else ite2 = ite2.next;
                 if(ite2==null) {
@@ -369,12 +377,12 @@ class PR(Collide) {
                     flowpoly.add(ite2.elem());
                     fst_vert = flowpoly.front();
                 }
-                
+
                 $(mixin intersect(a,b,u,v, tr) {
                     vec_new(_s); vec_sub(u,a,_s);
                     vec_new(_v); vec_sub(v,u,_v);
                     vec_new(_q); vec_sub(b,a,_q);
-                    
+
                     var den = vec_cross(_q,_v);
                     if(den*den > PR(Const).EPSILON) {
                         den = 1/den;
@@ -388,7 +396,7 @@ class PR(Collide) {
                         }else false;
                     }else false;
                 });
-                
+
                 var cnt = 1;
                 if(flowpoly.empty()) {
                     Iter2(u,v, p1.gverts, {
@@ -406,7 +414,7 @@ class PR(Collide) {
                             vec_new(c); vec_interp(u.,v.,min, c);
                             fst_vert = PR(Vec2).get(cx,cy);
                             flowpoly.add(fst_vert);
-                            
+
                             poly1 = true;
                             ite1 = cx_itei;
                             cx_break;
@@ -414,7 +422,7 @@ class PR(Collide) {
                     });
                     cnt = 2;
                 }
-                
+
                 while(true) {
                     $(mixin interstate(N,pN,M,pM) {
                         ite`N = ite`N.next;
@@ -432,7 +440,7 @@ class PR(Collide) {
                         }else {
                             var a = flowpoly.front();
                             var b = ite`N.elem();
-                            
+
                             var u = ite`M.elem();
                             var itm = ite`M.next; if(itm==null) itm = pM.gverts.begin();
                             var max = -1.0; var itmo = null; var indo = 0;
@@ -456,7 +464,7 @@ class PR(Collide) {
                             });
                             if(itmo==null)
                                 break;
-                                
+
                             var u = itmo.elem();
                             var itm2 = itmo.next; if(itm2==null) itm2 = pM.gverts.begin();
                             var v = itm2.elem();
@@ -466,7 +474,7 @@ class PR(Collide) {
                             if(fst_vert==null) fst_vert = flowpoly.front();
                             ite`M = itmo;
                             ind`M = indo;
-                            
+
                             poly1 = !poly1;
                             cnt = 2;
                         }
@@ -474,7 +482,7 @@ class PR(Collide) {
                     if(poly1) interstate(1,p1,2,p2);
                     else interstate(2,p2,1,p1);
                 }
-                
+
                 if(flowpoly.begin()!=null && flowpoly.begin().next!=null && flowpoly.begin().next.next!=null) {
                     var area = 0.0; vec_new(COM);
                     polygon(flowpoly,area,COM);
@@ -484,7 +492,7 @@ class PR(Collide) {
             }else false;
         }else false;
     });
-    
+
     $(mixin polygon(poly,area_ref,com_ref) {
         vec_set(com_ref,0,0);
         area_ref = 0.0;
@@ -498,9 +506,9 @@ class PR(Collide) {
         var ia = 1/(6*area_ref);
         vec_muleq(com_ref,ia);
     });
-    
+
     //----------------------------------------------------------------------------------------------
-    
+
     $(mixin circle2poly(circle,poly,arb,rev) {
         var max = -PR(Const).FMAX; var minmax = -PR(Const).FMAX;
         var cont = true;
@@ -538,7 +546,7 @@ class PR(Collide) {
                     arb.radius = circle.radius;
                 }
 
-                co!=null;
+                return co!=null;
             }else if(dt>=vec_cross(a0.gnorm,v1.)) {
                 var co = circle2circle_query(circle.worldCOM,v1.,arb,circle.radius,0,rev,0);
                 if(co!=null) {
@@ -555,7 +563,7 @@ class PR(Collide) {
                     arb.radius = circle.radius;
                 }
 
-                co!=null;
+                return co!=null;
             } else {
                 vec_new(n); vec_mul(a0.gnorm, circle.radius+max*0.5, n);
                 vec_new(p); vec_sub(circle.worldCOM, n, p);
@@ -569,16 +577,16 @@ class PR(Collide) {
                 arb.radius = circle.radius;
                 vec_set(con.inner.lr1, circle.localCOM);
 
-                true;
+                return true;
             }
-        }else false;
+        }else return false;
     });
-    
+
     $(mixin circle2poly_test(circle,poly) {
         var a0 = null, vi = null;
         var cont = true;
         var max = -PR(Const).FMAX;
-        
+
         var vite = poly.gverts.begin();
         Iter(a,poly.edges,{
             var dist = vec_dot(a.gnorm,circle.worldCOM) - a.gprojection - circle.radius;
@@ -590,7 +598,7 @@ class PR(Collide) {
             }
             vite = vite.next;
         });
-        
+
         if(cont) {
             var v0 = vi.elem();
             var v1 = if(vi.next==null) poly.gverts.front() else vi.next.elem();
@@ -601,17 +609,25 @@ class PR(Collide) {
         }else false;
     });
 
-    $(mixin circle2poly_contain(circle,poly) ForAll(p,poly.gverts,circle2circle_query_test(circle.worldCOM,p.,circle.radius,0)));
-    $(mixin poly2circle_contain(poly,circle) ForAll(a,poly.edges,vec_dot(a.gnorm,circle.worldCOM)+circle.radius<=a.gprojection));
-    
+    $(mixin circle2poly_contain(circle,poly) ({
+        var retvar;
+        ForAll(p,poly.gverts,circle2circle_query_test(circle.worldCOM,p.,circle.radius,0), retvar);
+        retvar;
+    }));
+    $(mixin poly2circle_contain(poly,circle) ({
+        var retvar;
+        ForAll(a,poly.edges,vec_dot(a.gnorm,circle.worldCOM)+circle.radius<=a.gprojection, retvar);
+        retvar;
+    }));
+
     public static var flowsegs = new List(PR(Vec2))();
     $(mixin circle2poly_flow(circle,poly,arb) {
         var inte = new Array<Bool>(); //edge could intersect circle.
         var total = true;
-        
+
         var a0 = null, vi = null;
         var max = -PR(Const).FMAX;
-        
+
         var cont = true;
         var vite = poly.gverts.begin();
         var ind = 0;
@@ -628,7 +644,7 @@ class PR(Collide) {
             vite = vite.next;
             ind++;
         });
-        
+
         if(cont) {
             if(total) {
                 arb.inject(circle.area,circle.worldCOMx,circle.worldCOMy);
@@ -647,7 +663,7 @@ class PR(Collide) {
                     var ins = new Array<Bool>(); //vertex inside circle
                     var ind = 0;
                     var total = true;
-                    
+
                     var vi = null;
                     var vind = 0;
                     Iter(v,poly.gverts,{
@@ -659,7 +675,7 @@ class PR(Collide) {
                         }
                         ind++;
                     });
-                    
+
                     if(total) {
                         poly.validate_worldCOM();
                         arb.inject(poly.area,poly.worldCOMx,poly.worldCOMy);
@@ -681,7 +697,7 @@ class PR(Collide) {
                             state = 2;
                         }else
                             flowpoly.add(fst_vert = vi.elem());
-                        
+
                         //get first positive intersection with circle (a->b)
                         //assumption is there IS one!
                         $(mixin intersect1(a,b) {
@@ -696,7 +712,7 @@ class PR(Collide) {
                             if(t<PR(Const).EPSILON) (-B+D)*A;
                             else t;
                         });
-                        
+
                         //get both intersection points
                         //return true if they aren't the same point (degenerate case)
                         // t1 < 0 || t0 > 1, then no intersectino obviously.
@@ -721,13 +737,13 @@ class PR(Collide) {
                                 true;
                             }
                         });
-                        
+
                         while(state!=0) {
                             //at an inner vertex
                             if(state==1) {
                                 vi = vi.next; if(vi==null) vi = poly.gverts.begin();
                                 vind++; if(vind>=poly.edgeCnt) vind = 0;
-                                
+
                                 if(ins[vind]) {
                                     if(vec_dsq(fst_vert.,vi.elem().)<PR(Const).EPSILON) break;
                                     flowpoly.add(vi.elem());
@@ -791,7 +807,7 @@ class PR(Collide) {
                                 });
                             }
                         }
-                        
+
                         if(flowpoly.begin()==null) {
                             false;
                         }else if(flowpoly.begin().next==null) {
@@ -815,7 +831,7 @@ class PR(Collide) {
                         }else {
                             vec_new(COM,0,0);
                             var area = 0.0;
-                            
+
                             if(flowpoly.begin().next.next!=null) {
                                 var parea = 0.0; vec_new(pCOM);
                                 polygon(flowpoly,parea,pCOM);
@@ -825,7 +841,7 @@ class PR(Collide) {
                                 flowsegs.add(flowpoly.front());
                                 flowsegs.add(flowpoly.begin().next.elem());
                             }
-                            
+
                             while(!flowsegs.empty()) {
                                 var u = flowsegs.pop_unsafe();
                                 var v = flowsegs.pop_unsafe();
@@ -839,7 +855,7 @@ class PR(Collide) {
                                 vec_addeq(COM,c,carea);
                                 area += carea;
                             }
-                            
+
                             vec_diveq(COM,area);
                             arb.inject(area,COMx,COMy);
                             true;

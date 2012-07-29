@@ -87,6 +87,7 @@ class PR(Cutter) {
             c.value = vec_cross(d,c.pos) + crx;
             c.positive = c.value > 0;
             if(c.value==0) clashes = true;
+
             verts = push_after(verts,c);
             p = p.next;
         }while(p!=P);
@@ -222,7 +223,6 @@ class PR(Cutter) {
 
         //merge last and first paths
         var endof = start.prev;
-        endof = pop_ret_before(endof);
         merge(endof,origin);
 
         //unify paths
@@ -290,9 +290,13 @@ class PR(Cutter) {
             if(poly.used) cx_continue;
 
             poly.used = true;
-            var gp = new GeomPoly();
-            gp.pr(inner).vertices = poly.vert;
-            ret.add(gp);
+            geom(strip_equal(poly.vert));
+            if (poly.vert != null)
+            {
+                var gp = new GeomPoly();
+                gp.pr(inner).vertices = poly.vert;
+                ret.add(gp);
+            }
         });
 
         ClearWith(p, paths, Free(PR(CutVert),p));

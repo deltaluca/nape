@@ -277,4 +277,29 @@ $(mixin global geom(block)
 
         /*return*/ ret;
     }));
+
+    //
+    // strip equal vertices (degenerate edges).
+    // collinear ignored.
+    //
+    $(mixin strip_equal(poly) ({
+    mix_circular(Vertex,
+        var p = poly;
+        var skip = true;
+        while (poly != null && (skip || p != poly)) {
+            skip = false;
+            if (p.x == p.next.x && p.y == p.next.y)
+            {
+                //remove vertex 'p'
+                if (p == poly)
+                {
+                    poly = p.next == p ? null : p.next;
+                    skip = true;
+                }
+                p = pop_ret_after(p);
+            }
+            else
+                p = p.next;
+        }
+    )}));
 );
