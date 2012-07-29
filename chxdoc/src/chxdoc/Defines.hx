@@ -153,6 +153,7 @@ typedef DocsContext = {
 typedef PackageContext = {
 	var name				: String;	// short name
 	var full				: String;	// full dotted name
+    var fullnodot           : String;   // full dotted name, dots replaced with __
 
 	var rootRelative		: String; // ../../ back to /packages
 	var packageUri			: String; // packages/pkg/path/package.html

@@ -170,7 +170,7 @@ class TypeHandler<T> {
 		if(Utils.isFiltered(path, false))
 			return "<font class=\"fakelink\">"+path+"</font>";
 
-        if (path == "Float" || path == "Int" || path == "Bool" || path == "Array" || path == "String" || path == "Void" || path == "Dynamic")
+        if (path == "Float" || path == "Int" || path == "Bool" || path == "Array" || path == "String" || path == "Void" || path == "Dynamic" || path == "Null")
 			return "<font class=\"fakelink\">"+path+"</font>";
 
 		var p = path.split(".");
@@ -237,6 +237,7 @@ class TypeHandler<T> {
 			nameDots		: fi.nameDots,
 			path			: t.path,
 			packageDots		: fi.packageDots,
+			packagenodot : (~/\./g).replace(fi.packageDots,"__"),
 			subdir			: fi.subdir,
 			rootRelative	: fi.rootRelative,
 
@@ -277,6 +278,7 @@ class TypeHandler<T> {
 			nameDots		: null,
 			path			: null,
 			packageDots		: null,
+            packagenodot    : null,
 			subdir			: null,
 			rootRelative	: null,
 

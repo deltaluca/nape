@@ -51,6 +51,7 @@ class PackageHandler extends TypeHandler<PackageContext> {
 		var pkg = {
 			name				: name,	// short name
 			full				: full,	// full dotted name
+            fullnodot           : (~/\./g).replace(full, "__"),
 			resolvedTypeDir		: "",	// final output path for types
 			resolvedPackageDir	: "", // final output dir for package.html
 			rootRelative		: new String(ChxDocMain.baseRelPath),

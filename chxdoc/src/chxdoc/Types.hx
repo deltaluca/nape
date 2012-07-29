@@ -45,6 +45,7 @@ typedef Ctx = {
 	var nameDots			: DotPath; // Dotted filename 1) a.b.C 2) a.b._C.D 3) flash.MyClass
 	var path				: DotPath; // Dotted filename after remap
 	var packageDots			: DotPath; // Dotted package name. 1) a.b 2) a.b._C 3) flash
+    var packagenodot        : String;
 	var subdir				: String; // Relative subdir for html 1) a/b/ 2) a/b/_C/ 3) flash9/
 	var rootRelative		: Html;   // Relative subdir for root 1) ../../ etc.
 

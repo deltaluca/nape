@@ -23,10 +23,14 @@ function show(name) {
     img.src = "::rootRelative::../images/hide.png";
 }
 
+function divved(html) {
+    return '<div class="expanded_doc">'+html+'</div>';
+}
+
 ::foreach f staticVars::
 function show::f.name::() {
     var div = document.getElementById("::f.name::");
-    div.innerHTML = '$$varDocs(::f::)';
+    div.innerHTML = divved('$$varDocs(::f::)');
     show("::f.name::");
 }
 ::end::
@@ -34,7 +38,7 @@ function show::f.name::() {
 ::foreach m staticMethods::
 function show::m.name::() {
     var div = document.getElementById("::m.name::");
-    div.innerHTML = '$$methodDocs(::m::)';
+    div.innerHTML = divved('$$methodDocs(::m::)');
     show("::m.name::");
 }
 ::end::
@@ -42,7 +46,7 @@ function show::m.name::() {
 ::foreach f vars::
 function show::f.name::() {
     var div = document.getElementById("::f.name::");
-    div.innerHTML = '$$varDocs(::f::)';
+    div.innerHTML = divved('$$varDocs(::f::)');
     show("::f.name::");
 }
 ::end::
@@ -50,7 +54,7 @@ function show::f.name::() {
 ::foreach m methods::
 function show::m.name::() {
     var div = document.getElementById("::m.name::");
-    div.innerHTML = '$$methodDocs(::m::)';
+    div.innerHTML = divved('$$methodDocs(::m::)');
     show("::m.name::");
 }
 ::end::
@@ -58,7 +62,7 @@ function show::m.name::() {
 ::if constructor != null::
 function shownew() {
     var div = document.getElementById("new");
-    div.innerHTML = '$$methodDocs(::constructor::)';
+    div.innerHTML = divved('$$methodDocs(::constructor::)');
     show("new");
 }
 ::end::
@@ -73,14 +77,72 @@ function hide(name) {
     img.src = "::rootRelative::../images/show.png";
 }
 
+::foreach p config.allPackages::
+function show::p.fullnodot::() {
+    var div = document.getElementById("::p.fullnodot::");
+    var html = '';
+    ::foreach i p.types::
+    html += '<li class="::i.type::"><a href="::rootRelative::::i.subdir::::i.name::::config.htmlFileExtension::" title="::i.name::">::i.name::</a></li>';
+    ::end::
+    div.innerHTML = html;
+    show("::p.fullnodot::");
+}
+::end::
 </script>
+
 <noscript></noscript>
 </head>
 <body onload="windowTitle();">
-	<script language="javascript" type="text/javascript" src="::rootRelative::../chxdoc.js"></script>
+
+<script language="javascript" type="text/javascript" src="::rootRelative::../chxdoc.js"></script>
+
+<div class="tdoc">
+    <div class="tdoctitle">
+        <h1 class="::type::">::nameDots::::params::</h1>
+    </div>
+    <div class="tdoclink">
+        <a href="#top">Top</a>
+        ::if staticVars.length > 0 ::
+        | <a href="#static_var_detail">Static Properties</a>
+        ::end::
+        ::if staticMethods.length > 0 ::
+        | <a href="#static_method_detail">Static Methods</a>
+        ::end::
+        ::if constructor != null ::
+        | <a href="#constructor_detail">Constructor</a>
+        ::end::
+        ::if vars.length > 0 ::
+        | <a href="#member_var_detail">Instance Properties</a>
+        ::end::
+        ::if methods.length > 0 ::
+        | <a href="#member_method_detail">Instance Methods</a>
+        ::end::
+    </div>
+</div>
+
+<div id="menu" class="tmenu">
+<ul class="types">
+    ::foreach p config.allPackages::
+    <li class="pckg">
+        <a class="expand" href="javascript:show::p.fullnodot::()" id="::p.fullnodot::link">
+            <img class="descript" alt="+" src="::rootRelative::../images/show.png"/>
+        </a>
+        ::p.full::
+    </li>
+    <div class="pckgtypes" id="::p.fullnodot::">
+    </div>
+    ::end::
+</ul>
+</div>
+
+<script type="text/javascript">
+    show::packagenodot::();
+</script>
+
+<div class="gdoc" id="main">
+<a name="top"></a>
 	<div id="class-frame" class="type-frame">
 	<!-- ======== START OF class DATA ======== -->
-	<h1 class="::type::">::nameDots::::params::</h1>
 	<dl>
 		<dt>type</dt>
 		<dd>::type::</dd>
@@ -128,7 +190,7 @@ function hide(name) {
                     ::if f.docs != null && f.docs.firstline != null::
                     <div class="comment">
                         ::if f.docs.comments.length != 0::
-                        <a href="javascript:show::f.name::()" id="::f.name::link">
+                        <a class="expand" href="javascript:show::f.name::()" id="::f.name::link">
                             <img class="descript" alt="+" src="::rootRelative::../images/show.png"/>
                         </a>
                         ::end::
@@ -146,7 +208,7 @@ function hide(name) {
 	::if staticMethods.length > 0::
 	<!-- ============ STATIC METHOD DETAIL ========== -->
 	<div class="members-panel">
-		<h2><a name="function_detail"></a>Static Methods</h2>
+		<h2><a name="static_method_detail"></a>Static Methods</h2>
 		<div class="members">
 			::foreach m staticMethods::
 			<div class="member">
@@ -155,7 +217,7 @@ function hide(name) {
                     ::if m.docs != null && m.docs.firstline != null::
                     <div class="comment">
                         ::if m.docs.comments.length != 0 || m.docs.params.length != 0 || m.docs.returns.length != 0 ::
-                        <a href="javascript:show::m.name::()" id="::m.name::link">
+                        <a class="expand" href="javascript:show::m.name::()" id="::m.name::link">
                             <img class="descript" alt="+" src="::rootRelative::../images/show.png"/>
                         </a>
                         ::end::
@@ -183,7 +245,7 @@ function hide(name) {
                     ::if constructor.docs != null && constructor.docs.firstline != null::
                     <div class="comment">
                         ::if constructor.docs.comments.length != 0 || constructor.docs.params.length != 0 || constructor.docs.returns.length != 0 ::
-                        <a href="javascript:shownew()" id="newlink">
+                        <a class="expand" href="javascript:shownew()" id="newlink">
                             <img class="descript" alt="+" src="::rootRelative::../images/show.png"/>
                         </a>
                         ::end::
@@ -230,7 +292,7 @@ function hide(name) {
                         ::if f.docs != null && f.docs.firstline != null::
                         <div class="comment">
                             ::if f.docs.comments.length != 0::
-                            <a href="javascript:show::f.name::()" id="::f.name::link">
+                            <a class="expand" href="javascript:show::f.name::()" id="::f.name::link">
                                 <img class="descript" alt="+" src="::rootRelative::../images/show.png"/>
                             </a>
                             ::end::
@@ -249,7 +311,7 @@ function hide(name) {
 	::if methods.length > 0::
 	<!-- ============ METHOD DETAIL ========== -->
 	<div class="members-panel">
-		<h2><a name="method_detail"></a>Instance Methods
+		<h2><a name="member_method_detail"></a>Instance Methods
 			::if superClasses.length > 0::
 			<span id="hideInheritedMethod" class="hideInheritedMethod">
 				<a class="showHideLink" href="#method_detail" onclick="javascript:showInherited('Method', false);">
@@ -277,7 +339,7 @@ function hide(name) {
                         ::if m.docs != null && m.docs.firstline != null::
                         <div class="comment">
                             ::if m.docs.comments.length != 0 || m.docs.params.length != 0 || m.docs.returns.length != 0 ::
-                            <a href="javascript:show::m.name::()" id="::m.name::link">
+                            <a class="expand" href="javascript:show::m.name::()" id="::m.name::link">
                                 <img class="descript" alt="+" src="::rootRelative::../images/show.png"/>
                             </a>
                             ::end::
@@ -295,5 +357,7 @@ function hide(name) {
 	</div>
 <!-- ========= END OF class DATA ========= -->
 	::if config.footerText != null::<div id="footer">::raw config.footerText::</div>::end::
+</div>
+<script type="text/javascript">window.onresize();</script>
 </body>
 </html>

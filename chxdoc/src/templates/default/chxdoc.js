@@ -1,3 +1,10 @@
+window.onresize = function() {
+    var menu = document.getElementById("menu");
+    var main = document.getElementById("main");
+    menu.style.height = (window.innerHeight-32)+"px";
+    main.style.width = (window.innerWidth-200)+"px";
+    main.style.height = (window.innerHeight-32)+"px";
+};
 
 function showInherited(name, visibile) {
 	//if IE
