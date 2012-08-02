@@ -3,8 +3,57 @@ $(import);
 import flash.Lib;
 class DummyNapeMain
 {
+    static function mains() {
+        var s = new Space();
+        var b = new Body();
+        b.shapes.add(new Polygon(Polygon.box(10, 10, true)));
+        b.space = s;
+
+        s.step(1/60);
+
+        var graph = new Graph([b, s]);
+        graph.populate(function() {
+            var t1 = graph.toString();
+            s.clear();
+            var p = b.shapes.at(0).castPolygon;
+            b.clear();
+            p.localVerts.clear();
+            Debug.clearObjectPools();
+            graph.populate(function () {
+                var t2 = graph.toString();
+
+                throw t1 + "\n\n" + t2;
+            });
+        });
+    }
+
     static function main()
     {
-        new Space(new Vec2(0, 0));
+        (new haxe.Timer(10)).run = function() {
+            var s = new Space();
+            for (i in 0...3) {
+                var b = new Body();
+                for (j in 0...2) {
+                    b.shapes.add(new Polygon(Polygon.box(10, 10, true)));
+                    b.translateShapes(Vec2.weak(5, 0));
+                }
+                b.position.x = i;
+                b.position.y = i;
+                b.space = s;
+            }
+
+            s.step(1/60);
+            s.step(1/60);
+            s.step(1/60);
+            s.step(1/60);
+
+            while(s.bodies.length > 0)
+            {
+                var b = s.bodies.pop();
+                b.shapes.at(0).castPolygon.localVerts.clear();
+                b.clear();
+            }
+            s.clear();
+        }
     }
 }

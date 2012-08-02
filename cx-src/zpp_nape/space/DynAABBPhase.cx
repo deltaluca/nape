@@ -113,7 +113,7 @@ class PR(AABBTree) {
       public function clear() {
         if(root==null) return;
 
-           var stack:PR(AABBNode) = null;
+        var stack:PR(AABBNode) = null;
         iadd(stack,root,next);
         while(stack!=null) {
             var node = ipop(stack,next);
@@ -672,6 +672,8 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
             var nxt = pairs.next;
             if(pairs.arb!=null) pairs.arb.pair = null;
             pairs.arb = null;
+            pairs.n1.shape.pairs.inlined_remove(pairs);
+            pairs.n2.shape.pairs.inlined_remove(pairs);
             Free(PR(AABBPair),pairs);
             pairs = nxt;
         }
