@@ -197,10 +197,18 @@ class PR(Interactor) {
 
     //--------------------------------------------------------------------
 
-    flibmdel public inline static function int_callback(o1:PR(Interactor),o2:PR(Interactor),cb1:PR(OptionType),cb:PR(Callback)) {
-        if(cb1.compatible(o1.cbTypes)) {
-               cb.int1 = o1; cb.int2 = o2;
-        }else{ cb.int2 = o1; cb.int1 = o2; }
+    public inline static function int_callback(set:PR(CallbackSet), x:PR(InteractionListener), cb:PR(Callback)) {
+        var o1 = set.int1;
+        var o2 = set.int2;
+        if (x.options1.compatible(o1.cbTypes) &&
+            x.options2.compatible(o2.cbTypes))
+        {
+            cb.int1 = o1;
+            cb.int2 = o2;
+        } else {
+            cb.int1 = o2;
+            cb.int2 = o1;
+        }
     }
 
     flibmdel public inline function lookup_group() {
