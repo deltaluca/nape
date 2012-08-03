@@ -75,39 +75,46 @@ class PR(Constraint) {
         wrap_cbTypes = PR(CbTypeList).get(cbTypes);
         wrap_cbTypes.pr(inner).adder = wrap_cbTypes_adder;
         wrap_cbTypes.pr(inner).subber = wrap_cbTypes_subber;
-        wrap_cbTypes.pr(inner)._invalidate = wrap_cbTypes_invalidate;
+        wrap_cbTypes.pr(inner).dontremove = true; //done by subber
         DEBUG(wrap_cbTypes.pr(inner)._modifiable = immutable_cbTypes;)
     }
     DEBUG(function immutable_cbTypes() {
-        immutable_midstep("Interactor::cbTypes");
+        immutable_midstep("Constraint::cbTypes");
     })
-    function wrap_cbTypes_adder(cb:CbType):Bool {
-        if(insert_cbtype(cb.pr(inner)))
-        {
-            if (space!=null)
-            {
-                cb.pr(inner).addConstraint(this);
+    function wrap_cbTypes_subber(pcb:CbType):Void {
+        var cb = pcb.pr(inner);
+        if(cbTypes.has(cb)) {
+            if(space!=null) {
+                dealloc_cbSet();
+                cb.remConstraint(this);
+            }
+
+            cbTypes.remove(cb);
+
+            if(space!=null) {
+                alloc_cbSet();
+                wake();
             }
         }
-
-        wrap_cbTypes_invalidate(null); //need to call due to returning false!
+    }
+    function wrap_cbTypes_adder(cb:CbType):Bool {
+        insert_cbtype(cb.pr(inner));
         return false; //always prevent wrap_list inserting into real list
     }
-    function wrap_cbTypes_subber(cb:CbType):Void {
-        if (space != null)
-        {
-            cb.pr(inner).remConstraint(this);
+    public function insert_cbtype(cb:PR(CbType)) {
+        if(!cbTypes.has(cb)) {
+            if(space!=null) {
+                dealloc_cbSet();
+                cb.addConstraint(this);
+            }
+
+            Insert(cb,cbTypes,PR(CbType).setlt);
+
+            if(space!=null) {
+                alloc_cbSet();
+                wake();
+            }
         }
-    }
-    flibmdel public inline function insert_cbtype(cb:PR(CbType)) {
-        return TryInsert(cb, cbTypes, PR(CbType).setlt);
-    }
-    function wrap_cbTypes_invalidate(_) {
-        if(space!=null && active) {
-            dealloc_cbSet();
-            alloc_cbSet();
-        }
-        wake();
     }
 
     //--------------------------------------------------------------------
@@ -146,8 +153,7 @@ class PR(Constraint) {
 
         //do body lists
         activeBodies();
-
-        //do cbTypes
+        //do CbTypes
         Iter(cb, cbTypes, cb.addConstraint(this));
     }
     public function removedFromSpace() {
@@ -155,8 +161,7 @@ class PR(Constraint) {
 
         //do body lists
         inactiveBodies();
-
-        //do cbTypes
+        //do CbTypes
         Iter(cb, cbTypes, cb.remConstraint(this));
     }
 

@@ -22,10 +22,12 @@ class PR(Interactor) {
 
     public function __iaddedToSpace() {
         if(group!=null) group.addInteractor(this);
+        Iter(cb, cbTypes, cb.addInteractor(this));
         alloc_cbSet();
     }
     public function __iremovedFromSpace() {
         if(group!=null) group.remInteractor(this);
+        Iter(cb, cbTypes, cb.remInteractor(this));
         dealloc_cbSet();
     }
 
@@ -95,14 +97,18 @@ class PR(Interactor) {
     function wrap_cbTypes_subber(pcb:CbType):Void {
         var cb = pcb.pr(inner);
         if(cbTypes.has(cb)) {
-            if(getSpace()!=null) dealloc_cbSet();
+            var space = getSpace();
+            if(space!=null) {
+                dealloc_cbSet();
+                cb.remInteractor(this);
+            }
 
             cbTypes.remove(cb);
-            cb.remInteractor(this);
 
-            if(getSpace()!=null) alloc_cbSet();
-
-            wake();
+            if(space!=null) {
+                alloc_cbSet();
+                wake();
+            }
         }
     }
     function wrap_cbTypes_adder(cb:CbType):Bool {
@@ -111,14 +117,18 @@ class PR(Interactor) {
     }
     public function insert_cbtype(cb:PR(CbType)) {
         if(!cbTypes.has(cb)) {
-            if(getSpace()!=null) dealloc_cbSet();
+            var space = getSpace();
+            if(space!=null) {
+                dealloc_cbSet();
+                cb.addInteractor(this);
+            }
 
             Insert(cb,cbTypes,PR(CbType).setlt);
-            cb.addInteractor(this);
 
-            if(getSpace()!=null) alloc_cbSet();
-
-            wake();
+            if(space!=null) {
+                alloc_cbSet();
+                wake();
+            }
         }
     }
 
@@ -187,10 +197,18 @@ class PR(Interactor) {
 
     //--------------------------------------------------------------------
 
-    flibmdel public inline static function int_callback(o1:PR(Interactor),o2:PR(Interactor),cb1:PR(OptionType),cb:PR(Callback)) {
-        if(cb1.compatible(o1.cbTypes)) {
-               cb.int1 = o1; cb.int2 = o2;
-        }else{ cb.int2 = o1; cb.int1 = o2; }
+    public inline static function int_callback(set:PR(CallbackSet), x:PR(InteractionListener), cb:PR(Callback)) {
+        var o1 = set.int1;
+        var o2 = set.int2;
+        if (x.options1.compatible(o1.cbTypes) &&
+            x.options2.compatible(o2.cbTypes))
+        {
+            cb.int1 = o1;
+            cb.int2 = o2;
+        } else {
+            cb.int1 = o2;
+            cb.int2 = o1;
+        }
     }
 
     flibmdel public inline function lookup_group() {

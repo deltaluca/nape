@@ -666,7 +666,7 @@ class PR(Space) {
                                     var cb = push_callback(listener);
                                     cb.event = Flag(CbEvent,END);
                                     //use callbackset int1/int2 to keep consistency in cases of cbType1==cbType2
-                                    PR(Interactor).int_callback(callbackset.int1,callbackset.int2,listener.options1,cb);
+                                    PR(Interactor).int_callback(callbackset, listener, cb);
                                     cb.set = callbackset;
                                 }
                             });
@@ -970,7 +970,7 @@ class PR(Space) {
                 if(!set.empty_arb(x.itype)) {
                     var cb = push_callback(x);
                     cb.event = Flag(CbEvent,ONGOING);
-                    PR(Interactor).int_callback(set.int1,set.int2,x.options1,cb);
+                    PR(Interactor).int_callback(set, x ,cb);
                     cb.set = set;
                 }
             });
@@ -1728,7 +1728,7 @@ class PR(Space) {
                                         var cb = push_callback(listener);
                                         cb.event = Flag(CbEvent,BEGIN);
                                         //use callbackset int1/int2 to keep consistency in cases of cbType1==cbType2
-                                        PR(Interactor).int_callback(callbackset.int1,callbackset.int2,listener.options1,cb);
+                                        PR(Interactor).int_callback(callbackset, listener, cb);
                                         cb.set = callbackset;
                                     }
                                 });
@@ -1744,7 +1744,7 @@ class PR(Space) {
                                         var cb = push_callback(listener);
                                         cb.event = Flag(CbEvent,END);
                                         //use callbackset int1/int2 to keep consistency in cases of cbType1==cbType2
-                                        PR(Interactor).int_callback(callbackset.int1,callbackset.int2,listener.options1,cb);
+                                        PR(Interactor).int_callback(callbackset, listener, cb);
                                         cb.set = callbackset;
                                     }
                                 });
@@ -2059,10 +2059,7 @@ class PR(Space) {
                                             Iter(cbset, i2.cbsets, err += "  ("+cbset.id+" "+(cbset.int1==null?"null":"")+","+cbset.di+" "+(cbset.int2==null?"null":"")+") arbs size="+cbset.arbiters.size()+" freed="+cbset.freed+" lazydel="+cbset.lazydel+"\n");
                                             throw err;
                                         }
-                                        PR(Interactor).int_callback(
-                                            callbackset.int1, callbackset.int2,
-                                            listener.options1, precb.pr(inner)
-                                        );
+                                        PR(Interactor).int_callback(callbackset, listener, precb.pr(inner));
                                         precb.pr(inner).pre_swapped = i1 != precb.pr(inner).int1;
 
                                         var ret = listener.handlerp(precb);
