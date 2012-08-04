@@ -110,9 +110,6 @@ class PR(Shape) extends PR(Interactor) {
             inv(localCOM) = false;
 
             if(isPolygon()) polygon.__validate_localCOM();
-
-            if(wrap_localCOM!=null)
-                vec_set(wrap_localCOM.pr(inner).,localCOM);
         }
     }
     flibmdel public inline function validate_worldCOM() {
@@ -123,14 +120,13 @@ class PR(Shape) extends PR(Interactor) {
                 validate_localCOM();
                 body.validate_axis();
                 vec_localglobal(body.axis,body.pos, localCOM,worldCOM);
-                if(wrap_worldCOM!=null)
-                    vec_set(wrap_worldCOM.pr(inner).,worldCOM);
             }
         }
     }
     public function getworldCOM() {
         DEBUG(if(body==null) throw "Error: worldCOM only makes sense when Shape belongs to a Body";)
         validate_worldCOM();
+        vec_set(wrap_worldCOM.pr(inner)., worldCOM);
     }
 
     //----------------------------------------------------------------------------------------------
