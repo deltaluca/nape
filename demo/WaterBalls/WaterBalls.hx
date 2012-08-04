@@ -70,7 +70,7 @@ class WaterBalls extends FixedStep {
 		var ramp_polys = MarchingSquares.run(ramp_iso,new AABB(0,0,800,400),new Vec2(15,15),3,new Vec2(100,100));
 		var ramp = new Body(BodyType.STATIC);
 		for(poly in ramp_polys) {
-			var polys = poly.convex_decomposition();
+			var polys = poly.convexDecomposition();
 			for(p in polys) ramp.shapes.add(new Polygon(p));
 		}
 		ramp.space = space;

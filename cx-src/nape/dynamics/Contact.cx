@@ -177,41 +177,17 @@ class Contact {
     }
 
     !!/**
-    !! * The specific coeffecient of elasticity for this contact
-    !! * <br/><br/>
-    !! * This value is computed based on the combined coeffecicent of elasticity of the Arbiter
-    !! * as well as the relative velocity at contact point.
-    !! * <br/><br/>
-    !! * This value cannot presently be modified, even in a related PreListener handler.
-    !! */
-    property(restitution,Float, {
-        DEBUG(if(pr(inner).inactiveme()) throw "Error: Contact not currently in use";)
-        return pr(inner).elasticity;
-    })
-
-    !!/**
     !! * The specific coeffecient of friction for this contact.
     !! * <br/><br/>
-    !! * This value is computed based on the combined coeffecients of static and dynamic friction
-    !! * of the Arbiter, as well as the relative velocity at contact point.
+    !! * This value is equal either to the static or dynamic friction coeffecient of the arbiter
+    !! * based on the relative velocity at contact point.
     !! * <br/><br/>
-    !! * This value cannot presently be modified, even in a related PreListener handler.
+    !! * This value cannot be set, though you may implicitly set it exactly by modifying
+    !! * the arbiter to have the same static and dynamic friction in the PreListener.
     !! */
     property(friction,Float, {
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Contact not currently in use";)
         return pr(inner).inner.friction;
-    })
-
-    !!/**
-    !! * The specific coeffecient of rolling friction for this contact.
-    !! * <br/><br/>
-    !! * This value is at present equal to the Arbiter rollingFriction coeffecient.
-    !! * <br/><br/>
-    !! * This value cannot presently be modified, even in a related PreListener handler.
-    !! */
-    property(rollingFriction,Float,{
-        DEBUG(if(pr(inner).inactiveme()) throw "Error: Contact not currently in use";)
-        return pr(inner).arbiter.colarb.rfric;
     })
 
     !!/**

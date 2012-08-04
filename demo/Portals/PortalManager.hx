@@ -161,7 +161,7 @@ class PortalManager {
 		//new portal interaction!
 		if(info==null) {
 			var clone = new Body();
-			var clone_shp = Shape.copy(object);
+			var clone_shp = object.copy();
 			clone_shp.scale(scale,scale);
 			clone_shp.body = clone;
 			clone.space = object.body.space;
@@ -198,7 +198,7 @@ class PortalManager {
 		//just need too add new limboed-shape
 		else {
 			var clone = if(info.master==object.body) info.slave else info.master;
-			var clone_shp = Shape.copy(object);
+			var clone_shp = object.copy();
 			clone_shp.scale(scale,scale);
 			clone_shp.body = clone;
 

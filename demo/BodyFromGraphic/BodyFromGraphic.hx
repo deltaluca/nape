@@ -49,7 +49,7 @@ class BodyFromGraphic extends FixedStep {
 
 			var body = graphicToBody(graphic, new Vec2(5,5));
 			body.space = space;
-			addChild(body.graphic);
+			addChild(body.userData.graphic);
 		}
 
 		//create a nape body generated from a bitmap
@@ -57,7 +57,7 @@ class BodyFromGraphic extends FixedStep {
 			var body = bitmapToBody(new Sherlock(0,0), 0x80, new Vec2(6,6));
 			body.position.setxy(150+150*i,350);
 			body.space = space;
-			addChild(body.graphic);
+			addChild(body.userData.graphic);
 		}
 
 		//overlap debug ontop of everything
@@ -94,6 +94,18 @@ class BodyFromGraphic extends FixedStep {
 
 			debug.draw(space);
 			debug.flush();
+
+            space.visitBodies(function (b) {
+                var g = b.userData.graphic;
+                if (g == null) return;
+
+                var p = b.localToWorld(b.userData.graphicOffset);
+                g.x = p.x;
+                g.y = p.y;
+                p.dispose();
+
+                g.rotation = b.rotation*180/Math.PI;
+            });
 		});
 	}
 
@@ -138,8 +150,8 @@ class BodyFromGraphic extends FixedStep {
 		var anchor = body.localCOM.mul(-1);
 		body.translateShapes(anchor);
 
-		body.graphic = new Bitmap(bitmap, PixelSnapping.AUTO, true);
-		body.graphicOffset = anchor;
+		body.userData.graphic = new Bitmap(bitmap, PixelSnapping.AUTO, true);
+		body.userData.graphicOffset = anchor;
 		return body;
 	}
 
@@ -180,8 +192,8 @@ class BodyFromGraphic extends FixedStep {
 		var anchor = body.localCOM.mul(-1);
 		body.align();
 
-		body.graphic = graphic;
-		body.graphicOffset = anchor;
+		body.userData.graphic = graphic;
+		body.userData.graphicOffset = anchor;
 		return body;
 	}
 }

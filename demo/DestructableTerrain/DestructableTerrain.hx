@@ -149,7 +149,7 @@ class Terrain {
 				if(b!=null) {
 					//if cell body exists, clear it for re-use
 					b.space = null;
-					b.clear();
+					b.shapes.clear();
 					b.position = offset;
 					b.userData.terrain = this;
 				}

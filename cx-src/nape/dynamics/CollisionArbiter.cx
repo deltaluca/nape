@@ -180,23 +180,69 @@ class CollisionArbiter extends Arbiter {
         else return 0.0;
     }
 
-    $(mixin prop(N,n, desc)
-        !!/**
-        $doc($$*$$Combined coeffecient of desc for this collision interaction.)
-        !! * <br/><br/>
-        !! * This value cannot at present be modified, even during a PreListener.
-        !! */
+    $(mixin prop(N,n)
         property(N,Float,{
             DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
             var colarb = pr(inner).colarb;
             colarb.validate_props();
             return colarb.n;
+        }, {
+            DEBUG(if(!pr(inner).colarb.mutable) throw "Error: CollisionArbiter::" + $str(N)+" is only mutable during a pre-handler";)
+            DEBUG(
+                if (isNaN(N)) throw "Error: CollisionArbiter::" + $str(N)+" cannot be NaN";
+                if (N < 0) throw "Error: CollisionArbiter::" + $str(N)+" cannot be negative";
+                if ($str(N)=="restitution" && N>1) throw "Error: CollisionArbiter::restitution cannot be greater than 1";
+            )
+            var colarb = pr(inner).colarb;
+            colarb.n = N;
+            colarb.userdef_`n = true;
         })
     );
-    prop(restitution,     restitution, elasticity)
-    prop(dynamicFriction, dyn_fric, dynamic friction)
-    prop(staticFriction,  stat_fric, static friction)
-    prop(rollingFriction, rfric, rolling friction)
+
+    !!/**
+    !! * Coeffecient of combined elasticity for collision interaction.
+    !! * <br/><br/>
+    !! * The value is computed as the average of the Shape Material's elasticities
+    !! * clamped to be in the range [0,1]
+    !! * <br/><br/>
+    !! * This value may be modified only during a PreListener, and once modified
+    !! * will no longer be under Nape's control. Values must be in the range 0
+    !! * to 1.
+    !! */
+    prop(elasticity, restitution)
+
+    !!/**
+    !! * Coeffecient of combined dynamic friction for collision interaction.
+    !! * <br/><br/>
+    !! * The value is computed as the square root of the product of the Shape
+    !! * Material's dynamicFriction coeffecients.
+    !! * <br/><br/>
+    !! * This value may be modified only during a PreListener, and once modified
+    !! * will no longer be under Nape's control. Values must not be negative.
+    !! */
+    prop(dynamicFriction, dyn_fric)
+
+    !!/**
+    !! * Coeffecient of combined static friction for collision interaction.
+    !! * <br/><br/>
+    !! * The value is computed as the square root of the product of the Shape
+    !! * Material's staticFriction coeffecients.
+    !! * <br/><br/>
+    !! * This value may be modified only during a PreListener, and once modified
+    !! * will no longer be under Nape's control. Values must not be negative.
+    !! */
+    prop(staticFriction, stat_fric)
+
+    !!/**
+    !! * Coeffecient of combined rolling friction for collision interaction.
+    !! * <br/><br/>
+    !! * The value is computed as the square root of the product of the Shape
+    !! * Material's rollingFriction coeffecients.
+    !! * <br/><br/>
+    !! * This value may be modified only during a PreListener, and once modified
+    !! * will no longer be under Nape's control. Values must not be negative.
+    !! */
+    prop(rollingFriction, rfric)
 
     !!/**
     !! * @private

@@ -60,8 +60,8 @@ class Viewport extends FixedStep {
 			var new_body = cb.int2.castBody;
 			if(new_body.compound==viewport) return; //ignore viewport bodies.
 
-            if(new_body.graphic != null)
-    			new_body.graphic.alpha = 1.0;
+            if(new_body.userData.graphic != null)
+    			new_body.userData.graphic.alpha = 1.0;
 		}));
 
 		//called when a body has left any part of viewport.
@@ -70,8 +70,8 @@ class Viewport extends FixedStep {
 			var old_body = cb.int2.castBody;
 			if(old_body.compound==viewport) return; //ignore viewport bodies.
 
-            if(old_body.graphic != null)
-    			old_body.graphic.alpha = 0.25;
+            if(old_body.userData.graphic != null)
+    			old_body.userData.graphic.alpha = 0.25;
 		}));
 
 		//------------------------------------------------------
@@ -126,9 +126,9 @@ class Viewport extends FixedStep {
 			b.shapes.add(new Polygon(Polygon.regular(Math.random()*20+20,Math.random()*20+20,Std.int(Math.random()*2)+3)));
 			b.space = space;
 
-			b.graphic = Debug.createGraphic(b);
-			addChild(b.graphic);
-			b.graphic.alpha = 0.25;
+			b.userData.graphic = Debug.createGraphic(b);
+			addChild(b.userData.graphic);
+			b.userData.graphic.alpha = 0.25;
 		}
 
 		//=================================================================================
@@ -153,12 +153,24 @@ class Viewport extends FixedStep {
 
 		//=================================================================================
 
+        function graphicUpdate(b:Body)
+        {
+            var g = b.userData.graphic;
+            if (g==null) return;
+
+            g.x = b.position.x;
+            g.y = b.position.y;
+            g.rotation = b.rotation * 180/Math.PI;
+        }
+
 		run(function (dt) {
 			debug.clear();
 			hand.anchor1.setxy(mouseX,mouseY);
 			space.step(dt);
 			debug.draw(viewport);
 			debug.flush();
+
+            space.visitBodies(graphicUpdate);
 		});
 	}
 }

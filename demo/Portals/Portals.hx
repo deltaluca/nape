@@ -18,7 +18,7 @@ class Portals extends FixedStep {
 	static function main() {
 		new Portals();
 	}
-	function new() {	
+	function new() {
 		super(1/60);
 
 		var space = new Space();
@@ -134,7 +134,7 @@ class Portals extends FixedStep {
 		var manager = new PortalManager(space);
 		space.worldLinearDrag = 0.9;
 		space.worldAngularDrag = 0.9;
-	
+
 		run(function (dt) {
 			p1.body.velocity.y = Math.cos(space.elapsedTime)*50;
 
@@ -161,6 +161,6 @@ class Portals extends FixedStep {
 
 			debug.draw(space);
 			debug.flush();
-		});	
+		});
 	}
 }

@@ -29,8 +29,8 @@ class UserWeldJoint extends UserConstraint {
 	//  registerBody will deregister the old one, and register the new one returning it
 	//. registering/deregestering occur in pairs and can happen multiple times.
 	//. null values are checked to make sure everything occurs as it should internally.
-	function set_body1(body1:Body) { return this.body1 = registerBody(this.body1,body1); }
-	function set_body2(body2:Body) { return this.body2 = registerBody(this.body2,body2); }
+	function set_body1(body1:Body) { return this.body1 = __registerBody(this.body1,body1); }
+	function set_body2(body2:Body) { return this.body2 = __registerBody(this.body2,body2); }
 
 	//. to make the user-def constraint robust
 	//  the anchors Vec2's are special, and bound to the constraint
@@ -39,11 +39,11 @@ class UserWeldJoint extends UserConstraint {
 	public var anchor1(default,set_anchor1):Vec2;
 	public var anchor2(default,set_anchor2):Vec2;
 	function set_anchor1(anchor1:Vec2) {
-		if(this.anchor1==null) this.anchor1 = bindVec2();
+		if(this.anchor1==null) this.anchor1 = __bindVec2();
 		return this.anchor1.set(anchor1);
 	}
 	function set_anchor2(anchor2:Vec2) {
-		if(this.anchor2==null) this.anchor2 = bindVec2();
+		if(this.anchor2==null) this.anchor2 = __bindVec2();
 		return this.anchor2.set(anchor2);
 	}
 
@@ -51,7 +51,7 @@ class UserWeldJoint extends UserConstraint {
 	//above it's provided by using the bindVec2() method
 	public var phase(default,set_phase):Float;
 	function set_phase(phase:Float) {
-		if(this.phase!=phase) invalidate();
+		if(this.phase!=phase) __invalidate();
 		return this.phase = phase;
 	}
 

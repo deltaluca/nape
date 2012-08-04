@@ -150,6 +150,7 @@ class DocProcessor {
         docCtx.comments = spres2.join("</pre>");
 
         var lines = docCtx.comments.split("\n");
+        lines = Lambda.array(Lambda.filter(lines, function (s) return StringTools.trim(s).length != 0));
         docCtx.firstline = lines[0];
         lines.shift();
         lines.shift(); //remove empty line between header and body.

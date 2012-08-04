@@ -24,7 +24,6 @@ class ConstraintStressTest extends FixedStep {
 		var space = new Space(new Vec2(0,400));
 		var debug = new BitmapDebug(800,600,0x333333);
         debug.drawConstraints = true;
-        debug.drawConstraintSprings = true;
         debug.transform = new Mat23(0.5, 0, 0, 0.5);
 		addChild(debug.display);
 
