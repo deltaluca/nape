@@ -3,18 +3,50 @@ $(import);
 
 
 class DummyNapeMain {
+    public static var debug:Debug;
     static function main() {
         var b1 = new Body();
-        var b2 = new Body();
-        b1.shapes.add(new Circle(10));
-        b2.shapes.add(new Circle(10));
-        var c = new PivotJoint(b1, b2, new Vec2(), new Vec2());
-        var s = new Space();
-        c.space = b1.space = b2.space = s;
-        c.maxForce = 0.00001;
+        b1.shapes.add(new Polygon(Polygon.regular(40, 80, 40)));
+        b1.shapes.add(new Circle(40, new Vec2(200, 0)));
 
-        s.step(1/100, 10, 10);
-        s.step(1/100, 10, 10);
-        s.step(1/100, 10, 10);
+        debug = new ShapeDebug(1, 1);
+        flash.Lib.current.addChild(debug.display);
+
+        var b2 = new Body();
+        b2.shapes.add(new Polygon(Polygon.regular(80, 120, 40)));
+        b2.shapes.add(new Circle(40, new Vec2(200, 0)));
+        //b2.shapes.add(new Circle(40, new Vec2(-40, 0)));
+        b2.rotation = 0.3;
+        b2.position.x = b2.position.y = 300;
+
+        (new haxe.Timer(0)).run = function () {
+            b1.position.x = flash.Lib.current.mouseX;
+            b1.position.y = flash.Lib.current.mouseY;
+
+            debug.clear();
+            debug.draw(b1);
+            debug.draw(b2);
+
+            for(s1 in b1.shapes)
+            {
+                for (s2 in b2.shapes)
+                {
+                    s1.pr(inner).validate_aabb();
+                    s2.pr(inner).validate_aabb();
+                    if (s1.pr(inner).isPolygon()) s1.pr(inner).polygon.validate_gaxi();
+                    if (s2.pr(inner).isPolygon()) s2.pr(inner).polygon.validate_gaxi();
+                }
+            }
+
+            var c1 = new Vec2();
+            var c2 = new Vec2();
+            var x = PR(SweepDistance).distanceBody(b1.pr(inner), b2.pr(inner), c1.pr(inner), c2.pr(inner));
+
+            debug.drawCircle(c1, 2, 0xff0000);
+            debug.drawCircle(c2, 2, 0xff00);
+            debug.drawLine(c1, c2, 0xffffff);
+
+            debug.flush();
+        }
     }
 }

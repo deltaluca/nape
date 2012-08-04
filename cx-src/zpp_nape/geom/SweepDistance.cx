@@ -1,0 +1,267 @@
+package zpp_nape.geom;
+$(import);
+
+class PR(SweepDistance) {
+
+    static public function distanceBody(
+        b1:PR(Body), b2:PR(Body),
+        w1:PR(Vec2), w2:PR(Vec2)
+    ):Float
+    {
+        var t1; Get(PR(Vec2), t1);
+        var t2; Get(PR(Vec2), t2);
+        var min = PR(Const).FMAX;
+        Iter(s1, b1.shapes, {
+            Iter(s2, b2.shapes, {
+                var dist = distance(s1, s2, t1, t2, min);
+                if (dist < min)
+                {
+                    min = dist;
+                    vec_set(w1., t1.);
+                    vec_set(w2., t2.);
+                }
+            });
+        });
+        Free(PR(Vec2), t1);
+        Free(PR(Vec2), t2);
+        return min;
+    }
+
+    $(mixin circle2circle(c1, c2, r1, r2, w1, w2, dist, upperBound) {
+        vec_new(n);
+        vec_sub(c2, c1, n);
+        var len = vec_length(n);
+        dist = len - (r1 + r2);
+        if (dist < upperBound) {
+            if (len == 0) vec_set(n, 1, 0);
+            else vec_diveq(n, len);
+
+            vec_addmul(c1, n,  r1, w1);
+            vec_addmul(c2, n, -r2, w2);
+        }
+    });
+
+    // Compute signed distance between shapes with witnesses.
+    static public inline function distance(
+        s1:PR(Shape), s2:PR(Shape),
+        w1:PR(Vec2), w2:PR(Vec2),
+        upperBound : Float
+    ):Float
+    {
+        if (s1.isCircle() && s2.isCircle()) {
+            var c1 = s1.circle;
+            var c2 = s2.circle;
+
+            var dist;
+            circle2circle(
+                c1.worldCOM, c2.worldCOM, c1.radius, c2.radius,
+                w1., w2., dist, upperBound
+            );
+            return dist;
+        }
+        else {
+            if(s1.isCircle() && s2.isPolygon()) {
+                var tmp = s1;
+                s1 = s2;
+                s2 = tmp;
+
+                var tmp2 = w1;
+                w1 = w2;
+                w2 = tmp2;
+            }
+
+            if (s1.isPolygon() && s2.isCircle()) {
+                var poly = s1.polygon;
+                var circle = s2.circle;
+
+                // Find candidate edge on polygon.
+                // If circle is beyond an edge projection, then this is the largest
+                //   positive distance edge based on projection.
+                // Else it is the smallest negative distance edge based on projection.
+                var best = -PR(Const).FMAX;
+                var a0 = null;
+
+                Iter(a, poly.edges, {
+                    var dist = vec_dot(a.gnorm, circle.worldCOM) - a.gprojection - circle.radius;
+                    if (dist > upperBound) {
+                        best = dist;
+                        cx_break;
+                    }
+                    if (dist > 0) {
+                        if (dist > best) {
+                            best = dist;
+                            a0 = a;
+                        }
+                    }
+                    else if (best < 0 && dist > best) {
+                        best = dist;
+                        a0 = a;
+                    }
+                });
+
+                if (best < upperBound) {
+                    var v0 = a0.gp0;
+                    var v1 = a0.gp1;
+                    var dt = vec_cross(a0.gnorm, circle.worldCOM);
+                    if (dt <= vec_cross(a0.gnorm, v0.)) {
+                        circle2circle(
+                            v0., circle.worldCOM, 0, circle.radius,
+                            w1., w2., best, upperBound
+                        );
+                    }
+                    else if (dt >= vec_cross(a0.gnorm, v1.)) {
+                        circle2circle(
+                            v1., circle.worldCOM, 0, circle.radius,
+                            w1., w2., best, upperBound
+                        );
+                    }
+                    else {
+                        vec_addmul(circle.worldCOM, a0.gnorm, -circle.radius, w2.);
+                        vec_addmul(w2., a0.gnorm, -best, w1.);
+                    }
+                }
+
+                return best;
+            }
+            else {
+                var p1 = s1.polygon;
+                var p2 = s2.polygon;
+
+                // Find candidate edge on polygons.
+                // If polygons are intersecting, this is smallest penetration edge.
+                // Else the largest distance edge by projection.
+                var best = -PR(Const).FMAX;
+                var a1 = null;
+                var a2 = null;
+                var besti = 0;
+
+                $(mixin axis(i, pa, pb)
+                    Iter(a, pa.edges, {
+                        var min = PR(Const).FMAX;
+                        Iter(v, pb.gverts, {
+                            var k = vec_dot(a.gnorm, v.);
+                            if (k < min) min = k;
+                        });
+                        min -= a.gprojection;
+                        if (min > upperBound) {
+                            best = min;
+                            cx_break;
+                        }
+                        if (min > 0) {
+                            if (min > best) {
+                                best = min;
+                                a`i = a;
+                                besti = i;
+                            }
+                        }
+                        else if (best < 0 && min > best) {
+                            best = min;
+                            a`i = a;
+                            besti = i;
+                        }
+                    })
+                );
+
+                axis(1, p1, p2);
+                if (best < upperBound) {
+                    axis(2, p2, p1);
+                    if (best < upperBound) {
+                        var q1, q2;
+                        var ax;
+                        if (besti == 1) {
+                            q1 = p1; q2 = p2;
+                            ax = a1;
+                        }
+                        else {
+                            q1 = p2; q2 = p1;
+                            ax = a2;
+                            var tmp = w1;
+                            w1 = w2;
+                            w2 = tmp;
+                        }
+
+                        // Find most similar edge on q2 for axis ax on q1.
+                        var ay:PR(Edge) = null;
+                        var min = PR(Const).FMAX;
+                        Iter(a, q2.edges, {
+                            var k = vec_dot(ax.gnorm, a.gnorm);
+                            if (k < min)
+                            {
+                                min = k;
+                                ay = a;
+                            }
+                        });
+
+                        // Find witness points on edges.
+                        // In seperation case, this is the closest points on lines.
+                        // In penetration case, we find the deepest of the vertices clamped to
+                        //   the region defined by the edge.
+                        if (best >= 0) {
+                            var v0 = ax.gp0;
+                            var v1 = ax.gp1;
+
+                            var r1 = ay.gp0;
+                            var r2 = ay.gp1;
+
+                            vec_new(v);
+                            vec_sub(v1., v0., v);
+                            var idot = 1 / vec_dot(v, v);
+
+                            var t1 = - (vx * (v0.x - r1.x) + vy * (v0.y - r1.y)) * idot;
+                            var t2 = - (vx * (v0.x - r2.x) + vy * (v0.y - r2.y)) * idot;
+                            if (t1 < 0) t1 = 0; else if (t1 > 1) t1 = 1;
+                            if (t2 < 0) t2 = 0; else if (t2 > 1) t2 = 1;
+
+                            vec_new(f1); vec_addmul(v0., v, t1, f1);
+                            vec_new(f2); vec_addmul(v0., v, t2, f2);
+
+                            var d1 = vec_dsq(f1, r1.);
+                            var d2 = vec_dsq(f2, r2.);
+                            if (d1 < d2) {
+                                vec_set(w1., f1);
+                                vec_set(w2., r1.);
+                                return Math.sqrt(d1);
+                            }
+                            else {
+                                vec_set(w1., f2);
+                                vec_set(w2., r2.);
+                                return Math.sqrt(d2);
+                            }
+                        }
+                        else {
+                            vec_new(c0); vec_set(c0,ay.gp0.);
+                            vec_new(c1); vec_set(c1,ay.gp1.);
+
+                            vec_new(dv); vec_sub(c1,c0,dv);
+                            var d0 = vec_cross(c0,ax.gnorm);
+                            var d1 = vec_cross(c1,ax.gnorm);
+                            var den = 1/(d1-d0);
+                            //clip c0
+                            var t = (-ax.tp1 - d0)*den;
+                            if(t>PR(Const).EPSILON) vec_addeq(c0,dv,t);
+                            //clip c1
+                            var t = (-ax.tp0 - d1)*den;
+                            if(t<-PR(Const).EPSILON) vec_addeq(c1,dv,t);
+
+                            var c0d = vec_dot(c0,ax.gnorm)-ax.gprojection;
+                            var c1d = vec_dot(c1,ax.gnorm)-ax.gprojection;
+                            if (c0d < c1d) {
+                                vec_set(w2., c0);
+                                vec_addmul(w2., ax.gnorm, -c0d, w1.);
+                                return c0d;
+                            }
+                            else {
+                                vec_set(w2., c1);
+                                vec_addmul(w2., ax.gnorm, -c1d, w1.);
+                                return c1d;
+                            }
+                        }
+                    }else
+                        return upperBound;
+                }else
+                    return upperBound;
+            }
+        }
+    }
+
+}

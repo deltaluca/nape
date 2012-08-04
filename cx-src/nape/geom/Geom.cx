@@ -6,6 +6,76 @@ $(import);
 !! */
 class Geom {
     !!/**
+    !! * Determine distance and closest points between two Bodies.
+    !! * <br/><br/>
+    !! * If the bodies are intersecting, then a negative value is returned
+    !! * equal to the penetration of the bodies, and the out1/out2 vectors
+    !! * will still be meaningful with their difference being the minimum
+    !! * translational vector to seperate the intersecting shapes of the bodies.
+    !! * (This may not be a global seperation vector as it is considering only
+    !! *  one pair of shapes at a time).
+    !! * <br/><br/>
+    !! * As the out1/out2 vectors are used to return values from the function,
+    !! * this is one of the rare cases where should out1/out2 be weak Vec2's
+    !! * they will 'not' be sent to the global object pool on being passed to
+    !! * this function.
+    !! * <pre>
+    !! * var closest1 = Vec2.get();
+    !! * var closest2 = Vec2.get();
+    !! * var distance = Geom.distanceBody(body1, body2, out1, out2);
+    !! * if (distance < 0) {
+    !! *     trace("Bodies intersect and penetration distance is " +
+    !! *           (-distance) + " with witness points " + closest1.toString() +
+    !! *           " <-> " + closest2.toString());
+    !! * }else {
+    !! *     trace("Bodies do not intersect and distance betweem them is " +
+    !! *           distance + " with closest points " + closest1.toString() +
+    !! *           " <-> " + closest2.toString());
+    !! * }
+    !! * </pre>
+    !! * The runtime of the algorithm is linear in the number of vertices
+    !! * of each body's shapes (You can consider a Circle as having a single vertex).
+    !! * <br/><br/>
+    !! * This algorithm is able to take shortcuts in culling pair tests between Shapes
+    !! * based on the current state of the search, and will be more effecient than
+    !! * a custom implementation that uses Geom.distance(..) method.
+    !! *
+    !! * @param body1 First input Body.
+    !! * @param body2 Second input Body.
+    !! * @param out1 This Vec2 object will be populated with coordinates of
+    !! *             closest point on body1.
+    !! * @param out2 This Vec2 object will be populated with coordinates of
+    !! *             closest point on body2.
+    !! * @return The distance between the two bodies if seperated, or the
+    !! *         penetration distance (negative) if intersecting.
+    !! * @throws # If either body has no shapes.
+    !! * @throws # If out1 or out2 has been disposed.
+    !! * @throws # If out1 or out2 is immutable.
+    !! */
+    keep public static function distanceBody(
+        body1:Body, body2:Body,
+        out1:Vec2, out2:Vec2
+    ):Float {
+        Disposed(out1,Vec2);
+        Disposed(out2,Vec2);
+
+        out1.pr(inner).immutable();
+        out2.pr(inner).immutable();
+
+        DEBUG(if(body1.shapes.empty() || body2.shapes.empty())
+            throw "Error: Bodies cannot be empty in calculating distances";
+        )
+
+        Iterate(body1.pr(inner).shapes, PR(Geom).validateShape);
+        Iterate(body2.pr(inner).shapes, PR(Geom).validateShape);
+
+        return PR(SweepDistance).distanceBody(
+            body1.pr(inner), body2.pr(inner),
+            out1.pr(inner), out2.pr(inner)
+        );
+    }
+
+    !!/**
     !! * Determine distance and closest points between two Shapes.
     !! * <br/><br/>
     !! * The input Shapes must belong to a Body so that their world positions
@@ -13,11 +83,9 @@ class Geom {
     !! * part of any Space.
     !! * <br/><br/>
     !! * If the shapes are intersecting, then a negative value is returned
-    !! * and the out1/out2 vectors will contain no meaningful values.
-    !! * <br/><br/>
-    !! * On sucess (positive return value), the return defines the smallest
-    !! * distance between the two Shapes, and the out1/out2 vectors will
-    !! * contain the closest points on the Shapes in world space.
+    !! * equal to the penetration of the shapes, and the out1/out2 vectors
+    !! * will still be meaningful with their difference being the minimum
+    !! * translational vector to seperate the Shapes.
     !! * <br/><br/>
     !! * As the out1/out2 vectors are used to return values from the function,
     !! * this is one of the rare cases where should out1/out2 be weak Vec2's
@@ -28,13 +96,17 @@ class Geom {
     !! * var closest2 = Vec2.get();
     !! * var distance = Geom.distance(shape1, shape2, out1, out2);
     !! * if (distance < 0) {
-    !! *     trace("Shapes intersect!");
+    !! *     trace("Shapes intersect and penetration distance is " +
+    !! *           (-distance) + " with witness points " + closest1.toString() +
+    !! *           " <-> " + closest2.toString());
     !! * }else {
     !! *     trace("Shapes do not intersect and distance betweem them is " +
     !! *           distance + " with closest points " + closest1.toString() +
     !! *           " <-> " + closest2.toString());
     !! * }
     !! * </pre>
+    !! * The runtime of the algorithm is linear in the number of vertices
+    !! * of each shape (You can consider a Circle as having a single vertex).
     !! *
     !! * @param shape1 this shape must belong to a Body.
     !! * @param shape2 this shape must belong to a Body.
@@ -42,8 +114,8 @@ class Geom {
     !! *             closest point on shape1.
     !! * @param out2 This Vec2 object will be populated with coordinates of
     !! *             closest point on shape2.
-    !! * @return The distance between the two shapes, or a negative value if
-    !! *         the shapes are intersecting.
+    !! * @return The distance between the two shapes if seperated, or the
+    !! *         penetration distance (negative) if intersecting.
     !! * @throws # If shape1.body is null or shape2.body is null.
     !! * @throws # If out1 or out2 has been disposed.
     !! * @throws # If out1 or out2 is immutable.
@@ -62,27 +134,53 @@ class Geom {
             throw "Error: Shape must be part of a Body to calculate distances";
         )
 
-        var rev = false;
-        if(shape1.isPolygon() && shape2.isCircle()) {
-            rev = true;
-            swap(shape1,shape2);
-        }
-
         PR(Geom).validateShape(shape1.pr(inner));
         PR(Geom).validateShape(shape2.pr(inner));
 
-        var ret = PR(Distance).distance(
+        return PR(SweepDistance).distance(
+            shape1.pr(inner), shape2.pr(inner),
             out1.pr(inner), out2.pr(inner),
-            shape1.pr(inner),shape2.pr(inner),
-            null
+            PR(Const).FMAX
         );
+    }
 
-        if(rev) {
-            swap(out1.x,out2.x);
-            swap(out1.y,out2.y);
+    !!/**
+    !! * Determine if two Bodies intersect.
+    !! * <br/><br/>
+    !! * If you do not need distance/penetration information,
+    !! * then using this method will be more effecient than testing for a negative
+    !! * value using the distance method.
+    !! * <br/><br/>
+    !! * The runtime of the algorithm is linear in the number of vertices
+    !! * of each body's shape (You can consider a Circle as having a single vertex).
+    !! *
+    !! *
+    !! * @param body1 First input Body .
+    !! * @param body2 Second input Body.
+    !! * @return True if the Bodies are intersecting.
+    !! * @throws # If either body has no shapes.
+    !! */
+    keep public static function intersectsBody(body1:Body, body2:Body) {
+        DEBUG(if (body1.shapes.empty() || body2.shapes.empty())
+            throw "Error: Bodies must have shapes to test for intersection.";
+        )
+
+        Iterate(body1.pr(inner).shapes, PR(Geom).validateShape);
+        Iterate(body2.pr(inner).shapes, PR(Geom).validateShape);
+
+        if (!body1.pr(inner).aabb.intersect(body2.pr(inner).aabb)) {
+            return false;
         }
-
-        return ret;
+        else {
+            Iter(s1, body1.pr(inner).shapes, {
+                Iter(s2, body2.pr(inner).shapes, {
+                    if (PR(Collide).testCollide_safe(s1, s2)) {
+                        return true;
+                    }
+                });
+            });
+            return false;
+        }
     }
 
     !!/**
@@ -92,9 +190,13 @@ class Geom {
     !! * and orientations are defined; these Bodies need not be different nor
     !! * part of any Space.
     !! * <br/><br/>
-    !! * If you do not need distance information in the case of non-intersection,
-    !! * then using this method will be more effecient than testing for the fail
-    !! * case of the distance method.
+    !! * If you do not need distance/penetration information,
+    !! * then using this method will be more effecient than testing for a negative
+    !! * value using the distance method.
+    !! * <br/><br/>
+    !! * The runtime of the algorithm is linear in the number of vertices
+    !! * of each shape (You can consider a Circle as having a single vertex).
+    !! *
     !! *
     !! * @param shape1 this shape must belong to a Body.
     !! * @param shape2 this shape must belong to a Body.
@@ -119,6 +221,9 @@ class Geom {
     !! * The input Shapes must belong to a Body so that their world positions
     !! * and orientations are defined; these Bodies need not be different nor
     !! * part of any Space.
+    !! * <br/><br/>
+    !! * The runtime of the algorithm is linear in the number of vertices
+    !! * of each shape (You can consider a Circle as having a single vertex).
     !! *
     !! * @param shape1 this shape must belong to a Body.
     !! * @param shape2 this shape must belong to a Body.

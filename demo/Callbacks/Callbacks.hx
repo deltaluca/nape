@@ -142,10 +142,10 @@ class Callbacks extends FixedStep {
 			var carb = cb.arbiter.collisionArbiter;
 			carb.contacts.filter(function (c:Contact):Bool {
 				//discard if not deep enough.
-				if(c.penetration <= depth) return true;
+				if(c.penetration <= depth) return false;
 
 				c.penetration -= depth;
-				return false;
+				return true;
 			});
 			carb.radius -= depth;
 
