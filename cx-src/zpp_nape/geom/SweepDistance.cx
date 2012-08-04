@@ -29,6 +29,69 @@ class PR(ToiEvent) {
 
 class PR(SweepDistance) {
 
+    static public function dynamicSweep(toi:PR(ToiEvent), timeStep:Float, lowerBound:Float, negRadius:Float) {
+        var s1:PR(Shape) = toi.s1;
+        var s2:PR(Shape) = toi.s2;
+
+        var b1:PR(Body) = s1.body;
+        var b2:PR(Body) = s2.body;
+
+        // relative linear velocity and angular bias for distance.
+        vec_new(delta); vec_sub(b2.vel, b1.vel, delta);
+        var ang1 = b1.angvel; if (ang1 < 0) ang1 = -ang1;
+        var ang2 = b2.angvel; if (ang2 < 0) ang2 = -ang2;
+        var angBias = (s1.sweepCoef * ang1) + (s2.sweepCoef * ang2);
+
+        var c1 = toi.c1;
+        var c2 = toi.c2;
+        var axis = toi.axis;
+
+        var curTOI = lowerBound;
+        var curIter = 0;
+        while (true) {
+            b1.sweepIntegrate(curTOI * timeStep);
+            b1.sweepValidate(s1);
+
+            b2.sweepIntegrate(curTOI * timeStep);
+            b2.sweepValidate(s2);
+
+            var sep = distance(s1, s2, c1, c2, axis) + negRadius;
+            var dot = vec_dot(delta, axis.);
+
+            // objects intersecting!
+            if (sep < PR(Config).SWEEP_LIMIT) {
+                // check objects not seperating at collision point.
+                var proj = dot - b2.angvel * vec_cross(c2., axis.)
+                               + b1.angvel * vec_cross(c1., axis.);
+                if (proj >= PR(Config).SWEEP_SEPERATING) {
+                    curTOI = -1;
+                }
+                break;
+            }
+
+            // lower bound on TOI advancement
+            var denom = (angBias - dot) * timeStep;
+            if (denom <= 0) {
+                curTOI = -1;
+                break;
+            }
+
+            curTOI += sep / denom;
+            if (curTOI >= 1) {
+                curTOI = -1;
+                break;
+            }
+
+            if ((++curIter) >= 100)
+            {
+                curTOI = -1;
+                break;
+            }
+        }
+
+        toi.toi = curTOI;
+    }
+
     static public function staticSweep(toi:PR(ToiEvent), timeStep:Float, lowerBound:Float, negRadius:Float) {
         var s1:PR(Shape) = toi.s1; //dynamic
         var s2:PR(Shape) = toi.s2; //static
@@ -38,7 +101,8 @@ class PR(SweepDistance) {
 
         // relative linear velocity and angular bias for distance.
         vec_new(delta); vec_setneg(delta, b1.vel);
-        var angBias = b1.sweepBias;
+        var ang1 = b1.angvel; if (ang1 < 0) ang1 = -ang1;
+        var angBias = (s1.sweepCoef * ang1);
 
         var c1 = toi.c1;
         var c2 = toi.c2;
