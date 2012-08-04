@@ -6,22 +6,28 @@ class DummyNapeMain {
     public static var debug:Debug;
     static function main() {
         var b1 = new Body();
-        b1.shapes.add(new Polygon(Polygon.regular(40, 80, 6)));
-        b1.shapes.add(new Circle(40, new Vec2(200, 0)));
+        //b1.shapes.add(new Polygon(Polygon.regular(60, 60, 4)));
+        b1.shapes.add(new Circle(40, new Vec2(100, 0)));
 
         debug = new ShapeDebug(1, 1);
         flash.Lib.current.addChild(debug.display);
 
         var b2 = new Body();
-        b2.shapes.add(new Polygon(Polygon.regular(80, 120, 6)));
-        b2.shapes.add(new Circle(40, new Vec2(200, 0)));
+        b2.shapes.add(new Polygon(Polygon.regular(80, 120, 5)));
+        //b2.shapes.add(new Circle(40, new Vec2(0, 0)));
         //b2.shapes.add(new Circle(40, new Vec2(-40, 0)));
-        b2.rotation = 0.3;
         b2.position.x = b2.position.y = 300;
+        b2.rotation = 0.5;
 
         (new haxe.Timer(0)).run = function () {
             b1.position.x = flash.Lib.current.mouseX;
             b1.position.y = flash.Lib.current.mouseY;
+            b1.rotation = 0;
+            b2.rotation += 0.3/100;
+
+            b1.velocity.x = -150;
+            b1.velocity.y = 150;
+            b1.angularVel = -1;
 
             debug.clear();
             debug.draw(b1);
@@ -33,18 +39,29 @@ class DummyNapeMain {
                 {
                     s1.pr(inner).validate_aabb();
                     s2.pr(inner).validate_aabb();
+                    s1.pr(inner).validate_sweepcoef();
+                    s2.pr(inner).validate_sweepcoef();
                     if (s1.pr(inner).isPolygon()) s1.pr(inner).polygon.validate_gaxi();
                     if (s2.pr(inner).isPolygon()) s2.pr(inner).polygon.validate_gaxi();
                 }
             }
 
-            var c1 = new Vec2();
-            var c2 = new Vec2();
-            var x = PR(SweepDistance).distanceBody(b1.pr(inner), b2.pr(inner), c1.pr(inner), c2.pr(inner));
+            var toi = new PR(ToiEvent)();
+            toi.s1 = b1.shapes.at(0).pr(inner);
+            toi.s2 = b2.shapes.at(0).pr(inner);
+            b1.pr(inner).sweepTime = 0;
+            b1.pr(inner).sweepBias = abs(b1.angularVel) * toi.s1.sweepCoef;
+            PR(SweepDistance).staticSweep(toi, 3, 0, 2);
+            if (toi.toi < 0) {
+                b1.pr(inner).sweepIntegrate(3);
+                b1.pr(inner).sweepValidate(toi.s1);
+            }
+            else {
+                debug.drawCircle(toi.c1.wrapper(), 2, 0xff0000);
+                debug.drawCircle(toi.c2.wrapper(), 2, 0xff00);
+            }
 
-            debug.drawCircle(c1, 2, 0xff0000);
-            debug.drawCircle(c2, 2, 0xff00);
-            debug.drawLine(c1, c2, 0xffffff);
+            debug.draw(b1);
 
             debug.flush();
         }

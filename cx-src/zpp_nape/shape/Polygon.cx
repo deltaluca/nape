@@ -140,6 +140,7 @@ class PR(Polygon) extends PR(Shape) {
     public function invalidate_laxi() {
         ///dependancy checked
         invalidate_gaxi();
+        invalidate_sweepcoef();
         inv(laxi) = true;
     }
 
@@ -413,6 +414,31 @@ class PR(Polygon) extends PR(Shape) {
             if(p.y > aabb.maxy) aabb.maxy = p.y;
         });
     }
+
+    public function __validate_sweepcoef() {
+        ///dependancy checked
+        var maxRadius = 0.0;
+        var minRadius = 0.0;
+
+        validate_laxi();
+        Iter(x, lverts, {
+            var r = vec_lsq(x.);
+            if (r > maxRadius) {
+                maxRadius = r;
+            }
+        });
+
+        Iter(e, edges, {
+            if (e.lprojection < minRadius) {
+                minRadius = e.lprojection;
+                if (minRadius < 0) cx_break;
+            }
+        });
+        if (minRadius < 0) minRadius = 0;
+
+        sweepCoef = Math.sqrt(maxRadius) - minRadius;
+    }
+
     public function __validate_area_inertia() {
         ///dependancy checked
         if(lverts.begin()==null || lverts.begin().next==null || lverts.begin().next.next==null) {

@@ -918,6 +918,10 @@ class PR(Space) {
 
         $(mixin doit2(list) {
             Iter(cur,list,{
+                if (!cur.sweepFrozen) {
+                    cur.sweepIntegrate(deltaTime);
+                }
+
                 var upos = !vec_eq(cur.pos,cur.pre_pos);
                 var urot = cur.pre_rot!=cur.rot;
                 if(upos)
@@ -926,9 +930,6 @@ class PR(Space) {
                 if(urot)
                     cur.invalidate_rot();
                 cur.pre_rot = cur.rot;
-
-        //        if(!bphase.is_sweep)
-        //            Iter(shape,cur.shapes,bphase.sync(shape))
             });
         });
         doit2(kinematics);
@@ -1636,12 +1637,21 @@ class PR(Space) {
 
     //----------------------------------------------------------------------------------------------
 
+    // integrate object positions to end of time step.
+    // and prepare for continous collisions.
     public function updatePos(dt:Float) {
         $(mixin doit(list) {
             Iter(cur,list,{
+                vec_set(cur.pre_pos, cur.pos);
+                cur.pre_rot = cur.rot;
+
                 vec_addeq(cur.pos,cur.vel,dt);
                 if(cur.angvel!=0)
                     cur.delta_rot(cur.angvel*dt);
+
+                cur.sweepTime = dt;
+                cur.sweepFrozen = false;
+                cur.sweepBias = 0; //TODO
             });
         });
         doit(live);

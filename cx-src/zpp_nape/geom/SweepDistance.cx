@@ -1,7 +1,91 @@
 package zpp_nape.geom;
 $(import);
 
+class PR(ToiEvent) {
+    MixPool(PR(ToiEvent))
+    flibmdel public inline function alloc() {
+    }
+    flibmdel public inline function free() {
+    }
+
+    public var toi:Float;
+    public var s1:PR(Shape);
+    public var s2:PR(Shape);
+
+    // witness points.
+    public var c1:PR(Vec2);
+    public var c2:PR(Vec2);
+
+    // axis to deal with degenerate case
+    // where c1 === c2
+    public var axis:PR(Vec2);
+
+    public function new() {
+        c1 = new PR(Vec2)();
+        c2 = new PR(Vec2)();
+        axis = new PR(Vec2)();
+    }
+}
+
 class PR(SweepDistance) {
+
+    static public function staticSweep(toi:PR(ToiEvent), timeStep:Float, lowerBound:Float, negRadius:Float) {
+        var s1:PR(Shape) = toi.s1; //dynamic
+        var s2:PR(Shape) = toi.s2; //static
+
+        var b1:PR(Body) = s1.body;
+        var b2:PR(Body) = s2.body;
+
+        // relative linear velocity and angular bias for distance.
+        vec_new(delta); vec_setneg(delta, b1.vel);
+        var angBias = b1.sweepBias;
+
+        var c1 = toi.c1;
+        var c2 = toi.c2;
+        var axis = toi.axis;
+
+        var curTOI = lowerBound;
+        var curIter = 0;
+        while (true) {
+            b1.sweepIntegrate(curTOI * timeStep);
+            b1.sweepValidate(s1);
+            DummyNapeMain.debug.draw(b1.outer);
+
+            var sep = distance(s1, s2, c1, c2, axis) + negRadius;
+            var dot = vec_dot(delta, axis.);
+
+            // objects intersecting!
+            if (sep < PR(Config).SWEEP_LIMIT) {
+                // check objects not seperating at collision point.
+                var proj = dot + b1.angvel * vec_cross(c1., axis.);
+                if (proj >= PR(Config).SWEEP_SEPERATING) {
+                    curTOI = -1;
+                }
+                break;
+            }
+
+            // lower bound on TOI advancement
+            var denom = (angBias - dot) * timeStep;
+            if (denom <= 0) {
+                curTOI = -1;
+                break;
+            }
+
+            curTOI += sep / denom;
+            if (curTOI >= 1) {
+                curTOI = -1;
+                break;
+            }
+
+            if ((++curIter) >= 100)
+            {
+                curTOI = -1;
+                break;
+            }
+        }
+
+        toi.toi = curTOI;
+    }
 
     static public function distanceBody(
         b1:PR(Body), b2:PR(Body),
@@ -10,10 +94,11 @@ class PR(SweepDistance) {
     {
         var t1; Get(PR(Vec2), t1);
         var t2; Get(PR(Vec2), t2);
+        var ax; Get(PR(Vec2), ax);
         var min = PR(Const).FMAX;
         Iter(s1, b1.shapes, {
             Iter(s2, b2.shapes, {
-                var dist = distance(s1, s2, t1, t2, min);
+                var dist = distance(s1, s2, t1, t2, ax, min);
                 if (dist < min)
                 {
                     min = dist;
@@ -27,7 +112,7 @@ class PR(SweepDistance) {
         return min;
     }
 
-    $(mixin circle2circle(c1, c2, r1, r2, w1, w2, dist, upperBound) {
+    $(mixin circle2circle(c1, c2, r1, r2, w1, w2, ax, dist, upperBound) {
         vec_new(n);
         vec_sub(c2, c1, n);
         var len = vec_length(n);
@@ -38,6 +123,7 @@ class PR(SweepDistance) {
 
             vec_addmul(c1, n,  r1, w1);
             vec_addmul(c2, n, -r2, w2);
+            vec_set(ax, n);
         }
     });
 
@@ -45,7 +131,8 @@ class PR(SweepDistance) {
     static public inline function distance(
         s1:PR(Shape), s2:PR(Shape),
         w1:PR(Vec2), w2:PR(Vec2),
-        upperBound : Float
+        axis:PR(Vec2),
+        upperBound : Float = 1e100
     ):Float
     {
         if (s1.isCircle() && s2.isCircle()) {
@@ -55,11 +142,12 @@ class PR(SweepDistance) {
             var dist;
             circle2circle(
                 c1.worldCOM, c2.worldCOM, c1.radius, c2.radius,
-                w1., w2., dist, upperBound
+                w1., w2., axis., dist, upperBound
             );
             return dist;
         }
         else {
+            var swapped = false;
             if(s1.isCircle() && s2.isPolygon()) {
                 var tmp = s1;
                 s1 = s2;
@@ -68,6 +156,7 @@ class PR(SweepDistance) {
                 var tmp2 = w1;
                 w1 = w2;
                 w2 = tmp2;
+                swapped = true;
             }
 
             if (s1.isPolygon() && s2.isCircle()) {
@@ -106,21 +195,23 @@ class PR(SweepDistance) {
                     if (dt <= vec_cross(a0.gnorm, v0.)) {
                         circle2circle(
                             v0., circle.worldCOM, 0, circle.radius,
-                            w1., w2., best, upperBound
+                            w1., w2., axis., best, upperBound
                         );
                     }
                     else if (dt >= vec_cross(a0.gnorm, v1.)) {
                         circle2circle(
                             v1., circle.worldCOM, 0, circle.radius,
-                            w1., w2., best, upperBound
+                            w1., w2., axis., best, upperBound
                         );
                     }
                     else {
                         vec_addmul(circle.worldCOM, a0.gnorm, -circle.radius, w2.);
                         vec_addmul(w2., a0.gnorm, -best, w1.);
+                        vec_set(axis., a0.gnorm);
                     }
                 }
 
+                if (swapped) vec_negate(axis.);
                 return best;
             }
             else {
@@ -135,7 +226,7 @@ class PR(SweepDistance) {
                 var a2 = null;
                 var besti = 0;
 
-                $(mixin axis(i, pa, pb)
+                $(mixin doaxis(i, pa, pb)
                     Iter(a, pa.edges, {
                         var min = PR(Const).FMAX;
                         Iter(v, pb.gverts, {
@@ -162,9 +253,9 @@ class PR(SweepDistance) {
                     })
                 );
 
-                axis(1, p1, p2);
+                doaxis(1, p1, p2);
                 if (best < upperBound) {
-                    axis(2, p2, p1);
+                    doaxis(2, p2, p1);
                     if (best < upperBound) {
                         var q1, q2;
                         var ax;
@@ -178,6 +269,7 @@ class PR(SweepDistance) {
                             var tmp = w1;
                             w1 = w2;
                             w2 = tmp;
+                            swapped = !swapped;
                         }
 
                         // Find most similar edge on q2 for axis ax on q1.
@@ -191,6 +283,9 @@ class PR(SweepDistance) {
                                 ay = a;
                             }
                         });
+
+                        if (swapped) vec_setneg(axis., ax.gnorm);
+                        else vec_set(axis., ax.gnorm);
 
                         // Find witness points on edges.
                         // In seperation case, this is the closest points on lines.
@@ -220,13 +315,21 @@ class PR(SweepDistance) {
                             if (d1 < d2) {
                                 vec_set(w1., f1);
                                 vec_set(w2., r1.);
-                                return Math.sqrt(d1);
+                                best = Math.sqrt(d1);
                             }
                             else {
                                 vec_set(w1., f2);
                                 vec_set(w2., r2.);
-                                return Math.sqrt(d2);
+                                best = Math.sqrt(d2);
                             }
+
+                            if (best != 0) {
+                                vec_sub(w2., w1., axis.);
+                                vec_diveq(axis., best);
+                                if (swapped) vec_negate(axis.);
+                            }
+
+                            return best;
                         }
                         else {
                             vec_new(c0); vec_set(c0,ay.gp0.);

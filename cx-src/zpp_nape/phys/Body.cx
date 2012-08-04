@@ -153,6 +153,55 @@ class PR(Body) extends PR(Interactor) {
 
     //----------------------------------------------------------------------------------------------
 
+    // current integration time for optimised sweepIntegrate
+    public var sweepTime:Float;
+    // True if object has been frozen early.
+    public var sweepFrozen:Bool;
+
+    // bias on distance based on maximal radius and angular velocity.
+    public var sweepBias:Float;
+
+    flibmdel public inline function sweepIntegrate(dt:Float) {
+        var delta = dt - sweepTime;
+        if (delta != 0) {
+            sweepTime = dt;
+            vec_addeq(pos, vel, delta);
+            if (angvel != 0)
+                delta_rot(angvel * delta);
+        }
+    }
+
+    flibmdel public inline function sweepValidate(s:PR(Shape)) {
+        assert(s.body == this, "sweepValidate with non owned shape");
+
+        if (s.isCircle()) {
+            // force validate worldCOM.
+            vec_localglobal(axis, pos, s.localCOM, s.worldCOM);
+        }
+        else {
+            // force validate world vertices
+            var p = s.polygon;
+            var li = p.lverts.begin();
+            Iter(g, p.gverts, {
+                var l = li.elem(); li = li.next;
+                vec_localglobal(axis, pos, l., g.);
+            });
+
+            // force validate world edges
+            var ite = p.edges.begin();
+            Iter2_fast(u, v, p.gverts, {
+                var e = ite.elem(); ite = ite.next;
+                vec_rotate(e.lnorm, axis, e.gnorm);
+                e.gprojection = vec_dot(pos, e.gnorm) + e.lprojection;
+
+                e.tp0 = vec_cross(e.gnorm,u.);
+                e.tp1 = vec_cross(e.gnorm,v.);
+            });
+        }
+    }
+
+    //--------------------------------------------------------------------
+
     vec_new(public,pre_pos);
     vec_new(public,pos);   public var wrap_pos:Vec2;
     vec_new(public,vel);   public var wrap_vel:Vec2;
@@ -191,7 +240,9 @@ class PR(Body) extends PR(Interactor) {
             wake();
         }
     }
-    private function pos_validate() vec_set(wrap_pos.pr(inner).,pos)
+    private function pos_validate() {
+        vec_set(wrap_pos.pr(inner).,pos);
+    }
 
     //--------------------------------------------------------------------
 

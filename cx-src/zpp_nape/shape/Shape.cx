@@ -23,6 +23,24 @@ class PR(Shape) extends PR(Interactor) {
     public var wrap_localCOM:Vec2;
     public var wrap_worldCOM:Vec2;
 
+    // Angular bias coeffecient in sweep tests.
+    //
+    // Computed as the max radius of shape - min radius of shape if origin is contained.
+    // In this way we minimise the coeffecient without permitting tunelling.
+    public var sweepCoef:Float; public var inv(sweepcoef):Bool;
+
+    flibmdel public inline function invalidate_sweepcoef() {
+        //dependancy checked
+        inv(sweepcoef) = true;
+    }
+    public function validate_sweepcoef() {
+        if (inv(sweepcoef)) {
+            inv(sweepcoef) = false;
+            if (isCircle()) circle.__validate_sweepcoef();
+            else            polygon.__validate_sweepcoef();
+        }
+    }
+
     //----------------------------------------------------------------------------------------------
 
     public var circle:PR(Circle);
@@ -148,6 +166,7 @@ class PR(Shape) extends PR(Interactor) {
         //dependancy checked
         inv(localCOM) = true;
         invalidate_area_inertia(); //specificaly inertia
+        if (isCircle()) invalidate_sweepcoef();
         invalidate_angDrag();
         invalidate_worldCOM();
         if(body!=null) body.invalidate_localCOM();
@@ -219,7 +238,7 @@ class PR(Shape) extends PR(Interactor) {
         aabb._immutable = true;
         var me = this;
         aabb._validate = aabb_validate;
-        inv(area_inertia) = inv(angDrag) = inv(localCOM) = true;
+        inv(area_inertia) = inv(angDrag) = inv(localCOM) = inv(sweepcoef) = true;
 
         vec_set(localCOM,0,0);
         vec_set(worldCOM,0,0);
@@ -316,6 +335,10 @@ class PR(Shape) extends PR(Interactor) {
             ret.area = area;
             ret.inertia = inertia;
         }else ret.invalidate_area_inertia();
+
+        if (!inv(sweepcoef)) {
+            ret.sweepCoef = sweepCoef;
+        }else ret.invalidate_sweepcoef();
 
         if(!inv(angDrag))
             ret.angDrag = angDrag;
