@@ -6,14 +6,14 @@ class DummyNapeMain {
     public static var debug:Debug;
     static function main() {
         var b1 = new Body();
-        //b1.shapes.add(new Polygon(Polygon.regular(60, 60, 4)));
-        b1.shapes.add(new Circle(40, new Vec2(100, 0)));
+        b1.shapes.add(new Polygon(Polygon.regular(100, 20, 4)));
+        //b1.shapes.add(new Circle(40, new Vec2(100, 0)));
 
         debug = new ShapeDebug(1, 1);
         flash.Lib.current.addChild(debug.display);
 
         var b2 = new Body();
-        b2.shapes.add(new Polygon(Polygon.regular(80, 120, 5)));
+        b2.shapes.add(new Polygon(Polygon.regular(10, 120, 5)));
         //b2.shapes.add(new Circle(40, new Vec2(0, 0)));
         //b2.shapes.add(new Circle(40, new Vec2(-40, 0)));
         b2.position.x = b2.position.y = 300;
@@ -23,16 +23,16 @@ class DummyNapeMain {
             b1.position.y = flash.Lib.current.mouseY;
             b1.rotation = 0;
 
-            b2.position.x = b2.position.y = 200;
+            b2.position.x = b2.position.y = 300;
             b2.rotation = 0;
 
             b1.velocity.x = -150;
             b1.velocity.y = 150;
-            b1.angularVel = -1;
+            b1.angularVel = -Math.PI;
 
-            b2.velocity.x = 150;
-            b2.velocity.y = 150;
-            b2.angularVel = 1;
+            b2.velocity.x = 50;
+            b2.velocity.y = 50;
+            b2.angularVel = Math.PI;
 
             debug.clear();
             debug.draw(b1);
@@ -44,8 +44,8 @@ class DummyNapeMain {
                 {
                     s1.pr(inner).validate_aabb();
                     s2.pr(inner).validate_aabb();
-                    s1.pr(inner).validate_sweepcoef();
-                    s2.pr(inner).validate_sweepcoef();
+                    s1.pr(inner).validate_sweepRadius();
+                    s2.pr(inner).validate_sweepRadius();
                     if (s1.pr(inner).isPolygon()) s1.pr(inner).polygon.validate_gaxi();
                     if (s2.pr(inner).isPolygon()) s2.pr(inner).polygon.validate_gaxi();
                 }

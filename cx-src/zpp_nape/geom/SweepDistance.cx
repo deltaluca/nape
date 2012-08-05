@@ -40,7 +40,7 @@ class PR(SweepDistance) {
         vec_new(delta); vec_sub(b2.vel, b1.vel, delta);
         var ang1 = b1.angvel; if (ang1 < 0) ang1 = -ang1;
         var ang2 = b2.angvel; if (ang2 < 0) ang2 = -ang2;
-        var angBias = (s1.sweepCoef * ang1) + (s2.sweepCoef * ang2);
+        var angBias = (s1.sweepRadius * ang1) + (s2.sweepRadius * ang2);
 
         var c1 = toi.c1;
         var c2 = toi.c2;
@@ -102,7 +102,7 @@ class PR(SweepDistance) {
         // relative linear velocity and angular bias for distance.
         vec_new(delta); vec_setneg(delta, b1.vel);
         var ang1 = b1.angvel; if (ang1 < 0) ang1 = -ang1;
-        var angBias = (s1.sweepCoef * ang1);
+        var angBias = (s1.sweepRadius * ang1);
 
         var c1 = toi.c1;
         var c2 = toi.c2;
@@ -113,7 +113,6 @@ class PR(SweepDistance) {
         while (true) {
             b1.sweepIntegrate(curTOI * timeStep);
             b1.sweepValidate(s1);
-            DummyNapeMain.debug.draw(b1.outer);
 
             var sep = distance(s1, s2, c1, c2, axis) + negRadius;
             var dot = vec_dot(delta, axis.);
