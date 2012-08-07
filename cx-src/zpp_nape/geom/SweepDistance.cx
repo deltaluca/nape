@@ -12,6 +12,10 @@ class PR(ToiEvent) {
     public var s1:PR(Shape);
     public var s2:PR(Shape);
 
+    // Check for invalidations.
+    public var frozen1:Bool;
+    public var frozen2:Bool;
+
     // witness points.
     public var c1:PR(Vec2);
     public var c2:PR(Vec2);
@@ -40,7 +44,7 @@ class PR(SweepDistance) {
         vec_new(delta); vec_sub(b2.vel, b1.vel, delta);
         var ang1 = b1.angvel; if (ang1 < 0) ang1 = -ang1;
         var ang2 = b2.angvel; if (ang2 < 0) ang2 = -ang2;
-        var angBias = (s1.sweepRadius * ang1) + (s2.sweepRadius * ang2);
+        var angBias = (s1.sweepCoef * ang1) + (s2.sweepCoef * ang2);
 
         var c1 = toi.c1;
         var c2 = toi.c2;
@@ -61,8 +65,10 @@ class PR(SweepDistance) {
             // objects intersecting!
             if (sep < PR(Config).SWEEP_LIMIT) {
                 // check objects not seperating at collision point.
-                var proj = dot - b2.angvel * vec_cross(c2., axis.)
-                               + b1.angvel * vec_cross(c1., axis.);
+                vec_new(d1); vec_sub(c1., b1.pos, d1);
+                vec_new(d2); vec_sub(c2., b2.pos, d2);
+                var proj = dot + b2.angvel * vec_cross(d2, axis.)
+                               - b1.angvel * vec_cross(d1, axis.);
                 if (proj >= PR(Config).SWEEP_SEPERATING) {
                     curTOI = -1;
                 }
@@ -84,7 +90,8 @@ class PR(SweepDistance) {
 
             if ((++curIter) >= 100)
             {
-                curTOI = -1;
+                if (sep > PR(Config).SWEEP_LIMIT * 2)
+                    curTOI = -1;
                 break;
             }
         }
@@ -102,7 +109,7 @@ class PR(SweepDistance) {
         // relative linear velocity and angular bias for distance.
         vec_new(delta); vec_setneg(delta, b1.vel);
         var ang1 = b1.angvel; if (ang1 < 0) ang1 = -ang1;
-        var angBias = (s1.sweepRadius * ang1);
+        var angBias = (s1.sweepCoef * ang1);
 
         var c1 = toi.c1;
         var c2 = toi.c2;
@@ -120,11 +127,11 @@ class PR(SweepDistance) {
             // objects intersecting!
             if (sep < PR(Config).SWEEP_LIMIT) {
                 // check objects not seperating at collision point.
-                var proj = dot + b1.angvel * vec_cross(c1., axis.);
-                if (proj >= PR(Config).SWEEP_SEPERATING) {
-                    curTOI = -1;
+                vec_new(d1); vec_sub(c1., b1.pos, d1);
+                var proj = dot - b1.angvel * vec_cross(d1, axis.);
+                if (proj <= 0*-PR(Config).SWEEP_SEPERATING) {
+                    break;
                 }
-                break;
             }
 
             // lower bound on TOI advancement
@@ -142,7 +149,17 @@ class PR(SweepDistance) {
 
             if ((++curIter) >= 100)
             {
-                curTOI = -1;
+                if (sep > negRadius)
+                    curTOI = -1;
+                else {
+                    // check objects not seperating at collision point.
+                    vec_new(d1); vec_sub(c1., b1.pos, d1);
+                    var proj = dot - b1.angvel * vec_cross(d1, axis.);
+                    if (proj <= 0*-PR(Config).SWEEP_SEPERATING) {
+                        break;
+                    }
+                    curTOI = -1;
+                }
                 break;
             }
         }
@@ -358,32 +375,61 @@ class PR(SweepDistance) {
                             var v0 = ax.gp0;
                             var v1 = ax.gp1;
 
-                            var r1 = ay.gp0;
-                            var r2 = ay.gp1;
+                            var q0 = ay.gp0;
+                            var q1 = ay.gp1;
 
-                            vec_new(v);
+                            vec_new(v); vec_new(q);
                             vec_sub(v1., v0., v);
-                            var idot = 1 / vec_dot(v, v);
+                            vec_sub(q1., q0., q);
+                            var vdot = 1 / vec_dot(v, v);
+                            var qdot = 1 / vec_dot(q, q);
 
-                            var t1 = - (vx * (v0.x - r1.x) + vy * (v0.y - r1.y)) * idot;
-                            var t2 = - (vx * (v0.x - r2.x) + vy * (v0.y - r2.y)) * idot;
+                            var t1 = - (vx * (v0.x - q0.x) + vy * (v0.y - q0.y)) * vdot;
+                            var t2 = - (vx * (v0.x - q1.x) + vy * (v0.y - q1.y)) * vdot;
+                            var s1 = - (qx * (q0.x - v0.x) + qy * (q0.y - v0.y)) * qdot;
+                            var s2 = - (qx * (q0.x - v1.x) + qy * (q0.y - v1.y)) * qdot;
                             if (t1 < 0) t1 = 0; else if (t1 > 1) t1 = 1;
                             if (t2 < 0) t2 = 0; else if (t2 > 1) t2 = 1;
+                            if (s1 < 0) s1 = 0; else if (s1 > 1) s1 = 1;
+                            if (s2 < 0) s2 = 0; else if (s2 > 1) s2 = 1;
 
                             vec_new(f1); vec_addmul(v0., v, t1, f1);
                             vec_new(f2); vec_addmul(v0., v, t2, f2);
+                            vec_new(g1); vec_addmul(q0., q, s1, g1);
+                            vec_new(g2); vec_addmul(q0., q, s2, g2);
 
-                            var d1 = vec_dsq(f1, r1.);
-                            var d2 = vec_dsq(f2, r2.);
+                            var d1 = vec_dsq(f1, q0.);
+                            var d2 = vec_dsq(f2, q1.);
+                            var e1 = vec_dsq(g1, v0.);
+                            var e2 = vec_dsq(g2, v1.);
+
+                            vec_new(minf); var minq = null;
                             if (d1 < d2) {
-                                vec_set(w1., f1);
-                                vec_set(w2., r1.);
+                                vec_set(minf, f1); minq = q0;
+                            }
+                            else {
+                                vec_set(minf, f2); minq = q1;
+                                d1 = d2;
+                            }
+
+                            vec_new(ming); var minv = null;
+                            if (e1 < e2) {
+                                vec_set(ming, g1); minv = v0;
+                            }
+                            else {
+                                vec_set(ming, g2); minv = v1;
+                                e1 = e2;
+                            }
+
+                            if (d1 < e1) {
+                                vec_set(w1., minf);
+                                vec_set(w2., minq.);
                                 best = Math.sqrt(d1);
                             }
                             else {
-                                vec_set(w1., f2);
-                                vec_set(w2., r2.);
-                                best = Math.sqrt(d2);
+                                vec_set(w2., ming);
+                                vec_set(w1., minv.);
+                                best = Math.sqrt(e1);
                             }
 
                             if (best != 0) {

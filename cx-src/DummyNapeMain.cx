@@ -1,3 +1,56 @@
+
+package;
+$(import);
+
+
+class DummyNapeMain {
+    public static var debug:Debug;
+    static function main() {
+        var s = new Space(new Vec2(0, 1000));
+
+        for (i in 0...20)
+        {
+            var b1 = new Body();
+            b1.shapes.add(new Polygon(Polygon.box(30, 10)));
+            var u = i%20;
+            var v = (i - u) / 20;
+            b1.position.x = 50+u*15;
+            b1.position.y = 50+v*15;
+            b1.velocity.y = 360*(10 + i*4);
+            b1.velocity.x = 360*(10 + i*2);
+            b1.angularVel = 1;
+            b1.space = s;
+
+//            b1.setShapeFilters(new InteractionFilter(2, 1));
+        }
+
+        debug = new ShapeDebug(1, 1);
+        flash.Lib.current.addChild(debug.display);
+
+
+        var b2 = new Body(BodyType.STATIC);
+        b2.shapes.add(new Polygon(Polygon.rect(10, 10, 550, 1)));
+        b2.shapes.add(new Polygon(Polygon.rect(10, 10, 1, 550)));
+        b2.shapes.add(new Polygon(Polygon.rect(10, 550, 550, 1)));
+        b2.shapes.add(new Polygon(Polygon.rect(550, 10, 1, 550)));
+        b2.space = s;
+
+        s.visitBodies(function (b) b.shapes.foreach(function (s) s.material.elasticity = 1));
+
+        debug.drawCollisionArbiters = true;
+
+        (new haxe.Timer(100)).run = function() {
+            debug.clear();
+            s.step(1/60, 10, 10);
+            debug.draw(s);
+            s.liveBodies.foreach(function (b) {
+                debug.drawCircle(b.position, b.shapes.at(0).pr(inner).sweepRadius, 0xffffff);
+            });
+        }
+    }
+}
+
+/*
 package;
 $(import);
 
@@ -6,15 +59,15 @@ class DummyNapeMain {
     public static var debug:Debug;
     static function main() {
         var b1 = new Body();
-        b1.shapes.add(new Polygon(Polygon.regular(100, 20, 4)));
-        //b1.shapes.add(new Circle(40, new Vec2(100, 0)));
+        b1.shapes.add(new Polygon(Polygon.box(1, 400)));
+//        b1.shapes.add(new Circle(40, new Vec2(100, 0)));
 
         debug = new ShapeDebug(1, 1);
         flash.Lib.current.addChild(debug.display);
 
         var b2 = new Body();
-        b2.shapes.add(new Polygon(Polygon.regular(10, 120, 5)));
-        //b2.shapes.add(new Circle(40, new Vec2(0, 0)));
+        b2.shapes.add(new Polygon(Polygon.box(1, 40)));
+//        b2.shapes.add(new Circle(40, new Vec2(100, 0)));
         //b2.shapes.add(new Circle(40, new Vec2(-40, 0)));
         b2.position.x = b2.position.y = 300;
 
@@ -26,13 +79,14 @@ class DummyNapeMain {
             b2.position.x = b2.position.y = 300;
             b2.rotation = 0;
 
-            b1.velocity.x = -150;
-            b1.velocity.y = 150;
-            b1.angularVel = -Math.PI;
+//            b1.velocity.x = -150;
+//            b1.velocity.y = 150;
+//            b1.angularVel = -Math.PI;
 
             b2.velocity.x = 50;
             b2.velocity.y = 50;
-            b2.angularVel = Math.PI;
+            b2.angularVel = Math.PI*10;
+            b2.angularVel = min(b2.angularVel, Math.PI*2/2);
 
             debug.clear();
             debug.draw(b1);
@@ -52,16 +106,16 @@ class DummyNapeMain {
             }
 
             var toi = new PR(ToiEvent)();
-            toi.s1 = b1.shapes.at(0).pr(inner);
-            toi.s2 = b2.shapes.at(0).pr(inner);
+            toi.s2 = b1.shapes.at(0).pr(inner);
+            toi.s1 = b2.shapes.at(0).pr(inner);
             b1.pr(inner).sweepTime = 0;
             b2.pr(inner).sweepTime = 0;
-            PR(SweepDistance).dynamicSweep(toi, 2, 0, 2);
+            PR(SweepDistance).staticSweep(toi, 2, 0, 2);
             if (toi.toi < 0) {
                 b1.pr(inner).sweepIntegrate(2);
-                b1.pr(inner).sweepValidate(toi.s1);
+                b1.pr(inner).sweepValidate(toi.s2);
                 b2.pr(inner).sweepIntegrate(2);
-                b2.pr(inner).sweepValidate(toi.s2);
+                b2.pr(inner).sweepValidate(toi.s1);
             }
             else {
                 debug.drawCircle(toi.c1.wrapper(), 2, 0xff0000);
@@ -76,4 +130,4 @@ class DummyNapeMain {
             debug.flush();
         }
     }
-}
+}*/

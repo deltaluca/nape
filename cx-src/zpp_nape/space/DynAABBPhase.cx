@@ -412,7 +412,9 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
         assert(node!=null,"shape has no node?");
         //defer syncing until it is necessary.
         if(!node.synced) {
-            shape.validate_aabb();
+            assert(space.continuous || !shape.inv(aabb), "invalidate aabb on sync");
+            //shape.validate_aabb();
+
             //only sync if shape has changed mode (dyn/stat tree)
             //or has left it's fattened aabb
             var sync = node.dyn != dyn(shape) || !node.aabb.contains(shape.aabb);
@@ -449,7 +451,8 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
             node.first_sync = false;
 
         var aabb = node.aabb;
-        shape.validate_aabb();
+        if (!space.continuous)
+           shape.validate_aabb();
         aabb.setExpand(shape.aabb,FATTEN);
 
         //add a velocity contribution
@@ -506,7 +509,7 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
         }
     }
 
-    public override function broadphase() {
+    public override function broadphase(narrowPhase:PR(Shape)->PR(Shape)->Bool->PR(Arbiter)->PR(Arbiter)) {
         //finish syncing whatever is left to sync.
         var node = syncs;
         while(node!=null) {
@@ -627,7 +630,7 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
             if(s1.aabb.intersect(s2.aabb)) {
                 assert(cur.arb==null || cur.arb.pair==cur, "arbiter/pair don't match up");
                 var oarb = cur.arb;
-                cur.arb = space.narrowPhase(s1,s2,!b1.isDynamic() || !b2.isDynamic(), cur.arb);
+                cur.arb = narrowPhase(s1,s2,!b1.isDynamic() || !b2.isDynamic(), cur.arb);
                 if(cur.arb==null) {
                     if(oarb!=null) oarb.pair = null;
                 }else

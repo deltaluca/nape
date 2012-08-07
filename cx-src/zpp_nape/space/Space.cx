@@ -472,6 +472,8 @@ class PR(Space) {
     //----------------------------------------------------------------------------------------------
 
     public function new(gravity:PR(Vec2),broadphase:Broadphase) {
+        toiEvents = new List(PR(ToiEvent))();
+
         global_lin_drag = PR(Config).GLOBAL_LIN_DRAG;
         global_ang_drag = PR(Config).GLOBAL_ANG_DRAG;
 
@@ -868,7 +870,7 @@ class PR(Space) {
         validation();
         #if NAPE_TIMES Debug.VALID += flash.Lib.getTimer()-pt; #end
         #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
-        bphase.broadphase();
+        bphase.broadphase(narrowPhase);
         #if NAPE_TIMES Debug.BROAD += flash.Lib.getTimer()-pt; #end
         #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
         doForests(deltaTime);
@@ -902,15 +904,25 @@ class PR(Space) {
         iterateVel(inelastic,false);
         #if NAPE_TIMES Debug.VEL += flash.Lib.getTimer()-pt; #end
 
-        $(mixin doit(list) {
+        var limit = PR(Config).MAX_ROT / deltaTime;
+        $(mixin doit(list, dyn) {
             Iter(cur,list,{
                 vec_set(cur.pre_pos,cur.pos);
                 cur.pre_rot = cur.rot;
+                #if dyn
+                if   (cur.angvel < -limit) cur.angvel = -limit;
+                elif (cur.angvel >  limit) cur.angvel =  limit;
+                #end
             });
         });
-        doit(kinematics);
-        doit(live);
+        doit(kinematics, false);
+        doit(live, true);
+
         updatePos(deltaTime);
+
+        continuous = true;
+        continuousCollisions(deltaTime);
+        continuous = false;
 
         #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
         iteratePos(positionIterations);
@@ -918,18 +930,12 @@ class PR(Space) {
 
         $(mixin doit2(list) {
             Iter(cur,list,{
-                if (!cur.sweepFrozen) {
-                    cur.sweepIntegrate(deltaTime);
-                }
-
                 var upos = !vec_eq(cur.pos,cur.pre_pos);
                 var urot = cur.pre_rot!=cur.rot;
                 if(upos)
                     cur.invalidate_pos();
-                vec_set(cur.pre_pos,cur.pos);
                 if(urot)
                     cur.invalidate_rot();
-                cur.pre_rot = cur.rot;
             });
         });
         doit2(kinematics);
@@ -996,6 +1002,128 @@ class PR(Space) {
         }
     }
 
+    //----------------------------------------------------------------------------------------------
+
+    public var toiEvents:List(PR(ToiEvent));
+    public function continuousCollisions(deltaTime:Float) {
+        // Get all TOI Events.
+        bphase.broadphase(continuousEvent);
+
+        // Time to begin!
+        var curTimeAlpha = 0.0;
+        while (curTimeAlpha < 1 && !toiEvents.empty()) {
+            var minTOI:PR(ToiEvent) = null;
+            var preMin:Node(PR(ToiEvent)) = null;
+
+            var pre:Node(PR(ToiEvent)) = null;
+            Iter(toi, toiEvents, {
+                var b1 = toi.s1.body;
+                var b2 = toi.s2.body;
+
+                // TOI Event invalid.
+                if (b1.sweepFrozen && b2.sweepFrozen) {
+                    cx_ite = toiEvents.erase(pre);
+                    Free(PR(ToiEvent), toi);
+                    continue;
+                }
+
+                // Check if event is invalidated.
+                if (toi.frozen1 != b1.sweepFrozen ||
+                    toi.frozen2 != b2.sweepFrozen) {
+                    //TODO:
+                    pre = cx_ite;
+                    cx_continue;
+                }
+
+                if (toi.toi >= 0 && (minTOI == null || toi.toi < minTOI.toi)) {
+                    minTOI = toi;
+                    preMin = pre;
+                }
+
+                pre = cx_ite;
+            });
+
+            if (minTOI == null) {
+                break;
+            }
+
+            // Remove TOI event frmo list.
+            toiEvents.erase(preMin);
+
+            // Advance time alpha.
+            curTimeAlpha = minTOI.toi;
+
+            // Freeze objects at TOI. Waking if necessary.
+            var b1 = minTOI.s1.body;
+            var b2 = minTOI.s2.body;
+
+            if (!b1.sweepFrozen) {
+                b1.sweepIntegrate(curTimeAlpha * deltaTime);
+                b1.sweepFrozen = true;
+            }
+            if (b1.isDynamic() && b1.component.sleeping) {
+                wake(b1);
+            }
+
+            if (!b2.sweepFrozen) {
+                b2.sweepIntegrate(curTimeAlpha * deltaTime);
+                b2.sweepFrozen = true;
+            }
+            if (b2.isDynamic() && b2.component.sleeping) {
+                wake(b2);
+            }
+        }
+
+        ClearWith(toi, toiEvents, {
+            Free(PR(ToiEvent), toi);
+        });
+
+        // Advance anything remaining to end of time step.
+        Iter(cur, kinematics, {
+            if (!cur.sweepFrozen) {
+                cur.sweepIntegrate(deltaTime);
+            }
+        });
+        Iter(cur, live, {
+            if (!cur.sweepFrozen) {
+                cur.sweepIntegrate(deltaTime);
+            }
+        });
+    }
+
+    public function continuousEvent(s1:PR(Shape), s2:PR(Shape), stat:Bool, in_arb:PR(Arbiter)) {
+        // If both are frozen, no continous event can occur.
+        if (s1.body.sweepFrozen && s2.body.sweepFrozen) return in_arb;
+
+        var itype = interactionType(s1,s2,s1.body,s2.body);
+        if (itype != 1) return in_arb;
+
+        // TODO: permit kinematic swept collisions.
+        if (stat) {
+            var toi; Get(PR(ToiEvent), toi);
+            if (!s1.body.isDynamic()) {
+                toi.s2 = s1;
+                toi.s1 = s2;
+            }
+            else {
+                toi.s1 = s1;
+                toi.s2 = s2;
+            }
+
+            PR(SweepDistance).staticSweep(toi, pre_dt, 0, PR(Config).SWEEP_LIMIT);
+
+            if (toi.toi < 0) {
+                Free(PR(ToiEvent), toi);
+            }
+            else {
+                toiEvents.add(toi);
+                toi.frozen1 = s1.body.sweepFrozen;
+                toi.frozen2 = s2.body.sweepFrozen;
+            }
+        }
+
+        return in_arb;
+    }
 
     //----------------------------------------------------------------------------------------------
 
@@ -1539,9 +1667,11 @@ class PR(Space) {
                 )
             }
         });
-        //check: no other properties (Body worldCOM, shape worldCOM(polygon) are needed?)
+
+        body.sweepFrozen = true;
     }
 
+    public var debugger:Debug;
     public function validation() {
         //validate that all CbSet's in existance of space, have correctly synced listener lists from sub CbType's
         cbsets.validate();
@@ -1559,7 +1689,11 @@ class PR(Space) {
                 cur.validate_worldCOM();
                 cur.validate_axis();
 
+                cur.sweepRadius = 0;
                 Iter(s,cur.shapes,{
+                    s.validate_sweepRadius();
+                    if (s.sweepRadius > cur.sweepRadius)
+                        cur.sweepRadius = s.sweepRadius;
                     if(s.isPolygon()) {
                         DEBUG(
                             var res = s.polygon.valid();
@@ -1614,6 +1748,7 @@ class PR(Space) {
     //----------------------------------------------------------------------------------------------
 
     public function updateVel(dt:Float) {
+        var limit = PR(Config).MAX_ROT / dt;
         var pre = null;
         Iter(cur,live,{
             vec_addeq(cur.force,gravity,cur.gravMass);
@@ -1628,6 +1763,9 @@ class PR(Space) {
                 cur.torque += vec_cross(dp,gravity)*cur.gravMass;
                 cur.torque -= cur.angvel*global_ang_drag*cur.inertia;
                 cur.angvel += cur.torque*dt*cur.iinertia;
+
+                if   (cur.angvel < -limit) cur.angvel = -limit;
+                elif (cur.angvel >  limit) cur.angvel =  limit;
             }
             cur.torque = 0;
 
@@ -1650,13 +1788,51 @@ class PR(Space) {
                     cur.delta_rot(cur.angvel*dt);
 
                 cur.sweepTime = dt;
-                cur.sweepFrozen = false;
-                cur.sweepBias = 0; //TODO
+
+                // If moving very slowly, treat as static
+                // object for continous collisions (freeze it now!)
+                //TODO: Permit kinematics.
+                var linThreshold = PR(Config).MIN_LIN_STATIC_SWEEP * cur.sweepRadius;
+                var angThreshold = PR(Config).MIN_ANG_STATIC_SWEEP;
+                if (((vec_lsq(cur.vel) * dt * dt) > (linThreshold * linThreshold) ||
+                   (cur.angvel*cur.angvel * dt * dt) > (angThreshold * angThreshold)) &&
+                   !cur.isKinematic())
+                {
+                    // compute swept AABB
+                    //
+                    // positon, or rotation invalidated
+                    // so we are free to modify AABB and in next
+                    // step() or outside of step() a relevant query
+                    // will be forced to validate aabb.
+                    var minx = min(cur.pre_posx, cur.posx);
+                    var miny = min(cur.pre_posy, cur.posy);
+                    var maxx = max(cur.pre_posx, cur.posx);
+                    var maxy = max(cur.pre_posy, cur.posy);
+
+                    Iter(s, cur.shapes, {
+                        var aabb = s.aabb;
+                        var rad = s.sweepRadius;
+                        aabb.minx = minx - rad;
+                        aabb.miny = miny - rad;
+                        aabb.maxx = maxx + rad;
+                        aabb.maxy = maxy + rad;
+
+                        if (!bphase.is_sweep) {
+                            bphase.sync(s);
+                        }
+                    });
+
+                    cur.sweepFrozen = false;
+                }
+                else {
+                    cur.sweepFrozen = true;
+                }
             });
         });
         doit(live);
         doit(kinematics);
     }
+    public var continuous:Bool;
 
     //----------------------------------------------------------------------------------------------
 
