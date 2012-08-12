@@ -155,6 +155,11 @@ class PR(Body) extends PR(Interactor) {
 
     // current integration time for optimised sweepIntegrate
     public var sweepTime:Float;
+
+    // normalised angualr velocity to interpolate transforms.
+    // Too large rotations cause errors in making iterations take too long and giving up.
+    public var sweep_angvel:Float;
+
     // True if object has been frozen early.
     public var sweepFrozen:Bool;
 
@@ -167,7 +172,7 @@ class PR(Body) extends PR(Interactor) {
             sweepTime = dt;
             vec_addeq(pos, vel, delta);
             if (angvel != 0)
-                delta_rot(angvel * delta);
+                delta_rot(sweep_angvel * delta);
         }
     }
 

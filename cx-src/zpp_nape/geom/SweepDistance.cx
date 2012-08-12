@@ -4,6 +4,7 @@ $(import);
 class PR(ToiEvent) {
     MixPool(PR(ToiEvent))
     flibmdel public inline function alloc() {
+        failed = false;
     }
     flibmdel public inline function free() {
     }
@@ -11,6 +12,7 @@ class PR(ToiEvent) {
     public var toi:Float;
     public var s1:PR(Shape);
     public var s2:PR(Shape);
+    public var arbiter:PR(ColArbiter);
 
     // Check for invalidations.
     public var frozen1:Bool;
@@ -23,6 +25,10 @@ class PR(ToiEvent) {
     // axis to deal with degenerate case
     // where c1 === c2
     public var axis:PR(Vec2);
+
+    // handle case where object is rotating fast, and in such a way
+    // that the time advancement tends to 0 and continous collision fails
+    public var failed:Bool;
 
     public function new() {
         c1 = new PR(Vec2)();
@@ -69,9 +75,9 @@ class PR(SweepDistance) {
                 vec_new(d2); vec_sub(c2., b2.pos, d2);
                 var proj = dot + b2.angvel * vec_cross(d2, axis.)
                                - b1.angvel * vec_cross(d1, axis.);
-                if (proj >= PR(Config).SWEEP_SEPERATING) {
-                    curTOI = -1;
-                }
+//                if (proj >= PR(Config).SWEEP_SEPERATING) {
+//                    curTOI = -1;
+//                }
                 break;
             }
 
@@ -108,7 +114,7 @@ class PR(SweepDistance) {
 
         // relative linear velocity and angular bias for distance.
         vec_new(delta); vec_setneg(delta, b1.vel);
-        var ang1 = b1.angvel; if (ang1 < 0) ang1 = -ang1;
+        var ang1 = b1.sweep_angvel; if (ang1 < 0) ang1 = -ang1;
         var angBias = (s1.sweepCoef * ang1);
 
         var c1 = toi.c1;
@@ -117,6 +123,7 @@ class PR(SweepDistance) {
 
         var curTOI = lowerBound;
         var curIter = 0;
+
         while (true) {
             b1.sweepIntegrate(curTOI * timeStep);
             b1.sweepValidate(s1);
@@ -126,10 +133,10 @@ class PR(SweepDistance) {
 
             // objects intersecting!
             if (sep < PR(Config).SWEEP_LIMIT) {
-                // check objects not seperating at collision point.
                 vec_new(d1); vec_sub(c1., b1.pos, d1);
-                var proj = dot - b1.angvel * vec_cross(d1, axis.);
-                if (proj <= 0*-PR(Config).SWEEP_SEPERATING) {
+                var proj = dot - b1.sweep_angvel * vec_cross(d1, axis.);
+                if (proj <= 0 || sep < PR(Config).SWEEP_LIMIT * 0.5)
+                {
                     break;
                 }
             }
@@ -141,29 +148,21 @@ class PR(SweepDistance) {
                 break;
             }
 
-            curTOI += sep / denom;
+            var delta = sep / denom;
+            if (delta < 1e-6) delta = 1e-6;
+            curTOI += delta;
             if (curTOI >= 1) {
                 curTOI = -1;
                 break;
             }
 
-            if ((++curIter) >= 100)
-            {
-                if (sep > negRadius)
-                    curTOI = -1;
-                else {
-                    // check objects not seperating at collision point.
-                    vec_new(d1); vec_sub(c1., b1.pos, d1);
-                    var proj = dot - b1.angvel * vec_cross(d1, axis.);
-                    if (proj <= 0*-PR(Config).SWEEP_SEPERATING) {
-                        break;
-                    }
-                    curTOI = -1;
+            if ((++curIter) >= 40) {
+                if (sep > negRadius) {
+                    toi.failed = true;
                 }
                 break;
             }
         }
-
         toi.toi = curTOI;
     }
 

@@ -5,48 +5,75 @@ $(import);
 
 class DummyNapeMain {
     public static var debug:Debug;
-    static function main() {
-        var s = new Space(new Vec2(0, 1000));
+    static function mains() {
+        var b1 = new Body(BodyType.STATIC);
+        b1.shapes.add(new Polygon(Polygon.rect(0, 100, 100, 100)));
 
-        for (i in 0...20)
+        var b2 = new Body();
+        b2.shapes.add(new Polygon(Polygon.box(100, 10)));
+        b2.rotation = 0.4;
+
+        b2.position.x = 50;
+        b2.position.y = 101 - (b2.bounds.max.y - b2.position.y);
+
+        b2.angularVel = -100;
+
+        trace(b2.shapes.at(0).castPolygon.worldVerts);
+        var s = new Space();
+        b1.space = b2.space = s;
+
+        s.step(1, 10, 10);
+    }
+
+    static function main() {
+        var s = new Space(new Vec2(0, 1000)/*, Broadphase.SWEEP_AND_PRUNE*/);
+
+        for (i in 0...13*4)
         {
             var b1 = new Body();
-            b1.shapes.add(new Polygon(Polygon.box(30, 10)));
+            b1.shapes.add(new Polygon(Polygon.box(1, 5 + i*1.5)));
             var u = i%20;
             var v = (i - u) / 20;
-            b1.position.x = 50+u*15;
-            b1.position.y = 50+v*15;
+            b1.position.x = 100+u*15;
+            b1.position.y = 100+v*15;
             b1.velocity.y = 360*(10 + i*4);
             b1.velocity.x = 360*(10 + i*2);
             b1.angularVel = 1;
             b1.space = s;
+            b1.userData.px = b1.position.x;
+            b1.userData.py = b1.position.y;
 
-//            b1.setShapeFilters(new InteractionFilter(2, 1));
+            b1.setShapeFilters(new InteractionFilter(2, 1));
         }
 
-        debug = new ShapeDebug(1, 1);
+        debug = new BitmapDebug(600,600,0x333333);
         flash.Lib.current.addChild(debug.display);
 
 
         var b2 = new Body(BodyType.STATIC);
-        b2.shapes.add(new Polygon(Polygon.rect(10, 10, 550, 1)));
-        b2.shapes.add(new Polygon(Polygon.rect(10, 10, 1, 550)));
-        b2.shapes.add(new Polygon(Polygon.rect(10, 550, 550, 1)));
-        b2.shapes.add(new Polygon(Polygon.rect(550, 10, 1, 550)));
+        b2.shapes.add(new Polygon(Polygon.rect(50, 50, 500, 1)));
+        b2.shapes.add(new Polygon(Polygon.rect(50, 50, 1, 500)));
+        b2.shapes.add(new Polygon(Polygon.rect(50, 550, 500, 1)));
+        b2.shapes.add(new Polygon(Polygon.rect(550, 50, 1, 500)));
         b2.space = s;
 
         s.visitBodies(function (b) b.shapes.foreach(function (s) s.material.elasticity = 1));
 
         debug.drawCollisionArbiters = true;
 
-        (new haxe.Timer(100)).run = function() {
+        var f = function() {
             debug.clear();
             s.step(1/60, 10, 10);
             debug.draw(s);
             s.liveBodies.foreach(function (b) {
-                debug.drawCircle(b.position, b.shapes.at(0).pr(inner).sweepRadius, 0xffffff);
+                debug.drawLine(Vec2.weak(b.userData.px, b.userData.py), b.position, 0xffffff);
+                b.userData.px = b.position.x;
+                b.userData.py = b.position.y;
             });
-        }
+            debug.flush();
+        };
+        (new haxe.Timer(10)).run = f;
+        f();
     }
 }
 
