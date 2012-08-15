@@ -1059,41 +1059,56 @@ class PR(Space) {
             if (!b1.sweepFrozen) {
                 b1.sweepIntegrate(curTimeAlpha * deltaTime);
                 b1.sweepValidate(minTOI.s1);
-                b1.sweepFrozen = true;
-                b1.angvel = b1.sweep_angvel;
             }
-            if (b1.isDynamic() && b1.component.sleeping) {
-                wake(b1);
-            }
-
             if (!b2.sweepFrozen) {
                 b2.sweepIntegrate(curTimeAlpha * deltaTime);
                 b2.sweepValidate(minTOI.s2);
-                b2.sweepFrozen = true;
-                b2.angvel = b2.sweep_angvel;
-            }
-            if (b2.isDynamic() && b2.component.sleeping) {
-                wake(b2);
-            }
-
-            if (minTOI.failed) {
-                b1.angvel = b2.angvel = b1.sweep_angvel = b2.sweep_angvel = 0;
             }
 
             // Create contact point via narrowphase
+            var wasnull = minTOI.arbiter == null;
+
+            // force detection to be performed again.
+            if (minTOI.arbiter != null) minTOI.arbiter.stamp = stamp-1;
+
             var arb = this.narrowPhase(minTOI.s1, minTOI.s2, true, minTOI.arbiter);
             if (arb == null) {
-                // TODO: check this.
-                // Possible for prelistener to change it's mind!
                 if (minTOI.arbiter != null && minTOI.arbiter.pair != null) {
                     minTOI.arbiter.pair.arb = null;
                     minTOI.arbiter.pair = null;
+                    //trace("c1 "+[minTOI.arbiter.id, minTOI.arbiter.di, minTOI.arbiter.present]);
+                    //presteparb(minTOI.arbiter, deltaTime, true);
                 }
             }
             else {
-                arb.colarb.preStep(deltaTime);
-                arb.active = true;
-                arb.fresh = arb.intchange = false;
+                if (wasnull) {
+                    trace("c2 "+[arb.id, arb.di, arb.present]);
+                    presteparb(arb, deltaTime);
+                }
+                else if (arb.acting()) {
+                    // arb already pre-stepped (callbacks etc).
+                    // just need to redo prestep for position iteration
+                    arb.colarb.preStep(deltaTime);
+                }
+            }
+
+            // Only freeze objects if collision is accepted.
+            if (arb != null && arb.acting()) {
+                if (!b1.sweepFrozen) {
+                    b1.sweepFrozen = true;
+                    if (minTOI.failed)
+                        b1.angvel = b1.sweep_angvel = 0;
+                    else
+                        b1.angvel = b1.sweep_angvel;
+                }
+
+                if (!b2.sweepFrozen) {
+                    b2.sweepFrozen = true;
+                    if (minTOI.failed)
+                        b2.angvel = b2.sweep_angvel = 0;
+                    else
+                        b2.angvel = b2.sweep_angvel;
+                }
             }
         }
 
@@ -1804,7 +1819,7 @@ class PR(Space) {
     // integrate object positions to end of time step.
     // and prepare for continous collisions.
     public function updatePos(dt:Float) {
-        var MAX_VEL = (2 * Math.PI) / dt;
+        var MAX_VEL = 2 * Math.PI / dt;
         $(mixin doit(list) {
             Iter(cur,list,{
                 vec_set(cur.pre_pos, cur.pos);
@@ -1864,6 +1879,125 @@ class PR(Space) {
 
     //----------------------------------------------------------------------------------------------
 
+    public function presteparb(arb:PR(Arbiter), dt:Float, ?cont=false) {
+        if(!arb.cleared && (arb.b1.component.sleeping && arb.b2.component.sleeping)) {
+            arb.sleep_stamp = stamp;
+            arb.sleeping = true;
+            return true;
+        }
+
+        #if NAPE_TIMES Debug.ACNT++; #end
+
+        //arb.present matches when arbiter was retired, but needs to be removed
+        //from it's callbacksets!
+        //deals neatly with change in interaction types at runtime
+        if(!arb.cleared || arb.present!=0 || arb.intchange) {
+            //callbacks
+            var endcb = (!cont && arb.up_stamp==stamp-1) && !arb.cleared && !arb.intchange;
+            var begcb = (arb.fresh) && !arb.cleared && !arb.intchange;
+            assert(!begcb||arb.up_stamp==stamp, " fresh -> active=true hasn't held :(");
+
+            if(begcb || endcb || arb.cleared || arb.intchange) {
+                inlined_MRCA_chains(arb.ws1,arb.ws2);
+                Iter(i1,mrca1,{
+                Iter(i2,mrca2,{
+                    var cb1 = i1.cbSet;
+                    var cb2 = i2.cbSet;
+                    assert(cb1!=null && cb2!=null, "null cb from MRCA_chains?");
+
+                    if(PR(CbSet).empty_intersection(cb1,cb2)) cx_continue;
+
+                    var callbackset = PR(Interactor).get(i1,i2);
+                    if(begcb || arb.intchange) {
+                        if(callbackset==null) {
+                            callbackset = PR(CallbackSet).get(i1,i2);
+                            add_callbackset(callbackset);
+                        }
+                        //check for empty rather than null, since it might've been created
+                        //already to prevent multiple pre-handlers
+                        PR(CbSet).find_all(cb1,cb2,Flag(CbEvent,BEGIN),function(listener:PR(InteractionListener)) {
+                            if((listener.itype&arb.type)!=0 && callbackset.empty_arb(listener.itype)) {
+                                var cb = push_callback(listener);
+                                cb.event = Flag(CbEvent,BEGIN);
+                                //use callbackset int1/int2 to keep consistency in cases of cbType1==cbType2
+                                PR(Interactor).int_callback(callbackset, listener, cb);
+                                cb.set = callbackset;
+                            }
+                        });
+                        if(callbackset.add_arb(arb))
+                            arb.present++;
+                        trace("begin "+[arb.id,arb.di,arb.present]);
+                    }else {
+                        trace("end "+[arb.id,arb.di,arb.present]);
+                        arb.present--;
+                        assert(arb.present>=0,"arb present < 0?");
+                        assert(callbackset!=null,"end arbiter with no callbackset");
+                        callbackset.remove_arb(arb);
+                        PR(CbSet).find_all(cb1,cb2,Flag(CbEvent,END),function(listener:PR(InteractionListener)) {
+                            if((listener.itype&arb.type)!=0 && callbackset.empty_arb(listener.itype)) {
+                                var cb = push_callback(listener);
+                                cb.event = Flag(CbEvent,END);
+                                //use callbackset int1/int2 to keep consistency in cases of cbType1==cbType2
+                                PR(Interactor).int_callback(callbackset, listener, cb);
+                                cb.set = callbackset;
+                            }
+                        });
+                        if(callbackset.really_empty()) {
+                            remove_callbackset(callbackset);
+                            //removal from callbackset_list is deferred to avoid
+                            //need for doubly linked list or slow removal
+                            //thus so is freeing as these are mixin linked list
+                            //Free(PR(CallbackSet),callbackset);
+                        }
+                    }
+//                        RELEASE(cx_break;)
+                });
+                });
+            }
+            arb.fresh = false;
+            arb.intchange = false;
+        }
+
+        //no need for sensor/fluid arbiters to persist after deactivation, just remove now.
+        if(arb.cleared //always retire
+          || arb.up_stamp + (arb.type==PR(Arbiter).COL ? PR(Config).PERSIST : 0) < stamp //possibly delayed age-death
+        ) {
+            if (arb.type == PR(Arbiter).SENSOR) arb.sensorarb.retire();
+            elif (arb.type == PR(Arbiter).FLUID) arb.fluidarb.retire();
+            else arb.colarb.retire();
+            return true;
+        }
+
+        var pact = arb.active;
+        arb.active = arb.presentable = arb.up_stamp==stamp;
+
+        if((arb.immState&Flag(ImmState,ACCEPT)) != 0) {
+            if (arb.active && arb.type != PR(Arbiter).SENSOR) {
+                if (arb.colarb != null) arb.colarb.preStep(dt);
+                else                    arb.fluidarb.preStep(this, dt);
+            }
+        }
+        else if(arb.colarb != null) {
+            if(!arb.colarb.cleanupContacts()) arb.active = false;
+        }
+
+        //necessary to notify lists of non structual changes for API
+        //
+        //we don't bother doing this for callbacksets
+        //instead, simply assuming they were modified.
+        if(pact!=arb.active) {
+            arb.b1.arbiters.modified = true;
+            arb.b2.arbiters.modified = true;
+            // TODO:
+            c_arbiters(true).modified = c_arbiters(false).modified = true;
+            s_arbiters.modified = f_arbiters.modified = true;
+            //arbs.modified = true;
+        }
+
+        return false;
+    }
+
+
     public function prestep(dt:Float) {
         var pre = null;
         Iter(con,live_constraints,{
@@ -1900,111 +2034,11 @@ class PR(Space) {
 
             while(arbite!=null) {
                 var arb = arbite.elem();
-                if(!arb.cleared && (arb.b1.component.sleeping && arb.b2.component.sleeping)) {
-                    arb.sleep_stamp = stamp;
-                    arb.sleeping = true;
+                trace("x "+[arb.id, arb.di, arb.present]);
+                if (presteparb(arb, dt)) {
                     arbite = arbs.inlined_erase(pre);
                     pre_continue;
                     continue;
-                }
-
-                #if NAPE_TIMES Debug.ACNT++; #end
-
-                //arb.present matches when arbiter was retired, but needs to be removed
-                //from it's callbacksets!
-                //deals neatly with change in interaction types at runtime
-                if(!arb.cleared || arb.present!=0 || arb.intchange) {
-                    //callbacks
-                    var endcb = (arb.up_stamp==stamp-1) && !arb.cleared && !arb.intchange;
-                    var begcb = (arb.fresh) && !arb.cleared && !arb.intchange;
-                    assert(!begcb||arb.up_stamp==stamp, " fresh -> active=true hasn't held :(");
-
-                    if(begcb || endcb || arb.cleared || arb.intchange) {
-                        inlined_MRCA_chains(arb.ws1,arb.ws2);
-                        Iter(i1,mrca1,{
-                        Iter(i2,mrca2,{
-                            var cb1 = i1.cbSet;
-                            var cb2 = i2.cbSet;
-                            assert(cb1!=null && cb2!=null, "null cb from MRCA_chains?");
-
-                            if(PR(CbSet).empty_intersection(cb1,cb2)) cx_continue;
-
-                            var callbackset = PR(Interactor).get(i1,i2);
-                            if(begcb || arb.intchange) {
-                                if(callbackset==null) {
-                                    callbackset = PR(CallbackSet).get(i1,i2);
-                                    add_callbackset(callbackset);
-                                }
-                                //check for empty rather than null, since it might've been created
-                                //already to prevent multiple pre-handlers
-                                PR(CbSet).find_all(cb1,cb2,Flag(CbEvent,BEGIN),function(listener:PR(InteractionListener)) {
-                                    if((listener.itype&arb.type)!=0 && callbackset.empty_arb(listener.itype)) {
-                                        var cb = push_callback(listener);
-                                        cb.event = Flag(CbEvent,BEGIN);
-                                        //use callbackset int1/int2 to keep consistency in cases of cbType1==cbType2
-                                        PR(Interactor).int_callback(callbackset, listener, cb);
-                                        cb.set = callbackset;
-                                    }
-                                });
-                                if(callbackset.add_arb(arb))
-                                    arb.present++;
-                            }else {
-                                arb.present--;
-                                assert(arb.present>=0,"arb present < 0?");
-                                assert(callbackset!=null,"end arbiter with no callbackset");
-                                callbackset.remove_arb(arb);
-                                PR(CbSet).find_all(cb1,cb2,Flag(CbEvent,END),function(listener:PR(InteractionListener)) {
-                                    if((listener.itype&arb.type)!=0 && callbackset.empty_arb(listener.itype)) {
-                                        var cb = push_callback(listener);
-                                        cb.event = Flag(CbEvent,END);
-                                        //use callbackset int1/int2 to keep consistency in cases of cbType1==cbType2
-                                        PR(Interactor).int_callback(callbackset, listener, cb);
-                                        cb.set = callbackset;
-                                    }
-                                });
-                                if(callbackset.really_empty()) {
-                                    remove_callbackset(callbackset);
-                                    //removal from callbackset_list is deferred to avoid
-                                    //need for doubly linked list or slow removal
-                                    //thus so is freeing as these are mixin linked list
-                                    //Free(PR(CallbackSet),callbackset);
-                                }
-                            }
-//                        RELEASE(cx_break;)
-                        });
-                        });
-                    }
-                    arb.fresh = false;
-                    arb.intchange = false;
-                }
-
-                //no need for sensor/fluid arbiters to persist after deactivation, just remove now.
-                if(arb.cleared //always retire
-                  || arb.up_stamp + (arb.type==PR(Arbiter).COL ? PR(Config).PERSIST : 0) < stamp //possibly delayed age-death
-                ) {
-                    arb.retire();
-                    arbite = arbs.inlined_erase(pre);
-                    pre_continue;
-                    continue;
-                }
-
-                var pact = arb.active;
-                arb.active = arb.presentable = arb.up_stamp==stamp;
-
-                if((arb.immState&Flag(ImmState,ACCEPT)) != 0) {
-                    if(!(action)) arb.active = false;
-                }else if(collisiontype) {
-                    if(!untyped arb.cleanupContacts()) arb.active = false;
-                }
-
-                //necessary to notify lists of non structual changes for API
-                //
-                //we don't bother doing this for callbacksets
-                //instead, simply assuming they were modified.
-                if(pact!=arb.active) {
-                    arb.b1.arbiters.modified = true;
-                    arb.b2.arbiters.modified = true;
-                    arbs.modified = true;
                 }
 
                 pre = arbite;
@@ -2102,7 +2136,11 @@ class PR(Space) {
                 pre = cx_ite;
             });
 
-            IterColArbs(arb,if(arb.acting()) arb.applyImpulsePos());
+            IterColArbs(arb, {
+                if(arb.acting()) {
+                    arb.applyImpulsePos();
+                }
+            });
         }
     }
 
@@ -2361,8 +2399,8 @@ class PR(Space) {
                     }else if(first) {
                         Free(Type, arb);
                         null;
-                    }
-                }else null;
+                    }else arb;
+                }else arb;
             });
 
             $(mixin arbget(s1,s2) ({
