@@ -1071,7 +1071,7 @@ class PR(Space) {
             // force detection to be performed again.
             if (minTOI.arbiter != null) minTOI.arbiter.stamp = stamp-1;
 
-            var arb = this.narrowPhase(minTOI.s1, minTOI.s2, true, minTOI.arbiter);
+            var arb = narrowPhase(minTOI.s1, minTOI.s2, true, minTOI.arbiter, true);
             if (arb == null) {
                 if (minTOI.arbiter != null && minTOI.arbiter.pair != null) {
                     minTOI.arbiter.pair.arb = null;
@@ -1129,7 +1129,7 @@ class PR(Space) {
         });
     }
 
-    public function continuousEvent(s1:PR(Shape), s2:PR(Shape), stat:Bool, in_arb:PR(Arbiter)) {
+    public function continuousEvent(s1:PR(Shape), s2:PR(Shape), stat:Bool, in_arb:PR(Arbiter), _:Bool) {
         // If both are frozen, no continous event can occur.
         if (s1.body.sweepFrozen && s2.body.sweepFrozen) return in_arb;
 
@@ -1895,7 +1895,7 @@ class PR(Space) {
             //callbacks
             var endcb = (!cont && arb.up_stamp==stamp-1) && !arb.cleared && !arb.intchange;
             var begcb = (arb.fresh) && !arb.cleared && !arb.intchange;
-            assert(!begcb||arb.up_stamp==stamp, " fresh -> active=true hasn't held :(");
+            assert(!begcb||arb.up_stamp==stamp, " fresh -> active=true hasn't held :(" + begcb+" "+ arb.up_stamp+" "+ stamp);
 
             if(begcb || endcb || arb.cleared || arb.intchange) {
                 inlined_MRCA_chains(arb.ws1,arb.ws2);
@@ -2200,7 +2200,7 @@ class PR(Space) {
 
     var precb:PreCallback;
     var prelisteners:List(PR(InteractionListener));
-    public function narrowPhase(s1:PR(Shape),s2:PR(Shape), stat:Bool, in_arb:PR(Arbiter)=null) {
+    public function narrowPhase(s1:PR(Shape),s2:PR(Shape), stat:Bool, in_arb:PR(Arbiter), continuous:Bool) {
         #if NAPE_TIMES
             var pt = flash.Lib.getTimer();
         #end
@@ -2220,7 +2220,7 @@ class PR(Space) {
             $(mixin narrowed(arb,INTTYPE,Type,arbs, cond, waking,collisions) {
                 var inttype = Flag(InteractionType,INTTYPE);
 
-                if(first || arb.stamp!=stamp) {
+                if(first || arb.stamp!=stamp || continuous) {
                     arb.stamp = stamp;
 
                     if(cond) {

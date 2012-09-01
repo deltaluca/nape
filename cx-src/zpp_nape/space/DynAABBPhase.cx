@@ -509,7 +509,7 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
         }
     }
 
-    public override function broadphase(narrowPhase:PR(Shape)->PR(Shape)->Bool->PR(Arbiter)->PR(Arbiter)) {
+    public override function broadphase(narrowPhase:PR(Shape)->PR(Shape)->Bool->PR(Arbiter)->Bool->PR(Arbiter)) {
         //finish syncing whatever is left to sync.
         var node = syncs;
         while(node!=null) {
@@ -630,7 +630,7 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
             if(s1.aabb.intersect(s2.aabb)) {
                 assert(cur.arb==null || cur.arb.pair==cur, "arbiter/pair don't match up");
                 var oarb = cur.arb;
-                cur.arb = narrowPhase(s1,s2,!b1.isDynamic() || !b2.isDynamic(), cur.arb);
+                cur.arb = narrowPhase(s1,s2,!b1.isDynamic() || !b2.isDynamic(), cur.arb, false);
                 if(cur.arb==null) {
                     if(oarb!=null) oarb.pair = null;
                 }else
