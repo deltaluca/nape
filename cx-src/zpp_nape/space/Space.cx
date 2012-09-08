@@ -661,18 +661,17 @@ class PR(Space) {
                         var callbackset = PR(Interactor).get(i1,i2);
                         assert(callbackset!=null,"null callbackset on arbiter deletion?");
                         callbackset.remove_arb(xarb);
+                        xarb.present--;
 
-                        if(!deleting) {
-                            PR(CbSet).find_all(cb1,cb2,Flag(CbEvent,END),function(listener:PR(InteractionListener)) {
-                                if((listener.itype&xarb.type)!=0 && callbackset.empty_arb(listener.itype)) {
-                                    var cb = push_callback(listener);
-                                    cb.event = Flag(CbEvent,END);
-                                    //use callbackset int1/int2 to keep consistency in cases of cbType1==cbType2
-                                    PR(Interactor).int_callback(callbackset, listener, cb);
-                                    cb.set = callbackset;
-                                }
-                            });
-                        }
+                        PR(CbSet).find_all(cb1,cb2,Flag(CbEvent,END),function(listener:PR(InteractionListener)) {
+                            if((listener.itype&xarb.type)!=0 && callbackset.empty_arb(listener.itype)) {
+                                var cb = push_callback(listener);
+                                cb.event = Flag(CbEvent,END);
+                                //use callbackset int1/int2 to keep consistency in cases of cbType1==cbType2
+                                PR(Interactor).int_callback(callbackset, listener, cb);
+                                cb.set = callbackset;
+                            }
+                        });
 
                         if(callbackset.really_empty()) {
                             remove_callbackset(callbackset);
@@ -681,7 +680,6 @@ class PR(Space) {
                         }
                     });
                     });
-                    xarb.present--;
                     assert(xarb.present>=0, "xarb present < 0?");
                 }
 
@@ -893,7 +891,7 @@ class PR(Space) {
             }) lt);
         }
         #if NAPE_TIMES Debug.SORT += flash.Lib.getTimer()-pt; #end
-        #if NAPE_TIEMS var pt = flash.Lib.getTimer(); #end
+        #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
         iterateVel(elastic,true);
         #if NAPE_TIMES Debug.VEL += flash.Lib.getTimer()-pt; #end
 
