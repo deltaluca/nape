@@ -668,6 +668,7 @@ class PR(Space) {
                         var callbackset = PR(Interactor).get(i1,i2);
                         assert(callbackset!=null,"null callbackset on arbiter deletion?");
                         callbackset.remove_arb(xarb);
+                        xarb.present--;
 
                         PR(CbSet).find_all(cb1,cb2,Flag(CbEvent,END),function(listener:PR(InteractionListener)) {
                             if((listener.itype&xarb.type)!=0 && callbackset.empty_arb(listener.itype)) {
@@ -686,7 +687,6 @@ class PR(Space) {
                         }
                     });
                     });
-                    xarb.present--;
                     assert(xarb.present>=0, "xarb present < 0?");
                 }
 

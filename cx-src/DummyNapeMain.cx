@@ -1,86 +1,72 @@
 package;
 $(import);
 import flash.Lib;
+import flash.events.Event;
 class DummyNapeMain
 {
-    static function mains() {
-        var s = new Space();
-        var b = new Body();
-        b.shapes.add(new Polygon(Polygon.box(10, 10, true)));
-        b.space = s;
-
-        s.step(1/60);
-
-        var graph = new Graph([b, s]);
-        graph.populate(function() {
-            var t1 = graph.toString();
-            s.clear();
-            var p = b.shapes.at(0).castPolygon;
-            b.clear();
-            p.localVerts.clear();
-            Debug.clearObjectPools();
-            graph.populate(function () {
-                var t2 = graph.toString();
-
-                throw t1 + "\n\n" + t2;
-            });
-        });
-    }
-
     static function main()
     {
-        var gp = new GeomPolyList();
-        gp.add(new GeomPoly([new Vec2(0, 10), new Vec2(10, 20), new Vec2(30, 40)]));
-        gp.add(new GeomPoly([new Vec2(0, 10), new Vec2(10, 20)]));
-        trace(gp);
+        var space = new Space(new Vec2(0, 400), Broadphase.SWEEP_AND_PRUNE);
+        var debug = new ShapeDebug(1,1);
+        flash.Lib.current.addChild(debug.display);
 
-        var str = gp.toString();
-        function geomPolyListStringToObject(str:String) {
-            var ret = new GeomPolyList();
-            str = str.substr(1, str.length - 3);
-            var subs = str.split("],");
-            for (i in 0...subs.length) {
-                var sub = subs[i];
-                sub = sub.substr(9, sub.length-10);
-                var gp = new GeomPoly();
-                var vecs = sub.split("},");
-                for (j in 0...vecs.length) {
-                    var vec = vecs[j];
-                    vec = vec.substr(1);
-                    var cmps = vec.split(",");
-                    gp.push(Vec2.weak(Std.parseFloat(cmps[0]), Std.parseFloat(cmps[1])));
-                }
-                ret.add(gp);
-            }
-            return ret;
-        }
-        trace(geomPolyListStringToObject(gp.toString()));
-        return;
-        (new haxe.Timer(10)).run = function() {
-            var s = new Space();
-            for (i in 0...3) {
-                var b = new Body();
-                for (j in 0...2) {
-                    b.shapes.add(new Polygon(Polygon.box(10, 10, true)));
-                    b.translateShapes(Vec2.weak(5, 0));
-                }
-                b.position.x = i;
-                b.position.y = i;
-                b.space = s;
-            }
+        var abysst = new CbType();
+        var skele = new CbType();
 
-            s.step(1/60);
-            s.step(1/60);
-            s.step(1/60);
-            s.step(1/60);
+        var skeleton = new Body();
+        skeleton.position.setxy(300, 300);
+        var skeletonShape = new Polygon(Polygon.box(50, 50));
+        skeleton.shapes.add(skeletonShape);
+        skeletonShape.cbTypes.add(skele);
+        skeleton.space = space;
 
-            while(s.bodies.length > 0)
+        var abyss = new Body(BodyType.STATIC, new Vec2(300, 500));
+        abyss.shapes.add(new Polygon(Polygon.box(100, 100), null, new InteractionFilter(0, 0, 1, 1)));
+        abyss.cbTypes.add(abysst);
+        abyss.space = space;
+
+        var destroy:Array<Body> = [];
+        function destroyer(_)
+        {
+            while (destroy.length > 0)
             {
-                var b = s.bodies.pop();
-                b.shapes.at(0).castPolygon.localVerts.clear();
-                b.clear();
+                destroy.pop().space = null;
             }
-            s.clear();
+            flash.Lib.current.removeEventListener(Event.ENTER_FRAME, destroyer);
+        }
+
+        function abyssHandler(cb:InteractionCallback)
+        {
+            trace("abyss");
+            destroy.push(cb.int2.castBody);
+            flash.Lib.current.addEventListener(Event.ENTER_FRAME, destroyer);
+        }
+
+        function skeleHandler(cb)
+        {
+            trace("skele");
+        }
+
+
+        space.listeners.add(new InteractionListener(
+            CbEvent.BEGIN,
+            InteractionType.SENSOR,
+            abysst, CbType.ANY_BODY,
+            abyssHandler
+        ));
+
+        space.listeners.add(new InteractionListener(
+            CbEvent.BEGIN,
+            InteractionType.COLLISION,
+            skele, CbType.ANY_BODY,
+            skeleHandler
+        ));
+
+        (new haxe.Timer(10)).run = function () {
+            space.step(1/30);
+            debug.clear();
+            debug.draw(space);
+            debug.flush();
         }
     }
 }
