@@ -29,6 +29,33 @@ class DummyNapeMain
 
     static function main()
     {
+        var gp = new GeomPolyList();
+        gp.add(new GeomPoly([new Vec2(0, 10), new Vec2(10, 20), new Vec2(30, 40)]));
+        gp.add(new GeomPoly([new Vec2(0, 10), new Vec2(10, 20)]));
+        trace(gp);
+
+        var str = gp.toString();
+        function geomPolyListStringToObject(str:String) {
+            var ret = new GeomPolyList();
+            str = str.substr(1, str.length - 3);
+            var subs = str.split("],");
+            for (i in 0...subs.length) {
+                var sub = subs[i];
+                sub = sub.substr(9, sub.length-10);
+                var gp = new GeomPoly();
+                var vecs = sub.split("},");
+                for (j in 0...vecs.length) {
+                    var vec = vecs[j];
+                    vec = vec.substr(1);
+                    var cmps = vec.split(",");
+                    gp.push(Vec2.weak(Std.parseFloat(cmps[0]), Std.parseFloat(cmps[1])));
+                }
+                ret.add(gp);
+            }
+            return ret;
+        }
+        trace(geomPolyListStringToObject(gp.toString()));
+        return;
         (new haxe.Timer(10)).run = function() {
             var s = new Space();
             for (i in 0...3) {
