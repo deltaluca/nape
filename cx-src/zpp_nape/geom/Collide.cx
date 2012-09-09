@@ -256,24 +256,28 @@ class PR(Collide) {
                 //with pre-handlers.
                 var c0d = vec_dot(c0,ax.gnorm)-ax.gprojection;
                 var c1d = vec_dot(c1,ax.gnorm)-ax.gprojection;
-                vec_subeq(c0,ax.gnorm,c0d*0.5);
-                vec_subeq(c1,ax.gnorm,c1d*0.5);
+                if (c0d > 0 && c1d > 0)
+                {
+                    return false;
+                }
+                else
+                {
+                    vec_subeq(c0,ax.gnorm,c0d*0.5);
+                    vec_subeq(c1,ax.gnorm,c1d*0.5);
 
-                if(rev) { nx = -nx; ny = -ny; }
-                if(c0d <= 0) {
-                    var con = arb.injectContact(c0x,c0y,nx,ny,c0d,arb.rev ? 1 : 0);
+                    if(rev) { nx = -nx; ny = -ny; }
+                    var con = arb.injectContact(c0x,c0y,nx,ny,c0d,arb.rev ? 1 : 0, c0d > 0);
                     //position iterations
                     vec_subeq(c0,q2.body.pos);
                     vec_revrot(c0,q2.body.axis,con.inner.lr1);
-                }
-                if(c1d <= 0) {
-                    var con = arb.injectContact(c1x,c1y,nx,ny,c1d,arb.rev ? 0 : 1);
+
+                    con = arb.injectContact(c1x,c1y,nx,ny,c1d,arb.rev ? 0 : 1, c1d > 0);
                     //position iterations
                     vec_subeq(c1,q2.body.pos);
                     vec_revrot(c1,q2.body.axis,con.inner.lr1);
-                }
 
-                return c0d <=0 || c1d <= 0;
+                    return true;
+                }
             }
         }else return false;
     });

@@ -861,8 +861,6 @@ class PR(Space) {
 
 
         midstep = true;
-        var elastic = velocityIterations>>1;
-        var inelastic = velocityIterations-elastic;
         stamp++;
         #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
         validation();
@@ -891,15 +889,12 @@ class PR(Space) {
             }) lt);
         }
         #if NAPE_TIMES Debug.SORT += flash.Lib.getTimer()-pt; #end
-        #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
-        iterateVel(elastic,true);
-        #if NAPE_TIMES Debug.VEL += flash.Lib.getTimer()-pt; #end
 
         updateVel(deltaTime);
         warmStart();
 
         #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
-        iterateVel(inelastic,false);
+        iterateVel(velocityIterations);
         #if NAPE_TIMES Debug.VEL += flash.Lib.getTimer()-pt; #end
 
 //        var limit = PR(Config).MAX_ROT / deltaTime;
@@ -963,8 +958,9 @@ class PR(Space) {
 
             if(set.really_empty()) {
                 cx_ite = callbackset_list.inlined_erase(pre);
-                assert(!set.int1.cbsets.has(set), "freeing set that wasn't lazy del'ed");
-                assert(!set.int2.cbsets.has(set), "freeing set that wasn't lazy del'ed");
+                var inf = set.int1.id+" "+set.int2.id;
+                assert(!set.int1.cbsets.has(set), "freeing set that wasn't lazy del'ed "+inf);
+                assert(!set.int2.cbsets.has(set), "freeing set that wasn't lazy del'ed "+inf);
                 assert(set.lazydel,"freeing set not with lazydel true");
                 Free(PR(CallbackSet),set);
                 continue;
@@ -1010,6 +1006,7 @@ class PR(Space) {
         var curTimeAlpha = 0.0;
         while (curTimeAlpha < 1 && !toiEvents.empty()) {
             var minTOI:PR(ToiEvent) = null;
+            var minKinematic = false;
             var preMin:Node(PR(ToiEvent)) = null;
 
             var pre:Node(PR(ToiEvent)) = null;
@@ -1026,14 +1023,32 @@ class PR(Space) {
 
                 // Check if event is invalidated.
                 if (toi.frozen1 != b1.sweepFrozen ||
-                    toi.frozen2 != b2.sweepFrozen) {
-                    //TODO:
-                    pre = cx_ite;
-                    cx_continue;
+                    toi.frozen2 != b2.sweepFrozen)
+                {
+                    toi.frozen1 = b1.sweepFrozen;
+                    toi.frozen2 = b2.sweepFrozen;
+
+                    if (toi.frozen1)
+                    {
+                        var tmp = toi.s1;
+                        toi.s1 = toi.s2;
+                        toi.s2 = tmp;
+                        toi.frozen1 = false;
+                        toi.frozen2 = true;
+                    }
+
+                    PR(SweepDistance).staticSweep(toi, deltaTime, curTimeAlpha, PR(Config).SWEEP_OVERLAP);
+                    if (toi.toi < 0)
+                    {
+                        cx_ite = toiEvents.erase(pre);
+                        Free(PR(ToiEvent), toi);
+                        continue;
+                    }
                 }
 
-                if (toi.toi >= 0 && (minTOI == null || toi.toi < minTOI.toi)) {
+                if (toi.toi >= 0 && (minTOI == null || toi.toi < minTOI.toi || (!minKinematic && toi.kinematic))) {
                     minTOI = toi;
+                    minKinematic = toi.kinematic;
                     preMin = pre;
                 }
 
@@ -1066,44 +1081,40 @@ class PR(Space) {
             // Create contact point via narrowphase
             var wasnull = minTOI.arbiter == null;
 
-            // force detection to be performed again.
-            if (minTOI.arbiter != null) minTOI.arbiter.stamp = stamp-1;
-
             var arb = narrowPhase(minTOI.s1, minTOI.s2, true, minTOI.arbiter, true);
             if (arb == null) {
                 if (minTOI.arbiter != null && minTOI.arbiter.pair != null) {
                     minTOI.arbiter.pair.arb = null;
                     minTOI.arbiter.pair = null;
-                    //trace("c1 "+[minTOI.arbiter.id, minTOI.arbiter.di, minTOI.arbiter.present]);
                     //presteparb(minTOI.arbiter, deltaTime, true);
                 }
+                trace("cnull "+minTOI.s1.id+" "+minTOI.s2.id);
             }
             else {
-                if (wasnull) {
-                    trace("c2 "+[arb.id, arb.di, arb.present]);
-                    presteparb(arb, deltaTime);
-                }
-                else if (arb.acting()) {
-                    // arb already pre-stepped (callbacks etc).
-                    // just need to redo prestep for position iteration
-                    arb.colarb.preStep(deltaTime);
+                if (!presteparb(arb, deltaTime)) {
+                    if (arb.type == PR(Arbiter).COL && arb.acting())
+                        arb.colarb.applyImpulseVel();
                 }
             }
 
             // Only freeze objects if collision is accepted.
-            if (arb != null && arb.acting()) {
-                if (!b1.sweepFrozen) {
+            if (arb != null && arb.acting() && arb.type == PR(Arbiter).COL) {
+                if (!b1.sweepFrozen && !b1.isKinematic()) {
                     b1.sweepFrozen = true;
                     if (minTOI.failed)
                         b1.angvel = b1.sweep_angvel = 0;
+                    elif (minTOI.slipped)
+                        b1.angvel = (b1.sweep_angvel *= PR(Config).TOI_SLIP_SCALE);
                     else
                         b1.angvel = b1.sweep_angvel;
                 }
 
-                if (!b2.sweepFrozen) {
+                if (!b2.sweepFrozen && !b2.isKinematic()) {
                     b2.sweepFrozen = true;
                     if (minTOI.failed)
                         b2.angvel = b2.sweep_angvel = 0;
+                    elif (minTOI.slipped)
+                        b2.angvel = (b2.sweep_angvel *= PR(Config).TOI_SLIP_SCALE);
                     else
                         b2.angvel = b2.sweep_angvel;
                 }
@@ -1116,9 +1127,7 @@ class PR(Space) {
 
         // Advance anything remaining to end of time step.
         Iter(cur, kinematics, {
-            if (!cur.sweepFrozen) {
-                cur.sweepIntegrate(deltaTime);
-            }
+            cur.sweepIntegrate(deltaTime);
         });
         Iter(cur, live, {
             if (!cur.sweepFrozen) {
@@ -1131,26 +1140,38 @@ class PR(Space) {
         // If both are frozen, no continous event can occur.
         if (s1.body.sweepFrozen && s2.body.sweepFrozen) return in_arb;
 
+        // TODO: permit sensor continuous events.
         if ((in_arb != null && in_arb.colarb == null) ||
             interactionType(s1, s2, s1.body, s2.body) != 1) {
             return in_arb;
         }
 
-        // TODO: permit kinematic swept collisions.
+        var b1 = s1.body;
+        var b2 = s2.body;
         if (stat) {
             var toi; Get(PR(ToiEvent), toi);
-            if (!s1.body.isDynamic()) {
-                toi.s2 = s1;
-                toi.s1 = s2;
+            var kin = (b1.isKinematic() || b2.isKinematic());
+            if (!kin)
+            {
+                if (!s1.body.isDynamic()) {
+                    toi.s2 = s1;
+                    toi.s1 = s2;
+                }
+                else {
+                    toi.s1 = s1;
+                    toi.s2 = s2;
+                }
+
+                PR(SweepDistance).staticSweep(toi, pre_dt, 0, PR(Config).SWEEP_OVERLAP);
             }
-            else {
+            else
+            {
                 toi.s1 = s1;
                 toi.s2 = s2;
+                PR(SweepDistance).dynamicSweep(toi, pre_dt, 0, PR(Config).SWEEP_OVERLAP);
             }
 
-            PR(SweepDistance).staticSweep(toi, pre_dt, 0, PR(Config).SWEEP_OVERLAP);
-
-            if (toi.toi < 0) {
+            if ((stat && toi.toi < 0) || toi.failed) {
                 Free(PR(ToiEvent), toi);
             }
             else {
@@ -1158,6 +1179,7 @@ class PR(Space) {
                 toi.frozen1 = toi.s1.body.sweepFrozen;
                 toi.frozen2 = toi.s2.body.sweepFrozen;
                 toi.arbiter = (in_arb != null) ? in_arb.colarb : null;
+                toi.kinematic = kin;
             }
         }
 
@@ -1835,8 +1857,7 @@ class PR(Space) {
                 var linThreshold = PR(Config).MIN_LIN_STATIC_SWEEP * cur.sweepRadius;
                 var angThreshold = PR(Config).MIN_ANG_STATIC_SWEEP;
                 if (((vec_lsq(cur.vel) * dt * dt) > (linThreshold * linThreshold) ||
-                   (cur.angvel*cur.angvel * dt * dt) > (angThreshold * angThreshold)) &&
-                   !cur.isKinematic())
+                   (cur.angvel*cur.angvel * dt * dt) > (angThreshold * angThreshold)) || cur.isKinematic())
                 {
                     // compute swept AABB
                     //
@@ -1924,9 +1945,7 @@ class PR(Space) {
                         });
                         if(callbackset.add_arb(arb))
                             arb.present++;
-                        trace("begin "+[arb.id,arb.di,arb.present]);
                     }else {
-                        trace("end "+[arb.id,arb.di,arb.present]);
                         arb.present--;
                         assert(arb.present>=0,"arb present < 0?");
                         assert(callbackset!=null,"end arbiter with no callbackset");
@@ -2032,7 +2051,6 @@ class PR(Space) {
 
             while(arbite!=null) {
                 var arb = arbite.elem();
-                trace("x "+[arb.id, arb.di, arb.present]);
                 if (presteparb(arb, dt)) {
                     arbite = arbs.inlined_erase(pre);
                     pre_continue;
@@ -2073,8 +2091,7 @@ class PR(Space) {
         Iter(con,live_constraints, con.warmStart());
     }
 
-    public function iterateVel(times:Int,bouncy:Bool) {
-        var bouncyval = bouncy ? 1.0 : 0.0;
+    public function iterateVel(times:Int) {
         for(i in 0...times) {
             Iter(arb,f_arbiters,if(arb.acting()) arb.applyImpulseVel());
 
@@ -2102,7 +2119,7 @@ class PR(Space) {
                 pre = cx_ite;
             });
 
-            IterColArbs(arb,if(arb.acting()) arb.applyImpulseVel(bouncyval));
+            IterColArbs(arb,if(arb.acting()) arb.applyImpulseVel());
         }
     }
     public function iteratePos(times:Int) {
@@ -2227,7 +2244,7 @@ class PR(Space) {
                             arbs.inlined_add(arb);
                             arb.fresh = !swapped;
                         }else
-                            arb.fresh = arb.up_stamp<stamp-1; //handler persistance
+                            arb.fresh = (arb.up_stamp<stamp-1 || (arb.up_stamp == stamp-1 && continuous)); //handler persistance
                         arb.up_stamp = arb.stamp;
 
                         if(arb.fresh || (arb.immState&Flag(ImmState,ALWAYS))==0) {

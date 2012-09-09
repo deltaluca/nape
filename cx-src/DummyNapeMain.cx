@@ -28,49 +28,55 @@ class DummyNapeMain {
     static function main() {
         var s = new Space(new Vec2(0, 1000), Broadphase.SWEEP_AND_PRUNE);
 
+        var t = new flash.text.TextField();
+        flash.Lib.current.addChild(t);
+
 //        for (i in 28...29)
-        for (i in 30...40)
+        for (i in 0...40)
         {
             var b1 = new Body();
             var w = 5 + i * 1.5;
             var h = 1;
-            b1.shapes.add(new Polygon(Polygon.rect(-w/2, h, w, h/2)));
-            b1.shapes.add(new Polygon(Polygon.rect(-w/2, -h, w, -h/2)));
-            b1.shapes.add(new Circle(h*3, new Vec2(w/2, 0)));
+            var w = 5;
+            var h = 5;
+            b1.shapes.add(new Polygon(Polygon.box(w, h)));
+//            b1.shapes.add(new Circle(3));
             var u = i%20;
             var v = (i - u) / 20;
             b1.position.x = 100+u*15;
             b1.position.y = 100+v*15;
             b1.velocity.y = 60*(10 + i*4);
-            b1.velocity.x = 60*(10 + i*2);
-            b1.angularVel = 1;
+            //b1.velocity.x = 60*(10 + i*2);
+            //b1.angularVel = 1;
             b1.space = s;
             b1.userData.px = b1.position.x;
             b1.userData.py = b1.position.y;
 
-            b1.setShapeFilters(new InteractionFilter(2, 1));
+            //b1.setShapeFilters(new InteractionFilter(2, 1));
         }
 
         debug = new ShapeDebug(600,600,0x333333);
         flash.Lib.current.addChild(debug.display);
 
 
-        var c:Circle;
+        var c:Shape;
         var b2 = new Body(BodyType.STATIC);
         b2.shapes.add(new Polygon(Polygon.rect(50, 50, 500, 1)));
         b2.shapes.add(new Polygon(Polygon.rect(50, 50, 1, 500)));
         b2.shapes.add(new Polygon(Polygon.rect(50, 550, 500, 1)));
         b2.shapes.add(new Polygon(Polygon.rect(550, 50, 1, 500)));
-        b2.shapes.add(c = new Circle(40, new Vec2(300, 300)));
         b2.space = s;
 
         var cb:CbType;
-        c.cbTypes.add(cb = new CbType());
+        b2 = new Body(BodyType.KINEMATIC);
+        b2.shapes.add(c = new Polygon(Polygon.rect(150,300-40,250,1)));
+        b2.space = s;
+        b2.cbTypes.add(cb = new CbType());
 
-        s.visitBodies(function (b) b.shapes.foreach(function (s) s.material.elasticity = 1));
+        s.visitBodies(function (b) b.shapes.foreach(function (s) s.material.elasticity = 0.75));
 
-        s.listeners.add(new PreListener(InteractionType.COLLISION, cb, CbType.ANY_SHAPE.excluding(cb), function (cb) {
-            if (cb.arbiter.collisionArbiter.normal.y < 0)
+        s.listeners.add(new PreListener(InteractionType.COLLISION, cb, CbType.ANY_BODY.excluding(cb), function (cb) {
+            if (cb.arbiter.collisionArbiter.normal.y > 0)
                 return PreFlag.IGNORE;
             else return null;
         }));
@@ -79,6 +85,7 @@ class DummyNapeMain {
 
         var f = function() {
             debug.clear();
+            b2.velocity.y = 2000 * Math.cos(s.elapsedTime*20);
             s.step(1/60, 10, 10);
             debug.draw(s);
             s.liveBodies.foreach(function (b) {

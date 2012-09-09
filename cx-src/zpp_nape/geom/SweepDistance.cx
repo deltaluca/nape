@@ -30,7 +30,10 @@ class PR(ToiEvent) {
 
     // handle case where object is rotating fast, and in such a way
     // that the time advancement tends to 0 and continous collision fails
+    public var slipped:Bool;
+
     public var failed:Bool;
+    public var kinematic:Bool;
 
     public function new() {
         c1 = new PR(Vec2)();
@@ -54,6 +57,14 @@ class PR(SweepDistance) {
         var ang2 = b2.angvel; if (ang2 < 0) ang2 = -ang2;
         var angBias = (s1.sweepCoef * ang1) + (s2.sweepCoef * ang2);
 
+        if (vec_lsq(delta) < PR(Config).EQUAL_SQ_VEL &&
+            angBias < PR(Config).ZERO_ANG_BIAS)
+        {
+            toi.toi = -1;
+            toi.failed = true;
+            return;
+        }
+
         var c1 = toi.c1;
         var c2 = toi.c2;
         var axis = toi.axis;
@@ -75,12 +86,16 @@ class PR(SweepDistance) {
                 // check objects not seperating at collision point.
                 vec_new(d1); vec_sub(c1., b1.pos, d1);
                 vec_new(d2); vec_sub(c2., b2.pos, d2);
-                var proj = dot + b2.angvel * vec_cross(d2, axis.)
-                               - b1.angvel * vec_cross(d1, axis.);
-//                if (proj >= PR(Config).SWEEP_SEPERATING) {
-//                    curTOI = -1;
-//                }
-                break;
+                var proj = dot - b1.sweep_angvel * vec_cross(d1, axis.)
+                               + b2.sweep_angvel * vec_cross(d2, axis.);
+                if (proj > 0)
+                {
+                    toi.slipped = true;
+                }
+                if (proj <= 0 || sep < PR(Config).SWEEP_LIMIT * 0.5)
+                {
+                    break;
+                }
             }
 
             // lower bound on TOI advancement
@@ -90,20 +105,22 @@ class PR(SweepDistance) {
                 break;
             }
 
-            curTOI += sep / denom;
+            var delta = sep / denom;
+            if (delta < 1e-6) delta = 1e-6;
+            curTOI += delta;
             if (curTOI >= 1) {
                 curTOI = -1;
                 break;
             }
 
-            if ((++curIter) >= 100)
+            if ((++curIter) >= 40)
             {
-                if (sep > PR(Config).SWEEP_LIMIT * 2)
-                    curTOI = -1;
+                if (sep > negRadius) {
+                    toi.failed = true;
+                }
                 break;
             }
         }
-
         toi.toi = curTOI;
     }
 
@@ -137,6 +154,10 @@ class PR(SweepDistance) {
             if (sep < PR(Config).SWEEP_LIMIT) {
                 vec_new(d1); vec_sub(c1., b1.pos, d1);
                 var proj = dot - b1.sweep_angvel * vec_cross(d1, axis.);
+                if (proj > 0)
+                {
+                    toi.slipped = true;
+                }
                 if (proj <= 0 || sep < PR(Config).SWEEP_LIMIT * 0.5)
                 {
                     break;
