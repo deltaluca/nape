@@ -55,7 +55,7 @@ class Filtering extends FixedStep {
 		border.shapes.add(new Polygon(Polygon.rect(0,0,stage.stageWidth,-50)));
 		border.shapes.add(new Polygon(Polygon.rect(0,stage.stageHeight,stage.stageWidth,50)));
 
-		border.shapes.add(new Polygon(Polygon.rect(0,stage.stageHeight/2-20,stage.stageWidth,40)));
+		border.shapes.add(new Polygon(Polygon.rect(0,stage.stageHeight/2-0.5,stage.stageWidth,1)));
 		border.space = space;
 
 		//------------------------------------------------------------

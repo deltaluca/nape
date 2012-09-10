@@ -57,7 +57,8 @@ class PR(SweepDistance) {
         var ang2 = b2.angvel; if (ang2 < 0) ang2 = -ang2;
         var angBias = (s1.sweepCoef * ang1) + (s2.sweepCoef * ang2);
 
-        if (vec_lsq(delta) < PR(Config).EQUAL_SQ_VEL &&
+        if (!toi.kinematic &&
+            vec_lsq(delta) < PR(Config).EQUAL_SQ_VEL &&
             angBias < PR(Config).ZERO_ANG_BIAS)
         {
             toi.toi = -1;
@@ -144,6 +145,8 @@ class PR(SweepDistance) {
         var curIter = 0;
 
         while (true) {
+            assert(!isNaN(curTOI*timeStep), curTOI+" "+timeStep);
+            assert(!isNaN(b1.sweepTime), "sweeeeep");
             b1.sweepIntegrate(curTOI * timeStep);
             b1.sweepValidate(s1);
 
@@ -173,6 +176,7 @@ class PR(SweepDistance) {
 
             var delta = sep / denom;
             if (delta < 1e-6) delta = 1e-6;
+            assert(!isNaN(delta), delta + " " + (s1.sweepCoef) + " " + ang1);
             curTOI += delta;
             if (curTOI >= 1) {
                 curTOI = -1;

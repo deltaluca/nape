@@ -100,6 +100,8 @@ class PR(Arbiter) {
     //on freshInteractors/freshListener types
     public var presentable:Bool;
 
+    public var continuous:Bool;
+
     ///---------------------------------------------------------------------------------------------
 
     //used to swap between begin/ongoing style cb
@@ -720,7 +722,6 @@ class PR(ColArbiter) extends PR(Arbiter) {
             Get(PR(Contact), c);
             var ci = c.inner;
             ci.jnAcc = ci.jtAcc = 0;
-            c.sBias = -1; //resets
             c.hash = hash;
             c.fresh = true;
             c.arbiter = this;
@@ -911,6 +912,10 @@ class PR(ColArbiter) extends PR(Arbiter) {
                 oc2 = tmp2;
                 hc2 = false;
             }
+            else if (oc2.posOnly)
+            {
+                hc2 = false;
+            }
             if (oc1.posOnly)
             {
                 fst = true;
@@ -936,6 +941,13 @@ class PR(ColArbiter) extends PR(Arbiter) {
         var mass_sum = b1.smass + b2.smass;
         hc2 = false;
         var fst = true;
+
+        var statType = (!b1.isDynamic() || !b2.isDynamic());
+        var bias = (statType ? (continuous ? PR(Config).STAT_CONT_BIAS_COEF :
+                                             PR(Config).STAT_BIAS_COEF)
+                             : (continuous ? PR(Config).CONT_BIAS_COEF :
+                                             PR(Config).BIAS_COEF));
+        continuous = false;
 
         //remove old contacts, do per-contact calculations.
         var pre = null; var prei = null;
@@ -984,22 +996,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
                 vec_new(vr); calc_relvel(vr,ci);
                 var vdot = vec_dot(n, vr);
 
-                var nb = PR(Config).MIN_BIAS_COEF;
-                var delta = 1 - PR(Config).VEL_BIAS_COEF * vdot*vdot; if(delta<0) delta = 0;
-                delta -= c.dist*PR(Config).BIAS_PEN_COEF;
-                if(delta<0) delta = 0;
-                if(delta>1) delta = 1;
-
-                nb += PR(Config).DEL_BIAS_COEF * delta;
-                if(nb>1) nb = 1;
-
-                if(c.sBias==-1) c.sBias = nb;
-                else            c.sBias = PR(Config).INT_BIAS_COEF * c.sBias + PR(Config).SUB_BIAS_COEF * nb;
-                ci.biasCoef = c.sBias;
-                if(stat) {
-                    ci.biasCoef *= 2;
-                    if(ci.biasCoef>1) ci.biasCoef = 1;
-                }
+                ci.biasCoef = bias;
 
                 //c.elasticity = if(vdot > -30) 0.0 else restitution;//*Math.atan(0.5*(-vdot-25))*2/Math.PI;
                 c.elasticity = restitution;
@@ -1036,6 +1033,10 @@ class PR(ColArbiter) extends PR(Arbiter) {
                 var tmp2 = oc1;
                 oc1 = oc2;
                 oc2 = tmp2;
+                hc2 = false;
+            }
+            else if (oc2.posOnly)
+            {
                 hc2 = false;
             }
             if (oc1.posOnly)
@@ -1223,7 +1224,14 @@ class PR(ColArbiter) extends PR(Arbiter) {
 
             var dl = vec_lsq(d);
             var r = radius - PR(Config).OVERLAP;
-            if(dl < r*r) {
+            var err = (dl - r);
+            if (vec_dot(d, n) < 0)
+            {
+                vec_negate(d);
+                err -= radius;
+            }
+
+            if(err < 0) {
                 if(dl<PR(Const).EPSILON*PR(Const).EPSILON) {
                     if(b1.smass!=0.0) b1.posx += PR(Const).EPSILON*10;
                     else              b2.posx += PR(Const).EPSILON*10;
@@ -1266,7 +1274,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
                 gproj = lproj + vec_dot(gnorm, b1.pos);
                 vec_rotate(c1.lr1, b2.axis, clip1);
                 vec_addeq(clip1,b2.pos);
-                if(hc2) {
+                if(hpc2) {
                     vec_rotate(c2.lr1, b2.axis, clip2);
                     vec_addeq(clip2,b2.pos);
                 }
@@ -1275,7 +1283,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
                 gproj = lproj + vec_dot(gnorm, b2.pos);
                 vec_rotate(c1.lr1, b1.axis, clip1);
                 vec_addeq(clip1,b1.pos);
-                if(hc2) {
+                if(hpc2) {
                     vec_rotate(c2.lr1, b1.axis, clip2);
                     vec_addeq(clip2,b1.pos);
                 }

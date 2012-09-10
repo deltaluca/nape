@@ -12,7 +12,7 @@ class PR(Config) {
     //amount of overlap in pixels allowed between shapes
     //   decreasing this too much causes instability.
     public static inline var OVERLAP = 0.2;
-    public static inline var SWEEP_OVERLAP = 0.7;
+    public static inline var SWEEP_OVERLAP = 0.5;
 
     // limit on distance for sweep to terminate.
     public static inline var SWEEP_LIMIT = 0.05;
@@ -20,12 +20,14 @@ class PR(Config) {
     // Ratio of maximum radius body must move through to be sweeped
     // against static objects (linear velocity).
     public static inline var MIN_LIN_STATIC_SWEEP = 0.05;
+    public static inline var MIN_LIN_BULLET_SWEEP = 0.125;
     // Threshold for maximum angular velocity per timestep to be sweeped
     // against static objects.
     public static inline var MIN_ANG_STATIC_SWEEP = 0.005;
+    public static inline var MIN_ANG_BULLET_SWEEP = 0.0125;
 
-    public static inline var EQUAL_SQ_VEL = 700; // (px/s)^2
-    public static inline var ZERO_ANG_BIAS = 1.2; // (px.rad/s)
+    public static inline var EQUAL_SQ_VEL = 300; // (px/s)^2
+    public static inline var ZERO_ANG_BIAS = 0.6; // (px.rad/s)
     public static inline var TOI_SLIP_SCALE = 0.75;
 
     //constraint position slop allowed.
@@ -36,19 +38,15 @@ class PR(Config) {
     //   this helps with stability in jittery cases by allowing cached values to not be reset so often
     public static inline var PERSIST = 6;
 
-    public static inline var MIN_BIAS_COEF = 0.8; //0.1
-    public static inline var MAX_BIAS_COEF = 0.8; //0.8
-    public static inline var VEL_BIAS_COEF = 0.9;
-    public static inline var BIAS_PEN_COEF = 0.01;
-    public static inline var INT_BIAS_COEF = 0.85;
-
-    public static inline var DEL_BIAS_COEF = MAX_BIAS_COEF - MIN_BIAS_COEF;
-    public static inline var SUB_BIAS_COEF = 1.0 - INT_BIAS_COEF;
+    public static inline var BIAS_COEF = 0.3;
+    public static inline var STAT_BIAS_COEF = 0.6;
+    public static inline var CONT_BIAS_COEF = 0.4;
+    public static inline var STAT_CONT_BIAS_COEF = 0.5;
 
     public static inline var ILL:Float = 4e5;
 
     public static inline var STATIC_VELSQ = 4;
-    public static inline var BOUNCE_THRESHOLD = 15;
+    public static inline var BOUNCE_THRESHOLD = 20;
 
     //amount of time that a body must be at rest before it is considered to be eligible for sleeping
     public static inline var SLEEP_DELAY = 60;

@@ -166,9 +166,13 @@ class PR(Body) extends PR(Interactor) {
     // Max of shape sweepRadius
     public var sweepRadius:Float;
 
+    public var bullet:Bool; // internal flag based on velocity + below.
+    public var bulletEnabled:Bool; // public API
+
     flibmdel public inline function sweepIntegrate(dt:Float) {
         var delta = dt - sweepTime;
         if (delta != 0) {
+            assert(!isNaN(delta), delta+" "+dt+" "+sweepTime);
             sweepTime = dt;
             vec_addeq(pos, vel, delta);
             if (angvel != 0)
@@ -774,6 +778,9 @@ class PR(Body) extends PR(Interactor) {
         super();
         ibody = this;
         world = false;
+        bulletEnabled = false;
+        sweepTime = 0;
+        sweep_angvel = 0;
 
         norotate = nomove = false;
 

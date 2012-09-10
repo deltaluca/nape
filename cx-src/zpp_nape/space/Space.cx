@@ -1006,6 +1006,7 @@ class PR(Space) {
         var curTimeAlpha = 0.0;
         while (curTimeAlpha < 1 && !toiEvents.empty()) {
             var minTOI:PR(ToiEvent) = null;
+            var minTime = 2.0; // need only be > 1
             var minKinematic = false;
             var preMin:Node(PR(ToiEvent)) = null;
 
@@ -1016,29 +1017,11 @@ class PR(Space) {
 
                 // TOI Event invalid.
                 if (b1.sweepFrozen && b2.sweepFrozen) {
-                    cx_ite = toiEvents.erase(pre);
-                    Free(PR(ToiEvent), toi);
-                    continue;
-                }
-
-                // Check if event is invalidated.
-                if (toi.frozen1 != b1.sweepFrozen ||
-                    toi.frozen2 != b2.sweepFrozen)
-                {
-                    toi.frozen1 = b1.sweepFrozen;
-                    toi.frozen2 = b2.sweepFrozen;
-
-                    if (toi.frozen1)
+                    if(toi.toi != 0 && PR(Collide).testCollide_safe(toi.s1, toi.s2))
                     {
-                        var tmp = toi.s1;
-                        toi.s1 = toi.s2;
-                        toi.s2 = tmp;
-                        toi.frozen1 = false;
-                        toi.frozen2 = true;
+                        toi.toi = 0;
                     }
-
-                    PR(SweepDistance).staticSweep(toi, deltaTime, curTimeAlpha, PR(Config).SWEEP_OVERLAP);
-                    if (toi.toi < 0)
+                    else
                     {
                         cx_ite = toiEvents.erase(pre);
                         Free(PR(ToiEvent), toi);
@@ -1046,8 +1029,43 @@ class PR(Space) {
                     }
                 }
 
-                if (toi.toi >= 0 && (minTOI == null || toi.toi < minTOI.toi || (!minKinematic && toi.kinematic))) {
+                // Check if event is invalidated.
+                if ((toi.frozen1 != b1.sweepFrozen ||
+                    toi.frozen2 != b2.sweepFrozen))
+                {
+                    if (!toi.kinematic)
+                    {
+                        toi.frozen1 = b1.sweepFrozen;
+                        toi.frozen2 = b2.sweepFrozen;
+
+                        if (toi.frozen1)
+                        {
+                            var tmp = toi.s1;
+                            toi.s1 = toi.s2;
+                            toi.s2 = tmp;
+                            toi.frozen1 = false;
+                            toi.frozen2 = true;
+                        }
+
+                        PR(SweepDistance).staticSweep(toi, deltaTime, 0, PR(Config).SWEEP_OVERLAP);
+                        if (toi.toi < 0)
+                        {
+                            cx_ite = toiEvents.erase(pre);
+                            Free(PR(ToiEvent), toi);
+                            continue;
+                        }
+                    }
+                    else
+                    {
+                        cx_ite = toiEvents.erase(pre);
+                        Free(PR(ToiEvent), toi);
+                        continue;
+                    }
+                }
+
+                if (toi.toi >= 0 && (toi.toi < minTime || (!minKinematic && toi.kinematic))) {
                     minTOI = toi;
+                    minTime = toi.toi;
                     minKinematic = toi.kinematic;
                     preMin = pre;
                 }
@@ -1088,10 +1106,10 @@ class PR(Space) {
                     minTOI.arbiter.pair = null;
                     //presteparb(minTOI.arbiter, deltaTime, true);
                 }
-                trace("cnull "+minTOI.s1.id+" "+minTOI.s2.id);
             }
             else {
                 if (!presteparb(arb, deltaTime)) {
+                    arb.continuous = false;
                     if (arb.type == PR(Arbiter).COL && arb.acting())
                         arb.colarb.applyImpulseVel();
                 }
@@ -1128,11 +1146,13 @@ class PR(Space) {
         // Advance anything remaining to end of time step.
         Iter(cur, kinematics, {
             cur.sweepIntegrate(deltaTime);
+            cur.sweepTime = 0;
         });
         Iter(cur, live, {
             if (!cur.sweepFrozen) {
                 cur.sweepIntegrate(deltaTime);
             }
+            cur.sweepTime = 0;
         });
     }
 
@@ -1148,10 +1168,10 @@ class PR(Space) {
 
         var b1 = s1.body;
         var b2 = s2.body;
-        if (stat) {
+        if (stat || b1.bullet || b2.bullet) {
             var toi; Get(PR(ToiEvent), toi);
             var kin = (b1.isKinematic() || b2.isKinematic());
-            if (!kin)
+            if (stat && !kin)
             {
                 if (!s1.body.isDynamic()) {
                     toi.s2 = s1;
@@ -1162,12 +1182,14 @@ class PR(Space) {
                     toi.s2 = s2;
                 }
 
+                toi.kinematic = false;
                 PR(SweepDistance).staticSweep(toi, pre_dt, 0, PR(Config).SWEEP_OVERLAP);
             }
             else
             {
                 toi.s1 = s1;
                 toi.s2 = s2;
+                toi.kinematic = kin;
                 PR(SweepDistance).dynamicSweep(toi, pre_dt, 0, PR(Config).SWEEP_OVERLAP);
             }
 
@@ -1179,7 +1201,6 @@ class PR(Space) {
                 toi.frozen1 = toi.s1.body.sweepFrozen;
                 toi.frozen2 = toi.s2.body.sweepFrozen;
                 toi.arbiter = (in_arb != null) ? in_arb.colarb : null;
-                toi.kinematic = kin;
             }
         }
 
@@ -1853,7 +1874,6 @@ class PR(Space) {
 
                 // If moving very slowly, treat as static
                 // object for continous collisions (freeze it now!)
-                //TODO: Permit kinematics.
                 var linThreshold = PR(Config).MIN_LIN_STATIC_SWEEP * cur.sweepRadius;
                 var angThreshold = PR(Config).MIN_ANG_STATIC_SWEEP;
                 if (((vec_lsq(cur.vel) * dt * dt) > (linThreshold * linThreshold) ||
@@ -1885,9 +1905,20 @@ class PR(Space) {
 
                     cur.sweepFrozen = false;
                     cur.sweep_angvel = (cur.angvel) % MAX_VEL;
+                    if (cur.isDynamic() && cur.bulletEnabled)
+                    {
+                        var linThreshold2 = PR(Config).MIN_LIN_BULLET_SWEEP * cur.sweepRadius;
+                        var angThreshold2 = PR(Config).MIN_ANG_BULLET_SWEEP;
+                        if (((vec_lsq(cur.vel) * dt * dt) > (linThreshold2 * linThreshold2) ||
+                           (cur.angvel*cur.angvel * dt * dt) > (angThreshold2 * angThreshold2)))
+                        {
+                            cur.bullet = true;
+                        }
+                    }
                 }
                 else {
                     cur.sweepFrozen = true;
+                    cur.bullet = false;
                 }
             });
         });
