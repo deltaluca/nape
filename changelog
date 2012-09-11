@@ -122,6 +122,29 @@ Geom:
 
     Added intersectsBody to generalise over intersects method.
 
+Elastic contacts:
+    Method of elastic contacts reconfigured. You will likely need to play around with
+    Mateiral elasticities as behaviour will change as a result.
+
+Continuous collision detection:
+    A form of continuous collision detection has been added. This is continuous detection
+    and not continuous physics. Objects are frozen at their time of impact and will have
+    no further time simulated for them until the following step.
+
+    In practice this is perfectly acceptible, where it breaks down and what you should not
+    do is have groups of bullet enabled dynamic bodies interacting together as you will
+        get visual stalling.
+
+    Continuous collisions always occur with static and kinematic objects.
+
+    Tunnelling should be rare, less so with kinematic objects as no continuos collisions
+    occur during positional error resolvement which means that if an object is forced to
+    move a large distance due to overlapping of objects it may tunnel (This is more often
+    the case with a fast moving kinematic as the continuos collision is resolved in this
+    case primarily with positional error resolvement, but kinematics normally cause
+    tunneling though 'forcing' objects into one another anyways).
+
+
 
 
 TODO:
@@ -130,18 +153,6 @@ TODO:
     What to do with collisionArbiter/fluidArbiter properties? Inconsistent naming
     compared to castBody/castCompound/castShape/castCircle/castPolygon
 
-    Continuos collision detection
-        # Optimised versions of distance computation tied with contact computation
-          to avoid use of GJK.
-
-        # Kinematic objects? Maybe for first version ignore.
-          Later should try and see what happens if we permit dynamic objects to sweep
-          with kinematics, and have dynamic object be frozen whilst kinematic does it's
-          business but insert arbiter/contact that will be used in following step
-          to treat it as though dynamic object actually collided the kinematic object.
-
-          This doesn't entirely stop tunneling, but will be a lot better than nothing.
-
-        # Implement a convexCast ? convexMultiCast (linear, or full conservative advancement?)
+    # Implement a convexCast ? convexMultiCast (linear, or full conservative advancement?)
 
      Consider once more moving geometric utilities to a module?

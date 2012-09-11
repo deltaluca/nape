@@ -26,7 +26,7 @@ class DummyNapeMain {
     }
 
     static function main() {
-        var s = new Space(new Vec2(0, 2000), Broadphase.SWEEP_AND_PRUNE);
+        var s = new Space(new Vec2(0, 400), Broadphase.SWEEP_AND_PRUNE);
 
         var t = new flash.text.TextField();
         flash.Lib.current.addChild(t);
@@ -39,14 +39,14 @@ class DummyNapeMain {
             var h = 1;
             var w = 5;
             var h = 5;
-//            b1.shapes.add(new Polygon(Polygon.box(20, 3)));
-            b1.shapes.add(new Circle(4));
+            b1.shapes.add(new Polygon(Polygon.box(30, 30)));
+//            b1.shapes.add(new Circle(15));
             var v = i%6;
             var u = (i - v) / 6;
             b1.position.x = 100 + u * 20;
             b1.position.y = 100 + (v * 30);
-            b1.velocity.y = 600;
-            b1.velocity.x = 60*(10 + i*2);
+            b1.velocity.y = 60;
+            b1.velocity.x = 6*(10 + i*2);
             b1.space = s;
             b1.userData.px = b1.position.x;
             b1.userData.py = b1.position.y;
@@ -69,7 +69,7 @@ class DummyNapeMain {
         var cb:CbType;
         b2.cbTypes.add(cb = new CbType());
 
-        s.visitBodies(function (b) b.shapes.foreach(function (s) s.material.elasticity = 0.7));
+//        s.visitBodies(function (b) b.shapes.foreach(function (s) s.material.elasticity = 0.7));
 
 /*        s.listeners.add(new PreListener(InteractionType.COLLISION, cb, CbType.ANY_BODY.excluding(cb), function (cb) {
             if (cb.arbiter.collisionArbiter.normal.y > 0)
@@ -77,11 +77,10 @@ class DummyNapeMain {
             else return null;
         }));*/
 
-//        debug.drawCollisionArbiters = true;
-
+        debug.drawCollisionArbiters = true;
         var f = function() {
             debug.clear();
-            b2.velocity.y = 800 * Math.cos(s.elapsedTime*20);
+            //b2.velocity.y = 800 * Math.cos(s.elapsedTime*20);
             s.step(1/60, 10, 10);
             debug.draw(s);
             s.liveBodies.foreach(function (b) {

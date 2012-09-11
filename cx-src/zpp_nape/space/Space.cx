@@ -1110,8 +1110,9 @@ class PR(Space) {
             else {
                 if (!presteparb(arb, deltaTime)) {
                     arb.continuous = false;
-                    if (arb.type == PR(Arbiter).COL && arb.acting())
+                    if (arb.type == PR(Arbiter).COL && arb.acting()) {
                         arb.colarb.applyImpulseVel();
+                    }
                 }
             }
 
@@ -1904,7 +1905,6 @@ class PR(Space) {
                     });
 
                     cur.sweepFrozen = false;
-                    cur.sweep_angvel = (cur.angvel) % MAX_VEL;
                     if (cur.isDynamic() && cur.bulletEnabled)
                     {
                         var linThreshold2 = PR(Config).MIN_LIN_BULLET_SWEEP * cur.sweepRadius;
@@ -1920,6 +1920,7 @@ class PR(Space) {
                     cur.sweepFrozen = true;
                     cur.bullet = false;
                 }
+                cur.sweep_angvel = (cur.angvel) % MAX_VEL;
             });
         });
         doit(live);
