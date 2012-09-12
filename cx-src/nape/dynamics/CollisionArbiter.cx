@@ -8,8 +8,6 @@ class CollisionArbiter extends Arbiter {
 
     !!/**
     !! * Set of contact points for the related pairs of shapes.
-    !! * <br/><br/>
-    !! * This list may be modified only during a related PreListener handler.
     !! */
     property(contacts,ContactList,{
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
@@ -21,34 +19,24 @@ class CollisionArbiter extends Arbiter {
     !!/**
     !! * Normal of contact for collision interaction.
     !! * <br/><br/>
-    !! * This normal will always point from arbiter's shape1, towards shape2
-    !! * <br/><br/>
-    !! * This normal may only be modified during a related PreListener handler.
+    !! * This normal will always point from arbiter's shape1, towards shape2 and
+    !! * corresponds to the direction of the normal before positional integration
+    !! * and erorr resolvement took place (Correct at time of pre-listener).
     !! */
     property(normal,Vec2,{
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
         if(pr(inner).colarb.wrap_normal==null) pr(inner).colarb.getnormal();
         return pr(inner).colarb.wrap_normal;
-    },{
-        DEBUG(if(!pr(inner).colarb.mutable) throw "Error: CollisionArbiter::normal is only mutable during a pre-handler";)
-        DEBUG(if(normal==null) throw "Error: CollisionArbiter::normal cannot be null";)
-        this.normal.set(normal);
     })
 
     !!/**
     !! * This radius property describes the sum of the circle's radii for the pair of shapes, with
     !! * a Polygon having 0 radius. This value is used in positional iterations to resolve penetrations
     !! * between the Shapes.
-    !! * <br/><br/>
-    !! * During a PreListener handler, you can modify this value to... do something crazy!
     !! */
     property(radius,Float,{
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
         return pr(inner).colarb.radius;
-    },{
-        DEBUG(if(!pr(inner).colarb.mutable) throw "Error: CollisionArbiter::radius is only mutable during a pre-handler";)
-        DEBUG(if(isNaN(radius)) throw "Error: CollisionArbiter::radius cannot be null";)
-        pr(inner).colarb.radius = radius;
     })
 
     !!/**

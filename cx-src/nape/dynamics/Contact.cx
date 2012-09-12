@@ -22,31 +22,26 @@ class Contact {
     !!/**
     !! * Penetration of bodies along normal for this contact.
     !! * <br/><br/>
-    !! * This value is strictly positive, and may be modified during a related PreListener handler.
+    !! * This value may be negative and corresponds to the penetration (if at all)
+    !! * of the contact point before positional integration and error resolvement
+    !! * took place (correct at time of pre-listeners).
     !! */
     property(penetration,Float,{
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Contact not currently in use";)
         return (-pr(inner).dist);
-    },{
-        DEBUG(if(!pr(inner).arbiter.colarb.mutable) throw "Error: Contact::penetration is only mutable within a pre-handler";)
-        DEBUG(if(isNaN(penetration)) throw "Error: Contact::penetration cannot be NaN";)
-        DEBUG(if(penetration<=0 || penetration==Math.POSITIVE_INFINITY) throw "Error: Contact::penetration must be stritly positive and non-infinite";)
-        pr(inner).dist = -penetration;
     })
 
     !!/**
     !! * The world-space position of contact.
     !! * <br/><br/>
-    !! * This value may be modified during a related PreListener handler.
+    !! * This value corresponds to the position
+    !! * of the contact point before positional integration and error resolvement
+    !! * took place (correct at time of pre-listeners).
     !! */
     property(position,Vec2,{
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Contact not currently in use";)
         if(pr(inner).wrap_position==null) pr(inner).getposition();
         return pr(inner).wrap_position;
-    },{
-        DEBUG(if(!pr(inner).arbiter.colarb.mutable) throw "Error: Contact::position is only mutable within a pre-handler";)
-        DEBUG(if(position==null) throw "Error: Contact::position cannot be null";)
-        this.position.set(position);
     })
 
     !!/**

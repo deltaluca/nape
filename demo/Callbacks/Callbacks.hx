@@ -73,9 +73,6 @@ class Callbacks extends FixedStep {
 		//--------------------
 		//CbTypes
 
-		//partial penetration
-		var partial_penetration = new CbType();
-
 		//one-way platforms
 		var oneway_platform = new CbType();
 		var oneway_object = new CbType(); //objects that can interact with oneway_platforms
@@ -93,7 +90,6 @@ class Callbacks extends FixedStep {
 		var circles = new Array<Body>();
 
 		stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function(_) {
-			for(c in circles) c.cbTypes.add(partial_penetration);
 			var mp = new Vec2(mouseX,mouseY);
 			for(b in space.bodiesUnderPoint(mp)) {
 				if(!b.isDynamic()) continue;
@@ -103,7 +99,6 @@ class Callbacks extends FixedStep {
 			}
 		});
 		stage.addEventListener(flash.events.MouseEvent.MOUSE_UP, function(_) {
-			for(c in circles) c.cbTypes.remove(partial_penetration);
 			hand.active = false;
 		});
 
@@ -126,37 +121,8 @@ class Callbacks extends FixedStep {
 			pent.space = space;
 
 			//set it's cbTypes
-			shape.cbTypes.add(partial_penetration);
 			pent.cbTypes.add(oneway_object);
 		}
-
-		//aaand set up the pre-listener to do the partial penetration magic fun times.
-		// note: this is a pure function with respect to the two objects
-		//       (it's output doesn't change) so we can tell nape this and allow objects
-		//       to sleep as normal.
-		space.listeners.add(new PreListener(InteractionType.COLLISION,partial_penetration,CbType.ANY_SHAPE,function(cb:PreCallback) {
-			var depth = 15;
-
-			//to allow penetration, we need to both change contact penetrations,
-			//and arbiter radius by same amount.
-			var carb = cb.arbiter.collisionArbiter;
-			carb.contacts.filter(function (c:Contact):Bool {
-				//discard if not deep enough.
-				if(c.penetration <= depth) return false;
-
-				c.penetration -= depth;
-				return true;
-			});
-			carb.radius -= depth;
-
-			//another handler may have come in already.
-			//we simply make sure we return current state + IGNORE
-			if(cb.arbiter.state == PreFlag.IGNORE) return PreFlag.IGNORE_ONCE;
-			else if(cb.arbiter.state == PreFlag.ACCEPT) return PreFlag.ACCEPT_ONCE;
-			else return null;
-		},1, //precedence of 1 (higher than default 0) so that one-way platform check occurs AFTER!
-		true //pure
-		));
 
 		//----------------------------
 
@@ -228,7 +194,7 @@ class Callbacks extends FixedStep {
 		for(i in 0...10) {
 			var circ = new Body();
 			circles.push(circ);
-			circ.shapes.add(new Circle(20));
+			circ.shapes.add(new Circle(13));
 			circ.position.setxy(800/11*(i+1),50);
 			circ.space = space;
 
@@ -256,7 +222,7 @@ class Callbacks extends FixedStep {
 		//      or not as purity only effects sleeping when the return flag is *_ONCE
 
 		var plat = new Body(BodyType.STATIC);
-		plat.shapes.add(new Polygon(Polygon.rect(100,300-30,600,60)));
+		plat.shapes.add(new Polygon(Polygon.rect(100,300-0.5,600,1)));
 		plat.space = space;
 
 		plat.cbTypes.add(oneway_platform);

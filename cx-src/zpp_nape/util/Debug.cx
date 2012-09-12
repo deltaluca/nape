@@ -701,50 +701,52 @@ $(mixin pr_debug(utils)
         }else {
             if(outer.drawCollisionArbiters) {
                 var carb = arb.outer.collisionArbiter;
+                if (!carb.contacts.empty())
+                {
+                    vec_new(p);
+                    if(carb.contacts.length==2) {
+                        var c1 = carb.contacts.at(0).position;
+                        var c2 = carb.contacts.at(1).position;
+                        var n = carb.normal;
 
-                vec_new(p);
-                if(carb.contacts.length==2) {
-                    var c1 = carb.contacts.at(0).position;
-                    var c2 = carb.contacts.at(1).position;
-                    var n = carb.normal;
+                        var x = 0.661437828;
+                        var y = 0.75;
+                        if(vec_cross(c1.,n.) < vec_cross(c2.,n.)) {
+                            x = -x;
+                            y = -y;
+                        }
+                        __lineStyle(__tint(0xff,~bg_col,0.7),1);
+                        vec_set(v,c1.x+n.x*y-n.y*x,c1.y+n.y*y+n.x*x);
+                        mat_xform_hom(xnull,xform,v);
+                        __moveTo(vx,vy);
+                        vec_set(v,c2.x+n.x*y+n.y*x,c2.y+n.y*y-n.x*x);
+                        mat_xform_hom(xnull,xform,v);
+                        __lineTo(vx,vy);
 
-                    var x = 0.661437828;
-                    var y = 0.75;
-                    if(vec_cross(c1.,n.) < vec_cross(c2.,n.)) {
-                        x = -x;
-                        y = -y;
+                        __lineStyle(__tint(0xff0000,~bg_col,0.7),1);
+                        vec_set(v,c1.x-n.x*y-n.y*x,c1.y-n.y*y+n.x*x);
+                        mat_xform_hom(xnull,xform,v);
+                        __moveTo(vx,vy);
+                        vec_set(v,c2.x-n.x*y+n.y*x,c2.y-n.y*y-n.x*x);
+                        mat_xform_hom(xnull,xform,v);
+                        __lineTo(vx,vy);
+
+                        vec_set(p, 0.5*(c1.x+c2.x), 0.5*(c1.y+c2.y));
+                        mat_xform_hom(xnull,xform,p);
+                    }else {
+                        vec_set(p, carb.contacts.at(0).position.);
+                        mat_xform_hom(xnull,xform,p);
+
+                        __lineStyle(__tint(0xff00ff,~bg_col,0.7),1);
+                        __drawCircle(px,py,1);
                     }
-                    __lineStyle(__tint(0xff,~bg_col,0.7),1);
-                    vec_set(v,c1.x+n.x*y-n.y*x,c1.y+n.y*y+n.x*x);
-                    mat_xform_hom(xnull,xform,v);
-                    __moveTo(vx,vy);
-                    vec_set(v,c2.x+n.x*y+n.y*x,c2.y+n.y*y-n.x*x);
-                    mat_xform_hom(xnull,xform,v);
-                    __lineTo(vx,vy);
 
-                    __lineStyle(__tint(0xff0000,~bg_col,0.7),1);
-                    vec_set(v,c1.x-n.x*y-n.y*x,c1.y-n.y*y+n.x*x);
-                    mat_xform_hom(xnull,xform,v);
-                    __moveTo(vx,vy);
-                    vec_set(v,c2.x-n.x*y+n.y*x,c2.y-n.y*y-n.x*x);
-                    mat_xform_hom(xnull,xform,v);
-                    __lineTo(vx,vy);
-
-                    vec_set(p, 0.5*(c1.x+c2.x), 0.5*(c1.y+c2.y));
-                    mat_xform_hom(xnull,xform,p);
-                }else {
-                    vec_set(p, carb.contacts.at(0).position.);
-                    mat_xform_hom(xnull,xform,p);
-
-                    __lineStyle(__tint(0xff00ff,~bg_col,0.7),1);
-                    __drawCircle(px,py,1);
+                    __lineStyle(__tint(~bg_col,bg_col,0.7),1);
+                    __moveTo(px,py);
+                    vec_set(v,carb.normal.x*5,carb.normal.y*5);
+                    mat_xform(xnull,xform,v);
+                    __lineTo(px+vx,py+vy);
                 }
-
-                __lineStyle(__tint(~bg_col,bg_col,0.7),1);
-                __moveTo(px,py);
-                vec_set(v,carb.normal.x*5,carb.normal.y*5);
-                mat_xform(xnull,xform,v);
-                __lineTo(px+vx,py+vy);
             }
         }
     }

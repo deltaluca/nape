@@ -112,11 +112,6 @@ class PR(Arbiter) {
 
     ///---------------------------------------------------------------------------------------------
 
-    //called after pre-handler
-    flibmdel public inline function pre_validate() {
-        if(type==COL) colarb._pre_validate();
-    }
-
     flibmdel public inline function acting() {
         return active && ((immState & Flag(ImmState,ACCEPT))!=0);
     }
@@ -620,26 +615,13 @@ class PR(ColArbiter) extends PR(Arbiter) {
         if(cleared) throw "Error: Arbiter not currently in use";
         vec_set(wrap_normal.pr(inner).,n);
     }
-    private function normal_invalidate(x:PR(Vec2)) {
-        vec_set(n,x.);
-    }
 
     public var wrap_normal:Vec2;
     public function getnormal() {
         wrap_normal = Vec2.get(0,0);
-        wrap_normal.pr(inner)._immutable = !mutable;
+        wrap_normal.pr(inner)._immutable = true;
         wrap_normal.pr(inner)._inuse = true;
         wrap_normal.pr(inner)._validate = normal_validate;
-        wrap_normal.pr(inner)._invalidate = normal_invalidate;
-    }
-
-    ///---------------------------------------------------------------------------------------------
-
-    flibmdel public inline function _pre_validate() {
-//        DEBUG(if(wrap_contacts!=null && wrap_contacts.length==0) throw "Error: CollisionArbiter must have at least one contact! If you're trying to ignore collision by deleting all contacts, just return PreFlag.IGNORE_ONCE instead.";)
-        var vl = vec_lsq(n);
-        DEBUG(if(vl==0) throw "Error: CollisionArbiter::normal cannot be zero length";)
-        vec_muleq(n, 1/Math.sqrt(vl));
     }
 
     ///---------------------------------------------------------------------------------------------
@@ -876,8 +858,6 @@ class PR(ColArbiter) extends PR(Arbiter) {
             var ci = c.inner;
             var pact = c.active;
             c.active = c.stamp==stamp;
-            //necessary to notify list of non structual changes when using accept mode for API.
-            if(pact!=c.active) contacts.modified = true;
 
             if(c.active) {
                 if(fst) {
@@ -891,6 +871,9 @@ class PR(ColArbiter) extends PR(Arbiter) {
                     oc2 = c;
                 }
             }
+
+            //necessary to notify list of non structual changes when using accept mode for API.
+            if(pact!=c.active) contacts.modified = true;
 
             pre = cx_ite;
             prei = cx_itei;
@@ -924,7 +907,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
             hpc2 = false;
         }
 
-        return !fst;
+        return fst;
     }
 
     public var pre_dt:Float;
@@ -965,8 +948,6 @@ class PR(ColArbiter) extends PR(Arbiter) {
 
             var pact = c.active;
             c.active = c.stamp==stamp;
-            //necessary to notify list of non strutual changes when using accept mode for API.
-            if(pact!=c.active) contacts.modified = true;
 
             if(c.active) {
                 #if NAPE_TIMES Debug.ACCNT++; #end
@@ -1012,6 +993,9 @@ class PR(ColArbiter) extends PR(Arbiter) {
                 ci.jnAcc *= dtratio;
                 ci.jtAcc *= dtratio;
             }
+
+            //necessary to notify list of non structual changes when using accept mode for API.
+            if(pact!=c.active) contacts.modified = true;
 
             pre = cx_ite;
             prei = cx_itei;
@@ -1084,7 +1068,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
         rMass = b1.sinertia + b2.sinertia;
         if(rMass!=0) rMass = 1/rMass;
 
-        return !fst;
+        return fst;
     }
 
     flibmdel public inline function warmStart() {

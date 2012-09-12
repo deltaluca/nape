@@ -1104,12 +1104,10 @@ class PR(Space) {
                 if (minTOI.arbiter != null && minTOI.arbiter.pair != null) {
                     minTOI.arbiter.pair.arb = null;
                     minTOI.arbiter.pair = null;
-                    //presteparb(minTOI.arbiter, deltaTime, true);
                 }
             }
             else {
-                if (!presteparb(arb, deltaTime)) {
-                    arb.continuous = false;
+                if (!presteparb(arb, deltaTime, true)) {
                     if (arb.type == PR(Arbiter).COL && arb.acting()) {
                         arb.colarb.applyImpulseVel();
                     }
@@ -2022,12 +2020,16 @@ class PR(Space) {
 
         if((arb.immState&Flag(ImmState,ACCEPT)) != 0) {
             if (arb.active && arb.type != PR(Arbiter).SENSOR) {
-                if (arb.colarb != null) arb.colarb.preStep(dt);
+                if (arb.colarb != null) {
+                    if (arb.colarb.preStep(dt)) {
+                        arb.active = false;
+                    }
+                }
                 else                    arb.fluidarb.preStep(this, dt);
             }
         }
         else if(arb.colarb != null) {
-            if(!arb.colarb.cleanupContacts()) arb.active = false;
+            if(arb.colarb.cleanupContacts()) arb.active = false;
         }
 
         //necessary to notify lists of non structual changes for API
@@ -2072,8 +2074,8 @@ class PR(Space) {
             }
             pre = cx_ite;
         });
-        $(mixin prestep(arbs,action) prestep(arbs,null,action,false));
-        $(mixin prestep(arbs0,arbs1,action,collisiontype) {
+        $(mixin prestep(arbs) prestep(arbs,null,false));
+        $(mixin prestep(arbs0,arbs1,collisiontype) {
             var pre = null;
             var arbs = arbs0;
             var arbite = arbs.begin();
@@ -2098,9 +2100,9 @@ class PR(Space) {
         //still iterate non acting arbiters
         //want to clean up contacts in collision arbiters
         //and clean up outdated arbiters also
-        prestep(c_arbiters(true),c_arbiters(false), if(arb.active) arb.preStep(dt), true);
-        prestep(f_arbiters,{ if(arb.active) arb.preStep(this,dt); true; });
-        prestep(s_arbiters,{true;});
+        prestep(c_arbiters(true),c_arbiters(false), true);
+        prestep(f_arbiters);
+        prestep(s_arbiters);
     }
 
     //----------------------------------------------------------------------------------------------
@@ -2314,7 +2316,7 @@ class PR(Space) {
                                     add_callbackset(ncallbackset);
                                 }
 
-                                if(callbackset==null || (callbackset.INTTYPE`stamp!=stamp && (callbackset.INTTYPE`state&Flag(ImmState,ALWAYS)==0))) {
+                                if(callbackset==null || ((callbackset.INTTYPE`stamp!=stamp || continuous) && (callbackset.INTTYPE`state&Flag(ImmState,ALWAYS)==0))) {
                                     if(ncallbackset!=null) callbackset = ncallbackset;
                                     if(callbackset!=null) {
                                         Iter(listener,prelisteners,{
@@ -2347,6 +2349,7 @@ class PR(Space) {
 
                                     Iter(listener,prelisteners,{
                                         precb.pr(inner).listener = listener;
+                                        #if NAPE_ASSERT
                                         if(callbackset.int1==null) {
                                             var err = "";
                                             err += "OKAY WTF IS HAPPENING HERE\n";
@@ -2358,6 +2361,7 @@ class PR(Space) {
                                             Iter(cbset, i2.cbsets, err += "  ("+cbset.id+" "+(cbset.int1==null?"null":"")+","+cbset.di+" "+(cbset.int2==null?"null":"")+") arbs size="+cbset.arbiters.size()+" freed="+cbset.freed+" lazydel="+cbset.lazydel+"\n");
                                             throw err;
                                         }
+                                        #end
                                         PR(Interactor).int_callback(callbackset, listener, precb.pr(inner));
                                         precb.pr(inner).pre_swapped = i1 != precb.pr(inner).int1;
 
@@ -2370,12 +2374,6 @@ class PR(Space) {
                                                 else                           Flag(ImmState, IGNORE);
                                         }
                                     });
-
-                                    //validate in non-release mode anyways.
-                                    if((arb.immState&Flag(ImmState,ACCEPT))!=0) {
-                                        //make sure things like normals are still normalised
-                                        arb.pre_validate();
-                                    }
 
                                     DEBUG(arb.makeimmutable();)
                                     arb.active = pact;
