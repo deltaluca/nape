@@ -31,87 +31,39 @@ class DummyNapeMain {
         var t = new flash.text.TextField();
         flash.Lib.current.addChild(t);
 
-//        for (i in 28...29)
-        for (i in 0...1)
-        {
-            var b1 = new Body();
-            var w = 5 + i * 1.5;
-            var h = 1;
-            var w = 5;
-            var h = 5;
-            b1.shapes.add(new Polygon(Polygon.box(30, 30)));
-//            b1.shapes.add(new Circle(15));
-            var v = i%6;
-            var u = (i - v) / 6;
-            b1.position.x = 100 + u * 20;
-            b1.position.y = 100 + (v * 30);
-            b1.velocity.y = 600;
-            b1.velocity.x = 60*(10 + i*2);
-            b1.space = s;
-            b1.userData.px = b1.position.x;
-            b1.userData.py = b1.position.y;
-
-            //b1.setShapeFilters(new InteractionFilter(2, 1));
-        }
-
         debug = new BitmapDebug(600,600,0x333333);
         flash.Lib.current.addChild(debug.display);
 
-        var hand = new PivotJoint(s.world, null, new Vec2(), new Vec2());
-        hand.stiff = false;
-        hand.active = false;
-        hand.space = s;
+        var b = new Body(BodyType.KINEMATIC);
+        b.shapes.add(new Circle(10, new Vec2(100, 100)));
+        b.shapes.add(new Circle(10, new Vec2(200, 100)));
+        b.shapes.add(new Circle(10, new Vec2(300, 100)));
+        b.shapes.add(new Circle(10, new Vec2(400, 100)));
+        b.space = s;
 
-        flash.Lib.current.stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function (_) {
-            var x = flash.Lib.current.mouseX;
-            var y = flash.Lib.current.mouseY;
-            var v = Vec2.get(x, y);
-            var bodies = s.bodiesUnderPoint(v);
-            for (b in bodies)
-            {
-                hand.body2 = b;
-                hand.anchor2 = b.worldToLocal(v);
-                hand.active = true;
-                return;
-            }
-        });
-        flash.Lib.current.stage.addEventListener(flash.events.MouseEvent.MOUSE_UP, function (_) {
-            hand.active = false;
+        var SENSOR = new CbType();
+        var BOOM = new CbType();
+        b.shapes.foreach(function (s:Shape) {
+            s.cbTypes.add(SENSOR);
+            s.filter.collisionMask = 0;
         });
 
-        var c:Shape;
-        var b2 = new Body(BodyType.KINEMATIC);
-        b2.shapes.add(new Polygon(Polygon.rect(50, 50, 500, 1)));
-        b2.shapes.add(new Polygon(Polygon.rect(50, 50, 1, 500)));
-        b2.shapes.add(new Polygon(Polygon.rect(50, 550, 500, 1)));
-        b2.shapes.add(new Polygon(Polygon.rect(550, 50, 1, 500)));
-        b2.space = s;
+        var b = new Body(BodyType.KINEMATIC);
+        b.shapes.add(new Circle(1));
+        b.position.x = 0;
+        b.position.y = 100;
+        b.velocity.x = 12000;
+        b.cbTypes.add(BOOM);
+        b.space = s;
 
-        var cb:CbType;
-        b2.cbTypes.add(cb = new CbType());
-        b2.shapes.add(new Polygon(Polygon.rect(150, 275, 300, 1)));
-
-//        s.visitBodies(function (b) b.shapes.foreach(function (s) s.material.elasticity = 0.7));
-
-        s.listeners.add(new PreListener(InteractionType.COLLISION, cb, CbType.ANY_BODY.excluding(cb), function (cb) {
-            cb.arbiter.collisionArbiter.contacts.clear();
-            return null;
+        s.listeners.add(new InteractionListener(CbEvent.BEGIN, InteractionType.SENSOR, SENSOR, BOOM, function (cb:InteractionCallback) {
+            cb.int1.castShape.body = null;
         }));
 
-        debug.drawCollisionArbiters = true;
         var f = function() {
             debug.clear();
-            var x = flash.Lib.current.mouseX;
-            var y = flash.Lib.current.mouseY;
-            hand.anchor1.setxy(x, y);
-            //b2.velocity.y = 800 * Math.cos(s.elapsedTime*20);
             s.step(1/60, 10, 10);
             debug.draw(s);
-            s.liveBodies.foreach(function (b) {
-                debug.drawLine(Vec2.weak(b.userData.px, b.userData.py), b.position, 0xffffff);
-                b.userData.px = b.position.x;
-                b.userData.py = b.position.y;
-            });
             debug.flush();
         };
         (new haxe.Timer(500)).run = f;

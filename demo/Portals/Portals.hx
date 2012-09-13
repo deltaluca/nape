@@ -86,7 +86,7 @@ class Portals extends FixedStep {
 		p2.body.angularVel = 1;
 
 		//funky portal body now :)
-		for(i in 0...2) {
+		for(i in 0...0) {
 		var b = new Body(BodyType.DYNAMIC,new Vec2(300,225));
 		b.shapes.add(new Polygon(Polygon.box(84,100)));
 		b.shapes.add(new Polygon(Polygon.rect(-42,-42,-8,-8)));
