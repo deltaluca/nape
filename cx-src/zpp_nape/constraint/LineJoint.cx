@@ -42,6 +42,7 @@ class PR(LineJoint) extends PR(Constraint) {
     public var scale:Float;
     public var jointMin:Float;
     public var jointMax:Float;
+    public var equal:Bool;
 
     public var dot1:Float;
     public var dot2:Float;
@@ -56,7 +57,11 @@ class PR(LineJoint) extends PR(Constraint) {
 
         C`x = vec_cross(n,d);
         C`y = vec_dot(n,d);
-        if(C`y > jointMax) {
+        if (equal) {
+            C`y -= jointMin;
+            scale = 1.0;
+        }
+        else if(C`y > jointMax) {
             C`y -= jointMax;
             scale = 1.0;
         }else if(C`y < jointMin) {
@@ -206,6 +211,7 @@ class PR(LineJoint) extends PR(Constraint) {
         var dtratio = dt/pre_dt;
         pre_dt = dt;
 
+        equal = (jointMin == jointMax);
         stepped = true;
 
         validate_norm();

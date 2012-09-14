@@ -231,13 +231,11 @@ class PR(DistanceJoint) extends PR(Constraint) {
         var E = Verr;
         var j = kMass*(bias - E) - jAcc*gamma;
         accum(jAcc,j, {
-            if(breakUnderForce) {
-                if(jAcc>jMax || jAcc<-jMax) return true;
-                else if(!equal && jAcc>0) jAcc = 0;
-            }else if(!stiff) {
-                if(equal) clamp(jAcc,jMax);
-                else { if(jAcc>0) jAcc = 0; else if (jAcc<-jMax) jAcc = -jMax; }
-            }else if(!equal && jAcc>0) jAcc = 0;
+            if (!equal && jAcc > 0) jAcc = 0;
+            if (breakUnderForce && jAcc < -jMax) return true;
+            if (!stiff) {
+                if (jAcc < -jMax) jAcc = -jMax;
+            }
         });
         Imp(a1rel,a2rel,n,cx1,cx2,j,false);
 

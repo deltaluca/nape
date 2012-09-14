@@ -208,13 +208,11 @@ class PR(AngleJoint) extends PR(Constraint) {
         var E = Verr(scale);
         var j = kMass*(bias - E) - jAcc*gamma;
         accum(jAcc,j, {
-            if(breakUnderForce) {
-                if(jAcc>jMax || jAcc<-jMax) return true;
-                else if(!equal && jAcc>0) jAcc = 0;
-            }else if(!stiff) {
-                if(equal) clamp(jAcc,jMax);
-                else { if(jAcc>0) jAcc = 0; else if (jAcc<-jMax) jAcc = -jMax; }
-            }else if(!equal && jAcc>0) jAcc = 0;
+            if (!equal && jAcc > 0) jAcc = 0;
+            if (breakUnderForce && (jAcc > jMax || jAcc < -jMax)) return true;
+            if (!stiff) {
+                if (jAcc > jMax) jAcc = jMax; else if (jAcc < -jMax) jAcc = -jMax;
+            }
         });
         Imp(scale,j,false);
 
