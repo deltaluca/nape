@@ -834,10 +834,138 @@ class PR(Space) {
     //----------------------------------------------------------------------------------------------
 
     public function rayCast(ray:Ray,inner:Bool,filter:InteractionFilter) {
-           return bphase.rayCast(ray.pr(inner),inner,filter==null ? null : filter.pr(inner));
+        return bphase.rayCast(ray.pr(inner),inner,filter==null ? null : filter.pr(inner));
     }
     public function rayMultiCast(ray:Ray,inner:Bool,filter:InteractionFilter) {
-           return bphase.rayMultiCast(ray.pr(inner),inner,filter==null ? null : filter.pr(inner));
+        return bphase.rayMultiCast(ray.pr(inner),inner,filter==null ? null : filter.pr(inner));
+    }
+
+    public function convexCast(shape:PR(Shape), deltaTime:Float, filter:InteractionFilter, dynamics:Bool) {
+        var toi; Get(PR(ToiEvent), toi);
+
+        var body = shape.body;
+        var prex = body.posx;
+        var prey = body.posy;
+        body.sweepTime = 0;
+        body.sweep_angvel = body.angvel;
+        body.sweepIntegrate(deltaTime);
+        var postx = body.posx;
+        var posty = body.posy;
+
+        shape.validate_sweepRadius();
+        var rad = shape.sweepRadius;
+        var aabb; Get(PR(AABB), aabb);
+        aabb.minx = min(prex, postx) - rad;
+        aabb.maxx = max(prex, postx) + rad;
+        aabb.miny = min(prey, posty) - rad;
+        aabb.maxy = max(prey, posty) + rad;
+        var list = bphase.shapesInAABB(aabb, false, false, filter == null ? null : filter.pr(inner));
+        Free(PR(AABB), aabb);
+
+        vec_new(minAxis); vec_set(minAxis, 0, 0);
+        vec_new(minPos); vec_set(minPos, 0, 0);
+        var mins = null;
+        var mint = deltaTime + 1;
+        for (s in list) {
+            if (s != shape.outer && s.body != body.outer)
+            {
+                toi.s1 = shape;
+                toi.s2 = s.pr(inner);
+                if (dynamics)
+                {
+                    s.pr(inner).validate_sweepRadius();
+                    s.body.pr(inner).sweep_angvel = s.body.pr(inner).angvel;
+                    s.body.pr(inner).sweepTime = 0;
+                    PR(SweepDistance).dynamicSweep(toi, deltaTime, 0, 0, true);
+                    s.body.pr(inner).sweepIntegrate(0);
+                    s.body.pr(inner).sweepValidate(s.pr(inner));
+                }else
+                {
+                    PR(SweepDistance).staticSweep(toi, deltaTime, 0, 0);
+                }
+                toi.toi *= deltaTime;
+                if (toi.toi > 0 && toi.toi < mint) {
+                    mint = toi.toi;
+                    vec_set(minAxis, toi.axis.);
+                    vec_set(minPos, toi.c2.);
+                    mins = s;
+                }
+            }
+        }
+
+        Free(PR(ToiEvent), toi);
+        body.sweepIntegrate(0);
+        body.sweepValidate(shape);
+
+        if (mint <= deltaTime) {
+            DEBUG(PR(Ray).internal = true;)
+            var ret = new ConvexResult(Vec2.get(-minAxisx, -minAxisy),
+                                       Vec2.get(minPosx, minPosy),
+                                       mint, mins);
+            DEBUG(PR(Ray).internal = false;)
+            return ret;
+        }
+        else
+            return null;
+    }
+
+    public function convexMultiCast(shape:PR(Shape), deltaTime:Float, filter:InteractionFilter, dynamics:Bool) {
+        var toi; Get(PR(ToiEvent), toi);
+
+        var body = shape.body;
+        var prex = body.posx;
+        var prey = body.posy;
+        body.sweepTime = 0;
+        body.sweep_angvel = body.angvel;
+        body.sweepIntegrate(deltaTime);
+        var postx = body.posx;
+        var posty = body.posy;
+
+        shape.validate_sweepRadius();
+        var rad = shape.sweepRadius;
+        var aabb; Get(PR(AABB), aabb);
+        aabb.minx = min(prex, postx) - rad;
+        aabb.maxx = max(prex, postx) + rad;
+        aabb.miny = min(prey, posty) - rad;
+        aabb.maxy = max(prey, posty) + rad;
+        var list = bphase.shapesInAABB(aabb, false, false, filter == null ? null : filter.pr(inner));
+        Free(PR(AABB), aabb);
+
+        var ret = new ConvexResultList();
+        for (s in list) {
+            if (s != shape.outer && s.body != body.outer)
+            {
+                toi.s1 = shape;
+                toi.s2 = s.pr(inner);
+                if (dynamics)
+                {
+                    s.pr(inner).validate_sweepRadius();
+                    s.body.pr(inner).sweep_angvel = s.body.pr(inner).angvel;
+                    s.body.pr(inner).sweepTime = 0;
+                    PR(SweepDistance).dynamicSweep(toi, deltaTime, 0, 0, true);
+                    s.body.pr(inner).sweepIntegrate(0);
+                    s.body.pr(inner).sweepValidate(s.pr(inner));
+                }else
+                {
+                    PR(SweepDistance).staticSweep(toi, deltaTime, 0, 0);
+                }
+                toi.toi *= deltaTime;
+                if (toi.toi > 0) {
+                    DEBUG(PR(Ray).internal = true;)
+                    var res = new ConvexResult(Vec2.get(-toi.axis.x, -toi.axis.y),
+                                               Vec2.get(toi.c2.x, toi.c2.y),
+                                               toi.toi, s);
+                    Insert(res, ret.pr(inner).inner, $(mixin lt(x, y) (x.toi < y.toi)) lt);
+                    DEBUG(PR(Ray).internal = false;)
+                }
+            }
+        }
+
+        Free(PR(ToiEvent), toi);
+        body.sweepIntegrate(0);
+        body.sweepValidate(shape);
+
+        return ret;
     }
 
     //----------------------------------------------------------------------------------------------

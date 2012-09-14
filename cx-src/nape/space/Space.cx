@@ -604,6 +604,63 @@ class Space {
     }
 
     !!/**
+    !! * Perform a convex cast for soonest collision.
+    !! * <br/><br/>
+    !! * This method will return only the soonest collision result (if any), to find
+    !! * more than this, use the convexMultiCast method. The shape will not be
+    !! * swept further than the time delta provided.
+    !! * Shapes already intersecting
+    !! * the sweep shape at t = 0 are ignored.
+    !! * <br/><br/>
+    !! * If the filter argument is null, then all shapes will be collidable
+    !! * otherwise only those for whose filter agrees to 'collide'.
+    !! *
+    !! * @param shape The Shape to be cast through space. This shape must belong
+    !! *              to a body whose velocity is used to define the sweep.
+    !! * @param deltaTime The amount of time to sweep the shape forward.
+    !! * @param liveSweep If true, then moving objects in the space will have their motion considered during the sweep. Otherwise; like with normal rayCast, objects in the space are considered un-moving for the cast. (default false)
+    !! * @param filter The optional filter to filter out shapes. (default null)
+    !! * @return The soonest result (if any) of convex intersection.
+    !! * @throws # If shape is null, or not part of a body.
+    !! * @throws # If deltaTime is negative.
+    !! */
+    keep public function convexCast(shape:Shape, deltaTime:Float, liveSweep:Bool = false, filter:InteractionFilter=null):Null<ConvexResult> {
+        DEBUG(if (shape == null) throw "Error: Cannot cast null shape :)";)
+        DEBUG(if (shape.body == null) throw "Error: Shape must belong to a body to be cast.";)
+        DEBUG(if (deltaTime < 0 || isNaN(deltaTime)) throw "Error: deltaTime must be positive";)
+
+        return pr(inner).convexCast(shape.pr(inner), deltaTime, filter, liveSweep);
+    }
+
+    !!/**
+    !! * Perform a convex cast for all collisions in time order.
+    !! * <br/><br/>
+    !! * This method will return all collisions, or an empty list if there are none.
+    !! * The shape will not be
+    !! * swept further than the time delta provided. Shapes already intersecting
+    !! * the sweep shape at t = 0 are ignored.
+    !! * <br/><br/>
+    !! * If the filter argument is null, then all shapes will be collidable
+    !! * otherwise only those for whose filter agrees to 'collide'.
+    !! *
+    !! * @param shape The Shape to be cast through space. This shape must belong
+    !! *              to a body whose velocity is used to define the sweep.
+    !! * @param deltaTime The amount of time to sweep the shape forward.
+    !! * @param liveSweep If true, then moving objects in the space will have their motion considered during the sweep. Otherwise; like with normal rayCast, objects in the space are considered un-moving for the cast. (default false)
+    !! * @param filter The optional filter to filter out shapes. (default null)
+    !! * @return The collision results in time order.
+    !! * @throws # If shape is null, or not part of a body.
+    !! * @throws # If deltaTime is negative.
+    !! */
+    keep public function convexMultiCast(shape:Shape, deltaTime:Float, liveSweep:Bool = false, filter:InteractionFilter=null):ConvexResultList {
+        DEBUG(if (shape == null) throw "Error: Cannot cast null shape :)";)
+        DEBUG(if (shape.body == null) throw "Error: Shape must belong to a body to be cast.";)
+        DEBUG(if (deltaTime < 0 || isNaN(deltaTime)) throw "Error: deltaTime must be positive";)
+
+        return pr(inner).convexMultiCast(shape.pr(inner), deltaTime, filter, liveSweep);
+    }
+
+    !!/**
     !! * Perform a ray cast for closest result.
     !! * <br/><br/>
     !! * This method will return only the closest result (if any), to find more

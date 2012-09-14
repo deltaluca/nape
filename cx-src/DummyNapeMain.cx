@@ -26,6 +26,7 @@ class DummyNapeMain {
     }
 
     static function main() {
+        var stage = flash.Lib.current.stage;
         var s = new Space(new Vec2(0, 400), Broadphase.SWEEP_AND_PRUNE);
 
         var t = new flash.text.TextField();
@@ -39,34 +40,39 @@ class DummyNapeMain {
         b.shapes.add(new Circle(10, new Vec2(200, 100)));
         b.shapes.add(new Circle(10, new Vec2(300, 100)));
         b.shapes.add(new Circle(10, new Vec2(400, 100)));
+        b.velocity.y = 100;
         b.space = s;
-
-        var SENSOR = new CbType();
-        var BOOM = new CbType();
-        b.shapes.foreach(function (s:Shape) {
-            s.cbTypes.add(SENSOR);
-            s.filter.collisionMask = 0;
-        });
 
         var b = new Body(BodyType.KINEMATIC);
-        b.shapes.add(new Circle(1));
+        b.shapes.add(new Circle(10, new Vec2(0, 0)));
         b.position.x = 0;
         b.position.y = 100;
-        b.velocity.x = 12000;
-        b.cbTypes.add(BOOM);
-        b.space = s;
-
-        s.listeners.add(new InteractionListener(CbEvent.BEGIN, InteractionType.SENSOR, SENSOR, BOOM, function (cb:InteractionCallback) {
-            cb.int1.castShape.body = null;
-        }));
+        b.velocity.x = 100;
+        b.velocity.y = 100;
 
         var f = function() {
             debug.clear();
-            s.step(1/60, 10, 10);
+            b.position.setxy(stage.mouseX, stage.mouseY);
+//            s.step(1/60, 10, 10);
             debug.draw(s);
+
+            var res = s.convexMultiCast(b.shapes.at(0), 5, true);
+            for (result in res)
+            {
+                var b2 = result.shape.body;
+                b.integrate(result.toi);
+                b2.integrate(result.toi);
+                debug.draw(b);
+                debug.draw(b2);
+                debug.drawCircle(result.position, 2, 0xff0000);
+                debug.drawLine(result.position, result.position.add(result.normal.mul(10)), 0xff0000);
+                b.integrate(-result.toi);
+                b2.integrate(-result.toi);
+            }
+
             debug.flush();
         };
-        (new haxe.Timer(500)).run = f;
+        (new haxe.Timer(0)).run = f;
         f();
     }
 }

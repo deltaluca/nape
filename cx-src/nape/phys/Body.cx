@@ -57,6 +57,25 @@ class Body extends Interactor {
     })
 
     !!/**
+    !! * Integrate body by its velocities by given time step.
+    !! *
+    !! * @param deltaTime The time to integrate body by. This value may be negative.
+    !! */
+    keep public function integrate(deltaTime:Float) {
+        DEBUG(if (isNaN(deltaTime)) throw "Cannot integrate by NaN time";)
+        pr(inner).immutable_midstep("Body::space");
+        DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
+
+        var cur = this.pr(inner);
+        cur.sweepTime = 0;
+        cur.sweep_angvel = cur.angvel;
+        cur.sweepIntegrate(deltaTime);
+        cur.invalidate_pos();
+        cur.invalidate_rot();
+        cur.sweepTime = 0;
+    }
+
+    !!/**
     !! * Fast equivalent to <code>body.type == BodyType.STATIC</code>
     !! * @return True if body is Static.
     !! */

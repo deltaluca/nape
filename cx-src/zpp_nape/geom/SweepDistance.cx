@@ -44,7 +44,7 @@ class PR(ToiEvent) {
 
 class PR(SweepDistance) {
 
-    static public function dynamicSweep(toi:PR(ToiEvent), timeStep:Float, lowerBound:Float, negRadius:Float) {
+    static public function dynamicSweep(toi:PR(ToiEvent), timeStep:Float, lowerBound:Float, negRadius:Float, userAPI:Bool=false) {
         var s1:PR(Shape) = toi.s1;
         var s2:PR(Shape) = toi.s2;
 
@@ -57,7 +57,7 @@ class PR(SweepDistance) {
         var ang2 = b2.angvel; if (ang2 < 0) ang2 = -ang2;
         var angBias = (s1.sweepCoef * ang1) + (s2.sweepCoef * ang2);
 
-        if (!toi.kinematic &&
+        if (!userAPI && !toi.kinematic &&
             vec_lsq(delta) < PR(Config).EQUAL_SQ_VEL &&
             angBias < PR(Config).ZERO_ANG_BIAS)
         {
@@ -84,6 +84,10 @@ class PR(SweepDistance) {
 
             // objects intersecting!
             if (sep < PR(Config).SWEEP_LIMIT) {
+                if (userAPI)
+                {
+                    break;
+                }
                 // check objects not seperating at collision point.
                 vec_new(d1); vec_sub(c1., b1.pos, d1);
                 vec_new(d2); vec_sub(c2., b2.pos, d2);
