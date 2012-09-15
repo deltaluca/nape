@@ -54,7 +54,8 @@ class FluidArbiter extends Arbiter {
         DEBUG(if(body!=null && body!=body1 && body!=body2) throw "Error: Arbiter does not relate to body";)
 
         var farb = pr(inner).fluidarb;
-        return Vec3.get(farb.buoyx,farb.buoyy);
+        var scale = (body == null || body.pr(inner) == pr(inner).b2 ? 1 : -1);
+        return Vec3.get(farb.buoyx * scale, farb.buoyy * scale);
     }
 
     !!/**
@@ -72,7 +73,8 @@ class FluidArbiter extends Arbiter {
         DEBUG(if(body!=null && body!=body1 && body!=body2) throw "Error: Arbiter does not relate to body";)
 
         var farb = pr(inner).fluidarb;
-        return Vec3.get(farb.dampx+farb.pdampx,farb.dampy+farb.pdampy,farb.adamp+farb.padamp);
+        var scale = (body == null || body.pr(inner) == pr(inner).b2 ? 1 : -1);
+        return Vec3.get(farb.dampx * scale,farb.dampy * scale,farb.adamp * scale);
     }
 
     !!/**
@@ -91,7 +93,8 @@ class FluidArbiter extends Arbiter {
         DEBUG(if(body!=null && body!=body1 && body!=body2) throw "Error: Arbiter does not relate to body";)
 
         var farb = pr(inner).fluidarb;
-        return Vec3.get(farb.dampx+farb.pdampx+farb.buoyx,farb.dampy+farb.pdampy+farb.buoyy,farb.adamp+farb.padamp);
+        var scale = (body == null || body.pr(inner) == pr(inner).b2 ? 1 : -1);
+        return Vec3.get((farb.dampx+farb.buoyx) * scale, (farb.dampy+farb.buoyy) * scale , farb.adamp * scale);
     }
 
     !!/**
