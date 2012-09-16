@@ -753,7 +753,7 @@ class Body extends Interactor {
     !! * @return The result of the transformation.
     !! * @throws # If point is null or disposed of.
     !! */
-    keep public function localToWorld(point:Vec2,weak:Bool=false) {
+    keep public function localPointToWorld(point:Vec2,weak:Bool=false) {
         return relativeToWorld(localToRelative(point,true),weak);
     }
     !!/**
@@ -766,264 +766,65 @@ class Body extends Interactor {
     !! * @return The result of the transformation.
     !! * @throws # If point is null or disposed of.
     !! */
-    keep public function worldToLocal(point:Vec2,weak:Bool=false) {
+    keep public function worldPointToLocal(point:Vec2,weak:Bool=false) {
         return relativeToLocal(worldToRelative(point,true),weak);
     }
 
     !!/**
-    !! * Transform point from relative coordinates to normal world coordinates.
+    !! * Transform vector from Body's local coordinates into world coordinates.
     !! * <br/><br/>
-    !! * Relative meaning world coordinates, relative to the position of the Body.
     !! *
-    !! * @param point The point to transform.
+    !! * @param vector The vector to transform.
     !! * @param weak If true the returned Vec2 will be automatically released
     !! *             back to object pool when used as an argument to a Nape function.
     !! *             (default false)
     !! * @return The result of the transformation.
-    !! * @throws # If point is null or disposed of.
+    !! * @throws # If vector is null or disposed of.
     !! */
-    keep public function relativeToWorld(point:Vec2,weak:Bool=false) {
-        Disposed(point,Vec2);
-        DEBUG(if(point==null) throw "Error: Cannot transform null Vec2";)
-        var ret = Vec2.get(point.x+pr(inner).posx,point.y+pr(inner).posy,weak);
-        WEAK(point);
-        return ret;
-    }
-    !!/**
-    !! * Transform point from normal world coordinates to relative coordinates
-    !! * <br/><br/>
-    !! * Relative meaning world coordinates, relative to the position of the Body.
-    !! *
-    !! * @param point The point to transform.
-    !! * @param weak If true the returned Vec2 will be automatically released
-    !! *             back to object pool when used as an argument to a Nape function.
-    !! *             (default false)
-    !! * @return The result of the transformation.
-    !! * @throws # If point is null or disposed of.
-    !! */
-    keep public function worldToRelative(point:Vec2,weak:Bool=false) {
-        Disposed(point,Vec2);
-        DEBUG(if(point==null) throw "Error: Cannot transform null Vec2";)
-        var ret = Vec2.get(point.x-pr(inner).posx,point.y-pr(inner).posy,weak);
-        WEAK(point);
-        return ret;
-    }
-
-    !!/**
-    !! * Transform point from Body's local coordinates into relative coordinates.
-    !! * <br/><br/>
-    !! * Relative meaning world coordinates, relative to the position of the Body.
-    !! *
-    !! * @param point The point to transform.
-    !! * @param weak If true the returned Vec2 will be automatically released
-    !! *             back to object pool when used as an argument to a Nape function.
-    !! *             (default false)
-    !! * @return The result of the transformation.
-    !! * @throws # If point is null or disposed of.
-    !! */
-    keep public function localToRelative(point:Vec2,weak:Bool=false) {
-        Disposed(point,Vec2);
-        DEBUG(if(point==null) throw "Error: Cannot transform null Vec2";)
+    keep public function localVectorToWorld(vector:Vec2,weak:Bool=false) {
+        Disposed(vector,Vec2);
+        DEBUG(if(vector==null) throw "Error: Cannot transform null Vec2";)
         pr(inner).validate_axis();
         vec_new(temp);
-        vec_rotate(point.,pr(inner).axis,temp);
-        WEAK(point);
+        vec_rotate(vector.,pr(inner).axis,temp);
+        WEAK(vector);
         return Vec2.get(tempx,tempy,weak);
     }
 
     !!/**
-    !! * Transform point from relative coordinates to Body's local coordinates
+    !! * Transform vector from world coordinates to Body's local coordinates
     !! * <br/><br/>
-    !! * Relative meaning world coordinates, relative to the position of the Body.
     !! *
-    !! * @param point The point to transform.
+    !! * @param vector The vector to transform.
     !! * @param weak If true the returned Vec2 will be automatically released
     !! *             back to object pool when used as an argument to a Nape function.
     !! *             (default false)
     !! * @return The result of the transformation.
-    !! * @throws # If point is null or disposed of.
+    !! * @throws # If vector is null or disposed of.
     !! */
-    keep public function relativeToLocal(point:Vec2,weak:Bool=false) {
-        Disposed(point,Vec2);
-        DEBUG(if(point==null) throw "Error: Cannot transform null Vec2";)
+    keep public function worldVectorToLocal(vector:Vec2,weak:Bool=false) {
+        Disposed(vector,Vec2);
+        DEBUG(if(vector==null) throw "Error: Cannot transform null Vec2";)
         pr(inner).validate_axis();
         vec_new(temp);
-        vec_revrot(point.,pr(inner).axis,temp);
-        WEAK(point);
+        vec_revrot(vector.,pr(inner).axis,temp);
+        WEAK(vector);
         return Vec2.get(tempx,tempy,weak);
     }
 
     !!/**
-    !! * Apply force to a point on Body defined in local coordinates.
-    !! * <br/><br/>
-    !! * This is equivalent to: <code>body.applyWorldForce(force, body.localToWorld(pos))</code>
-    !! * <br/><br/>
-    !! * If position argument is not given, then (0,0) is assumed so that force
-    !! * is applied at centre of Body.
-    !! *
-    !! * @param force The force to apply given in world coordinates.
-    !! * @param pos The position to apply force given in local coordinates.
-    !! *            (default &#40;0,0&#41;)
-    !! * @throws # If force is null or disposed of.
-    !! * @throws # If pos is non-null and disposed of.
-    !! */
-    keep public function applyLocalForce(force:Vec2,pos:Vec2=null) {
-        Disposed(force,Vec2);
-        Disposed(pos,Vec2);
-        DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
-        DEBUG(if(force == null) throw "Error: Cannot apply null force to Body";)
-
-        vec_addeq(pr(inner).force,force.);
-        if(pos!=null) {
-            pr(inner).validate_axis();
-            vec_new(r);
-            vec_rotate(pos.,pr(inner).axis,r);
-            pr(inner).torque += vec_cross(r,force.);
-            WEAK(pos);
-        }
-        if(isDynamic()) pr(inner).invalidate_wake();
-        WEAK(force);
-    }
-
-    !!/**
-    !! * Apply force to a point on Body defined in relative coordinates.
-    !! * <br/><br/>
-    !! * This is equivalent to: <code>body.applyWorldForce(force, body.relativeToWorld(pos))</code>
-    !! * <br/><br/>
-    !! * If position argument is not given, then (0,0) is assumed so that force
-    !! * is applied at centre of Body.
-    !! *
-    !! * @param force The force to apply given in world coordinates.
-    !! * @param pos The position to apply force given in relative coordinates.
-    !! *            (default &#40;0,0&#41;)
-    !! * @throws # If force is null or disposed of.
-    !! * @throws # If pos is non-null and disposed of.
-    !! */
-    keep public function applyRelativeForce(force:Vec2,pos:Vec2=null) {
-        Disposed(force,Vec2);
-        Disposed(pos,Vec2);
-
-        DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
-        DEBUG(if(force == null) throw "Error: Cannot apply null force to Body";)
-
-        vec_addeq(pr(inner).force,force.);
-        if(pos!=null) {
-            pr(inner).torque += vec_cross(pos.,force.);
-            WEAK(pos);
-        }
-        if(isDynamic()) pr(inner).invalidate_wake();
-        WEAK(force);
-    }
-
-    !!/**
-    !! * Apply force to a point on Body defined in world coordinates.
-    !! * <br/><br/>
-    !! * If position argument is not given, then body.position is assumed so that force
-    !! * is applied at centre of Body.
-    !! *
-    !! * @param force The force to apply given in world coordinates.
-    !! * @param pos The position to apply force given in local coordinates.
-    !! *            (default body.position)
-    !! * @throws # If force is null or disposed of.
-    !! * @throws # If pos is non-null and disposed of.
-    !! */
-    keep public function applyWorldForce(force:Vec2,pos:Vec2=null) {
-        Disposed(force,Vec2);
-        Disposed(pos,Vec2);
-
-        DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
-        DEBUG(if(force == null) throw "Error: Cannot apply null force to Body";)
-
-        vec_addeq(pr(inner).force,force.);
-        if(pos!=null) {
-            vec_new(r); vec_sub(pos.,pr(inner).pos,r);
-            pr(inner).torque += vec_cross(r,force.);
-            WEAK(pos);
-        }
-        if(isDynamic()) pr(inner).invalidate_wake();
-        WEAK(force);
-    }
-
-    !!/**
-    !! * Apply impulse to a point on Body defined in local coordinates.
-    !! * <br/><br/>
-    !! * This is equivalent to: <code>body.applyWorldImpulse(impulse, body.localToWorld(pos))</code>
-    !! * <br/><br/>
-    !! * If position argument is not given, then (0,0) is assumed so that impulse
-    !! * is applied at centre of Body.
-    !! *
-    !! * @param impulse The impulse to apply given in world coordinates.
-    !! * @param pos The position to apply impulse given in local coordinates.
-    !! *            (default &#40;0,0&#41;)
-    !! * @throws # If impulse is null or disposed of.
-    !! * @throws # If pos is non-null and disposed of.
-    !! */
-    keep public function applyLocalImpulse(impulse:Vec2,pos:Vec2=null) {
-        Disposed(impulse,Vec2);
-        Disposed(pos,Vec2);
-
-        DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
-        DEBUG(if(impulse == null) throw "Error: Cannot apply null impulse to Body";)
-
-        pr(inner).validate_mass();
-        vec_addeq(pr(inner).vel,impulse.,pr(inner).imass);
-        if(pos!=null) {
-            pr(inner).validate_axis();
-            vec_new(r);
-            vec_rotate(pos.,pr(inner).axis,r);
-            pr(inner).validate_inertia();
-            pr(inner).angvel += vec_cross(r,impulse.)*pr(inner).iinertia;
-            WEAK(pos);
-        }
-        if(isDynamic()) pr(inner).invalidate_wake();
-        WEAK(impulse);
-    }
-
-    !!/**
-    !! * Apply impulse to a point on Body defined in relative coordinates.
-    !! * <br/><br/>
-    !! * This is equivalent to: <code>body.applyWorldImpulse(impulse, body.relativeToWorld(pos))</code>
-    !! * <br/><br/>
-    !! * If position argument is not given, then (0,0) is assumed so that impulse
-    !! * is applied at centre of Body.
-    !! *
-    !! * @param impulse The impulse to apply given in world coordinates.
-    !! * @param pos The position to apply impulse given in relative coordinates.
-    !! *            (default &#40;0,0&#41;)
-    !! * @throws # If impulse is null or disposed of.
-    !! * @throws # If pos is non-null and disposed of.
-    !! */
-    keep public function applyRelativeImpulse(impulse:Vec2,pos:Vec2=null) {
-        Disposed(impulse,Vec2);
-        Disposed(pos,Vec2);
-
-        DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
-        DEBUG(if(impulse == null) throw "Error: Cannot apply null impulse to Body";)
-
-        pr(inner).validate_mass();
-        vec_addeq(pr(inner).vel,impulse.,pr(inner).imass);
-        if(pos!=null) {
-            pr(inner).validate_inertia();
-            pr(inner).angvel += vec_cross(pos.,impulse.)*pr(inner).iinertia;
-            WEAK(pos);
-        }
-        if(isDynamic()) pr(inner).invalidate_wake();
-        WEAK(impulse);
-    }
-
-    !!/**
-    !! * Apply impulse to a point on Body defined in world coordinates.
+    !! * Apply impulse to a point on Body.
     !! * <br/><br/>
     !! * If position argument is not given, then body.position is assumed so that impulse
     !! * is applied at centre of Body.
     !! *
     !! * @param impulse The impulse to apply given in world coordinates.
-    !! * @param pos The position to apply impulse given in relative coordinates.
+    !! * @param pos The position to apply impulse given in world coordinates.
     !! *            (default body.position)
     !! * @throws # If impulse is null or disposed of.
     !! * @throws # If pos is non-null and disposed of.
     !! */
-    keep public function applyWorldImpulse(impulse:Vec2,pos:Vec2=null) {
+    keep public function applyImpulse(impulse:Vec2,pos:Vec2=null) {
         Disposed(impulse,Vec2);
         Disposed(pos,Vec2);
 
