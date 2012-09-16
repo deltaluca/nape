@@ -638,7 +638,10 @@ class PR(Body) extends PR(Interactor) {
                 vec_addeq(temp,s.localCOM,s.area*s.material.density);
                 msum += s.area*s.material.density;
             });
-            vec_div(temp,msum,localCOM);
+            if (msum != 0) {
+                vec_div(temp,msum,localCOM);
+            }
+
             if(wrap_localCOM!=null) vec_set(wrap_localCOM.pr(inner).,localCOM);
 
             if(inv(mass) && massMode==Flag(MassMode,DEFAULT)) {

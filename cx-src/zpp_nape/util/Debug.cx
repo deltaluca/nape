@@ -602,16 +602,26 @@ $(mixin pr_debug(utils)
         Iter(s,body.shapes, draw_shape(s,xform,xdet,xnull));
         if(outer.drawBodyDetail) {
             var col = __colour(body.id, body.space!=null && body.outer.isSleeping);
-            body.validate_worldCOM();
             __lineStyle(__tint(col,0xff0000,0.8),1);
 
             vec_new(p);
-            mat_xform_hom(xnull,xform,body.worldCOM,p);
+            vec_new(q);
+            if (!body.shapes.empty())
+            {
+                body.validate_worldCOM();
+                mat_xform_hom(xnull,xform,body.worldCOM,p);
 
-            __drawCircle(px,py,1);
+                __drawCircle(px,py,1);
 
-            body.validate_aabb();
-            __AABB(xnull,xform,body.aabb);
+                body.validate_aabb();
+                __AABB(xnull,xform,body.aabb);
+            }
+
+            mat_xform_hom(xnull,xform,body.pre_pos,q);
+            mat_xform_hom(xnull,xform,body.pos,p);
+            __moveTo(qx, qy);
+            __lineTo(px, py);
+            __drawCircle(px, py, 1);
         }
     }
     public function draw_shape(shape:PR(Shape),xform:PR(Mat23),xdet:Float,xnull:Bool) {

@@ -27,7 +27,7 @@ class DummyNapeMain {
 
     static function main() {
         var stage = flash.Lib.current.stage;
-        var s = new Space(new Vec2(0, 400), Broadphase.SWEEP_AND_PRUNE);
+        var s = new Space(new Vec2(0, 0), Broadphase.SWEEP_AND_PRUNE);
 
         var t = new flash.text.TextField();
         flash.Lib.current.addChild(t);
@@ -35,40 +35,38 @@ class DummyNapeMain {
         debug = new BitmapDebug(600,600,0xffffff);
         flash.Lib.current.addChild(debug.display);
 
-        var b = new Body(BodyType.KINEMATIC);
-        b.shapes.add(new Circle(10, new Vec2(100, 100)));
-        b.shapes.add(new Circle(10, new Vec2(200, 100)));
-        b.shapes.add(new Circle(10, new Vec2(300, 100)));
-        b.shapes.add(new Circle(10, new Vec2(400, 100)));
-        b.velocity.y = 100;
+        var b = new Body(BodyType.DYNAMIC);
+        b.position.setxy(100, 100);
+        b.mass = 1;
+        b.inertia = 1;
+        b.velocity.y = 10;
         b.space = s;
 
         var b = new Body(BodyType.KINEMATIC);
-        b.shapes.add(new Circle(10, new Vec2(0, 0)));
-        b.position.x = 0;
-        b.position.y = 100;
-        b.velocity.x = 100;
-        b.velocity.y = 100;
+        b.position.setxy(100, 100);
+        b.velocity.y = 10;
+        b.space = s;
+
+        var b2 = new Body(BodyType.DYNAMIC);
+        b2.shapes.add(new Circle(10, new Vec2(0, 0)));
+        b2.shapes.add(new Circle(40, new Vec2(0, 0), new Material(1, 1, 1, 0, 1)));
+        b2.position.x = 0;
+        b2.position.y = 100;
+        b2.velocity.y = 40;
+        b2.space = s;
+
+        var p = new PivotJoint(b2, b, new Vec2(50, 0), new Vec2(-50, 0));
+        p.stiff = false;
+        p.space = s;
+
+        debug.drawConstraints = true;
+        debug.drawBodyDetail = true;
 
         var f = function() {
             debug.clear();
-            b.position.setxy(stage.mouseX, stage.mouseY);
-//            s.step(1/60, 10, 10);
+            b.velocity = Vec2.get(stage.mouseX, stage.mouseY).sub(b.position).muleq(60);
+            s.step(1/60, 10, 10);
             debug.draw(s);
-
-            var res = s.convexMultiCast(b.shapes.at(0), 5, true);
-            for (result in res)
-            {
-                var b2 = result.shape.body;
-                b.integrate(result.toi);
-                b2.integrate(result.toi);
-                debug.draw(b);
-                debug.draw(b2);
-                debug.drawCircle(result.position, 2, 0xff0000);
-                debug.drawLine(result.position, result.position.add(result.normal.mul(10)), 0xff0000);
-                b.integrate(-result.toi);
-                b2.integrate(-result.toi);
-            }
 
             debug.flush();
         };

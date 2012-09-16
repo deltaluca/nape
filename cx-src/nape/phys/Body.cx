@@ -60,6 +60,7 @@ class Body extends Interactor {
     !! * Integrate body by its velocities by given time step.
     !! *
     !! * @param deltaTime The time to integrate body by. This value may be negative.
+    !! * @return A refernce to 'this' Body
     !! */
     keep public function integrate(deltaTime:Float) {
         DEBUG(if (isNaN(deltaTime)) throw "Cannot integrate by NaN time";)
@@ -73,6 +74,7 @@ class Body extends Interactor {
         cur.invalidate_pos();
         cur.invalidate_rot();
         cur.sweepTime = 0;
+        return this;
     }
 
     !!/**
@@ -274,6 +276,37 @@ class Body extends Interactor {
     !! * @default (0,0)
     !! */
     vecprop(velocity, wrap_vel, setupVelocity)
+
+    !!/**
+    !! * Set velocities to achieve desired position at end of time step.
+    !! * <br/><br/>
+    !! * This function is a utility to help with animating kinematic bodies.
+    !! * Kinematic bodies should be moved through velocity, but it is often
+    !! * easier to think in terms of position.
+    !! * <br/><br/>
+    !! * This method will set linear and angular velocities so that the target
+    !! * position/rotation is achieved at end of time step.
+    !! *
+    !! * @param targetPosition The target position for Body.
+    !! * @param targetRotation The target rotation for Body.
+    !! * @param deltaTime The time step for next call to space.step().
+    !! * @throws # If targetPosition is null or disposed of.
+    !! * @returns A reference to 'this' Body.
+    !! */
+    @:keep public function setVelocityFromTarget(targetPosition:Vec2, targetRotation:Float, deltaTime:Float)
+    {
+        Disposed(targetPosition, Vec2);
+        DEBUG(if (targetPosition == null)
+                  throw "Cannot set velocity for null target position";
+              if (deltaTime == 0)
+                  throw "deltaTime cannot be 0 for setVelocityFromTarget";
+        )
+        var idt = (1 / deltaTime);
+        this.velocity.set(targetPosition.sub(this.position, true).muleq(idt));
+        this.angularVel = (targetRotation - this.rotation) * idt;
+        WEAK(targetPosition);
+        return this;
+    }
 
     !!/**
     !! * Additional kinematic velocity of Body in px/s.
@@ -754,7 +787,13 @@ class Body extends Interactor {
     !! * @throws # If point is null or disposed of.
     !! */
     keep public function localPointToWorld(point:Vec2,weak:Bool=false) {
-        return relativeToWorld(localToRelative(point,true),weak);
+        Disposed(point,Vec2);
+        DEBUG(if(point==null) throw "Error: Cannot transform null Vec2";)
+        pr(inner).validate_axis();
+        vec_new(temp);
+        vec_rotate(point.,pr(inner).axis,temp);
+        WEAK(point);
+        return Vec2.get(tempx + pr(inner).posx,tempy + pr(inner).posy,weak);
     }
     !!/**
     !! * Transform a point from world coordinates to Body's local coordinates.
@@ -767,7 +806,14 @@ class Body extends Interactor {
     !! * @throws # If point is null or disposed of.
     !! */
     keep public function worldPointToLocal(point:Vec2,weak:Bool=false) {
-        return relativeToLocal(worldToRelative(point,true),weak);
+        Disposed(point,Vec2);
+        DEBUG(if(point==null) throw "Error: Cannot transform null Vec2";)
+        pr(inner).validate_axis();
+        vec_new(temp);
+        vec_new(point); vec_sub(point., pr(inner).pos, point);
+        vec_revrot(point,pr(inner).axis,temp);
+        WEAK(point);
+        return Vec2.get(tempx,tempy,weak);
     }
 
     !!/**
@@ -823,6 +869,7 @@ class Body extends Interactor {
     !! *            (default body.position)
     !! * @throws # If impulse is null or disposed of.
     !! * @throws # If pos is non-null and disposed of.
+    !! * @returns A reference to 'this' Body.
     !! */
     keep public function applyImpulse(impulse:Vec2,pos:Vec2=null) {
         Disposed(impulse,Vec2);
@@ -841,6 +888,7 @@ class Body extends Interactor {
         }
         if(isDynamic()) pr(inner).invalidate_wake();
         WEAK(impulse);
+        return this;
     }
 
     !!/**
@@ -954,7 +1002,7 @@ class Body extends Interactor {
         pr(inner).validate_localCOM();
         var dx = Vec2.get(-pr(inner).localCOMx,-pr(inner).localCOMy);
         translateShapes(dx);
-        var dx2 = localToRelative(dx);
+        var dx2 = localVectorToWorld(dx);
         position.subeq(dx2);
 
         if(pr(inner).pre_posx < PR(Const).POSINF())

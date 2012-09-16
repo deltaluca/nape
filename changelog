@@ -110,7 +110,7 @@ Body:
     Vec2 as Vec3 cannot presently be defined weak.
 
     Changed behaviour of force/torque so that they are persistant values (not reset
-    to 0 after step()).
+    to 0 after step()). Removed apply#Force methods.
 
     Change transform method names (and reduced number of such methods). Methods are now
     localPointToWorld, localVectorToWorld, worldPointToLocal, worldVectorToLocal.
@@ -120,6 +120,17 @@ Body:
     into just applyImpulse. Consistency is important, and these methods were anything but
 
     applyImpulse takes both impulse, and position in world coordinates.
+
+    Permit Bodys containing NO shapes whatsoever to be simulated in a space. (Restriction that dynamic body must have non-zero mass/inertia). This can be used to add new bodies (like space.world) for use in constraints, but that are not only at (0,0) with no velocity etc. A body with no shapes will simply be integrated through time.
+
+    Add setVelocityFromTarget to aid in animation of kinematic bodies:
+    body.setVelocityFromTarget(targetPosition, targetRotation, deltaTime);
+
+    Add integrate() to integrate body position/rotation by it's velocities, may be
+    useful in conjunction with new convexCast method on Space.
+
+Material:
+    Material density is now permitted to be 0. Restriction is that a dynamic body must have non-zero mass/inertia at the end of it all.
 
 Compound:
     Modified COM to get Vec2 from object pool, and permit weakly allocated return.
@@ -178,13 +189,9 @@ Continuous collision detection:
 
 
 TODO:
-    Have Shape angDrag mutable.
+     Have Shape angDrag mutable?
 
-     Consider once more moving geometric utilities to a module?
-
-     Permit Bodies with no shapes to be in a Space.
-
-     Permit zero density shapes.
+     Consider once more moving geometric utilities to a module? (unlikely)
 
      Fix FluidArbiter impulse queries. I fixed them not being reversed based on input body, but with a body supplied it does not compute 'effective' impulse.
 

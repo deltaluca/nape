@@ -1857,7 +1857,10 @@ class PR(Space) {
     public function static_validation(body:PR(Body)) {
         //validate body properties needed here as they are not 'allowed' to change
         //(material can be changed, but due to static nature, mass/inertia remain infinite)
-        body.validate_aabb(); //validates worldVerts/worldCOM of shapes and their AABB
+        if (!body.shapes.empty()) {
+            body.validate_aabb(); //validates worldVerts/worldCOM of shapes and their AABB
+        }
+
         body.validate_mass();
         body.validate_inertia();
         DEBUG(
@@ -1886,15 +1889,24 @@ class PR(Space) {
 
         $(mixin update(list, kin) {
             Iter(cur,list,{
-                DEBUG(if(cur.shapes.empty())
-                    throw "Error: Cannot simulate an empty Body";
-                )
-
                 cur.validate_mass();
                 cur.validate_inertia();
-                cur.validate_aabb();
+                DEBUG(
+                    if (!cur.nomove && cur.isDynamic() && cur.mass == 0)
+                    {
+                        throw "Error: Dynamic Body cannot be simulated with 0 mass";
+                    }
+                    if (!cur.norotate && cur.isDynamic() && cur.inertia == 0)
+                    {
+                        throw "Error: Dynamic Body cannot be simulated with 0 inertia";
+                    }
+                )
+                if (!cur.shapes.empty())
+                {
+                    cur.validate_aabb();
+                    cur.validate_worldCOM();
+                }
                 cur.validate_gravMass();
-                cur.validate_worldCOM();
                 cur.validate_axis();
 
                 cur.sweepRadius = 0;
@@ -1956,22 +1968,22 @@ class PR(Space) {
     //----------------------------------------------------------------------------------------------
 
     public function updateVel(dt:Float) {
-//        var limit = PR(Config).MAX_ROT / dt;
         var pre = null;
         Iter(cur,live,{
-            vec_addeq(cur.force,gravity,cur.gravMass);
-            vec_addeq(cur.force,cur.vel,-global_lin_drag*cur.mass);
-            if(cur.smass!=0.0)
-                vec_addeq(cur.vel,cur.force,dt*cur.imass);
+            vec_new(force);
+            vec_set(force, cur.force);
+            vec_addeq(force, gravity, cur.gravMass);
+            vec_addeq(force,cur.vel,-global_lin_drag*cur.mass);
+            if(cur.smass!=0.0) {
+                vec_addeq(cur.vel,force,dt*cur.imass);
+            }
 
             if(cur.sinertia!=0.0) {
                 vec_new(dp); vec_sub(cur.worldCOM,cur.pos,dp);
-                cur.torque += vec_cross(dp,gravity)*cur.gravMass;
-                cur.torque -= cur.angvel*global_ang_drag*cur.inertia;
-                cur.angvel += cur.torque*dt*cur.iinertia;
-
-                //if   (cur.angvel < -limit) cur.angvel = -limit;
-                //elif (cur.angvel >  limit) cur.angvel =  limit;
+                var torque = cur.torque;
+                torque += (vec_cross(dp, gravity) * cur.gravMass);
+                torque -= cur.angvel*global_ang_drag*cur.inertia;
+                cur.angvel += torque*dt*cur.iinertia;
             }
 
             pre = cx_ite;
