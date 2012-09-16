@@ -54,15 +54,22 @@ class FluidArbiter extends Arbiter {
         DEBUG(if(body!=null && body!=body1 && body!=body2) throw "Error: Arbiter does not relate to body";)
 
         var farb = pr(inner).fluidarb;
-        var scale = (body == null || body.pr(inner) == pr(inner).b2 ? 1 : -1);
-        return Vec3.get(farb.buoyx * scale, farb.buoyy * scale);
+        if (body == null) {
+            return Vec3.get(farb.buoyx, farb.buoyy, 0);
+        }
+        else if (body.pr(inner) == pr(inner).b2) {
+            return Vec3.get(farb.buoyx, farb.buoyy, vec_cross(farb.r2, farb.buoy));
+        }
+        else {
+            return Vec3.get(-farb.buoyx, -farb.buoyy, -vec_cross(farb.r1, farb.buoy));
+        }
     }
 
     !!/**
     !! * Determine impulse on a given body due to fluid drag.
     !! * <br/><br/>
     !! * If the body is null, then the drag impulse will be returned without consideration to any specific
-    !! * body involved, and no angular impulses can be derived for the linear portion of the drag impulses.
+    !! * body involved.
     !! *
     !! * @param body The body to query impulse for. (default null)
     !! * @return The drag impulse for given body.
@@ -92,9 +99,13 @@ class FluidArbiter extends Arbiter {
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
         DEBUG(if(body!=null && body!=body1 && body!=body2) throw "Error: Arbiter does not relate to body";)
 
-        var farb = pr(inner).fluidarb;
-        var scale = (body == null || body.pr(inner) == pr(inner).b2 ? 1 : -1);
-        return Vec3.get((farb.dampx+farb.buoyx) * scale, (farb.dampy+farb.buoyy) * scale , farb.adamp * scale);
+        var tmp = this.buoyancyImpulse(body);
+        var ret = this.dragImpulse(body);
+        ret.x += tmp.x;
+        ret.y += tmp.y;
+        ret.z += tmp.z;
+        tmp.dispose();
+        return ret;
     }
 
     !!/**

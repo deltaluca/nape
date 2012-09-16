@@ -2363,21 +2363,25 @@ class PR(Space) {
         var con_ignore;
         Exists(con, b1.constraints, con.ignore && con.pair_exists(b1.id, b2.id), con_ignore);
         if (!con_ignore && !group_ignore(s1,s2)) {
+
+            // sensor has preference
+            if ((s1.sensorEnabled || s2.sensorEnabled) && s1.filter.shouldSense(s2.filter)) {
+                return 2;
+            }
             //fluid has preference
-            if((s1.fluidEnabled || s2.fluidEnabled) && s1.filter.shouldFlow(s2.filter) &&
+            else if((s1.fluidEnabled || s2.fluidEnabled) && s1.filter.shouldFlow(s2.filter) &&
                   ! (  (s1.fluidEnabled &&  b1.isDynamic() && !s2.fluidEnabled && !b2.isDynamic())
                     || (s2.fluidEnabled &&  b2.isDynamic() && !s1.fluidEnabled && !b1.isDynamic())
                     || (s1.fluidEnabled && !b1.isDynamic() && !b2.isDynamic())
                     || (s2.fluidEnabled && !b2.isDynamic() && !b1.isDynamic())
                 )) {
                 return 0;
+            }
             //followed by collision
-            }else if(s1.filter.shouldCollide(s2.filter)
+            else if(s1.filter.shouldCollide(s2.filter)
                     && !(b1.imass==0 && b2.imass==0 && b1.iinertia==0 && b2.iinertia==0)) {
                 return 1;
-            //and finally sensing
-            }else if(s1.filter.shouldSense(s2.filter))
-                return 2;
+            }
             else return -1;
         }else
             return -1;

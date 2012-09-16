@@ -82,6 +82,15 @@ Shape:
     and has all it's fields instantiated to the same fields as that of the present
     userData.
 
+    Change fluidEnabled to 'isFluid' to match new 'isBullet' and 'isSensor' properties of Body/Shape.
+      This effects interaction type determination.
+
+      Previously fluid interaction had highest precedence, possible only if one
+      of the shapes was fluid enabled. Followed by collisions, and should
+      collisions not be possible, sensor interactions.
+
+      Now. Sensor interaction has highest precedence, possible only if one of th shapes is a sensor. Following this is fluid interaction possible only if one of the shapes is a fluid. Followed lastly by collision type.
+
 Circle:
     Removed static method copy in favour of member method on Shape.
 
@@ -192,10 +201,5 @@ TODO:
      Have Shape angDrag mutable?
 
      Consider once more moving geometric utilities to a module? (unlikely)
-
-     Fix FluidArbiter impulse queries. I fixed them not being reversed based on input body, but with a body supplied it does not compute 'effective' impulse.
-
-     Add isSensor property to Shape's and modify order of interaction types so that Sensor comes first before Fluid then
-     Collision. This is a big breaking change but definately should be made.
 
      Add sweeps to Geom.
