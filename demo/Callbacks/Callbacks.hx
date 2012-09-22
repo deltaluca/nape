@@ -94,7 +94,7 @@ class Callbacks extends FixedStep {
 			for(b in space.bodiesUnderPoint(mp)) {
 				if(!b.isDynamic()) continue;
 				hand.body2 = b;
-				hand.anchor2 = b.worldToLocal(mp);
+				hand.anchor2 = b.worldPointToLocal(mp);
 				hand.active = true;
 			}
 		});
@@ -146,7 +146,7 @@ class Callbacks extends FixedStep {
 			b1.compound = b2.compound = compound;
 
 			var mid = b1.position.add(b2.position).mul(0.5);
-			var link = new PivotJoint(b1,b2,b1.worldToLocal(mid),b2.worldToLocal(mid));
+			var link = new PivotJoint(b1,b2,b1.worldPointToLocal(mid),b2.worldPointToLocal(mid));
 			link.compound = compound;
 			link.maxError = 5; //px
 			link.breakUnderError = true;

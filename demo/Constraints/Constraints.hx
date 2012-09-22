@@ -84,7 +84,7 @@ class Constraints extends FixedStep {
 			for(b in space.bodiesUnderPoint(mp)) {
 				if(!b.isDynamic()) continue;
 				hand.body2 = b;
-				hand.anchor2 = b.worldToLocal(mp);
+				hand.anchor2 = b.worldPointToLocal(mp);
 				hand.active = true;
 				break;
 			}
@@ -193,14 +193,14 @@ class Constraints extends FixedStep {
 		var b2 = circle(cell*2/3,cell+cell/4,20);
 
 		var mi = new Vec2(cell/2,cell+cell/4);
-		var pivot = new PivotJoint(b1,b2,b1.worldToLocal(mi),b2.worldToLocal(mi));
+		var pivot = new PivotJoint(b1,b2,b1.worldPointToLocal(mi),b2.worldPointToLocal(mi));
 		pivot.space = space;
 
 		var b1 = circle(cell/3,cell+cell*3/4,20);
 		var b2 = circle(cell*2/3,cell+cell*3/4,20);
 
 		var mi = new Vec2(cell/2,cell+cell*3/4);
-		var pivot = new PivotJoint(b1,b2,b1.worldToLocal(mi),b2.worldToLocal(mi));
+		var pivot = new PivotJoint(b1,b2,b1.worldPointToLocal(mi),b2.worldPointToLocal(mi));
 		pivot.stiff = false;
 		pivot.frequency = 0.5;
 		pivot.space = space;
@@ -214,14 +214,14 @@ class Constraints extends FixedStep {
 		var b2 = circle(cell+cell*2/3,cell+cell/4,20);
 
 		var mi = new Vec2(cell+cell/2,cell+cell/4);
-		var pivot = new WeldJoint(b1,b2,b1.worldToLocal(mi),b2.worldToLocal(mi));
+		var pivot = new WeldJoint(b1,b2,b1.worldPointToLocal(mi),b2.worldPointToLocal(mi));
 		pivot.space = space;
 
 		var b1 = circle(cell+cell/3,cell+cell*3/4,20);
 		var b2 = circle(cell+cell*2/3,cell+cell*3/4,20);
 
 		var mi = new Vec2(cell+cell/2,cell+cell*3/4);
-		var pivot = new WeldJoint(b1,b2,b1.worldToLocal(mi),b2.worldToLocal(mi));
+		var pivot = new WeldJoint(b1,b2,b1.worldPointToLocal(mi),b2.worldPointToLocal(mi));
 		pivot.stiff = false;
 		pivot.frequency = 0.5;
 		pivot.space = space;
@@ -236,7 +236,7 @@ class Constraints extends FixedStep {
 		var b2 = circle(cell*2+cell*2/3,cell+cell/4,20);
 
 		var mi = new Vec2(cell*2+cell/2,cell+cell/4);
-		var line = new LineJoint(b1,b2,b1.worldToLocal(mi),b2.worldToLocal(mi),
+		var line = new LineJoint(b1,b2,b1.worldPointToLocal(mi),b2.worldPointToLocal(mi),
 			new Vec2(0,1),-20,20);
 		line.space = space;
 
@@ -244,7 +244,7 @@ class Constraints extends FixedStep {
 		var b2 = circle(cell*2+cell*2/3,cell+cell*3/4,20);
 
 		var mi = new Vec2(cell*2+cell/2,cell+cell*3/4);
-		var line = new LineJoint(b1,b2,b1.worldToLocal(mi),b2.worldToLocal(mi),
+		var line = new LineJoint(b1,b2,b1.worldPointToLocal(mi),b2.worldPointToLocal(mi),
 			new Vec2(0,1),-20,20);
 		line.stiff = false;
 		line.frequency = 0.5;
@@ -261,7 +261,7 @@ class Constraints extends FixedStep {
 			cell*3+th/2,cell+th/2,cell-th,cell-th
 		)));
 		var s = grav.shapes.at(0);
-		s.fluidEnabled = true;
+		s.isFluid = true;
 		s.fluidProperties = new FluidProperties(2,0);
 		s.fluidProperties.gravity = new Vec2(0,-400);
 		grav.space = space;

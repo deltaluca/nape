@@ -90,8 +90,8 @@ class PortalManager {
 
 	//determine if position is behind portal.
 	private function behind_portal(portal:PortalData, position:Vec2):Bool {
-		var u = position.sub(portal.body.localToWorld(portal.position,true));
-		var v = portal.body.localToRelative(portal.direction);
+		var u = position.sub(portal.body.localPointToWorld(portal.position,true));
+		var v = portal.body.localVectorToWorld(portal.direction);
 		var y = u.dot(v);
 		u.dispose();
 		v.dispose();

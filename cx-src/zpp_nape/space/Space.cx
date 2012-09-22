@@ -2077,6 +2077,11 @@ class PR(Space) {
             var begcb = (arb.fresh) && !arb.cleared && !arb.intchange;
             assert(!begcb||arb.up_stamp==stamp, " fresh -> active=true hasn't held :(" + begcb+" "+ arb.up_stamp+" "+ stamp);
 
+            if (endcb)
+            {
+                arb.endGenerated = stamp;
+            }
+
             if(begcb || endcb || arb.cleared || arb.intchange) {
                 inlined_MRCA_chains(arb.ws1,arb.ws2);
                 Iter(i1,mrca1,{
@@ -2156,7 +2161,7 @@ class PR(Space) {
                         arb.active = false;
                     }
                 }
-                else                    arb.fluidarb.preStep(this, dt);
+                else arb.fluidarb.preStep(this, dt);
             }
         }
         else if(arb.colarb != null) {
@@ -2412,8 +2417,10 @@ class PR(Space) {
                             arb.assign(s1,s2,sa.id,sb.id);
                             arbs.inlined_add(arb);
                             arb.fresh = !swapped;
-                        }else
-                            arb.fresh = (arb.up_stamp<stamp-1 || (arb.up_stamp == stamp-1 && continuous)); //handler persistance
+                        }else {
+                            arb.fresh = (arb.up_stamp<stamp-1 ||
+                                        (arb.endGenerated == stamp && continuous));
+                        }
                         arb.up_stamp = arb.stamp;
 
                         if(arb.fresh || (arb.immState&Flag(ImmState,ALWAYS))==0) {

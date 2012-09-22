@@ -34,8 +34,8 @@ typedef ARRAY<T> = #if flash9 flash.Vector<T> #else Array<T> #end;
 	We give them implicit infinite mass.
 
 	Velocity independent values:
-		pi = pbi.localToRelative(lpi)
-		ni = pbi.localToRelative(ldi)
+		pi = pbi.localVectorToWorld(lpi)
+		ni = pbi.localVectorToWorld(ldi)
 		si = bi.position - pi - pbi.position
 		ai = ldi.angle + pbi.rotation
 
@@ -199,14 +199,14 @@ class PortalConstraint extends UserConstraint {
 	var n1:Vec2;  var n2:Vec2;
 	var a1:Float; var a2:Float;
 	public override function __prepare() {
-		p1.set(portalBody1.localToRelative(position1,true));
-		p2.set(portalBody2.localToRelative(position2,true));
+		p1.set(portalBody1.localVectorToWorld(position1,true));
+		p2.set(portalBody2.localVectorToWorld(position2,true));
 
 		s1.set(body1.position.sub(p1,true).subeq(portalBody1.position));
 		s2.set(body2.position.sub(p2,true).subeq(portalBody2.position));
 
-		n1.set(portalBody1.localToRelative(unit_dir1,true));
-		n2.set(portalBody2.localToRelative(unit_dir2,true));
+		n1.set(portalBody1.localVectorToWorld(unit_dir1,true));
+		n2.set(portalBody2.localVectorToWorld(unit_dir2,true));
 
 		a1 = unit_dir1.angle + portalBody1.rotation;
 		a2 = unit_dir2.angle + portalBody2.rotation;
@@ -259,13 +259,13 @@ class PortalConstraint extends UserConstraint {
 
 	public override function __draw(debug:Debug) {
 		__validate();
-		var p1 = portalBody1.localToWorld(position1);
-		var p2 = portalBody2.localToWorld(position2);
+		var p1 = portalBody1.localPointToWorld(position1);
+		var p2 = portalBody2.localPointToWorld(position2);
 
 		debug.drawCircle(p1,2,0xff);
 		debug.drawCircle(p2,2,0xff0000);
-		debug.drawLine(p1,p1.add(portalBody1.localToRelative(unit_dir1,true).muleq(20),true),0xff);
-		debug.drawLine(p2,p2.add(portalBody2.localToRelative(unit_dir2,true).muleq(20),true),0xff0000);
+		debug.drawLine(p1,p1.add(portalBody1.localVectorToWorld(unit_dir1,true).muleq(20),true),0xff);
+		debug.drawLine(p2,p2.add(portalBody2.localVectorToWorld(unit_dir2,true).muleq(20),true),0xff0000);
 		debug.drawLine(p1,body1.position,0xffff);
 		debug.drawLine(p2,body2.position,0xff00ff);
 
