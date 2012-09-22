@@ -145,6 +145,12 @@ class PR(CallbackSet) {
     flibmdel public inline function really_empty() {
         return arbiters.empty();
     }
+
+    flibmdel public inline function sleeping() {
+        var ret;
+        ForAll(x, arbiters, x.sleeping, ret);
+        return ret;
+    }
 }
 
 class PR(CbSetManager) {
@@ -1087,6 +1093,12 @@ class PR(Space) {
                 assert(set.lazydel,"freeing set not with lazydel true");
                 Free(PR(CallbackSet),set);
                 continue;
+            }
+
+            if (set.sleeping())
+            {
+                pre = cx_ite;
+                cx_continue;
             }
 
             PR(CbSet).find_all(set.int1.cbSet,set.int2.cbSet,Flag(CbEvent,ONGOING),
