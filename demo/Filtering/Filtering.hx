@@ -38,7 +38,7 @@ class Filtering extends FixedStep {
 			for(b in space.bodiesUnderPoint(mp)) {
 				if(!b.isDynamic()) continue;
 				hand.body2 = b;
-				hand.anchor2 = b.worldToLocal(mp);
+				hand.anchor2 = b.worldPointToLocal(mp);
 				hand.active = true;
 				break;
 			}

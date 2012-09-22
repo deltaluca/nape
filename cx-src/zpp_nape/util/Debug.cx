@@ -440,7 +440,7 @@ class PR(BitmapDebug) extends PR(Debug) {
     public var peny:Int;
     public var colour:Int;
 
-    public function __round(x:Float):Int return fastint(x+0.5)
+    public inline function __round(x:Float):Int return fastint(x+0.5)
 
     pr_debug(
         $(mixin __lineStyle(col,YY) {
@@ -552,7 +552,8 @@ $(mixin pr_debug(utils)
     public var compoundstack:List(PR(Compound));
     public function draw_compound(compound:PR(Compound),xform:PR(Mat23),xdet:Float,xnull:Bool) {
         Iter(c, compound.compounds, draw_compound(c,xform,xdet,xnull));
-        Iter(b, compound.bodies, draw_body(b,xform,xdet,xnull));
+        Iter(b, compound.bodies, if (b.outer.debugDraw) draw_body(b,xform,xdet,xnull));
+        Iter(c, compound.constraints, if (c.active && c.outer.debugDraw) c.draw(outer));
     }
     public function draw_space(space:PR(Space),xform:PR(Mat23),xdet:Float,xnull:Bool) {
         if(outer.cullingEnabled) {
@@ -561,24 +562,26 @@ $(mixin pr_debug(utils)
                     var bods = space.bphase.bodiesInAABB(iport,false,false,null);
                     while(!bods.empty()) {
                         var b = bods.shift();
-                        draw_body(b.pr(inner),xform,xdet,xnull);
+                        if (b.debugDraw)
+                            draw_body(b.pr(inner),xform,xdet,xnull);
                     }
                 }else {
                     var shapes = space.bphase.shapesInAABB(iport,false,false,null);
                     while(!shapes.empty()) {
                         var s = shapes.shift();
-                        draw_shape(s.pr(inner),xform,xdet,xnull);
+                        if (s.body.debugDraw)
+                            draw_shape(s.pr(inner),xform,xdet,xnull);
                     }
                 }
             }
         }else {
             if(outer.drawBodies) {
                 if(compoundstack==null) compoundstack = new List(PR(Compound))();
-                Iter(b, space.bodies, draw_body(b,xform,xdet,xnull));
+                Iter(b, space.bodies, if (b.outer.debugDraw) draw_body(b,xform,xdet,xnull));
                 Iter(c, space.compounds, compoundstack.add(c));
                 while(!compoundstack.empty()) {
                     var x = compoundstack.pop_unsafe();
-                    Iter(b, x.bodies, draw_body(b,xform,xdet,xnull));
+                    Iter(b, x.bodies, if (b.outer.debugDraw) draw_body(b,xform,xdet,xnull));
                     Iter(c, x.compounds, compoundstack.add(c));
                 }
             }
@@ -589,11 +592,11 @@ $(mixin pr_debug(utils)
 
         if(outer.drawConstraints) {
             if(compoundstack==null) compoundstack = new List(PR(Compound))();
-            Iter(c, space.constraints, if(c.active) c.draw(outer));
+            Iter(c, space.constraints, if(c.active && c.outer.debugDraw) c.draw(outer));
             Iter(c, space.compounds, compoundstack.add(c));
             while(!compoundstack.empty()) {
                 var x = compoundstack.pop_unsafe();
-                Iter(c, x.constraints, if(c.active) c.draw(outer));
+                Iter(c, x.constraints, if(c.active && c.outer.debugDraw) c.draw(outer));
                 Iter(c, x.compounds, compoundstack.add(c));
             }
         }
