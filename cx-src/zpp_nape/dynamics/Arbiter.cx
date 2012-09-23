@@ -404,12 +404,12 @@ class PR(FluidArbiter) extends PR(Arbiter) {
         vec_set(this.buoy,buoy);
 
         if(b1.isDynamic()) {
-            vec_subeq(b1.force, buoy, 1/dt);
-            b1.torque -= vec_cross(r1,buoy)/dt;
+            vec_subeq(b1.vel, buoy, b1.imass);
+            b1.angvel -= vec_cross(r1, buoy) * b1.iinertia;
         }
         if(b2.isDynamic()) {
-            vec_addeq(b2.force, buoy, 1/dt);
-            b2.torque += vec_cross(r2,buoy)/dt;
+            vec_addeq(b2.vel, buoy, b2.imass);
+            b2.angvel += vec_cross(r2, buoy) * b2.iinertia;
         }
 
         if((!ws1.fluidEnabled || ws1.fluidProperties.viscosity==0)
