@@ -70,7 +70,7 @@ class WaterBalls extends FixedStep {
 		var ramp_polys = MarchingSquares.run(ramp_iso,new AABB(0,0,800,400),new Vec2(15,15),3,new Vec2(100,100));
 		var ramp = new Body(BodyType.STATIC);
 		for(poly in ramp_polys) {
-			var polys = poly.convexDecomposition();
+			var polys = poly.simplify(1).convexDecomposition();
 			for(p in polys) ramp.shapes.add(new Polygon(p));
 		}
 		ramp.space = space;
@@ -82,12 +82,12 @@ class WaterBalls extends FixedStep {
 			ball.position.setxy(800/3*(x+0.5), 100);
 
 			var circle = new Circle(50);
-			circle.fluidEnabled = true;
+			circle.isFluid = true;
 			circle.fluidProperties.density = circle.material.density = 2;
 			circle.fluidProperties.viscosity = 10;
 			//so they don't flow into eachother
 			circle.filter.fluidGroup = 2;
-			circle.filter.fluidMask = ~2;
+			circle.filter.fluidMask = 4;
 
 			circle.body = ball;
 			ball.space = space;
@@ -102,6 +102,7 @@ class WaterBalls extends FixedStep {
 			var mat = ball.shapes.at(0).material;
 			//this value is absolutely out of this world big!
 			mat.rollingFriction = 1000;
+            ball.shapes.at(0).filter.fluidGroup = 4;
 		}
 
 		//mouse grabbing
@@ -121,13 +122,13 @@ class WaterBalls extends FixedStep {
 			for(b in bodies) {
 				if(!b.isDynamic()) continue;
 				//choose fluid objects in prefernce to non-fluid objects.
-				var fluid = b.shapes.at(0).fluidEnabled;
+				var fluid = b.shapes.at(0).isFluid;
 				if(grab==null || fluid) grab = b;
 			}
 			if(grab==null) return;
 
 			hand.body2 = grab;
-			hand.anchor2 = grab.worldToLocal(mouse);
+			hand.anchor2 = grab.worldPointToLocal(mouse);
 			hand.active = true;
 		});
 

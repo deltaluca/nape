@@ -2380,18 +2380,14 @@ class PR(Space) {
             if ((s1.sensorEnabled || s2.sensorEnabled) && s1.filter.shouldSense(s2.filter)) {
                 return 2;
             }
-            //fluid has preference
+            // then fluid has preference
             else if((s1.fluidEnabled || s2.fluidEnabled) && s1.filter.shouldFlow(s2.filter) &&
-                  ! (  (s1.fluidEnabled &&  b1.isDynamic() && !s2.fluidEnabled && !b2.isDynamic())
-                    || (s2.fluidEnabled &&  b2.isDynamic() && !s1.fluidEnabled && !b1.isDynamic())
-                    || (s1.fluidEnabled && !b1.isDynamic() && !b2.isDynamic())
-                    || (s2.fluidEnabled && !b2.isDynamic() && !b1.isDynamic())
-                )) {
+                     !(b1.imass==0 && b2.imass==0 && b1.iinertia==0 && b2.iinertia==0)) {
                 return 0;
             }
-            //followed by collision
-            else if(s1.filter.shouldCollide(s2.filter)
-                    && !(b1.imass==0 && b2.imass==0 && b1.iinertia==0 && b2.iinertia==0)) {
+            // followed by collision
+            else if(s1.filter.shouldCollide(s2.filter) &&
+                    !(b1.imass==0 && b2.imass==0 && b1.iinertia==0 && b2.iinertia==0)) {
                 return 1;
             }
             else return -1;
