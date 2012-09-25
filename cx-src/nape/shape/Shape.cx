@@ -177,7 +177,7 @@ class Shape extends Interactor {
         if(pr(inner).fluidProperties==null) pr(inner).setFluid(new FluidProperties().pr(inner));
         return pr(inner).fluidProperties.wrapper();
     },{
-        DEBUG(if(fluidProperties==null) throw "Error: Cannot assign null as Shape fluidProperties, disable fluids by setting isFluid to false";)
+        DEBUG(if(fluidProperties==null) throw "Error: Cannot assign null as Shape fluidProperties, disable fluids by setting fluidEnabled to false";)
         pr(inner).setFluid(fluidProperties.pr(inner));
     })
 
@@ -193,12 +193,12 @@ class Shape extends Interactor {
     !! *
     !! * @default false
     !! */
-    property(isFluid,Bool, {
+    property(fluidEnabled,Bool, {
         return pr(inner).fluidEnabled;
     }, {
-        pr(inner).immutable_midstep("Shape::isFluid");
-        pr(inner).fluidEnabled = isFluid;
-        if(isFluid && pr(inner).fluidProperties==null) this.fluidProperties = new FluidProperties();
+        pr(inner).immutable_midstep("Shape::fluidEnabled");
+        pr(inner).fluidEnabled = fluidEnabled;
+        if(fluidEnabled && pr(inner).fluidProperties==null) this.fluidProperties = new FluidProperties();
         pr(inner).wake();
     })
 
@@ -213,11 +213,11 @@ class Shape extends Interactor {
     !! *
     !! * @default false
     !! */
-    property(isSensor,Bool, {
+    property(sensorEnabled,Bool, {
         return pr(inner).sensorEnabled;
     }, {
-        pr(inner).immutable_midstep("Shape::isSensor");
-        pr(inner).sensorEnabled = isSensor;
+        pr(inner).immutable_midstep("Shape::sensorEnabled");
+        pr(inner).sensorEnabled = sensorEnabled;
         pr(inner).wake();
     })
 
