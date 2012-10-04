@@ -78,7 +78,7 @@ class AABB {
         !! * @return The constructed AABB matching the input Rectangle.
         !! * @throws # If the input rectangle is null.
         !! */
-        keep public static function fromRect(rect:flash.geom.Rectangle) {
+        keep public static function fromRect(rect:flash.geom.Rectangle):AABB {
             DEBUG(
                 if (rect == null) {
                     throw "Error: Cannot create AABB from null Rectangle";
@@ -86,6 +86,18 @@ class AABB {
             )
 
             return new AABB(rect.x, rect.y, rect.width, rect.height);
+        }
+
+        !!/**
+        !! * Create an AS3 Rectangle object from AABB.
+        !! * <br/><br/>
+        !! * This method is available only on <code>flash</code> and
+        !! * <code>nme</code> targets.
+        !! *
+        !! * @return The AS3 Rectangle object representing AABB.
+        !! */
+        keep public function toRect():flash.geom.Rectangle {
+            return new flash.geom.Rectangle(x, y, width, height);
         }
     #end
 
