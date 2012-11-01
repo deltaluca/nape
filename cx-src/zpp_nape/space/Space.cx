@@ -1314,7 +1314,6 @@ class PR(Space) {
                     toi.s1 = s1;
                     toi.s2 = s2;
                 }
-
                 toi.kinematic = false;
                 PR(SweepDistance).staticSweep(toi, pre_dt, 0, PR(Config).SWEEP_OVERLAP);
             }
@@ -1323,7 +1322,22 @@ class PR(Space) {
                 toi.s1 = s1;
                 toi.s2 = s2;
                 toi.kinematic = kin;
-                PR(SweepDistance).dynamicSweep(toi, pre_dt, 0, PR(Config).SWEEP_OVERLAP);
+
+                if (toi.s1.body.sweepFrozen || toi.s2.body.sweepFrozen) {
+                    if (toi.s1.body.sweepFrozen)
+                    {
+                        var tmp = toi.s1;
+                        toi.s1 = toi.s2;
+                        toi.s2 = tmp;
+                        toi.frozen1 = false;
+                        toi.frozen2 = true;
+                    }
+
+                    PR(SweepDistance).staticSweep(toi, pre_dt, 0, PR(Config).SWEEP_OVERLAP);
+                }
+                else {
+                    PR(SweepDistance).dynamicSweep(toi, pre_dt, 0, PR(Config).SWEEP_OVERLAP);
+                }
             }
 
             if ((stat && toi.toi < 0) || toi.failed) {

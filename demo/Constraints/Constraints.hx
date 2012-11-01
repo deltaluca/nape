@@ -261,7 +261,7 @@ class Constraints extends FixedStep {
 			cell*3+th/2,cell+th/2,cell-th,cell-th
 		)));
 		var s = grav.shapes.at(0);
-		s.isFluid = true;
+		s.fluidEnabled = true;
 		s.fluidProperties = new FluidProperties(2,0);
 		s.fluidProperties.gravity = new Vec2(0,-400);
 		grav.space = space;

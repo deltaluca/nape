@@ -82,7 +82,7 @@ class WaterBalls extends FixedStep {
 			ball.position.setxy(800/3*(x+0.5), 100);
 
 			var circle = new Circle(50);
-			circle.isFluid = true;
+			circle.fluidEnabled = true;
 			circle.fluidProperties.density = circle.material.density = 2;
 			circle.fluidProperties.viscosity = 10;
 			//so they don't flow into eachother
@@ -122,7 +122,7 @@ class WaterBalls extends FixedStep {
 			for(b in bodies) {
 				if(!b.isDynamic()) continue;
 				//choose fluid objects in prefernce to non-fluid objects.
-				var fluid = b.shapes.at(0).isFluid;
+				var fluid = b.shapes.at(0).fluidEnabled;
 				if(grab==null || fluid) grab = b;
 			}
 			if(grab==null) return;
