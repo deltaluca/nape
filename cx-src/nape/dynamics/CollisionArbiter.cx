@@ -40,6 +40,62 @@ class CollisionArbiter extends Arbiter {
     })
 
     !!/**
+    !! * The reference edge for the collision on the first Polygon
+    !! * If the first shape in Arbiter is a Circle this value is null.
+    !! */
+    property(referenceEdge1, Null<Edge>, {
+        DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
+        var edge = pr(inner).colarb.__ref_edge1;
+        if (edge != null && (!shape1.isPolygon() || shape1.pr(inner) != edge.polygon)) edge = pr(inner).colarb.__ref_edge2;
+        return (edge == null) ? null : edge.wrapper();
+    })
+
+    !!/**
+    !! * The reference edge for the collision on the second Polygon
+    !! * If the second shape in Arbiter is a Circle this value is null.
+    !! */
+    property(referenceEdge2, Null<Edge>, {
+        DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
+        var edge = pr(inner).colarb.__ref_edge1;
+        if (edge != null && (!shape2.isPolygon() || shape2.pr(inner) != edge.polygon)) edge = pr(inner).colarb.__ref_edge2;
+        return (edge == null) ? null : edge.wrapper();
+    })
+
+    !!/**
+    !! * In the case that we have a Circle-Polygon collision, then this
+    !! * function will return true, if the circle collided with the first
+    !! * vertex of edge.
+    !! * <br/><br/>
+    !! * If both firstVertex() and secondVertex() are false, it indicates
+    !! * the Circle collided with the edge.
+    !! *
+    !! * @returns True if Circle collided with first reference vertex.
+    !! */
+    public function firstVertex() {
+        DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
+        var poly2circle = (pr(inner).colarb.__ref_edge1 != null) != (pr(inner).colarb.__ref_edge2 != null);
+        return if (poly2circle) (pr(inner).colarb.__ref_vertex == -1) else false;
+    }
+
+    !!/**
+    !! * Check if colliding Circle hit second vertex of reference edge.
+    !! * <br/><br/>
+    !! * In the case that we have a Circle-Polygon collision, then this
+    !! * function will return true, if the circle collided with the second
+    !! * vertex of edge.
+    !! * <br/><br/>
+    !! * If both firstVertex() and secondVertex() are false, it indicates
+    !! * the Circle collided with the edge.
+    !! *
+    !! * @returns True if Circle collided with second reference vertex.
+    !! */
+    public function secondVertex() {
+        DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
+        var poly2circle = (pr(inner).colarb.__ref_edge1 != null) != (pr(inner).colarb.__ref_edge2 != null);
+        return if (poly2circle) (pr(inner).colarb.__ref_vertex == 1) else false;
+    }
+
+    !!/**
     !! * Evaluate normal reactive impulses for collision interaction for a given body.
     !! * <br/><br/>
     !! * If body argument is null, then the sum of the contact normal impulses will be returned instead

@@ -651,6 +651,14 @@ class PR(ColArbiter) extends PR(Arbiter) {
 
     ///---------------------------------------------------------------------------------------------
 
+    // Reference edge for public API stored on collision detection
+    // poly-poly / circle-poly
+    public var __ref_edge1:PR(Edge);
+    // poly-poly
+    public var __ref_edge2:PR(Edge);
+    // circle-poly
+    public var __ref_vertex:Int;  // 0 = edge, -1 = first, 1 = second
+
     //active contacts
     public var c1:PR(IContact); public var oc1:PR(Contact);
     public var c2:PR(IContact); public var oc2:PR(Contact);
@@ -681,6 +689,8 @@ class PR(ColArbiter) extends PR(Arbiter) {
         userdef_stat_fric = false;
         userdef_restitution = false;
         userdef_rfric = false;
+
+        __ref_edge1 = __ref_edge2 = null;
     }
 
     public var stat:Bool; //one of the bodies is non-dynamic (different arbiter list)

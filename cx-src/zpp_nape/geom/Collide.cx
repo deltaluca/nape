@@ -272,6 +272,13 @@ class PR(Collide) {
                     //position iterations
                     vec_subeq(c1,q2.body.pos);
                     vec_revrot(c1,q2.body.axis,con.inner.lr1);
+                    if (maxi == 1) {
+                        arb.__ref_edge1 = ax;
+                        arb.__ref_edge2 = ay;
+                    } else {
+                        arb.__ref_edge2 = ax;
+                        arb.__ref_edge1 = ay;
+                    }
 
                     return true;
                 }
@@ -537,6 +544,8 @@ class PR(Collide) {
                 var con = co.inner;
                     arb.ptype = PR(ColArbiter).CIRCLE;
                     vec_new(v); vec_sub(v0., poly.body.pos, v);
+                    arb.__ref_edge1 = a0;
+                    arb.__ref_vertex = -1;
                     if(rev) {
                         vec_revrot(v, poly.body.axis, con.lr1);
                         vec_set(con.lr2, circle.localCOM);
@@ -554,6 +563,8 @@ class PR(Collide) {
                     var con = co.inner;
                     arb.ptype = PR(ColArbiter).CIRCLE;
                     vec_new(v); vec_sub(v1., poly.body.pos, v);
+                    arb.__ref_edge1 = a0;
+                    arb.__ref_vertex = 1;
                     if(rev) {
                         vec_revrot(v, poly.body.axis, con.lr1);
                         vec_set(con.lr2, circle.localCOM);
@@ -577,6 +588,9 @@ class PR(Collide) {
                 arb.lproj = a0.lprojection;
                 arb.radius = circle.radius;
                 vec_set(con.inner.lr1, circle.localCOM);
+
+                arb.__ref_edge1 = a0;
+                arb.__ref_vertex = 0;
 
                 return true;
             }
