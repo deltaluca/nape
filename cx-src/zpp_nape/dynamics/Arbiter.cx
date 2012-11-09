@@ -1049,7 +1049,8 @@ class PR(ColArbiter) extends PR(Arbiter) {
                             mass_sum + b1.sinertia*rn2a*rn2a + b2.sinertia*rn2b*rn2b
             );
 
-            if(kMassa*kMassa < PR(Config).ILL * mat2_det(kMass)) {
+            var norm = (kMassa*kMassa + 2*kMassb*kMassb + kMassc*kMassc);
+            if (norm < PR(Config).ILL * mat2_det(kMass)) {
                 mat2_set(K,kMassa,kMassb,kMassc);
                 mat2_invert(kMass);
             }else {

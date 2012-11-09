@@ -308,15 +308,20 @@ class Mat23 {
     })
 
     !!/**
-    !! * Determine if the matrix is singular (within epsilon)
+    !! * Determine if the matrix is singular.
+    !! * This check is based on computing the condition number of the matrix
+    !! * by the Frobenius norm, and comparing against 2 / epsilon.
     !! * <br/><br/>
     !! * If matrix is singular, then inversion of the matrix cannot be performed
     !! *
     !! * @return True, if matrix is singular.
     !! */
     keep public function singular():Bool {
-        var d = determinant;
-        return (d * d) < PR(Const).EPSILON;
+        var norm = (a * a) + (b * b) + (c * c) + (d * d);
+        var limit = determinant;
+        if (limit < 0) limit = -limit;
+
+        return (norm > (PR(Config).ILL * limit));
     }
 
     !!/**
