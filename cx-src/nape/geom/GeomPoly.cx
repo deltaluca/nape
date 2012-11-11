@@ -849,6 +849,54 @@ class GeomPoly {
     }
 
     !!/**
+    !! * Inflate/Deflate polygon.
+    !! * <br/><br/>
+    !! * This algorithm does not attempt to deal with any self-intersections which may
+    !! * result from the process. Gaps are joined with a miter joint.
+    !! * <br/><br/>
+    !! * This algorithm will work for self-intersecting polygons, though the results
+    !! * may not be what you expect; some parts will be inflated, and some deflated
+    !! * depending on the local winding. You should probably avoid using this on
+    !! * self-intersecting polygons.
+    !! * 
+    !! * @param inflation The number of pixels to inflate polygon by. To deflate
+    !! *                  use a negative value.
+    !! * @return The inflated polygon.
+    !! */
+    public function inflate(inflation:Float):GeomPoly {
+        var ret = new GeomPoly();
+        if (isClockwise()) inflation = -inflation; 
+
+    mix_circular(PR(GeomVert),
+        for_iter(p, verts, {
+            var prev = p.prev;
+            var next = p.next;
+
+            vec_new(a);
+            vec_new(b);
+            vec_sub(p., prev., a);
+            vec_sub(next., p., b);
+
+            vec_new(ap);
+            vec_new(bp);
+            vec_set(ap, a); vec_normal(ap); vec_muleq(ap, inflation);
+            vec_set(bp, b); vec_normal(bp); vec_muleq(bp, inflation);
+
+            vec_new(bap); vec_sub(bp, ap, bap);
+            var num = vec_cross(bap, b);
+            var t = if (num == 0) 0 else (num / vec_cross(a, b));
+
+            vec_new(p);
+            vec_add(p., ap, p);
+            vec_addeq(p, a, t);
+
+            ret.push(Vec2.get(px, py));
+        });
+    )
+        return ret.skipForward(1);
+    }
+
+    !!/**
     !! * Cut simple polygon with line.
     !! * <br/><br/>
     !! * The result of this operation will be a list of new GeomPoly representing
