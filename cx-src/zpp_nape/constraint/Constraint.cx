@@ -3,41 +3,41 @@ $(import);
 
 GENID(Constraint)
 class PR(Constraint) {
-    public var outer:Constraint;
+    public var outer:Constraint = null;
 
     public function clear() {}
 
-    public var id:Int;
+    public var id:Int = 0;
     PrivateUserData
 
-    public var compound:PR(Compound);
+    public var compound:PR(Compound) = null;
 
     //assigned space
-    public var space:PR(Space);
+    public var space:PR(Space) = null;
 
     //whether to ignore (disable) constraint without removing it from space.
-    public var active:Bool;
+    public var active:Bool = false;
 
     //softness parameters + switch
-    public var stiff:Bool;
-    public var frequency:Float;
-    public var damping:Float;
+    public var stiff:Bool = false;
+    public var frequency:Float = 0.0;
+    public var damping:Float = 0.0;
 
     //clamping/breaking
-    public var maxForce:Float;
-    public var maxError:Float;
-    public var breakUnderForce:Bool;
-    public var breakUnderError:Bool;
+    public var maxForce:Float = 0.0;
+    public var maxError:Float = 0.0;
+    public var breakUnderForce:Bool = false;
+    public var breakUnderError:Bool = false;
 
-    public var removeOnBreak:Bool; //if true, constraint is removed when broken rather than disabled.
+    public var removeOnBreak:Bool = false; //if true, constraint is removed when broken rather than disabled.
 
-    public var component:PR(Component);
+    public var component:PR(Component) = null;
 
     //ignore collisions between bodies
-    public var ignore:Bool;
+    public var ignore:Bool = false;
 
     //velocity only constraints
-    public var __velocity:Bool;
+    public var __velocity:Bool = false;
 
     public function new() {
         __velocity = false;
@@ -67,9 +67,9 @@ class PR(Constraint) {
         )
     }
 
-    public var cbTypes:List(PR(CbType));
-    public var cbSet:PR(CbSet); //assigned by Space
-    public var wrap_cbTypes:CbTypeList;
+    public var cbTypes:List(PR(CbType)) = null;
+    public var cbSet:PR(CbSet) = null; //assigned by Space
+    public var wrap_cbTypes:CbTypeList = null;
 
     public function setupcbTypes() {
         wrap_cbTypes = PR(CbTypeList).get(cbTypes);
@@ -214,7 +214,7 @@ class PR(Constraint) {
 
     keep public function warmStart() { assert(false,"warmStart not overriden"); }
 
-    public var pre_dt:Float;
+    public var pre_dt:Float = 0.0;
     keep public function preStep(dt:Float):Bool {
         assert(false,"preStep not overriden");
         return false;
@@ -260,9 +260,9 @@ class PR(Constraint) {
 }
 
 class PR(CopyHelper) {
-    public var id:Int;
-    public var bc:Body;
-    public var cb:Body->Void;
+    public var id:Int = 0;
+    public var bc:Body = null;
+    public var cb:Body->Void = null;
 
     function new() {}
     public static function dict(id:Int,bc:Body) {
@@ -324,7 +324,7 @@ $(mixin global withConstraint(block)
             wrap_`n.pr(inner)._validate = validate_`n;
             wrap_`n.pr(inner)._invalidate = invalidate_`n;
         }
-        public var wrap_`n:Vec2
+        public var wrap_`n:Vec2 = null
     );
 
     $(mixin wrap_anchor_new(N,n)

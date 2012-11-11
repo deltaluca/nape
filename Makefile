@@ -6,18 +6,27 @@ local: $(FILES)
 	rm -rf src
 	mkdir src
 	caxe -o src cx-src -tc 2 --times \
-		-x DummyCppMain.cx # cpp only
+		-x DummyCppMain.cx -x DummyJSMain # cpp only
 	haxe -cp src -main DummyNapeMain -swf bin/nape.swf -swf-version $(SWFV) --times \
 		-swf-header 600:600:60:333333 \
 		-D NAPE_ASSERT --no-inline -debug -D NAPE_LOG
 #		-D NAPE_RELEASE_BUILD
 	debugfp bin/nape.swf
 
+js: $(FILES)
+	rm -rf src
+	mkdir src
+	caxe -o src cx-src -tc 2 --times \
+		-x DummyMemory.cx -x DummyNapeMain.cx -x DummyCppMain.cx
+	haxe -cp src -main DummyJSMain -js bin/nape.js --times \
+        -D haxe3 --js-modern --dead-code-elimination
+	
+
 cpp: $(FILES)
 	rm -rf src
 	mkdir src
 	caxe -o src cx-src -tc 2 --times \
-		-x DummyMemory.cx -x DummyNapeMain.cx # flash only
+		-x DummyMemory.cx -x DummyNapeMain.cx -x DummyJSMain # flash only
 	haxe -cp src -main DummyCppMain -cpp cpp --times \
 		--remap flash:nme -lib nme \
 		-D NAPE_RELEASE_BUILD

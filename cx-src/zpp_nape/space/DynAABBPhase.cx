@@ -33,20 +33,20 @@ $(mixin irem(list,obj,next) {
 
 class PR(AABBNode) {
     //fattened AABB
-    public var aabb :PR(AABB);
-    public var shape:PR(Shape);
+    public var aabb :PR(AABB) = null;
+    public var shape:PR(Shape) = null;
 
     //tree links
-    public var dyn:Bool; //dtree or stree
-    public var parent:PR(AABBNode);
-    public var child1:PR(AABBNode);
-    public var child2:PR(AABBNode);
+    public var dyn:Bool = false; //dtree or stree
+    public var parent:PR(AABBNode) = null;
+    public var child1:PR(AABBNode) = null;
+    public var child2:PR(AABBNode) = null;
 
     //sub-tree height
-    public var height:Int;
+    public var height:Int = 0;
 
     //used in ray casting for intersection time
-    public var rayt:Float;
+    public var rayt:Float = 0.0;
 
     public function new() {
         height = -1;
@@ -69,28 +69,28 @@ class PR(AABBNode) {
     //maintaining list of objects that have been re-inserted
     //for updating interaction pairs (vv)
 
-    public var mnext:PR(AABBNode);
-    public var moved:Bool; //exists in move list.
+    public var mnext:PR(AABBNode) = null;
+    public var moved:Bool = false; //exists in move list.
 
-    public var snext:PR(AABBNode);
-    public var synced:Bool; //exists in sync list.
-    public var first_sync:Bool; //to avoid unnecessary work when syncing for the first time.
+    public var snext:PR(AABBNode) = null;
+    public var synced:Bool = false; //exists in sync list.
+    public var first_sync:Bool = false; //to avoid unnecessary work when syncing for the first time.
 
     flibmdel public inline function isLeaf() return child1==null
 }
 
 class PR(AABBPair) {
-    public var n1:PR(AABBNode);
-    public var n2:PR(AABBNode);
-    public var first:Bool;
-    public var sleeping:Bool;
+    public var n1:PR(AABBNode) = null;
+    public var n2:PR(AABBNode) = null;
+    public var first:Bool = false;
+    public var sleeping:Bool = false;
 
     //for lookups in shape lists of pairs.
-    public var id:Int;
-    public var di:Int;
+    public var id:Int = 0;
+    public var di:Int = 0;
 
     //optimisation to avoid second lookup if possible.
-    public var arb:PR(Arbiter);
+    public var arb:PR(Arbiter) = null;
 
     MixPool(PR(AABBPair))
     public function new() {}
@@ -105,7 +105,7 @@ class PR(AABBPair) {
 }
 
 class PR(AABBTree) {
-    public var root:PR(AABBNode);
+    public var root:PR(AABBNode) = null;
     public function new() {}
 
     //----------------------------------------------------------------------------------------------
@@ -311,13 +311,13 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
     inline static var VEL_STEPS = 2.0;
 
     //note kinematics are treat no differently here than dynamics
-    public var stree:PR(AABBTree); //for static/sleeping objects
-    public var dtree:PR(AABBTree); //for non-static, non-sleeping objects
+    public var stree:PR(AABBTree) = null; //for static/sleeping objects
+    public var dtree:PR(AABBTree) = null; //for non-static, non-sleeping objects
 
-    public var pairs:PR(AABBPair); //intrusive list
+    public var pairs:PR(AABBPair) = null; //intrusive list
 
-    public var syncs:PR(AABBNode); //intrusive list
-    public var moves:PR(AABBNode); //intrusice list
+    public var syncs:PR(AABBNode) = null; //intrusive list
+    public var moves:PR(AABBNode) = null; //intrusice list
 
     public function new(space:PR(Space)) {
         this.space = space;
@@ -1004,7 +1004,7 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 
     //==============================================================
 
-    public var openlist:List(PR(AABBNode));
+    public var openlist:List(PR(AABBNode)) = null;
 
     public override function rayCast(ray:PR(Ray),inner:Bool,filter:PR(InteractionFilter)) {
         if(openlist==null) openlist = new List(PR(AABBNode))();

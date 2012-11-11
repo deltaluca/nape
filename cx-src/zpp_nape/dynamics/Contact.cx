@@ -2,7 +2,7 @@ package zpp_nape.dynamics;
 $(import);
 
 class PR(Contact) {
-    public var outer:Contact;
+    public var outer:Contact = null;
     public static var internal:Bool = false;
     public function wrapper() {
         if(outer==null) {
@@ -22,7 +22,7 @@ class PR(Contact) {
         vec_set(wrap_position.pr(inner).,p);
     }
 
-    public var wrap_position:Vec2;
+    public var wrap_position:Vec2 = null;
     public function getposition() {
         var me = this;
         wrap_position = Vec2.get();
@@ -40,20 +40,20 @@ class PR(Contact) {
 
     //----------------------------------------------------------------------------------------------
 
-    public var arbiter:PR(Arbiter);
-    public var inner:PR(IContact);
+    public var arbiter:PR(Arbiter) = null;
+    public var inner:PR(IContact) = null;
 
     //denotes contact is active, and not laying dormant to allow cached values to persist.
-    public var active:Bool;
-    public var posOnly:Bool;
+    public var active:Bool = false;
+    public var posOnly:Bool = false;
 
-    public var stamp:Int; //updated when contact is injected
-    public var hash:Int; //based on features like vertex/edge etc to identify contact uniquely
-    public var fresh:Bool; //set to true when contact is created/re-activated (*not to do with sleeping)
+    public var stamp:Int = 0; //updated when contact is injected
+    public var hash:Int = 0; //based on features like vertex/edge etc to identify contact uniquely
+    public var fresh:Bool = false; //set to true when contact is created/re-activated (*not to do with sleeping)
 
-    public var dist:Float; //penetration distance.
+    public var dist:Float = 0.0; //penetration distance.
 
-    public var elasticity:Float; //only used to expose to API for interest sake.
+    public var elasticity:Float = 0.0; //only used to expose to API for interest sake.
 
     //----------------------------------------------------------------------------------------------
 
@@ -79,14 +79,14 @@ class PR(IContact) {
     vec_new(public,r1); //relative contact positions
     vec_new(public,r2);
 
-    public var nMass:Float; //effective mass
-    public var tMass:Float;
+    public var nMass:Float = 0.0; //effective mass
+    public var tMass:Float = 0.0;
 
-    public var bounce:Float;   //per contact bounce/friction
-    public var friction:Float; //based on arbiter values and relative velocities.
+    public var bounce:Float = 0.0;   //per contact bounce/friction
+    public var friction:Float = 0.0; //based on arbiter values and relative velocities.
 
-    public var jnAcc:Float; //cached impulse values
-    public var jtAcc:Float;
+    public var jnAcc:Float = 0.0; //cached impulse values
+    public var jtAcc:Float = 0.0;
 
     //position iterations
     vec_new(public,lr1); //local reference point.

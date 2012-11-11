@@ -14,15 +14,15 @@ class Vertex {
 
     // previous and next vertices in geometric polygon
     // ALWAYS non-null (cyclic).
-    public var prev:Vertex;
-    public var next:Vertex;
+    public var prev:Vertex = null;
+    public var next:Vertex = null;
 
     // Reference to public Vec2 linked to this vertex.
     // Access it with 'wrapper' to construct lazily.
-    public var wrap:Null<Vec2>;
+    public var wrap:Null<Vec2> = null;
 
     // when true this vertex will not be removed by simplification algorithms
-    public var forced:Bool;
+    public var forced:Bool = false;
 
     // Object pool implementors
     MixPoolNoNext(Vertex)
@@ -71,8 +71,8 @@ class Vertex {
 //
 
 class PR(GeomPoly) {
-    public var outer:GeomPoly;
-    public var vertices:Null<Vertex>;
+    public var outer:GeomPoly = null;
+    public var vertices:Null<Vertex> = null;
 
     public function new(outer:GeomPoly) {
         this.outer = outer;
@@ -86,17 +86,17 @@ class PR(GeomPoly) {
 class PR(GeomVertexIterator) {
 
     // pointer to current vertex in polygon
-    public var ptr:Vertex;
+    public var ptr:Vertex = null;
     // pointer to the first vertex of iteration
     // (required for termination)
     // and flag to denote we still need to visit it.
-    public var start:Vertex;
-    public var first:Bool;
+    public var start:Vertex = null;
+    public var first:Bool = false;
 
     // direction of iteration.
-    public var forward:Bool;
+    public var forward:Bool = false;
 
-    public var outer:GeomVertexIterator;
+    public var outer:GeomVertexIterator = null;
 
     // Object pool implementors
     MixPool(PR(GeomVertexIterator))

@@ -9,24 +9,24 @@ GENID(CbSet)
 class PR(CbSet) {
     // Actually an ordered 'set'.
     // Don't use a real set so that comparisons are cheaper.
-    public var cbTypes:List(PR(CbType));
+    public var cbTypes:List(PR(CbType)) = null;
 
     // Reference counted
-    public var count:Int;
+    public var count:Int = 0;
 
     // Object pooled
     MixPool(PR(CbSet))
 
     // Unique id.
-    public var id:Int;
+    public var id:Int = 0;
 
     // Allocated by Space.
-    public var manager:PR(CbSetManager);
+    public var manager:PR(CbSetManager) = null;
 
     // Set of CbSetPair's corresponding to pairs of Interactors using the CbSet's
     // That have interacted at some point. Used to cache specific listeners
     // Available to the pairing of interactors classified by CbSet.
-    public var cbpairs:List(PR(CbSetPair));
+    public var cbpairs:List(PR(CbSetPair)) = null;
 
     // Used whenever an Interactor matching this CbSet is activated or deactivated
     flibmdel public inline function increment():Void {
@@ -46,10 +46,10 @@ class PR(CbSet) {
     // Lists of listeners appropriate for this combination of CbType's.
     // These lists are ordered
     $(mixin listlist(T, n, r, pairs)
-        public var n:List(PR(T));
+        public var n:List(PR(T)) = null;
 
         // Lazily updated on demand.
-        public var inv(n):Bool;
+        public var inv(n):Bool = false;
         flibmdel public inline function invalidate_`n():Void {
             inv(n) = true;
             #if pairs invalidate_pairs(); #end
@@ -121,8 +121,8 @@ class PR(CbSet) {
     }
 
     // List of active interactors/constraints referencing this CbSet
-    public var interactors:List(PR(Interactor)); public var wrap_interactors:InteractorList;
-    public var constraints:List(PR(Constraint)); public var wrap_constraints:ConstraintList;
+    public var interactors:List(PR(Interactor)) = null; public var wrap_interactors:InteractorList = null;
+    public var constraints:List(PR(Constraint)) = null; public var wrap_constraints:ConstraintList = null;
 
     flibmdel public inline function addConstraint(con:PR(Constraint)) constraints.add(con)
     flibmdel public inline function addInteractor(intx:PR(Interactor)) interactors.add(intx)

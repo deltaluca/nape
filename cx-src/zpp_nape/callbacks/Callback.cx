@@ -5,9 +5,9 @@ class PR(Callback) {
     // Public sub-type references.
     // Any one of these may be non-null as Callback objects are shared
     // ubiquitously
-    public var outer_body:Null<BodyCallback>;
-    public var outer_con :Null<ConstraintCallback>;
-    public var outer_int :Null<InteractionCallback>;
+    public var outer_body:Null<BodyCallback> = null;
+    public var outer_con :Null<ConstraintCallback> = null;
+    public var outer_int :Null<InteractionCallback> = null;
 
     // Used to avoid user misuse of Callback constructor.
     DEBUG(public static var internal = false;)
@@ -41,12 +41,12 @@ class PR(Callback) {
     }
 
     // Event type and listener.
-    public var event:Flag(CbEvent);
-    public var listener:PR(Listener);
+    public var event:Flag(CbEvent) = 0;
+    public var listener:PR(Listener) = null;
 
     // Used to check for validity in API.
-    public var space:PR(Space);
-    public var index:Int;
+    public var space:PR(Space) = null;
+    public var index:Int = 0;
 
     // Operates as a mix-in defined queue
     QueueMix(PR(Callback))
@@ -67,15 +67,15 @@ class PR(Callback) {
     }
 
     // For Interaction events.
-    public var int1:PR(Interactor);
-    public var int2:PR(Interactor);
-    public var set:PR(CallbackSet);
+    public var int1:PR(Interactor) = null;
+    public var int2:PR(Interactor) = null;
+    public var set:PR(CallbackSet) = null;
     // Public arbiter lists
-    public var wrap_arbiters:ArbiterList;
+    public var wrap_arbiters:ArbiterList = null;
 
     // For PreInteraction events
-    public var pre_arbiter:PR(Arbiter);
-    public var pre_swapped:Bool;
+    public var pre_arbiter:PR(Arbiter) = null;
+    public var pre_swapped:Bool = false;
 
     flibmdel public inline function genarbs() {
         assert(set != null, "after ongoing event was added, this should never be the case");
@@ -94,10 +94,10 @@ class PR(Callback) {
     }
 
     // For Body events.
-    public var body:PR(Body);
+    public var body:PR(Body) = null;
 
     // For Constraint events.
-    public var constraint:PR(Constraint);
+    public var constraint:PR(Constraint) = null;
 
     public function new() {
         // length of queue!

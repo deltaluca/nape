@@ -15,8 +15,8 @@ class PR(Vec2) {
     //
     // Due to the repetitive nature of these calls, they should be made as light
     // weight as possible.
-    public var _invalidate:Null<PR(Vec2)->Dynamic>;
-    public var _validate  :Null<Void->Dynamic>;
+    public var _invalidate:Null<PR(Vec2)->Dynamic> = null;
+    public var _validate  :Null<Void->Dynamic> = null;
 
     // Wrappers used by public Vec2 to delegate logic.
     flibmdel public inline function validate():Void {
@@ -38,8 +38,8 @@ class PR(Vec2) {
     // _isimmutable function is for when the nature of the Vec2's immutability
     // is more fine grained: when Vec2 is 'sometimes' immutable and it is easier
     // to have this quality 'asked' for instead of set directly.
-    public var _immutable  :Bool;
-    public var _isimmutable:Null<Void->Dynamic>;
+    public var _immutable  :Bool = false;
+    public var _isimmutable:Null<Void->Dynamic> = null;
 
     // Wrapper used by public Vec2 to delegate logic.
     flibmdel public inline function immutable():Void {
@@ -56,7 +56,7 @@ class PR(Vec2) {
 
     // (Public Vec2)
     // Reference to public Vec2 wrapping 'this' if it exists
-    public var outer:Null<Vec2>;
+    public var outer:Null<Vec2> = null;
 
     // Method to generate public shared wrapper if required.
     flibmdel public inline function wrapper():Vec2 {
@@ -79,7 +79,7 @@ class PR(Vec2) {
     // When true, the public Vec2 (and 'this') will be released directly to the
     // object pool whenever this vec2 is passed as an argument to a nape
     // function.
-    public var weak:Bool;
+    public var weak:Bool = false;
 
     // Object pool definitions.
     MixPoolNoNext(PR(Vec2)) // 'next' is already created by MixListMixin below.

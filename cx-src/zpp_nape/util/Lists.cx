@@ -6,7 +6,7 @@ $(import);
 $(mixin global List(T) GenList(T) ZNPList_`T);
 $(expand global GenList(T)
 class List(T) {
-    public var head:Node(T);
+    public var head:Node(T) = null;
     public function new() {}
     flibmdel public inline function begin():Node(T) return head
 
@@ -28,7 +28,7 @@ class List(T) {
 $(mixin global AllocList(T) GenAllocList(T) ZNPAllocList_`T);
 $(expand global GenAllocList(T)
 class AllocList(T) {
-    public var head:Node(T);
+    public var head:Node(T) = null;
     public function new() {}
     flibmdel public inline function begin():Node(T) return head
 
@@ -52,12 +52,12 @@ $(expand global GenNode(T)
 class Node(T) {
     MixPoolNoNext(Node(T))
 
-    public var next:Node(T);
+    public var next:Node(T) = null;
     flibmdel public inline function alloc():Void {}
     flibmdel public inline function free():Void {
         elt = null;
     }
-    public var elt:T;
+    public var elt:T = null;
     public function new() {}
     flibmdel public inline function elem():T return elt
 });
@@ -73,13 +73,13 @@ $(expand global MixDerivedList(T,ListT,IteT,defs)
     class PR(Mix`T`List) extends T`List {
         defs
 
-        public var inner:ListT;
+        public var inner:ListT = null;
 
-        public var _length:Int;
-        public var inv(length):Bool;
+        public var _length:Int = 0;
+        public var inv(length):Bool = false;
 
-        public var at_ite:IteT;
-        public var at_index:Int;
+        public var at_ite:IteT = null;
+        public var at_index:Int = 0;
 
         public static function get(list:ListT,immutable=false):PR(Mix`T`List) {
             var ret = new PR(Mix`T`List)();
@@ -275,27 +275,27 @@ $(expand global MixDerivedList(T,ListT,IteT,defs)
 
 $(expand global PRWrapList(T,ListT,IteT)
     class PR(T`List) {
-        public var outer:T`List;
+        public var outer:T`List = null;
 
-        public var inner:ListT;
-        public var immutable:Bool;
+        public var inner:ListT = null;
+        public var immutable:Bool = false;
 
-        public var _invalidated:Bool;
-        public var _invalidate:PR(T`List)->Dynamic;
-        public var _validate:Void->Dynamic;
-        public var _modifiable:Void->Dynamic;
+        public var _invalidated:Bool = false;
+        public var _invalidate:PR(T`List)->Dynamic = null;
+        public var _validate:Void->Dynamic = null;
+        public var _modifiable:Void->Dynamic = null;
 
         public static var internal:Bool = false; //used to prevent instantiation of iterator type
 
         //to be called when object is added/removed
-        public var adder:T->Bool; public var post_adder:T->Dynamic;
-        public var subber:T->Dynamic;
+        public var adder:T->Bool = null; public var post_adder:T->Dynamic = null;
+        public var subber:T->Dynamic = null;
 
         //mark that subber must deal with removing from list, not the public list.
-        public var dontremove:Bool;
+        public var dontremove:Bool = false;
 
         //used for transparent reversal of list
-        public var reverse_flag:Bool;
+        public var reverse_flag:Bool = false;
 
         flibstaticdel(get) public static function get(list:ListT,imm:Bool=false):T`List {
             var ret = new T`List();
@@ -339,14 +339,14 @@ $(expand global PRWrapList(T,ListT,IteT)
             if(_invalidate!=null) _invalidate(this);
         }
 
-        public var at_index:Int;
-        public var at_ite:IteT;
+        public var at_index:Int = 0;
+        public var at_ite:IteT = null;
 
-        public var push_ite:IteT;
+        public var push_ite:IteT = null;
 
-        public var inv(length):Bool;
+        public var inv(length):Bool = false;
 
-        public var user_length:Int; //may differ from 'real' length
+        public var user_length:Int = 0; //may differ from 'real' length
 
         public function new() {
             inner = new ListT();
@@ -358,11 +358,11 @@ $(expand global PRWrapList(T,ListT,IteT)
 //--------------------------------------------------------------------------------------------------
 
 $(mixin global MixListMixin(T)
-    public var next:T;
+    public var next:T = null;
     flibmdel public inline function elem ():T return this
     flibmdel public inline function begin():T return next
 
-    public var _inuse:Bool;
+    public var _inuse:Bool = false;
 
     ListMixin(
         $(mixin _setbeg(i) next=i);
@@ -382,11 +382,11 @@ $(mixin global MixList(T) T);
 $(mixin global ListMixin(defs,Cons,T,I)
     defs
 
-    public var modified:Bool;
-    public var pushmod:Bool;
+    public var modified:Bool = false;
+    public var pushmod:Bool = false;
 
     //actual length of list, for wrapped lists wrap list length may not correspond.
-    public var length:Int;
+    public var length:Int = 0;
 
     flibmdel public inline function setbegin(i:I):Void {
         _setbeg(i);

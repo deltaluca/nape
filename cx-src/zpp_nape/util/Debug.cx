@@ -11,34 +11,34 @@ $(import);
 class PR(Debug) {
     public static var internal = false;
 
-    public var outer:Debug;
+    public var outer:Debug = null;
 
-    public var isbmp:Bool;
+    public var isbmp:Bool = false;
     #if flash10
-    public var d_bmp  :PR(BitmapDebug);
+    public var d_bmp  :PR(BitmapDebug) = null;
     #end
-    public var d_shape:PR(ShapeDebug);
+    public var d_shape:PR(ShapeDebug) = null;
 
     ///---------------------------------------------------------------------------------------------
 
-    public var bg_r:Float;
-    public var bg_g:Float;
-    public var bg_b:Float;
+    public var bg_r:Float = 0.0;
+    public var bg_g:Float = 0.0;
+    public var bg_b:Float = 0.0;
 
-    public var bg_col:Int;
-
-    ///---------------------------------------------------------------------------------------------
-
-    public var xform:PR(Mat23);
-    public var xnull:Bool;
-    public var xdet:Float;
+    public var bg_col:Int = 0;
 
     ///---------------------------------------------------------------------------------------------
 
-    public var width:Int;
-    public var height:Int;
-    public var viewport:PR(AABB);
-    public var iport:PR(AABB); //viewport with inverse transformation (for space queries)
+    public var xform:PR(Mat23) = null;
+    public var xnull:Bool = false;
+    public var xdet:Float = 0.0;
+
+    ///---------------------------------------------------------------------------------------------
+
+    public var width:Int = 0;
+    public var height:Int = 0;
+    public var viewport:PR(AABB) = null;
+    public var iport:PR(AABB) = null; //viewport with inverse transformation (for space queries)
 
     public function new(width:Int,height:Int) {
         xnull = true;
@@ -86,7 +86,7 @@ class PR(Debug) {
         xform._invalidate = xform_invalidate;
     }
 
-    public var tmpab:PR(AABB);
+    public var tmpab:PR(AABB) = null;
     public function cull(aabb:PR(AABB)) {
         if(xnull) return aabb.intersect(viewport);
         else {
@@ -119,10 +119,10 @@ class PR(Debug) {
 ///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 
 class PR(ShapeDebug) extends PR(Debug) {
-    public var outer_zn:ShapeDebug;
+    public var outer_zn:ShapeDebug = null;
 
-    public var shape:flash.display.Shape;
-    public var graphics:flash.display.Graphics;
+    public var shape:flash.display.Shape = null;
+    public var graphics:flash.display.Graphics = null;
 
     public function new(width:Int,height:Int) {
         super(width,height);
@@ -156,18 +156,18 @@ class PR(ShapeDebug) extends PR(Debug) {
 #if flash10
 
 class PR(BitmapDebug) extends PR(Debug) {
-    public var outer_zn:BitmapDebug;
+    public var outer_zn:BitmapDebug = null;
 
-    public var bitmap:flash.display.Bitmap;
+    public var bitmap:flash.display.Bitmap = null;
 
-    public var rect:flash.geom.Rectangle;
-    public var bit:flash.display.BitmapData;
-    public var bytes:flash.utils.ByteArray;
-    public var bgbytes:flash.utils.ByteArray;
+    public var rect:flash.geom.Rectangle = null;
+    public var bit:flash.display.BitmapData = null;
+    public var bytes:flash.utils.ByteArray = null;
+    public var bgbytes:flash.utils.ByteArray = null;
 
     ///---------------------------------------------------------------------------------------------
 
-    public var transp:Bool;
+    public var transp:Bool = false;
 
     ///---------------------------------------------------------------------------------------------
 
@@ -436,9 +436,9 @@ class PR(BitmapDebug) extends PR(Debug) {
 
     ///---------------------------------------------------------------------------------------------
 
-    public var penx:Int;
-    public var peny:Int;
-    public var colour:Int;
+    public var penx:Int = 0;
+    public var peny:Int = 0;
+    public var colour:Int = 0;
 
     public inline function __round(x:Float):Int return fastint(x+0.5)
 
@@ -549,7 +549,7 @@ $(mixin pr_debug(utils)
         }
     });
 
-    public var compoundstack:List(PR(Compound));
+    public var compoundstack:List(PR(Compound)) = null;
     public function draw_compound(compound:PR(Compound),xform:PR(Mat23),xdet:Float,xnull:Bool) {
         Iter(c, compound.compounds, draw_compound(c,xform,xdet,xnull));
         Iter(b, compound.bodies, if (b.outer.debugDraw) draw_body(b,xform,xdet,xnull));

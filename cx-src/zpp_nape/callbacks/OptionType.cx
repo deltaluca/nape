@@ -2,15 +2,15 @@ package zpp_nape.callbacks;
 $(import);
 
 class PR(OptionType) {
-    public var outer:OptionType;
+    public var outer:OptionType = null;
 
     // Used for when changes are made for a listener to perform extra logic
     // around the change.
-    public var handler:Null<PR(CbType)->Bool->Bool->Void>;
+    public var handler:Null<PR(CbType)->Bool->Bool->Void> = null;
 
     // Lists of included and excluded types (disjoint).
-    public var includes:List(PR(CbType));
-    public var excludes:List(PR(CbType));
+    public var includes:List(PR(CbType)) = null;
+    public var excludes:List(PR(CbType)) = null;
 
     public function new() {
         includes = new List(PR(CbType))();
@@ -18,8 +18,8 @@ class PR(OptionType) {
     }
 
     // Public wrapper lists for includes and excludes
-    public var wrap_includes:CbTypeList;
-    public var wrap_excludes:CbTypeList;
+    public var wrap_includes:CbTypeList = null;
+    public var wrap_excludes:CbTypeList = null;
     public function setup_includes():Void {
         wrap_includes = PR(CbTypeList).get(includes, true);
     }

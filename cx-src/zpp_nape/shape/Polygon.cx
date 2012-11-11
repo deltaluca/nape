@@ -2,17 +2,17 @@ package zpp_nape.shape;
 $(import);
 
 class PR(Polygon) extends PR(Shape) {
-    public var outer_zn:Polygon;
+    public var outer_zn:Polygon = null;
 
     //----------------------------------------------------------------------------------------------
 
-    public var lverts:MixList(PR(Vec2)); public var wrap_lverts:Vec2List;
-    public var gverts:MixList(PR(Vec2)); public var wrap_gverts:Vec2List;
+    public var lverts:MixList(PR(Vec2)) = null; public var wrap_lverts:Vec2List = null;
+    public var gverts:MixList(PR(Vec2)) = null; public var wrap_gverts:Vec2List = null;
 
-    public var edges:List(PR(Edge)); public var wrap_edges:EdgeList;
-    public var edgeCnt:Int;
+    public var edges:List(PR(Edge)) = null; public var wrap_edges:EdgeList = null;
+    public var edgeCnt:Int = 0;
 
-    public var reverse_flag:Bool;
+    public var reverse_flag:Bool = false;
 
     //----------------------------------------------------------------------------------------------
 
@@ -122,7 +122,7 @@ class PR(Polygon) extends PR(Shape) {
 
     //----------------------------------------------------------------------------------------------
 
-    public var inv(lverts):Bool;
+    public var inv(lverts):Bool = false;
     public function invalidate_lverts() {
         ///dependancy checked
         invalidate_laxi();
@@ -136,7 +136,7 @@ class PR(Polygon) extends PR(Shape) {
         if(body!=null) body.wake();
     }
 
-    public var inv(laxi):Bool;
+    public var inv(laxi):Bool = false;
     public function invalidate_laxi() {
         ///dependancy checked
         invalidate_gaxi();
@@ -144,14 +144,14 @@ class PR(Polygon) extends PR(Shape) {
         inv(laxi) = true;
     }
 
-    public var inv(gverts):Bool;
+    public var inv(gverts):Bool = false;
     public function invalidate_gverts() {
         ///dependancy checked
         invalidate_aabb();
         inv(gverts) = true;
     }
 
-    public var inv(gaxi):Bool;
+    public var inv(gaxi):Bool = false;
     public function invalidate_gaxi() {
         ///dependancy checked
         inv(gaxi) = true;
@@ -159,7 +159,7 @@ class PR(Polygon) extends PR(Shape) {
 
     //----------------------------------------------------------------------------------------------
 
-    public var inv(valid):Bool;
+    public var inv(valid):Bool = false;
     public var validation:ValidationResult;
     public function valid() {
         if(inv(valid)) {

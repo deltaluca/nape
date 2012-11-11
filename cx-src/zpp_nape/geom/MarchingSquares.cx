@@ -9,11 +9,11 @@ $(mixin Span() PR(MarchSpan));
 
 class Span {
     //easier to determine along a scan line like this.
-    public var freed:Bool;
+    public var freed:Bool = false;
 
     //disjoint set forest to make sure we only output unique poly
     DSF(Mixin(Span));
-    public var out:Bool;
+    public var out:Bool = false;
 
     MixPool(Span)
     public function free() {
@@ -35,20 +35,20 @@ class VPair {
     //saddle points may generate 2 polygons.
     // p1 may not always combine left (dangerous degenerate removals)
     // p2 will always combine right
-    public var p1:Polygon; public var key1:Int; public var okey1:Int;
-    public var p2:Polygon; public var key2:Int; public var okey2:Int;
+    public var p1:Polygon = null; public var key1:Int = 0; public var okey1:Int = 0;
+    public var p2:Polygon = null; public var key2:Int = 0; public var okey2:Int = 0;
 
     // right polygon (might not be combRight'able)
     // pr = p2 if p2!=null else p1
-    public var pr:Polygon; public var keyr:Int; public var okeyr:Int;
+    public var pr:Polygon = null; public var keyr:Int = 0; public var okeyr:Int = 0;
 
     // pointer to downlink (as connections get destroyed in LR comb)
-    public var pd:Polygon;
+    public var pd:Polygon = null;
 
     //to compare polygons with since Polygon is a pointer to some vertex, not the whole polygon.
-    public var span1:Span;
-    public var span2:Span;
-    public var spanr:Span;
+    public var span1:Span = null;
+    public var span2:Span = null;
+    public var spanr:Span = null;
 
     MixPool(VPair)
     public function free() {

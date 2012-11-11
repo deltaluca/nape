@@ -13,9 +13,9 @@ $(import);
 class PR(Island) {
     MixListMixin(PR(Island))
 
-    public var comps:List(PR(Component));
-    public var sleep:Bool;
-    public var waket:Int;
+    public var comps:List(PR(Component)) = null;
+    public var sleep:Bool = false;
+    public var waket:Int = 0;
 
     MixPoolNoNext(PR(Island))
     flibmdel public inline function free() {
@@ -33,14 +33,14 @@ class PR(Component) {
     MixPool(PR(Component))
     DSF(Mixin(PR(Component)));
 
-    public var isBody:Bool;
-    public var body:PR(Body);
-    public var constraint:PR(Constraint);
+    public var isBody:Bool = false;
+    public var body:PR(Body) = null;
+    public var constraint:PR(Constraint) = null;
 
-    public var island:PR(Island);
-    public var sleeping:Bool;
-    public var waket:Int;
-    public var woken:Bool;
+    public var island:PR(Island) = null;
+    public var sleeping:Bool = false;
+    public var waket:Int = 0;
+    public var woken:Bool = false;
 
     flibmdel public inline function free() {
         body = null;
@@ -63,10 +63,10 @@ class PR(Component) {
 }
 
 class PR(CallbackSet) {
-    public var id:Int; public var di:Int;
+    public var id:Int = 0; public var di:Int = 0;
 
-    public var int1:PR(Interactor);
-    public var int2:PR(Interactor);
+    public var int1:PR(Interactor) = null;
+    public var int2:PR(Interactor) = null;
 
     public static function get(i1:PR(Interactor),i2:PR(Interactor)) {
         var ret; Get(PR(CallbackSet), ret);
@@ -99,8 +99,8 @@ class PR(CallbackSet) {
     //kept in list for on-going events
     MixListMixin(PR(CallbackSet))
     MixPoolNoNext(PR(CallbackSet))
-    public var freed:Bool;
-    public var lazydel:Bool;
+    public var freed:Bool = false;
+    public var lazydel:Bool = false;
 
     flibmdel public inline function free() {
         int1 = int2 = null;
@@ -154,8 +154,8 @@ class PR(CallbackSet) {
 }
 
 class PR(CbSetManager) {
-    public var cbsets:Set(PR(CbSet));
-    public var space:PR(Space);
+    public var cbsets:Set(PR(CbSet)) = null;
+    public var space:PR(Space) = null;
 
     //look-up CbSet in Space, allocating a new one if one does not yet exist.
     public function get(cbTypes:List(PR(CbType))) {
@@ -237,10 +237,10 @@ class PR(CbSetManager) {
 
 GENID(Space)
 class PR(Space) {
-    public var outer:Space;
+    public var outer:Space = null;
     PrivateUserData
 
-    vec_new(public,gravity); public var wrap_gravity:Vec2;
+    vec_new(public,gravity); public var wrap_gravity:Vec2 = null;
     public function getgravity() {
         wrap_gravity = Vec2.get(gravityx,gravityy);
         wrap_gravity.pr(inner)._inuse = true;
@@ -270,65 +270,65 @@ class PR(Space) {
     //----------------------------------------------------------------------------------------------
 
     //these model the public lists with the Space acting much like a Compound
-    public var bodies :List(PR(Body));     public var wrap_bodies   :BodyList;
-    public var compounds :List(PR(Compound)); public var wrap_compounds:CompoundList;
-    public var constraints:List(PR(Constraint)); public var wrap_constraints:ConstraintList;
+    public var bodies :List(PR(Body)) = null;     public var wrap_bodies   :BodyList = null;
+    public var compounds :List(PR(Compound)) = null; public var wrap_compounds:CompoundList = null;
+    public var constraints:List(PR(Constraint)) = null; public var wrap_constraints:ConstraintList = null;
 
     //this list stores 'all' kinematics.
     //we assume kinematics will never really sleep.
     //could be improved later.
-    public var kinematics:List(PR(Body));
+    public var kinematics:List(PR(Body)) = null;
 
-    public var bphase:PR(Broadphase);
+    public var bphase:PR(Broadphase) = null;
 
-    public var __static:Body; //for constraint use.
-
-    //----------------------------------------------------------------------------------------------
-
-    public var global_lin_drag:Float;
-    public var global_ang_drag:Float;
+    public var __static:Body = null; //for constraint use.
 
     //----------------------------------------------------------------------------------------------
 
-    public var stamp:Int;
-    public var midstep:Bool;
-    public var time:Float;
-
-    public var sortcontacts:Bool;
+    public var global_lin_drag:Float = 0.0;
+    public var global_ang_drag:Float = 0.0;
 
     //----------------------------------------------------------------------------------------------
 
-    $(define global public var c_arbiters(stat):List(PR(ColArbiter)););
-    public var f_arbiters:List(PR(FluidArbiter));
-    public var s_arbiters:List(PR(SensorArbiter));
+    public var stamp:Int = 0;
+    public var midstep:Bool = false;
+    public var time:Float = 0.0;
 
-    public var wrap_arbiters:ArbiterList;
+    public var sortcontacts:Bool = false;
 
     //----------------------------------------------------------------------------------------------
 
-    public var live:List(PR(Body)); //live subset of dynamics.
-    public var wrap_live:BodyList;
+    $(define global public var c_arbiters(stat):List(PR(ColArbiter)) = null;);
+    public var f_arbiters:List(PR(FluidArbiter)) = null;
+    public var s_arbiters:List(PR(SensorArbiter)) = null;
 
-    public var live_constraints:List(PR(Constraint)); //live subset of constraints
-    public var wrap_livecon:ConstraintList;
+    public var wrap_arbiters:ArbiterList = null;
+
+    //----------------------------------------------------------------------------------------------
+
+    public var live:List(PR(Body)) = null; //live subset of dynamics.
+    public var wrap_live:BodyList = null;
+
+    public var live_constraints:List(PR(Constraint)) = null; //live subset of constraints
+    public var wrap_livecon:ConstraintList = null;
 
     //list of static/kinematics that need to be put to sleep after the next call to space.step()
-    public var staticsleep:List(PR(Body));
+    public var staticsleep:List(PR(Body)) = null;
 
     //used by forest method
-    public var islands:MixList(PR(Island));
+    public var islands:MixList(PR(Island)) = null;
 
     //----------------------------------------------------------------------------------------------
 
-    public var listeners:List(PR(Listener));
-    public var wrap_listeners:ListenerList;
+    public var listeners:List(PR(Listener)) = null;
+    public var wrap_listeners:ListenerList = null;
 
-    public var callbacks:PR(Callback); //as a deque
+    public var callbacks:PR(Callback) = null; //as a deque
 
     //for on-going callbacks
-    public var callbackset_list:MixList(PR(CallbackSet));
+    public var callbackset_list:MixList(PR(CallbackSet)) = null;
 
-    public var cbsets:PR(CbSetManager);
+    public var cbsets:PR(CbSetManager) = null;
 
     //----------------------------------------------------------------------------------------------
 
@@ -986,7 +986,7 @@ class PR(Space) {
 
     //----------------------------------------------------------------------------------------------
 
-    public var pre_dt:Float;
+    public var pre_dt:Float = 0.0;
     public function step(deltaTime:Float, velocityIterations:Int, positionIterations:Int) {
         DEBUG(if(midstep) throw "Error: ... REALLY?? you're going to call space.step() inside of space.step()? COME ON!!";)
 
@@ -1133,7 +1133,7 @@ class PR(Space) {
 
     //----------------------------------------------------------------------------------------------
 
-    public var toiEvents:List(PR(ToiEvent));
+    public var toiEvents:List(PR(ToiEvent)) = null;
     public function continuousCollisions(deltaTime:Float) {
         // Get all TOI Events.
         bphase.broadphase(continuousEvent);
@@ -1901,7 +1901,7 @@ class PR(Space) {
         body.sweepFrozen = true;
     }
 
-    public var debugger:Debug;
+    public var debugger:Debug = null;
     public function validation() {
         //validate that all CbSet's in existance of space, have correctly synced listener lists from sub CbType's
         cbsets.validate();
@@ -2079,7 +2079,7 @@ class PR(Space) {
         doit(live);
         doit(kinematics);
     }
-    public var continuous:Bool;
+    public var continuous:Bool = false;
 
     //----------------------------------------------------------------------------------------------
 
@@ -2407,8 +2407,8 @@ class PR(Space) {
             return -1;
     }
 
-    var precb:PreCallback;
-    var prelisteners:List(PR(InteractionListener));
+    var precb:PreCallback = null;
+    var prelisteners:List(PR(InteractionListener)) = null;
     public function narrowPhase(s1:PR(Shape),s2:PR(Shape), stat:Bool, in_arb:PR(Arbiter), continuous:Bool) {
         #if NAPE_TIMES
             var pt = flash.Lib.getTimer();

@@ -8,10 +8,10 @@ PRFlags(ImmState,
 )
 
 class PR(Arbiter) {
-    public var outer:Arbiter;
+    public var outer:Arbiter = null;
 
     #if NAPE_POOL_STATS
-        public var arbid:Int;
+        public var arbid:Int = 0;
         static var nextarbid:Int = 0;
     #end
 
@@ -47,7 +47,7 @@ class PR(Arbiter) {
     ///---------------------------------------------------------------------------------------------
 
     //used in hash map
-    public var hnext:PR(Arbiter);
+    public var hnext:PR(Arbiter) = null;
 
     public function new() {
         #if NAPE_POOL_STATS
@@ -59,8 +59,8 @@ class PR(Arbiter) {
 
     //  dynamic-dynamic  :- id(a,b) [a<b based on shape types and then id]
     //  static-dynamic   :- id(s,d)  ""
-    public var id:Int;
-    public var di:Int;
+    public var id:Int = 0;
+    public var di:Int = 0;
 
     ///---------------------------------------------------------------------------------------------
 
@@ -73,43 +73,43 @@ class PR(Arbiter) {
     //               state of arbiters; aka an arbiter inactive but persisting for 3 steps after
     //               waking will have an up_stamp such that it appears to have been inactive and
     //               persisting for 3 steps even after waking.
-    public var       stamp:Int;
-    public var    up_stamp:Int;
-    public var sleep_stamp:Int;
-    public var endGenerated:Int;
+    public var       stamp:Int = 0;
+    public var    up_stamp:Int = 0;
+    public var sleep_stamp:Int = 0;
+    public var endGenerated:Int = 0;
 
     ///---------------------------------------------------------------------------------------------
 
     //if false, arbiter should not be exposed to user or worked on: is only used to persist contacts
-    public var active:Bool;
+    public var active:Bool = false;
 
     //set when arbiter is removed prematurely from objects and waiting to be removed by space later.
-    public var cleared:Bool;
+    public var cleared:Bool = false;
 
     //set when arbiter is sweffed
-    public var sleeping:Bool;
+    public var sleeping:Bool = false;
 
     //marks arbiter is active, but not necesarigly 'actively' part of the simulation
     //for instance if a pre-listener returns IGNORE
     //or deletes it's contacts but arbiter is still existing
     //as part of a callbackset etc, but not only for cacheing
-    public var present:Int; //reference counted for number of callbacksets present within.
+    public var present:Int = 0; //reference counted for number of callbacksets present within.
     //used to mark arbiter was result of swapping a type
     //and callbacksets may need changing
-    public var intchange:Bool;
+    public var intchange:Bool = false;
     //marked to say arbiter should be made part of callbacksets
     //on freshInteractors/freshListener types
-    public var presentable:Bool;
+    public var presentable:Bool = false;
 
-    public var continuous:Bool;
+    public var continuous:Bool = false;
 
     ///---------------------------------------------------------------------------------------------
 
     //used to swap between begin/ongoing style cb
-    public var fresh:Bool;
+    public var fresh:Bool = false;
 
     //imm cb flag
-    public var immState:Int; //ImmState
+    public var immState:Int = 0; //ImmState
 
     ///---------------------------------------------------------------------------------------------
 
@@ -120,21 +120,21 @@ class PR(Arbiter) {
     ///---------------------------------------------------------------------------------------------
 
     //arbiter properties need to be recalculated come next pre-step
-    public var invalidated:Bool;
+    public var invalidated:Bool = false;
 
     ///---------------------------------------------------------------------------------------------
 
-    public var b1:PR(Body);
-    public var b2:PR(Body);
+    public var b1:PR(Body) = null;
+    public var b2:PR(Body) = null;
 
     //used internally in certain places to avoid recursing types
-    public var ws1:PR(Shape);
-    public var ws2:PR(Shape);
+    public var ws1:PR(Shape) = null;
+    public var ws2:PR(Shape) = null;
 
     ///---------------------------------------------------------------------------------------------
     //used for dynamic aabb broadphase in helping to reduce lookup costs.
 
-    public var pair:PR(AABBPair);
+    public var pair:PR(AABBPair) = null;
 
     //called from narrowphase.
     flibmdel public inline function swap_features() {
@@ -149,15 +149,15 @@ class PR(Arbiter) {
     ///---------------------------------------------------------------------------------------------
 
     //matches ArbiterType values.
-    public var type:Int;
+    public var type:Int = 0;
     flibstaticdel(COL)    public static var COL    = 1;
     flibstaticdel(FLUID)  public static var FLUID  = 4;
     flibstaticdel(SENSOR) public static var SENSOR = 2;
 
     //to be used in stead of runtime casting of arbiter.
-    public var colarb   :PR(ColArbiter);
-    public var fluidarb :PR(FluidArbiter);
-    public var sensorarb:PR(SensorArbiter);
+    public var colarb   :PR(ColArbiter) = null;
+    public var fluidarb :PR(FluidArbiter) = null;
+    public var sensorarb:PR(SensorArbiter) = null;
 
     ///---------------------------------------------------------------------------------------------
 
@@ -257,7 +257,7 @@ class PR(SensorArbiter) extends PR(Arbiter) {
 ///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 
 class PR(FluidArbiter) extends PR(Arbiter) {
-    public var outer_zn:FluidArbiter;
+    public var outer_zn:FluidArbiter = null;
     MixPool(PR(FluidArbiter))
     flibmdel public inline function alloc() {
         assert(pair==null,"AABBNode pair exists on arb going out of pool? (fluid)");
@@ -268,7 +268,7 @@ class PR(FluidArbiter) extends PR(Arbiter) {
 
     //assigned by narrowphase
     vec_new(public,centroid); ///world coord.
-    public var overlap:Float;
+    public var overlap:Float = 0.0;
 
     //relative centroid positions.
     vec_new(public,r1); ///relative to b1.
@@ -277,17 +277,17 @@ class PR(FluidArbiter) extends PR(Arbiter) {
     ///---------------------------------------------------------------------------------------------
 
     //may be set in pre-step to shortcut drag operations.
-    public var nodrag:Bool;
+    public var nodrag:Bool = false;
 
     //angular drag
-    public var wMass:Float;
-    public var adamp:Float; //accumulated impulse
-    public var agamma:Float;
+    public var wMass:Float = 0.0;
+    public var adamp:Float = 0.0; //accumulated impulse
+    public var agamma:Float = 0.0;
 
     //linear drag
     mat2_new(public, vMass);
     vec_new(public,damp); //accumulated impulse
-    public var lgamma:Float;
+    public var lgamma:Float = 0.0;
 
     ///* for calculation of lgamma and vMass, this stores the direction of relative linear velocity
     ///  so as to approximate how much drag to apply, this is kept here so as to be persistant
@@ -308,7 +308,7 @@ class PR(FluidArbiter) extends PR(Arbiter) {
         vec_set(centroid,x.);
     }
 
-    public var wrap_position:Vec2;
+    public var wrap_position:Vec2 = null;
     public function getposition() {
         wrap_position = Vec2.get();
         wrap_position.pr(inner)._inuse = true;
@@ -346,7 +346,7 @@ class PR(FluidArbiter) extends PR(Arbiter) {
 
     ///---------------------------------------------------------------------------------------------
 
-    public var mutable:Bool;
+    public var mutable:Bool = false;
     flibmdel public inline function makemutable() {
         mutable = true;
         if(wrap_position!=null) wrap_position.pr(inner)._immutable = false;
@@ -365,7 +365,7 @@ class PR(FluidArbiter) extends PR(Arbiter) {
 
     ///---------------------------------------------------------------------------------------------
 
-    public var pre_dt:Float;
+    public var pre_dt:Float = 0.0;
     flibmdel public inline function preStep(s:PR(Space), dt:Float) {
         if(pre_dt==-1.0) pre_dt = dt;
         var dtratio = dt/pre_dt;
@@ -568,32 +568,32 @@ class PR(FluidArbiter) extends PR(Arbiter) {
 ///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 
 class PR(ColArbiter) extends PR(Arbiter) {
-    public var outer_zn:CollisionArbiter;
+    public var outer_zn:CollisionArbiter = null;
 
     ///---------------------------------------------------------------------------------------------
 
     //computed based on feature materials
-    public var dyn_fric:Float;
-    public var stat_fric:Float;
-    public var restitution:Float;
-    public var rfric:Float;
+    public var dyn_fric:Float = 0.0;
+    public var stat_fric:Float = 0.0;
+    public var restitution:Float = 0.0;
+    public var rfric:Float = 0.0;
 
     // Set to true if user sets valid explicitly in PreListener
     // To avoid recomputation until arbiter is destroyed.
-    public var userdef_dyn_fric:Bool;
-    public var userdef_stat_fric:Bool;
-    public var userdef_restitution:Bool;
-    public var userdef_rfric:Bool;
+    public var userdef_dyn_fric:Bool = false;
+    public var userdef_stat_fric:Bool = false;
+    public var userdef_restitution:Bool = false;
+    public var userdef_rfric:Bool = false;
 
     ///---------------------------------------------------------------------------------------------
 
-    public var s1:PR(Shape);
-    public var s2:PR(Shape);
+    public var s1:PR(Shape) = null;
+    public var s2:PR(Shape) = null;
 
     ///---------------------------------------------------------------------------------------------
 
-    public var contacts:MixList(PR(Contact)); public var wrap_contacts:ContactList;
-    public var innards:MixList(PR(IContact)); //for faster iteration in impulse loops
+    public var contacts:MixList(PR(Contact)) = null; public var wrap_contacts:ContactList = null;
+    public var innards:MixList(PR(IContact)) = null; //for faster iteration in impulse loops
 
     ///---------------------------------------------------------------------------------------------
 
@@ -608,7 +608,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
         vec_set(wrap_normal.pr(inner).,n);
     }
 
-    public var wrap_normal:Vec2;
+    public var wrap_normal:Vec2 = null;
     public function getnormal() {
         wrap_normal = Vec2.get(0,0);
         wrap_normal.pr(inner)._immutable = true;
@@ -622,16 +622,16 @@ class PR(ColArbiter) extends PR(Arbiter) {
     mat2_new(kMass);
     mat2_new(K);
 
-    public var rMass:Float; //rolling mass
-    public var jrAcc:Float; //accumulated rolling impulse
+    public var rMass:Float = 0.0; //rolling mass
+    public var jrAcc:Float = 0.0; //accumulated rolling impulse
 
-    var rn1a:Float; var rt1a:Float;
-    var rn1b:Float; var rt1b:Float;
-    var rn2a:Float; var rt2a:Float;
-    var rn2b:Float; var rt2b:Float;
+    var rn1a:Float = 0.0; var rt1a:Float = 0.0;
+    var rn1b:Float = 0.0; var rt1b:Float = 0.0;
+    var rn2a:Float = 0.0; var rt2a:Float = 0.0;
+    var rn2b:Float = 0.0; var rt2b:Float = 0.0;
 
-    var k1x:Float; var k1y:Float;
-    var k2x:Float; var k2y:Float;
+    var k1x:Float = 0.0; var k1y:Float = 0.0;
+    var k2x:Float = 0.0; var k2y:Float = 0.0;
 
     //surface velocity
     vec_new(public, surface);
@@ -644,35 +644,35 @@ class PR(ColArbiter) extends PR(Arbiter) {
     public static force_inline var CIRCLE = 2;
 
     public var ptype:Int; //PR(ColArbiter).FACE1/2,CIRCLE
-    vec_new(public, lnorm); public var lproj:Float;
-    public var radius:Float;
-    public var rev:Bool; //normal needs reversing in positional iterations
-    var biasCoef:Float;
+    vec_new(public, lnorm); public var lproj:Float = 0.0;
+    public var radius:Float = 0.0;
+    public var rev:Bool = false; //normal needs reversing in positional iterations
+    var biasCoef:Float = 0.0;
 
     ///---------------------------------------------------------------------------------------------
 
     // Reference edge for public API stored on collision detection
     // poly-poly / circle-poly
-    public var __ref_edge1:PR(Edge);
+    public var __ref_edge1:PR(Edge) = null;
     // poly-poly
-    public var __ref_edge2:PR(Edge);
+    public var __ref_edge2:PR(Edge) = null;
     // circle-poly
-    public var __ref_vertex:Int;  // 0 = edge, -1 = first, 1 = second
+    public var __ref_vertex:Int = 0;  // 0 = edge, -1 = first, 1 = second
 
     //active contacts
-    public var c1:PR(IContact); public var oc1:PR(Contact);
-    public var c2:PR(IContact); public var oc2:PR(Contact);
-    public var hc2:Bool; //has contact 2
-    public var hpc2:Bool; //has contact 2 for position iteration
+    public var c1:PR(IContact) = null; public var oc1:PR(Contact) = null;
+    public var c2:PR(IContact) = null; public var oc2:PR(Contact) = null;
+    public var hc2:Bool = false; //has contact 2
+    public var hpc2:Bool = false; //has contact 2 for position iteration
 
     ///---------------------------------------------------------------------------------------------
 
     MixPool(PR(ColArbiter))
 
     public function new() {
-        pre_dt = -1.0;
-
         super();
+
+        pre_dt = -1.0;
         contacts = new MixList(PR(Contact))();
         innards = new MixList(PR(IContact))();
         type = PR(Arbiter).COL;
@@ -693,7 +693,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
         __ref_edge1 = __ref_edge2 = null;
     }
 
-    public var stat:Bool; //one of the bodies is non-dynamic (different arbiter list)
+    public var stat:Bool = false; //one of the bodies is non-dynamic (different arbiter list)
 
     ///---------------------------------------------------------------------------------------------
 
@@ -783,7 +783,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
 
     ///---------------------------------------------------------------------------------------------
 
-    public var mutable:Bool;
+    public var mutable:Bool = false;
     flibmdel public inline function makemutable() {
         mutable = true;
         if(wrap_normal!=null) wrap_normal.pr(inner)._immutable = false;
@@ -912,7 +912,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
         return fst;
     }
 
-    public var pre_dt:Float;
+    public var pre_dt:Float = 0.0;
     flibmdel public inline function preStep(dt:Float) {
         validate_props();
         #if NAPE_TIMES Debug.AACNT++; #end

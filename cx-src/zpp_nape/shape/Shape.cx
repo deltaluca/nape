@@ -2,10 +2,10 @@ package zpp_nape.shape;
 $(import);
 
 class PR(Shape) extends PR(Interactor) {
-    public var outer:Shape;
-    public var body:PR(Body);
+    public var outer:Shape = null;
+    public var body:PR(Body) = null;
 
-    public var type:Int;
+    public var type:Int = 0;
 
     /**used by nape-hacks**/
     /*flibmdel */public inline function isCircle() return type==Flag(ShapeType,CIRCLE)
@@ -13,20 +13,20 @@ class PR(Shape) extends PR(Interactor) {
 
     //----------------------------------------------------------------------------------------------
 
-    public var area:Float; public var inv(area_inertia):Bool;
-    public var inertia:Float;
-    public var angDrag:Float; public var inv(angDrag):Bool;
+    public var area:Float = 0.0; public var inv(area_inertia):Bool = false;
+    public var inertia:Float = 0.0;
+    public var angDrag:Float = 0.0; public var inv(angDrag):Bool = false;
 
     //----------------------------------------------------------------------------------------------
 
-    vec_new(public,localCOM); public var inv(localCOM):Bool;
-    vec_new(public,worldCOM); public var inv(worldCOM):Bool;
-    public var wrap_localCOM:Vec2;
-    public var wrap_worldCOM:Vec2;
+    vec_new(public,localCOM); public var inv(localCOM):Bool = false;
+    vec_new(public,worldCOM); public var inv(worldCOM):Bool = false;
+    public var wrap_localCOM:Vec2 = null;
+    public var wrap_worldCOM:Vec2 = null;
 
     // Maximum radius of shape for sweep tests.
-    public var sweepRadius:Float; public var inv(sweepRadius):Bool;
-    public var sweepCoef:Float; //less the min radius. paired with sweepRadius
+    public var sweepRadius:Float = 0.0; public var inv(sweepRadius):Bool = false;
+    public var sweepCoef:Float = 0.0; //less the min radius. paired with sweepRadius
 
     flibmdel public inline function invalidate_sweepRadius() {
         //dependancy checked
@@ -42,33 +42,33 @@ class PR(Shape) extends PR(Interactor) {
 
     //----------------------------------------------------------------------------------------------
 
-    public var circle:PR(Circle);
-    public var polygon:PR(Polygon);
+    public var circle:PR(Circle) = null;
+    public var polygon:PR(Polygon) = null;
 
     //changes for memory reasons means that Material's now only track 'active' shapes
     //and so this reference material is used to check for changes when things like 'mass' etc are verified.
     //as the material may not have been able to notify the shape of changes.
     //
     //changes elsewhere in this file are marked with #
-    public var refmaterial:PR(Material);
-    public var material:PR(Material);
+    public var refmaterial:PR(Material) = null;
+    public var material:PR(Material) = null;
 
     //the same changes are true for these, but there are no dependant properties
     //that need notifying; only waking of sleeping objects, but in these cases
     //the shape is deemed active and is known to these objects.
-    public var filter:PR(InteractionFilter);
-    public var fluidProperties:PR(FluidProperties);
+    public var filter:PR(InteractionFilter) = null;
+    public var fluidProperties:PR(FluidProperties) = null;
 
-    public var fluidEnabled:Bool;
-    public var sensorEnabled:Bool;
+    public var fluidEnabled:Bool = false;
+    public var sensorEnabled:Bool = false;
 
     //----------------------------------------------------------------------------------------------
 
     //for sweep and prune
-    public var sweep:PR(SweepData);
+    public var sweep:PR(SweepData) = null;
     //for dynamic aaabb
-    public var node:PR(AABBNode);
-    public var pairs:List(PR(AABBPair));
+    public var node:PR(AABBNode) = null;
+    public var pairs:List(PR(AABBPair)) = null;
 
     //----------------------------------------------------------------------------------------------
 
@@ -79,7 +79,7 @@ class PR(Shape) extends PR(Interactor) {
 
     //----------------------------------------------------------------------------------------------
 
-    public var aabb:PR(AABB); public var inv(aabb):Bool;
+    public var aabb:PR(AABB) = null; public var inv(aabb):Bool = false;
     flibmdel public inline function validate_aabb() {
         //dependancy checked
         if(inv(aabb)) {
@@ -231,9 +231,9 @@ class PR(Shape) extends PR(Interactor) {
     }
 
     function new(type:Int) {
+        super();
         pairs = new List(PR(AABBPair))();
         ishape = this;
-        super();
 
         this.type = type;
         aabb = PR(AABB).get(0,0,0,0);

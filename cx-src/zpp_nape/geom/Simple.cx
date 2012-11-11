@@ -5,15 +5,15 @@ $(mixin Vertex() PR(SimpleVert));
 GENID(Vertex)
 class Vertex {
     //forced property to propagate to GeomVert
-    public var forced:Bool;
+    public var forced:Bool = false;
 
     vec_new(public,$(->));
-    public var links:Set(Vertex);
+    public var links:Set(Vertex) = null;
 
-    public var id:Int;
+    public var id:Int = 0;
 
     MixPool(Vertex)
-    public var node:Set(Vertex); //for vertices list in decomposition.
+    public var node:Set(Vertex) = null; //for vertices list in decomposition.
     public function free() {
         links.clear();
         Free(Set(Vertex),links);
@@ -44,12 +44,12 @@ class Vertex {
 $(mixin Segment() PR(SimpleSeg));
 GENID(Segment)
 class Segment {
-    public var left :Vertex;
-    public var right:Vertex;
+    public var left :Vertex = null;
+    public var right:Vertex = null;
 
-    public var vertices:Set(Vertex);
+    public var vertices:Set(Vertex) = null;
 
-    public var id:Int;
+    public var id:Int = 0;
 
     MixPool(Segment)
     public function free() {
@@ -67,10 +67,10 @@ class Segment {
     }
 
     //prev,next refer to positions in sweep line tree.
-    public var prev:Segment;
+    public var prev:Segment = null;
 
     //node in sweep line tree
-    public var node:Set(Segment);
+    public var node:Set(Segment) = null;
 
     //CANNOT BE 'flibmdel'ed.
     public function less_xy(a:Vertex,b:Vertex) {
@@ -99,14 +99,14 @@ class Event {
     //type == LEFT  => vertex = segment.left
     //type == RIGHT => vertex = segment.right
     //type == INT   => other<>null and vertex is segment+other intersection
-    public var type:Int;
+    public var type:Int = 0;
 
-    public var vertex:Vertex;
-    public var segment :Segment;
-    public var segment2:Segment;
+    public var vertex:Vertex = null;
+    public var segment :Segment = null;
+    public var segment2:Segment = null;
 
     //node in tree when doing a decomposition.
-    public var node:Set(Event);
+    public var node:Set(Event) = null;
     public static function swap_nodes(a:Event, b:Event) swap(a.node,b.node)
     public static function less_xy(a:Event, b:Event) {
         if  (a.vertex.x < b.vertex.x) return true;
@@ -137,8 +137,8 @@ class Event {
 
 $(mixin Sweep() PR(SimpleSweep));
 class Sweep {
-    public var sweepx:Float; //used in sorting segments which intersect
-    public var tree:Set(Segment);
+    public var sweepx:Float = 0.0; //used in sorting segments which intersect
+    public var tree:Set(Segment) = null;
 
     public function new() {
         Get(Set(Segment), tree);
@@ -311,8 +311,8 @@ class Sweep {
 }
 
 class PR(Simple) {
-    static var sweep:Sweep;
-    static var inthash:FastHash2(Hashable2(Bool));
+    static var sweep:Sweep = null;
+    static var inthash:FastHash2(Hashable2(Bool)) = null;
 
     public static function decompose(poly:PR(GeomVert)) {
         if(sweep==null) {

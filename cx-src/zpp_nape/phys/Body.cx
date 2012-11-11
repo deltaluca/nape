@@ -2,13 +2,13 @@ package zpp_nape.phys;
 $(import);
 
 class PR(Body) extends PR(Interactor) {
-    public var outer:Body;
+    public var outer:Body = null;
 
-    public var world:Bool; //used for Space::static
+    public var world:Bool = false; //used for Space::static
 
     //----------------------------------------------------------------------------------------------
 
-    public var type:Int;
+    public var type:Int = 0;
     flibmdel public inline function isStatic   () return type == Flag(BodyType,STATIC)
     flibmdel public inline function isDynamic  () return type == Flag(BodyType,DYNAMIC)
     flibmdel public inline function isKinematic() return type == Flag(BodyType,KINEMATIC)
@@ -20,10 +20,10 @@ class PR(Body) extends PR(Interactor) {
 
     //----------------------------------------------------------------------------------------------
 
-    public var compound:PR(Compound);
+    public var compound:PR(Compound) = null;
 
-    public var shapes:List(PR(Shape));
-    public var wrap_shapes:ShapeList;
+    public var shapes:List(PR(Shape)) = null;
+    public var wrap_shapes:ShapeList = null;
 
     public function invalidate_shapes() {
         //dependancy checked
@@ -35,13 +35,13 @@ class PR(Body) extends PR(Interactor) {
 
     //----------------------------------------------------------------------------------------------
 
-    public var space:PR(Space);
+    public var space:PR(Space) = null;
 
-    public var arbiters   :List(PR(Arbiter));    public var wrap_arbiters   :ArbiterList;
-    public var constraints:List(PR(Constraint)); public var wrap_constraints:ConstraintList;
+    public var arbiters   :List(PR(Arbiter)) = null;    public var wrap_arbiters   :ArbiterList = null;
+    public var constraints:List(PR(Constraint)) = null; public var wrap_constraints:ConstraintList = null;
 
     //disjoint set forest.
-    public var component:PR(Component);
+    public var component:PR(Component) = null;
 
     //----------------------------------------------------------------------------------------------
 
@@ -49,7 +49,7 @@ class PR(Body) extends PR(Interactor) {
     static var bodystack:List(PR(Body)) = null;
     static var bodyset:Set(PR(Body)) = null;
     static function bodysetlt(a:PR(Body), b:PR(Body)) return a.id < b.id
-    public var graph_depth:Int;
+    public var graph_depth:Int = 0;
 
     inline function init_bodysetlist() {
         if(bodyset==null) {
@@ -64,7 +64,7 @@ class PR(Body) extends PR(Interactor) {
     //----------------------------------------------------------------------------------------------
 
     //avoid use of closures.
-    static var cur_graph_depth:Int;
+    static var cur_graph_depth:Int = 0;
     function connectedBodies_cont(b:Body) {
         if(bodyset.try_insert_bool(b.pr(inner))) {
             bodystack.add(b.pr(inner));
@@ -154,20 +154,20 @@ class PR(Body) extends PR(Interactor) {
     //----------------------------------------------------------------------------------------------
 
     // current integration time for optimised sweepIntegrate
-    public var sweepTime:Float;
+    public var sweepTime:Float = 0.0;
 
     // normalised angualr velocity to interpolate transforms.
     // Too large rotations cause errors in making iterations take too long and giving up.
-    public var sweep_angvel:Float;
+    public var sweep_angvel:Float = 0.0;
 
     // True if object has been frozen early.
-    public var sweepFrozen:Bool;
+    public var sweepFrozen:Bool = false;
 
     // Max of shape sweepRadius
-    public var sweepRadius:Float;
+    public var sweepRadius:Float = 0.0;
 
-    public var bullet:Bool; // internal flag based on velocity + below.
-    public var bulletEnabled:Bool; // public API
+    public var bullet:Bool = false; // internal flag based on velocity + below.
+    public var bulletEnabled:Bool = false; // public API
 
     flibmdel public inline function sweepIntegrate(dt:Float) {
         var delta = dt - sweepTime;
@@ -212,15 +212,15 @@ class PR(Body) extends PR(Interactor) {
     //--------------------------------------------------------------------
 
     vec_new(public,pre_pos);
-    vec_new(public,pos);   public var wrap_pos:Vec2;
-    vec_new(public,vel);   public var wrap_vel:Vec2;
-    vec_new(public,force); public var wrap_force:Vec2;
+    vec_new(public,pos);   public var wrap_pos:Vec2 = null;
+    vec_new(public,vel);   public var wrap_vel:Vec2 = null;
+    vec_new(public,force); public var wrap_force:Vec2 = null;
 
     vec_new(public,kinvel); //kinematic velocity.
-    public var wrap_kinvel:Vec2;
+    public var wrap_kinvel:Vec2 = null;
 
     vec_new(public,svel); //surface velocity
-    public var wrap_svel:Vec2;
+    public var wrap_svel:Vec2 = null;
 
     flibmdel public inline function invalidate_pos() {
         //dependancy checked
@@ -359,7 +359,7 @@ class PR(Body) extends PR(Interactor) {
         wrapcvel.pr(inner).z = angvel + kinangvel;
     }
 
-    public var wrapcvel:Vec3;
+    public var wrapcvel:Vec3 = null;
     public function setup_cvel() {
         var me = this;
         wrapcvel = Vec3.get();
@@ -369,14 +369,14 @@ class PR(Body) extends PR(Interactor) {
 
     //----------------------------------------------------------------------------------------------
 
-    public var angvel:Float;
-    public var torque:Float;
-    //public var bias_angvel:Float;
+    public var angvel:Float = 0.0;
+    public var torque:Float = 0.0;
+    //public var bias_angvel:Float = 0.0;
 
-    public var kinangvel:Float;
-    public var pre_rot:Float;
+    public var kinangvel:Float = 0.0;
+    public var pre_rot:Float = 0.0;
 
-    public var rot:Float;
+    public var rot:Float = 0.0;
     flibmdel public inline function invalidate_rot() {
         //dual with invalidate_axis
         //dependancy checked
@@ -391,7 +391,7 @@ class PR(Body) extends PR(Interactor) {
         invalidate_worldCOM();
         //don't wake object here, this method is called by space.step!
     }
-    vec_new(public,axis); public var inv(axis):Bool;
+    vec_new(public,axis); public var inv(axis):Bool = false;
     /*used by nape-hacks*/
     /*flibmdel*/ public inline function validate_axis() {
         //dependancy checked
@@ -430,14 +430,14 @@ class PR(Body) extends PR(Interactor) {
 
     //----------------------------------------------------------------------------------------------
 
-    public var mass:Float; public var inv(mass):Bool;
-    public var massMode:Int; //DEFAULT, FIXED
+    public var mass:Float = 0.0; public var inv(mass):Bool = false;
+    public var massMode:Int = 0; //DEFAULT, FIXED
 
-    public var imass:Float; //0 when asleep
-    public var smass:Float; //1/mass even when asleep
-    public var cmass:Float; //mass even if converted to kinematic/static
+    public var imass:Float = 0.0; //0 when asleep
+    public var smass:Float = 0.0; //1/mass even when asleep
+    public var cmass:Float = 0.0; //mass even if converted to kinematic/static
 
-    public var nomove:Bool; //stopMovement()/allowMovement() calls
+    public var nomove:Bool = false; //stopMovement()/allowMovement() calls
 
     public function invalidate_mass() {
         //dependancy checked
@@ -479,9 +479,9 @@ class PR(Body) extends PR(Interactor) {
         }
     }
 
-    public var gravMass:Float; public var inv(gravMass):Bool;
-    public var gravMassMode:Int; //DEFAULT,FIXED,SCALED
-    public var gravMassScale:Float; public var inv(gravMassScale):Bool;
+    public var gravMass:Float = 0.0; public var inv(gravMass):Bool = false;
+    public var gravMassMode:Int = 0; //DEFAULT,FIXED,SCALED
+    public var gravMassScale:Float = 0.0; public var inv(gravMassScale):Bool = false;
 
     public function invalidate_gravMass() {
         //dependancy checked
@@ -530,13 +530,13 @@ class PR(Body) extends PR(Interactor) {
 
     //----------------------------------------------------------------------------------------------
 
-    public var inertiaMode:Int;
-    public var inertia:Float; public var inv(inertia):Bool;
-    public var cinertia:Float;
-    public var iinertia:Float;
-    public var sinertia:Float;
+    public var inertiaMode:Int = 0;
+    public var inertia:Float = 0.0; public var inv(inertia):Bool = false;
+    public var cinertia:Float = 0.0;
+    public var iinertia:Float = 0.0;
+    public var sinertia:Float = 0.0;
 
-    public var norotate:Bool; //stopRotation/allowRotation() calls
+    public var norotate:Bool = false; //stopRotation/allowRotation() calls
 
     public function invalidate_inertia() {
         //dependancy checked
@@ -586,7 +586,7 @@ class PR(Body) extends PR(Interactor) {
 
     //----------------------------------------------------------------------------------------------
 
-    public var aabb:PR(AABB); public var inv(aabb):Bool;
+    public var aabb:PR(AABB) = null; public var inv(aabb):Bool = false;
     /*used by nape-hacks*/
     /*flibmdel*/ public inline function validate_aabb() {
         DEBUG(if(shapes.empty())
@@ -610,10 +610,10 @@ class PR(Body) extends PR(Interactor) {
 
     //----------------------------------------------------------------------------------------------
 
-    vec_new(public,localCOM); public var inv(localCOM):Bool;
-    vec_new(public,worldCOM); public var inv(worldCOM):Bool;
-    public var wrap_localCOM:Vec2;
-    public var wrap_worldCOM:Vec2;
+    vec_new(public,localCOM); public var inv(localCOM):Bool = false;
+    vec_new(public,worldCOM); public var inv(worldCOM):Bool = false;
+    public var wrap_localCOM:Vec2 = null;
+    public var wrap_worldCOM:Vec2 = null;
 
     public function invalidate_localCOM() {
         //dependancy checked

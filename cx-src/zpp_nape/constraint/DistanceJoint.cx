@@ -18,12 +18,12 @@ $(import);
 
 withConstraint(
 class PR(DistanceJoint) extends PR(Constraint) {
-    public var outer_zn:DistanceJoint;
+    public var outer_zn:DistanceJoint = null;
 
-    public var jointMin:Float;
-    public var jointMax:Float;
-    public var slack:Bool;
-    public var equal:Bool;
+    public var jointMin:Float = 0.0;
+    public var jointMax:Float = 0.0;
+    public var slack:Bool = false;
+    public var equal:Bool = false;
     //if limits are equal, treat constraint slightly differently for stability.
 
     $(mixin Cerr(r1,r2,n,slack) {
@@ -68,8 +68,8 @@ class PR(DistanceJoint) extends PR(Constraint) {
     }
 
     vec_new(public, n);
-    public var cx1:Float;
-    public var cx2:Float;
+    public var cx1:Float = 0.0;
+    public var cx2:Float = 0.0;
 
     $(mixin Verr() {
         n`x*(b2.velx+b2.kinvelx-b1.velx-b1.kinvelx) + n`y*(b2.vely+b2.kinvely-b1.vely-b1.kinvely) + (b2.angvel+b2.kinangvel)*cx2 - (b1.angvel+b1.kinangvel)*cx1;
@@ -119,17 +119,17 @@ class PR(DistanceJoint) extends PR(Constraint) {
 
     //---------------------------------------------------
 
-    public var b1:PR(Body); anchor_new(a1);
-    public var b2:PR(Body); anchor_new(a2);
+    public var b1:PR(Body) = null; anchor_new(a1);
+    public var b2:PR(Body) = null; anchor_new(a2);
 
-    public var kMass:Float;
-    public var jAcc:Float; public var pjAcc:Float;
-    public var jMax:Float;
+    public var kMass:Float = 0.0;
+    public var jAcc:Float = 0.0; public var pjAcc:Float = 0.0;
+    public var jMax:Float = 0.0;
 
-    public var gamma:Float;
-    public var bias:Float;
+    public var gamma:Float = 0.0;
+    public var bias:Float = 0.0;
 
-    public var stepped:Bool;
+    public var stepped:Bool = false;
 
     //---------------------------------------------------
 

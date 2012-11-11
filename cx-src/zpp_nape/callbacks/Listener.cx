@@ -8,31 +8,31 @@ $(import);
 GENID(Listener)
 class PR(Listener) {
     // Reference to public object.
-    public var outer:Listener;
+    public var outer:Listener = null;
 
     // Used to ensure that public object constructor is not used!
     DEBUG(public static var internal:Bool = false;)
 
     // Used to order listeners.
-    public var id:Int;
+    public var id:Int = 0;
 
-    public var type :Flag(ListenerType);
-    public var event:Flag(CbEvent);
+    public var type :Flag(ListenerType) = 0;
+    public var event:Flag(CbEvent) = 0;
 
     // Used to order listeners in cases where more than one listener is
     //    appropriate.
     // Higher precedence => Called first.
-    public var precedence:Int;
+    public var precedence:Int = 0;
 
     // Reference to subtypes to avoid runtime casts.
     // Only one of these will be non-null at any time.
     // matching the value of the type property.
-    public var body       :Null<PR(BodyListener)>;
-    public var constraint :Null<PR(ConstraintListener)>;
-    public var interaction:Null<PR(InteractionListener)>;
+    public var body       :Null<PR(BodyListener)> = null;
+    public var constraint :Null<PR(ConstraintListener)> = null;
+    public var interaction:Null<PR(InteractionListener)> = null;
 
     // Reference to space listener is currently addedToSpaceed to.
-    public var space:Null<PR(Space)>;
+    public var space:Null<PR(Space)> = null;
 
     function new() {
         // generate unique id.
@@ -58,11 +58,11 @@ class PR(Listener) {
 
 $(mixin SingleListener(t, T, FLAG)
     // Reference to public sub-typed Listener.
-    public var outer_zn:T`Listener;
+    public var outer_zn:T`Listener = null;
 
     // OptionType listener matches against + handler.
-    public var options:PR(OptionType);
-    public var handler:T`Callback->Void;
+    public var options:PR(OptionType) = null;
+    public var handler:T`Callback->Void = null;
 
     DEBUG(
         // Debug only check for options being immutable.
@@ -187,19 +187,19 @@ class PR(ConstraintListener) extends PR(Listener) {
 class PR(InteractionListener) extends PR(Listener) {
     // Public sub-type references.
     // Exactly one of these is non-null.
-    public var outer_zni:Null<InteractionListener>;
-    public var outer_znp:Null<PreListener>;
+    public var outer_zni:Null<InteractionListener> = null;
+    public var outer_znp:Null<PreListener> = null;
 
-    public var itype:Flag(InteractionType);
-    public var options1:PR(OptionType);
-    public var options2:PR(OptionType);
+    public var itype:Flag(InteractionType) = 0;
+    public var options1:PR(OptionType) = null;
+    public var options2:PR(OptionType) = null;
 
     //for InteractionListener
-    public var handleri:Null<InteractionCallback->Void>;
+    public var handleri:Null<InteractionCallback->Void> = null;
 
     //for PreListener
-    public var pure:Bool;
-    public var handlerp:Null<PreCallback->Null<PreFlag>>;
+    public var pure:Bool = false;
+    public var handlerp:Null<PreCallback->Null<PreFlag>> = null;
 
     flibmdel public inline function setInteractionType(itype:Flag(InteractionType)) {
         // Nothing else needs to be done here, but method to wrap

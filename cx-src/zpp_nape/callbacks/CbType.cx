@@ -3,15 +3,15 @@ $(import);
 
 GENID(CbType)
 class PR(CbType) {
-    public var outer:CbType;
+    public var outer:CbType = null;
 
     PrivateUserData
 
     // Unique id for CbType for total ordering.
-    public var id:Int;
+    public var id:Int = 0;
 
     // Set of cbsets (across all Spaces) associated with CbType.
-    public var cbsets:List(PR(CbSet));
+    public var cbsets:List(PR(CbSet)) = null;
 
     // Total order for CbType's
     public inline static function setlt(a:PR(CbType),b:PR(CbType)):Bool {
@@ -32,7 +32,7 @@ class PR(CbType) {
     // List of sorted active listeners of all internal types.
     //
     $(mixin listlist(T, n, r)
-        public var n:List(PR(T));
+        public var n:List(PR(T)) = null;
         flibmdel public inline function add`r(x:PR(T)):Void {
             assert(!n.has(x), "listener already in list");
             // List is sorted.
