@@ -7,13 +7,13 @@ class PR(UserConstraint) extends PR(Constraint) {
     //previously a lambda in UserConstraint
     public function bindVec2_invalidate(_) { outer_zn.__invalidate(); }
 
-    public var bodies : ARRAY(PR(UserBody)) = null;
+    public var bodies : TArray(PR(UserBody)) = null;
 
     public var dim  : Int = 0; //number of rows.
 
-    public var  jAcc : ARRAY(Float) = null;
-    public var pjAcc : ARRAY(Float) = null;
-    public var  bias : ARRAY(Float) = null;
+    public var  jAcc : TArray(Float) = null;
+    public var pjAcc : TArray(Float) = null;
+    public var  bias : TArray(Float) = null;
 
     public function addBody(b:PR(Body)) {
         assert(b!=null,"addBody :: null UserConstraint");
@@ -89,20 +89,20 @@ class PR(UserConstraint) extends PR(Constraint) {
     public function new(dim:Int,velonly:Bool) {
         super();
 
-        bodies = newARRAY(PR(UserBody));
+        bodies = newTArray(PR(UserBody));
 
         this.dim = dim;
         this.velonly = velonly;
 
-        jAcc = newARRAY(Float,dim);
-        pjAcc = newARRAY(Float,dim);
-        bias = newARRAY(Float,dim);
+        jAcc = newTArray(Float,dim);
+        pjAcc = newTArray(Float,dim);
+        bias = newTArray(Float,dim);
 
-        L = newARRAY(Float,dim*dim);
-        J = newARRAY(Float,dim);
-        jOld = newARRAY(Float,dim);
-        y = newARRAY(Float,dim);
-        Keff = newARRAY(Float,(dim*(dim+1))>>>1);
+        L = newTArray(Float,dim*dim);
+        J = newTArray(Float,dim);
+        jOld = newTArray(Float,dim);
+        y = newTArray(Float,dim);
+        Keff = newTArray(Float,(dim*(dim+1))>>>1);
         vec3 = Vec3.get(0,0,0);
 
         for(i in 0...dim) {
@@ -154,12 +154,12 @@ class PR(UserConstraint) extends PR(Constraint) {
 
     //-----------------------------------------------------------------------------
 
-    public function lsq(v:ARRAY(Float)) {
+    public function lsq(v:TArray(Float)) {
         var sum = 0.0;
         for(i in 0...dim) sum += v[i]*v[i];
         return sum;
     }
-    public function _clamp(v:ARRAY(Float),max:Float) {
+    public function _clamp(v:TArray(Float),max:Float) {
         var x = lsq(v);
         if(x>max*max) {
             var scale = max/Math.sqrt(x);
@@ -167,8 +167,8 @@ class PR(UserConstraint) extends PR(Constraint) {
         }
     }
 
-    var L:ARRAY(Float) = null;
-    public function solve(m:ARRAY(Float)) {
+    var L:TArray(Float) = null;
+    public function solve(m:TArray(Float)) {
         var ind = 0;
         for(j in 0...dim) {
             var sum = 0.0;
@@ -191,8 +191,8 @@ class PR(UserConstraint) extends PR(Constraint) {
         return L;
     }
 
-    var y:ARRAY(Float) = null;
-    public function transform(L:ARRAY(Float),x:ARRAY(Float)) {
+    var y:TArray(Float) = null;
+    public function transform(L:TArray(Float),x:TArray(Float)) {
         for(i in 0...dim) {
             var sum = x[i];
             var lii = L[i*dim+i];
@@ -220,7 +220,7 @@ class PR(UserConstraint) extends PR(Constraint) {
     public var velonly:Bool = false;
     public var jMax:Float = 0.0;
 
-    public var Keff:ARRAY(Float) = null;
+    public var Keff:TArray(Float) = null;
     public override function preStep(dt:Float) {
         //do this here since the normal validate only happens in DEBUG mode
         RELEASE(outer_zn.__validate();)
@@ -270,8 +270,8 @@ class PR(UserConstraint) extends PR(Constraint) {
         for(i in 0...dim) pjAcc[i] = jAcc[i];
     }
 
-    var J:ARRAY(Float) = null;
-    var jOld:ARRAY(Float) = null;
+    var J:TArray(Float) = null;
+    var jOld:TArray(Float) = null;
     public override function applyImpulseVel() {
         //velocity corrections
         outer_zn.__velocity(J);
