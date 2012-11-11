@@ -1,0 +1,23 @@
+package;
+$(import);
+
+class DummyJSMain {
+    static function main() {
+        
+        var s = new Space(new Vec2(0, 400));
+        var f = new Body(BodyType.STATIC);
+        f.shapes.add(new Polygon(Polygon.rect(0, 240, 400, 1)));
+        f.space = s;
+
+        var b = new Body();
+        b.shapes.add(new Polygon(Polygon.box(30, 30)));
+        b.position.setxy(200, 200);
+        b.space = s;
+
+        (new haxe.Timer(200)).run = function () {
+            s.step(1/60, 10, 10);
+            trace([b.position.x, b.position.y, b.velocity.x, b.velocity.y]);
+        }
+
+    }
+}
