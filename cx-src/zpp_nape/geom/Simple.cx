@@ -312,12 +312,12 @@ class Sweep {
 
 class PR(Simple) {
     static var sweep:Sweep = null;
-    static var inthash:FastHash2(Hashable2(Bool)) = null;
+    static var inthash:FastHash2(Hashable2(Bool,false)) = null;
 
     public static function decompose(poly:PR(GeomVert)) {
         if(sweep==null) {
             sweep = new Sweep();
-            inthash = new FastHash2(Hashable2(Bool))();
+            inthash = new FastHash2(Hashable2(Bool,false))();
         }
 
         var vertices; Get(Set(Vertex), vertices);
@@ -390,8 +390,8 @@ class PR(Simple) {
                                     ints.insert(intx);
                                 }
                                 if(high.id<low.id)
-                                     inthash.add(Hashable2(Bool).get(high.id,low.id,true));
-                                else inthash.add(Hashable2(Bool).get(low.id,high.id,true));
+                                     inthash.add(Hashable2(Bool,false).get(high.id,low.id,true));
+                                else inthash.add(Hashable2(Bool,false).get(low.id,high.id,true));
                             }else {
                                 var x = ex.data;
                                 DEBUG(
@@ -484,7 +484,7 @@ class PR(Simple) {
         Free(Set(Event),queue);
         Free(Set(Event),ints);
 
-        ClearHashWith(inthash,$(mixin cb(x) Free(Hashable2(Bool),x)));
+        ClearHashWith(inthash,$(mixin cb(x) Free(Hashable2(Bool,false),x)));
 
         //construct decomposition. yaaay!
         var rets = new List(PR(GeomVert))();
@@ -587,7 +587,7 @@ class PR(Simple) {
     public static function isSimple(poly:PR(GeomVert)) {
         if(sweep==null) {
             sweep = new Sweep();
-            inthash = new FastHash2(Hashable2(Bool))();
+            inthash = new FastHash2(Hashable2(Bool,false))();
         }
 
         var vertices = new List(Vertex)();
