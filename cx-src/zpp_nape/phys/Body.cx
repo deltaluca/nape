@@ -168,6 +168,7 @@ class PR(Body) extends PR(Interactor) {
 
     public var bullet:Bool = false; // internal flag based on velocity + below.
     public var bulletEnabled:Bool = false; // public API
+    public var disableCCD:Bool = false; // disable CCD for any pair including this object.
 
     flibmdel public inline function sweepIntegrate(dt:Float) {
         var delta = dt - sweepTime;
@@ -787,6 +788,7 @@ class PR(Body) extends PR(Interactor) {
         sweep_angvel = 0;
 
         norotate = nomove = false;
+        disableCCD = false;
 
         vec_set(pos,0,0);
         rot = 0;
@@ -857,6 +859,9 @@ class PR(Body) extends PR(Interactor) {
         var ret = new Body().pr(inner);
 
         ret.type = type;
+
+        ret.bulletEnabled = bulletEnabled;
+        ret.disableCCD = disableCCD;
 
         Iter(s,shapes,{
             ret.outer.shapes.add(s.outer.copy());
