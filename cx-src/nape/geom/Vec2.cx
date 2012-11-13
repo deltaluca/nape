@@ -547,6 +547,46 @@ class Vec2 {
     }
 
     !!/**
+    !! * Add a multiple of a vector to this vector.
+    !! * <br/><br/>
+    !! * This operation is equivalent to:
+    !! * <pre>
+    !! * this.add(vector.mul(scalar, true));
+    !! * </pre>
+    !! * <br/><br/>
+    !! * Returns a newly allocated vector so that
+    !! * this vector is not modified.
+    !! * <br/><br/>
+    !! * @param vector The vector to add to this vector. This value can not be
+    !! *               null
+    !! * @param scalar The scalar multiplier for the vector being added.
+    !! * @param weak   If true then the returned vector will be automatically
+    !! *               released to the global object pool when used as an
+    !! *               argument to another Nape function. (default false)
+    !! * @return       The possibly weak vector representing the sum of this
+    !! *               and the input vector by scalar multiplier.
+    !! * @throws # If this vector, or the vector argument has been disposed.
+    !! * @throws # If the vector passed as argument is null.
+    !! */
+    keep public function addMul(vector:Vec2, scalar:Float, weak:Bool = false):Vec2 {
+        Disposed(this, Vec2);
+        Disposed(vector, Vec2);
+
+        DEBUG(
+            if(vector == null) {
+                throw "Error: Cannot add null vectors";
+            }
+        )
+
+        var ret = Vec2.get(x + (vector.x * scalar),
+                           y + (vector.y * scalar),
+                           weak);
+
+        WEAK(vector);
+        return ret;
+    }
+
+    !!/**
     !! * Subtract another vector from this vector.
     !! * <br/><br/>
     !! * Returns a newly allocated vector so that this vector is not mutated.
