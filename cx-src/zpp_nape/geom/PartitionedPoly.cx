@@ -124,7 +124,7 @@ class PR(PartitionedPoly) {
     public var vertices:Vertex = null; //circular linked list.
 
     function eq(a:Vertex, b:Vertex) {
-        return vec_dsq(a., b.) < PR(Const).EPSILON;
+        return vec_dsq(a., b.) < PR(Const).EPSILONSQ;
     }
 
     //we remove degenerate vertices, and collinear vertices
@@ -142,33 +142,45 @@ class PR(PartitionedPoly) {
         }
         while (p != P);
         remove_collinear_vertices();
-        DEBUG(if(size(vertices)<3) throw "Error: Degenerate poly can't be decomposed";)
     }
 
     public function remove_collinear_vertices() {
+        // strip equal vertices first
         var p = vertices;
         var skip = true;
         while (skip || p != vertices) {
             skip = false;
-            if(eq(p, p.next)) {
+            if (eq(p, p.next)) {
                 //remove vertex 'p'
                 if (p == vertices) {
                     vertices = p.next;
-                    skip = true;
+                    skip = true;                        
                 }
                 if (p.forced) p.next.forced = true;
                 p = pop_ret_after(p);
-            }
-            else {
-                var pre = p.prev;
-                while(eq(p, pre)) {
-                    if (p.forced) pre.forced = true;
-                    pre = pre.prev;
+                if (p == null) {
+                    vertices = null;
+                    break;
                 }
+            }
+        }
 
+        if (vertices == null) return true;
+
+        // strip collinear vertices
+        // due to epsilon, may need more than one pass.
+        var removed;
+        do {
+            removed = false;                
+            p = vertices;
+            skip = true;
+            while (skip || p != vertices) {
+                skip = false;                    
+                var pre = p.prev;
                 vec_new(u); vec_sub(p., pre., u);
                 vec_new(v); vec_sub(p.next., p. , v);
-                if (vec_cross(u, v) != 0.0) {
+                var crs = vec_cross(u, v);
+                if (crs * crs >= PR(Const).EPSILONSQ) {
                     //keep vertex
                     p = p.next;
                 }else
@@ -179,9 +191,56 @@ class PR(PartitionedPoly) {
                         skip = true;
                     }
                     p = pop_ret_after(p);
+                    removed = true;
+
+                    if (p == null) {
+                        removed = false;
+                        vertices = null;
+                        break;
+                    }
                 }
             }
         }
+        while (removed);
+
+        return (vertices == null);
+
+//        var p = vertices;
+//        var skip = true;
+//        while (skip || p != vertices) {
+//            skip = false;
+//            if(eq(p, p.next)) {
+//                //remove vertex 'p'
+//                if (p == vertices) {
+//                    vertices = p.next;
+//                    skip = true;
+//                }
+//                if (p.forced) p.next.forced = true;
+//                p = pop_ret_after(p);
+//            }
+//            else {
+//                var pre = p.prev;
+//                while(eq(p, pre)) {
+//                    if (p.forced) pre.forced = true;
+//                    pre = pre.prev;
+//                }
+//
+//                vec_new(u); vec_sub(p., pre., u);
+//                vec_new(v); vec_sub(p.next., p. , v);
+//                if (vec_cross(u, v) != 0.0) {
+//                    //keep vertex
+//                    p = p.next;
+//                }else
+//                {
+//                    //remove vertex 'p'
+//                    if (p == vertices) {
+//                        vertices = p.next;
+//                        skip = true;
+//                    }
+//                    p = pop_ret_after(p);
+//                }
+//            }
+//        }
     }
 
     public function add_diagonal(p:Vertex,q:Vertex) {
@@ -193,11 +252,22 @@ class PR(PartitionedPoly) {
     //perform extraction, but into more partition polygons instead.
     public function extract_partitions() {
         var ret = new List(PR(PartitionedPoly))();
-        for_iter(c, vertices, c.sort());
-        pull_partitions(vertices, ret);
-        clear(vertices);
-        // remove any collinear vertices as we seed this to new decompositions directly.
-        Iter(p, ret, p.remove_collinear_vertices());
+        if (vertices != null) {
+            for_iter(c, vertices, c.sort());
+            pull_partitions(vertices, ret);
+            clear(vertices);
+            // remove any collinear vertices as we seed this to new decompositions directly.
+
+            // remove_collinear_vertices can zero a polygon.
+            var pre = null;
+            Iter(p, ret, {
+                if(p.remove_collinear_vertices()) {
+                    ret.erase(pre);
+                    continue;                    
+                }
+                pre = cx_ite;
+            })
+        }
         return ret;
     }
     private function pull_partitions(start:Vertex, ret:List(PR(PartitionedPoly))) {
@@ -226,9 +296,11 @@ class PR(PartitionedPoly) {
     //pull polygons out of the partitions
     public function extract() {
         var ret = new List(PR(GeomVert))();
-        for_iter(c, vertices, c.sort());
-        pull(vertices, ret);
-        clear(vertices);
+        if (vertices != null) {
+            for_iter(c, vertices, c.sort());
+            pull(vertices, ret);
+            clear(vertices);
+        }
         return ret;
     }
     private function pull(start:Vertex, ret:List(PR(GeomVert))) {
