@@ -22,6 +22,9 @@ class GeomPoly {
     // caxe only alias for vertex list
     $(mixin verts() pr(inner).vertices);
 
+    // GeomPoly is poolable as a public object.
+    PublicMixPool(GeomPoly)
+
     !!/**
     !! * @private
     !! */
@@ -31,8 +34,10 @@ class GeomPoly {
     !! * Determine if polygon is empty.
     !! *
     !! * @return True if polygon is empty.
+    !! * @throws # If this GeomPoly has been disposed.
     !! */
     public inline function empty():Bool {
+        Disposed(this, GeomPoly);
         return mix_circular(Vertex, empty(verts));
     }
 
@@ -40,8 +45,10 @@ class GeomPoly {
     !! * Determine number of vertices in polygon
     !! *
     !! * @return The number of vertices.
+    !! * @throws # If this GeomPoly has been disposed.
     !! */
     public function size():Int {
+        Disposed(this, GeomPoly);
         return mix_circular(Vertex, size(verts));
     }
 
@@ -49,8 +56,10 @@ class GeomPoly {
     !! * Haxe iterator over vertices of polygon.
     !! *
     !! * @return A Haxe iterator over the vertices of the polygon.
+    !! * @throws # If this GeomPoly has been disposed.
     !! */
     public inline function iterator():GeomVertexIterator {
+        Disposed(this, GeomPoly);
         return PR(GeomVertexIterator).get(verts, true);
     }
 
@@ -59,8 +68,10 @@ class GeomPoly {
     !! *
     !! * @return A Haxe iterator over the vertices of the polygon.
     !! *         Iterating in a forward direction.
+    !! * @throws # If this GeomPoly has been disposed.
     !! */
     public inline function forwardIterator():GeomVertexIterator {
+        Disposed(this, GeomPoly);
         return PR(GeomVertexIterator).get(verts, true);
     }
 
@@ -69,8 +80,10 @@ class GeomPoly {
     !! *
     !! * @return A Haxe iterator over the vertices of the polygon.
     !! *         Iterating in a backwards direction.
+    !! * @throws # If this GeomPoly has been disposed.
     !! */
     public inline function backwardsIterator():GeomVertexIterator {
+        Disposed(this, GeomPoly);
         return PR(GeomVertexIterator).get(verts, false);
     }
 
@@ -89,8 +102,10 @@ class GeomPoly {
     !! *
     !! * @return A Vec2 representing the current vertex of polygon.
     !! * @throws # If polygon is empty.
+    !! * @throws # If this GeomPoly has been disposed.
     !! */
     public inline function current():Vec2 {
+        Disposed(this, GeomPoly);
         DEBUG(
             if (empty()) {
                 throw "Error: GeomPoly is empty";
@@ -125,8 +140,10 @@ class GeomPoly {
     !! * @param vertex The Vec2 to be used in initialising the inner vertex.
     !! * @return A reference to this polygon.
     !! * @throws # If Vec2 is null, or has been disposed.
+    !! * @throws # If this GeomPoly has been disposed.
     !! */
     public function push(vertex:Vec2):GeomPoly {
+        Disposed(this, GeomPoly);
         Disposed(vertex, Vec2);
         DEBUG(
             if (vertex == null) {
@@ -162,8 +179,10 @@ class GeomPoly {
     !! *
     !! * @return A reference to this polygon.
     !! * @throws # If polygon is empty.
+    !! * @throws # If this GeomPoly has been disposed.
     !! */
     public function pop():GeomPoly {
+        Disposed(this, GeomPoly);
         mix_circular(Vertex,
             DEBUG(
                 if (empty(verts)) {
@@ -204,6 +223,7 @@ class GeomPoly {
     !! * @param vertex The Vec2 to be used in initialising the inner vertex.
     !! * @return A reference to this polygon.
     !! * @throws # If Vec2 is null, or has been disposed.
+    !! * @throws # If this GeomPoly has been disposed.
     !! */
     public function unshift(vertex:Vec2):GeomPoly {
         Disposed(vertex, Vec2);
@@ -242,8 +262,10 @@ class GeomPoly {
     !! *
     !! * @return A reference to this polygon.
     !! * @throws # If polygon is empty.
+    !! * @throws # If this GeomPoly has been disposed.
     !! */
     public function shift():GeomPoly {
+        Disposed(this, GeomPoly);
         mix_circular(Vertex,
             DEBUG(
                 if (empty(verts)) {
@@ -282,8 +304,10 @@ class GeomPoly {
     !! *               This value can be negative indicating a backwards
     !! *               advance.
     !! * @return A reference to this polygon.
+    !! * @throws # If this GeomPoly has been disposed.
     !! */
     public function skipForward(times:Int):GeomPoly {
+        Disposed(this, GeomPoly);
         mix_circular(Vertex,
             if (!empty(verts)) {
                 if (times>0) {
@@ -320,8 +344,10 @@ class GeomPoly {
     !! *               This value can be negative indicating a forwards
     !! *               advance.
     !! * @return A reference to this polygon.
+    !! * @throws # If this GeomPoly has been disposed.
     !! */
     public inline function skipBackwards(times:Int) {
+        Disposed(this, GeomPoly);
         return skipForward(-times);
     }
 
@@ -354,8 +380,10 @@ class GeomPoly {
     !! * @param count The number of vertices to erase, with sign indicating
     !! *              the direction for erasing.
     !! * @return A reference to this polygon.
+    !! * @throws # If this GeomPoly has been disposed.
     !! */
     public function erase(count:Int):GeomPoly {
+        Disposed(this, GeomPoly);
         mix_circular(Vertex,
             while (count != 0 && !empty(verts)) {
                 var retv = verts;
@@ -380,8 +408,10 @@ class GeomPoly {
     !! * All of the vertices will be released to the global object pool.
     !! *
     !! * @return A reference to this polygon.
+    !! * @throws # If this GeomPoly has been disposed.
     !! */
     public function clear():GeomPoly {
+        Disposed(this, GeomPoly);
         mix_circular(Vertex,
             clear_with(verts, $(mixin cb(x) Free(Vertex, x)) cb);
         )
@@ -408,9 +438,11 @@ class GeomPoly {
     !! * </pre>
     !! *
     !! * @return The new GeomPoly representing the copy.
+    !! * @throws # If this GeomPoly has been disposed.
     !! */
     public function copy():GeomPoly {
-        var ret = new GeomPoly();
+        Disposed(this, GeomPoly);
+        var ret = GeomPoly.get();
         mix_circular(Vertex,
             for_iter(v, verts, {
                 ret.verts = push_after(ret.verts, Vertex.get(v.x,v.y));
@@ -429,6 +461,8 @@ class GeomPoly {
     !! * The input will be used to initialise the vertices of the polygon with
     !! * the head of the polygon pointing to the first vertex in input with vertices
     !! * inserted in forward order.
+    !! * <br/><br/>
+    !! * You should use the static 'get' method in preference to make use of object pool.
     !! *
     !! * @param vertices Vertex data to initialise polygon, or null for empty polygon.
     !! * @return New GeomPoly representing input vertex data.
@@ -445,6 +479,55 @@ class GeomPoly {
             skipForward(1);
             PolyWeak(vertices);
         }
+    }
+
+    !!/**
+    !! * Allocate GeomPoly from object pool.
+    !! * <br/><br/>
+    !! * The vertices argument is typed Dynamic (* in AS3), and is permitted
+    !! * to be one of: <code>Array&lt;Vec2&gt;, flash.Vector&lt;Vec2&gt;, Vec2List, GeomPoly</code>
+    !! * <br/><br/>
+    !! * The input will be used to initialise the vertices of the polygon with
+    !! * the head of the polygon pointing to the first vertex in input with vertices
+    !! * inserted in forward order.
+    !! *
+    !! * @param vertices Vertex data to initialise polygon, or null for empty polygon.
+    !! * @return New GeomPoly representing input vertex data, allocated from object pool.
+    !! * @throws # If input data is not of an expected Type.
+    !! */
+    public static function get(vertices:Dynamic = null) {
+        var ret; PublicGet(GeomPoly, ret);
+        if(vertices != null) {
+            PolyIter(v, vertices, {
+                mix_circular(Vertex,
+                    ret.verts = push_after(ret.verts, Vertex.get(v.x, v.y));
+                )
+            });
+            ret.skipForward(1);
+            PolyWeak(vertices);
+        }
+        return ret;
+    }
+
+    !!/**
+    !! * Release this GeomPoly to global object pool.
+    !! * <br/><br/>
+    !! * Once disposed this GeomPoly will be accessible to Nape internals for re-allocation
+    !! * and should not be touched (Good practice would be to set any references to this
+    !! * GeomPoly to null to help ensure this).
+    !! * <br/><br/>
+    !! * In debug mode, should you attempt to access this GeomPoly after disposal
+    !! * and the GeomPoly is still in the object pool, you will be given an Error.
+    !! * The object pool operates on a First-In-Last-Out principal in debug mode to help
+    !! * catch these sort of errors.
+    !! * @throws # If this GeomPoly has already been disposed.
+    !! */
+    public function dispose():Void {
+        Disposed(this, GeomPoly);
+        
+        // Release vertices to object pool.
+        clear();
+        PublicFree(GeomPoly, this);
     }
 
     !!/**
@@ -472,8 +555,10 @@ class GeomPoly {
     !! * to the true area.
     !! *
     !! * @return The area of the polygon.
+    !! * @throws # If this GeomPoly has been disposed.
     !! */
     public function area():Float {
+        Disposed(this, GeomPoly);
         return if (size_lt_3) 0.0 else area(verts);
     }
 
@@ -496,8 +581,10 @@ class GeomPoly {
     !! * will be returned.
     !! *
     !! * @return The winding of the polygon.
+    !! * @throws # If this GeomPoly has been disposed.
     !! */
     public function winding():Winding {
+        Disposed(this, GeomPoly);
         if (size_lt_3) {
             return Winding.UNDEFINED;
         }
@@ -523,8 +610,10 @@ class GeomPoly {
     !! * @param point The point to test for containment.
     !! * @return True if point is contained in the polygon.
     !! * @throws # If point is null or has been disposed.
+    !! * @throws # If this GeomPoly has been disposed.
     !! */
     public function contains(point:Vec2):Bool {
+        Disposed(this, GeomPoly);
         Disposed(point,Vec2);
         DEBUG(
             if (point == null) {
@@ -544,6 +633,7 @@ class GeomPoly {
     !! * This is equivalent to <code>poly.winding() == Winding.CLOCKWISE</code>.
     !! *
     !! * @return True if polygon is clockwise wound.
+    !! * @throws # If this GeomPoly has been disposed.
     !! */
     public inline function isClockwise():Bool {
         return winding() == Winding.CLOCKWISE;
@@ -572,8 +662,10 @@ class GeomPoly {
     !! * This algorithm operates in O(n) time.
     !! *
     !! * @return True if polygon is found to be convex.
+    !! * @throws # If this GeomPoly has been disposed.
     !! */
     public function isConvex():Bool {
+        Disposed(this, GeomPoly);
         return if(size_lt_3) true else convex(verts);
     }
 
@@ -603,8 +695,10 @@ class GeomPoly {
     !! * This algorithm operates in O(n.log(n)) time.
     !! *
     !! * @return True if polygon is strictly simple.
+    !! * @throws # If this GeomPoly has been disposed.
     !! */
     public inline function isSimple():Bool {
+        Disposed(this, GeomPoly);
         return if(size_lt_3) true else PR(Simple).isSimple(verts);
     }
 
@@ -626,8 +720,10 @@ class GeomPoly {
     !! * This algorithm operates in O(n) time.
     !! *
     !! * @return True if polygon is y-monotone.
+    !! * @throws # If this GeomPoly has been disposed.
     !! */
     public inline function isMonotone():Bool {
+        Disposed(this, GeomPoly);
         return if(size_lt_3) true else PR(Monotone).isMonotone(verts);
     }
 
@@ -638,8 +734,10 @@ class GeomPoly {
     !! * then this function may report degeneracy erroneously.
     !! *
     !! * @return True if polygon is degenerate.
+    !! * @throws # If this GeomPoly has been disposed.
     !! */
     public inline function isDegenerate():Bool {
+        Disposed(this, GeomPoly);
         return if(size_lt_3) true else area() < PR(Const).EPSILON;
     }
 
@@ -667,8 +765,10 @@ class GeomPoly {
     !! * @param epsilon The distance from polygon at which vertices are ignored.
     !! * @return A new GeomPoly representing the result of the simplification.
     !! * @throws # If epsilon is <= 0.
+    !! * @throws # If this GeomPoly has been disposed.
     !! */
     public function simplify(epsilon:Float):GeomPoly {
+        Disposed(this, GeomPoly);
         DEBUG(
             if(epsilon <= 0.0) {
                 throw "Error: Epsilon should be > 0 for simplifying a GeomPoly";
@@ -680,7 +780,7 @@ class GeomPoly {
         }
         else {
             var x = PR(Simplify).simplify(verts, epsilon);
-            var ret = new GeomPoly();
+            var ret = GeomPoly.get();
             ret.verts = x;
             return ret;
         }
@@ -701,8 +801,10 @@ class GeomPoly {
     !! * @throws # If polygon is degenerate.
     !! * @throws # Any other error may be thrown if algorithm has failed, even
     !! *           in release builds!
+    !! * @throws # If this GeomPoly has been disposed.
     !! */
     public function simpleDecomposition():GeomPolyList {
+        Disposed(this, GeomPoly);
         DEBUG(
             if(size_lt_3) {
                 throw "Error: Cannot decompose a degenerate polygon";
@@ -713,7 +815,7 @@ class GeomPoly {
         var ret = new GeomPolyList();
         while (!MPs.empty()) {
             var MP = MPs.pop_unsafe();
-            var x = new GeomPoly();
+            var x = GeomPoly.get();
             x.verts = MP;
             ret.add(x);
         }
@@ -740,8 +842,10 @@ class GeomPoly {
     !! *
     !! * @return A Nape list of GeomPoly's defining the decomposition.
     !! * @throws # If polygon is degenerate.
+    !! * @throws # If this GeomPoly has been disposed.
     !! */
     public function monotoneDecomposition():GeomPolyList {
+        Disposed(this, GeomPoly);
         DEBUG(
             if(size_lt_3) {
                 throw "Error: Cannot decompose a degenerate polygon";
@@ -752,7 +856,7 @@ class GeomPoly {
         var ret = new GeomPolyList();
         while (!MPs.empty()) {
             var MP = MPs.pop_unsafe();
-            var x = new GeomPoly();
+            var x = GeomPoly.get();
             x.verts = MP;
             ret.add(x);
             assert(x.isMonotone(), "monotone decomposition gave non-monotone output?");
@@ -778,8 +882,10 @@ class GeomPoly {
     !! *
     !! * @return A Nape list of GeomPoly's defining the decomposition.
     !! * @throws # If polygon is degenerate.
+    !! * @throws # If this GeomPoly has been disposed.
     !! */
     public function convexDecomposition():GeomPolyList {
+        Disposed(this, GeomPoly);
         DEBUG(
             if(size_lt_3) {
                 throw "Error: Cannot decompose a degenerate polygon";
@@ -797,7 +903,7 @@ class GeomPoly {
             var MQs = MP.extract();
             while (!MQs.empty()) {
                 var MQ = MQs.pop_unsafe();
-                var x = new GeomPoly();
+                var x = GeomPoly.get();
                 x.verts = MQ;
                 ret.add(x);
                 assert(x.isConvex(),"convex decomposition gave non-convex output?");
@@ -822,8 +928,10 @@ class GeomPoly {
     !! *
     !! * @return A Nape list of GeomPoly's defining the decomposition.
     !! * @throws # If polygon is degenerate.
+    !! * @throws # If this GeomPoly has been disposed.
     !! */
     public function triangularDecomposition():GeomPolyList {
+        Disposed(this, GeomPoly);
         DEBUG(
             if(size_lt_3) {
                 throw "Error: Cannot decompose a degenerate polygon";
@@ -838,7 +946,7 @@ class GeomPoly {
 
             while (!MQs.empty()) {
                 var MQ = MQs.pop_unsafe();
-                var x = new GeomPoly();
+                var x = GeomPoly.get();
                 x.verts = MQ;
                 ret.add(x);
                 assert(x.size()==3,"triangular decomosition gave non-triangle output?");
@@ -862,9 +970,11 @@ class GeomPoly {
     !! * @param inflation The number of pixels to inflate polygon by. To deflate
     !! *                  use a negative value.
     !! * @return The inflated polygon.
+    !! * @throws # If this GeomPoly has been disposed.
     !! */
     public function inflate(inflation:Float):GeomPoly {
-        var ret = new GeomPoly();
+        Disposed(this, GeomPoly);
+        var ret = GeomPoly.get();
         if (isClockwise()) inflation = -inflation; 
 
     mix_circular(PR(GeomVert),
@@ -923,6 +1033,7 @@ class GeomPoly {
     !! * @return A list of GeomPoly representing the result of the cut.
     !! * @throws # If polygon is not simple.
     !! * @throws # If start or end Vec2 are null or disposed of.
+    !! * @throws # If this GeomPoly has been disposed.
     !! */
     public function cut(
         start:Vec2,
@@ -930,6 +1041,7 @@ class GeomPoly {
         bounded_start:Bool = false,
         bounded_end:Bool = false
     ):GeomPolyList {
+        Disposed(this, GeomPoly);
         DEBUG(
             if(!isSimple()) {
                 throw "Error: Cut requires a truly simple polygon";
@@ -960,8 +1072,10 @@ mix_circular(Vertex,
     !! * @param matrix The matrix to transform polygon by.
     !! * @return A reference to this polygon.
     !! * @throws # If matrix is null.
+    !! * @throws # If this GeomPoly has been disposed.
     !! */
     public function transform(matrix:Mat23):GeomPoly {
+        Disposed(this, GeomPoly);
         DEBUG(
             if (matrix == null) {
                 throw "Error: Cannot transform by null matrix";
@@ -980,8 +1094,10 @@ mix_circular(Vertex,
     !! *
     !! * @return A new AABB representing bounds of polygon.
     !! * @throws # If polygon is empty.
+    !! * @throws # If this GeomPoly has been disposed.
     !! */
     public function bounds():AABB {
+        Disposed(this, GeomPoly);
         DEBUG(
             if(empty()) {
                 throw "Error: empty GeomPoly has no defineable bounds";
@@ -1011,8 +1127,10 @@ mix_circular(Vertex,
     !! *
     !! * @return A Vec2 representing the top most vertex.
     !! * @throws # If polygon is empty.
+    !! * @throws # If this GeomPoly has been disposed.
     !! */
     public function top():Vec2 {
+        Disposed(this, GeomPoly);
         DEBUG(
             if(empty()) {
                 throw "Error: empty GeomPoly has no defineable topmost vertex";
@@ -1036,8 +1154,10 @@ mix_circular(Vertex,
     !! *
     !! * @return A Vec2 representing the bottom most vertex.
     !! * @throws # If polygon is empty.
+    !! * @throws # If this GeomPoly has been disposed.
     !! */
     public function bottom():Vec2 {
+        Disposed(this, GeomPoly);
         DEBUG(
             if(empty()) {
                 throw "Error: empty GeomPoly has no defineable bottommost vertex";
@@ -1061,8 +1181,10 @@ mix_circular(Vertex,
     !! *
     !! * @return A Vec2 representing the left most vertex.
     !! * @throws # If polygon is empty.
+    !! * @throws # If this GeomPoly has been disposed.
     !! */
     public function left():Vec2 {
+        Disposed(this, GeomPoly);
         DEBUG(
             if(empty()) {
                 throw "Error: empty GeomPoly has no defineable leftmost vertex";
@@ -1086,8 +1208,10 @@ mix_circular(Vertex,
     !! *
     !! * @return A Vec2 representing the right most vertex.
     !! * @throws # If polygon is empty.
+    !! * @throws # If this GeomPoly has been disposed.
     !! */
     public function right():Vec2 {
+        Disposed(this, GeomPoly);
         DEBUG(
             if(empty()) {
                 throw "Error: empty GeomPoly has no defineable rightmmost vertex";

@@ -79,6 +79,8 @@ class MarchingSquares {
     !! *                will be combined into the largest possible weakly-simple
     !! *                polygons representing the same area. These polygons will
     !! *                always be suitable for decomposition in Nape. (default true)
+    !! * @param output When supplied, GeomPoly will be inserted into the list (via add)
+    !! *               instead of creating a new GeomPolyList object.
     !! * @return A list of GeomPoly representing the results of the extraction.
     !! * @throws # If iso, bounds or cellsize argument is null.
     !! * @throws # If cellsize is disposed, or its components have 0, or negative values.
@@ -92,7 +94,8 @@ class MarchingSquares {
         cellsize:Vec2,
         quality:Int = 2,
         subgrid:Vec2 = null,
-        combine:Bool = true
+        combine:Bool = true,
+        output:GeomPolyList = null
     ) {
         Disposed(cellsize, Vec2);
         Disposed(subgrid, Vec2);
@@ -119,7 +122,7 @@ class MarchingSquares {
             }
         )
 
-        var ret = new GeomPolyList();
+        var ret = (output != null ? output : new GeomPolyList());
         if (subgrid == null) {
             // Only need a single invocation for whole of bounds.
             PR(MarchingSquares).run(
