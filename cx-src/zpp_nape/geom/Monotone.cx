@@ -89,6 +89,7 @@ class PR(Monotone) {
     )
     }
 
+    static var queue:List(Vertex) = null;
     public static function decompose(P:PR(GeomVert)) {
     mix_circular(Vertex,
         var poly = new PR(PartitionedPoly)(P);
@@ -96,7 +97,7 @@ class PR(Monotone) {
 
         //populate vertices with event types
         //and produce list of sorted events
-        var queue = new List(Vertex)();
+        if (queue == null) queue = new List(Vertex)();
         for_iter(p, poly.vertices, {
             queue.add(p);
             //compute event type
