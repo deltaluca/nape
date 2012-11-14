@@ -26,7 +26,7 @@ class Vertex {
 
     // Object pool implementors
     MixPoolNoNext(Vertex)
-    public function free():Void {
+    public inline function free():Void {
         if (wrap != null) {
             wrap.pr(inner)._inuse = false;
             wrap.dispose();
@@ -34,12 +34,12 @@ class Vertex {
         }
         prev = next = null;
     }
-    public function alloc():Void {
+    public inline function alloc():Void {
         forced = false;
     }
 
     // Function to access and lazily construct public warpped Vec2
-    public function wrapper():Vec2 {
+    public inline function wrapper():Vec2 {
         if (wrap==null) {
             wrap = Vec2.get(x,y);
             wrap.pr(inner)._inuse = true;
@@ -49,16 +49,16 @@ class Vertex {
 
         return wrap;
     }
-    public function modwrap(n:PR(Vec2)):Void {
+    public inline function modwrap(n:PR(Vec2)):Void {
         vec_set(this.,n.);
     }
-    public function getwrap():Void {
+    public inline function getwrap():Void {
         vec_set(wrap.pr(inner).,this.);
     }
 
     // Function to be used to construct a Vertex so that object pool
     // is automaticaly used. Constructor should 'not' be used here.
-    public static function get(x:Float, y:Float):Vertex {
+    public static inline function get(x:Float, y:Float):Vertex {
         var ret; Get(Vertex, ret);
         vec_set(ret., $(->));
         return ret;
