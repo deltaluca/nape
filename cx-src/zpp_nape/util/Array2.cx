@@ -4,16 +4,42 @@ $(import);
 class Array2<T> {
     public var list:TArray(T) = null;
     public var width:Int = 0;
-    #if NAPE_ASSERT public var height:Int = 0; #end
+    #if NAPE_ASSERT
+        public var height:Int = 0;
+    #end
+    #if flash10
+        public var total:Int = 0;
+    #end
+
     public function new(width:Int,height:Int) {
         this.width = width;
-        #if NAPE_ASSERT this.height = height; #end
+        #if NAPE_ASSERT
+            this.height = height;
+        #end
 
         #if flash10
-            list = new flash.Vector<T>(width*height,true);
+            total = width*height;
+            list = new flash.Vector<T>(total, true);
         #else
             list = new Array<T>();
         #end
+    }
+
+    public function resize(width:Int, height:Int, def:T) {
+        #if flash10
+            var total = width*height;
+            if (total > this.total) {
+                list = new flash.Vector<T>(this.total = total, true);                    
+            }
+        #end
+        this.width = width;
+        #if NAPE_ASSERT
+            this.height = height;
+        #end
+
+        for (i in 0...width*height) {
+            list[i] = def;                
+        }
     }
 
     flibmdel public inline function get(x:Int,y:Int) {
