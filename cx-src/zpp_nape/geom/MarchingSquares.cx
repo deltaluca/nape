@@ -168,11 +168,14 @@ class PR(MarchingSquares) {
                 }else {
                     me.output(ret,pp.p1);
                     if(pp.p2!=null) me.output(ret,pp.p2);
+                    Free(VPair, pp);
                 }
             }
         }
 
-        if(!combine) return;
+        if (!combine) {
+            return;                
+        }
 
         for(y in 1...yn) {
             var pre:Span = null;
@@ -695,7 +698,7 @@ class PR(MarchingSquares) {
         });
     }
 
-    function lerp(x0:Float,x1:Float,v0:Float,v1:Float) {
+    inline function lerp(x0:Float,x1:Float,v0:Float,v1:Float) {
         if  (v0==0) return x0;
         elif(v1==0) return x1;
         else {
@@ -708,7 +711,7 @@ class PR(MarchingSquares) {
     function xlerp(x0:Float,x1:Float,y:Float,v0:Float,v1:Float,iso:Float->Float->Float,quality:Int) {
         var xm = lerp(x0,x1,v0,v1);
         while(quality--!=0 && x0<xm && xm<x1) {
-            var vm = iso(xm,y);
+            var vm:Float = iso(xm,y);
             if(vm==0) break;
             if(v0*vm<0) { x1 = xm; v1 = vm; }
             else        { x0 = xm; v0 = vm; }
@@ -719,7 +722,7 @@ class PR(MarchingSquares) {
     function ylerp(y0:Float,y1:Float,x:Float,v0:Float,v1:Float,iso:Float->Float->Float,quality:Int) {
         var ym = lerp(y0,y1,v0,v1);
         while(quality--!=0 && y0<ym && ym<y1) {
-            var vm = iso(x,ym);
+            var vm:Float = iso(x,ym);
             if(vm==0) break;
             if(v0*vm<0) { y1 = ym; v1 = vm; }
             else        { y0 = ym; v0 = vm; }
