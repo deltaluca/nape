@@ -89,10 +89,24 @@ class PR(Monotone) {
     )
     }
 
+    // Shared PartitionedPoly to be re-used
+    public static var sharedPPoly:PR(PartitionedPoly);
+    public static inline function getShared() {
+        if (sharedPPoly==null) sharedPPoly = new PR(PartitionedPoly)();            
+        return sharedPPoly;
+    }
+
     static var queue:List(Vertex) = null;
-    public static function decompose(P:PR(GeomVert)) {
+    static var edges:Set(Edge) = null;
+    public static function decompose(P:PR(GeomVert), ?poly:PR(PartitionedPoly)) {
     mix_circular(Vertex,
-        var poly = new PR(PartitionedPoly)(P);
+        if (poly == null) {
+            poly = new PR(PartitionedPoly)(P);
+        }
+        else {
+            poly.init(P);                
+        }
+
         if (poly.vertices == null) return poly;
 
         //populate vertices with event types
@@ -117,9 +131,11 @@ class PR(Monotone) {
         Sort(queue,Node(Vertex),above);
 
         //sorted list of edges based on Edge::edge_lt
-        var edges; Get(Set(Edge), edges);
-        edges.lt = Edge.edge_lt;
-        edges.swapped = Edge.edge_swap;
+        if (edges == null) {
+            Get(Set(Edge), edges);
+            edges.lt = Edge.edge_lt;
+            edges.swapped = Edge.edge_swap;
+        }
 
         //yay
         while(!queue.empty()) {
@@ -176,7 +192,6 @@ class PR(Monotone) {
         }
 
         assert(edges.empty(),"non-empty edges after monotone");
-        Free(Set(Vertex),edges);
 
         return poly;
     )

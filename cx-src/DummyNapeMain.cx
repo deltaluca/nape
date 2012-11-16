@@ -10,7 +10,11 @@ interface IsoFunction {
     public function iso(x:Float, y:Float):Float;        
 }
 
-class DummyNapeMain implements IsoFunction {
+class IsoIso {
+    public function iso3(x:Float, y:Float):Float { return 0.0; }        
+}
+
+class DummyNapeMain implements IsoFunction, extends IsoIso {
 
     static function call1(iso:Float->Float->Float) {
         var sum = 0.0;
@@ -44,11 +48,24 @@ class DummyNapeMain implements IsoFunction {
         return sum;
     }
 
+    static function call4(iso:IsoIso) {
+        var sum = 0.0;
+        for (i in 0...100) {
+        for (j in 0...100) {
+            sum += iso.iso3(i/2, j/2);                
+        }
+        }
+        return sum;
+    }
+
     public function iso(x:Float, y:Float):Float {
         return (Std.int(x)&0xff) - y;            
     }
     public function iso2(x:Float, y:Float, iso:Iso) {
         iso.value = (Std.int(x)&0xff) - y;            
+    }
+    public override function iso3(x:Float, y:Float):Float {
+        return (Std.int(x)&0xff) - y;            
     }
 
     static function main() {
@@ -60,7 +77,8 @@ class DummyNapeMain implements IsoFunction {
     public function goforit() {
 //        call1(iso);            
 //        call2(iso2);
-        call3(this);
+//        call3(this);
+        call4(this);
     }
 
 }

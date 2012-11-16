@@ -130,6 +130,17 @@ class PR(PartitionedPoly) {
     //we remove degenerate vertices, and collinear vertices
     //as this was the easiest way to make the monotonic decomposition robust.
     public function new(?P:PR(GeomVert)) {
+        init(P);            
+    }
+
+    MixPool(PR(PartitionedPoly))
+    public inline function alloc() {
+    }
+    public inline function free() {
+        assert(vertices==null,"freed PartitionedPoly has vertices");            
+    }
+
+    public function init(?P:PR(GeomVert)) {
         if(P==null) return;
         var cw = geom(clockwise(P));
         var p = P;
@@ -212,9 +223,16 @@ class PR(PartitionedPoly) {
         p.forced = q.forced = true;
     }
 
+    // Shared List(PR(PartitionedPoly)) to be re-used
+    public static var sharedPPList:List(PR(PartitionedPoly));
+    public static inline function getSharedPP() {
+        if (sharedPPList==null) sharedPPList = new List(PR(PartitionedPoly))();            
+        return sharedPPList;
+    }
+
     //perform extraction, but into more partition polygons instead.
-    public function extract_partitions() {
-        var ret = new List(PR(PartitionedPoly))();
+    public function extract_partitions(?ret:List(PR(PartitionedPoly))) {
+        if (ret == null) ret = new List(PR(PartitionedPoly))();
         if (vertices != null) {
             for_iter(c, vertices, c.sort());
             pull_partitions(vertices, ret);
@@ -234,7 +252,7 @@ class PR(PartitionedPoly) {
         return ret;
     }
     private function pull_partitions(start:Vertex, ret:List(PR(PartitionedPoly))) {
-        var poly = new PR(PartitionedPoly)();
+        var poly; Get(PR(PartitionedPoly), poly);
         var next = start;
         do {
             mix_circular(PR(Vertex),
@@ -256,9 +274,16 @@ class PR(PartitionedPoly) {
         return next;
     }
 
+    // Shared List(PR(GeomVert)) to be re-used
+    public static var sharedGVList:List(PR(GeomVert));
+    public static inline function getShared() {
+        if (sharedGVList==null) sharedGVList = new List(PR(GeomVert))();            
+        return sharedGVList;
+    }
+
     //pull polygons out of the partitions
-    public function extract() {
-        var ret = new List(PR(GeomVert))();
+    public function extract(?ret:List(PR(GeomVert))) {
+        if (ret == null) ret = new List(PR(GeomVert))();
         if (vertices != null) {
             for_iter(c, vertices, c.sort());
             pull(vertices, ret);

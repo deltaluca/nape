@@ -295,7 +295,7 @@ class BitmapDebug extends Debug {
         var miny = Math.POSITIVE_INFINITY;
         var maxy = Math.NEGATIVE_INFINITY;
 
-        var vertices:Array<Vec2> = [];
+        var vertices = pr(inner_zn).filledVertices;
         PolyIter(p, polygon, {
             var v:Vec2;
             if(pr(inner).xnull)
@@ -316,8 +316,9 @@ class BitmapDebug extends Debug {
         if(y0<0) y0 = 0;
         if(y1>=pr(inner).height) y1 = pr(inner).height-1;
 
+        var xs = pr(inner_zn).filledXs;
         for(y in y0...y1+1) {
-            var xs:Array<Int> = [];
+            var xsi = 0;
             for(i in 0...vertices.length) {
                 var q = vertices[i];
                 var p = vertices[(i+1)%vertices.length];
@@ -326,13 +327,13 @@ class BitmapDebug extends Debug {
                  ||  q.y < y && p.y >= y)
                 ) {
                     var x = p.x + (y-p.y)/(q.y-p.y)*(q.x-p.x);
-                    xs.push(fastint(x+0.5));
+                    xs[xsi++] = fastint(x+0.5);
                 }
             }
-            xs.sort(function (a,b) return a-b);
+            ArraySort(xs, xsi, $(mixin lt(a, b) (a < b)) lt);
 
             var i = 0;
-            while(i+1<xs.length) {
+            while(i+1<xsi) {
                 var u = xs[i++];
                 var v = xs[i++];
                 if(v<0) continue;

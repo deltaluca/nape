@@ -839,12 +839,14 @@ class GeomPoly {
     !! * Berg, Marc van Kreveld, Mark Overmars, and Otfried Schwarzkopf.
     !! * Computational Geometry: Algorithms and Applications. Springer-Verlag,
     !! * Berlin, 1997.
-    !! *
+    !! 
+    !! * @param If supplied, polygons will be appended to this list via 'add'
+    !! *        instead of a new list being constructed.
     !! * @return A Nape list of GeomPoly's defining the decomposition.
     !! * @throws # If polygon is degenerate.
     !! * @throws # If this GeomPoly has been disposed.
     !! */
-    public function monotoneDecomposition():GeomPolyList {
+    public function monotoneDecomposition(output:GeomPolyList=null):GeomPolyList {
         Disposed(this, GeomPoly);
         DEBUG(
             if(size_lt_3) {
@@ -852,8 +854,9 @@ class GeomPoly {
             }
         )
 
-        var MPs = PR(Monotone).decompose(verts).extract();
-        var ret = new GeomPolyList();
+        var poly = PR(Monotone).decompose(verts, PR(Monotone).getShared());
+        var MPs = poly.extract(PR(PartitionedPoly).getShared());
+        var ret = (output == null ? new GeomPolyList() : output);
         while (!MPs.empty()) {
             var MP = MPs.pop_unsafe();
             var x = GeomPoly.get();
@@ -880,11 +883,13 @@ class GeomPoly {
     !! * Vertices may be stripped from the polygon that are found to not be
     !! * necessary as part of making this algorithm robust.
     !! *
+    !! * @param If supplied, polygons will be appended to this list via 'add'
+    !! *        instead of a new list being constructed.
     !! * @return A Nape list of GeomPoly's defining the decomposition.
     !! * @throws # If polygon is degenerate.
     !! * @throws # If this GeomPoly has been disposed.
     !! */
-    public function convexDecomposition():GeomPolyList {
+    public function convexDecomposition(output:GeomPolyList=null):GeomPolyList {
         Disposed(this, GeomPoly);
         DEBUG(
             if(size_lt_3) {
@@ -892,15 +897,18 @@ class GeomPoly {
             }
         )
 
-        var MPs = PR(Monotone).decompose(verts).extract_partitions();
-        var ret = new GeomPolyList();
+        var poly = PR(Monotone).decompose(verts, PR(Monotone).getShared());
+        var MPs = poly.extract_partitions(PR(PartitionedPoly).getSharedPP());
+        var ret = (output == null ? new GeomPolyList() : output);
         while (!MPs.empty()) {
             var MP = MPs.pop_unsafe();
 
             PR(Triangular).triangulate(MP);
             PR(Convex).optimise(MP);
 
-            var MQs = MP.extract();
+            var MQs = MP.extract(PR(PartitionedPoly).getShared());
+            Free(PR(PartitionedPoly), MP);
+
             while (!MQs.empty()) {
                 var MQ = MQs.pop_unsafe();
                 var x = GeomPoly.get();
@@ -926,11 +934,13 @@ class GeomPoly {
     !! * Vertices may be stripped from the polygon that are found to not be
     !! * necessary as part of making this algorithm robust.
     !! *
+    !! * @param If supplied, polygons will be appended to this list via 'add'
+    !! *        instead of a new list being constructed.
     !! * @return A Nape list of GeomPoly's defining the decomposition.
     !! * @throws # If polygon is degenerate.
     !! * @throws # If this GeomPoly has been disposed.
     !! */
-    public function triangularDecomposition():GeomPolyList {
+    public function triangularDecomposition(output:GeomPolyList=null):GeomPolyList {
         Disposed(this, GeomPoly);
         DEBUG(
             if(size_lt_3) {
@@ -938,11 +948,15 @@ class GeomPoly {
             }
         )
 
-        var MPs = PR(Monotone).decompose(verts).extract_partitions();
-        var ret = new GeomPolyList();
+        var poly = PR(Monotone).decompose(verts, PR(Monotone).getShared());
+        var MPs = poly.extract_partitions(PR(PartitionedPoly).getSharedPP());
+        var ret = (output == null ? new GeomPolyList() : output);
         while (!MPs.empty()) {
             var MP = MPs.pop_unsafe();
-            var MQs = PR(Triangular).triangulate(MP).extract();
+            PR(Triangular).triangulate(MP);
+
+            var MQs = MP.extract(PR(PartitionedPoly).getShared());
+            Free(PR(PartitionedPoly), MP);
 
             while (!MQs.empty()) {
                 var MQ = MQs.pop_unsafe();

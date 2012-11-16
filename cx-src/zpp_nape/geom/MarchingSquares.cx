@@ -13,10 +13,10 @@ class Span {
     public var out:Bool = false;
 
     MixPool(Span)
-    public inline function free() {
+    flibmdel public inline function free() {
         parent = this;
     }
-    public inline function alloc() {
+    flibmdel public inline function alloc() {
         out = false;
         rank = 0;
     }
@@ -46,11 +46,11 @@ class VPair {
     public var spanr:Span = null;
 
     MixPool(VPair)
-    public inline function free() {
+    flibmdel public inline function free() {
         p1 = p2 = pr = pd = null;
         span1 = span2 = spanr = null;
     }
-    public inline function alloc() {}
+    flibmdel public inline function alloc() {}
 
     public function new() {}
 }
@@ -318,7 +318,7 @@ class PR(MarchingSquares) {
     //              ^^^
     // first 3 bits are enough to classify the number of skips needed.
     //
-    function linkright(poly:Polygon,key:Int) {
+    flibmdel inline function linkright(poly:Polygon,key:Int) {
         var kind = key&7;
         if  (kind==0) return poly;
         elif(kind==3) return poly.next.next;
@@ -366,7 +366,7 @@ class PR(MarchingSquares) {
     //                 ^
     // first bit is enough to classify number of skips needed
     //
-    function linkleft(poly:Polygon,key:Int) {
+    flibmdel inline function linkleft(poly:Polygon,key:Int) {
         return if((key&1)==0) poly.prev else poly;
     }
 
@@ -409,14 +409,14 @@ class PR(MarchingSquares) {
     //         ^                  ^
     // last bit is enough to classify number of skips needed
     //
-    function linkdown(poly:Polygon,key:Int) {
+    flibmdel inline function linkdown(poly:Polygon,key:Int) {
         return if((key&0x80)==0) poly.prev else poly.prev.prev;
     }
 
     // given a polygon from a VPair with it's key
     // return vertex from start of merge in combUD.
     // trivially, this is simply the start vertex.
-    function linkup(poly:Polygon,key:Int) return poly
+    flibmdel inline function linkup(poly:Polygon,key:Int) return poly
 
     function combLR(a:VPair,b:VPair) {
         //set up pointers for merge
@@ -510,24 +510,24 @@ class PR(MarchingSquares) {
 
     // can combLeft if mid-left exists, or both left-vertices exist
     // similarly for others.
-    function combLeft (key:Int) {
+    flibmdel inline function combLeft (key:Int) {
         var flag = (key&1)|((key&0xC0)>>5);
         return comb(flag);
     }
-    function combRight(key:Int) {
+    flibmdel inline function combRight(key:Int) {
         var flag = (key&0x1C)>>2;
         return comb(flag);
     }
-    function combUp(key:Int) {
+    flibmdel inline function combUp(key:Int) {
         var flag = (key&0x07);
         return comb(flag);
     }
-    function combDown(key:Int) {
+    flibmdel inline function combDown(key:Int) {
         var flag = (key&0x70)>>4;
         return comb(flag);
     }
 
-    function comb(flag:Int) {
+    flibmdel inline function comb(flag:Int) {
         var cnt = 0;
         if((flag&1)!=0) cnt++;
         if((flag&2)!=0) cnt++;

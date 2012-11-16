@@ -10,8 +10,8 @@ $(import);
 // an Array<Vec2>
 
 //assume polygon is well formed.
-$(mixin global PolyWeak(polygon) ${DEBUG/1,isWEAK/1,WEAK/1,PR/1,pr/1->
-    if(Std.is(polygon,Array)) {
+$(mixin global PolyWeak(polygon) ${DEBUG/1,isWEAK/1,WEAK/1,PR/1,pr/1,Stdis/2->
+    if(Stdis(polygon,Array)) {
         var lv:Array<Vec2> = polygon;
         var i = 0;
         while(i<lv.length) {
@@ -22,7 +22,8 @@ $(mixin global PolyWeak(polygon) ${DEBUG/1,isWEAK/1,WEAK/1,PR/1,pr/1->
             }
             i++;
         }
-    }else if( #if flash10 Std.is(polygon,PR(Const).vec2vector) #else false #end ) {
+//    }else if( #if flash10 Stdis(polygon,PR(Const).vec2vector) #else false #end ) {
+    }else if( #if flash10 untyped __is__(polygon,PR(Const).vec2vector) #else false #end ) {
     #if flash10
         var lv:flash.Vector<Vec2> = polygon;
         if(!lv.fixed) {
@@ -38,7 +39,7 @@ $(mixin global PolyWeak(polygon) ${DEBUG/1,isWEAK/1,WEAK/1,PR/1,pr/1->
         }
     #end
     }
-    else if(Std.is(polygon,Vec2List)) {
+    else if(Stdis(polygon,Vec2List)) {
         var lv:Vec2List = polygon;
         if (lv.pr(inner)._validate != null)
             lv.pr(inner)._validate();
@@ -58,17 +59,18 @@ $(mixin global PolyWeak(polygon) ${DEBUG/1,isWEAK/1,WEAK/1,PR/1,pr/1->
     }
 });
 
-$(mixin global PolyIter(val, polygon, block) ${DEBUG/1,Disposed/2,PR/1,pr/1->
-    if(Std.is(polygon,Array)) {
+$(mixin global PolyIter(val, polygon, block) ${DEBUG/1,Disposed/2,PR/1,pr/1,Stdis/2->
+    if(Stdis(polygon,Array)) {
         var lv:Array<Dynamic> = polygon;
         for(vite in lv) {
             DEBUG(if(vite==null) throw "Error: Array<Vec2> contains null objects";)
-            DEBUG(if(!Std.is(vite,Vec2)) throw "Error: Array<Vec2> contains non Vec2 objects";)
+            DEBUG(if(!Stdis(vite,Vec2)) throw "Error: Array<Vec2> contains non Vec2 objects";)
             var val:Vec2 = vite;
             Disposed(val,Vec2);
             block;
         }
-    }else if(#if flash10 Std.is(polygon,PR(Const).vec2vector) #else false #end) {
+//    }else if(#if flash10 Stdis(polygon,PR(Const).vec2vector) #else false #end) {
+    }else if( #if flash10 untyped __is__(polygon,PR(Const).vec2vector) #else false #end ) {
     #if flash10
         var lv:flash.Vector<Vec2> = polygon;
         for(vite in lv) {
@@ -80,7 +82,7 @@ $(mixin global PolyIter(val, polygon, block) ${DEBUG/1,Disposed/2,PR/1,pr/1->
         }
     #end
     }
-    else if(Std.is(polygon,Vec2List)) {
+    else if(Stdis(polygon,Vec2List)) {
         var lv:Vec2List = polygon;
         for(val in lv) {
             DEBUG(if(val==null) throw "Error: Vec2List contains null objects";)
@@ -88,7 +90,7 @@ $(mixin global PolyIter(val, polygon, block) ${DEBUG/1,Disposed/2,PR/1,pr/1->
 
             block;
         }
-    }else if(Std.is(polygon,GeomPoly)) {
+    }else if(Stdis(polygon,GeomPoly)) {
         var lv:GeomPoly = polygon;
         Disposed(lv, GeomPoly);
         var verts:PR(GeomVert) = lv.pr(inner).vertices;

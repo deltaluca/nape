@@ -123,22 +123,22 @@ class PR(OptionType) {
             }
         )
 
-        if (Std.is(val, CbType)) {
+        if (Stdis(val, CbType)) {
             var cb:CbType = val;
             append_type(list, cb.pr(inner));
-        }elif (Std.is(val, CbTypeList)) {
+        }elif (Stdis(val, CbTypeList)) {
             var cbs:CbTypeList = val;
             for(cb in cbs) append_type(list, cb.pr(inner));
-        }elif (#if flash10 Std.is(val, PR(Const).cbtypevector) #else false #end) {
+        }elif (#if flash10 Stdis(val, PR(Const).cbtypevector) #else false #end) {
         #if flash10
             var cbs:flash.Vector<CbType> = val;
             for(cb in cbs) append_type(list, cb.pr(inner));
         #end
-        }elif (Std.is(val, Array)) {
+        }elif (Stdis(val, Array)) {
             var cbs:Array<Dynamic> = val;
             for(cb in cbs) {
                 DEBUG(
-                    if(!Std.is(cb, CbType)) {
+                    if(!Stdis(cb, CbType)) {
                         throw "Error: Cannot append non-CbType or CbType list value";
                     }
                 )
@@ -158,7 +158,7 @@ class PR(OptionType) {
     //
     public static function argument(val:Dynamic):OptionType {
         return if (val == null) new OptionType();
-             elif (Std.is(val, OptionType)) val;
+             elif (Stdis(val, OptionType)) val;
              else new OptionType().including(val);
     }
 }

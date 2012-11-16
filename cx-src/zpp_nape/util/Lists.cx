@@ -673,6 +673,21 @@ $(mixin global Sort(L,NodeT, lt) {
     }
 });
 
+$(mixin global ArraySort(L, len, lt) {
+    var i;
+    for (i in 1...len) {
+        var item = L[i];
+        var hole = i;
+        while (hole > 0) {
+            var cur = L[hole-1];
+            if (lt(cur, item)) break;
+            L[hole] = cur;
+            hole--;                
+        }
+        L[hole] = item;
+    }
+});
+
 //--------------------------------------------------------------------------------------------------
 
 $(mixin global Exists(i, list, predicate, outvar) {

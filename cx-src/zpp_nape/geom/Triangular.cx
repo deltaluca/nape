@@ -15,6 +15,9 @@ class PR(Triangular) {
         return vec_cross(u,v);
     }
 
+    static var queue:List(Vertex) = null;
+    static var stack:List(Vertex) = null;
+
     //triangulate a monotone polygon by adding partitiones
     public static function triangulate(P:PR(PartitionedPoly)) {
         var min = P.vertices; var max = P.vertices;
@@ -23,7 +26,7 @@ class PR(Triangular) {
             if(lt(max,p)) max = p;
         });
 
-        var queue = new List(Vertex)();
+        if (queue == null) queue = new List(Vertex)();
         //sort vertices into queue
         //and assign left/right chain statuses
         var rp = max.prev;
@@ -36,7 +39,7 @@ class PR(Triangular) {
         }
         queue.add(min);
 
-        var stack = new List(Vertex)();
+        if (stack==null) stack = new List(Vertex)();
         stack.add(queue.pop_unsafe());
         var pre:Vertex = queue.pop_unsafe();
         stack.add(pre);
