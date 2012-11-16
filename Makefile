@@ -72,6 +72,7 @@ RELEASE_FLAGS= $(SWC_FLAGS) -D NAPE_RELEASE_BUILD
 .PHONY: demos
 demos:
 	./buildlib
+	$(MAKE) docs
 
 releases: pre_compile
 	mkdir -p bin/release

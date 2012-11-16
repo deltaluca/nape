@@ -587,18 +587,25 @@ class PR(Simple) {
         rets.add(ret);
     }
 
+    static var list_vertices:List(Vertex) = null;
+    static var list_queue:List(Event) = null;
     public static function isSimple(poly:PR(GeomVert)) {
         if(sweep==null) {
             sweep = new Sweep();
             inthash = new FastHash2(Hashable2(Bool,false))();
         }
 
-        var vertices = new List(Vertex)();
+        var vertices = list_vertices;
+        if (vertices == null)
+            vertices = list_vertices = new List(Vertex)();
+
         mix_circular(PR(GeomVert),for_iter(v,poly,{
             vertices.add(Vertex.get(v.x,v.y));
         }));
 
-        var queue = new List(Event)();
+        var queue = list_queue;
+        if (queue == null)
+            queue = list_queue = new List(Event)();                    
         Iter2_fast(u,v,vertices,{
             var e1 = queue.add(Event.get(u));
             var e2 = queue.add(Event.get(v));

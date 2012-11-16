@@ -51,6 +51,7 @@ class Cutting extends flash.display.Sprite {
 						debug.drawCircle(q,subsize,max > 0 ? 0xaaffaa : 0xffaaff);
 					}
 				}*/
+                poly.isSimple();
                 // release GeomPoly to object pool.
                 poly.dispose();
 			}
