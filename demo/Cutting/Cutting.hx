@@ -2,6 +2,7 @@ package;
 
 import nape.util.BitmapDebug;
 import nape.geom.GeomPoly;
+import nape.geom.GeomPolyList;
 import nape.geom.Vec2;
 
 class Cutting extends flash.display.Sprite {
@@ -23,6 +24,7 @@ class Cutting extends flash.display.Sprite {
 		var seg0 = new Vec2(150,50);
 		var seg1 = new Vec2(150,225);
 
+        var output = new GeomPolyList();
 		function render() {
 			debug.clear();
 
@@ -33,9 +35,9 @@ class Cutting extends flash.display.Sprite {
 				debug.drawCircle(p,handlesize,0xaaaaaa);
 			}
 
-			var simples = poly.simpleDecomposition();
+			var simples = poly.simpleDecomposition(output);
 			for(poly in simples) {
-				var polys = poly.cut(seg0,seg1,true,true);
+/*				var polys = poly.cut(seg0,seg1,true,true);
 				for(p in polys) {
 					var max = 0.0;
 					for(q in p) {
@@ -48,8 +50,12 @@ class Cutting extends flash.display.Sprite {
 						debug.drawFilledCircle(q,subsize,max > 0 ? 0x66bb66 : 0xbb66bb);
 						debug.drawCircle(q,subsize,max > 0 ? 0xaaffaa : 0xffaaff);
 					}
-				}
+				}*/
+                // release GeomPoly to object pool.
+                poly.dispose();
 			}
+            // recycle list nodes.
+            output.clear();
 
 			debug.drawLine(seg0,seg1,0xffffff);
 			debug.drawFilledCircle(seg0,segsize,0xcc0000);
@@ -63,36 +69,41 @@ class Cutting extends flash.display.Sprite {
 
 		var mdrag:Vec2->Void = null;
 		stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function (_) {
-			var mp = new Vec2(mouseX,mouseY);
-			var s0 = mp.sub(seg0).length;
-			var s1 = mp.sub(seg1).length;
+			var mp = Vec2.get(mouseX,mouseY);
+			var s0 = Vec2.distance(mp, seg0);
+			var s1 = Vec2.distance(mp, seg1);
 			if(s0<segsize || s1<segsize) {
 				var seg = if(s0<segsize) seg0 else seg1;
 				var delta = mp.sub(seg);
 				mdrag = function(mp:Vec2) {
-					seg.set(mp.sub(delta));
+					seg.set(mp.sub(delta, true));
 					render();
 				};
+                mp.dispose();
 				return;
 			}
 
 			for(p in poly) {
-				if(mp.sub(p).length < handlesize) {
+				if(Vec2.distance(mp, p) < handlesize) {
 					var delta2 = mp.sub(p);
 					mdrag = function(mp:Vec2) {
-						p.set(mp.sub(delta2));
+						p.set(mp.sub(delta2, true));
 						render();
 					}
+                    mp.dispose();
 					return;
 				}
 			}
+
+            mp.dispose();
 		});
 
 		stage.addEventListener(flash.events.MouseEvent.MOUSE_UP, function(_) mdrag = null);
 		stage.addEventListener(flash.events.MouseEvent.MOUSE_MOVE, function(_) {
 			if(mdrag==null) return;
-			var mp = new Vec2(mouseX,mouseY);
+			var mp = Vec2.get(mouseX,mouseY);
 			mdrag(mp);
+            mp.dispose();
 		});
 	}
 }

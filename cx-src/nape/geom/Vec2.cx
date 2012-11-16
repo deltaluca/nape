@@ -369,6 +369,48 @@ class Vec2 {
     }
 
     !!/**
+    !! * Compute square distance between two points.
+    !! *
+    !! * @param a The first point Vec2.
+    !! * @param b The second point Vec2.
+    !! * @return Squared distance between points.
+    !! * @throws # If a, b are disposed of or null.
+    !! */
+    public static inline function dsq(a:Vec2, b:Vec2) {
+        Disposed(a, Vec2); 
+        Disposed(b, Vec2); 
+        DEBUG(
+            if (a == null || b == null)
+                throw "Error: Cannot compute squared distance between null Vec2";                        
+        )           
+        var ret = vec_dsq(a., b.);
+        WEAK(a);
+        WEAK(b);
+        return ret;
+    }
+
+    !!/**
+    !! * Compute distance between two points.
+    !! *
+    !! * @param a The first point Vec2.
+    !! * @param b The second point Vec2.
+    !! * @return Distance between points.
+    !! * @throws # If a, b are disposed of or null.
+    !! */
+    public static inline function distance(a:Vec2, b:Vec2) {
+        Disposed(a, Vec2); 
+        Disposed(b, Vec2); 
+        DEBUG(
+            if (a == null || b == null)
+                throw "Error: Cannot compute squared distance between null Vec2";                        
+        )           
+        var ret = Math.sqrt(vec_dsq(a., b.));
+        WEAK(a);
+        WEAK(b);
+        return ret;
+    }
+
+    !!/**
     !! * Set values of this Vec2 given pair of x/y values.
     !! *
     !! * @param x The x value to set this Vec2's x value to.

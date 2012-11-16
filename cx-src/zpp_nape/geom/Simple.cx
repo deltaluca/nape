@@ -16,25 +16,23 @@ class Vertex {
     public var node:Set(Vertex) = null; //for vertices list in decomposition.
     public function free() {
         links.clear();
-        Free(Set(Vertex),links);
-        links = null;
         node = null;
         forced = false;
     }
-    public function alloc() {
-        links; Get(Set(Vertex), links);
-        links.lt = less_xy;
+    flibmdel public inline function alloc() {
     }
 
     function new() {
         id = ID(Vertex);
+        Get(Set(Vertex), links);
+        links.lt = less_xy;
     }
     public static function less_xy(p:Vertex,q:Vertex) {
         return p.y < q.y || (p.y==q.y && p.x < q.x);
     }
     public static function swap_nodes(p:Vertex,q:Vertex) swap(p.node,q.node)
 
-    public static function get(x:Float,y:Float) {
+    public static inline function get(x:Float,y:Float) {
         var ret; Get(Vertex, ret);
         vec_set(ret.,$(->));
         return ret;
@@ -58,12 +56,8 @@ class Segment {
         node = null;
 
         vertices.clear();
-        Free(Set(Vertex),vertices);
-        vertices = null;
     }
-    public function alloc() {
-        Get(Set(Vertex), vertices);
-        vertices.lt = less_xy;
+    flibmdel public inline function alloc() {
     }
 
     //prev,next refer to positions in sweep line tree.
@@ -78,6 +72,8 @@ class Segment {
     }
     function new() {
         id = ID(Segment);
+        Get(Set(Vertex), vertices);
+        vertices.lt = less_xy;
     }
     public static function get(left:Vertex,right:Vertex) {
         var ret; Get(Segment, ret);
@@ -119,15 +115,15 @@ class Event {
     }
 
     MixPool(Event)
-    public function free() {
+    flibmdel public inline function free() {
         vertex = null;
         segment = segment2 = null;
         node = null;
     }
-    public function alloc() {}
+    flibmdel public inline function alloc() {}
     function new() {}
 
-    public static function get(v:Vertex) {
+    public static inline function get(v:Vertex) {
         var ret; Get(Event, ret);
         ret.vertex = v;
         return ret;
@@ -314,19 +310,26 @@ class PR(Simple) {
     static var sweep:Sweep = null;
     static var inthash:FastHash2(Hashable2(Bool,false)) = null;
 
-    public static function decompose(poly:PR(GeomVert)) {
+    static var vertices:Set(Vertex) = null;
+    static var queue:Set(Event) = null;
+    static var ints:Set(Event) = null;
+    public static function decompose(poly:PR(GeomVert), ?rets:List(PR(GeomVert))) {
         if(sweep==null) {
             sweep = new Sweep();
             inthash = new FastHash2(Hashable2(Bool,false))();
         }
 
-        var vertices; Get(Set(Vertex), vertices);
-        vertices.lt = Vertex.less_xy;
-        vertices.swapped = Vertex.swap_nodes;
+        if (vertices == null) {
+            Get(Set(Vertex), vertices);
+            vertices.lt = Vertex.less_xy;
+            vertices.swapped = Vertex.swap_nodes;
+        }
 
-        var queue; Get(Set(Event), queue);
-        queue.lt = Event.less_xy;
-        queue.swapped = Event.swap_nodes;
+        if (queue == null) {
+            Get(Set(Event), queue);
+            queue.lt = Event.less_xy;
+            queue.swapped = Event.swap_nodes;
+        }
 
         $(mixin do_seg(pre,vert) {
             var e1 = Event.get(pre);
@@ -365,8 +368,10 @@ class PR(Simple) {
         )
         do_seg(pre,fst);
 
-        var ints; Get(Set(Event), ints);
-        ints.lt = Event.less_xy;
+        if (ints == null) {
+            Get(Set(Event), ints);
+            ints.lt = Event.less_xy;
+        }
 
         while(!queue.empty()) {
             var e = queue.pop_front();
@@ -481,17 +486,15 @@ class PR(Simple) {
 
         assert(queue.empty(),"clean up fail");
         assert(ints.empty(),"clean up fail");
-        Free(Set(Event),queue);
-        Free(Set(Event),ints);
 
-        ClearHashWith(inthash,$(mixin cb(x) Free(Hashable2(Bool,false),x)));
+        ClearHashWith(inthash,$(mixin cb(x) Free(Hashable2(Bool,false),x)) cb);
 
         //construct decomposition. yaaay!
-        var rets = new List(PR(GeomVert))();
+        if (rets==null)
+            rets = new List(PR(GeomVert))();
+
         while(!vertices.empty())
             clip_polygon(vertices,rets);
-
-        Free(Set(Vertex),vertices);
 
         return rets;
     }

@@ -797,13 +797,15 @@ class GeomPoly {
     !! * This algorithm operates in O(n.log(n)) time and is based on the
     !! * Bentley-Ottmann algorithm.
     !! *
+    !! * @param If supplied, polygons will be appended to this list via 'add'
+    !! *        instead of a new list being constructed.
     !! * @return A Nape list of GeomPoly's representing the decomposition.
     !! * @throws # If polygon is degenerate.
     !! * @throws # Any other error may be thrown if algorithm has failed, even
     !! *           in release builds!
     !! * @throws # If this GeomPoly has been disposed.
     !! */
-    public function simpleDecomposition():GeomPolyList {
+    public function simpleDecomposition(output:GeomPolyList=null):GeomPolyList {
         Disposed(this, GeomPoly);
         DEBUG(
             if(size_lt_3) {
@@ -811,8 +813,8 @@ class GeomPoly {
             }
         )
 
-        var MPs = PR(Simple).decompose(verts);
-        var ret = new GeomPolyList();
+        var MPs = PR(Simple).decompose(verts, PR(PartitionedPoly).getShared());
+        var ret = (output == null ? new GeomPolyList() : output);
         while (!MPs.empty()) {
             var MP = MPs.pop_unsafe();
             var x = GeomPoly.get();
