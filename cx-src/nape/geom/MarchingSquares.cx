@@ -32,6 +32,15 @@ $(import);
 !! *    return 0x80 - (gx*gy*a00 + fx*gy*a10 + gx*fy*a01 + fx*fy*a11);
 !! * }
 !! * </pre>
+!! * For 'flash', we must wrap this in an IsoFunction interface to be used
+!! * by MarchingSquares for performance reasons:
+!! * <pre>
+!! * class BitmapIsoFunction implements nape.geom.IsoFunction {
+!! *     public function iso(x:Float, y:Float):Float {
+!! *         ...        
+!! *     }
+!! * }
+!! * </pre>
 !! * This function is converted into a set of polygons by sampling along regular
 !! * grid points, and then recursively interpolating along cell edges based on
 !! * the function provided to find the point in space along that edge where the
@@ -89,7 +98,7 @@ class MarchingSquares {
     !! *           component values.
     !! */
     static public function run(
-        iso:Float->Float->Float,
+        iso:IsoFunctionDef,
         bounds:AABB,
         cellsize:Vec2,
         quality:Int = 2,

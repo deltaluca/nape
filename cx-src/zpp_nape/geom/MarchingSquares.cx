@@ -64,7 +64,7 @@ class PR(MarchingSquares) {
     static var ints:Array2<Vertex>; // resized on demand
     static var map :Array2<VPair>;  // resized on demand
 
-    public static function run(iso:Float->Float->Float,bx0:Float,by0:Float,bx1:Float,by1:Float,cell:Vec2,quality:Int,combine:Bool,ret:GeomPolyList) {
+    public static function run(iso:IsoFunctionDef,bx0:Float,by0:Float,bx1:Float,by1:Float,cell:Vec2,quality:Int,combine:Bool,ret:GeomPolyList) {
 
         var xp = (bx1-bx0)/cell.x; var xn:Int = fastint(xp);
         var yp = (by1-by0)/cell.y; var yn:Int = fastint(yp);
@@ -94,7 +94,7 @@ class PR(MarchingSquares) {
             var yc = if(y==0) by0 else if(y<=yn) by0 + cell.y*y else by1;
             for(x in 0...xn+1) {
                 var xc = if(x==0) bx0 else if(x<=xn) bx0 + cell.x*x else bx1;
-                isos.set(x,y,iso(xc,yc));
+                isos.set(x,y,ISO(iso,xc,yc));
             }
         }
 
@@ -542,7 +542,7 @@ class PR(MarchingSquares) {
     //
     public static var look_march = [-1,0xE0,0x38,0xD8,0x0E,-1,0x36,0xD6,0x83,0x63,-1,0x5B,0x8D,0x6D,0xB5,0x55];
     function marchSquare(
-        iso:Float->Float->Float,isos:Array2<Float>,ints:Array2<Vertex>,
+        iso:IsoFunctionDef,isos:Array2<Float>,ints:Array2<Vertex>,
         x0:Float,y0:Float,x1:Float,y1:Float,
         xn:Int, yn:Int, fstx:Bool, fsty:Bool, sndx:Bool, sndy:Bool,
         quality:Int)
@@ -562,7 +562,7 @@ class PR(MarchingSquares) {
                 if(val==0) ret = null;
                 else setright(1);
             }else {
-                var mid = iso(0.5*(x0+x1),0.5*(y0+y1)) < 0;
+                var mid = ISO(iso,0.5*(x0+x1),0.5*(y0+y1)) < 0;
                 if(key==10) {
                     if(mid) {
                         var val = 0xBB;
@@ -708,10 +708,10 @@ class PR(MarchingSquares) {
             return x0 + t*(x1-x0);
         }
     }
-    function xlerp(x0:Float,x1:Float,y:Float,v0:Float,v1:Float,iso:Float->Float->Float,quality:Int) {
+    function xlerp(x0:Float,x1:Float,y:Float,v0:Float,v1:Float,iso:IsoFunctionDef,quality:Int) {
         var xm = lerp(x0,x1,v0,v1);
         while(quality--!=0 && x0<xm && xm<x1) {
-            var vm:Float = iso(xm,y);
+            var vm:Float = ISO(iso,xm,y);
             if(vm==0) break;
             if(v0*vm<0) { x1 = xm; v1 = vm; }
             else        { x0 = xm; v0 = vm; }
@@ -719,15 +719,19 @@ class PR(MarchingSquares) {
         }
         return xm;
     }
-    function ylerp(y0:Float,y1:Float,x:Float,v0:Float,v1:Float,iso:Float->Float->Float,quality:Int) {
+    function ylerp(y0:Float,y1:Float,x:Float,v0:Float,v1:Float,iso:IsoFunctionDef,quality:Int) {
         var ym = lerp(y0,y1,v0,v1);
         while(quality--!=0 && y0<ym && ym<y1) {
-            var vm:Float = iso(x,ym);
+            var vm:Float = ISO(iso,x,ym);
             if(vm==0) break;
             if(v0*vm<0) { y1 = ym; v1 = vm; }
             else        { y0 = ym; v0 = vm; }
             ym = lerp(y0,y1,v0,v1);
         }
         return ym;
+    }
+
+    inline static function ISO(iso:IsoFunctionDef, x:Float, y:Float) {
+        return #if flash iso.iso(x, y) #else iso(x, y) #end;            
     }
 }

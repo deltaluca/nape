@@ -21,6 +21,22 @@ GeomPol:
 
     Permit GeomPoly to be released/allocated from object pool.
 
+    For FLASH, enforce that MarchingSquares iso-function must be given as
+    an 'IsoFunction' implementation, instead of a function value. This is to
+    avoid flash player needing to box inputs/unbox outputs of function and
+    permit better memory use and less GC activity.
+
+InteractionListener:
+    Fixed bug in ONGOING listeners being invoked for sleeping interactions. eek!
+
+    However, I understand this may be useful in certain situations, so if you wish
+    to still receive ongoing callbacks for sleeping objects, set:
+    allowSleepingCallbacks to true on the InteractionListener object.
+
+InteractionFilter:
+    Fixed bug with InteractionFilter constructor being marked in .swc as having 0
+    optinoal arguments instead of 6.
+
 AngleJoint:
     slack property removed, replaced with isSlack method
     Fix for incorrect clamping of impulses in certain scenarios.
@@ -47,6 +63,8 @@ Vec2:
 AABB:
     fromRect now included for nme target, not just flash
     Added toRect.
+
+    Fixed bug in AABB::copy to validate structure before producing copy.
 
 Mat23:
     set, setAs, reset methods now returns reference to 'this' instead of nothing.
@@ -241,22 +259,12 @@ MarchingSquares:
     a new one.
 
 Other:
-    Fixed bug in ONGOING listeners being invoked for sleeping interactions. eek!
-
-    Fixed bug with InteractionFilter constructor being marked in .swc as having 0
-    optinoal arguments instead of 6.
-
-    Fixed bug in AABB::copy to validate structure before producing copy.
-
     Fixed bug in waking objects, appearing when waking static objects through changes
     to filters/materials where not all objects were being woken properly.
 
     Added explicit default values for all members to support Haxe JS properly.
 
-
 TODO:
      Add sweeps to Geom.
 
      Add inactive/active for Body (eg: Constraints)
-
-     Flag on ONGOING to permit continual dispatch even if sleeping.

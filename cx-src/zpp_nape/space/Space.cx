@@ -1092,15 +1092,10 @@ class PR(Space) {
                 continue;
             }
 
-            if (set.sleeping())
-            {
-                pre = cx_ite;
-                cx_continue;
-            }
-
+            var sleeping = set.sleeping();
             PR(CbSet).find_all(set.int1.cbSet,set.int2.cbSet,Flag(CbEvent,ONGOING),
             function (x:PR(InteractionListener)) {
-                if(!set.empty_arb(x.itype)) {
+                if((!sleeping || x.allowSleepingCallbacks) && !set.empty_arb(x.itype)) {
                     var cb = push_callback(x);
                     cb.event = Flag(CbEvent,ONGOING);
                     PR(Interactor).int_callback(set, x ,cb);
