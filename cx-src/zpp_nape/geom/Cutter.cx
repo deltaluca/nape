@@ -17,13 +17,13 @@ class PR(CutVert) {
     public var used:Bool = false;
 
     public function new() {}
-    public function alloc() {}
-    public function free() {
+    flibmdel inline public function alloc() {}
+    flibmdel inline public function free() {
         vert = null;
         parent = null;
     }
 
-    public static function path(poly:PR(GeomVert)) {
+    public static inline function path(poly:PR(GeomVert)) {
         var ret; Get(PR(CutVert), ret);
         ret.vert = poly;
         ret.parent = ret;
@@ -48,13 +48,13 @@ class PR(CutInt) {
     //start of outgoing path
 
     public function new() {}
-    public function alloc() {}
-    public function free() {
+    flibmdel inline public function alloc() {}
+    flibmdel inline public function free() {
         end = start = null;
         path0 = path1 = null;
     }
 
-    public static function get(time:Float,end=null,start=null,path0=null,path1=null,virtualint=false,vertex=false) {
+    public static inline function get(time:Float,end=null,start=null,path0=null,path1=null,virtualint=false,vertex=false) {
         var ret; Get(PR(CutInt), ret);
         ret.virtualint = virtualint;
         ret.end = end;
@@ -68,7 +68,11 @@ class PR(CutInt) {
 }
 
 class PR(Cutter) {
-    public static function run(P:PR(GeomVert),_start:Vec2,_end:Vec2,bstart:Bool,bend:Bool) {
+
+    static var ints:List(PR(CutInt)) = null;
+    static var paths:List(PR(CutVert)) = null;
+
+    public static function run(P:PR(GeomVert),_start:Vec2,_end:Vec2,bstart:Bool,bend:Bool,output:GeomPolyList) {
         vec_new(p); vec_set(p,_start.);
         vec_new(d); vec_sub(_end.,p,d);
         var min = bstart ? 0 : PR(Const).NEGINF();
@@ -147,8 +151,12 @@ class PR(Cutter) {
         }
 
         //build paths and intersecions
-        var ints = new List(PR(CutInt))();
-        var paths = new List(PR(CutVert))(); //as path reference in DSF
+        if (ints == null) {
+            ints = new List(PR(CutInt))();
+        }
+        if (paths == null) {
+            paths = new List(PR(CutVert))(); //as path reference in DSF
+        }
 
     )
     mixpool_circular(PR(GeomVert),
@@ -284,7 +292,7 @@ class PR(Cutter) {
         }
     )
         //sort out final list of polygons from unified paths
-        var ret = new GeomPolyList();
+        var ret = (output == null) ? new GeomPolyList() : output;
         Iter(p, paths, {
             var poly = DSF(find(p));
             if(poly.used) cx_continue;

@@ -1046,6 +1046,8 @@ class GeomPoly {
     !! * @param boundedEnd   If true, then the cut will not extend
     !! *                     beyond the end of the line segment.
     !! *                     (default false)
+    !! * @param output A GeomPolyList to append results to if supplied,
+    !! *               otherwise a new list is created (default null)    
     !! * @return A list of GeomPoly representing the result of the cut.
     !! * @throws # If polygon is not simple.
     !! * @throws # If start or end Vec2 are null or disposed of.
@@ -1054,8 +1056,9 @@ class GeomPoly {
     public function cut(
         start:Vec2,
         end:Vec2,
-        bounded_start:Bool = false,
-        bounded_end:Bool = false
+        boundedStart:Bool = false,
+        boundedEnd:Bool = false,
+        output:GeomPolyList = null
     ):GeomPolyList {
         Disposed(this, GeomPoly);
         DEBUG(
@@ -1070,7 +1073,7 @@ class GeomPoly {
         Disposed(start,Vec2);
         Disposed(end,Vec2);
 
-        var ret = PR(Cutter).run(verts, start, end, bounded_start, bounded_end);
+        var ret = PR(Cutter).run(verts, start, end, boundedStart, boundedEnd, output);
 
         WEAK(start);
         WEAK(end);
