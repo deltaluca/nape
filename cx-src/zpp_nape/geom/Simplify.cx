@@ -12,11 +12,11 @@ class Vertex {
     public var flag:Bool = false;
     public var forced:Bool = false; //to feed GeomVert value
 
-    public function free () {}
-    public function alloc() {}
+    flibmdel public inline function free () {}
+    flibmdel public inline function alloc() {}
 
     public function new() {}
-    public static function get(v:PR(GeomVert)) {
+    public static inline function get(v:PR(GeomVert)) {
         var ret; Get(Vertex, ret);
         vec_set(ret.,v.);
         ret.flag = false;
@@ -32,10 +32,10 @@ class Pair {
     public var max:Vertex = null;
 
     public function new() {}
-    public function free () { min = max = null; }
-    public function alloc () {}
+    flibmdel public inline function free () { min = max = null; }
+    flibmdel public inline function alloc () {}
 
-    public static function get(min:Vertex,max:Vertex) {
+    public static inline function get(min:Vertex,max:Vertex) {
         var ret; Get(Pair, ret);
         ret.min = min;
         ret.max = max;
@@ -45,10 +45,10 @@ class Pair {
 
 class PR(Simplify) {
 
-    public static function lessval(a:Vertex,b:Vertex) {
+    public static inline function lessval(a:Vertex,b:Vertex) {
         return (a.x-b.x) + (a.y-b.y);
     }
-    public static function less(a:Vertex,b:Vertex) {
+    public static inline function less(a:Vertex,b:Vertex) {
         return lessval(a,b) < 0.0;
     }
 
@@ -69,12 +69,15 @@ class PR(Simplify) {
         }
     }
 
+    static var stack:List(Pair) = null;
     public static function simplify(P:PR(GeomVert),epsilon:Float) {
         var ret:Vertex = null;
         var min:Vertex = null; var max:Vertex = null;
 
         epsilon *= epsilon;
-        var stack = new List(Pair)();
+        if (stack==null) {
+            stack = new List(Pair)();
+        }
 
         //find min/max vertices
         //previously forced vert.
