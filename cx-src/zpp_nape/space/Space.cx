@@ -1040,7 +1040,7 @@ class PR(Space) {
         updatePos(deltaTime);
 
         continuous = true;
-        continuousCollisions(deltaTime);
+        //continuousCollisions(deltaTime);
         continuous = false;
 
         #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
@@ -2025,52 +2025,59 @@ class PR(Space) {
 
                 cur.sweepTime = dt;
 
-                // If moving very slowly, treat as static
-                // object for continous collisions (freeze it now!)
-                var linThreshold = PR(Config).MIN_LIN_STATIC_SWEEP * cur.sweepRadius;
-                var angThreshold = PR(Config).MIN_ANG_STATIC_SWEEP;
-                if (((vec_lsq(cur.vel) * dt * dt) > (linThreshold * linThreshold) ||
-                   (cur.angvel*cur.angvel * dt * dt) > (angThreshold * angThreshold)) || cur.isKinematic())
-                {
-                    // compute swept AABB
-                    //
-                    // positon, or rotation invalidated
-                    // so we are free to modify AABB and in next
-                    // step() or outside of step() a relevant query
-                    // will be forced to validate aabb.
-                    var minx = min(cur.pre_posx, cur.posx);
-                    var miny = min(cur.pre_posy, cur.posy);
-                    var maxx = max(cur.pre_posx, cur.posx);
-                    var maxy = max(cur.pre_posy, cur.posy);
-
-                    Iter(s, cur.shapes, {
-                        var aabb = s.aabb;
-                        var rad = s.sweepRadius;
-                        aabb.minx = minx - rad;
-                        aabb.miny = miny - rad;
-                        aabb.maxx = maxx + rad;
-                        aabb.maxy = maxy + rad;
-
-                        if (!bphase.is_sweep) {
-                            bphase.sync(s);
-                        }
-                    });
-
-                    cur.sweepFrozen = false;
-                    if (cur.isDynamic() && cur.bulletEnabled)
+                // If CCD is disabled, it never takes part in a CCD collision
+                // and we can ignore expanding it's bounding box.
+                if (!cur.disableCCD) {
+                    // If moving very slowly, treat as static
+                    // object for continous collisions (freeze it now!)
+                    var linThreshold = PR(Config).MIN_LIN_STATIC_SWEEP * cur.sweepRadius;
+                    var angThreshold = PR(Config).MIN_ANG_STATIC_SWEEP;
+                    if (((vec_lsq(cur.vel) * dt * dt) > (linThreshold * linThreshold) ||
+                       (cur.angvel*cur.angvel * dt * dt) > (angThreshold * angThreshold)) || cur.isKinematic())
                     {
-                        var linThreshold2 = PR(Config).MIN_LIN_BULLET_SWEEP * cur.sweepRadius;
-                        var angThreshold2 = PR(Config).MIN_ANG_BULLET_SWEEP;
-                        if (((vec_lsq(cur.vel) * dt * dt) > (linThreshold2 * linThreshold2) ||
-                           (cur.angvel*cur.angvel * dt * dt) > (angThreshold2 * angThreshold2)))
+                        // compute swept AABB
+                        //
+                        // positon, or rotation invalidated
+                        // so we are free to modify AABB and in next
+                        // step() or outside of step() a relevant query
+                        // will be forced to validate aabb.
+                        var minx = min(cur.pre_posx, cur.posx);
+                        var miny = min(cur.pre_posy, cur.posy);
+                        var maxx = max(cur.pre_posx, cur.posx);
+                        var maxy = max(cur.pre_posy, cur.posy);
+    
+                        Iter(s, cur.shapes, {
+                            var aabb = s.aabb;
+                            var rad = s.sweepRadius;
+                            aabb.minx = minx - rad;
+                            aabb.miny = miny - rad;
+                            aabb.maxx = maxx + rad;
+                            aabb.maxy = maxy + rad;
+    
+                            if (!bphase.is_sweep) {
+                                bphase.sync(s);
+                            }
+                        });
+    
+                        cur.sweepFrozen = false;
+                        if (cur.isDynamic() && cur.bulletEnabled)
                         {
-                            cur.bullet = true;
+                            var linThreshold2 = PR(Config).MIN_LIN_BULLET_SWEEP * cur.sweepRadius;
+                            var angThreshold2 = PR(Config).MIN_ANG_BULLET_SWEEP;
+                            if (((vec_lsq(cur.vel) * dt * dt) > (linThreshold2 * linThreshold2) ||
+                               (cur.angvel*cur.angvel * dt * dt) > (angThreshold2 * angThreshold2)))
+                            {
+                                cur.bullet = true;
+                            }
                         }
                     }
-                }
-                else {
+                    else {
+                        cur.sweepFrozen = true;
+                        cur.bullet = false;
+                    }
+                }else {
                     cur.sweepFrozen = true;
-                    cur.bullet = false;
+                    cur.bullet = false;                        
                 }
                 cur.sweep_angvel = (cur.angvel) % MAX_VEL;
             });
