@@ -1040,7 +1040,7 @@ class PR(Space) {
         updatePos(deltaTime);
 
         continuous = true;
-        //continuousCollisions(deltaTime);
+        continuousCollisions(deltaTime);
         continuous = false;
 
         #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
@@ -1900,7 +1900,6 @@ class PR(Space) {
         body.sweepFrozen = true;
     }
 
-    public var debugger:Debug = null;
     public function validation() {
         //validate that all CbSet's in existance of space, have correctly synced listener lists from sub CbType's
         cbsets.validate();
@@ -2009,7 +2008,6 @@ class PR(Space) {
     }
 
     //----------------------------------------------------------------------------------------------
-
     // integrate object positions to end of time step.
     // and prepare for continous collisions.
     public function updatePos(dt:Float) {
@@ -2018,12 +2016,9 @@ class PR(Space) {
             Iter(cur,list,{
                 vec_set(cur.pre_pos, cur.pos);
                 cur.pre_rot = cur.rot;
-
-                vec_addeq(cur.pos,cur.vel,dt);
-                if(cur.angvel!=0)
-                    cur.delta_rot(cur.angvel*dt);
-
-                cur.sweepTime = dt;
+                cur.sweepTime = 0;
+                cur.sweep_angvel = (cur.angvel) % MAX_VEL;
+                cur.sweepIntegrate(dt);
 
                 // If CCD is disabled, it never takes part in a CCD collision
                 // and we can ignore expanding it's bounding box.
@@ -2034,25 +2029,50 @@ class PR(Space) {
                     var angThreshold = PR(Config).MIN_ANG_STATIC_SWEEP;
                     if (((vec_lsq(cur.vel) * dt * dt) > (linThreshold * linThreshold) ||
                        (cur.angvel*cur.angvel * dt * dt) > (angThreshold * angThreshold)) || cur.isKinematic())
-                    {
+                    {                            
+                        var col = [0x00ff00, 0x00ffff, 0x0000ff, 0xff00ff, 0x00ff00, 0x00ffff, 0x0000ff, 0xff00ff];
                         // compute swept AABB
+                        var angvel = cur.sweep_angvel;
+                        if (angvel < 0) angvel = -angvel;
+                        var iangvel = 1 / angvel;
                         //
                         // positon, or rotation invalidated
                         // so we are free to modify AABB and in next
                         // step() or outside of step() a relevant query
                         // will be forced to validate aabb.
-                        var minx = min(cur.pre_posx, cur.posx);
-                        var miny = min(cur.pre_posy, cur.posy);
-                        var maxx = max(cur.pre_posx, cur.posx);
-                        var maxy = max(cur.pre_posy, cur.posy);
-    
                         Iter(s, cur.shapes, {
                             var aabb = s.aabb;
-                            var rad = s.sweepRadius;
-                            aabb.minx = minx - rad;
-                            aabb.miny = miny - rad;
-                            aabb.maxx = maxx + rad;
-                            aabb.maxy = maxy + rad;
+                            // initialise with AABB at t=0
+                            var minx = aabb.minx;
+                            var miny = aabb.miny;
+                            var maxx = aabb.maxx;
+                            var maxy = aabb.maxy;
+
+                            // compute number of sub-integrations to perform to augment AABB found
+                            // with t=0 and t=dt AABB's.
+                            var count:Int = fastint(angvel * dt * s.sweepCoef * (1 / 120));
+                            if (count > 8) count = 8;
+                            var anginc = (angvel * dt) / count;
+                          
+                            // integrate to end of timestep, and compute AABB at t=dt to augment.
+                            cur.sweepIntegrate(dt);
+                            s.force_validate_aabb();
+                            if (minx < aabb.minx) aabb.minx = minx else minx = aabb.minx;
+                            if (miny < aabb.miny) aabb.miny = miny else miny = aabb.miny;
+                            if (maxx > aabb.maxx) aabb.maxx = maxx else maxx = aabb.maxx;
+                            if (maxy > aabb.maxy) aabb.maxy = maxy else maxy = aabb.maxy;
+   
+                            // If it's rotating REALLY FAST, need to include AABB at intervals to try
+                            // and incoperate more of the swept region.
+                            for (i in 1...count) {
+                                cur.sweepIntegrate(anginc * i * iangvel);
+                                s.force_validate_aabb();
+                                if (minx < aabb.minx) aabb.minx = minx else minx = aabb.minx;
+                                if (miny < aabb.miny) aabb.miny = miny else miny = aabb.miny;
+                                if (maxx > aabb.maxx) aabb.maxx = maxx else maxx = aabb.maxx;
+                                if (maxy > aabb.maxy) aabb.maxy = maxy else maxy = aabb.maxy;
+                            }
+   
     
                             if (!bphase.is_sweep) {
                                 bphase.sync(s);
@@ -2079,7 +2099,6 @@ class PR(Space) {
                     cur.sweepFrozen = true;
                     cur.bullet = false;                        
                 }
-                cur.sweep_angvel = (cur.angvel) % MAX_VEL;
             });
         });
         doit(live);

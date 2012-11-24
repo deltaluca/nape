@@ -81,20 +81,15 @@ class DummyNapeMain implements IsoFunction {
     
     		// Keep on stepping forward by fixed time step until amount of time
     		// needed has been simulated.
-    		while(space.elapsedTime < simulationTime){
-    			space.step(1 / stage.frameRate, 10, 10);
-    		}
-    		
     		debugDraw.clear();
+ 			space.step(1 / 60, 10, 10);
+    		
     		debugDraw.draw(space);
     		debugDraw.flush();
     		
             for (body in bodies) {                
     			var graphic:flash.display.DisplayObject = body.userData.graphic;
     			
-    			graphic.x = body.position.x;
-    			graphic.y = body.position.y;
-    			graphic.rotation = body.rotation / Math.PI * 180;
     		}
         }
         function onMouseDown(_) {
@@ -172,7 +167,6 @@ class DummyNapeMain implements IsoFunction {
     		bodyGraphicBitmap.y = anchor.y;
     		body.userData.graphic.addChild(bodyGraphicBitmap);
     		body.userData.graphicOffset = anchor;
-            body.disableCCD = true;
     		return body;
         }
 
@@ -184,8 +178,10 @@ class DummyNapeMain implements IsoFunction {
     		debugDraw.drawConstraints	= true;
     		container.addChild(debugDraw.display);
     		
-    		space = new Space( Vec2.get(0, 600) );
-    		
+    		space = new Space( Vec2.get(0, 0) );
+    		space.zpp_inner.debug = debugDraw;
+            space.worldAngularDrag = 4;
+
     		var wall:Body = new Body(BodyType.STATIC);
     		wall.shapes.add( new Polygon(Polygon.rect(0, (h - 20), w, 1020)) );			// Floor
     		wall.shapes.add( new Polygon(Polygon.rect(-500, -3500, 500, h + 4500)) );	// Left wall
@@ -209,27 +205,12 @@ class DummyNapeMain implements IsoFunction {
     		bodies[bodies.length] = body = bitmapToBody(new Body1ImageAsset(1,1));
     		body.position.setxy(0, 0);
     		container.addChildAt(body.userData.graphic, 0);
+            body.shapes.clear();
+            body.shapes.add(new Polygon(Polygon.rect(50, 0, 40, 20)));
+            body.position.setxy(w/2,h/2);
+            body.angularVel = 1000;
     		space.bodies.add(body);
-            
-    		bodies[bodies.length] = body = bitmapToBody(new Body2ImageAsset(1,1));
-    		body.position.setxy(100, 0);
-    		container.addChildAt(body.userData.graphic, 0);
-    		space.bodies.add(body);
-    		
-    		bodies[bodies.length] = body = bitmapToBody(new Body3ImageAsset(1,1));
-    		body.position.setxy(250, 0);
-    		container.addChildAt(body.userData.graphic, 0);
-    		space.bodies.add(body);
-    		
-    		bodies[bodies.length] = body = bitmapToBody(new Body4ImageAsset(1,1));
-    		body.position.setxy(450, 0);
-    		container.addChildAt(body.userData.graphic, 0);
-    		space.bodies.add(body);
-    		
-    		bodies[bodies.length] = body = bitmapToBody(new Body5ImageAsset(1,1));
-    		body.position.setxy(600, 0);
-    		container.addChildAt(body.userData.graphic, 0);
-    		space.bodies.add(body);
+
 
     		prevTimeMS = flash.Lib.getTimer();
     		simulationTime = 0.0;

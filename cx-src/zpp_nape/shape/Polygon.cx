@@ -416,6 +416,26 @@ class PR(Polygon) extends PR(Shape) {
         });
     }
 
+    flibmdel public inline function _force_validate_aabb() {
+        //presumption that axis of body is welldefined.
+        var li = lverts.begin();
+        var p0 = gverts.front();
+        var l = li.elem(); li = li.next;
+        vec_localglobal(body.axis,body.pos, l., p0.);
+
+        vec_set(aabb.min, p0.);
+        vec_set(aabb.max, p0.);
+        IterIte(p, gverts, gverts.begin().next, {
+            var l = li.elem(); li = li.next;
+            vec_localglobal(body.axis,body.pos, l., p.);
+
+            if(p.x < aabb.minx) aabb.minx = p.x;
+            if(p.x > aabb.maxx) aabb.maxx = p.x;
+            if(p.y < aabb.miny) aabb.miny = p.y;
+            if(p.y > aabb.maxy) aabb.maxy = p.y;
+        });
+    }
+
     public function __validate_sweepRadius() {
         ///dependancy checked
         var maxRadius = 0.0;

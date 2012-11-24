@@ -58,6 +58,15 @@ class PR(Circle) extends PR(Shape) {
         vec_add(worldCOM,r,aabb.max);
     }
 
+    flibmdel public inline function _force_validate_aabb() {
+       // presumption that axis of body is welldefined.
+       vec_localglobal(body.axis, body.pos, localCOM, worldCOM);
+       aabb.minx = worldCOMx - radius;
+       aabb.miny = worldCOMy - radius;
+       aabb.maxx = worldCOMx + radius;
+       aabb.maxy = worldCOMy + radius;
+    }
+
     //----------------------------------------------------------------------------------------------
 
     public function __validate_sweepRadius() {
