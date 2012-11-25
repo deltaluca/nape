@@ -45,8 +45,8 @@ public class PhysicsData {
      *         for graphic, and z the rotation in degrees.
      */
     public static function graphicsPosition(body:Body):Vec3 {
-        var pos = body.localPointToWorld(body.userData.graphicOffset as Vec2);
-        var ret = Vec3.get(pos.x, pos.y, (body.rotation * 180/Math.PI) % 360);
+        var pos:Vec2 = body.localPointToWorld(body.userData.graphicOffset as Vec2);
+        var ret:Vec3 = Vec3.get(pos.x, pos.y, (body.rotation * 180/Math.PI) % 360);
         pos.dispose();
         return ret;
     }
