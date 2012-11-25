@@ -1,229 +1,78 @@
 package;
 $(import);
 
-import flash.display.BitmapData;
-import flash.display.Bitmap;
-import flash.display.PixelSnapping;
-import flash.display.StageQuality;
-import flash.display.Sprite;
-import flash.events.Event;
-import flash.events.MouseEvent;
-
-@:bitmap("lib/1.png") class Body1ImageAsset extends BitmapData {}
-@:bitmap("lib/2.png") class Body2ImageAsset extends BitmapData {}
-@:bitmap("lib/3.png") class Body3ImageAsset extends BitmapData {}
-@:bitmap("lib/4.png") class Body4ImageAsset extends BitmapData {}
-@:bitmap("lib/5.png") class Body5ImageAsset extends BitmapData {}
-
-class DummyNapeMain implements IsoFunction {
+class DummyNapeMain {
     static function main() {
-        var m = new DummyNapeMain();
-    
+        var space = new Space(Vec2.weak(0, 500));
+
+        function circ(x:Float, y:Float, r:Float, pinned:Bool) {
+            var c = new Body(BodyType.DYNAMIC, Vec2.weak(x, y));
+            c.shapes.add(new Circle(r));
+            c.space = space;
+
+            if (pinned) {
+                var p = new PivotJoint(space.world, c, c.position, Vec2.weak());
+                p.space = space;
+            }
+
+            return c;
+        }
+
+        var hand = new PivotJoint(space.world, null, Vec2.weak(), Vec2.weak());
+        hand.space = space;
+        hand.active = false;
+        hand.stiff = false;
+
+        flash.Lib.current.stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function (_) {
+            var mp = Vec2.get(flash.Lib.current.mouseX, flash.Lib.current.mouseY);
+            var bs = space.bodiesUnderPoint(mp);
+            if (!bs.empty()) {
+                hand.body2 = bs.at(0);
+                hand.anchor2 = hand.body2.worldPointToLocal(mp);
+                hand.active = true;
+            }
+            mp.dispose();
+        });
+        flash.Lib.current.stage.addEventListener(flash.events.MouseEvent.MOUSE_UP, function (_) {
+            hand.active = false;
+        });
+
+        var debug = new BitmapDebug(800, 600, 0x333333);
+        flash.Lib.current.addChild(debug.display);
+        debug.drawConstraints = true;
+
+        (new haxe.Timer(14)).run = function () {
+            hand.anchor1.setxy(flash.Lib.current.mouseX, flash.Lib.current.mouseY);
+            debug.clear();
+            space.step(1/60);
+            debug.draw(space);
+            debug.flush();
+        }
+
+        // ===============================================
+
+        {
+            var c1 = circ(100, 100, 50, true);
+            var c2 = circ(100, 400, 50, false);
+            var pulley = new PulleyJoint(
+                c1, c2, c2, c1,
+                Vec2.weak(-50, 0), Vec2.weak(-50, 0),
+                Vec2.weak(50, 0), Vec2.weak(50, 0),
+                600, 700
+            );
+            pulley.space = space;
+        }
+        {
+            var c1 = circ(300, 100, 50, true);
+            var c2 = circ(220, 400, 30, false);
+            var c3 = circ(380, 400, 30, false);
+            var pulley = new PulleyJoint(
+                c1, c2, c1, c3,
+                Vec2.weak(-50, 0), Vec2.weak(30, 0),
+                Vec2.weak(50, 0), Vec2.weak(-30, 0),
+                600, 600, 2
+            );
+            pulley.space = space;
+        }
     }
-
-    var thisbitmap:BitmapData = null;
-
-	
-    public	function iso(x:Float, y:Float):Float{
-    		//take 4 nearest pixels to interpolate linearlly
-    		var ix = Std.int(x); var iy = Std.int(y);
-    		//clamp in-case of numerical inaccuracies
-    		if(ix<0) ix = 0; if(iy<0) iy = 0;
-    		if(ix>=thisbitmap.width)  ix = thisbitmap.width-1;
-    		if(iy>=thisbitmap.height) iy = thisbitmap.height-1;
-    		//
-    		var fx:Float = x - ix; var fy:Float = y - iy;
-    
-    		var a11 = 40 - (thisbitmap.getPixel32(ix,iy)>>>24);
-    		var a12 = 40 - (thisbitmap.getPixel32(ix+1,iy)>>>24);
-    		var a21 = 40 - (thisbitmap.getPixel32(ix,iy+1)>>>24);
-    		var a22 = 40 - (thisbitmap.getPixel32(ix+1,iy+1)>>>24);
-    
-    		return a11*(1-fx)*(1-fy) + a12*fx*(1-fy) + a21*(1-fx)*fy + a22*fx*fy;
-    	}
-    public function new() {
-        var content = new Sprite();                    
-        var container = new Sprite();
-
-        var debugDraw:Debug = null;
-        var space:Space = null;
-        var handJoint:PivotJoint = null;
-        var prevTimeMS = 0;
-        var simulationTime = 0.0;
-        var bodies:Array<Body> = [];
-
-        var stage = flash.Lib.current.stage;
-        stage.quality = StageQuality.LOW;
-
-        function onEnterFrame(_) {
-    		var curTimeMS = flash.Lib.getTimer();
-    		if (curTimeMS == prevTimeMS){
-    			// No time has passed!
-    			return;
-    		}
-    		
-    		// Amount of time we need to try and simulate (in seconds).
-    		var deltaTime:Float = (curTimeMS - prevTimeMS) / 1000;
-    		// We cap this value so that if execution is paused we do
-    		// not end up trying to simulate 10 minutes at once.
-    		if (deltaTime > 0.05){
-    			deltaTime = 0.05;
-    		}
-    		prevTimeMS = curTimeMS;
-    		simulationTime += deltaTime;
-    
-    		// If the hand joint is active, then set its first anchor to be
-    		// at the mouse coordinates so that we drag bodies that have
-    		// have been set as the hand joint's body2.
-    		if(handJoint.active){
-    			handJoint.anchor1.setxy(container.mouseX, container.mouseY);
-    		}
-    
-    		// Keep on stepping forward by fixed time step until amount of time
-    		// needed has been simulated.
-    		debugDraw.clear();
- 			space.step(1 / 60, 10, 10);
-    		
-    		debugDraw.draw(space);
-    		debugDraw.flush();
-    		
-            for (body in bodies) {                
-    			var graphic:flash.display.DisplayObject = body.userData.graphic;
-    			
-    		}
-        }
-        function onMouseDown(_) {
-    		var bodies:BodyList;
-    		var body:Body;
-    		var bodyIterator:ZNPNode_ZPP_Body;
-    		var mousePoint:Vec2;
-    		
-    		// Allocate a Vec2 from object pool.
-    		mousePoint = Vec2.get(container.mouseX, container.mouseY);
-    		 
-    		// Determine the set of Body's which are intersecting mouse point.
-    		// And search for any 'dynamic' type Body to begin dragging.
-    		bodies = space.bodiesUnderPoint(mousePoint);
-    		bodyIterator = bodies.zpp_inner.inner.head;
-    		
-    		while(bodyIterator!=null){
-    			body = bodyIterator.elt.outer;
-    			
-    			if( !body.isDynamic() ){
-    				bodyIterator = bodyIterator.next;
-    				continue;
-    			}
-    			
-    			// Configure hand joint to drag this body.
-    			// We initialise the anchor point on this body so that
-    			// constraint is satisfied.
-    			//
-    			// The second argument of worldPointToLocal means we get back
-    			// a 'weak' Vec2 which will be automatically sent back to object
-    			// pool when setting the handJoint's anchor2 property.
-    			handJoint.body2 = body;
-    			handJoint.anchor2.set( body.worldPointToLocal(mousePoint, true) );
-    			
-    			// Enable hand joint!
-    			handJoint.active = true;
-    			
-    			break;
-    		}
-    		
-    		// Release Vec2 back to object pool.
-    		mousePoint.dispose();
-        }
-        function onMouseUp(_) {
-            handJoint.active = false;
-            handJoint.body2 = null;                
-        }	
-        function bitmapToBody(bitmap:BitmapData):Body{
-            thisbitmap = bitmap;
-    		var body:Body = new Body();
-    	   
-    		var bounds:AABB = new AABB(0, 0, bitmap.width, bitmap.height);
-    		
-    		//iso surface is smooth from alpha channel + interpolation
-    		//so less iterations are needed in extraction
-    		var grain:Vec2 = new Vec2(5, 5);
-
-    		var polys:GeomPolyList = MarchingSquares.run(this, bounds, grain, 3, Vec2.weak(10, 10));
-
-    		polys.foreach(function (p:GeomPoly):Void {
-    				var qolys:GeomPolyList = p.simplify(1).convexDecomposition();
-    				qolys.foreach(function (q:GeomPoly):Void {
-    						body.shapes.add(new Polygon(q));
-    				});
-    		});
-    		
-    		//want to align body to it's centre of mass
-    		//and also have graphic offset correctly
-    		var anchor:Vec2 = body.localCOM.mul(-1);
-    		body.translateShapes(anchor);
-    		
-    		body.userData.graphic = new Sprite();
-    		var bodyGraphicBitmap:Bitmap = new Bitmap(bitmap, PixelSnapping.AUTO, true);
-    		bodyGraphicBitmap.x = anchor.x;
-    		bodyGraphicBitmap.y = anchor.y;
-    		body.userData.graphic.addChild(bodyGraphicBitmap);
-    		body.userData.graphicOffset = anchor;
-    		return body;
-        }
-
-        function setupWorld() {
-    		var w:Float = stage.stageWidth;
-    		var h:Float = stage.stageHeight;
-    		
-    		debugDraw = new ShapeDebug(Std.int(w), Std.int(h), 0xFFFFFF);
-    		debugDraw.drawConstraints	= true;
-    		container.addChild(debugDraw.display);
-    		
-    		space = new Space( Vec2.get(0, 0) );
-    		space.zpp_inner.debug = debugDraw;
-            space.worldAngularDrag = 4;
-
-    		var wall:Body = new Body(BodyType.STATIC);
-    		wall.shapes.add( new Polygon(Polygon.rect(0, (h - 20), w, 1020)) );			// Floor
-    		wall.shapes.add( new Polygon(Polygon.rect(-500, -3500, 500, h + 4500)) );	// Left wall
-    		wall.shapes.add( new Polygon(Polygon.rect(w, -3500, 500, h + 4500)) );		// Right wall
-    		wall.shapes.add( new Polygon(Polygon.rect(0, -3500, w, 1000)) );			// Ceiling
-    		space.bodies.add(wall);
-    		
-    		handJoint = new PivotJoint(space.world, null, Vec2.weak(), Vec2.weak());
-    		space.constraints.add(handJoint);
-    		handJoint.active	= false;
-    		handJoint.stiff		= false;
-    		
-    		container.graphics.beginFill(0xE1E1E1);
-    		container.graphics.drawRect(0, h - 20, w, 1020);			// Floor
-    		container.graphics.drawRect(-500, -3500, 500, h + 4500);	// Left wall
-    		container.graphics.drawRect(w, -3500, 500, h + 4500);		// Right wall
-    		container.graphics.drawRect(0, -3500, w, 1000);				// Ceiling
-    		
-    		var body:Body;
-    		
-    		bodies[bodies.length] = body = bitmapToBody(new Body1ImageAsset(1,1));
-    		body.position.setxy(0, 0);
-    		container.addChildAt(body.userData.graphic, 0);
-            body.shapes.clear();
-            body.shapes.add(new Polygon(Polygon.rect(50, 0, 40, 20)));
-            body.position.setxy(w/2,h/2);
-            body.angularVel = 1000;
-    		space.bodies.add(body);
-
-
-    		prevTimeMS = flash.Lib.getTimer();
-    		simulationTime = 0.0;
-        }
-
-        stage.addEventListener(Event.ENTER_FRAME, onEnterFrame);
-        stage.addEventListener(MouseEvent.MOUSE_DOWN, onMouseDown);
-        stage.addEventListener(MouseEvent.MOUSE_UP, onMouseUp);
-
-        stage.addChild(container);
-        container.addChild(content);
-
-        setupWorld();
-    }
-
 }

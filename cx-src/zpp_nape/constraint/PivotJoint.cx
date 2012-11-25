@@ -1,25 +1,6 @@
 package zpp_nape.constraint;
 $(import);
 
-//
-// Constraint deriviation
-//
-// C :: (x2 + r2) - (x1 + r1)
-//
-// V :: (v2 + (ω2 ⨯ r2)) - (v1 + (ω1 ⨯ r1))
-//
-// J :: [ -I  -(r1 ⨯ .)  I  (r2 ⨯ .) ]
-//      ┌                                                 ┐
-//      │ 1    1    r1y²   r2y²     r1x · r1y   r2x · r2y │
-//      │ ── + ── + ──── + ────   - ───────── - ───────── │
-//      │ m1   m2    i1     i2         i1          i2     │
-// K :: │                                                 │
-//      │                          1    1    r1x²   r2x²  │
-//      │          ###             ── + ── + ──── + ────  │
-//      │                          m1   m2    i1     i2   │
-//      └                                                 ┘
-//
-
 withConstraint(
 class PR(PivotJoint) extends PR(Constraint) {
     public var outer_zn:PivotJoint = null;
@@ -61,8 +42,8 @@ class PR(PivotJoint) extends PR(Constraint) {
 
     public function bodyImpulse(b:PR(Body)) {
         if(stepped) {
-            if(b==b1) return Vec3.get(-jAccx-pjAccx,-jAccy-pjAccy,-vec_cross(a1rel,jAcc)-vec_cross(a1rel,pjAcc));
-            else      return Vec3.get( jAccx+pjAccx, jAccy+pjAccy, vec_cross(a2rel,jAcc)+vec_cross(a2rel,pjAcc));
+            if(b==b1) return Vec3.get(-jAccx,-jAccy,-vec_cross(a1rel,jAcc));
+            else      return Vec3.get( jAccx, jAccy, vec_cross(a2rel,jAcc));
         }else return Vec3.get(0,0,0);
     }
 
@@ -86,7 +67,7 @@ class PR(PivotJoint) extends PR(Constraint) {
     public var b2:PR(Body) = null; anchor_new(a2);
 
     mat2_new(public,kMass);
-    vec_new(public,jAcc); vec_new(public,pjAcc);
+    vec_new(public,jAcc);
     public var jMax:Float = 0.0;
 
     public var gamma:Float = 0.0;
@@ -137,7 +118,7 @@ class PR(PivotJoint) extends PR(Constraint) {
     }
 
     public override function clearcache() {
-        vec_set(jAcc,0,0); vec_set(pjAcc,0,0);
+        vec_set(jAcc,0,0);
         pre_dt = -1.0;
     }
 
@@ -181,7 +162,6 @@ class PR(PivotJoint) extends PR(Constraint) {
 
     public override function warmStart() {
         Imp(a1rel,a2rel,jAcc,false);
-        vec_set(pjAcc,jAcc);
     }
 
     public override function applyImpulseVel() {

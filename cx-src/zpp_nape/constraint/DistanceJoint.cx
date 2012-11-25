@@ -1,21 +1,6 @@
 package zpp_nape.constraint;
 $(import);
 
-//
-// Constraint deriviation
-//
-// C :: jointMin ≤ |(x2 + r2) - (x1 + r1)| ≤ jointMax
-//
-// let n = unit{(x2 + r2) - (x1 + r1)}
-// V :: n · ((v2 + (ω2 ⨯ r2)) - (v1 + (ω1 ⨯ r1)))
-//
-// J :: [ -n'  -(r1 ⨯ n)  n'  (r2 ⨯ n) ]
-//
-//      1    1    (r1 ⨯ n)²   (r2 ⨯ n)²
-// K :: ── + ── + ───────── + ─────────
-//      m1   m2      i1          i2
-//
-
 withConstraint(
 class PR(DistanceJoint) extends PR(Constraint) {
     public var outer_zn:DistanceJoint = null;
@@ -97,9 +82,8 @@ class PR(DistanceJoint) extends PR(Constraint) {
 
     public function bodyImpulse(b:PR(Body)) {
         if(stepped) {
-            var jcc = jAcc + pjAcc;
-            if(b==b1) return Vec3.get(-jcc*nx,-jcc*ny,-cx1*jcc);
-            else      return Vec3.get( jcc*nx, jcc*ny, cx2*jcc);
+            if(b==b1) return Vec3.get(-jAcc*nx,-jAcc*ny,-cx1*jAcc);
+            else      return Vec3.get( jAcc*nx, jAcc*ny, cx2*jAcc);
         }else return Vec3.get(0,0,0);
     }
 
@@ -123,7 +107,7 @@ class PR(DistanceJoint) extends PR(Constraint) {
     public var b2:PR(Body) = null; anchor_new(a2);
 
     public var kMass:Float = 0.0;
-    public var jAcc:Float = 0.0; public var pjAcc:Float = 0.0;
+    public var jAcc:Float = 0.0;
     public var jMax:Float = 0.0;
 
     public var gamma:Float = 0.0;
@@ -155,7 +139,7 @@ class PR(DistanceJoint) extends PR(Constraint) {
     }
 
     public override function validate() {
-        if(b1==null || b2==null) throw "Error: AngleJoint cannot be simulated null bodies";
+        if(b1==null || b2==null) throw "Error: DistanceJoint cannot be simulated null bodies";
         if(b1==b2) throw "Error: DistanceJoint cannot be simulated with body1 == body2";
         if(b1.space != space || b2.space != space) throw "Error: Constraints must have each body within the same space to which the constraint has been assigned";
         if(jointMin>jointMax) throw "Error: DistanceJoint must have jointMin <= jointMax";
@@ -177,7 +161,7 @@ class PR(DistanceJoint) extends PR(Constraint) {
     }
 
     public override function clearcache() {
-        jAcc = 0; pjAcc = 0;
+        jAcc = 0;
         pre_dt = -1.0;
     }
 
@@ -220,9 +204,7 @@ class PR(DistanceJoint) extends PR(Constraint) {
     public override function warmStart() {
         if(!slack)
             Imp(a1rel,a2rel,n,cx1,cx2,jAcc,false);
-        pjAcc = jAcc;
     }
-
 
     public override function applyImpulseVel() {
         if(slack) return false;

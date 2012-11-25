@@ -1,20 +1,6 @@
 package zpp_nape.constraint;
 $(import);
 
-//
-// Constraint deriviation
-//
-// C :: jointMin ≤ (ratio · θ2) - θ1 ≤ jointMax
-//
-// V :: (ratio · ω2) - ω1
-//
-// J :: [ 0  -1  0  ratio ]
-//
-//      1    ratio²
-// K :: ── + ──────
-//      i1     i2
-//
-
 withConstraint(
 class PR(AngleJoint) extends PR(Constraint) {
     public var outer_zn:AngleJoint = null;
@@ -76,8 +62,8 @@ class PR(AngleJoint) extends PR(Constraint) {
 
     public function bodyImpulse(b:PR(Body)) {
         if(stepped) {
-            if(b==b1) return Vec3.get(0,0,-scale*(jAcc+pjAcc));
-            else      return Vec3.get(0,0,ratio*scale*(jAcc+pjAcc));
+            if(b==b1) return Vec3.get(0,0,-scale*jAcc);
+            else      return Vec3.get(0,0,ratio*scale*jAcc);
         }else return Vec3.get(0,0,0);
     }
 
@@ -101,7 +87,7 @@ class PR(AngleJoint) extends PR(Constraint) {
     public var b2:PR(Body) = null;
 
     public var kMass:Float = 0.0;
-    public var jAcc:Float = 0.0; public var pjAcc:Float = 0.0; //impulse calcs.
+    public var jAcc:Float = 0.0;
     public var jMax:Float = 0.0;
 
     public var gamma:Float = 0.0;
@@ -154,7 +140,7 @@ class PR(AngleJoint) extends PR(Constraint) {
     }
 
     public override function clearcache() {
-        jAcc = 0; pjAcc = 0;
+        jAcc = 0;
         pre_dt = -1.0;
         slack = false;
     }
@@ -198,7 +184,6 @@ class PR(AngleJoint) extends PR(Constraint) {
     public override function warmStart() {
         if(!slack)
             Imp(scale,jAcc,false);
-        pjAcc = jAcc;
     }
 
     public override function applyImpulseVel() {

@@ -1,0 +1,280 @@
+package nape.constraint;
+$(import);
+
+withConstraint(
+!!/**
+!! * PulleyJoint limiting the weighted sum of distances between 2 pairs of 4 local anchor points of Bodies.
+!! * <br/><br/>
+!! * The equation for this constraint could be written like:
+!! * <pre>
+!! * jointMin <= distance(body2.localPointToWorld(anchor2), body1.localPointToWorld(anchor1))
+!! *   + ratio * distance(body4.localPointToWorld(anchor4), body3.localPointToWorld(anchor3)) <= jointMax
+!! * </pre>
+!! * This joint is not designed to work when either of these pairs achieves a distance of 0, it will still work
+!! * but may not be entirely ideal.
+!1 * <br/><br/>
+!! * This constraint can be used in a full 4-body set up, or a 3-body set up or a 2-body set up permitting
+!! * body1 == body4, and/or body2 == body3.
+!! */
+class PulleyJoint extends Constraint {
+    !!/**
+    !! * @private
+    !! */
+    public var pr(inner_zn):PR(PulleyJoint) = null;
+
+    !!/**
+    !! * First Body in constraint.
+    !! * <br/><br/>
+    !! * This value may be null, but trying to simulate the constraint whilst
+    !! * this body is null will result in an error.
+    !! * <br/><br/>
+    !! * This body is permitted to be equal to body4.
+    !! */
+    wrap_body_new(body1, b1, $(mixin isNew(b) pr(inner_zn).b2 != b && pr(inner_zn).b3 != b && pr(inner_zn).b4 != b) isNew)
+
+    !!/**
+    !! * Second Body in constraint.
+    !! * <br/><br/>
+    !! * This value may be null, but trying to simulate the constraint whilst
+    !! * this body is null will result in an error.
+    !! * <br/><br/>
+    !! * This body is permitted to be equal to body3.
+    !! */
+    wrap_body_new(body2, b2, $(mixin isNew(b) pr(inner_zn).b1 != b && pr(inner_zn).b3 != b && pr(inner_zn).b4 != b) isNew)
+
+    !!/**
+    !! * Third Body in constraint.
+    !! * <br/><br/>
+    !! * This value may be null, but trying to simulate the constraint whilst
+    !! * this body is null will result in an error.
+    !! * <br/><br/>
+    !! * This body is permitted to be equal to body2.
+    !! */
+    wrap_body_new(body3, b3, $(mixin isNew(b) pr(inner_zn).b1 != b && pr(inner_zn).b2 != b && pr(inner_zn).b4 != b) isNew)
+
+    !!/**
+    !! * Fourth Body in constraint.
+    !! * <br/><br/>
+    !! * This value may be null, but trying to simulate the constraint whilst
+    !! * this body is null will result in an error.
+    !! * <br/><br/>
+    !! * This body is permitted to be equal to body1.
+    !! */
+    wrap_body_new(body4, b4, $(mixin isNew(b) pr(inner_zn).b1 != b && pr(inner_zn).b2 != b && pr(inner_zn).b3 != b) isNew)
+
+    !!/**
+    !! * Anchor point on first Body.
+    !! * <br/><br/>
+    !! * This anchor point is defined in the local coordinate system of body1.
+    !! */
+    wrap_anchor_new(anchor1, a1)
+
+    !!/**
+    !! * Anchor point on second Body.
+    !! * <br/><br/>
+    !! * This anchor point is defined in the local coordinate system of body2.
+    !! */
+    wrap_anchor_new(anchor2, a2)
+
+    !!/**
+    !! * Anchor point on third Body.
+    !! * <br/><br/>
+    !! * This anchor point is defined in the local coordinate system of body3.
+    !! */
+    wrap_anchor_new(anchor3, a3)
+
+    !!/**
+    !! * Anchor point on fourth Body.
+    !! * <br/><br/>
+    !! * This anchor point is defined in the local coordinate system of body4.
+    !! */
+    wrap_anchor_new(anchor4, a4)
+
+    !!/**
+    !! * Lower bound for constraint.
+    !! * <br/><br/>
+    !! * This value must be less than or equal to jointMax, and greater equal to 0.
+    !! */
+    property(jointMin, Float, {
+        return pr(inner_zn).jointMin;
+    }, {
+        pr(inner).immutable_midstep("PulleyJoint::jointMin");
+        DEBUG(
+            if (isNaN(jointMin)) {
+                throw "Error: PulleyJoint::jointMin cannot be NaN";
+            }
+            if (jointMin < 0) {
+                throw "Error: PulleyJoint::jointMin must be >= 0";
+            }
+        )
+
+        if (this.jointMin != jointMin) {
+            pr(inner_zn).jointMin = jointMin;
+            pr(inner).wake();
+        }
+    })
+
+    !!/**
+    !! * Upper bound for constraint.
+    !! * <br/><br/>
+    !! * This value must be greater than or equal to jointMin.
+    !! */
+    property(jointMax, Float, {
+        return pr(inner_zn).jointMax;
+    }, {
+        pr(inner).immutable_midstep("PulleyJoint::jointMax");
+        DEBUG(
+            if (isNaN(jointMax)) {
+                throw "Error: PulleyJoint::jointMax cannot be NaN";
+            }
+            if (jointMax < 0) {
+                throw "Error: PulleyJoint::jointMax must be >= 0";
+            }
+        )
+        if (this.jointMax != jointMax) {
+            pr(inner_zn).jointMax = jointMax;
+            pr(inner).wake();
+        }
+    })
+
+    !!/**
+    !! * Ratio property of constraint.
+    !! *
+    !! * @default 1
+    !! */
+    property(ratio, Float, {
+        return pr(inner_zn).ratio;
+    }, {
+        pr(inner).immutable_midstep("PulleyJoint::ratio");
+        DEBUG(
+            if (isNaN(ratio)) {
+                throw "Error: PulleyJoint::ratio cannot be NaN";
+            }
+        )
+
+        if (this.ratio != ratio) {
+            pr(inner_zn).ratio = ratio;
+            pr(inner).wake();
+        }
+    })
+
+    !!/**
+    !! * Determine if constraint is slack.
+    !! * <br/><br/>
+    !! * This constraint is slack if the positional error is within
+    !! * the bounds of (jointMin, jointMax).
+    !! *
+    !! * @return True if positional error of constraint is between the limits
+    !! *              indicating that the constraint is not doing any work.
+    !! * @throws # If any of the bodies is null.
+    !! */
+    public inline function isSlack():Bool {
+        DEBUG(
+            if (body1 == null || body2 == null || body3 == null || body4 == null) {
+                throw "Error: Cannot compute slack for PulleyJoint if either body is null.";
+            }
+        )
+        return pr(inner_zn).slack;
+    }
+
+    !!/**
+    !! * Construct a new PulleyJoint.
+    !! *
+    !! * @param body1 The first body in PulleyJoint.
+    !! * @param body2 The second body in PulleyJoint.
+    !! * @param body3 The third body in PulleyJoint.
+    !! * @param body4 The fourth body in PulleyJoint.
+    !! * @param anchor1 The first local anchor for joint.
+    !! * @param anchor2 The second local anchor for joint.
+    !! * @param anchor3 The third local anchor for joint.
+    !! * @param anchor4 The fourth local anchor for joint.
+    !! * @param jointMin The lower bound for constraint.
+    !! * @param jointMax The upper bound for constraint.
+    !! * @param ratio The ratio for constraint.
+    !! * @return The constructed PulleyJoint.
+    !! */
+    flibopts(1)
+    public function new(
+        body1:Null<Body>,
+        body2:Null<Body>,
+        body3:Null<Body>,
+        body4:Null<Body>,
+        anchor1:Vec2,
+        anchor2:Vec2,
+        anchor3:Vec2,
+        anchor4:Vec2,
+        jointMin:Float,
+        jointMax:Float,
+        ratio:Float = 1.0
+    ) {
+        pr(inner_zn) = new PR(PulleyJoint)();
+        pr(inner) = pr(inner_zn);
+        pr(inner).outer = this;
+        pr(inner_zn).outer_zn = this;
+
+        DEBUG(try { super(); } catch (e:Dynamic) {})
+        RELEASE(super();)
+
+        this.body1 = body1;
+        this.body2 = body2;
+        this.body3 = body3;
+        this.body4 = body4;
+        this.anchor1 = anchor1;
+        this.anchor2 = anchor2;
+        this.anchor3 = anchor3;
+        this.anchor4 = anchor4;
+        this.ratio = ratio;
+        this.jointMin = jointMin;
+        this.jointMax = jointMax;
+    }
+
+    !!/**
+    !! * @inheritDoc
+    !! * <br/><br/>
+    !! * For this constraint, the MatMN will be 1x1.
+    !! */
+    public override function impulse():MatMN {
+        var ret = new MatMN(1,1);
+        ret.setx(0, 0, pr(inner_zn).jAcc);
+        return ret;
+    }
+
+    !!/**
+    !! * @inheritDoc
+    !! */
+    public override function bodyImpulse(body:Body):Vec3 {
+        DEBUG(
+            if (body == null) {
+                throw "Error: Cannot evaluate impulse on null body";
+            }
+            if (body != body1 && body != body2 && body != body3 && body != body4) {
+                throw "Error: Body is not linked to this constraint";
+            }
+        )
+
+        if (!active) {
+            return Vec3.get();
+        }
+        else {
+            return pr(inner_zn).bodyImpulse(body.pr(inner));
+        }
+    }
+
+    !!/**
+    !! * @inheritDoc
+    !! */
+    public override function visitBodies(lambda:Body->Void) {
+        if (body1 != null) {
+            lambda(body1);
+        }
+        if (body2 != null && body2 != body1) {
+            lambda(body2);
+        }
+        if (body3 != null && body3 != body1 && body3 != body2) {
+            lambda(body3);
+        }
+        if (body4 != null && body4 != body1 && body4 != body2 && body4 != body3) {
+            lambda(body4);
+        }
+    }
+})

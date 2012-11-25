@@ -12,8 +12,8 @@ withConstraint(
 !! * </pre>
 !! * where:
 !! * <pre>
-!! * dir   = body1.localToRelative(direction).unit();
-!! * delta = body2.localToWorld(anchor2).sub(body1.localToWorld(anchor1));
+!! * dir   = body1.localVectorToWorld(direction).unit();
+!! * delta = body2.localPointToWorld(anchor2).sub(body1.localPointToWorld(anchor1));
 !! * </pre>
 !! * This is a 2 dimensional constraint, and is (when at the limits) solved as a
 !! * block constraint for better stability. This is however not the most stable
@@ -168,8 +168,8 @@ class LineJoint extends Constraint {
     !! */
     public override function impulse():MatMN {
         var ret = new MatMN(2, 1);
-        ret.setx(0, 0, pr(inner_zn).jAccx + pr(inner_zn).pjAccx);
-        ret.setx(1, 0, pr(inner_zn).jAccy + pr(inner_zn).pjAccy);
+        ret.setx(0, 0, pr(inner_zn).jAccx);
+        ret.setx(1, 0, pr(inner_zn).jAccy);
         return ret;
     }
 

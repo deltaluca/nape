@@ -1,40 +1,6 @@
 package zpp_nape.constraint;
 $(import);
 
-//
-// Constraint deriviation
-// n is line direction, defined relative to body 1.
-//
-// let d = (x2 + r2) - (x1 + r1)
-//      ┌          ┐   ┌       ┐   ┌          ┐
-// C :: │    -∞    │ ≤ │ n ⨯ d │ ≤ │    ∞     │
-//      │ jointMin │   │ n · d │   │ jointMax │
-//      └          ┘   └       ┘   └          ┘
-// let v = v2 - v1
-//
-// let dot1 = n · (d - r1)
-// let dot2 = n · r2
-// let cx1 = n ⨯ (d - r1)
-// let cx2 = n ⨯ r2
-//      ┌                                     ┐
-// V :: │ (n ⨯ v) + (ω2 · dot2) - (ω1 · dot1) │
-//      │ (n · v) - (ω2 · cx2 ) + (ω1 · cx1 ) │
-//      └                                     ┘
-//      ┌                                  ┐
-// J :: │ -(n ⨯ .)'  -dot1  (n ⨯ .)'  dot2 │
-//      │    -n'      cx1      n'     -cx2 │
-//      └                                  ┘
-//      ┌                                                     ┐
-//      │ 1    1    dot1²   dot2²     dot1 · cx1   dot2 · cx2 │
-//      │ ── + ── + ───── + ─────   - ────────── - ────────── │
-//      │ m1   m2    i1      i2           i1           i2     │
-// K :: │                                                     │
-//      │                              1    1    cx1²   cx2²  │
-//      │          ###                 ── + ── + ──── + ────  │
-//      │                              m1   m2    i1     i2   │
-//      └                                                     ┘
-//
-
 withConstraint(
 class PR(LineJoint) extends PR(Constraint) {
     public var outer_zn:LineJoint = null;
@@ -109,7 +75,7 @@ class PR(LineJoint) extends PR(Constraint) {
 
     public function bodyImpulse(b:PR(Body)) {
         if(stepped) {
-            vec_new(j, scale*nrelx*(pjAccy+jAccy) - nrely*(pjAccx+jAccx), nrelx*(pjAccx+jAccx) + scale*nrely*(pjAccy+jAccy));
+            vec_new(j, scale*nrelx*jAccy - nrely*jAccx, nrelx*jAccx + scale*nrely*jAccy);
             if(b==b1) return Vec3.get(-jx,-jy,(scale*cx1*jy - dot1*jx));
             else      return Vec3.get( jx, jy,(scale*cx1*jy - dot1*jx));
         }else return Vec3.get(0,0,0);
@@ -144,7 +110,7 @@ class PR(LineJoint) extends PR(Constraint) {
     }
 
     mat2_new(public,kMass);
-    vec_new(public,jAcc); vec_new(public,pjAcc);
+    vec_new(public,jAcc);
     public var jMax:Float;
 
     public var gamma:Float;
@@ -200,7 +166,7 @@ class PR(LineJoint) extends PR(Constraint) {
     }
 
     public override function clearcache() {
-        vec_set(jAcc,0,0); vec_set(pjAcc,0,0);
+        vec_set(jAcc,0,0);
         pre_dt = -1.0;
     }
 
@@ -247,7 +213,6 @@ class PR(LineJoint) extends PR(Constraint) {
 
     public override function warmStart() {
         Imp(a1rel,a2rel,nrel, jAcc,false);
-        vec_set(pjAcc,jAcc);
     }
 
     public override function applyImpulseVel() {

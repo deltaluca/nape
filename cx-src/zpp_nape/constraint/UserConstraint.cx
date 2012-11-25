@@ -12,7 +12,6 @@ class PR(UserConstraint) extends PR(Constraint) {
     public var dim  : Int = 0; //number of rows.
 
     public var  jAcc : TArray(Float) = null;
-    public var pjAcc : TArray(Float) = null;
     public var  bias : TArray(Float) = null;
 
     public function addBody(b:PR(Body)) {
@@ -55,7 +54,7 @@ class PR(UserConstraint) extends PR(Constraint) {
     //--------------------------------------------
 
     public function bodyImpulse(b:PR(Body)) {
-        for(i in 0...dim) J[i] = pjAcc[i] + jAcc[i];
+        for(i in 0...dim) J[i] = jAcc[i];
 
         var ret = Vec3.get(0,0,0);
         if(stepped) outer_zn.__impulse(J,b.outer,ret);
@@ -95,7 +94,6 @@ class PR(UserConstraint) extends PR(Constraint) {
         this.velonly = velonly;
 
         jAcc = newTArray(Float,dim);
-        pjAcc = newTArray(Float,dim);
         bias = newTArray(Float,dim);
 
         L = newTArray(Float,dim*dim);
@@ -106,7 +104,7 @@ class PR(UserConstraint) extends PR(Constraint) {
         vec3 = Vec3.get(0,0,0);
 
         for(i in 0...dim) {
-            jAcc[i] = pjAcc[i] = bias[i] = J[i] = jOld[i] = y[i] = 0.0;
+            jAcc[i] = bias[i] = J[i] = jOld[i] = y[i] = 0.0;
             for(j in 0...dim) L[i*dim+j] = 0.0;
         }
 
@@ -148,7 +146,7 @@ class PR(UserConstraint) extends PR(Constraint) {
     }
 
     public override function clearcache() {
-        for(i in 0...dim) pjAcc[i] = jAcc[i] = 0.0;
+        for(i in 0...dim) jAcc[i] = 0.0;
         pre_dt = -1.0;
     }
 
@@ -266,8 +264,6 @@ class PR(UserConstraint) extends PR(Constraint) {
             vec_addeq(b.vel, vec3., b.imass);
             b.angvel += vec3.z*b.iinertia;
         }
-
-        for(i in 0...dim) pjAcc[i] = jAcc[i];
     }
 
     var J:TArray(Float) = null;
