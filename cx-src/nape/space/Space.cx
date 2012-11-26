@@ -355,13 +355,14 @@ class Space {
     !! *
     !! * @param point The point to evaluate shapes.
     !! * @param filter Optional filter to pick and choose shapes. (default null)
+    !! * @param output Optional list to append results to instead of creating a new list (default null).
     !! * @return A list of all the Shapes containing the given point.
     !! * @throws # If point is null or disposed of.
     !! */
-    keep public function shapesUnderPoint(point:Vec2,filter:InteractionFilter=null) {
+    keep public function shapesUnderPoint(point:Vec2,filter:InteractionFilter=null,output:ShapeList=null) {
         Disposed(point,Vec2);
         DEBUG(if(point==null) throw "Error: Cannot evaluate shapes under a null point :)";)
-        var ret = pr(inner).shapesUnderPoint(point.x,point.y,filter==null?null:filter.pr(inner));
+        var ret = pr(inner).shapesUnderPoint(point.x,point.y,filter==null?null:filter.pr(inner), output);
         WEAK(point);
         return ret;
     }
@@ -373,13 +374,14 @@ class Space {
     !! *
     !! * @param point The point to evaluate bodies.
     !! * @param filter Optional filter to pick and choose shapes. (default null)
+    !! * @param output Optional list to append results to instead of creating a new list (default null).
     !! * @return A list of all the Bodies containing the given point.
     !! * @throws # If point is null or disposed of.
     !! */
-    keep public function bodiesUnderPoint(point:Vec2,filter:InteractionFilter=null) {
+    keep public function bodiesUnderPoint(point:Vec2,filter:InteractionFilter=null, output:BodyList=null) {
         Disposed(point,Vec2);
         DEBUG(if(point==null) throw "Error: Cannot evaluate objects under a null point :)";)
-        var ret = pr(inner).bodiesUnderPoint(point.x,point.y,filter==null?null:filter.pr(inner));
+        var ret = pr(inner).bodiesUnderPoint(point.x,point.y,filter==null?null:filter.pr(inner),output);
         WEAK(point);
         return ret;
     }
@@ -398,15 +400,16 @@ class Space {
     !! *               classify the Shape, instead of the Shape itself.
     !! *               (default true)
     !! * @param filter Optional filter to pick and choose shapes. (default null)
+    !! * @param output Optional list to append results to instead of creating a new list (default null).
     !! * @return A list of all the shapes for given AABB.
     !! * @throws # If AABB is null, or is degenerate.
     !! */
-    keep public function shapesInAABB(aabb:AABB,containment:Bool=false,strict:Bool=true,filter:InteractionFilter=null) {
+    keep public function shapesInAABB(aabb:AABB,containment:Bool=false,strict:Bool=true,filter:InteractionFilter=null, output:ShapeList=null) {
         DEBUG(
             if(aabb==null) throw "Error: Cannot evaluate shapes in a null AABB :)";
             if(aabb.width==0 || aabb.height==0) throw "Error: Cannot evaluate shapes in degenerate AABB :/";
         )
-        return pr(inner).shapesInAABB(aabb,strict,containment,filter==null?null:filter.pr(inner));
+        return pr(inner).shapesInAABB(aabb,strict,containment,filter==null?null:filter.pr(inner),output);
     }
 
     !!/**
@@ -424,15 +427,16 @@ class Space {
     !! *               classify the shapes of the body, instead of the Shape itself.
     !! *               (default true)
     !! * @param filter Optional filter to pick and choose shapes. (default null)
+    !! * @param output Optional list to append results to instead of creating a new list (default null).
     !! * @return A list of all the shapes for given AABB.
     !! * @throws # If AABB is null, or is degenerate.
     !! */
-    keep public function bodiesInAABB(aabb:AABB,containment:Bool=false,strict:Bool=true,filter:InteractionFilter=null) {
+    keep public function bodiesInAABB(aabb:AABB,containment:Bool=false,strict:Bool=true,filter:InteractionFilter=null, output:BodyList=null) {
         DEBUG(
             if(aabb==null) throw "Error: Cannot evaluate objects in a null AABB :)";
             if(aabb.width==0 || aabb.height==0) throw "Error: Cannot evaluate objects in degenerate AABB :/";
         )
-        return pr(inner).bodiesInAABB(aabb,strict,containment,filter==null?null:filter.pr(inner));
+        return pr(inner).bodiesInAABB(aabb,strict,containment,filter==null?null:filter.pr(inner),output);
     }
 
     !!/**
@@ -447,18 +451,19 @@ class Space {
     !! *                    than simply intersected) will be considered.
     !! *                    (default false)
     !! * @param filter Optional filter to pick and choose shapes. (default null)
+    !! * @param output Optional list to append results to instead of creating a new list (default null).
     !! * @return A list of all the shapes for given circle.
     !! * @throws # If positions is null or disposed of.
     !! * @throws # If radius is not strictly positive.
     !! */
-    keep public function shapesInCircle(position:Vec2,radius:Float,containment:Bool=false,filter:InteractionFilter=null) {
+    keep public function shapesInCircle(position:Vec2,radius:Float,containment:Bool=false,filter:InteractionFilter=null, output:ShapeList=null) {
         Disposed(position,Vec2);
         DEBUG(
             if(position==null) throw "Error: Cannot evaluate shapes at null circle :)";
             if(isNaN(radius))  throw "Error: Circle radius cannot be NaN";
             if(radius<=0)      throw "Error: Circle radius must be strictly positive";
         )
-        var ret = pr(inner).shapesInCircle(position,radius,containment,filter==null?null:filter.pr(inner));
+        var ret = pr(inner).shapesInCircle(position,radius,containment,filter==null?null:filter.pr(inner),output);
         WEAK(position);
         return ret;
     }
@@ -476,18 +481,19 @@ class Space {
     !! *                    than simply intersecting) will be considered.
     !! *                    (default false)
     !! * @param filter Optional filter to pick and choose shapes. (default null)
+    !! * @param output Optional list to append results to instead of creating a new list (default null).
     !! * @return A list of all the shapes for given circle.
     !! * @throws # If positions is null or disposed of.
     !! * @throws # If radius is not strictly positive.
     !! */
-    keep public function bodiesInCircle(position:Vec2,radius:Float,containment:Bool=false,filter:InteractionFilter=null) {
+    keep public function bodiesInCircle(position:Vec2,radius:Float,containment:Bool=false,filter:InteractionFilter=null, output:BodyList=null) {
         Disposed(position,Vec2);
         DEBUG(
             if(position==null) throw "Error: Cannot evaluate objects at null circle :)";
             if(isNaN(radius))  throw "Error: Circle radius cannot be NaN";
             if(radius<=0)      throw "Error: Circle radius must be strictly positive";
         )
-        var ret = pr(inner).bodiesInCircle(position,radius,containment,filter==null?null:filter.pr(inner));
+        var ret = pr(inner).bodiesInCircle(position,radius,containment,filter==null?null:filter.pr(inner),output);
         WEAK(position);
         return ret;
     }
@@ -507,11 +513,12 @@ class Space {
     !! *                    than simply intersected) will be considered.
     !! *                    (default false)
     !! * @param filter Optional filter to pick and choose shapes. (default null)
+    !! * @param output Optional list to append results to instead of creating a new list (default null).
     !! * @return A list of all the shapes for given shape.
     !! * @throws # If shape is null or not part of a body.
     !! * @throws # If shape is a polygon, and that polygon is not 'valid'
     !! */
-    keep public function shapesInShape(shape:Shape,containment:Bool=false,filter:InteractionFilter=null) {
+    keep public function shapesInShape(shape:Shape,containment:Bool=false,filter:InteractionFilter=null,output:ShapeList=null) {
         DEBUG(
             if(shape==null) throw "Error: Cannot evaluate shapes in a null shapes :)";
             if(shape.body==null) throw "Error: Query shape needs to be inside a Body to be well defined :)";
@@ -521,7 +528,7 @@ class Space {
                     throw "Error: Polygon query shape is invalid : "+res.toString();
             }
         )
-        return pr(inner).shapesInShape(shape.pr(inner),containment,filter == null ? null : filter.pr(inner));
+        return pr(inner).shapesInShape(shape.pr(inner),containment,filter == null ? null : filter.pr(inner),output);
     }
     !!/**
     !! * Evaluate all Bodies given a shape.
@@ -537,11 +544,12 @@ class Space {
     !! *                    than simply intersecting) will be considered.
     !! *                    (default false)
     !! * @param filter Optional filter to pick and choose shapes. (default null)
+    !! * @param output Optional list to append results to instead of creating a new list (default null).
     !! * @return A list of all the bodies for given shape.
     !! * @throws # If shape is null or not part of a body.
     !! * @throws # If shape is a polygon, and that polygon is not 'valid'
     !! */
-    keep public function bodiesInShape(shape:Shape,containment:Bool=false,filter:InteractionFilter=null) {
+    keep public function bodiesInShape(shape:Shape,containment:Bool=false,filter:InteractionFilter=null,output:BodyList=null) {
         DEBUG(
             if(shape==null) throw "Error: Cannot evaluate bodies in a null shapes :)";
             if(shape.body==null) throw "Error: Query shape needs to be inside a Body to be well defined :)";
@@ -551,7 +559,7 @@ class Space {
                     throw "Error: Polygon query shape is invalid : "+res.toString();
             }
         )
-        return pr(inner).bodiesInShape(shape.pr(inner),containment,filter == null ? null : filter.pr(inner));
+        return pr(inner).bodiesInShape(shape.pr(inner),containment,filter == null ? null : filter.pr(inner),output);
     }
 
     !!/**
@@ -564,19 +572,18 @@ class Space {
     !! *
     !! * @param body The body to use in classifying other shapes.
     !! * @param filter Optional filter to pick and choose shapes. (default null)
+    !! * @param output Optional list to append results to instead of creating a new list (default null).
     !! * @return A list of all the shapes for given body.
     !! * @throws # If body is null.
     !! * @throws # If body has a shape that is a polygon, and that polygon is not 'valid'
     !! */
-    keep public function shapesInBody(body:Body,filter:InteractionFilter=null) {
+    keep public function shapesInBody(body:Body,filter:InteractionFilter=null,output:ShapeList=null) {
         DEBUG(if(body==null) throw "Error: Cannot evaluate shapes in null body";)
-        var ret = null;
+        var ret = (output == null ? new ShapeList() : output);
         for(shape in body.shapes) {
-            var cur = shapesInShape(shape,false,filter);
-            if(ret==null) ret = cur;
-            else ret.merge(cur);
+            var cur = shapesInShape(shape,false,filter,ret);
         }
-        return if(ret==null) new ShapeList() else ret;
+        return ret;
     }
 
     !!/**
@@ -588,19 +595,18 @@ class Space {
     !! *
     !! * @param body The body to use in classifying other bodies.
     !! * @param filter Optional filter to pick and choose bodies. (default null)
+    !! * @param output Optional list to append results to instead of creating a new list (default null).
     !! * @return A list of all the bodies for given body.
     !! * @throws # If body is null.
     !! * @throws # If body has a shape that is a polygon, and that polygon is not 'valid'
     !! */
-    keep public function bodiesInBody(body:Body,filter:InteractionFilter=null) {
+    keep public function bodiesInBody(body:Body,filter:InteractionFilter=null, output:BodyList=null) {
         DEBUG(if(body==null) throw "Error: Cannot evaluate shapes in null body";)
-        var ret = null;
+        var ret = (output == null ? new BodyList() : output);
         for(shape in body.shapes) {
-            var cur = bodiesInShape(shape,false,filter);
-            if(ret==null) ret = cur;
-            else ret.merge(cur);
+            var cur = bodiesInShape(shape,false,filter,ret);
         }
-        return if(ret==null) new BodyList() else ret;
+        return ret;
     }
 
     !!/**

@@ -689,19 +689,20 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 
     //iterate tree, descending into a subtree only if condition is true
     //execute block on each leaf shape.
+    var treeStack:List(PR(AABBNode)) = null;
     $(mixin IterTree(tree,condition,block) {
         if(tree.root!=null) {
-            var stack = new List(PR(AABBNode))();
-            stack.add(tree.root);
-            while(!stack.empty()) {
-                var node = stack.pop_unsafe();
+            if (treeStack == null) treeStack = new List(PR(AABBNode))();
+            treeStack.add(tree.root);
+            while(!treeStack.empty()) {
+                var node = treeStack.pop_unsafe();
                 assert(node!=null,"null node");
                 if(condition(node)) {
                     if(node.isLeaf()) {
                         block(node.shape);
                     }else {
-                        if(node.child1!=null) stack.add(node.child1);
-                        if(node.child2!=null) stack.add(node.child2);
+                        if(node.child1!=null) treeStack.add(node.child1);
+                        if(node.child2!=null) treeStack.add(node.child2);
                     }
                 }
             }
@@ -713,11 +714,11 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
     //iterate for leaves containing given point
     $(mixin IterPoint(tree,point,block) IterTree(tree,$(mixin cond(node) node.aabb.containsPoint(point)) cond, block));
 
-    public override function shapesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)) {
+    public override function shapesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter), output:ShapeList) {
         sync_broadphase();
 
         var v = PR(Vec2).get(x,y);
-        var ret = new ShapeList();
+        var ret = (output == null ? new ShapeList() : output);
 
         $(mixin dotree(tree) {
             IterPoint(tree,v, $(mixin block(shape) {
@@ -739,11 +740,11 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
         return ret;
     }
 
-    public override function bodiesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)) {
+    public override function bodiesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter), output:BodyList) {
         sync_broadphase();
 
         var v = PR(Vec2).get(x,y);
-        var ret = new BodyList();
+        var ret = (output == null ? new BodyList() : output);
 
         $(mixin dotree(tree) {
             IterPoint(tree,v, $(mixin block(shape) {
@@ -775,10 +776,10 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 
     $(mixin IterRealAABB(tree,AABB,block,block2) {
         if(tree.root!=null) {
-            var stack = new List(PR(AABBNode))();
-            stack.add(tree.root);
-            while(!stack.empty()) {
-                var node = stack.pop_unsafe();
+            if (treeStack == null) treeStack = new List(PR(AABBNode))();
+            treeStack.add(tree.root);
+            while(!treeStack.empty()) {
+                var node = treeStack.pop_unsafe();
                 assert(node!=null,"null node");
                 if(AABB.contains(node.aabb)) {
                     if(node.isLeaf()) {
@@ -786,14 +787,14 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
                     }else {
 
                         //faster traversal.
-                        var stack2 = new List(PR(AABBNode))();
-                        stack2.add(node);
-                        while(!stack2.empty()) {
-                            var node = stack2.pop_unsafe();
+                        var treeStack2 = new List(PR(AABBNode))();
+                        treeStack2.add(node);
+                        while(!treeStack2.empty()) {
+                            var node = treeStack2.pop_unsafe();
                             if(node.isLeaf()) block2(node.shape);
                             else {
-                                if(node.child1!=null) stack2.add(node.child1);
-                                if(node.child2!=null) stack2.add(node.child2);
+                                if(node.child1!=null) treeStack2.add(node.child1);
+                                if(node.child2!=null) treeStack2.add(node.child2);
                             }
                         }
 
@@ -803,20 +804,20 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
                     if(node.isLeaf()) {
                         block(node.shape);
                     }else {
-                        if(node.child1!=null) stack.add(node.child1);
-                        if(node.child2!=null) stack.add(node.child2);
+                        if(node.child1!=null) treeStack.add(node.child1);
+                        if(node.child2!=null) treeStack.add(node.child2);
                     }
                 }
             }
         }
     });
 
-    public override function shapesInAABB(aabb:PR(AABB), strict:Bool, containment:Bool, filter:PR(InteractionFilter)) {
+    public override function shapesInAABB(aabb:PR(AABB), strict:Bool, containment:Bool, filter:PR(InteractionFilter), output:ShapeList) {
         sync_broadphase();
         updateAABBShape(aabb);
 
         var ab = aabbShape.pr(inner).aabb;
-        var ret = new ShapeList();
+        var ret = (output == null ? new ShapeList() : output);
 
         $(mixin dotree(tree) {
             IterRealAABB(tree,ab, $(mixin block(shape) {
@@ -845,12 +846,12 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
         return ret;
     }
 
-    public override function bodiesInAABB(aabb:PR(AABB), strict:Bool, containment:Bool, filter:PR(InteractionFilter)) {
+    public override function bodiesInAABB(aabb:PR(AABB), strict:Bool, containment:Bool, filter:PR(InteractionFilter), output:BodyList) {
         sync_broadphase();
         updateAABBShape(aabb);
 
         var ab = aabbShape.pr(inner).aabb;
-        var ret = new BodyList();
+        var ret = (output == null ? new BodyList() : output);
 
         $(mixin dotree(tree) {
             IterRealAABB(tree,ab, $(mixin block(shape) {
@@ -894,12 +895,12 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 
     //==============================================================
 
-    public override function shapesInCircle(x:Float,y:Float,r:Float, containment:Bool, filter:PR(InteractionFilter)) {
+    public override function shapesInCircle(x:Float,y:Float,r:Float, containment:Bool, filter:PR(InteractionFilter), output:ShapeList) {
         sync_broadphase();
         updateCircShape(x,y,r);
 
         var ab = circShape.pr(inner).aabb;
-        var ret = new ShapeList();
+        var ret = (output == null ? new ShapeList() : output);
 
         $(mixin dotree(tree) {
             IterAABB(tree,ab, $(mixin block(shape) {
@@ -917,12 +918,12 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
         return ret;
     }
 
-    public override function bodiesInCircle(x:Float,y:Float,r:Float, containment:Bool, filter:PR(InteractionFilter)) {
+    public override function bodiesInCircle(x:Float,y:Float,r:Float, containment:Bool, filter:PR(InteractionFilter), output:BodyList) {
         sync_broadphase();
         updateCircShape(x,y,r);
 
         var ab = circShape.pr(inner).aabb;
-        var ret = new BodyList();
+        var ret = (output == null ? new BodyList() : output);
 
         $(mixin dotree(tree) {
             IterAABB(tree,ab, $(mixin block(shape) {
@@ -949,12 +950,12 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 
     //==============================================================
 
-    public override function shapesInShape(shp:PR(Shape), containment:Bool, filter:PR(InteractionFilter)) {
+    public override function shapesInShape(shp:PR(Shape), containment:Bool, filter:PR(InteractionFilter), output:ShapeList) {
         sync_broadphase();
         validateShape(shp);
 
         var ab = shp.aabb;
-        var ret = new ShapeList();
+        var ret = (output == null ? new ShapeList() : output);
 
         $(mixin dotree(tree) {
             IterAABB(tree,ab, $(mixin block(shape) {
@@ -972,12 +973,12 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
         return ret;
     }
 
-    public override function bodiesInShape(shp:PR(Shape), containment:Bool, filter:PR(InteractionFilter)) {
+    public override function bodiesInShape(shp:PR(Shape), containment:Bool, filter:PR(InteractionFilter), output:BodyList) {
         sync_broadphase();
         validateShape(shp);
 
         var ab = shp.aabb;
-        var ret = new BodyList();
+        var ret = (output == null ? new BodyList() : output);
 
         $(mixin dotree(tree) {
             IterAABB(tree,ab, $(mixin block(shape) {

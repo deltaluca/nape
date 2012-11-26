@@ -148,11 +148,11 @@ class PR(SweepPhase) extends PR(Broadphase) {
 
     //==============================================================================================
 
-    public override function shapesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)) {
+    public override function shapesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter),output:ShapeList) {
         sync_broadphase();
 
         var v = PR(Vec2).get(x,y);
-        var ret = new ShapeList();
+        var ret = (output == null ? new ShapeList() : output);
         var a = list;
         while(a!=null && a.aabb.minx> x) a = a.next;
         while(a!=null && a.aabb.minx<=x) {
@@ -173,11 +173,11 @@ class PR(SweepPhase) extends PR(Broadphase) {
         Free(PR(Vec2),v);
         return ret;
     }
-    public override function bodiesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)) {
+    public override function bodiesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter),output:BodyList) {
         sync_broadphase();
 
         var v = PR(Vec2).get(x,y);
-        var ret = new BodyList();
+        var ret = (output == null ? new BodyList() : output);
         var a = list;
         while(a!=null && a.aabb.minx> x) a = a.next;
         while(a!=null && a.aabb.minx<=x) {
@@ -204,12 +204,12 @@ class PR(SweepPhase) extends PR(Broadphase) {
 
     //==============================================================================================
 
-    public override function shapesInAABB(aabb:PR(AABB),strict:Bool,containment:Bool,filter:PR(InteractionFilter)) {
+    public override function shapesInAABB(aabb:PR(AABB),strict:Bool,containment:Bool,filter:PR(InteractionFilter), output:ShapeList) {
         sync_broadphase();
         updateAABBShape(aabb);
 
         var ab = aabbShape.pr(inner).aabb;
-        var ret = new ShapeList();
+        var ret = (output == null ? new ShapeList() : output);
         var a = list;
         while(a!=null && a.aabb.maxx< ab.minx) a = a.next;
         while(a!=null && a.aabb.minx<=ab.maxx) {
@@ -234,12 +234,12 @@ class PR(SweepPhase) extends PR(Broadphase) {
         }
         return ret;
     }
-    public override function bodiesInAABB(aabb:PR(AABB),strict:Bool,containment:Bool,filter:PR(InteractionFilter)) {
+    public override function bodiesInAABB(aabb:PR(AABB),strict:Bool,containment:Bool,filter:PR(InteractionFilter), output:BodyList) {
         sync_broadphase();
         updateAABBShape(aabb);
 
         var ab = aabbShape.pr(inner).aabb;
-        var ret = new BodyList();
+        var ret = (output == null ? new BodyList() : output);
         var a = list;
         while(a!=null && a.aabb.maxx< ab.minx) a = a.next;
         while(a!=null && a.aabb.minx<=ab.maxx) {
@@ -279,12 +279,12 @@ class PR(SweepPhase) extends PR(Broadphase) {
 
     //==============================================================================================
 
-    public override function shapesInCircle(x:Float,y:Float,r:Float,containment:Bool,filter:PR(InteractionFilter)) {
+    public override function shapesInCircle(x:Float,y:Float,r:Float,containment:Bool,filter:PR(InteractionFilter), output:ShapeList) {
         sync_broadphase();
         updateCircShape(x,y,r);
 
         var ab = circShape.pr(inner).aabb;
-        var ret = new ShapeList();
+        var ret = (output == null ? new ShapeList() : output);
         var a = list;
         while(a!=null && a.aabb.maxx< ab.minx) a = a.next;
         while(a!=null && a.aabb.minx<=ab.maxx) {
@@ -302,12 +302,12 @@ class PR(SweepPhase) extends PR(Broadphase) {
         }
         return ret;
     }
-    public override function bodiesInCircle(x:Float,y:Float,r:Float,containment:Bool,filter:PR(InteractionFilter)) {
+    public override function bodiesInCircle(x:Float,y:Float,r:Float,containment:Bool,filter:PR(InteractionFilter), output:BodyList) {
         sync_broadphase();
         updateCircShape(x,y,r);
 
         var ab = circShape.pr(inner).aabb;
-        var ret = new BodyList();
+        var ret = (output == null ? new BodyList() : output);
         var a = list;
         while(a!=null && a.aabb.maxx< ab.minx) a = a.next;
         while(a!=null && a.aabb.minx<=ab.maxx) {
@@ -335,12 +335,12 @@ class PR(SweepPhase) extends PR(Broadphase) {
 
     //==============================================================================================
 
-    public override function shapesInShape(shape:PR(Shape),containment:Bool,filter:PR(InteractionFilter)) {
+    public override function shapesInShape(shape:PR(Shape),containment:Bool,filter:PR(InteractionFilter), output:ShapeList) {
         sync_broadphase();
         validateShape(shape);
 
         var ab = shape.aabb;
-        var ret = new ShapeList();
+        var ret = (output == null ? new ShapeList() : output);
         var a = list;
         while(a!=null && a.aabb.maxx< ab.minx) a = a.next;
         while(a!=null && a.aabb.minx<=ab.maxx) {
@@ -358,12 +358,12 @@ class PR(SweepPhase) extends PR(Broadphase) {
         }
         return ret;
     }
-    public override function bodiesInShape(shape:PR(Shape),containment:Bool,filter:PR(InteractionFilter)) {
+    public override function bodiesInShape(shape:PR(Shape),containment:Bool,filter:PR(InteractionFilter), output:BodyList) {
         sync_broadphase();
         validateShape(shape);
 
         var ab = shape.aabb;
-        var ret = new BodyList();
+        var ret = (output == null ? new BodyList() : output);
         var a = list;
         while(a!=null && a.aabb.maxx< ab.minx) a = a.next;
         while(a!=null && a.aabb.minx<=ab.maxx) {

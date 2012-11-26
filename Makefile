@@ -72,6 +72,8 @@ RELEASE_FLAGS= $(SWC_FLAGS) -D NAPE_RELEASE_BUILD
 .PHONY: demos
 demos:
 	./buildlib
+	$(MAKE) releases
+	cp bin/release/release_nape.swc ../www.napephys.com/nape-release.swc
 	$(MAKE) docs
 
 releases: pre_compile

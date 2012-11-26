@@ -172,7 +172,7 @@ class PR(BitmapDebug) extends PR(Debug) {
     ///---------------------------------------------------------------------------------------------
     public var filledVertices:Array<Vec2>;
     public var filledXs:Array<Int>;
-    
+
     public function setbg(bgColor:Int) {
         sup_setbg(bgColor);
         if(!transp) {
@@ -560,18 +560,20 @@ $(mixin pr_debug(utils)
         Iter(b, compound.bodies, if (b.outer.debugDraw) draw_body(b,xform,xdet,xnull));
         Iter(c, compound.constraints, if (c.active && c.outer.debugDraw) c.draw(outer));
     }
+    var shapeList:ShapeList = null;
+    var bodyList:BodyList = null;
     public function draw_space(space:PR(Space),xform:PR(Mat23),xdet:Float,xnull:Bool) {
         if(outer.cullingEnabled) {
             if(outer.drawBodies) {
                 if(outer.drawBodyDetail) {
-                    var bods = space.bphase.bodiesInAABB(iport,false,false,null);
+                    var bods = bodyList = space.bphase.bodiesInAABB(iport,false,false,null,bodyList);
                     while(!bods.empty()) {
                         var b = bods.shift();
                         if (b.debugDraw)
                             draw_body(b.pr(inner),xform,xdet,xnull);
                     }
                 }else {
-                    var shapes = space.bphase.shapesInAABB(iport,false,false,null);
+                    var shapes = shapeList = space.bphase.shapesInAABB(iport,false,false,null,shapeList);
                     while(!shapes.empty()) {
                         var s = shapes.shift();
                         if (s.body.debugDraw)

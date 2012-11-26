@@ -809,32 +809,32 @@ class PR(Space) {
 
     //----------------------------------------------------------------------------------------------
 
-    public function shapesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)) {
-        return bphase.shapesUnderPoint(x,y,filter);
+    public function shapesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter),output:ShapeList) {
+        return bphase.shapesUnderPoint(x,y,filter,output);
     }
-    public function bodiesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter)) {
-        return bphase.bodiesUnderPoint(x,y,filter);
-    }
-
-    public function shapesInAABB(aabb:AABB,strict:Bool,cont:Bool,filter:PR(InteractionFilter)) {
-        return bphase.shapesInAABB(aabb.pr(inner),strict,cont,filter);
-    }
-    public function bodiesInAABB(aabb:AABB,strict:Bool,cont:Bool,filter:PR(InteractionFilter)) {
-           return bphase.bodiesInAABB(aabb.pr(inner),strict,cont,filter);
+    public function bodiesUnderPoint(x:Float,y:Float,filter:PR(InteractionFilter),output:BodyList) {
+        return bphase.bodiesUnderPoint(x,y,filter,output);
     }
 
-    public function shapesInCircle(pos:Vec2,rad:Float,cont:Bool,filter:PR(InteractionFilter)) {
-        return bphase.shapesInCircle(pos.x,pos.y,rad,cont,filter);
+    public function shapesInAABB(aabb:AABB,strict:Bool,cont:Bool,filter:PR(InteractionFilter),output:ShapeList) {
+        return bphase.shapesInAABB(aabb.pr(inner),strict,cont,filter,output);
     }
-    public function bodiesInCircle(pos:Vec2,rad:Float,cont:Bool,filter:PR(InteractionFilter)) {
-           return bphase.bodiesInCircle(pos.x,pos.y,rad,cont,filter);
+    public function bodiesInAABB(aabb:AABB,strict:Bool,cont:Bool,filter:PR(InteractionFilter),output:BodyList) {
+           return bphase.bodiesInAABB(aabb.pr(inner),strict,cont,filter,output);
     }
 
-    public function shapesInShape(shape:PR(Shape),cont:Bool,filter:PR(InteractionFilter)) {
-        return bphase.shapesInShape(shape,cont,filter);
+    public function shapesInCircle(pos:Vec2,rad:Float,cont:Bool,filter:PR(InteractionFilter),output:ShapeList) {
+        return bphase.shapesInCircle(pos.x,pos.y,rad,cont,filter,output);
     }
-    public function bodiesInShape(shape:PR(Shape),cont:Bool,filter:PR(InteractionFilter)) {
-        return bphase.bodiesInShape(shape,cont,filter);
+    public function bodiesInCircle(pos:Vec2,rad:Float,cont:Bool,filter:PR(InteractionFilter),output:BodyList) {
+           return bphase.bodiesInCircle(pos.x,pos.y,rad,cont,filter,output);
+    }
+
+    public function shapesInShape(shape:PR(Shape),cont:Bool,filter:PR(InteractionFilter),output:ShapeList) {
+        return bphase.shapesInShape(shape,cont,filter,output);
+    }
+    public function bodiesInShape(shape:PR(Shape),cont:Bool,filter:PR(InteractionFilter),output:BodyList) {
+        return bphase.bodiesInShape(shape,cont,filter,output);
     }
 
     //----------------------------------------------------------------------------------------------
@@ -846,6 +846,7 @@ class PR(Space) {
         return bphase.rayMultiCast(ray.pr(inner),inner,filter==null ? null : filter.pr(inner));
     }
 
+    var convexShapeList:ShapeList = null;
     public function convexCast(shape:PR(Shape), deltaTime:Float, filter:InteractionFilter, dynamics:Bool) {
         var toi; Get(PR(ToiEvent), toi);
 
@@ -865,7 +866,7 @@ class PR(Space) {
         aabb.maxx = max(prex, postx) + rad;
         aabb.miny = min(prey, posty) - rad;
         aabb.maxy = max(prey, posty) + rad;
-        var list = bphase.shapesInAABB(aabb, false, false, filter == null ? null : filter.pr(inner));
+        var list = convexShapeList = bphase.shapesInAABB(aabb, false, false, filter == null ? null : filter.pr(inner), convexShapeList);
         Free(PR(AABB), aabb);
 
         vec_new(minAxis); vec_set(minAxis, 0, 0);
@@ -899,6 +900,7 @@ class PR(Space) {
             }
         }
 
+        list.clear();
         Free(PR(ToiEvent), toi);
         body.sweepIntegrate(0);
         body.sweepValidate(shape);
@@ -934,7 +936,7 @@ class PR(Space) {
         aabb.maxx = max(prex, postx) + rad;
         aabb.miny = min(prey, posty) - rad;
         aabb.maxy = max(prey, posty) + rad;
-        var list = bphase.shapesInAABB(aabb, false, false, filter == null ? null : filter.pr(inner));
+        var list = convexShapeList = bphase.shapesInAABB(aabb, false, false, filter == null ? null : filter.pr(inner), convexShapeList);
         Free(PR(AABB), aabb);
 
         var ret = new ConvexResultList();
@@ -967,6 +969,7 @@ class PR(Space) {
             }
         }
 
+        list.clear();
         Free(PR(ToiEvent), toi);
         body.sweepIntegrate(0);
         body.sweepValidate(shape);
@@ -2029,7 +2032,7 @@ class PR(Space) {
                     var angThreshold = PR(Config).MIN_ANG_STATIC_SWEEP;
                     if (((vec_lsq(cur.vel) * dt * dt) > (linThreshold * linThreshold) ||
                        (cur.angvel*cur.angvel * dt * dt) > (angThreshold * angThreshold)) || cur.isKinematic())
-                    {                            
+                    {
                         var col = [0x00ff00, 0x00ffff, 0x0000ff, 0xff00ff, 0x00ff00, 0x00ffff, 0x0000ff, 0xff00ff];
                         // compute swept AABB
                         var angvel = cur.sweep_angvel;
@@ -2053,7 +2056,7 @@ class PR(Space) {
                             var count:Int = fastint(angvel * dt * s.sweepCoef * (1 / 120));
                             if (count > 8) count = 8;
                             var anginc = (angvel * dt) / count;
-                          
+
                             // integrate to end of timestep, and compute AABB at t=dt to augment.
                             cur.sweepIntegrate(dt);
                             s.force_validate_aabb();
@@ -2061,7 +2064,7 @@ class PR(Space) {
                             if (miny < aabb.miny) aabb.miny = miny else miny = aabb.miny;
                             if (maxx > aabb.maxx) aabb.maxx = maxx else maxx = aabb.maxx;
                             if (maxy > aabb.maxy) aabb.maxy = maxy else maxy = aabb.maxy;
-   
+
                             // If it's rotating REALLY FAST, need to include AABB at intervals to try
                             // and incoperate more of the swept region.
                             for (i in 1...count) {
@@ -2072,13 +2075,13 @@ class PR(Space) {
                                 if (maxx > aabb.maxx) aabb.maxx = maxx else maxx = aabb.maxx;
                                 if (maxy > aabb.maxy) aabb.maxy = maxy else maxy = aabb.maxy;
                             }
-   
-    
+
+
                             if (!bphase.is_sweep) {
                                 bphase.sync(s);
                             }
                         });
-    
+
                         cur.sweepFrozen = false;
                         if (cur.isDynamic() && cur.bulletEnabled)
                         {
@@ -2097,7 +2100,7 @@ class PR(Space) {
                     }
                 }else {
                     cur.sweepFrozen = true;
-                    cur.bullet = false;                        
+                    cur.bullet = false;
                 }
             });
         });
