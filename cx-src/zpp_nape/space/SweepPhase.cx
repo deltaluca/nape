@@ -93,7 +93,7 @@ class PR(SweepPhase) extends PR(Broadphase) {
         }
     }
 
-    public override function broadphase(narrowPhase:PR(Shape)->PR(Shape)->Bool->PR(Arbiter)->Bool->PR(Arbiter)) {
+    public override function broadphase(space:PR(Space), discrete:Bool) {
         if(list!=null) {
             //validation is already done on aabb's
             sync_broadphase_fast();
@@ -126,7 +126,11 @@ class PR(SweepPhase) extends PR(Broadphase) {
                         continue;
                     }
                     if(s1.aabb.intersectY(s2.aabb)) {
-                        narrowPhase(s1,s2, !b1.isDynamic()||!b2.isDynamic(), null, false);
+                        if (discrete) {
+                            space.narrowPhase(s1,s2, !b1.isDynamic()||!b2.isDynamic(), null, false);
+                        }else {
+                            space.continuousEvent(s1,s2, !b1.isDynamic()||!b2.isDynamic(), null, false);
+                        }
                     }
 
                     d2 = d2.next;

@@ -1003,7 +1003,7 @@ class PR(Space) {
         validation();
         #if NAPE_TIMES Debug.VALID += flash.Lib.getTimer()-pt; #end
         #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
-        bphase.broadphase(narrowPhase);
+        bphase.broadphase(this, true);
         #if NAPE_TIMES Debug.BROAD += flash.Lib.getTimer()-pt; #end
 
         #if NAPE_TIMES
@@ -1135,7 +1135,7 @@ class PR(Space) {
     public var toiEvents:List(PR(ToiEvent)) = null;
     public function continuousCollisions(deltaTime:Float) {
         // Get all TOI Events.
-        bphase.broadphase(continuousEvent);
+        bphase.broadphase(this,false);
         // Time to begin!
         var curTimeAlpha = 0.0;
         while (curTimeAlpha < 1 && !toiEvents.empty()) {
