@@ -654,16 +654,17 @@ class Space {
     !! * @param deltaTime The amount of time to sweep the shape forward.
     !! * @param liveSweep If true, then moving objects in the space will have their motion considered during the sweep. Otherwise; like with normal rayCast, objects in the space are considered un-moving for the cast. (default false)
     !! * @param filter The optional filter to filter out shapes. (default null)
+    !! * @param output A list to append results to instead of allocating a new one (default null)
     !! * @return The collision results in time order.
     !! * @throws # If shape is null, or not part of a body.
     !! * @throws # If deltaTime is negative.
     !! */
-    keep public function convexMultiCast(shape:Shape, deltaTime:Float, liveSweep:Bool = false, filter:InteractionFilter=null):ConvexResultList {
+    keep public function convexMultiCast(shape:Shape, deltaTime:Float, liveSweep:Bool = false, filter:InteractionFilter=null, output:ConvexResultList):ConvexResultList {
         DEBUG(if (shape == null) throw "Error: Cannot cast null shape :)";)
         DEBUG(if (shape.body == null) throw "Error: Shape must belong to a body to be cast.";)
         DEBUG(if (deltaTime < 0 || isNaN(deltaTime)) throw "Error: deltaTime must be positive";)
 
-        return pr(inner).convexMultiCast(shape.pr(inner), deltaTime, filter, liveSweep);
+        return pr(inner).convexMultiCast(shape.pr(inner), deltaTime, filter, liveSweep, output);
     }
 
     !!/**
@@ -701,11 +702,12 @@ class Space {
     !! * @param inner If true then inner surfaces of shapes will also be intersected.
     !! *              otherwise only the outer surfaces. (default false)
     !! * @param filter The optional filter to filter out shapes. (default null)
+    !! * @param output A list to append results to instead of allocating a new one (default null)
     !! * @return All valid results of ray cast in distance order from closest to furthest.
     !! * @throws # If ray is null.
     !! */
-    keep public function rayMultiCast(ray:Ray, inner:Bool=false, filter:InteractionFilter=null) {
+    keep public function rayMultiCast(ray:Ray, inner:Bool=false, filter:InteractionFilter=null, output:RayResultList=null):RayResultList {
         DEBUG(if(ray==null) throw "Error: Cannot cast null ray :)";)
-        return pr(inner).rayMultiCast(ray,inner,filter);
+        return pr(inner).rayMultiCast(ray,inner,filter,output);
     }
 }

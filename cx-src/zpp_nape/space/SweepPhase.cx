@@ -464,16 +464,16 @@ class PR(SweepPhase) extends PR(Broadphase) {
             }
         }
 
+        Free(PR(AABB), rayab);
         return minres;
     }
 
-    public override function rayMultiCast(ray:PR(Ray),inner:Bool,filter:PR(InteractionFilter)) {
+    public override function rayMultiCast(ray:PR(Ray),inner:Bool,filter:PR(InteractionFilter), output:RayResultList) {
         sync_broadphase();
         ray.validate_dir();
 
         var rayab = ray.rayAABB();
-
-        var ret = new RayResultList();
+        var ret = (output == null ? new RayResultList() : output);
 
         //special case for dirx <,=,> 0 to abuse sweep space a little if possible.
         if(ray.dirx==0) {
@@ -518,6 +518,7 @@ class PR(SweepPhase) extends PR(Broadphase) {
             }
         }
 
+        Free(PR(AABB), rayab);
         return ret;
     }
 }

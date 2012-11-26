@@ -842,8 +842,8 @@ class PR(Space) {
     public function rayCast(ray:Ray,inner:Bool,filter:InteractionFilter) {
         return bphase.rayCast(ray.pr(inner),inner,filter==null ? null : filter.pr(inner));
     }
-    public function rayMultiCast(ray:Ray,inner:Bool,filter:InteractionFilter) {
-        return bphase.rayMultiCast(ray.pr(inner),inner,filter==null ? null : filter.pr(inner));
+    public function rayMultiCast(ray:Ray,inner:Bool,filter:InteractionFilter, output:RayResultList) {
+        return bphase.rayMultiCast(ray.pr(inner),inner,filter==null ? null : filter.pr(inner), output);
     }
 
     var convexShapeList:ShapeList = null;
@@ -917,7 +917,7 @@ class PR(Space) {
             return null;
     }
 
-    public function convexMultiCast(shape:PR(Shape), deltaTime:Float, filter:InteractionFilter, dynamics:Bool) {
+    public function convexMultiCast(shape:PR(Shape), deltaTime:Float, filter:InteractionFilter, dynamics:Bool, output:ConvexResultList) {
         var toi; Get(PR(ToiEvent), toi);
 
         var body = shape.body;
@@ -939,7 +939,7 @@ class PR(Space) {
         var list = convexShapeList = bphase.shapesInAABB(aabb, false, false, filter == null ? null : filter.pr(inner), convexShapeList);
         Free(PR(AABB), aabb);
 
-        var ret = new ConvexResultList();
+        var ret = (output == null ? new ConvexResultList() : output);
         for (s in list) {
             if (s != shape.outer && s.body != body.outer)
             {

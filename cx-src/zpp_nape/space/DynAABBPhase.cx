@@ -1062,14 +1062,14 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
         return minres;
     }
 
-    public override function rayMultiCast(ray:PR(Ray),inner:Bool,filter:PR(InteractionFilter)) {
+    public override function rayMultiCast(ray:PR(Ray),inner:Bool,filter:PR(InteractionFilter), output:RayResultList) {
         if(openlist==null) openlist = new List(PR(AABBNode))();
 
         sync_broadphase();
         ray.validate_dir();
 
         var inf = ray.maxdist >= PR(Const).POSINF();
-        var ret = new RayResultList();
+        var ret = (output == null ? new RayResultList() : output);
 
         $(mixin raynode(node) {
             if(node!=null) {
