@@ -734,11 +734,13 @@ class Body extends Interactor {
     !! *              values indicate an unlimited search. A depth value of
     !! *              0 would cause only the current Body to be returned.
     !! *              (default -1)
-    !! * @return A list of the connected bodies including this body up to
+    !! * @param output An optional list to append results to, if left as null
+    !! *               then a new list is created.
+    !! * @return A list of the connected bodies up to
     !! *         the given graph depth.
     !! */
-    keep public function connectedBodies(depth:Int=-1):BodyList {
-        return pr(inner).connectedBodies(depth);
+    keep public function connectedBodies(depth:Int=-1, output:BodyList=null):BodyList {
+        return pr(inner).connectedBodies(depth, output);
     }
 
     !!/**
@@ -750,17 +752,19 @@ class Body extends Interactor {
     !! *              values indicate an unlimited search. A depth value of
     !! *              0 would cause only the current Body to be returned.
     !! *              (default -1)
-    !! * @return A list of the interacting bodies including this body up to
+    !! * @param output An optional list to append results to, if left as null
+    !! *               then a new list is created.
+    !! * @return A list of the interacting bodies up to
     !! *         the given graph depth.
     !! */
-    keep public function interactingBodies(type:InteractionType=null, depth:Int=-1) {
+    keep public function interactingBodies(type:InteractionType=null, depth:Int=-1, output:BodyList=null) {
         var arbiter_type = if(type==null) {
             PR(Arbiter).COL | PR(Arbiter).SENSOR | PR(Arbiter).FLUID;
         }elif(type==InteractionType.COLLISION) PR(Arbiter).COL
          elif(type==InteractionType.SENSOR)    PR(Arbiter).SENSOR
          else                                  PR(Arbiter).FLUID;
 
-        return pr(inner).interactingBodies(arbiter_type, depth);
+        return pr(inner).interactingBodies(arbiter_type, depth, output);
     }
 
     !!/**

@@ -71,10 +71,10 @@ class PR(Body) extends PR(Interactor) {
             b.pr(inner).graph_depth = cur_graph_depth + 1;
         }
     }
-    public function connectedBodies(depth:Int):BodyList {
+    public function connectedBodies(depth:Int, output:BodyList):BodyList {
         init_bodysetlist();
 
-        var ret = new BodyList();
+        var ret = (output == null ? new BodyList() : output);
         bodystack.add(this);
         bodyset.insert(this);
         graph_depth = 0;
@@ -87,17 +87,17 @@ class PR(Body) extends PR(Interactor) {
         }
 
         //clear_with inlined, so no closure generated.
-        bodyset.clear_with(function (b:PR(Body)) ret.add(b.outer));
+        bodyset.clear_with(function (b:PR(Body)) { if (b != this) ret.add(b.outer); });
 
         return ret;
     }
 
     //----------------------------------------------------------------------------------------------
 
-    public function interactingBodies(arbiter_type:Int, depth:Int):BodyList {
+    public function interactingBodies(arbiter_type:Int, depth:Int, output:BodyList):BodyList {
         init_bodysetlist();
 
-        var ret = new BodyList();
+        var ret = (output == null ? new BodyList() : output);
         bodyset.insert(this);
         bodystack.add(this);
         graph_depth = 0;
@@ -117,7 +117,7 @@ class PR(Body) extends PR(Interactor) {
         }
 
         //clear_width inlined, so no closure generated.
-        bodyset.clear_with(function (b:PR(Body)) ret.add(b.outer));
+        bodyset.clear_with(function (b:PR(Body)) { if (b != this) ret.add(b.outer); });
 
         return ret;
     }
