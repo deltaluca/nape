@@ -181,11 +181,7 @@ class PR(Ray) {
             vec_normalise_slow(n);
             if(inside) vec_negate(n);
 
-            DEBUG(internal = true;)
-            var ret = new RayResult(Vec2.get(nx,ny),t,inside,c.outer);
-            DEBUG(internal = false;)
-
-            return ret;
+            return PR(ConvexRayResult).getRay(Vec2.get(nx,ny),t,inside,c.outer);
         });
 
         var det = B*B-4*A*C;
@@ -226,10 +222,7 @@ class PR(Ray) {
             vec_normalise_slow(n);
             if(inside) vec_negate(n);
 
-            DEBUG(internal = true;)
-            var res = new RayResult(Vec2.get(nx,ny),t,inside,c.outer);
-            DEBUG(internal = false;)
-
+            var res = PR(ConvexRayResult).getRay(Vec2.get(nx,ny),t,inside,c.outer);
             Insert(res, list.pr(inner).inner, $(mixin lt(x,y) (x.distance<y.distance)) lt);
         });
 
@@ -287,11 +280,7 @@ class PR(Ray) {
             var inner = vec_dot(n,dir)>0;
             if(inner) vec_negate(n);
 
-            DEBUG(internal = true;)
-            var ret = new RayResult(Vec2.get(nx,ny),min,inner,p.outer);
-            DEBUG(internal = false;)
-
-            return ret;
+            return PR(ConvexRayResult).getRay(Vec2.get(nx,ny),min,inner,p.outer);
         }else return null;
     }
 
@@ -337,10 +326,7 @@ class PR(Ray) {
             var inner = vec_dot(n,dir)>0;
             if(inner) vec_negate(n);
 
-            DEBUG(internal = true;)
-            var ret = new RayResult(Vec2.get(nx,ny),time,inner,p.outer);
-            DEBUG(internal = false;)
-
+            var ret = PR(ConvexRayResult).getRay(Vec2.get(nx,ny),time,inner,p.outer);
             Insert(ret, list.pr(inner).inner, $(mixin lt(x,y) (x.distance<y.distance)) lt);
         });
         if(edge!=null) doit(edge,min);

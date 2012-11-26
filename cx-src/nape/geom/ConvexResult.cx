@@ -3,45 +3,66 @@ $(import);
 
 !!/**
 !! * Class representing the results of a convex cast operation.
+!! * <br/><br/>
+!! * These objects are allocated from an object pool and can
+!! * be released back to that pool by calling its dispose method.
 !! */
 class ConvexResult {
+    public var pr(inner):PR(ConvexRayResult) = null;
+
     !!/**
     !! * The normal of the surface at collision.
     !! */
-    public var normal:Vec2 = null;
+    property(normal, Vec2, {
+        DEBUG(pr(inner).disposed();)
+        return pr(inner).normal;
+    })
 
     !!/**
     !! * The position of the collision.
     !! */
-    public var position:Vec2 = null;
+    property(position, Vec2, {
+        DEBUG(pr(inner).disposed();)
+        return pr(inner).position;
+    })
 
     !!/**
     !! * The time of impact to the collision
     !! */
-    public var toi:Float = 0.0;
+    property(toi, Float, {
+        DEBUG(pr(inner).disposed();)
+        return pr(inner).toiDistance;
+    })
 
     !!/**
     !! * The shape which was collided against.
     !! */
-    public var shape:Shape = null;
+    property(shape, Shape, {
+        DEBUG(pr(inner).disposed();)
+        return pr(inner).shape;
+    })
 
     !!/**
     !! * @private
     !! */
     flibopts(0)
-    public function new(normal:Vec2, position:Vec2, toi:Float, shape:Shape) {
-        DEBUG(if(!PR(Ray).internal) throw "Error: ConvexResult cannot be instantiated derp!";)
+    public function new() {
+        DEBUG(if(!PR(ConvexRayResult).internal) throw "Error: ConvexResult cannot be instantiated derp!";)
+    }
 
-        this.normal = normal;
-        this.position = position;
-        this.toi = toi;
-        this.shape = shape;
+    !!/**
+    !! * Release ConvexResult object to pool.
+    !! */
+    public inline function dispose() {
+        DEBUG(pr(inner).disposed();)
+        pr(inner).free();
     }
 
     !!/**
     !! * @private
     !! */
     @:$keep public function toString() {
+        DEBUG(pr(inner).disposed();)
         return "{ shape: "+shape+" toi: "+toi+" }";
     }
 }

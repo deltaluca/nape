@@ -906,12 +906,11 @@ class PR(Space) {
         body.sweepValidate(shape);
 
         if (mint <= deltaTime) {
-            DEBUG(PR(Ray).internal = true;)
-            var ret = new ConvexResult(Vec2.get(-minAxisx, -minAxisy),
-                                       Vec2.get(minPosx, minPosy),
-                                       mint, mins);
-            DEBUG(PR(Ray).internal = false;)
-            return ret;
+            return PR(ConvexRayResult).getConvex(
+                    Vec2.get(-minAxisx, -minAxisy),
+                    Vec2.get(minPosx, minPosy),
+                    mint, mins
+            );
         }
         else
             return null;
@@ -959,12 +958,12 @@ class PR(Space) {
                 }
                 toi.toi *= deltaTime;
                 if (toi.toi > 0) {
-                    DEBUG(PR(Ray).internal = true;)
-                    var res = new ConvexResult(Vec2.get(-toi.axis.x, -toi.axis.y),
-                                               Vec2.get(toi.c2.x, toi.c2.y),
-                                               toi.toi, s);
+                    var res = PR(ConvexRayResult).getConvex(
+                            Vec2.get(-toi.axis.x, -toi.axis.y),
+                            Vec2.get(toi.c2.x, toi.c2.y),
+                            toi.toi, s
+                    );
                     Insert(res, ret.pr(inner).inner, $(mixin lt(x, y) (x.toi < y.toi)) lt);
-                    DEBUG(PR(Ray).internal = false;)
                 }
             }
         }

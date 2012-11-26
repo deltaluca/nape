@@ -1,0 +1,99 @@
+package zpp_nape.geom;
+$(import);
+
+class PR(ConvexRayResult) {
+    public var normal:Vec2 = null;
+    public var shape:Shape = null;
+
+    // Convex
+    static var convexPool:PR(ConvexRayResult) = null;
+    public var convex:ConvexResult = null;
+    public var position:Vec2 = null;
+
+    // Ray
+    static var rayPool:PR(ConvexRayResult) = null;
+    public var ray:RayResult = null;
+    public var inner:Bool = false;
+
+    // Both
+    public var next:PR(ConvexRayResult) = null;
+    public var toiDistance:Float = 0.0;
+
+    public function new() {}
+
+    public static var internal = false;
+    public static function getRay(normal:Vec2, time:Float, inner:Bool, shape:Shape) {
+        var ret:RayResult;
+        if (rayPool == null) {
+            internal = true;
+            ret = new RayResult();
+            ret.pr(inner) = new PR(ConvexRayResult)();
+            ret.pr(inner).ray = ret;
+            internal = false;
+        }
+        else {
+            ret = rayPool.ray;
+            rayPool = rayPool.next;
+            ret.pr(inner).next = null;
+        }
+
+        var zinner = ret.pr(inner);
+        zinner.normal = normal;
+        normal.pr(inner)._immutable = true;
+
+        zinner.toiDistance = time;
+        zinner.inner = inner;
+        zinner.shape = shape;
+        return ret;
+    }
+
+    public static function getConvex(normal:Vec2, position:Vec2, toiDistance:Float, shape:Shape) {
+        var ret:ConvexResult;
+        if (convexPool == null) {
+            internal = true;
+            ret = new ConvexResult();
+            ret.pr(inner) = new PR(ConvexRayResult)();
+            ret.pr(inner).convex = ret;
+            internal = false;
+        }
+        else {
+            ret = convexPool.convex;
+            convexPool = convexPool.next;
+            ret.pr(inner).next = null;
+        }
+
+        var inner = ret.pr(inner);
+        inner.normal = normal;
+        inner.position = position;
+        normal.pr(inner)._immutable = true;
+        position.pr(inner)._immutable = true;
+
+        inner.toiDistance = toiDistance;
+        inner.shape = shape;
+        return ret;
+    }
+
+    flibmdel public inline function disposed() {
+        DEBUG(
+            if (next != null) throw "Error: This object has been disposed of and cannot be used";
+        )
+    }
+
+    public function free() {
+        normal.pr(inner)._immutable = false;
+        position.pr(inner)._immutable = false;
+        normal.dispose();
+        position.dispose();
+        shape = null;
+        toiDistance = 0.0;
+
+        if (convex != null) {
+            next = convexPool;
+            convexPool = this;
+        }
+        else {
+            next = rayPool;
+            rayPool = this;
+        }
+    }
+}
