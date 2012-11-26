@@ -6,6 +6,7 @@ import nape.shape.Shape;
 import nape.shape.Polygon;
 import nape.shape.Circle;
 import nape.geom.Vec2;
+import nape.geom.Vec3;
 import nape.dynamics.InteractionFilter;
 import nape.phys.Material;
 import nape.phys.FluidProperties;
@@ -91,8 +92,8 @@ class PhysicsData {
         var bounds = graphic.getBounds(graphic);
         var offset = Vec2.get(bounds.x-xret.anchor.x, bounds.y-xret.anchor.y);
 
-        ret.graphic = graphic;
-        ret.graphicOffset = offset;
+        ret.userData.graphic = graphic;
+        ret.userData.graphicOffset = offset;
 
         return ret;
     }

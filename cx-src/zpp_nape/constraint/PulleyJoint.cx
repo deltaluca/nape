@@ -13,52 +13,49 @@ class PR(PulleyJoint) extends PR(Constraint) {
     // if limits are equal, treat constraint slightly differently for stability.
 
     $(mixin Cerr(r1, r2, r3, r4, n12, n34, slack) {
-        n12`x = (b2.posx + r2`x) - (b1.posx + r1`x);
-        n12`y = (b2.posy + r2`y) - (b1.posy + r1`y);
-        n34`x = (b4.posx + r4`x) - (b3.posx + r3`x);
-        n34`y = (b4.posy + r4`y) - (b3.posy + r3`y);
-        var C12 = vec_lsq(n12);
-        var C34 = vec_lsq(n34);
-        slack = false;
-        var C = 0.0;
-        if (C12 < PR(Const).EPSILON) {
-            vec_set(n12, 0, 0);
-            vec_set(n34, 0, 0);
-            slack = true;
+        vec_new(t12); vec_new(t34);
+        t12`x = (b2.posx + r2`x) - (b1.posx + r1`x);
+        t12`y = (b2.posy + r2`y) - (b1.posy + r1`y);
+        t34`x = (b4.posx + r4`x) - (b3.posx + r3`x);
+        t34`y = (b4.posy + r4`y) - (b3.posy + r3`y);
+        var C12 = vec_length(t12);
+        var C34 = vec_length(t34);
+
+        // re-use old normal if necessary
+        if (C12 != 0) {
+            vec_div(t12, C12, n12);
         }
-        else if (C34 < PR(Const).EPSILON) {
-            vec_set(n12, 0, 0);
-            vec_set(n34, 0, 0);
-            slack = true;
+
+        // re-use old normal if necessary
+        if (C34 != 0) {
+            vec_div(t34, C34, n34);
+            vec_muleq(n34, ratio);
         }
         else {
-            C12 = PR(Math).sqrt(C12);
-            C34 = PR(Math).sqrt(C34);
-            vec_diveq(n12, C12);
-            vec_diveq(n34, C34);
-            vec_muleq(n34, ratio);
-            C = C12 + (ratio * C34);
-            if (equal) {
+            vec_muleq(n34, ratio / vec_length(n34));
+        }
+
+        var C = C12 + (ratio * C34);
+        if (equal) {
+            C -= jointMax;
+            slack = false;
+        }
+        else {
+            if (C < jointMin) {
+                C = jointMin - C;
+                vec_negate(n12);
+                vec_negate(n34);
+                slack = false;
+            }
+            else if (C > jointMax) {
                 C -= jointMax;
                 slack = false;
             }
             else {
-                if (C < jointMin) {
-                    C = jointMin - C;
-                    vec_negate(n12);
-                    vec_negate(n34);
-                    slack = false;
-                }
-                else if (C > jointMax) {
-                    C -= jointMax;
-                    slack = false;
-                }
-                else {
-                    vec_set(n12, 0, 0);
-                    vec_set(n34, 0, 0);
-                    C = 0;
-                    slack = true;
-                }
+                vec_set(n12, 0, 0);
+                vec_set(n34, 0, 0);
+                C = 0;
+                slack = true;
             }
         }
         C;
@@ -104,9 +101,9 @@ class PR(PulleyJoint) extends PR(Constraint) {
               + b3.sinertia * cx3 * cx3
               + b4.sinertia * cx4 * cx4;
         if (b1 == b4) K -= 2 * ((vec_dot(n12,n34) * b1.smass) + (cx1 * cx4 * b1.sinertia));
-        if (b1 == b3) K -= 2 * ((vec_dot(n12,n34) * b1.smass) + (cx1 * cx3 * b1.sinertia));
+        if (b1 == b3) K += 2 * ((vec_dot(n12,n34) * b1.smass) + (cx1 * cx3 * b1.sinertia));
         if (b2 == b3) K -= 2 * ((vec_dot(n12,n34) * b2.smass) + (cx2 * cx3 * b2.sinertia));
-        if (b2 == b4) K -= 2 * ((vec_dot(n12,n34) * b2.smass) + (cx2 * cx4 * b2.sinertia));
+        if (b2 == b4) K += 2 * ((vec_dot(n12,n34) * b2.smass) + (cx2 * cx4 * b2.sinertia));
         K;
     });
 
@@ -150,14 +147,14 @@ class PR(PulleyJoint) extends PR(Constraint) {
         active_body(b1);
         if (b2 != b1) active_body(b2);
         if (b3 != b1 && b3 != b2) active_body(b3);
-        if (b4 != b1 && b4 != b2 && b4 != b3) active_body(b3);
+        if (b4 != b1 && b4 != b2 && b4 != b3) active_body(b4);
     }
 
     public override function inactiveBodies() {
         inactive_body(b1);
         if (b2 != b1) inactive_body(b2);
         if (b3 != b1 && b3 != b2) inactive_body(b3);
-        if (b4 != b1 && b4 != b2 && b4 != b3) inactive_body(b3);
+        if (b4 != b1 && b4 != b2 && b4 != b3) inactive_body(b4);
     }
 
     // ---------------------------------------
@@ -199,6 +196,9 @@ class PR(PulleyJoint) extends PR(Constraint) {
         anchor_init(a2);
         anchor_init(a3);
         anchor_init(a4);
+
+        vec_set(n12, 1, 0);
+        vec_set(n34, 1, 0);
 
         jAcc = 0;
         jMax = PR(Const).POSINF();
@@ -311,6 +311,10 @@ class PR(PulleyJoint) extends PR(Constraint) {
         vec_new(r4); bias_xform(b4,a4local,r4);
 
         var slack; vec_new(n12); vec_new(n34);
+        // so we can re-use normal if necessary
+        vec_set(n12, this.n12);
+        vec_set(n34, this.n34);
+
         E = Cerr(r1,r2,r3,r4,n12,n34,slack);
         if(!slack) {
             if(breakUnderError && E*E > maxError*maxError) return true;

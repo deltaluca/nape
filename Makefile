@@ -38,7 +38,7 @@ cpp: $(FILES)
 docs: pre_compile
 	haxe -cp src -xml nape.xml --macro "include('nape')" -D NAPE_RELEASE_BUILD -swf nape.xml.swf -swf-version 10.1 \
          -cp ../nape-hacks/src --macro "include('nape.hacks')" \
-         -cp ../nape-symbolic/src --macro "include('nape.symbolic')" -lib Parsex
+         -cp ../nape-symbolic/src --macro "include('nape.symbolic')" -lib Parsex -D haxe3
 	./chxdoc/chxdoc -o ../www.napephys.com/docs --templateDir=chxdoc/src/templates/default \
 		-f zpp_nape -f haxe -f flash --ignoreRoot=true -f com \
 		--title="Nape Physics Library" nape.xml
