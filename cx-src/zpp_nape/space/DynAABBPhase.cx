@@ -845,7 +845,9 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
                 }
             }) block,
             $(mixin block2(shape) {
-                ret.push(shape.outer);
+                if (filter == null || shape.filter.shouldCollide(filter)) {
+                    ret.push(shape.outer);
+                }
             }) block2
             )
         });
@@ -891,8 +893,10 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
                 }
             }) block,
             $(mixin block2(shape) {
-                var body = shape.body.outer;
-                if(!ret.has(body)) ret.push(body);
+                if (filter == null || shape.filter.shouldCollide(filter)) {
+                    var body = shape.body.outer;
+                    if(!ret.has(body)) ret.push(body);
+                }
             }) block2
             )
         });
