@@ -856,41 +856,44 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
         return ret;
     }
 
+    public var failed:BodyList = null;
     public override function bodiesInAABB(aabb:PR(AABB), strict:Bool, containment:Bool, filter:PR(InteractionFilter), output:BodyList) {
         sync_broadphase();
         updateAABBShape(aabb);
 
         var ab = aabbShape.pr(inner).aabb;
         var ret = (output == null ? new BodyList() : output);
+        if (failed == null) failed = new BodyList();
 
         $(mixin dotree(tree) {
             IterRealAABB(tree,ab, $(mixin block(shape) {
                 var body = shape.body.outer;
-                if(!ret.has(body)) {
-                    if(filter==null || shape.filter.shouldCollide(filter)) {
-                        if(strict) {
-                            if(containment) {
-                                if(PR(Collide).containTest(aabbShape.pr(inner),shape))
-                                    ret.push(body);
-                            }else {
-                                if(ab.contains(shape.aabb))
-                                    ret.push(body);
-                                else if(PR(Collide).testCollide_safe(shape,aabbShape.pr(inner)))
-                                    ret.push(body);
+                if (filter==null || shape.filter.shouldCollide(filter)) {
+                    if (strict) {
+                        if (containment) {
+                            if (!failed.has(body)) {
+                                var col = PR(Collide).containTest(aabbShape.pr(inner), shape);
+                                if (!ret.has(body) && col) ret.push(body);
+                                else if (!col) { ret.remove(body); failed.push(body); }
                             }
-                        }else if(!containment || ab.contains(shape.aabb))
+                        }
+                        else if (!ret.has(body) && PR(Collide).testCollide_safe(shape,aabbShape.pr(inner))) {
                             ret.push(body);
-                    }
-                }else if(containment) {
-                    //ensure all shapes contained
-                    if(filter==null || shape.filter.shouldCollide(filter)) {
-                        if(strict) {
-                            if(!PR(Collide).containTest(aabbShape.pr(inner),shape))
-                                ret.remove(body);
-                        }else if(!ab.contains(shape.aabb))
-                            ret.remove(body);
+                        }
+                    }else {
+                        if (containment) {
+                            if (!failed.has(body)) {
+                                var col = ab.contains(shape.aabb);
+                                if (!ret.has(body) && col) ret.push(body);
+                                else if (!col) { ret.remove(body); failed.push(body); }
+                            }
+                        }
+                        else if (!ret.has(body) && ab.contains(shape.aabb)) {
+                            ret.push(body);
+                        }
                     }
                 }
+
             }) block,
             $(mixin block2(shape) {
                 if (filter == null || shape.filter.shouldCollide(filter)) {
@@ -902,6 +905,8 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
         });
         dotree(stree)
         dotree(dtree)
+
+        failed.clear();
         return ret;
     }
 
@@ -936,27 +941,28 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 
         var ab = circShape.pr(inner).aabb;
         var ret = (output == null ? new BodyList() : output);
+        if (failed == null) failed = new BodyList();
 
         $(mixin dotree(tree) {
             IterAABB(tree,ab, $(mixin block(shape) {
                 var body = shape.body.outer;
-                if(!ret.has(body)) {
-                    if(filter==null || shape.filter.shouldCollide(filter)) {
-                        if(containment) {
-                            if(PR(Collide).containTest(circShape.pr(inner),shape))
-                                ret.push(body);
-                        } else if(PR(Collide).testCollide_safe(shape,circShape.pr(inner)))
-                            ret.push(body);
+                if (filter==null || shape.filter.shouldCollide(filter)) {
+                    if (containment) {
+                        if (!failed.has(body)) {
+                            var col = PR(Collide).containTest(circShape.pr(inner), shape);
+                            if (!ret.has(body) && col) ret.push(body);
+                            else if (!col) { ret.remove(body); failed.push(body); }
+                        }
                     }
-                }else if(containment) {
-                    //check all contained
-                    if((filter==null || shape.filter.shouldCollide(filter)) && !PR(Collide).containTest(circShape.pr(inner),shape))
-                        ret.remove(body);
+                    else if (!ret.has(body) && PR(Collide).testCollide_safe(shape,circShape.pr(inner))) {
+                        ret.push(body);
+                    }
                 }
             }) block)
         });
         dotree(stree)
         dotree(dtree)
+        failed.clear();
         return ret;
     }
 
@@ -991,27 +997,28 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 
         var ab = shp.aabb;
         var ret = (output == null ? new BodyList() : output);
+        if (failed == null) failed = new BodyList();
 
         $(mixin dotree(tree) {
             IterAABB(tree,ab, $(mixin block(shape) {
                 var body = shape.body.outer;
-                if(!ret.has(body)) {
-                    if(filter==null || shape.filter.shouldCollide(filter)) {
-                        if(containment) {
-                            if(PR(Collide).containTest(shp,shape))
-                                ret.push(body);
-                        }else if(PR(Collide).testCollide_safe(shape,shp))
-                            ret.push(body);
+                if (filter==null || shape.filter.shouldCollide(filter)) {
+                    if (containment) {
+                        if (!failed.has(body)) {
+                            var col = PR(Collide).containTest(shp, shape);
+                            if (!ret.has(body) && col) ret.push(body);
+                            else if (!col) { ret.remove(body); failed.push(body); }
+                        }
                     }
-                }else if(containment) {
-                    //check all contained
-                    if((filter==null || shape.filter.shouldCollide(filter)) && !PR(Collide).containTest(shp,shape))
-                        ret.remove(body);
+                    else if (!ret.has(body) && PR(Collide).testCollide_safe(shape,shp)) {
+                        ret.push(body);
+                    }
                 }
             }) block)
         });
         dotree(stree)
         dotree(dtree)
+        failed.clear();
         return ret;
     }
 

@@ -354,7 +354,8 @@ class Space {
     !! * agrees to 'collide' will be considered.
     !! *
     !! * @param point The point to evaluate shapes.
-    !! * @param filter Optional filter to pick and choose shapes. (default null)
+    !! * @param filter Optional filter to pick and choose shapes, based on whether
+    !! *               the filters agree to collide. (default null)
     !! * @param output Optional list to append results to instead of creating a new list (default null).
     !! * @return A list of all the Shapes containing the given point.
     !! * @throws # If point is null or disposed of.
@@ -373,7 +374,8 @@ class Space {
     !! * the given point whose filter agrees to 'collide' will be considered.
     !! *
     !! * @param point The point to evaluate bodies.
-    !! * @param filter Optional filter to pick and choose shapes. (default null)
+    !! * @param filter Optional filter to pick and choose shapes, based on whether
+    !! *               the filters agree to collide. (default null)
     !! * @param output Optional list to append results to instead of creating a new list (default null).
     !! * @return A list of all the Bodies containing the given point.
     !! * @throws # If point is null or disposed of.
@@ -399,7 +401,8 @@ class Space {
     !! * @param strict If false, then the Shape's bounding box will be used to
     !! *               classify the Shape, instead of the Shape itself.
     !! *               (default true)
-    !! * @param filter Optional filter to pick and choose shapes. (default null)
+    !! * @param filter Optional filter to pick and choose shapes, based on whether
+    !! *               the filters agree to collide. (default null)
     !! * @param output Optional list to append results to instead of creating a new list (default null).
     !! * @return A list of all the shapes for given AABB.
     !! * @throws # If AABB is null, or is degenerate.
@@ -426,7 +429,8 @@ class Space {
     !! * @param strict If false, then the body's shape's bounding box will be used to
     !! *               classify the shapes of the body, instead of the Shape itself.
     !! *               (default true)
-    !! * @param filter Optional filter to pick and choose shapes. (default null)
+    !! * @param filter Optional filter to pick and choose shapes, based on whether
+    !! *               the filters agree to collide. (default null)
     !! * @param output Optional list to append results to instead of creating a new list (default null).
     !! * @return A list of all the shapes for given AABB.
     !! * @throws # If AABB is null, or is degenerate.
@@ -450,7 +454,8 @@ class Space {
     !! * @param containment If true, then only Shapes entirely contained (Rather
     !! *                    than simply intersected) will be considered.
     !! *                    (default false)
-    !! * @param filter Optional filter to pick and choose shapes. (default null)
+    !! * @param filter Optional filter to pick and choose shapes, based on whether
+    !! *               the filters agree to collide. (default null)
     !! * @param output Optional list to append results to instead of creating a new list (default null).
     !! * @return A list of all the shapes for given circle.
     !! * @throws # If positions is null or disposed of.
@@ -478,9 +483,12 @@ class Space {
     !! * @param position The position of the centre of the circle.
     !! * @param radius The radius of the circle.
     !! * @param containment If true, then only Bodies entirely contained (Rather
-    !! *                    than simply intersecting) will be considered.
+    !! *                    than simply intersecting) will be considered. If a
+    !! *                    filter is supplied, only shapes that agree to collide
+    !! *                    will be used in this containment check.
     !! *                    (default false)
-    !! * @param filter Optional filter to pick and choose shapes. (default null)
+    !! * @param filter Optional filter to pick and choose shapes, based on whether
+    !! *               the filters agree to collide. (default null)
     !! * @param output Optional list to append results to instead of creating a new list (default null).
     !! * @return A list of all the shapes for given circle.
     !! * @throws # If positions is null or disposed of.
@@ -512,7 +520,8 @@ class Space {
     !! * @param containment If true, then only Shapes entirely contained (Rather
     !! *                    than simply intersected) will be considered.
     !! *                    (default false)
-    !! * @param filter Optional filter to pick and choose shapes. (default null)
+    !! * @param filter Optional filter to pick and choose shapes, based on whether
+    !! *               the filters agree to collide. (default null)
     !! * @param output Optional list to append results to instead of creating a new list (default null).
     !! * @return A list of all the shapes for given shape.
     !! * @throws # If shape is null or not part of a body.
@@ -543,7 +552,8 @@ class Space {
     !! * @param containment If true, then only Bodies entirely contained (Rather
     !! *                    than simply intersecting) will be considered.
     !! *                    (default false)
-    !! * @param filter Optional filter to pick and choose shapes. (default null)
+    !! * @param filter Optional filter to pick and choose shapes, based on whether
+    !! *               the filters agree to collide. (default null)
     !! * @param output Optional list to append results to instead of creating a new list (default null).
     !! * @return A list of all the bodies for given shape.
     !! * @throws # If shape is null or not part of a body.
@@ -571,7 +581,8 @@ class Space {
     !! * geometric object.
     !! *
     !! * @param body The body to use in classifying other shapes.
-    !! * @param filter Optional filter to pick and choose shapes. (default null)
+    !! * @param filter Optional filter to pick and choose shapes, based on whether
+    !! *               the filters agree to collide. (default null)
     !! * @param output Optional list to append results to instead of creating a new list (default null).
     !! * @return A list of all the shapes for given body.
     !! * @throws # If body is null.
@@ -594,7 +605,8 @@ class Space {
     !! * will be considered. The input body is considered a purely geometric
     !! *
     !! * @param body The body to use in classifying other bodies.
-    !! * @param filter Optional filter to pick and choose bodies. (default null)
+    !! * @param filter Optional filter to pick and choose shapes, based on whether
+    !! *               the filters agree to collide. (default null)
     !! * @param output Optional list to append results to instead of creating a new list (default null).
     !! * @return A list of all the bodies for given body.
     !! * @throws # If body is null.
@@ -625,7 +637,8 @@ class Space {
     !! *              to a body whose velocity is used to define the sweep.
     !! * @param deltaTime The amount of time to sweep the shape forward.
     !! * @param liveSweep If true, then moving objects in the space will have their motion considered during the sweep. Otherwise; like with normal rayCast, objects in the space are considered un-moving for the cast. (default false)
-    !! * @param filter The optional filter to filter out shapes. (default null)
+    !! * @param filter Optional filter to pick and choose shapes, based on whether
+    !! *               the filters agree to collide. (default null)
     !! * @return The soonest result (if any) of convex intersection.
     !! * @throws # If shape is null, or not part of a body.
     !! * @throws # If deltaTime is negative.
@@ -653,7 +666,8 @@ class Space {
     !! *              to a body whose velocity is used to define the sweep.
     !! * @param deltaTime The amount of time to sweep the shape forward.
     !! * @param liveSweep If true, then moving objects in the space will have their motion considered during the sweep. Otherwise; like with normal rayCast, objects in the space are considered un-moving for the cast. (default false)
-    !! * @param filter The optional filter to filter out shapes. (default null)
+    !! * @param filter Optional filter to pick and choose shapes, based on whether
+    !! *               the filters agree to collide. (default null)
     !! * @param output A list to append results to instead of allocating a new one (default null)
     !! * @return The collision results in time order.
     !! * @throws # If shape is null, or not part of a body.
@@ -680,7 +694,8 @@ class Space {
     !! * @param ray The ray to cast through space.
     !! * @param inner If true then inner surfaces of shapes will also be intersected.
     !! *              otherwise only the outer surfaces. (default false)
-    !! * @param filter The optional filter to filter out shapes. (default null)
+    !! * @param filter Optional filter to pick and choose shapes, based on whether
+    !! *               the filters agree to collide. (default null)
     !! * @return The closest result (if any) of ray intersection.
     !! * @throws # If ray is null.
     !! */
@@ -701,7 +716,8 @@ class Space {
     !! * @param ray The ray to cast through space.
     !! * @param inner If true then inner surfaces of shapes will also be intersected.
     !! *              otherwise only the outer surfaces. (default false)
-    !! * @param filter The optional filter to filter out shapes. (default null)
+    !! * @param filter Optional filter to pick and choose shapes, based on whether
+    !! *               the filters agree to collide. (default null)
     !! * @param output A list to append results to instead of allocating a new one (default null)
     !! * @return All valid results of ray cast in distance order from closest to furthest.
     !! * @throws # If ray is null.
