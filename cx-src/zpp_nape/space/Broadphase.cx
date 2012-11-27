@@ -39,6 +39,7 @@ class PR(Broadphase) {
     //===========================================================================================================
 
     public var aabbShape:Shape = null;
+    public var matrix:Mat23 = null;
     public function updateAABBShape(aabb:PR(AABB)) {
         if(aabbShape==null) {
             var body = new Body(BodyType.STATIC);
@@ -47,7 +48,11 @@ class PR(Broadphase) {
             var ab = aabbShape.pr(inner).aabb;
             var sx = aabb.width()/ab.width();
             var sy = aabb.height()/ab.height();
-            aabbShape.transform(new Mat23(sx,0,0,sy,aabb.minx-sx*ab.minx,aabb.miny-sy*ab.miny));
+            if (matrix == null) matrix = new Mat23();
+            matrix.a = sx; matrix.b = matrix.c = 0; matrix.d = sy;
+            matrix.tx = aabb.minx-sx*ab.minx;
+            matrix.ty = aabb.miny-sy*ab.miny;
+            aabbShape.transform(matrix);
         }
         //validate essential properties
         aabbShape.pr(inner).validate_aabb();
@@ -66,7 +71,11 @@ class PR(Broadphase) {
         }else {
             var ci = circShape.pr(inner).circle;
             var ss = r/ci.radius;
-            circShape.transform(new Mat23(ss,0,0,ss,x-ss*ci.localCOMx,y-ss*ci.localCOMy));
+            if (matrix == null) matrix = new Mat23();
+            matrix.a = matrix.d = ss; matrix.b = matrix.c = 0;
+            matrix.tx = x - ss*ci.localCOMx;
+            matrix.ty = y - ss*ci.localCOMy;
+            circShape.transform(matrix);
         }
         //validate essential properties
         circShape.pr(inner).validate_aabb();

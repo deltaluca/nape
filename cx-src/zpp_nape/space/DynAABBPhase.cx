@@ -778,6 +778,7 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
     //iterate over leaves intersecting given aabb
     $(mixin IterAABB(tree,AABB,block) IterTree(tree,$(mixin cond(node) node.aabb.intersect(AABB)) cond, block));
 
+    public var treeStack2:List(PR(AABBNode)) = null;
     $(mixin IterRealAABB(tree,AABB,block,block2) {
         if(tree.root!=null) {
             if (treeStack == null) treeStack = new List(PR(AABBNode))();
@@ -791,7 +792,10 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
                     }else {
 
                         //faster traversal.
-                        var treeStack2 = new List(PR(AABBNode))();
+                        if (treeStack2 == null) {
+                            treeStack2 = new List(PR(AABBNode))();
+                        }
+
                         treeStack2.add(node);
                         while(!treeStack2.empty()) {
                             var node = treeStack2.pop_unsafe();
