@@ -377,12 +377,12 @@ class Vec2 {
     !! * @throws # If a, b are disposed of or null.
     !! */
     public static inline function dsq(a:Vec2, b:Vec2) {
-        Disposed(a, Vec2); 
-        Disposed(b, Vec2); 
+        Disposed(a, Vec2);
+        Disposed(b, Vec2);
         DEBUG(
             if (a == null || b == null)
-                throw "Error: Cannot compute squared distance between null Vec2";                        
-        )           
+                throw "Error: Cannot compute squared distance between null Vec2";
+        )
         var ret = vec_dsq(a., b.);
         WEAK(a);
         WEAK(b);
@@ -398,12 +398,12 @@ class Vec2 {
     !! * @throws # If a, b are disposed of or null.
     !! */
     public static inline function distance(a:Vec2, b:Vec2) {
-        Disposed(a, Vec2); 
-        Disposed(b, Vec2); 
+        Disposed(a, Vec2);
+        Disposed(b, Vec2);
         DEBUG(
             if (a == null || b == null)
-                throw "Error: Cannot compute squared distance between null Vec2";                        
-        )           
+                throw "Error: Cannot compute squared distance between null Vec2";
+        )
         var ret = Math.sqrt(vec_dsq(a., b.));
         WEAK(a);
         WEAK(b);
@@ -505,6 +505,32 @@ class Vec2 {
         }
 
         return this;
+    }
+
+    !!/**
+    !! * Reflect given Vec2 in plane whose normal is this Vec2.
+    !! * <br/><br/>
+    !! * @param vec The vector to be reflected.
+    !! * @param weak If true, the returned Vec2 will be automatically released
+    !! *             to object pool when used in another Nape function (default false)
+    !! * @return The reflected Vec2.
+    !! * @throws # If this vector or argument has been disposed.
+    !! * @throws # If this vector has zero length.
+    !! */
+    keep public function reflect(vec:Vec2, weak:Bool=false):Vec2 {
+        Disposed(this, Vec2);
+        Disposed(vec, Vec2);
+        DEBUG(
+            if (this.length == 0) {
+                throw "Error: Cannot reflect in zero vector";
+            }
+        )
+
+        var normal = this.copy(true).normalise();
+        var ret = vec.sub(normal.muleq(2 * normal.dot(vec)));
+        WEAK(vec);
+
+        return ret;
     }
 
     !!/**

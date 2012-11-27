@@ -412,8 +412,7 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
         assert(node!=null,"shape has no node?");
         //defer syncing until it is necessary.
         if(!node.synced) {
-            assert(space.continuous || !shape.inv(aabb), "invalidate aabb on sync");
-            //shape.validate_aabb();
+            if (!space.continuous) shape.validate_aabb();
 
             //only sync if shape has changed mode (dyn/stat tree)
             //or has left it's fattened aabb

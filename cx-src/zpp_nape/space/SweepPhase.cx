@@ -56,6 +56,10 @@ class PR(SweepPhase) extends PR(Broadphase) {
         shape.sweep = null;
         Free(PR(SweepData),dat);
     }
+    flibmdel public inline function __sync(shape:PR(Shape)) {
+        assert(!shape.body.isStatic(),"static shape being synced?");
+        if (!space.continuous) shape.validate_aabb();
+    }
 
     //======================================================================================
 

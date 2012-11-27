@@ -21,9 +21,8 @@ class PR(Broadphase) {
         else         dynab.__remove(shape);
     }
     public function sync  (shape:PR(Shape)) {
-        //sweep broadphase doesn't sync objects here
-        //it is done more effeciently as a group within it's broadphase implementation
-        if(!is_sweep) dynab.__sync(shape);
+        if(is_sweep) sweep.__sync(shape);
+        else         dynab.__sync(shape);
     }
 
     //responsible for calling space.narrowPhase(...) for each potentially interacting pairs of shapes.

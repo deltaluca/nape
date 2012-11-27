@@ -1662,8 +1662,8 @@ class PR(Space) {
                 bodyCbWake(b);
                 c.reset();
 
-                //sync with aabb broadphase, sweepphase doesn't need syncing
-                if(!bphase.is_sweep && !b.isStatic())
+                //sync with aabb broadphase
+                if(!b.isStatic())
                     Iter(shape, b.shapes, if(shape.node!=null) bphase.sync(shape));
             }else {
                 var con = c.constraint;
@@ -1848,9 +1848,7 @@ class PR(Space) {
                         b.angvel = 0;
 
                         c.sleeping = true;
-                        //sync with dyn aabb broadphase on sleep
-                        if(!bphase.is_sweep)
-                            Iter(shape,b.shapes,bphase.sync(shape))
+                        Iter(shape,b.shapes,bphase.sync(shape))
 
                         bodyCbSleep(b);
                     }else {
@@ -1957,9 +1955,7 @@ class PR(Space) {
                     cur.component.woken = false;
                 }
 
-                //sweepphase doesn't need syncing, so can skip it altogether.
-                if(!bphase.is_sweep)
-                    Iter(shape,cur.shapes,bphase.sync(shape));
+                Iter(shape,cur.shapes,bphase.sync(shape));
             });
         });
 
@@ -2076,9 +2072,7 @@ class PR(Space) {
                             }
 
 
-                            if (!bphase.is_sweep) {
-                                bphase.sync(s);
-                            }
+                            bphase.sync(s);
                         });
 
                         cur.sweepFrozen = false;

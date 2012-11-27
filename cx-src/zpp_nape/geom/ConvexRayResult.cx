@@ -81,9 +81,11 @@ class PR(ConvexRayResult) {
 
     public function free() {
         normal.pr(inner)._immutable = false;
-        position.pr(inner)._immutable = false;
         normal.dispose();
-        position.dispose();
+        if (position != null) {
+            position.pr(inner)._immutable = false;
+            position.dispose();
+        }
         shape = null;
         toiDistance = 0.0;
 
