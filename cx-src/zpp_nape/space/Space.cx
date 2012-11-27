@@ -850,6 +850,8 @@ class PR(Space) {
     public function convexCast(shape:PR(Shape), deltaTime:Float, filter:InteractionFilter, dynamics:Bool) {
         var toi; Get(PR(ToiEvent), toi);
 
+        prepareCast(shape);
+
         var body = shape.body;
         var prex = body.posx;
         var prey = body.posy;
@@ -916,8 +918,15 @@ class PR(Space) {
             return null;
     }
 
+    flibmdel inline function prepareCast(s:PR(Shape)) {
+        if (s.isCircle()) s.circle.validate_worldCOM();
+        else              s.polygon.validate_gaxi();
+    }
+
     public function convexMultiCast(shape:PR(Shape), deltaTime:Float, filter:InteractionFilter, dynamics:Bool, output:ConvexResultList) {
         var toi; Get(PR(ToiEvent), toi);
+
+        prepareCast(shape);
 
         var body = shape.body;
         var prex = body.posx;
