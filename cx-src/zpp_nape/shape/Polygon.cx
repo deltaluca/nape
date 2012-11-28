@@ -132,6 +132,7 @@ class PR(Polygon) extends PR(Shape) {
         invalidate_gverts();
         inv(lverts) = true;
         inv(valid) = true;
+        inv(sanitation) = true;
 
         if(body!=null) body.wake();
     }
@@ -164,68 +165,56 @@ class PR(Polygon) extends PR(Shape) {
     public function valid() {
         if(inv(valid)) {
             inv(valid) = false;
-            validate_lverts();
-
+            splice_collinear();
             if(lverts.size()<3)
                 return validation = ValidationResult.DEGENERATE;
             else {
+                validate_lverts();
                 validate_area_inertia();
                 if(area<PR(Const).EPSILON)
                     return validation = ValidationResult.DEGENERATE;
                 else {
-                    var cont = true;
-                    Iter2_noite(u,v,lverts,{
-                        vec_new(d); vec_sub(v.,u.,d);
-                        if(vec_lsq(d) < PR(Const).EPSILON) {
-                            cont = false;
-                            cx_break;
-                        }
-                    });
-                    if(!cont)
-                        return validation = ValidationResult.DEGENERATE_EDGES;
-                    else {
-                        var neg = false; var pos = false;
-                        Iter3_noite(u,v,w,lverts,{
-                            vec_new(a); vec_sub(w.,v.,a);
-                            vec_new(b); vec_sub(v.,u.,b);
-                            var dot = vec_cross(a,b);
-                            if     (dot> PR(Const).EPSILON) pos = true;
-                            else if(dot<-PR(Const).EPSILON) neg = true;
-                            if(pos&&neg)
-                                cx_break;
-                        });
+                    var neg = false; var pos = false;
+                    Iter3_noite(u,v,w,lverts,{
+                        vec_new(a); vec_sub(w.,v.,a);
+                        vec_new(b); vec_sub(v.,u.,b);
+                        var dot = vec_cross(a,b);
+                        if     (dot> PR(Const).EPSILON) pos = true;
+                        else if(dot<-PR(Const).EPSILON) neg = true;
                         if(pos&&neg)
-                            return validation = ValidationResult.CONCAVE;
-                        else {
-                            cont = true;
-                            Iter2_noite(u,v,lverts,{
-                                if(!cont) cx_break;
-                                Iter2_noite(a,b,lverts,{
-                                    if(u==a || u==b || v==a || v==b) cx_continue;
+                            cx_break;
+                    });
+                    if(pos&&neg)
+                        return validation = ValidationResult.CONCAVE;
+                    else {
+                        var cont = true;
+                        Iter2_noite(u,v,lverts,{
+                            if(!cont) cx_break;
+                            Iter2_noite(a,b,lverts,{
+                                if(u==a || u==b || v==a || v==b) cx_continue;
 
-                                    vec_new(s); vec_sub(u.,a.,s);
-                                    vec_new(v); vec_sub(v.,u.,v);
-                                    vec_new(q); vec_sub(b.,a.,q);
+                                vec_new(s); vec_sub(u.,a.,s);
+                                vec_new(v); vec_sub(v.,u.,v);
+                                vec_new(q); vec_sub(b.,a.,q);
 
-                                    var den = vec_cross(q,v);
-                                    if(den*den > PR(Const).EPSILON) {
-                                        den = 1/den;
-                                        var t = vec_cross(s,q)*den;
-                                        if(t>PR(Const).EPSILON && t<1-PR(Const).EPSILON) {
-                                            var s = vec_cross(s,v)*den;
-                                            if(s>PR(Const).EPSILON && s<1-PR(Const).EPSILON) {
-                                                cont = false;
-                                                cx_break;
-                                            }
+                                var den = vec_cross(q,v);
+                                if(den*den > PR(Const).EPSILON) {
+                                    den = 1/den;
+                                    var t = vec_cross(s,q)*den;
+                                    if(t>PR(Const).EPSILON && t<1-PR(Const).EPSILON) {
+                                        var s = vec_cross(s,v)*den;
+                                        if(s>PR(Const).EPSILON && s<1-PR(Const).EPSILON) {
+                                            cont = false;
+                                            cx_break;
                                         }
                                     }
-                                });
+                                }
                             });
-                            if(!cont)
-                                return validation = ValidationResult.SELF_INTERSECTING;
-                            else
-                                return validation = ValidationResult.VALID;
-                        }
+                        });
+                        if(!cont)
+                            return validation = ValidationResult.SELF_INTERSECTING;
+                        else
+                            return validation = ValidationResult.VALID;
                     }
                 }
             }
@@ -244,7 +233,6 @@ class PR(Polygon) extends PR(Shape) {
         /// first validate the lverts and so all is well!
         if(inv(lverts)) {
             inv(lverts) = false;
-            splice_collinear();
             if(lverts.size()>2) {
                 validate_area_inertia();
                 if(area<0) {
@@ -284,37 +272,75 @@ class PR(Polygon) extends PR(Shape) {
         }
     }
 
-    //remove any collinear and thus dangerously redundant vertices.
-    public function splice_collinear() {
-        var pre = lverts.begin();
-        var cur = if (pre == null) null else pre.next;
-
-        var cnt = lverts.size();
-        while(cnt>2) {
-            var nxt = if(cur.next==null) lverts.begin() else cur.next;
-
-            var u = pre.elem();    var v = cur.elem();    var w = nxt.elem();
-            vec_new(a); vec_sub(u.,v.,a);
-            vec_new(b); vec_sub(w.,v.,b);
-            var collinear = PR(Math).sqr(vec_cross(a,b))<PR(Const).EPSILON;
-
-            if(collinear) {
-                cnt--;
-                cleanup_lvert(cur.elem());
-                if(cur==lverts.begin()) {
-                      lverts.pop();
-                     break;
-                } else {
-                    cur = lverts.erase(pre);
-                    if(cur==null) cur = lverts.begin();
-                }
-            }else {
-                pre = cur;
-                cur = nxt;
-            }
-
-            if(cur==lverts.begin().next) break;
+    // remove any collinear and thus dangerously redundant vertices.
+    //
+    // careful to ensure that the Polygon's concept of collinear vertices
+    // is equal to that of the PartitionedPoly used by the decomposition
+    // routines for monotone/convex/triangular
+    public var inv(sanitation):Bool = false;
+    flibmdel public inline function splice_collinear() {
+        if (inv(sanitation)) {
+            inv(sanitation) = false;
+            splice_collinear_real();
         }
+    }
+    public function splice_collinear_real() {
+        // ignore polygons < 3 vertices.
+        if (lverts.begin() == null) return;
+        if (lverts.begin().next == null) return;
+        if (lverts.begin().next.next == null) return;
+
+        // strip equal vertices first
+        var pre = null;
+        var cur = lverts.begin();
+        while (cur != null) {
+            var nxt = if (cur.next == null) lverts.begin() else cur.next;
+            var u = cur.elem();
+            var v = nxt.elem();
+
+            if (vec_dsq(u., v.) < PR(Const).EPSILONSQ) {
+                // remove vertex u/cur
+                trace([u.x,u.y,v.x,v.y]);
+                cleanup_lvert(cur.elem());
+                cur = lverts.erase(pre);
+            }
+            else {
+                pre = cur;
+                cur = cur.next;
+            }
+        }
+
+        if (lverts.empty()) return;
+
+        // strip collinear vertices
+        // due to epsilon, may need more than one pass.
+        var removed;
+        do {
+            removed = false;
+            var pre = lverts.begin();
+            while (pre != null) {
+                var cur = if (pre.next == null) lverts.begin() else pre.next;
+                var nxt = if (cur.next == null) lverts.begin() else cur.next;
+                var u = pre.elem(); var v = cur.elem(); var w = nxt.elem();
+
+                vec_new(a); vec_sub(v., u., a);
+                vec_new(b); vec_sub(w., v., b);
+                var crs = vec_cross(a, b);
+                if (crs * crs >= PR(Const).EPSILONSQ) {
+                    // keep vertex v/cur
+                    pre = pre.next;
+                }
+                else {
+                    // remove vertex v/cur
+                    trace([u.x,u.y,v.x,v.y,w.x,w.y]);
+                    cleanup_lvert(cur.elem());
+                    lverts.erase(pre.next == null ? null : pre);
+                    removed = true;
+                    pre = pre.next;
+                }
+            }
+        }
+        while (removed);
     }
 
     public function reverse_vertices() {
@@ -401,10 +427,11 @@ class PR(Polygon) extends PR(Shape) {
 
     flibmdel public inline function __validate_aabb() {
         ///dependancy checked
+        validate_gverts();
         DEBUG(if(lverts.empty())
             throw "Error: An empty polygon has no meaningful bounds";
         )
-        validate_gverts();
+
         var p0 = gverts.front();
         vec_set(aabb.min,p0.);
         vec_set(aabb.max,p0.);

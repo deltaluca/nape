@@ -1933,13 +1933,14 @@ class PR(Space) {
         )
         Iter(s,body.shapes,{
             if(s.isPolygon()) {
-                s.polygon.validate_gaxi();
+                s.polygon.splice_collinear();
                 DEBUG(
                     var res = s.polygon.valid();
                     if(res!=ValidationResult.VALID) {
                         throw "Error: Cannot simulate with an invalid Polygon : "+s.polygon.outer.toString()+" is invalid : "+res.toString();
                     }
                 )
+                s.polygon.validate_gaxi();
             }
         });
 
@@ -1952,32 +1953,10 @@ class PR(Space) {
 
         $(mixin update(list, kin) {
             Iter(cur,list,{
-                cur.validate_mass();
-                cur.validate_inertia();
-                DEBUG(
-                    if (!cur.nomove && cur.isDynamic() && cur.mass == 0)
-                    {
-                        throw "Error: Dynamic Body cannot be simulated with 0 mass";
-                    }
-                    if (!cur.norotate && cur.isDynamic() && cur.inertia == 0)
-                    {
-                        throw "Error: Dynamic Body cannot be simulated with 0 inertia";
-                    }
-                )
-                if (!cur.shapes.empty())
-                {
-                    cur.validate_aabb();
-                    cur.validate_worldCOM();
-                }
-                cur.validate_gravMass();
-                cur.validate_axis();
-
                 cur.sweepRadius = 0;
                 Iter(s,cur.shapes,{
-                    s.validate_sweepRadius();
-                    if (s.sweepRadius > cur.sweepRadius)
-                        cur.sweepRadius = s.sweepRadius;
                     if(s.isPolygon()) {
+                        s.polygon.splice_collinear();
                         DEBUG(
                             var res = s.polygon.valid();
                             if(res!=ValidationResult.VALID) {
@@ -1986,7 +1965,31 @@ class PR(Space) {
                         )
                         s.polygon.validate_gaxi();
                     }
+                    s.validate_sweepRadius();
+                    if (s.sweepRadius > cur.sweepRadius)
+                        cur.sweepRadius = s.sweepRadius;
                 });
+
+                cur.validate_mass();
+                cur.validate_inertia();
+                if (!cur.shapes.empty())
+                {
+                    cur.validate_aabb();
+                    cur.validate_worldCOM();
+                }
+                cur.validate_gravMass();
+                cur.validate_axis();
+
+                DEBUG(
+                    if (!cur.nomove && cur.isDynamic() && cur.mass == 0)
+                    {
+                        throw "Error: Dynamic Body cannot be simulated with 0 mass unless allowMovement is false";
+                    }
+                    if (!cur.norotate && cur.isDynamic() && cur.inertia == 0)
+                    {
+                        throw "Error: Dynamic Body cannot be simulated with 0 inertia unless allowRotation is false";
+                    }
+                )
 
                 //wake callbacks
                 if(!kin) {

@@ -3,34 +3,12 @@ $(import);
 
 class DummyNapeMain {
     static function main() {
-        var space = new Space(Vec2.weak(0, 500));
+        var gp = new GeomPoly([new Vec2(533.3333333322116,30),new Vec2(533.3333333333334,0),new Vec2(533.3333333333334,30.00000000723054)]);
 
-        var b = new Body(BodyType.STATIC);
-        b.shapes.add(new Polygon(Polygon.rect(0,600,600,1)));
-        b.space = space;
+        trace(gp);
+        geom(sanitise(gp.pr(inner).vertices));
+        trace(gp);
 
-        b = new Body();
-        b.position.setxy(300,580);
-        b.shapes.add(new Polygon(Polygon.box(10, 10)));
-        b.space = space;
 
-        var txt = new flash.text.TextField();
-        flash.Lib.current.addChild(txt);
-
-        function tr(x:Dynamic,?_) {
-            txt.text += Std.string(x)+"\n";
-        }
-        haxe.Log.trace = tr;
-
-        for (i in 0...80) {
-            trace("--"+b.velocity);
-            space.step(1/30);
-        }
-
-        b.velocity.y = 0.001;
-        for (i in 0...68) {
-            trace("--"+b.velocity);
-            space.step(1/30);
-        }
     }
 }

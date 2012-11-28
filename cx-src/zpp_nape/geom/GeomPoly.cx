@@ -138,6 +138,71 @@ class PR(GeomVertexIterator) {
 $(mixin global geom(block)
     block
 
+    // Sanitise polygon (As per PartitionedPoly and Polygon) careful to keep consistency
+    // in conditions for sanitation
+    $(mixin sanitise(vertices)
+    mix_circular(Vertex, ({
+        // strip equal vertices first
+        var p = vertices;
+        var skip = true;
+        while (skip || p != vertices) {
+            skip = false;
+            if (vec_dsq(p., p.next.) < PR(Const).EPSILONSQ) {
+                //remove vertex 'p'
+                if (p == vertices) {
+                    vertices = p.next;
+                    skip = true;
+                }
+                if (p.forced) p.next.forced = true;
+                p = pop_ret_after(p);
+                if (p == null) {
+                    vertices = null;
+                    break;
+                }
+            }
+            else p = p.next;
+        }
+
+        if (vertices != null) {
+            // strip collinear vertices
+            // due to epsilon, may need more than one pass.
+            var removed;
+            do {
+                removed = false;
+                p = vertices;
+                skip = true;
+                while (skip || p != vertices) {
+                    skip = false;
+                    var pre = p.prev;
+                    vec_new(u); vec_sub(p., pre., u);
+                    vec_new(v); vec_sub(p.next., p. , v);
+                    var crs = vec_cross(u, v);
+                    if (crs * crs >= PR(Const).EPSILONSQ) {
+                        //keep vertex
+                        p = p.next;
+                    }else
+                    {
+                        //remove vertex 'p'
+                        if (p == vertices) {
+                            vertices = p.next;
+                            skip = true;
+                        }
+                        p = pop_ret_after(p);
+                        removed = true;
+
+                        if (p == null) {
+                            removed = false;
+                            vertices = null;
+                            break;
+                        }
+                    }
+                }
+            }
+            while (removed);
+        }
+        /*return*/ (vertices == null);
+    })));
+
     //
     // Determine if polygon contains a point
     // Using one sided ray casting.
@@ -205,7 +270,7 @@ $(mixin global geom(block)
                 area += v.x * (v.next.y - v.prev.y);
             });
         )
-        /*return*/ area;
+        /*return*/ area*0.5;
     }));
 
     //

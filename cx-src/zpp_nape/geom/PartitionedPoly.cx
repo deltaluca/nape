@@ -130,14 +130,14 @@ class PR(PartitionedPoly) {
     //we remove degenerate vertices, and collinear vertices
     //as this was the easiest way to make the monotonic decomposition robust.
     public function new(?P:PR(GeomVert)) {
-        init(P);            
+        init(P);
     }
 
     MixPool(PR(PartitionedPoly))
     public inline function alloc() {
     }
     public inline function free() {
-        assert(vertices==null,"freed PartitionedPoly has vertices");            
+        assert(vertices==null,"freed PartitionedPoly has vertices");
     }
 
     public function init(?P:PR(GeomVert)) {
@@ -155,6 +155,8 @@ class PR(PartitionedPoly) {
         remove_collinear_vertices();
     }
 
+    // careful to ensure that the PartitioendPoly's concept of collinearity
+    // is equal to that of the Polygon object used in physics.
     public function remove_collinear_vertices() {
         // strip equal vertices first
         var p = vertices;
@@ -165,7 +167,7 @@ class PR(PartitionedPoly) {
                 //remove vertex 'p'
                 if (p == vertices) {
                     vertices = p.next;
-                    skip = true;                        
+                    skip = true;
                 }
                 if (p.forced) p.next.forced = true;
                 p = pop_ret_after(p);
@@ -174,6 +176,7 @@ class PR(PartitionedPoly) {
                     break;
                 }
             }
+            else p = p.next;
         }
 
         if (vertices == null) return true;
@@ -182,11 +185,11 @@ class PR(PartitionedPoly) {
         // due to epsilon, may need more than one pass.
         var removed;
         do {
-            removed = false;                
+            removed = false;
             p = vertices;
             skip = true;
             while (skip || p != vertices) {
-                skip = false;                    
+                skip = false;
                 var pre = p.prev;
                 vec_new(u); vec_sub(p., pre., u);
                 vec_new(v); vec_sub(p.next., p. , v);
@@ -226,7 +229,7 @@ class PR(PartitionedPoly) {
     // Shared List(PR(PartitionedPoly)) to be re-used
     public static var sharedPPList:List(PR(PartitionedPoly));
     public static inline function getSharedPP() {
-        if (sharedPPList==null) sharedPPList = new List(PR(PartitionedPoly))();            
+        if (sharedPPList==null) sharedPPList = new List(PR(PartitionedPoly))();
         return sharedPPList;
     }
 
@@ -244,7 +247,7 @@ class PR(PartitionedPoly) {
             Iter(p, ret, {
                 if(p.remove_collinear_vertices()) {
                     ret.erase(pre);
-                    continue;                    
+                    continue;
                 }
                 pre = cx_ite;
             })
@@ -277,7 +280,7 @@ class PR(PartitionedPoly) {
     // Shared List(PR(GeomVert)) to be re-used
     public static var sharedGVList:List(PR(GeomVert));
     public static inline function getShared() {
-        if (sharedGVList==null) sharedGVList = new List(PR(GeomVert))();            
+        if (sharedGVList==null) sharedGVList = new List(PR(GeomVert))();
         return sharedGVList;
     }
 
@@ -309,8 +312,15 @@ class PR(PartitionedPoly) {
 
         assert(geom(clockwise(poly)),"out poly is not convex :(");
 
-        if(geom(signed_area(poly))!=0)
-            ret.add(poly);
+        // careful not to return a polygon that Polygon would consider
+        // invalid due to area being so small.
+        var area = geom(signed_area(poly));
+        if (area*area >= PR(Const).EPSILONSQ) {
+            // Ensure that sanitation will not degenerate the polygon too. sigh.
+            if (!geom(sanitise(poly))) {
+                ret.add(poly);
+            }
+        }
         return next;
     }
 }
