@@ -223,12 +223,17 @@ class Vec2 {
         !! * This method is only available on <code>flash</code> and
         !! * <code>nme</code> targets.
         !! *
+        !! * @param output If supplied, this Point will have its x/y
+        !! *               set instead of creating a new Point.
         !! * @return    The AS3 Point object representing Vec2.
         !! * @throws # If this vector has been disposed of.
         !! */
-        keep public function toPoint(vec:Vec2):flash.geom.Point {
+        keep public function toPoint(output:flash.geom.Point = null):flash.geom.Point {
             Disposed(this, Vec2);
-            return new flash.geom.Point(vec.x, vec.y);
+            if (output == null) output = new flash.geom.Point();
+            output.x = x;
+            output.y = y;
+            return output;
         }
     #end
 

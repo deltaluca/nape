@@ -227,10 +227,19 @@ class Mat23 {
         !! * as the allocation of matrix entries to name is different and
         !! * it is easy to make this mistake!
         !! *
+        !! * @param output If supplied, this Matrix will have its properties
+        !! *               populated insteaad of creating a new Matrix.
         !! * @preturn The constructed AS3 Matrix.
         !! */
-        keep public function toMatrix():flash.geom.Matrix {
-            return new flash.geom.Matrix(a, c, b, d, tx, ty);
+        keep public function toMatrix(output:flash.geom.Matrix = null):flash.geom.Matrix {
+            if (output == null) output = new flash.geom.Matrix();
+            output.a = a;
+            output.b = c;
+            output.c = b;
+            output.d = d;
+            output.tx = tx;
+            output.ty = ty;
+            return output;
         }
     #end
 

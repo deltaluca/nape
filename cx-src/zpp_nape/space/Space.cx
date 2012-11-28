@@ -2033,21 +2033,30 @@ class PR(Space) {
 
     public function updateVel(dt:Float) {
         var pre = null;
+        var linDrag = 1 - (dt * global_lin_drag);
+        var angDrag = 1 - (dt * global_ang_drag);
         Iter(cur,live,{
-            vec_new(force);
-            vec_set(force, cur.force);
-            vec_addeq(force, gravity, cur.gravMass);
-            vec_addeq(force,cur.vel,-global_lin_drag*cur.mass);
             if(cur.smass!=0.0) {
-                vec_addeq(cur.vel,force,dt*cur.imass);
+//                vec_new(force);
+//                vec_set(force, cur.force);
+//                vec_addeq(force, gravity, cur.gravMass);
+//                vec_addeq(force,cur.vel,-global_lin_drag*cur.mass);
+//                vec_addeq(cur.vel,force,dt*cur.imass);
+
+                var time = dt * cur.imass;
+                cur.velx = (linDrag * cur.velx) + (cur.forcex + gravityx * cur.gravMass) * time;
+                cur.vely = (linDrag * cur.vely) + (cur.forcey + gravityy * cur.gravMass) * time;
             }
 
             if(cur.sinertia!=0.0) {
-                vec_new(dp); vec_sub(cur.worldCOM,cur.pos,dp);
-                var torque = cur.torque;
-                torque += (vec_cross(dp, gravity) * cur.gravMass);
-                torque -= cur.angvel*global_ang_drag*cur.inertia;
-                cur.angvel += torque*dt*cur.iinertia;
+                vec_new(dp); vec_sub(cur.worldCOM, cur.pos, dp);
+//                var torque = cur.torque;
+//                torque += (vec_cross(dp, gravity) * cur.gravMass);
+//                torque -= cur.angvel*global_ang_drag*cur.inertia;
+//                cur.angvel += torque*dt*cur.iinertia;
+
+                var torque = cur.torque + (vec_cross(dp, gravity) * cur.gravMass);
+                cur.angvel = (angDrag * cur.angvel) + (torque * dt * cur.iinertia);
             }
 
             pre = cx_ite;
