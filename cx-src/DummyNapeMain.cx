@@ -1,11 +1,30 @@
 package;
 $(import);
 
-class DummyNapeMain {
+class DummyNapeMain implements IsoFunction {
     static function main() {
-        var gp = new GeomPoly([new Vec2(0, 0), new Vec2(10, 0), new Vec2(5, 5), new Vec2(10, 20), new Vec2(0, 20), new Vec2(5, 5)]);
-        trace(gp);
-        trace(gp.simpleDecomposition());
-        trace(gp.triangularDecomposition());
+        new DummyNapeMain();
+    }
+
+    function new() {
+        var debug = new ShapeDebug(1,1);
+        flash.Lib.current.addChild(debug.display);
+
+        var polys = MarchingSquares.run(this, new AABB(0,0,800,600), new Vec2(20,20), 8, new Vec2(60, 60));
+        for (x in polys) {
+            for (p in x.triangularDecomposition()) {
+                debug.drawPolygon(p, 0xffffff);
+                for (v in p) {
+                    debug.drawCircle(v, 2, 0xff0000);
+                }
+            }
+        }
+
+    }
+
+    public function iso(x:Float, y:Float) {
+        x -= 300;
+        y -= 300;
+        return x*x+y*y - 200*200;
     }
 }

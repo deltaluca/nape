@@ -101,7 +101,7 @@ class PR(MarchingSquares) {
         //store interpolated vertices
         //and we can avoid recomputing them all the time.
         if (ints == null) {
-            ints = new Array2<Vertex>(xn+1, (yn<<1)+1);                
+            ints = new Array2<Vertex>(xn+1, (yn<<1)+1);
         }
         else {
             ints.resize(xn+1, (yn<<1)+1, null);
@@ -174,7 +174,7 @@ class PR(MarchingSquares) {
         }
 
         if (!combine) {
-            return;                
+            return;
         }
 
         for(y in 1...yn) {
@@ -250,24 +250,6 @@ class PR(MarchingSquares) {
     // remove redundancies from out-polygon
     function output(ret:GeomPolyList,poly:Vertex) {
     mix_circular(Vertex,
-        var v = poly;
-        do {
-            var pre = v.prev;
-            if(pre == v) {
-                pop(v);
-                return;
-            }
-
-            if(pre.x==v.x && pre.y==v.y) {
-                var force = v.forced || pre.forced;
-                if(pre==poly) poly = poly.prev;
-                pop(pre);
-                v.forced = true;
-            }
-
-            v = v.next;
-        }while(v!=poly);
-
         if(geom(degenerate(poly))) {
             clear(poly);
             return;
@@ -732,6 +714,6 @@ class PR(MarchingSquares) {
     }
 
     inline static function ISO(iso:IsoFunctionDef, x:Float, y:Float) {
-        return #if flash iso.iso(x, y) #else iso(x, y) #end;            
+        return #if flash iso.iso(x, y) #else iso(x, y) #end;
     }
 }
