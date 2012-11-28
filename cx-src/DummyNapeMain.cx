@@ -5,74 +5,32 @@ class DummyNapeMain {
     static function main() {
         var space = new Space(Vec2.weak(0, 500));
 
-        function circ(x:Float, y:Float, r:Float, pinned:Bool) {
-            var c = new Body(BodyType.DYNAMIC, Vec2.weak(x, y));
-            c.shapes.add(new Circle(r));
-            c.space = space;
+        var b = new Body(BodyType.STATIC);
+        b.shapes.add(new Polygon(Polygon.rect(0,600,600,1)));
+        b.space = space;
 
-            if (pinned) {
-                var p = new PivotJoint(space.world, c, c.position, Vec2.weak());
-                p.space = space;
-            }
+        b = new Body();
+        b.position.setxy(300,580);
+        b.shapes.add(new Polygon(Polygon.box(10, 10)));
+        b.space = space;
 
-            return c;
+        var txt = new flash.text.TextField();
+        flash.Lib.current.addChild(txt);
+
+        function tr(x:Dynamic,?_) {
+            txt.text += Std.string(x)+"\n";
+        }
+        haxe.Log.trace = tr;
+
+        for (i in 0...80) {
+            trace("--"+b.velocity);
+            space.step(1/30);
         }
 
-        var hand = new PivotJoint(space.world, null, Vec2.weak(), Vec2.weak());
-        hand.space = space;
-        hand.active = false;
-        hand.stiff = false;
-
-        flash.Lib.current.stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function (_) {
-            var mp = Vec2.get(flash.Lib.current.mouseX, flash.Lib.current.mouseY);
-            var bs = space.bodiesUnderPoint(mp);
-            if (!bs.empty()) {
-                hand.body2 = bs.at(0);
-                hand.anchor2 = hand.body2.worldPointToLocal(mp);
-                hand.active = true;
-            }
-            mp.dispose();
-        });
-        flash.Lib.current.stage.addEventListener(flash.events.MouseEvent.MOUSE_UP, function (_) {
-            hand.active = false;
-        });
-
-        var debug = new BitmapDebug(800, 600, 0x333333);
-        flash.Lib.current.addChild(debug.display);
-        debug.drawConstraints = true;
-
-        (new haxe.Timer(14)).run = function () {
-            hand.anchor1.setxy(flash.Lib.current.mouseX, flash.Lib.current.mouseY);
-            debug.clear();
-            space.step(1/60);
-            debug.draw(space);
-            debug.flush();
-        }
-
-        // ===============================================
-
-        {
-            var c1 = circ(100, 100, 50, true);
-            var c2 = circ(100, 400, 50, false);
-            var pulley = new PulleyJoint(
-                c1, c2, c2, c1,
-                Vec2.weak(-50, 0), Vec2.weak(-50, 0),
-                Vec2.weak(50, 0), Vec2.weak(50, 0),
-                600, 700
-            );
-            pulley.space = space;
-        }
-        {
-            var c1 = circ(300, 100, 50, true);
-            var c2 = circ(220, 400, 30, false);
-            var c3 = circ(380, 400, 30, false);
-            var pulley = new PulleyJoint(
-                c1, c2, c1, c3,
-                Vec2.weak(-50, 0), Vec2.weak(30, 0),
-                Vec2.weak(50, 0), Vec2.weak(-30, 0),
-                600, 600, 2
-            );
-            pulley.space = space;
+        b.velocity.y = 0.001;
+        for (i in 0...68) {
+            trace("--"+b.velocity);
+            space.step(1/30);
         }
     }
 }

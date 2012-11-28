@@ -1082,6 +1082,11 @@ class PR(Space) {
             pre = cx_ite;
         });
 
+        #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
+        doForests(deltaTime);
+        sleepArbiters();
+        #if NAPE_TIMES Debug.FOR += flash.Lib.getTimer()-pt; #end
+
         midstep = false;
         //generate on-going events
         var pre = null;
@@ -1116,10 +1121,6 @@ class PR(Space) {
 
             pre = cx_ite;
         });
-
-        #if NAPE_TIMES var pt = flash.Lib.getTimer(); #end
-        doForests(deltaTime);
-        #if NAPE_TIMES Debug.FOR += flash.Lib.getTimer()-pt; #end
 
         //process handlers
         while(!callbacks.empty()) {
@@ -1879,6 +1880,42 @@ class PR(Space) {
         }
     }
 
+    public function sleepArbiters() {
+        $(mixin prestep(arbs) prestep(arbs,null,false));
+        $(mixin prestep(arbs0,arbs1,collisiontype) {
+            var pre = null;
+            var arbs = arbs0;
+            var arbite = arbs.begin();
+            var fst = arbs1!=null;
+            $(mixin pre_continue() { if(fst && arbite==null) { fst = false; arbite = arbs1.begin(); arbs = arbs1; pre = null; } });
+            pre_continue;
+
+            while(arbite!=null) {
+                var arb = arbite.elem();
+                assert(!arb.cleared, "arb cleared in sleepArbiters");
+                if (arb.b1.component.sleeping && arb.b2.component.sleeping) {
+                    arb.sleep_stamp = stamp;
+                    arb.sleeping = true;
+
+                    arbite = arbs.inlined_erase(pre);
+                    pre_continue;
+                    continue;
+                }
+
+                pre = arbite;
+                arbite = arbite.next;
+                pre_continue;
+            }
+        });
+
+        //still iterate non acting arbiters
+        //want to clean up contacts in collision arbiters
+        //and clean up outdated arbiters also
+        prestep(c_arbiters(true),c_arbiters(false), true);
+        prestep(f_arbiters);
+        prestep(s_arbiters);
+    }
+
     //----------------------------------------------------------------------------------------------
 
     public function static_validation(body:PR(Body)) {
@@ -2115,6 +2152,7 @@ class PR(Space) {
 
     public function presteparb(arb:PR(Arbiter), dt:Float, ?cont=false) {
         if(!arb.cleared && (arb.b1.component.sleeping && arb.b2.component.sleeping)) {
+            assert(false, "sleep in prestep (no longer should occur)");
             arb.sleep_stamp = stamp;
             arb.sleeping = true;
             return true;
