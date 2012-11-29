@@ -3,6 +3,53 @@ $(import);
 
 $(mixin Vertex() PR(PartitionVertex));
 
+$(mixin Edge() PR(PartitionPair));
+class Edge {
+    MixPoolNoNext(Edge)
+    MixListMixin(Edge)
+
+    flibmdel public inline function free() {
+        a = b = null;
+        node = null;
+    }
+    flibmdel public inline function alloc() {
+    }
+
+    public var a:Vertex = null;
+    public var b:Vertex = null;
+
+    public var id:Int = 0;
+    public var di:Int = 0;
+
+    public function new() {
+    }
+
+    public static inline function get(a:Vertex, b:Vertex) {
+        var ret; Get(Edge, ret);
+        ret.a = a;
+        ret.b = b;
+
+        if (a.id < b.id) {
+            ret.id = a.id;
+            ret.di = b.id;
+        }
+        else {
+            ret.id = b.id;
+            ret.di = a.id;
+        }
+        return ret;
+    }
+
+    // for RBTree
+    public var node:Set(Edge) = null;
+    public static function edge_swap(a:Edge, b:Edge) {
+        swap(a.node, b.node);
+    }
+    public static function edge_lt(a:Edge, b:Edge) {
+        return a.id < b.id || (a.id == b.id && a.di < b.di);
+    }
+}
+
 mix_circular(Vertex,
 class PR(Triangular) {
     inline static function lt(p:Vertex,q:Vertex) {
@@ -17,6 +64,202 @@ class PR(Triangular) {
 
     static var queue:List(Vertex) = null;
     static var stack:List(Vertex) = null;
+
+    public static function delaunay(A:Vertex, B:Vertex, C:Vertex, D:Vertex) {
+        //    B
+        //  /   \
+        // A --- C
+        //  \   /
+        //    D
+        //
+        // A B C D clockwise orientated.
+        //
+        //     | Ax Ay Am 1 |
+        // det | Bx By Bm 1 |
+        //     | Cx Cy Cm 1 |
+        //     | Dx Dy Dm 1 |
+
+        // We also must take care that ABCD is CONVEX
+        // or else
+        // A,
+        // | B-;C
+        // D;;'
+        //
+        // Would be flipped to have diagonal AC... which will
+        // most likely either be outside the polygon, or just simply
+        // intersect other diagonals.
+        //
+        // We consider an edge to thus be 'forced' delaunay if concave.
+        // Since ABCD clockwise we're looking for any left turns.
+        //
+        // We also don't want to introduce degenerate diagonals
+        //   A
+        // B C D
+        // (cannot have diagonal B D)
+        //
+        // so we use >= instead of >
+        vec_new(u);
+        vec_new(v);
+        $(mixin leftTurn(X, Y, Z) ({
+            vec_sub(Z., Y., u);
+            vec_sub(Y., X., v);
+            /*return*/ vec_cross(u, v) >= 0;
+        }));
+
+        if (leftTurn(A, B, C)
+         || leftTurn(B, C, D)
+         || leftTurn(C, D, A)
+         || leftTurn(D, A, B)) {
+            return true;
+        }
+
+        $(mixin det3(X, Y, Z) (
+            $(mixin det(u, v) (
+                u.y * v.mag - u.mag * v.y
+            ));
+            X.x * det(Y, Z) - Y.x * det(X, Z) + Z.x * det(X, Y)
+        ));
+        return det3(B, C, D) - det3(A, C, D) + det3(A, B, D) - det3(A, B, C) > 0;
+
+
+        return (B.x*(C.y*D.mag - C.mag*D.y)
+              + B.y*(C.mag*D.x - C.x*D.mag)
+              + B.mag*(C.x*D.y   - C.y*D.x)
+              + A.x*(C.mag*D.y - C.y*D.mag
+                   + B.mag*(C.y-D.y) + B.y*(D.mag-C.mag))
+              + A.y*(C.x*D.mag - C.mag*D.x
+                   + B.mag*(D.x-C.x) + B.x*(C.mag-D.mag))
+              + A.mag*(C.y*D.x   - C.x*D.y
+                   + B.x*(D.y-C.y)   + B.y*(C.x-D.x))) > 0;
+    }
+
+    static var edgeSet:Set(Edge) = null;
+
+    // push partitioned triangulation into delaunay one.
+    public static function optimise(P:PR(PartitionedPoly)) {
+        // P is convex, and after sorting diagonals, each diagonal is in convex order.
+        // This is important!!
+        // Also compute magnitude for delaunay checks.
+        for_iter(p, P.vertices, {
+            p.sort();
+            p.mag = vec_lsq(p.);
+        });
+
+        if (edgeSet == null) {
+            Get(Set(Edge), edgeSet);
+            edgeSet.lt = Edge.edge_lt;
+            edgeSet.swapped = Edge.edge_swap;
+        }
+        var edgeStack:Edge; Get(Edge, edgeStack);
+
+        // Find set of non-locally delaunay diagonals.
+        for_iter(p, P.vertices, {
+            var q0 = p.next;
+            p.diagonals.reverse();
+            Iter(q, p.diagonals, {
+                // trivial optimisation, only consider pairs (p < q)
+                if (q.id < p.id) {
+                    q0 = q;
+                    cx_continue;
+                }
+
+                var q1 = (cx_ite.next == null ? p.prev : cx_ite.next.elem());
+
+                // Have quartet:
+                //   q0.
+                //  /   \
+                // p --- q
+                //  \   /
+                //   q1.
+
+                if (!delaunay(p, q0, q, q1)) {
+                    var edge = Edge.get(p, q);
+                    edgeStack.add(edge);
+                    edge.node = edgeSet.insert(edge);
+                }
+
+                q0 = q;
+            });
+        });
+
+        while (!edgeStack.empty()) {
+            var edge = edgeStack.pop_unsafe();
+
+            //   B
+            // A -> C
+            //   D
+
+            var A = edge.a;
+            var C = edge.b;
+
+            // Find B and D
+            var B = A.next;
+            var D = null;
+            Iter (p, A.diagonals, {
+                if (p == C) {
+                    cx_ite = cx_ite.next;
+                    D = if (cx_ite == null) A.prev else cx_ite.elem();
+                    cx_break;
+                }
+                B = p;
+            });
+
+            // replace edge AC by edge BD
+            A.diagonals.remove(C);
+            C.diagonals.remove(A);
+
+            // sorted-insert diag into X's diagonals after possible diagonal Y
+            $(mixin sortedInsert(diag, X, Y) {
+                if (Y == X.next) {
+                    X.diagonals.add(diag);
+                }
+                else {
+                    Iter (p, X.diagonals, {
+                        if (p == Y) {
+                            X.diagonals.insert(cx_ite, diag);
+                            cx_break;
+                        }
+                    });
+                }
+            });
+            sortedInsert(D, B, C);
+            sortedInsert(B, D, A);
+
+
+            // Check and possibly insert any diagonals
+            // AB BC CD DA
+            // Consider possible diagonal XY who's right vertex is W.
+            $(mixin tryInsert(X, Y, W) {
+                if (X.next != Y) {
+                    // find left vertex.
+                    var Z = X.next;
+                    Iter(d, X.diagonals, {
+                        if (d == Y) cx_break;
+                        Z = d;
+                    });
+
+                    //   Z
+                    // X -> Y
+                    //   W
+
+                    if (!delaunay(X, Z, Y, W)) {
+                        var edge = Edge.get(X, Y);
+                        if (edgeSet.has_weak(edge)) {
+                            Free(Edge, edge);
+                        }else {
+                            edgeStack.add(edge);
+                            edge.node = edgeSet.insert(edge);
+                        }
+                    }
+                }
+            });
+
+            edgeSet.remove_node(edge.node);
+            Free(Edge, edge);
+        }
+
+        Free(Edge, edgeStack);
+    }
 
     //triangulate a monotone polygon by adding partitiones
     public static function triangulate(P:PR(PartitionedPoly)) {

@@ -7,6 +7,11 @@ $(mixin Edge Vertex);
 //vertex in a partitioned polygon
 //also serves as the edge (this, this.next)
 class Vertex {
+    // Used in delaunay triangulation to order edges.
+    public var id:Int = 0;
+    static var nextId = 0;
+    public var mag:Float = 0; //x^2 + y^2
+
     //vertex position
     vec_new(public,$(->));
     //used to propogate 'fixed'ness of vertices for simplification
@@ -27,6 +32,7 @@ class Vertex {
     public var prev:Vertex = null;
 
     public function new() {
+        id = nextId++;
         diagonals = new List(Vertex)();
     }
     public inline function alloc() {

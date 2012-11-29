@@ -10,21 +10,41 @@ class DummyNapeMain implements IsoFunction {
         var debug = new ShapeDebug(1,1);
         flash.Lib.current.addChild(debug.display);
 
-        var polys = MarchingSquares.run(this, new AABB(0,0,800,600), new Vec2(20,20), 8, new Vec2(60, 60));
+        var txt = new flash.text.TextField();
+        flash.Lib.current.addChild(txt);
+        haxe.Log.trace = function (x:Dynamic,?y) { };
+
+        var polys = MarchingSquares.run(this, new AABB(0,0,300,300), new Vec2(10,10), 8, new Vec2(100, 100));
+//        var polys = [new GeomPoly([new Vec2(100, 100), new Vec2(200, 100), new Vec2(200, 200), new Vec2(300, 200), new Vec2(300, 300), new Vec2(100,300)])];
+//        var polys = [new GeomPoly([new Vec2(150, 100), new Vec2(200, 150), new Vec2(300, 150), new Vec2(300, 300), new Vec2(150, 200), new Vec2(0, 300), new Vec2(0, 150)])];
         for (x in polys) {
+            debug.transform.tx = 0;
+            debug.transform.ty = 0;
             for (p in x.triangularDecomposition()) {
                 debug.drawPolygon(p, 0xffffff);
-                for (v in p) {
-                    debug.drawCircle(v, 2, 0xff0000);
-                }
+            }
+            debug.transform.tx = 300;
+            debug.transform.ty = 0;
+            for (p in x.triangularDecomposition(true)) {
+                debug.drawPolygon(p, 0xff0000);
+            }
+            debug.transform.tx = 0;
+            debug.transform.ty = 300;
+            for (p in x.convexDecomposition()) {
+                debug.drawPolygon(p, 0xffffff);
+            }
+            debug.transform.tx = 300;
+            debug.transform.ty = 300;
+            for (p in x.convexDecomposition(true)) {
+                debug.drawPolygon(p, 0xff0000);
             }
         }
 
     }
 
     public function iso(x:Float, y:Float) {
-        x -= 300;
-        y -= 300;
-        return x*x+y*y - 200*200;
+        x -= 150;
+        y -= 150;
+        return Math.sin((x*x+y*y - 150*150)*0.0005);
     }
 }
