@@ -43,13 +43,13 @@ class Generator {
 
 		var result = new StringBuf();
 		var headercode = '
-			String = $loader.String;
-			Array = $loader.Array;
-			iter = $loader.iter;
-			buffer_new = $loader.loadprim("std@buffer_new", 0);
-			buffer_add = $loader.loadprim("std@buffer_add", 2);
-			buffer_string = $loader.loadprim("std@buffer_string", 1);
-			string_split = $loader.loadprim("std@string_split", 2);
+			String = $$loader.String;
+			Array = $$loader.Array;
+			iter = $$loader.iter;
+			buffer_new = $$loader.loadprim("std@buffer_new", 0);
+			buffer_add = $$loader.loadprim("std@buffer_add", 2);
+			buffer_string = $$loader.loadprim("std@buffer_string", 1);
+			string_split = $$loader.loadprim("std@string_split", 2);
 
 			replace = function( h, n, r ){
 				var l = string_split(h, n);
@@ -67,11 +67,11 @@ class Generator {
 			}
 
 			html_escape = function( data ){
-				var t = $typeof(data);
-				if (t == $tint)
+				var t = $$typeof(data);
+				if (t == $$tint)
 					return data;
-				if (t != $tstring)
-					data = $string(data);
+				if (t != $$tstring)
+					data = $$string(data);
 				if (data == "")
 					return data;
 				data = replace(data, "&", "&amp;");
@@ -83,11 +83,11 @@ class Generator {
 
 			is_true = function( data ){
 				if (data == "") return false;
-				return $istrue(data);
+				return $$istrue(data);
 			}
 
 			new_repeat = function( data ){
-				var result = $new(null);
+				var result = $$new(null);
 				result.data = data;
 				result.index = 0-1;
 				result.number = 0;
@@ -112,7 +112,7 @@ class Generator {
 			}
 
 			new_output_buffer = function( parent ){
-				var result = $new(null);
+				var result = $$new(null);
 				result.parent = parent;
 				result.buf = buffer_new();
 				result.add = function(str){ return buffer_add(this.buf, str); }
@@ -121,22 +121,22 @@ class Generator {
 			}
 
 			new_context = function( parent, vars ){
-				var result = $new(null);
+				var result = $$new(null);
 				result.parent = parent;
 				result.__isTemplateContext = true;
 				if (vars == null){
-					result.vars = $new(null);
+					result.vars = $$new(null);
 				}
 				else {
 					result.vars = vars;
 				}
 				result.get = function( field ){
-					if ($objfield(this.vars, field)) return $objget(this.vars, field);
+					if ($$objfield(this.vars, field)) return $$objget(this.vars, field);
 					if (this.parent == null) return null;
 					return this.parent.get(field);
 				}
 				result.set = function( field, v ){
-					$objset(this.vars, field, v);
+					$$objset(this.vars, field, v);
 				}
 				return result;
 			}
@@ -160,7 +160,7 @@ class Generator {
 				return __out.str();
 			}
 
-			$exports.template = template;
+			$$exports.template = template;
 		'); //'
 		return result.toString();
 	}

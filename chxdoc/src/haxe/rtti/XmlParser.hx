@@ -265,8 +265,10 @@ class XmlParser {
 	}
 
 	function xroot( x : Fast ) {
-		for( c in x.x.elements() )
-			merge(processElement(c));
+		for( c in x.x.elements() ) {
+            var elt = processElement(c);
+            if (elt != null) merge(elt);
+        }
 
 	}
 
@@ -276,7 +278,19 @@ class XmlParser {
 		case "class": TClassdecl(xclass(c));
 		case "enum": TEnumdecl(xenum(c));
 		case "typedef": TTypedecl(xtypedef(c));
-		default: xerror(c);
+		default:
+            trace("processElement :: "+c.name);
+            TEnumdecl({
+                file : null,
+                path : "[[std]]",
+                module : null,
+                doc : "",
+                isPrivate : false,
+                isExtern : true,
+                params : [],
+                constructors : new List<EnumField>(),
+                platforms :     defplat()
+            });
 		}
 	}
 
@@ -474,8 +488,10 @@ class XmlParser {
 			if( tx != null )
 				t = xtype(new Fast(tx));
 			CDynamic(t);
-		default:
-            return null;
+		case "x":
+			CEnum(x.att.path,xtypeparams(x));
+        default:
+            CUnknown;
 		}
 	}
 
