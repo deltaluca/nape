@@ -92,7 +92,7 @@ class PR(Monotone) {
     // Shared PartitionedPoly to be re-used
     public static var sharedPPoly:PR(PartitionedPoly);
     public static inline function getShared() {
-        if (sharedPPoly==null) sharedPPoly = new PR(PartitionedPoly)();            
+        if (sharedPPoly==null) sharedPPoly = new PR(PartitionedPoly)();
         return sharedPPoly;
     }
 
@@ -104,7 +104,7 @@ class PR(Monotone) {
             poly = new PR(PartitionedPoly)(P);
         }
         else {
-            poly.init(P);                
+            poly.init(P);
         }
 
         if (poly.vertices == null) return poly;
@@ -127,6 +127,7 @@ class PR(Monotone) {
                     if(below(p,p.next)) cx ? END : MERGE
                     else REGULAR;
                 };
+
         });
         Sort(queue,Node(Vertex),above);
 
@@ -147,7 +148,9 @@ class PR(Monotone) {
             case END:
                 var e = v.prev;
                 DEBUG(if(e.helper==null) throw "Fatal error (1): Polygon is not weakly-simple and clockwise";)
-                if(e.helper.type==MERGE) poly.add_diagonal(v,e.helper);
+                if(e.helper.type==MERGE) {
+                    poly.add_diagonal(v,e.helper);
+                }
                 edges.remove_node(e.node);
                 DEBUG(e.helper=null;)
             case SPLIT:
@@ -162,14 +165,18 @@ class PR(Monotone) {
             case MERGE:
                 var e = v.prev;
                 DEBUG(if(e.helper==null) throw "Fatal error (3): Polygon is not weakly-simple and clockwise";)
-                if(e.helper.type==MERGE) poly.add_diagonal(v,e.helper);
+                if(e.helper.type==MERGE) {
+                    poly.add_diagonal(v,e.helper);
+                }
                 edges.remove_node(e.node);
                 DEBUG(e.helper=null;)
 
                 var e = SetLowerBound(v,edges,Edge.vert_lt);
                 if(e!=null) {
                     DEBUG(if(e.helper==null) throw "Fatal error (4): Polygon is not weakly-simple and clockwise";)
-                    if(e.helper.type==MERGE) poly.add_diagonal(v,e.helper);
+                    if(e.helper.type==MERGE) {
+                        poly.add_diagonal(v,e.helper);
+                    }
                     e.helper = v;
                 }
             case REGULAR:
@@ -185,7 +192,9 @@ class PR(Monotone) {
                 }else {
                     var e = SetLowerBound(v,edges,Edge.vert_lt);
                     DEBUG(if(e==null || e.helper==null) throw "Fatal error (6): Polygon is not weakly-simple and clockwise";)
-                    if(e.helper.type==MERGE) poly.add_diagonal(v,e.helper);
+                    if(e.helper.type==MERGE) {
+                        poly.add_diagonal(v,e.helper);
+                    }
                     e.helper = v;
                 }
             }

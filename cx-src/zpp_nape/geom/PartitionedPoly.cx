@@ -57,6 +57,7 @@ class Vertex {
     //sort diagonals in order of processing when pulling polygons out of partitions
     public function sort() {
         vec_new(u); vec_new(v);
+        // return -1 for left turn, 0 for straight/backwards 1 for right turn.
         $(mixin orient(a, b, c) ({
             vec_sub(a., b., u);
             vec_sub(c., b., v);
@@ -67,11 +68,38 @@ class Vertex {
         var vorient = orient(prev, this, next);
         assert(vorient != 0, "collinear edge on boundary of partitioned poly?");
         Sort(diagonals, Node(Vertex), $(mixin lt(p, q) ({
-            var d1 = orient(prev, this, p);
-            var d2 = orient(prev, this, q);
-            /*return*/ if   (d1==d2) orient(p, this, q) == 1;
-                       elif (d1==0)  d2 == vorient;
-                       else          d1 != vorient;
+            if (vorient == 1) {
+                /*return*/ orient(p, this, q) == 1;
+            }
+            else {
+                var d1 = orient(prev, this, p);
+                var d2 = orient(prev, this, q);
+                if (d1 * d2 == 1
+                || (d1 * d2 == 0 && (d1 == 1 || d2 == 1))) {
+                    /*return*/ orient(p, this, q) == 1;
+                }
+                else if (d1 == -1 || d2 == -1) {
+                    /*return*/ d2 == -1;
+                }
+                else if (d1 == 0 && d2 == 0) {
+                    // FFS!!!
+                    vec_sub(this., prev., u);
+                    vec_sub(p., this., v);
+                    var d1 = vec_dot(u, v);
+                    vec_sub(q., this., v);
+                    var d2 = vec_dot(u, v);
+                    if   (d1 < 0 && d2 > 0) /*return*/ true
+                    elif (d2 < 0 && d1 > 0) /*return*/ false
+                    else {
+                        assert(false, "da fuquuuququ ... ");
+                        /*return*/ true;
+                    }
+                }
+                else {
+                    assert(false, "da fuq....");
+                    /*return*/ true;
+                }
+            }
         })) lt);
     }
 
@@ -310,7 +338,7 @@ class PR(PartitionedPoly) {
             )
             if(!next.diagonals.empty()) {
                 var diag = next.diagonals.inlined_pop_unsafe();
-                if(diag==start) break;
+                if(diag==start) { break; }
                 else next = pull(next,ret);
             }else
                 next = next.next;
