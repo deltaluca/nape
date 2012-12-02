@@ -360,7 +360,10 @@ class Shape extends Interactor {
         DEBUG(if(body==null) throw "Error: Shape is not well defined without a Body";)
 
         PR(Geom).validateShape(pr(inner));
-        return PR(Collide).shapeContains(pr(inner),point.pr(inner));
+        point.pr(inner).validate();
+        var ret = PR(Collide).shapeContains(pr(inner),point.pr(inner));
+        WEAK(point);
+        return ret;
     }
 
     !!/**

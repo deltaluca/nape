@@ -943,6 +943,35 @@ class Body extends Interactor {
     }
 
     !!/**
+    !! * Apply a pure angular impulse to Body.
+    !! *
+    !! * @param impulse The angular impulse to apply.
+    !! * @param sleepable This parameter can be set to true, in the case that you
+    !! *                  are constantly applying an impulse which is dependent only
+    !! *                  on the position/velocity of the body meaning that application
+    !! *                  of this impulse does not need to prevent the object from sleeping.
+    !! *                  When true, and the body is sleeping, this method call will not
+    !! *                  apply any impulse.
+    !! *                  (default false).
+    !! * @returns A reference to 'this' Body.
+    !! */
+    keep public function applyAngularImpulse(impulse:Float, sleepable:Bool=false) {
+        DEBUG(if(pr(inner).world) throw "Error: Space::world is immutable";)
+
+        if (sleepable && isSleeping) {
+            return this;
+        }
+
+        pr(inner).validate_inertia();
+        pr(inner).angvel += impulse * pr(inner).iinertia;
+        if (!sleepable) {
+            if(isDynamic()) pr(inner).invalidate_wake();
+        }
+
+        return this;
+    }
+
+    !!/**
     !! * Translate each shape in local coordinates.
     !! * <br/><br/>
     !! * This operation does not effect the Body's position, but the position
@@ -1397,8 +1426,16 @@ class Body extends Interactor {
     keep public function contains(point:Vec2) {
         Disposed(point,Vec2);
         DEBUG(if(point==null) throw "Error: Cannot check containment of null point";)
+
+        var wasWeak = point.pr(inner).weak;
+        point.pr(inner).weak = false;
+
         var retvar;
         Exists(s, pr(inner).shapes, s.outer.contains(point), retvar);
+
+        point.pr(inner).weak = wasWeak;
+        WEAK(point);
+
         return retvar;
     }
 
