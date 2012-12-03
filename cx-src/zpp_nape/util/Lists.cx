@@ -281,15 +281,15 @@ $(expand global PRWrapList(T,ListT,IteT)
         public var immutable:Bool = false;
 
         public var _invalidated:Bool = false;
-        public var _invalidate:PR(T`List)->Dynamic = null;
-        public var _validate:Void->Dynamic = null;
-        public var _modifiable:Void->Dynamic = null;
+        public var _invalidate:PR(T`List)->Void = null;
+        public var _validate:Void->Void = null;
+        public var _modifiable:Void->Void = null;
 
         public static var internal:Bool = false; //used to prevent instantiation of iterator type
 
         //to be called when object is added/removed
-        public var adder:T->Bool = null; public var post_adder:T->Dynamic = null;
-        public var subber:T->Dynamic = null;
+        public var adder:T->Bool = null; public var post_adder:T->Void = null;
+        public var subber:T->Void = null;
 
         //mark that subber must deal with removing from list, not the public list.
         public var dontremove:Bool = false;
@@ -682,7 +682,7 @@ $(mixin global ArraySort(L, len, lt) {
             var cur = L[hole-1];
             if (lt(cur, item)) break;
             L[hole] = cur;
-            hole--;                
+            hole--;
         }
         L[hole] = item;
     }
