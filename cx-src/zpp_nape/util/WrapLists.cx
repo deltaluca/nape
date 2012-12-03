@@ -40,7 +40,8 @@ $(mixin global WrapList(T,ListT,IteT, defs)
     WrapListIterator(T,ListT,IteT,defs)
 );
 
-$(mixin global WrapListNew(T,ListT,IteT, defs)
+$(mixin global WrapListNew(T,ListT,IteT, defs) WrapListNew(T,ListT,IteT,defs,false));
+$(mixin global WrapListNew(T,ListT,IteT, defs, noFinal)
     $(mixin accept(x) true);
     $(mixin use_accept false);
 
@@ -110,7 +111,7 @@ $(mixin global WrapListNew(T,ListT,IteT, defs)
     !! * }
     !! * </pre>
     !! */
-    class T`List {
+    #if !noFinal @:final #end class T`List {
         defs
 
         !!/**
@@ -634,7 +635,8 @@ $(mixin global WrapListNew(T,ListT,IteT, defs)
     PRWrapList(T,ListT,IteT)
 );
 
-$(mixin global WrapListIterator(T,ListT,IteT, defs)
+$(mixin global WrapListIterator(T,ListT,IteT, defs) WrapListIterator(T,ListT,IteT,defs,false));
+$(mixin global WrapListIterator(T,ListT,IteT, defs, noFinal)
     $(mixin accept(x) true);
     $(mixin use_accept false);
 
@@ -648,7 +650,7 @@ $(mixin global WrapListIterator(T,ListT,IteT, defs)
     !!/**
     !! * Haxe Iterator<T> compatible iterator over Nape list.
     !! */
-    class T`Iterator {
+    #if !noFinal @:final #end class T`Iterator {
         !!/**
         !! * @private
         !! */
