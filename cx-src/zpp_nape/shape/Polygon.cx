@@ -300,7 +300,6 @@ class PR(Polygon) extends PR(Shape) {
 
             if (vec_dsq(u., v.) < PR(Const).EPSILONSQ) {
                 // remove vertex u/cur
-                trace([u.x,u.y,v.x,v.y]);
                 cleanup_lvert(cur.elem());
                 cur = lverts.erase(pre);
             }
@@ -332,7 +331,6 @@ class PR(Polygon) extends PR(Shape) {
                 }
                 else {
                     // remove vertex v/cur
-                    trace([u.x,u.y,v.x,v.y,w.x,w.y]);
                     cleanup_lvert(cur.elem());
                     lverts.erase(pre.next == null ? null : pre);
                     removed = true;
@@ -405,6 +403,7 @@ class PR(Polygon) extends PR(Shape) {
                 inv(gaxi) = false;
                 validate_laxi();
                 body.validate_axis();
+                validate_gverts();
 
                 var ite = edges.begin();
                 Iter2_fast(u,v, gverts, {
