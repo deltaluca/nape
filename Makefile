@@ -62,8 +62,10 @@ docs: pre_compile
 
 externs: debugs
 	rm -rf externs
-	flib --externs bin/haxe_debug_nape.swf --include nape --include zpp_nape
+	flib --externs bin/haxe_nape-debug.swf --include nape --include zpp_nape
 	cp src/nape/TArray.hx externs/nape/
+	mkdir -p bin
+	tar cvfz bin/nape-externs.tar.gz externs/
 
 #------------------------------------------------------------------------------------
 
@@ -85,29 +87,29 @@ RELEASE_FLAGS= $(SWC_FLAGS) -D NAPE_RELEASE_BUILD
 demos:
 	./buildlib
 	$(MAKE) releases
-	cp bin/release_nape.swc ../www.napephys.com/nape-release.swc
+	cp bin/nape-release.swc ../www.napephys.com/nape-release.swc
 	$(MAKE) docs
 
 releases: pre_compile
 	mkdir -p bin/
-	haxe -swf bin/release_nape.swc $(RELEASE_FLAGS) -swf-version $(SWFV)
-	flib bin/release_nape.swc
-	unzip bin/release_nape.swc -x catalog.xml
-	mv library.swf bin/haxe_release_nape.swf
-	du -h bin/release_nape.swc
+	haxe -swf bin/nape-release.swc $(RELEASE_FLAGS) -swf-version $(SWFV)
+	flib bin/nape-release.swc
+	unzip bin/nape-release.swc -x catalog.xml
+	mv library.swf bin/haxe_nape-release.swf
+	du -h bin/nape-release.swc
 
 developments: pre_compile
 	mkdir -p bin/
-	haxe -swf bin/development_nape.swc $(DEV_FLAGS) -swf-version $(SWFV)
-	flib bin/development_nape.swc
-	unzip bin/development_nape.swc -x catalog.xml
-	mv library.swf bin/haxe_development_nape.swf
-	du -h bin/development_nape.swc
+	haxe -swf bin/nape-dev.swc $(DEV_FLAGS) -swf-version $(SWFV)
+	flib bin/nape-dev.swc
+	unzip bin/nape-dev.swc -x catalog.xml
+	mv library.swf bin/haxe_nape-dev.swf
+	du -h bin/nape-dev.swc
 
 debugs: pre_compile
 	mkdir -p bin/
-	haxe -swf bin/debug_nape.swc $(DEBUG_FLAGS) -swf-version $(SWFV)
-	flib bin/debug_nape.swc
-	unzip bin/debug_nape.swc -x catalog.xml
-	mv library.swf bin/haxe_debug_nape.swf
-	du -h bin/debug_nape.swc
+	haxe -swf bin/nape-debug.swc $(DEBUG_FLAGS) -swf-version $(SWFV)
+	flib bin/nape-debug.swc
+	unzip bin/nape-debug.swc -x catalog.xml
+	mv library.swf bin/haxe_nape-debug.swf
+	du -h bin/nape-debug.swc
