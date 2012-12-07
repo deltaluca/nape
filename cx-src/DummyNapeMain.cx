@@ -6,42 +6,32 @@ class DummyNapeMain implements IsoFunction {
         new DummyNapeMain();
     }
 
-    static public var debug:Debug;
     function new() {
-        debug = new ShapeDebug(1,1);
+        var debug = new ShapeDebug(1,1);
         flash.Lib.current.addChild(debug.display);
 
         var txt = new flash.text.TextField();
         flash.Lib.current.addChild(txt);
         haxe.Log.trace = function (x:Dynamic,?y) { txt.text += Std.string(x)+"\n"; };
 
-        for (x in 0...12) debug.drawLine(Vec2.weak(x*50, 0), Vec2.weak(x*50, 600), 0x888888);
-        for (y in 0...12) debug.drawLine(Vec2.weak(0, y*50), Vec2.weak(600, y*50), 0x888888);
+        var space = new Space(new Vec2(0, 600));
+        var ground = new Body(BodyType.STATIC);
+        ground.shapes.add(new Polygon(Polygon.rect(0, 400, 600, 100)));
+        ground.space = space;
 
-        var str:String = "{ x: 250 y: 175 },{ x: 275 y: 200 },{ x: 300 y: 225 },{ x: 325 y: 250 },{ x: 300 y: 250 },{ x: 291.6667 y: 275 },{ x: 283.3334 y: 300 },{ x: 275 y: 325 },{ x: 275 y: 300 },{ x: 250 y: 300 },{ x: 225 y: 300 },{ x: 250 y: 275 },{ x: 275 y: 250 },{ x: 250 y: 250 },{ x: 250 y: 275 },{ x: 231.25 y: 250 },{ x: 212.5 y: 225 },{ x: 193.75 y: 200 },{ x: 175 y: 175 },{ x: 200 y: 175 },{ x: 225 y: 175 }";
+        var ball = new Body();
+        ball.position.setxy(300, 50);
+        ball.shapes.add(new Circle(20));
+        ball.shapes.at(0).material.elasticity = 100;
+        ball.angularVel = 10;
+        ball.space = space;
 
-        var verts = [];
-        for (a in str.split(",")) {
-            var as = a.split(" ");
-            verts.push(new Vec2(Std.parseFloat(as[2]), Std.parseFloat(as[4])));
+        (new haxe.Timer(10)).run = function () {
+            debug.clear();
+            space.step(1/100);
+            debug.draw(space);
+            debug.flush();
         }
-
-        debug.drawPolygon(verts, 0xffffff);
-
-        var shape = new GeomPoly(verts);
-        var cols = [0xff0000, 0xffff00, 0x00ff00, 0x00ffff, 0x0000ff, 0xff00ff];
-        var ind = 0;
-
-        var gps = shape.convexDecomposition(true);
-        for (gp in gps) {
-            if (!gp.isSimple()) {
-                trace("hmmm : "+Std.string(gp));
-            }
-            else debug.drawFilledPolygon(gp, cols[ind++]);
-            if (ind >= cols.length) ind = 0;
-        }
-
-
     }
 
     public function iso(x:Float, y:Float) {
