@@ -140,15 +140,27 @@ class Vertex {
         elif (p.y == p.next.y) {
             return
                 if (q.y == q.next.y) max(p.x, p.next.x) > max(q.x, q.next.x)
-                else rightdistance(q, p) > 0.0;
+                else (rightdistance(q, p) > 0.0 || rightdistance(q, p.next) > 0.0);
         }else {
-            var qright = rightdistance(p, q);
-            var qisright = qright < 0.0;
-            var nextright = rightdistance(p, q.next) < 0.0;
-            return
-                if   (qisright == nextright) qisright
-                elif (q.y == q.next.y) qright > 0.0
-                else rightdistance(q,p) >= 0.0;
+            var qRight = rightdistance(p, q);
+            var qNextRight = rightdistance(p, q.next);
+
+            if (qRight == 0 && qNextRight == 0) {
+                // collinear edges
+                return max(p.x, p.next.x) > max(q.x, q.next.x);
+            }
+
+            if (qRight * qNextRight >= 0) return (qRight < 0 || qNextRight < 0);
+
+            var pRight = rightdistance(q, p);
+            var pNextRight = rightdistance(q, p.next);
+            assert (pRight != 0 || pNextRight != 0, "collinear edges comparison");
+
+            if (pRight * pNextRight >= 0) return (pRight > 0 || pNextRight > 0);
+
+            assert(false, "faaaail");
+
+            return false;
         }
     }
 }
