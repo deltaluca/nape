@@ -17,46 +17,26 @@ class DummyNapeMain implements IsoFunction {
 
         var space = new Space(Vec2.get(0, 500));
 
-        var floor:Body = new Body(BodyType.KINEMATIC,Vec2.get(0,300));
+        var floor:Body = new Body(BodyType.STATIC,Vec2.get(0,300));
         floor.shapes.add(new Polygon(Polygon.rect(0,0,800,100,true)));
-        floor.velocity.x = 0.1;
         floor.space = space;
 
-        var circle:Body = new Body(BodyType.DYNAMIC,Vec2.get(50,200));
-        circle.shapes.add(new Circle(20,null,Material.rubber()));
-        circle.space = space;
-        circle.velocity.setxy(1000,300); // THIS LINE
-
-
-        var icnt = 26; //300 -> after counts is JUST intersecting with no CCD.
-        //var icnt = 21; //400 -> after counts is JUST intersecting with no CCD.
-        for (i in 0...icnt) space.step(1/120);
-
-        debug.clear();
-        debug.draw(space);
-        var px = circle.position.x;
-        var py = circle.position.y;
-
-        function dd() {
-            debug.draw(space);
-            debug.drawLine(Vec2.weak(px, py), circle.position, 0xffffff);
-            px = circle.position.x;
-            py = circle.position.y;
+        var c = new InteractionGroup(true);
+        for (i in 0...100) {
+            var circle:Body = new Body(BodyType.DYNAMIC,Vec2.get(50,200));
+//            circle.shapes.add(new Circle(20,null,Material.rubber()));
+            circle.shapes.add(new Polygon(Polygon.box(40, 40), Material.rubber()));
+            circle.rotation = 1;
+            circle.space = space;
+            circle.velocity.setxy(500,200+i); // THIS LINE
+            circle.group = c;
         }
 
-        trace("--");
-        space.step(1/120);
-        dd();
-        trace("--");
-        space.step(1/120);
-        dd();
-        trace("--");
-        space.step(1/120);
-        dd();
-        trace("--");
-        space.step(1/120);
-        dd();
-        trace("--");
+        (new haxe.Timer(6)).run = function () {
+            debug.clear();
+            space.step(1/120);
+            debug.draw(space);
+        };
     }
 
     public function iso(x:Float, y:Float) {
