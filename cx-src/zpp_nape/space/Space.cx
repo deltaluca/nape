@@ -1143,6 +1143,8 @@ class PR(Space) {
 
     public var toiEvents:List(PR(ToiEvent)) = null;
     public function continuousCollisions(deltaTime:Float) {
+        var MAX_VEL = 2 * Math.PI / deltaTime;
+
         // Get all TOI Events.
         bphase.broadphase(this,false);
         // Time to begin!
@@ -1252,9 +1254,26 @@ class PR(Space) {
             else {
                 if (!presteparb(arb, deltaTime, true)) {
                     if (arb.type == PR(Arbiter).COL && arb.acting()) {
+                        trace("ccd");
+                        // CCD stage occurs after velocity update
+                        // so must warmStart arbiter if required before
+                        // pseudo-iterations
+                        arb.colarb.warmStart();
+
+                        // Perform a few iterations so the non-linearity
+                        // of normal impulses + friction + rolling
+                        // can stabalise.
+                        //
+                        // 4 is normally enough to get it near perfect.
                         arb.colarb.applyImpulseVel();
-                        // And a second time, ensuring friction is computed.
                         arb.colarb.applyImpulseVel();
+                        arb.colarb.applyImpulseVel();
+                        arb.colarb.applyImpulseVel();
+
+                        // Prevent incorrect clamping after CCD.
+                        b1.sweep_angvel = (b1.angvel) % MAX_VEL;
+                        b2.sweep_angvel = (b2.angvel) % MAX_VEL;
+                        trace("!ccd");
                     }
                 }
             }

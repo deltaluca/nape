@@ -154,11 +154,14 @@ class PR(SweepDistance) {
             b1.sweepIntegrate(curTOI * timeStep);
             b1.sweepValidate(s1);
 
+            trace([curTOI, b1.posy+s1.circle.radius]);
+
             var sep = distance(s1, s2, c1, c2, axis) + negRadius;
             var dot = vec_dot(delta, axis.);
 
             // objects intersecting!
             if (sep < PR(Config).SWEEP_LIMIT) {
+                trace("intersect");
                 vec_new(d1); vec_sub(c1., b1.pos, d1);
                 var proj = dot - b1.sweep_angvel * vec_cross(d1, axis.);
                 if (proj > 0)
@@ -173,12 +176,14 @@ class PR(SweepDistance) {
 
             // lower bound on TOI advancement
             var denom = (angBias - dot) * timeStep;
+            trace(denom);
             if (denom <= 0) {
                 curTOI = -1;
                 break;
             }
 
             var delta = sep / denom;
+            trace(delta);
             if (delta < 1e-6) delta = 1e-6;
             assert(!isNaN(delta), delta + " " + (s1.sweepCoef) + " " + ang1);
             curTOI += delta;
