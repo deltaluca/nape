@@ -114,6 +114,42 @@ class PR(SweepDistance) {
             if (delta < 1e-6) delta = 1e-6;
             curTOI += delta;
             if (curTOI >= 1) {
+                // Numerical inaccuracies and slight overshooting
+                // can mean we go beyond curTOI = 1... but curTOI = 1
+                // is actually a valid CCD intersection time.
+                //
+                // so we check.. JUST IN CASE! (can happen.)
+                curTOI = 1;
+                b1.sweepIntegrate(curTOI * timeStep);
+                b1.sweepValidate(s1);
+
+                b2.sweepIntegrate(curTOI * timeStep);
+                b2.sweepValidate(s2);
+
+                var sep = distance(s1, s2, c1, c2, axis) + negRadius;
+                var dot = vec_dot(delta, axis.);
+
+                // objects intersecting!
+                if (sep < PR(Config).SWEEP_LIMIT) {
+                    if (userAPI)
+                    {
+                        break;
+                    }
+                    // check objects not seperating at collision point.
+                    vec_new(d1); vec_sub(c1., b1.pos, d1);
+                    vec_new(d2); vec_sub(c2., b2.pos, d2);
+                    var proj = dot - b1.sweep_angvel * vec_cross(d1, axis.)
+                                   + b2.sweep_angvel * vec_cross(d2, axis.);
+                    if (proj > 0)
+                    {
+                        toi.slipped = true;
+                    }
+                    if (proj <= 0 || sep < PR(Config).SWEEP_LIMIT * 0.5)
+                    {
+                        break;
+                    }
+                }
+
                 curTOI = -1;
                 break;
             }
@@ -154,14 +190,11 @@ class PR(SweepDistance) {
             b1.sweepIntegrate(curTOI * timeStep);
             b1.sweepValidate(s1);
 
-            trace([curTOI, b1.posy+s1.circle.radius]);
-
             var sep = distance(s1, s2, c1, c2, axis) + negRadius;
             var dot = vec_dot(delta, axis.);
 
             // objects intersecting!
             if (sep < PR(Config).SWEEP_LIMIT) {
-                trace("intersect");
                 vec_new(d1); vec_sub(c1., b1.pos, d1);
                 var proj = dot - b1.sweep_angvel * vec_cross(d1, axis.);
                 if (proj > 0)
@@ -176,18 +209,45 @@ class PR(SweepDistance) {
 
             // lower bound on TOI advancement
             var denom = (angBias - dot) * timeStep;
-            trace(denom);
             if (denom <= 0) {
                 curTOI = -1;
                 break;
             }
 
             var delta = sep / denom;
-            trace(delta);
             if (delta < 1e-6) delta = 1e-6;
             assert(!isNaN(delta), delta + " " + (s1.sweepCoef) + " " + ang1);
             curTOI += delta;
             if (curTOI >= 1) {
+                // Numerical inaccuracies and slight overshooting
+                // can mean we go beyond curTOI = 1... but curTOI = 1
+                // is actually a valid CCD intersection time.
+                //
+                // so we check.. JUST IN CASE! (can happen.)
+                curTOI = 1;
+
+                assert(!isNaN(curTOI*timeStep), curTOI+" "+timeStep);
+                assert(!isNaN(b1.sweepTime), "sweeeeep");
+                b1.sweepIntegrate(curTOI * timeStep);
+                b1.sweepValidate(s1);
+
+                var sep = distance(s1, s2, c1, c2, axis) + negRadius;
+                var dot = vec_dot(delta, axis.);
+
+                // objects intersecting!
+                if (sep < PR(Config).SWEEP_LIMIT) {
+                    vec_new(d1); vec_sub(c1., b1.pos, d1);
+                    var proj = dot - b1.sweep_angvel * vec_cross(d1, axis.);
+                    if (proj > 0)
+                    {
+                        toi.slipped = true;
+                    }
+                    if (proj <= 0 || sep < PR(Config).SWEEP_LIMIT * 0.5)
+                    {
+                        break;
+                    }
+                }
+
                 curTOI = -1;
                 break;
             }
