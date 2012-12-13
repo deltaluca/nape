@@ -465,7 +465,7 @@ class PR(FluidArbiter) extends PR(Arbiter) {
             if(ws1.fluidEnabled) {
                 var f = -ws1.fluidProperties.viscosity*overlap/ws2.area;
                 if(ws2.type == Flag(ShapeType,CIRCLE))
-                    tViscosity -= f * ws2.circle.radius*PR(Config).FLUID_COEF_LIN / (2*ws2.circle.radius*Math.PI);
+                    tViscosity -= f * ws2.circle.radius*Config.fluidLinearDrag / (2*ws2.circle.radius*Math.PI);
                 else {
                     var poly = ws2.polygon;
                     var bord = 0.0;
@@ -473,8 +473,8 @@ class PR(FluidArbiter) extends PR(Arbiter) {
                     Iter(ex,poly.edges,{
                         bord += ex.length;
                         var fact = f*ex.length*vec_dot(ex.gnorm,n);
-                        if(fact>0) fact = fact *= -PR(Config).ANGDRAGCOEF_VACUUM;
-                        acc -= fact*0.5*PR(Config).FLUID_COEF_LIN;
+                        if(fact>0) fact = fact *= -Config.fluidVacuumDrag;
+                        acc -= fact*0.5*Config.fluidLinearDrag;
                     });
                     tViscosity += acc/bord;
                 }
@@ -482,7 +482,7 @@ class PR(FluidArbiter) extends PR(Arbiter) {
             if(ws2.fluidEnabled) {
                 var f = -ws2.fluidProperties.viscosity*overlap/ws1.area;
                 if(ws1.type == Flag(ShapeType,CIRCLE))
-                    tViscosity -= f * ws1.circle.radius*PR(Config).FLUID_COEF_LIN / (2*ws1.circle.radius*Math.PI);
+                    tViscosity -= f * ws1.circle.radius*Config.fluidLinearDrag / (2*ws1.circle.radius*Math.PI);
                 else {
                     var poly = ws1.polygon;
                     var bord = 0.0;
@@ -490,8 +490,8 @@ class PR(FluidArbiter) extends PR(Arbiter) {
                     Iter(ex,poly.edges,{
                         bord += ex.length;
                         var fact = f*ex.length*vec_dot(ex.gnorm,n);
-                        if(fact>0) fact = fact *= -PR(Config).ANGDRAGCOEF_VACUUM;
-                        acc -= fact*0.5*PR(Config).FLUID_COEF_LIN;
+                        if(fact>0) fact = fact *= -Config.fluidVacuumDrag;
+                        acc -= fact*0.5*Config.fluidLinearDrag;
                     });
                     tViscosity += acc/bord;
                 }
@@ -850,7 +850,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
         var cx_itei = innards.begin();
         hc2 = false;
         Iter(c, contacts, {
-            if(c.stamp+PR(Config).PERSIST<stamp) {
+            if(c.stamp+Config.arbiterExpirationDelay<stamp) {
                 cx_ite = contacts.inlined_erase(pre);
                 cx_itei = innards.inlined_erase(prei);
                 Free(PR(Contact), c);
@@ -926,10 +926,10 @@ class PR(ColArbiter) extends PR(Arbiter) {
         var fst = true;
 
         var statType = (!b1.isDynamic() || !b2.isDynamic());
-        var bias = (statType ? (continuous ? PR(Config).STAT_CONT_BIAS_COEF :
-                                             PR(Config).STAT_BIAS_COEF)
-                             : (continuous ? PR(Config).CONT_BIAS_COEF :
-                                             PR(Config).BIAS_COEF));
+        var bias = (statType ? (continuous ? Config.contactContinuousStaticBiasCoef :
+                                             Config.contactStaticBiasCoef)
+                             : (continuous ? Config.contactContinuousBiasCoef :
+                                             Config.contactBiasCoef));
         biasCoef = bias;
         continuous = false;
 
@@ -937,7 +937,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
         var pre = null; var prei = null;
         var cx_itei = innards.begin();
         Iter(c,contacts,{
-            if(c.stamp+PR(Config).PERSIST<stamp) {
+            if(c.stamp+Config.arbiterExpirationDelay<stamp) {
                 cx_ite = contacts.inlined_erase(pre);
                 cx_itei = innards.inlined_erase(prei);
                 Free(PR(Contact),c);
@@ -980,13 +980,14 @@ class PR(ColArbiter) extends PR(Arbiter) {
 
                 c.elasticity = restitution;
                 ci.bounce = vdot*c.elasticity;
-                if (ci.bounce > -PR(Config).BOUNCE_THRESHOLD)
+                if (ci.bounce > -Config.elasticThreshold)
                 {
                     ci.bounce = 0;
                 }
 
                 vdot = vec_cross(n,vr);
-                if(vdot*vdot>PR(Config).STATIC_VELSQ) {
+                var thr = Config.staticFrictionThreshold;
+                if(vdot*vdot>thr*thr) {
                     ci.friction = dyn_fric;
                 }else {
                     ci.friction = stat_fric;
@@ -1050,7 +1051,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
             );
 
             var norm = (kMassa*kMassa + 2*kMassb*kMassb + kMassc*kMassc);
-            if (norm < PR(Config).ILL * mat2_det(kMass)) {
+            if (norm < Config.illConditionedThreshold * mat2_det(kMass)) {
                 mat2_set(K,kMassa,kMassb,kMassc);
                 mat2_invert(kMass);
             }else {

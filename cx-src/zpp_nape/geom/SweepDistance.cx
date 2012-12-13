@@ -58,8 +58,8 @@ class PR(SweepDistance) {
         var angBias = (s1.sweepCoef * ang1) + (s2.sweepCoef * ang2);
 
         if (!userAPI && !toi.kinematic &&
-            vec_lsq(delta) < PR(Config).EQUAL_SQ_VEL &&
-            angBias < PR(Config).ZERO_ANG_BIAS)
+            vec_lsq(delta) < (Config.dynamicSweepLinearThreshold * Config.dynamicSweepLinearThreshold) &&
+            angBias < Config.dynamicSweepAngularThreshold)
         {
             toi.toi = -1;
             toi.failed = true;

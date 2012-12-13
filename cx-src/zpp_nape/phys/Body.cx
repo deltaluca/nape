@@ -127,23 +127,25 @@ class PR(Body) extends PR(Interactor) {
     public function atRest(dt:Float) {
         if(!isDynamic()) return component.sleeping;
         else {
+            var linSq = Config.linearSleepThreshold; linSq *= linSq;
             var cansleep =
-                if(vec_lsq(vel) > PR(Config).SLEEP_LINEAR_SQ) false;
-                else if(vec_dsq(pos,pre_pos) > 0.25*PR(Config).SLEEP_LINEAR_SQ*dt*dt) false
+                if(vec_lsq(vel) > linSq) false;
+                else if(vec_dsq(pos,pre_pos) > 0.25*linSq*dt*dt) false
                 else {
                     //approximated 'radius' (or actual radius if only shape is a circle)
                     vec_new(d); vec_sub(aabb.max,aabb.min,d);
                     var idl = vec_lsq(d);
-                    if(4*angvel*angvel*idl > PR(Config).SLEEP_ANGULAR_SQ) false
+                    var angSq = Config.angularSleepThreshold; angSq *= angSq;
+                    if(4*angvel*angvel*idl > angSq) false
                     else {
                         var dr = rot - pre_rot;
-                        if(dr*dr*idl > PR(Config).SLEEP_ANGULAR_SQ*dt*dt) false
+                        if(dr*dr*idl > angSq*dt*dt) false
                         else true;
                     }
                 }
 
             if(!cansleep) component.waket = space.stamp;
-            return component.waket + PR(Config).SLEEP_DELAY < space.stamp;
+            return component.waket + Config.sleepDelay < space.stamp;
         }
     }
 

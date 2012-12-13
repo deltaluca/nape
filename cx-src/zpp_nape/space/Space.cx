@@ -480,8 +480,8 @@ class PR(Space) {
     public function new(gravity:PR(Vec2),broadphase:Broadphase) {
         toiEvents = new List(PR(ToiEvent))();
 
-        global_lin_drag = PR(Config).GLOBAL_LIN_DRAG;
-        global_ang_drag = PR(Config).GLOBAL_ANG_DRAG;
+        global_lin_drag = 0.015;
+        global_ang_drag = 0.015;
 
         DEBUG(PR(Callback).internal = true;)
         precb = new PreCallback();
@@ -1283,7 +1283,7 @@ class PR(Space) {
                     if (minTOI.failed)
                         b1.angvel = b1.sweep_angvel = 0;
                     elif (minTOI.slipped)
-                        b1.angvel = (b1.sweep_angvel *= PR(Config).TOI_SLIP_SCALE);
+                        b1.angvel = (b1.sweep_angvel *= Config.angularCCDSlipScale);
                     else
                         b1.angvel = b1.sweep_angvel;
                 }
@@ -1293,7 +1293,7 @@ class PR(Space) {
                     if (minTOI.failed)
                         b2.angvel = b2.sweep_angvel = 0;
                     elif (minTOI.slipped)
-                        b2.angvel = (b2.sweep_angvel *= PR(Config).TOI_SLIP_SCALE);
+                        b2.angvel = (b2.sweep_angvel *= Config.angularCCDSlipScale);
                     else
                         b2.angvel = b2.sweep_angvel;
                 }
@@ -2100,8 +2100,8 @@ class PR(Space) {
                 if (!cur.disableCCD) {
                     // If moving very slowly, treat as static
                     // object for continous collisions (freeze it now!)
-                    var linThreshold = PR(Config).MIN_LIN_STATIC_SWEEP * cur.sweepRadius;
-                    var angThreshold = PR(Config).MIN_ANG_STATIC_SWEEP;
+                    var linThreshold = Config.staticCCDLinearThreshold * cur.sweepRadius;
+                    var angThreshold = Config.staticCCDAngularThreshold;
                     if (((vec_lsq(cur.vel) * dt * dt) > (linThreshold * linThreshold) ||
                        (cur.angvel*cur.angvel * dt * dt) > (angThreshold * angThreshold)) || cur.isKinematic())
                     {
@@ -2155,8 +2155,8 @@ class PR(Space) {
                         cur.sweepFrozen = false;
                         if (cur.isDynamic() && cur.bulletEnabled)
                         {
-                            var linThreshold2 = PR(Config).MIN_LIN_BULLET_SWEEP * cur.sweepRadius;
-                            var angThreshold2 = PR(Config).MIN_ANG_BULLET_SWEEP;
+                            var linThreshold2 = Config.bulletCCDLinearThreshold * cur.sweepRadius;
+                            var angThreshold2 = Config.bulletCCDAngularThreshold;
                             if (((vec_lsq(cur.vel) * dt * dt) > (linThreshold2 * linThreshold2) ||
                                (cur.angvel*cur.angvel * dt * dt) > (angThreshold2 * angThreshold2)))
                             {
@@ -2266,7 +2266,7 @@ class PR(Space) {
 
         //no need for sensor/fluid arbiters to persist after deactivation, just remove now.
         if(arb.cleared //always retire
-          || arb.up_stamp + (arb.type==PR(Arbiter).COL ? PR(Config).PERSIST : 0) < stamp //possibly delayed age-death
+          || arb.up_stamp + (arb.type==PR(Arbiter).COL ? Config.arbiterExpirationDelay : 0) < stamp //possibly delayed age-death
         ) {
             if (arb.type == PR(Arbiter).SENSOR) arb.sensorarb.retire();
             elif (arb.type == PR(Arbiter).FLUID) arb.fluidarb.retire();

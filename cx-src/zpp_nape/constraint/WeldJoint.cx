@@ -198,11 +198,11 @@ class PR(WeldJoint) extends PR(Constraint) {
         if(breakUnderError && vec3_lsq(E) > maxError*maxError) return true;
 
         var cont = true;
-        if(vec_lsq(E) < PR(Config).SLOP) {
+        if(vec_lsq(E) < Config.constraintLinearSlop * Config.constraintLinearSlop) {
             cont = false;
             vec_set(E,0,0);
         }
-        if(PR(Math).sqr(Ez) < PR(Config).ANGSLOP) {
+        if(PR(Math).sqr(Ez) < PR(Math).sqr(Config.constraintAngularSlop)) {
             if(!cont) return false;
             else Ez = 0;
         }

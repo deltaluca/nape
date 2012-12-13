@@ -525,7 +525,7 @@ class PR(Polygon) extends PR(Shape) {
             perim += edge.length;
             vec_new(d); vec_sub(v.,u.,d);
 
-            accum += edge.length*PR(Config).ANGDRAGCOEF_FRICTION*material.dynamicFriction*edge.lprojection*edge.lprojection;
+            accum += edge.length*Config.fluidAngularDragFriction*material.dynamicFriction*edge.lprojection*edge.lprojection;
 
             var t = -vec_cross(edge.lnorm,u.)/vec_cross(edge.lnorm,d);
             if(t>0) {
@@ -535,7 +535,7 @@ class PR(Polygon) extends PR(Shape) {
                 var dota = vec_cross(u.,edge.lnorm);
                 var dotb = vec_cross(c,edge.lnorm);
                 var dots = (dotb*dotb*dotb - dota*dota*dota)/(3*(dotb-dota));
-                accum += dots*ta*edge.length*PR(Config).ANGDRAGCOEF_DRAG;
+                accum += dots*ta*edge.length*Config.fluidAngularDrag;
             }
             if(t<1) {
                 var tb = if(t<0) 0 else t;
@@ -544,7 +544,7 @@ class PR(Polygon) extends PR(Shape) {
                 var dota = vec_cross(c,edge.lnorm);
                 var dotb = vec_cross(v.,edge.lnorm);
                 var dots = (dotb*dotb*dotb - dota*dota*dota)/(3*(dotb-dota));
-                accum += dots*PR(Config).ANGDRAGCOEF_VACUUM*(1-tb)*edge.length*PR(Config).ANGDRAGCOEF_DRAG;
+                accum += dots*Config.fluidVacuumDrag*(1-tb)*edge.length*Config.fluidAngularDrag;
             }
         });
 

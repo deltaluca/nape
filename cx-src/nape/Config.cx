@@ -44,11 +44,10 @@ package nape;
     public static var fluidAngularDrag:Float = 100;
 
     !!/**
-    !! * Parameter used in computing shape fluid angular drag coeffecient.
+    !! * Parameter used in computing fluid drags.
     !! * <br/><br/>
-    !! * Defines a weight for scaling the contribution due to fluidAngularDrag to
-    !! * contribute drag due to leaving a vaccuum behind shape as it rotates.
-    !! * Specifically we multiply the contribution by fluidAngularDrag with (1 + fluidAngularDragVaccuum)
+    !! * Defines an added weight for scaling the contribution of forward drag due
+    !! * to leaving a vaccuum behind the shape pulling it back.
     !! * <br/><br/>
     !! * This global value must be set as the very first thing to ensure all Shapes
     !! * use your intended value.
@@ -56,7 +55,7 @@ package nape;
     !! * This parameter has no units.
     !! * @default 0.5
     !! */
-    public static var fluidAngularDragVaccuum:Float = 0.5;
+    public static var fluidVacuumDrag:Float = 0.5;
 
     !!/**
     !! * Parameter used in computing shapes linear drag in fluid.
@@ -213,7 +212,7 @@ package nape;
     !! * persist and improve stability of strenuous simulations.
     !! * <br/><br/>
     !! * This parameter has units of 'steps' I suppose.
-    !! * @default 6
+    !! * @default 6steps
     !! */
     public static var arbiterExpirationDelay:Int = 6;
 
@@ -250,7 +249,7 @@ package nape;
     !! * is also stationary for a sufficiently long time).
     !! * <br/><br/>
     !! * This parameter has units of 'steps' I suppose.
-    !! * @default 60
+    !! * @default 60steps
     !! */
     public static var sleepDelay:Int = 60;
 
@@ -332,9 +331,9 @@ package nape;
     !! * only if the linear error falls below this threshold.
     !! * <br/><br/>
     !! * Assuming a 'sensible' constraint, this has units of px
-    !! * @default 0.01px
+    !! * @default 0.1px
     !! */
-    public static var constraintLinearSlop:Float = 0.01;
+    public static var constraintLinearSlop:Float = 0.1;
 
     !!/**
     !! * Amount of angular slop permitted in constraints.
@@ -343,9 +342,9 @@ package nape;
     !! * only if the angular error falls below this threshold.
     !! * <br/><br/>
     !! * Assuming a 'sensible' constraint, this has units of rad
-    !! * @default 1e-6rad
+    !! * @default 1e-3rad
     !! */
-    public static var constraintAngularSlop:Float = 1e-6;
+    public static var constraintAngularSlop:Float = 1e-3;
 
     !!/**
     !! * Ill-conditioned threshold for 2-contact collision constraints.
