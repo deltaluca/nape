@@ -543,7 +543,7 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
 
                         if(node.isLeaf()) {
                             var shape = node.shape;
-                            if(shape.body != lshape.body) {
+                            if(shape.body != lshape.body && !(shape.body.isStatic() && lshape.body.isStatic())) {
                                 if(ab.intersect(node.aabb)) {
                                     var id:Int; var di:Int;
                                     assert(lshape!=shape,"narrowphase area of dyn-aabb with same shape?");
@@ -591,8 +591,7 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
                 });
 
                 dotree(dtree);
-                if(!lbody.isStatic())
-                    dotree(stree)
+                dotree(stree);
             }
         });
         proc(syncs,snext)
@@ -617,13 +616,15 @@ class PR(DynAABBPhase) extends PR(Broadphase) {
             }
             var s1 = cur.n1.shape; var b1 = s1.body;
             var s2 = cur.n2.shape; var b2 = s2.body;
-            if((b1.component.sleeping || b1.isStatic())
-            && (b2.component.sleeping || b2.isStatic())) {
-                cur.sleeping = true;
-                if(pre==null) pairs = cur.next;
-                else          pre.next = cur.next;
-                cur = cur.next;
-                continue;
+            if (!cur.first) {
+                if((b1.component.sleeping || b1.isStatic())
+                && (b2.component.sleeping || b2.isStatic())) {
+                    cur.sleeping = true;
+                    if(pre==null) pairs = cur.next;
+                    else          pre.next = cur.next;
+                    cur = cur.next;
+                    continue;
+                }
             }
             cur.first = false;
             if(s1.aabb.intersect(s2.aabb)) {

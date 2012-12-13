@@ -1,47 +1,59 @@
 package;
 $(import);
 
-class DummyNapeMain implements IsoFunction {
+class DummyNapeMain {
     static function main() {
         new DummyNapeMain();
     }
 
     public static var debug:Debug;
     function new() {
-        debug = new ShapeDebug(1,1);
+        debug = new BitmapDebug(600, 600, 0xffffff);
+        debug.drawCollisionArbiters = true;
         flash.Lib.current.addChild(debug.display);
 
         var txt = new flash.text.TextField();
         flash.Lib.current.addChild(txt);
+        txt.width = 600;
+        txt.height = 600;
         haxe.Log.trace = function (x:Dynamic, ?y) txt.text += Std.string(x)+"\n";
 
-        var space = new Space(Vec2.get(0, 500));
+        var space = new Space(Vec2.get(0, 0));
+        var space2 = new Space(Vec2.get(0, 0));
 
-        var floor:Body = new Body(BodyType.STATIC,Vec2.get(0,300));
-        floor.shapes.add(new Polygon(Polygon.rect(0,0,800,100,true)));
-        floor.space = space;
+        var player = new Body();
+        player.position.setxy(200, 300);
+        player.shapes.add(new Polygon(Polygon.box(40, 1)));
+        player.space = space;
+        var player2 = new Body();
+        player2.position.setxy(400, 300);
+        player2.shapes.add(new Polygon(Polygon.box(40, 1)));
+        player2.space = space2;
 
-        var c = new InteractionGroup(true);
-        for (i in 0...100) {
-            var circle:Body = new Body(BodyType.DYNAMIC,Vec2.get(50,200));
-//            circle.shapes.add(new Circle(20,null,Material.rubber()));
-            circle.shapes.add(new Polygon(Polygon.box(40, 40), Material.rubber()));
-            circle.rotation = 1;
-            circle.space = space;
-            circle.velocity.setxy(500,200+i); // THIS LINE
-            circle.group = c;
-        }
+        flash.Lib.current.stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, function (_) {
+            var c = flash.Lib.current;
+            var b = new Body(BodyType.STATIC);
+            b.shapes.add(new Polygon(Polygon.box(20, 20)));
+            b.position.setxy(c.mouseX, c.mouseY);
+            b.space = space;
+            var b = new Body(BodyType.STATIC);
+            b.shapes.add(new Polygon(Polygon.box(20, 20)));
+            b.position.setxy(c.mouseX+200, c.mouseY);
+            b.space = space2;
+        });
 
         (new haxe.Timer(6)).run = function () {
             debug.clear();
-            space.step(1/120);
-            debug.draw(space);
-        };
-    }
 
-    public function iso(x:Float, y:Float) {
-        x -= 150;
-        y -= 150;
-        return Math.sin((x*x+y*y - 150*150)*0.0005);
+            space2.step(1/180);
+            space2.step(1/180);
+            space2.step(1/180);
+            debug.draw(space2);
+            space.step(1/180);
+            space.step(1/180);
+            space.step(1/180);
+            debug.draw(space);
+            debug.flush();
+        };
     }
 }
