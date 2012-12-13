@@ -61,7 +61,7 @@ class PR(Ray) {
             inv(dir) = false;
 
             DEBUG(
-                if(vec_lsq(dir) < PR(Const).EPSILON) {
+                if(vec_lsq(dir) < Config.epsilon) {
                     throw "Error: Ray::direction is degenerate";
                 }
             )
@@ -259,12 +259,12 @@ class PR(Ray) {
                 vec_new(_s); vec_sub(u.,origin,_s);
 
                 var den = vec_cross(dir,_v);
-                if(den*den > PR(Const).EPSILON) {
+                if(den*den > Config.epsilon) {
                     den = 1/den;
                     var sxx = vec_cross(_s,_v)*den;
                     if(sxx>0 && sxx<min && sxx<=maxdist) {
                         var txx = vec_cross(_s,dir)*den;
-                        if(txx>-PR(Const).EPSILON && txx<1+PR(Const).EPSILON) {
+                        if(txx>-Config.epsilon && txx<1+Config.epsilon) {
                             min = sxx;
                             edge = ei.elem();
                         }
@@ -299,12 +299,12 @@ class PR(Ray) {
                 vec_new(_s); vec_sub(u.,origin,_s);
 
                 var den = vec_cross(dir,_v);
-                if(den*den > PR(Const).EPSILON) {
+                if(den*den > Config.epsilon) {
                     den = 1/den;
                     var sxx = vec_cross(_s,_v)*den;
                     if(sxx>0 && sxx<=maxdist && (sxx<min || sxx>max)) {
                         var txx = vec_cross(_s,dir)*den;
-                        if(txx>-PR(Const).EPSILON && txx<1+PR(Const).EPSILON) {
+                        if(txx>-Config.epsilon && txx<1+Config.epsilon) {
                             if(sxx<min) {
                                 min = sxx;
                                 edge = ei.elem();

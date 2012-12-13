@@ -171,7 +171,7 @@ class PR(Polygon) extends PR(Shape) {
             else {
                 validate_lverts();
                 validate_area_inertia();
-                if(area<PR(Const).EPSILON)
+                if(area<Config.epsilon)
                     return validation = ValidationResult.DEGENERATE;
                 else {
                     var neg = false; var pos = false;
@@ -179,8 +179,8 @@ class PR(Polygon) extends PR(Shape) {
                         vec_new(a); vec_sub(w.,v.,a);
                         vec_new(b); vec_sub(v.,u.,b);
                         var dot = vec_cross(a,b);
-                        if     (dot> PR(Const).EPSILON) pos = true;
-                        else if(dot<-PR(Const).EPSILON) neg = true;
+                        if     (dot> Config.epsilon) pos = true;
+                        else if(dot<-Config.epsilon) neg = true;
                         if(pos&&neg)
                             cx_break;
                     });
@@ -198,12 +198,12 @@ class PR(Polygon) extends PR(Shape) {
                                 vec_new(q); vec_sub(b.,a.,q);
 
                                 var den = vec_cross(q,v);
-                                if(den*den > PR(Const).EPSILON) {
+                                if(den*den > Config.epsilon) {
                                     den = 1/den;
                                     var t = vec_cross(s,q)*den;
-                                    if(t>PR(Const).EPSILON && t<1-PR(Const).EPSILON) {
+                                    if(t>Config.epsilon && t<1-Config.epsilon) {
                                         var s = vec_cross(s,v)*den;
-                                        if(s>PR(Const).EPSILON && s<1-PR(Const).EPSILON) {
+                                        if(s>Config.epsilon && s<1-Config.epsilon) {
                                             cont = false;
                                             cx_break;
                                         }
@@ -298,7 +298,7 @@ class PR(Polygon) extends PR(Shape) {
             var u = cur.elem();
             var v = nxt.elem();
 
-            if (vec_dsq(u., v.) < PR(Const).EPSILONSQ) {
+            if (vec_dsq(u., v.) < Config.epsilon*Config.epsilon) {
                 // remove vertex u/cur
                 cleanup_lvert(cur.elem());
                 cur = lverts.erase(pre);
@@ -325,7 +325,7 @@ class PR(Polygon) extends PR(Shape) {
                 vec_new(a); vec_sub(v., u., a);
                 vec_new(b); vec_sub(w., v., b);
                 var crs = vec_cross(a, b);
-                if (crs * crs >= PR(Const).EPSILONSQ) {
+                if (crs * crs >= Config.epsilon * Config.epsilon) {
                     // keep vertex v/cur
                     pre = pre.next;
                 }

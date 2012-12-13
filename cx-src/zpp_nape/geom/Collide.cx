@@ -109,11 +109,11 @@ class PR(Collide) {
         vec_new(p); vec_sub(p2,p1,p);
         var distSqr = vec_lsq(p);
         if(distSqr > minDist*minDist) null;
-        else if(distSqr<PR(Const).EPSILON*PR(Const).EPSILON)
+        else if(distSqr<Config.epsilon*Config.epsilon)
             arb.injectContact(p1`x,p1`y,1,0,-minDist,hash);
         else {
             var invDist = PR(Math).invsqrt(distSqr);
-            var dist = if(invDist<PR(Const).EPSILON) PR(Const).FMAX else 1.0 / invDist;
+            var dist = if(invDist<Config.epsilon) PR(Const).FMAX else 1.0 / invDist;
             var df = 0.5 + (r1 - 0.5*minDist) * invDist;
 
             if(rev) arb.injectContact(p1`x + px*df, p1`y + py*df, -px*invDist, -py*invDist, dist-minDist, hash);
@@ -142,7 +142,7 @@ class PR(Collide) {
 
         if(ds>cr*cr)
             false;
-        else if(ds<PR(Const).EPSILON) {
+        else if(ds<Config.epsilon*Config.epsilon) {
             if(c1.radius<c2.radius)
                 arb.inject(c1.area,c1.worldCOMx,c1.worldCOMy);
             else
@@ -238,10 +238,10 @@ class PR(Collide) {
                 var den = 1/(d1-d0);
                 //clip c0
                 var t = (-ax.tp1 - d0)*den;
-                if(t>PR(Const).EPSILON) vec_addeq(c0,dv,t);
+                if(t>Config.epsilon) vec_addeq(c0,dv,t);
                 //clip c1
                 var t = (-ax.tp0 - d1)*den;
-                if(t<-PR(Const).EPSILON) vec_addeq(c1,dv,t);
+                if(t<-Config.epsilon) vec_addeq(c1,dv,t);
 
                 vec_new(n); vec_mul(ax.gnorm,scale,n);
                 //position iterations
@@ -333,7 +333,7 @@ class PR(Collide) {
                 Iter(v,pb.gverts,{
                     var k = vec_dot(ax.gnorm,v.);
                     if(k<min) min = k;
-                    if(k>=ax.gprojection+PR(Const).EPSILON) {
+                    if(k>=ax.gprojection+Config.epsilon) {
                         out`j[ind] = true;
                         total = false;
                     }
@@ -393,12 +393,12 @@ class PR(Collide) {
                     vec_new(_q); vec_sub(b,a,_q);
 
                     var den = vec_cross(_q,_v);
-                    if(den*den > PR(Const).EPSILON) {
+                    if(den*den > Config.epsilon*Config.epsilon) {
                         den = 1/den;
                         var txx = vec_cross(_s,_q)*den;
-                        if(txx>PR(Const).EPSILON && txx<1-PR(Const).EPSILON) {
+                        if(txx>Config.epsilon && txx<1-Config.epsilon) {
                             var sxx = vec_cross(_s,_v)*den;
-                            if(sxx>PR(Const).EPSILON && sxx<1-PR(Const).EPSILON) {
+                            if(sxx>Config.epsilon && sxx<1-Config.epsilon) {
                                 tr = txx;
                                 true;
                             }else false;
@@ -442,7 +442,7 @@ class PR(Collide) {
                         }
                         if(!out`N[ind`N]) {
                             var ex = ite`N.elem();
-                            if(fst_vert!=null && vec_dsq(ex.,fst_vert.)<PR(Const).EPSILON) break;
+                            if(fst_vert!=null && vec_dsq(ex.,fst_vert.)<Config.epsilon) break;
                             flowpoly.add(ex);
                             if(fst_vert==null) fst_vert = flowpoly.front();
                             cnt = 1;
@@ -478,7 +478,7 @@ class PR(Collide) {
                             var itm2 = itmo.next; if(itm2==null) itm2 = pM.gverts.begin();
                             var v = itm2.elem();
                             vec_new(c); vec_interp(u.,v.,max, c);
-                            if(fst_vert!=null && vec_dsq(c,fst_vert.)<PR(Const).EPSILON) break;
+                            if(fst_vert!=null && vec_dsq(c,fst_vert.)<Config.epsilon) break;
                             flowpoly.add(PR(Vec2).get(cx,cy));
                             if(fst_vert==null) fst_vert = flowpoly.front();
                             ite`M = itmo;
@@ -650,7 +650,7 @@ class PR(Collide) {
         Iter(a,poly.edges,{
             var dist = vec_dot(a.gnorm,circle.worldCOM);
             if(dist>a.gprojection+circle.radius) { cont = false; break; }
-            else if(dist+circle.radius>a.gprojection+PR(Const).EPSILON) { total = false; inte[ind] = true; }
+            else if(dist+circle.radius>a.gprojection+Config.epsilon) { total = false; inte[ind] = true; }
             dist -= a.gprojection + circle.radius;
             if(dist>max) {
                 max = dist;
@@ -725,7 +725,7 @@ class PR(Collide) {
                             var D = Math.sqrt(B*B-4*A*C);
                             A = 1/(2*A);
                             var t = (-B-D)*A;
-                            if(t<PR(Const).EPSILON) (-B+D)*A;
+                            if(t<Config.epsilon) (-B+D)*A;
                             else t;
                         });
 
@@ -739,7 +739,7 @@ class PR(Collide) {
                             var B = 2*vec_dot(q,v);
                             var C = vec_lsq(q) - circle.radius*circle.radius;
                             var D = B*B-4*A*C;
-                            if(D*D<PR(Const).EPSILON) {
+                            if(D*D<Config.epsilon) {
                                 if(D<0)
                                     t0_ref = 10.0;
                                 else
@@ -761,14 +761,14 @@ class PR(Collide) {
                                 vind++; if(vind>=poly.edgeCnt) vind = 0;
 
                                 if(ins[vind]) {
-                                    if(vec_dsq(fst_vert.,vi.elem().)<PR(Const).EPSILON) break;
+                                    if(vec_dsq(fst_vert.,vi.elem().)<Config.epsilon) break;
                                     flowpoly.add(vi.elem());
                                 }else {
                                     var u = flowpoly.front();
                                     var v = vi.elem();
                                     var tval = intersect1(u.,v.);
                                     vec_new(c); vec_interp(u.,v.,tval,c);
-                                    if(vec_dsq(fst_vert.,c)<PR(Const).EPSILON) break;
+                                    if(vec_dsq(fst_vert.,c)<Config.epsilon) break;
                                     flowpoly.add(PR(Vec2).get(cx,cy));
                                     state = 2;
                                 }
@@ -784,7 +784,7 @@ class PR(Collide) {
                                         if(ins[vind2]) {
                                             var tval = intersect1(u.,v.);
                                             vec_new(c); vec_interp(u.,v.,tval,c);
-                                            if(vec_dsq(fst_vert.,c)<PR(Const).EPSILON) {
+                                            if(vec_dsq(fst_vert.,c)<Config.epsilon) {
                                                 state = 0;
                                                 cx_break;
                                             }
@@ -797,9 +797,9 @@ class PR(Collide) {
                                         }else {
                                             var t0 = 0.0; var t1 = 0.0;
                                             var two = intersect2(u.,v.,t0,t1);
-                                            if(t0<1-PR(Const).EPSILON && t1 > PR(Const).EPSILON) {
+                                            if(t0<1-Config.epsilon && t1 > Config.epsilon) {
                                                 vec_new(c); vec_interp(u.,v.,t0,c);
-                                                if(fst_vert!=null && vec_dsq(fst_vert.,c)<PR(Const).EPSILON) {
+                                                if(fst_vert!=null && vec_dsq(fst_vert.,c)<Config.epsilon) {
                                                     state = 0;
                                                     cx_break;
                                                 }

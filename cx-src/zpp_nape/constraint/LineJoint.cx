@@ -147,7 +147,7 @@ class PR(LineJoint) extends PR(Constraint) {
         if(b1==b2) throw "Error: DistanceJoint cannot be simulated with body1 == body2";
         if(b1.space != space || b2.space != space) throw "Error: Constraints must have each body within the same space to which the constraint has been assigned";
         if(jointMin>jointMax) throw "Error: DistanceJoint must have jointMin <= jointMax";
-        if(vec_lsq(nlocal)<PR(Const).EPSILON) throw "Error: DistanceJoint direction must be non-degenerate";
+        if(vec_lsq(nlocal)<Config.epsilon) throw "Error: DistanceJoint direction must be non-degenerate";
         if(!b1.isDynamic() && !b2.isDynamic()) throw "Error: Constraints cannot have both bodies non-dynamic";
     }
 
@@ -255,7 +255,7 @@ class PR(LineJoint) extends PR(Constraint) {
         //however for VERY large detachment it is necessary to help.
         if(vec_lsq(E) > 6) {
             var k = b1.smass + b2.smass;
-            if(k>PR(Const).EPSILON) {
+            if(k>Config.epsilon) {
                 k = 0.8/k; //don't completely solve error
                 vec_new(J, k*(n`y*E`x-scale*n`x*E`y), k*(n`x*E`x*scale-n`y*E`x));
 

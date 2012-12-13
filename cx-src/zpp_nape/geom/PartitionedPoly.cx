@@ -170,7 +170,7 @@ class PR(PartitionedPoly) {
     public var vertices:Vertex = null; //circular linked list.
 
     function eq(a:Vertex, b:Vertex) {
-        return vec_dsq(a., b.) < PR(Const).EPSILONSQ;
+        return vec_dsq(a., b.) < (Config.epsilon * Config.epsilon);
     }
 
     //we remove degenerate vertices, and collinear vertices
@@ -240,7 +240,7 @@ class PR(PartitionedPoly) {
                 vec_new(u); vec_sub(p., pre., u);
                 vec_new(v); vec_sub(p.next., p. , v);
                 var crs = vec_cross(u, v);
-                if (crs * crs >= PR(Const).EPSILONSQ) {
+                if (crs * crs >= (Config.epsilon * Config.epsilon)) {
                     //keep vertex
                     p = p.next;
                 }else
@@ -361,7 +361,7 @@ class PR(PartitionedPoly) {
         // careful not to return a polygon that Polygon would consider
         // invalid due to area being so small.
         var area = geom(signed_area(poly));
-        if (area*area >= PR(Const).EPSILONSQ) {
+        if (area*area >= (Config.epsilon * Config.epsilon)) {
             // Ensure that sanitation will not degenerate the polygon too. sigh.
             if (!geom(sanitise(poly))) {
                 ret.add(poly);

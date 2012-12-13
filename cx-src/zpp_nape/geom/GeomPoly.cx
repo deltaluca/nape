@@ -147,7 +147,7 @@ $(mixin global geom(block)
         var skip = true;
         while (skip || p != vertices) {
             skip = false;
-            if (vec_dsq(p., p.next.) < PR(Const).EPSILONSQ) {
+            if (vec_dsq(p., p.next.) < (Config.epsilon * Config.epsilon)) {
                 //remove vertex 'p'
                 if (p == vertices) {
                     vertices = p.next;
@@ -177,7 +177,7 @@ $(mixin global geom(block)
                     vec_new(u); vec_sub(p., pre., u);
                     vec_new(v); vec_sub(p.next., p. , v);
                     var crs = vec_cross(u, v);
-                    if (crs * crs >= PR(Const).EPSILONSQ) {
+                    if (crs * crs >= (Config.epsilon * Config.epsilon)) {
                         //keep vertex
                         p = p.next;
                     }else
@@ -302,7 +302,7 @@ $(mixin global geom(block)
         }
         else {
             var a = signed_area(poly);
-            /*return*/ (a * a) < (PR(Const).EPSILONSQ);
+            /*return*/ (a * a) < (Config.epsilon * Config.epsilon);
         }
     }));
 

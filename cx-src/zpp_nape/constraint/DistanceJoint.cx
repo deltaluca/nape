@@ -15,7 +15,7 @@ class PR(DistanceJoint) extends PR(Constraint) {
         n`x = (b2.posx+r2`x)-(b1.posx+r1`x);
         n`y = (b2.posy+r2`y)-(b1.posy+r1`y);
         var C = vec_lsq(n);
-        if(C<PR(Const).EPSILON) {
+        if(C<Config.epsilon) {
             vec_set(n,0,0);
             C = 0;
             slack = true;
@@ -241,7 +241,7 @@ class PR(DistanceJoint) extends PR(Constraint) {
             //handle large detachment
             if(E*E > 6) {
                 var k = b1.smass + b2.smass;
-                if(k>PR(Const).EPSILON) {
+                if(k>Config.epsilon) {
                     k = 0.75/k; //don't completely solve error
                     j = -E*k;
                     if(equal || j<0) {

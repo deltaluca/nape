@@ -454,7 +454,7 @@ class PR(FluidArbiter) extends PR(Arbiter) {
             (b2.vely+b2.kinvely+r2x*(b2.angvel+b2.kinangvel))-(b1.vely+b1.kinvely+r1x*(b1.angvel+b1.kinangvel))
             );
 
-            if(vec_lsq(vrn) < PR(Const).EPSILON) {
+            if(vec_lsq(vrn) < (Config.epsilon * Config.epsilon)) {
                 //use previous vr, best guess as to direction velocity will take the objects
                 //since i don't want to use a 2d constraint here.
             }else {
@@ -969,11 +969,11 @@ class PR(ColArbiter) extends PR(Arbiter) {
 
                 var kt = mass_sum + b2.sinertia * PR(Math).sqr(vec_dot(ci.r2,n));
                 kt += b1.sinertia * PR(Math).sqr(vec_dot(ci.r1,n));
-                ci.tMass = if(kt<PR(Const).EPSILON) 0 else 1.0/kt;
+                ci.tMass = if(kt<Config.epsilon*Config.epsilon) 0 else 1.0/kt;
 
                 var nt = mass_sum + b2.sinertia * PR(Math).sqr(vec_cross(ci.r2,n));
                 nt += b1.sinertia * PR(Math).sqr(vec_cross(ci.r1,n));
-                ci.nMass = if(nt<PR(Const).EPSILON) 0 else 1.0/nt;
+                ci.nMass = if(nt<Config.epsilon*Config.epsilon) 0 else 1.0/nt;
 
                 vec_new(vr); calc_relvel(vr,ci);
                 var vdot = vec_dot(n, vr);
@@ -1214,9 +1214,9 @@ class PR(ColArbiter) extends PR(Arbiter) {
             }
 
             if(err < 0) {
-                if(dl<PR(Const).EPSILON) {
-                    if(b1.smass!=0.0) b1.posx += PR(Const).EPSILON*10;
-                    else              b2.posx += PR(Const).EPSILON*10;
+                if(dl<Config.epsilon) {
+                    if(b1.smass!=0.0) b1.posx += Config.epsilon*10;
+                    else              b2.posx += Config.epsilon*10;
                 }else {
                     vec_diveq(d,dl);
 
