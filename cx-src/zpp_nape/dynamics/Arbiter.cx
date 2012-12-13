@@ -1205,7 +1205,7 @@ class PR(ColArbiter) extends PR(Arbiter) {
             vec_new(d); vec_sub(r2,r1,d);
 
             var dl = vec_length(d);
-            var r = radius - PR(Config).OVERLAP;
+            var r = radius - Config.collisionSlop;
             var err = (dl - r);
             if (vec_dot(d, n) < 0)
             {
@@ -1271,12 +1271,12 @@ class PR(ColArbiter) extends PR(Arbiter) {
             }
 
             var err1 = vec_dot(clip1,gnorm) - gproj - radius;
-            err1 += PR(Config).OVERLAP;
+            err1 += Config.collisionSlop;
 
             var err2 = 0.0;
             if(hpc2) {
                 err2 = vec_dot(clip2,gnorm) - gproj - radius;
-                err2 += PR(Config).OVERLAP;
+                err2 += Config.collisionSlop;
             }
 
             if(err1<0 || err2<0) {
