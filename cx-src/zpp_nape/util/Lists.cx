@@ -8,7 +8,7 @@ $(expand global GenList(T)
 class List(T) {
     public var head:Node(T) = null;
     public function new() {}
-    flibmdel public inline function begin():Node(T) return head
+    flibmdel public inline function begin():Node(T) { return head; }
 
     ListMixin(
         $(mixin _setbeg(i) head=i)
@@ -30,7 +30,7 @@ $(expand global GenAllocList(T)
 class AllocList(T) {
     public var head:Node(T) = null;
     public function new() {}
-    flibmdel public inline function begin():Node(T) return head
+    flibmdel public inline function begin():Node(T) { return head; }
 
     ListMixin(
         $(mixin _setbeg(i) head=i)
@@ -59,7 +59,7 @@ class Node(T) {
     }
     public var elt:T = null;
     public function new() {}
-    flibmdel public inline function elem():T return elt
+    flibmdel public inline function elem():T { return elt; }
 });
 
 //--------------------------------------------------------------------------------------------------
@@ -359,8 +359,8 @@ $(expand global PRWrapList(T,ListT,IteT)
 
 $(mixin global MixListMixin(T)
     public var next:T = null;
-    flibmdel public inline function elem ():T return this
-    flibmdel public inline function begin():T return next
+    flibmdel public inline function elem ():T { return this; }
+    flibmdel public inline function begin():T { return next; }
 
     public var _inuse:Bool = false;
 
@@ -394,7 +394,7 @@ $(mixin global ListMixin(defs,Cons,T,I)
         pushmod = true;
     }
 
-    public function add(o:T):T return inlined_add(o)
+    public function add(o:T):T { return inlined_add(o); }
     flibmdel public inline function inlined_add(o:T):T {
         assert(o!=null && !has(o),"[ListMixin("+$str(T)+"] add -> o="+o);
 
@@ -412,7 +412,7 @@ $(mixin global ListMixin(defs,Cons,T,I)
         Iterate(x,add);
     }
 
-    public function insert(cur:I,o:T):I return inlined_insert(cur,o)
+    public function insert(cur:I,o:T):I { return inlined_insert(cur,o); }
     flibmdel public inline function inlined_insert(cur:I,o:T):I {
         assert(o != null && !has(o),"[ListMixin("+$str(T)+"] cur -> "+cur+" -> "+o);
 
@@ -432,7 +432,7 @@ $(mixin global ListMixin(defs,Cons,T,I)
 
     //----------------------------------------------------------------------------------------------
 
-    public function pop():Void inlined_pop()
+    public function pop():Void { inlined_pop(); }
     flibmdel public inline function inlined_pop():Void {
         assert(!empty(), "[ListMixin("+$str(T)+"] pop");
 
@@ -446,7 +446,7 @@ $(mixin global ListMixin(defs,Cons,T,I)
         length--;
     }
 
-    public function pop_unsafe():T return inlined_pop_unsafe()
+    public function pop_unsafe():T { return inlined_pop_unsafe(); }
     flibmdel public inline function inlined_pop_unsafe():T {
         assert(!empty(), "[ListMixin("+$str(T)+"] pop_unsafe");
 
@@ -501,7 +501,7 @@ $(mixin global ListMixin(defs,Cons,T,I)
         return ret;
     }
 
-    public function erase(pre:I):I return inlined_erase(pre)
+    public function erase(pre:I):I { return inlined_erase(pre); }
     flibmdel public inline function inlined_erase(pre:I):I {
         assert(!empty(),"[ListMixin("+$str(T)+"] erase -> "+pre);
         var old:I;
@@ -530,7 +530,7 @@ $(mixin global ListMixin(defs,Cons,T,I)
         return pre.next;
     }
 
-    public function clear():Void inlined_clear()
+    public function clear():Void { inlined_clear(); }
     flibmdel public inline function inlined_clear():Void {
         if(_clear) {
             while(!empty()) inlined_pop();
@@ -556,11 +556,11 @@ $(mixin global ListMixin(defs,Cons,T,I)
 
     //----------------------------------------------------------------------------------------------
 
-    flibmdel public inline function empty():Bool return begin()==null
+    flibmdel public inline function empty():Bool { return begin()==null; }
 
-    flibmdel public inline function size():Int return length
+    flibmdel public inline function size():Int { return length; }
 
-    public function has(obj:T):Bool return inlined_has(obj)
+    public function has(obj:T):Bool { return inlined_has(obj); }
     flibmdel public inline function inlined_has(obj:T):Bool {
         assert(obj!=null,"[ListMixin("+$str(T)+"] has -> "+obj);
         var ret;
@@ -570,7 +570,7 @@ $(mixin global ListMixin(defs,Cons,T,I)
 
     //----------------------------------------------------------------------------------------------
 
-    flibmdel public inline function front():T return begin().elem()
+    flibmdel public inline function front():T { return begin().elem(); }
 
     public function back():T {
         var ret = begin();

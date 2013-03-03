@@ -3,24 +3,24 @@ $(import);
 
 $(define global class Queue(T) {
     public var nodes:QueueNode(T) = null;
-    
+
     public function new() {
         nodes = new QueueNode(T)(null);
     }
-    
-    property(length,Int,nodes.length)
-    
-    public function push    (obj:T) nodes.push    (new QueueNode(T)(obj))
-    public function push_rev(obj:T) nodes.push_rev(new QueueNode(T)(obj))
 
-    public function pop    () return nodes.pop    ().elt    
-    public function pop_rev() return nodes.pop_rev().elt    
-    
-    public function empty() return nodes.empty()
-    
-    public function     at(i) return nodes.    at(i).elt
-    public function rev_at(i) return nodes.rev_at(i).elt
-    
+    property(length,Int,nodes.length)
+
+    public function push    (obj:T) { nodes.push    (new QueueNode(T)(obj)); }
+    public function push_rev(obj:T) { nodes.push_rev(new QueueNode(T)(obj)); }
+
+    public function pop    () { return nodes.pop    ().elt; }
+    public function pop_rev() { return nodes.pop_rev().elt; }
+
+    public function empty() { return nodes.empty(); }
+
+    public function     at(i) { return nodes.    at(i).elt; }
+    public function rev_at(i) { return nodes.rev_at(i).elt; }
+
     @:$keep public function toString() {
         var ret = "top -> ";
         for(i in 0...length) {
@@ -36,7 +36,7 @@ $(mixin QueueNodeRec(T) QueueNode(T));
 $(define global class QueueNode(T) {
     QueueMix(QueueNodeRec(T))
     public var elt:T = null;
-    
+
     public function new(elt:T) this.elt = elt
 });
 
@@ -62,7 +62,7 @@ $(mixin global QueueMixNoNext(T)
         prev = obj;
         length++;
     }
-    
+
     //push to front of queue
     public function push_rev(obj:T) {
         assert(obj!=null,"push_rev null?");
@@ -84,7 +84,7 @@ $(mixin global QueueMixNoNext(T)
         length--;
         return ret;
     }
-    
+
     //pop from back of queue
     public function pop_rev():T {
         assert(prev!=null,"empty queue");
@@ -96,9 +96,9 @@ $(mixin global QueueMixNoNext(T)
         return ret;
     }
 
-    public function empty() return next==null
+    public function empty() { return next==null; }
 
-    public function clear() while(!empty()) pop()
+    public function clear() { while(!empty()) pop(); }
 
     public function splice(o:T) {
         var ret = o.next;
@@ -116,14 +116,14 @@ $(mixin global QueueMixNoNext(T)
         length--;
         return ret;
     }
-    
+
     public function rotateL() {
         push(pop());
     }
     public function rotateR() {
         push_rev(pop_rev());
     }
-    
+
     public function cycleNext(o:T) {
         assert(o!=null,"cyclNext null?");
         if(o.next==null) return next;
@@ -134,7 +134,7 @@ $(mixin global QueueMixNoNext(T)
         if(o.prev==null) return prev;
         else return o.prev;
     }
-    
+
     public function at(i:Int) {
         assert(i>=0 && i<length, "at index bounds");
         var ret = next;

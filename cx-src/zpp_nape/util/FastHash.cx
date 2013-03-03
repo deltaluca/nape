@@ -61,9 +61,9 @@ $(define global keep class FastHash2(T) {
         #end
     }
 
-    flibmdel public inline function empty() return cnt==0
+    flibmdel public inline function empty() { return cnt==0; }
 
-    public function clear() ClearHashWith(this,$(mixin cb(x)))
+    public function clear() { ClearHashWith(this,$(mixin cb(x))); }
 
     flibmdel public inline function get(id:Int,di:Int):T {
         var n = table[hash(id,di)];
@@ -80,7 +80,7 @@ $(define global keep class FastHash2(T) {
         if (id > di) {
             var t = id;
             id = di;
-            di = t;                
+            di = t;
         }
         return get(id,di);
     }
@@ -170,7 +170,7 @@ $(define global keep class FastHash2(T) {
         cnt--;
     }
 
-    flibmdel public inline function hash(id:Int,di:Int) return ((id*106039)+di)&0xfffff
+    flibmdel public inline function hash(id:Int,di:Int) { return ((id*106039)+di)&0xfffff; }
 //    public function hash(id:Int,di:Int) return ((~(id*106039))^di)&0xffff
 //    public function hash(a,b) return 0
 });
@@ -187,7 +187,7 @@ $(define global class FastHash(T) {
         #end
     }
 
-    public function clear() ClearHashWith(this,$(mixin cb(x)))
+    public function clear() { ClearHashWith(this,$(mixin cb(x))); }
 
     public function get(id:Int):T {
         var n = table[hash(id)];
@@ -246,5 +246,5 @@ $(define global class FastHash(T) {
         arb.hnext = null;
     }
 
-    flibmdel public inline function hash(key:Int) return (key*106039) & 0xffff
+    flibmdel public inline function hash(key:Int) { return (key*106039) & 0xffff; }
 });
