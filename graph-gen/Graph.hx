@@ -222,7 +222,7 @@ class RGBA {
 class Graph {
     static var logv:Float;
 
-    static function _vof(x:Float) return 0.8*(Math.log(x)*logv+Math.pow(x,0.7)/20)
+    static function _vof(x:Float) return 0.8*(Math.log(x)*logv+Math.pow(x,0.7)/20);
     static function _ivof(xin:Float) {
         var x = 0.0;
         var y = 10000.0;

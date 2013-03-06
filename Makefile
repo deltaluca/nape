@@ -9,7 +9,7 @@ local: $(FILES)
 	caxe -o src cx-src -tc 2 --times \
 		-x DummyCppMain.cx -x DummyJSMain # cpp only
 	haxe -cp src -main DummyNapeMain -swf bin/nape.swf -swf-version $(SWFV) --times \
-		-swf-header 600:600:60:333333 -D haxe3 \
+		-swf-header 600:600:60:333333  \
 		-D NAPE_DEBUG --no-inline -debug -D NAPE_LOG
 #		-D NAPE_RELEASE_BUILD
 	debugfp bin/nape.swf
@@ -22,7 +22,7 @@ js: $(FILES)
 	caxe -o src cx-src -tc 2 --times \
 		-x DummyMemory.cx -x DummyNapeMain.cx -x DummyCppMain.cx
 	haxe -cp src -main DummyJSMain -js bin/nape.js --times \
-        -D haxe3 --js-modern --dce full
+         --js-modern -dce full
 
 
 cpp: $(FILES)
@@ -53,7 +53,7 @@ clean:
 docs: pre_compile
 	haxe -cp src -xml nape.xml --macro "include('nape')" -D NAPE_RELEASE_BUILD -swf nape.xml.swf -swf-version 10.1 \
          -cp ../nape-hacks/src --macro "include('nape.hacks')" \
-         -cp ../nape-symbolic/src --macro "include('nape.symbolic')" -lib Parsex -D haxe3
+         -cp ../nape-symbolic/src --macro "include('nape.symbolic')" -lib Parsex
 	./chxdoc/chxdoc -o ../www.napephys.com/docs --templateDir=chxdoc/src/templates/default \
 		-f zpp_nape -f haxe -f flash --ignoreRoot=true -f com \
 		--title="Nape Physics Library" nape.xml
@@ -75,7 +75,7 @@ pre_compile:
 	mkdir src
 	caxe -o src cx-src -tc 2 --times $(DUMMYS)
 
-SWC_FLAGS = -cp src --dce full --macro "include('nape')" --macro "include('zpp_nape')" -D flib -D nape_swc
+SWC_FLAGS = -cp src -dce full --macro "include('nape')" --macro "include('zpp_nape')" -D flib -D nape_swc
 
 DEBUG_FLAGS = $(SWC_FLAGS) -D NAPE_NO_INLINE -D NAPE_DEBUG
 DEV_FLAGS  = $(SWC_FLAGS)
