@@ -11,15 +11,27 @@ $(import);
 !! * a group value of 0x120 corresponds to the 'real' groups 5 and 8 as <code>0x120 = (1<<5) | (1<<8)</code>
 !! * <br/><br/>
 !! * Nape provides group/mask for each interaction type. The actual precedence of interactions
-!! * is further defined simply as: Fluid > Collision > Sensor.
+!! * is further defined simply as: Sensor > Fluid > Collision.
 !! * <br/>
-!! * Fluid interactions can never occur between two kinematic/static shapes, so in this case
-!! * Collisions would instead have highest precedence.
+!! * Two static bodies can never interact, and with the exception of sensor interaction, at least one
+!! * of the two bodies must be dynamic.
 !! * <br/>
-!! * Collision interactions can never occur between two non-dynamic shapes, so in this case
-!! * Sensor interactino would have highest precedence.
-!! * <br/>
-!! * Sensing will never occur between two static shapes, so in this case no interaction will ever occur.
+!! * Sensor interactions have the highest precedence, followed by fluid and then collisions.
+!! * Sensor interaction is permitted only if one of the shapes is sensorEnabled, whilst fluid
+!! * is permitted only if one of the shapes is fluidEnabled.
+!! * <pre>
+!! * if ((shapeA.sensorEnabled || shapeB.sensorEnabled) && shapeA.filter.shouldSense(shapeB.filter)) {
+!! *     SENSOR INTERACTION!!
+!! * }
+!! * else if (bodyA.isDynamic() || bodyB.isDynamic()) {
+!! *     if ((shapeA.fluidEnabled || shapeB.fluidEnabled) && shapeA.filter.shouldFlow(shapeB.filter)) {
+!! *         FLUID INTERACTION!!
+!! *     }
+!! *     else if (shapeA.filter.shouldCollide(shapeB.filter)) {
+!! *         COLLISION INTERACTION!!
+!! *     }
+!! * }
+!! * </pre>
 !! */
 @:final class InteractionFilter {
 
