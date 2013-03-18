@@ -8,27 +8,38 @@ class DummyNapeMain {
 
     function new() {
 
-        var debug = new BitmapDebug(800, 600, 0x333333);
+        var debug = new BitmapDebug(600, 600, 0x333333);
         flash.Lib.current.addChild(debug.display);
 
-        var space = new Space();
-        var body= new Body(BodyType.STATIC);
-        body.kinematicVel.setxy(10, 20);
-        body.space = space;
+        var space= new Space(Vec2.weak(0, 0));
+        space.worldLinearDrag = space.worldAngularDrag = 0;
 
-        var b2 = new Body();
-        b2.shapes.add(new Circle(10));
-        b2.space=space;
+        var wall = new Body(BodyType.STATIC);
+        wall.shapes.add(new Polygon(Polygon.rect(0,0,1,600)));
+        wall.shapes.add(new Polygon(Polygon.rect(600,0,1,600)));
+        wall.shapes.add(new Polygon(Polygon.rect(0,0,600,1)));
+        wall.shapes.add(new Polygon(Polygon.rect(0,600,600,1)));
+        wall.space = space;
 
-        var p = new PivotJoint(body, b2, Vec2.weak(), Vec2.weak());
-        p.stiff = false; p.maxError = 0;
-        p.frequency = 100;
-        p.space = space;
+        var ball = new Body(BodyType.DYNAMIC);
+        ball.shapes.add(new Circle(10));
+        ball.position.setxy(50,50);
+        ball.velocity.setxy(-250,350);
+        ball.space = space;
 
-        trace(cast [body.position, body.velocity, body.constraintVelocity.xy()]);
-        trace(cast [b2.position, b2.velocity, b2.constraintVelocity.xy()]);
-        space.step(1/60);
-        trace(cast [body.position, body.velocity, body.constraintVelocity.xy()]);
-        trace(cast [b2.position, b2.velocity, b2.constraintVelocity.xy()]);
+        trace(ball.constraintVelocity);
+        space.listeners.add(new InteractionListener(CbEvent.BEGIN, InteractionType.COLLISION, CbType.ANY_BODY, CbType.ANY_BODY, function (_) {
+            trace(ball.constraintVelocity);
+        }));
+
+        for (b in space.bodies) for (s in b.shapes) s.material = new Material(1, 0, 0, 1, 0);
+
+        (new haxe.Timer(0)).run = function () {
+            for (i in 0...10)
+                space.step(1/60);
+            debug.clear();
+            debug.draw(space);
+            debug.flush();
+        }
     }
 }
