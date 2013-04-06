@@ -1075,6 +1075,15 @@ class PR(Space) {
         Iter(b, staticsleep, {
             assert(!b.isDynamic(), "step :: swef static/kinematics");
             if(!b.isKinematic() || (b.velx == 0 && b.vely == 0 && b.angvel == 0)) {
+                // Bug introduced by moving sleeping before operations occur.
+                // Kinematic body that is invalidated or teleported without any velocity
+                // gets put to sleep straight away here before necessary operations occur.
+                //
+                // quick, but valid fix is to delay sleeping of kinematic by a single step.
+                if (b.kinematicDelaySleep) {
+                    b.kinematicDelaySleep = false;
+                    cx_continue;
+                }else trace("sleep!");
                 b.component.sleeping = true;
                 cx_ite = staticsleep.inlined_erase(pre);
                 continue;
@@ -1726,6 +1735,7 @@ class PR(Space) {
         if(!o.world) {
             assert(o.component!=null,"body woken, but no component exists?");
             o.component.waket = stamp + (midstep ? 0 : 1);
+            if (o.isKinematic()) o.kinematicDelaySleep = true;
             if(o.component.sleeping) {
                 really_wake(o, fst);
             }
