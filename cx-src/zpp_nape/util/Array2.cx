@@ -1,7 +1,14 @@
 package zpp_nape.util;
 $(import);
 
-#if haxe3 @:generic #end class Array2<T> #if !haxe3 implements haxe.rtti.Generic #end {
+// Haxe bug 1640 prevents using haxe generic here.
+// so caxe template used for now.
+// TODO
+//#if haxe3 @:generic #end class Array2<T> #if !haxe3 implements haxe.rtti.Generic #end {
+
+$(mixin global Array2(T) GenArray2(T) ZNPArray2_`T);
+$(expand global GenArray2(T) class Array2(T) {
+
     public var list:TArray(T) = null;
     public var width:Int = 0;
     #if NAPE_ASSERT
@@ -55,3 +62,5 @@ $(import);
         return list[y*width+x] = obj;
     }
 }
+
+);
