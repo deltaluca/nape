@@ -1,0 +1,171 @@
+package nape.util;
+$(import);
+
+#if ogl
+
+!!/**
+!! * Implementaiton of nape debug drawing using OpenGL Graphics API.
+!! * <br/><br/>
+!! * This debug draw makes use of the ogl haxelib library and will
+!! * not be available unless this library is used.
+!! */
+@:final class OGLDebug extends Debug {
+    !!/**
+    !! * @private
+    !! */
+    public var pr(inner_zn):PR(OGLDebug) = null;
+
+    !!/**
+    !! * Construct new OGLDebug with given viewport size.
+    !! * @param width The width of Debug draw viewport.
+    !! * @param height The height of Debug draw viewport.
+    !! * @return The constructed OGLDebug.
+    !! * @throws # If width or height are not strictly positive.
+    !! */
+    public function new(width:Int, height:Int) {
+        DEBUG(if(width <=0) throw "Error: Debug width must be > 0";)
+        DEBUG(if(height<=0) throw "Error: Debug height must be > 0";)
+
+        DEBUG(PR(Debug).internal = true;)
+        super();
+        DEBUG(PR(Debug).internal = false;)
+
+        pr(inner_zn) = new PR(OGLDebug)(width,height);
+        pr(inner_zn).outer_zn = this;
+        pr(inner) = pr(inner_zn);
+        pr(inner).outer = this;
+    }
+
+    !!/**
+    !! * @inheritDoc
+    !! */
+    public override function clear() { pr(inner_zn).clear(); }
+
+    !!/**
+    !! * @inheritDoc
+    !! */
+    public override function drawLine(start:Vec2, end:Vec2, colour:Int) {
+        DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
+
+        Disposed(start,Vec2);
+        Disposed(end,Vec2);
+        DEBUG(
+            if(start==null) throw "Error: drawLine::start cannot be null";
+            if(end  ==null) throw "Error: drawLine::end cannot be null";
+        )
+
+        var g = pr(inner_zn);
+        if(pr(inner).xnull) {
+            g.drawLine(start.x, start.y, end.x, end.y, colour);
+            WEAK(start);
+            WEAK(end);
+        }else {
+            var v = pr(inner).xform.outer.transform(start);
+            var q = pr(inner).xform.outer.transform(end);
+            g.drawLine(v.x, v.y, q.x, q.y, colour);
+            v.dispose();
+            q.dispose();
+        }
+    }
+
+    !!/**
+    !! * @inheritDoc
+    !! */
+    public override function drawAABB(aabb:AABB, colour:Int) {
+        DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
+
+        DEBUG(if(aabb==null) throw "Error: drawAABB::aabb cannot be null";)
+        var g = pr(inner_zn);
+
+        if(pr(inner).xnull)
+            g.drawRectangle(aabb.x,aabb.y,aabb.width,aabb.height, colour);
+        else {
+            var v = pr(inner).xform.outer.transform(aabb.min);
+            var w = Vec2.get(aabb.width,0);  var w2 = pr(inner).xform.outer.transform(w,true);
+            var h = Vec2.get(0,aabb.height); var h2 = pr(inner).xform.outer.transform(h,true);
+
+            g.drawLine(v.x,v.y, v.x+w2.x,v.y+w2.y, colour);
+            g.drawLine(v.x+w2.x,v.y+w2.y, v.x+w2.x+h2.x,v.y+w2.y+h2.y, colour);
+            g.drawLine(v.x+w2.x+h2.x,v.y+w2.y+h2.y, v.x+h2.x,v.y+h2.y, colour);
+            g.drawLine(v.x+h2.x,v.y+h2.y, v.x,v.y, colour);
+
+            v.dispose();
+            w.dispose(); w2.dispose();
+            h.dispose(); h2.dispose();
+        }
+    }
+
+    !!/**
+    !! * @inheritDoc
+    !! */
+    public override function drawCircle(position:Vec2, radius:Float, colour:Int) {
+        DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
+
+        Disposed(position,Vec2);
+        DEBUG(
+            if(position==null) throw "Error: drawCircle::position cannot be null";
+            if(isNaN(radius) || radius<0) throw "Error: drawCircle::radius must be >=0";
+        )
+        var g = pr(inner_zn);
+
+        if(pr(inner).xnull) {
+            g.drawCircle(position.x,position.y,radius, colour);
+
+            WEAK(position);
+        }
+        else {
+            var v = pr(inner).xform.outer.transform(position);
+            g.drawCircle(v.x,v.y,radius*pr(inner).xdet, colour);
+            v.dispose();
+        }
+    }
+
+    !!/**
+    !! * @inheritDoc
+    !! */
+    public override function draw(object:Dynamic) { __debug_draw(object); }
+
+    !!/**
+    !! * @inheritDoc
+    !! */
+    public override function drawPolygon(polygon:Dynamic, colour:Int) {
+        DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
+        DEBUG(if(polygon==null) throw "Error: Cannot draw null polygon";)
+
+        var g = pr(inner_zn);
+        var fst = null;
+        var fsttime = true;
+        if(pr(inner).xnull) {
+            var px:Float = 0; var py:Float = 0;
+            PolyIter(p,polygon,{
+                if(fsttime) { fst = p.copy(); }
+                else g.drawLine(px, py, p.x, p.y, colour);
+                px = p.x; py = p.y;
+                fsttime = false;
+            });
+            g.drawLine(px, py, fst.x, fst.y, colour);
+            fst.dispose();
+        }else {
+            var px:Float = 0; var py:Float = 0;
+            PolyIter(p,polygon, {
+                var v = pr(inner).xform.outer.transform(p);
+                if(fsttime) { fst = v; } else g.drawLine(px, py, v.x, v.y, colour);
+                px = v.x; py = v.y;
+                if(!fsttime) v.dispose();
+                fsttime = false;
+            });
+            g.drawLine(px, py, fst.x, fst.y, colour);
+            fst.dispose();
+        }
+        PolyWeak(polygon);
+    }
+
+    !!/**
+    !! * @inheritDoc
+    !! */
+    public override function flush() {
+        pr(inner_zn).flush();
+    }
+}
+
+#end

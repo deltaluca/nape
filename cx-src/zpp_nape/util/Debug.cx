@@ -1,23 +1,31 @@
 package zpp_nape.util;
 $(import);
 
-    $(mixin mat_xform_hom(Anull,A,u,v) if(Anull) vec_set(v,u) else mat_transform_hom(A.,u,v));
-    $(mixin mat_xform    (Anull,A,u,v) if(Anull) vec_set(v,u) else mat_transform    (A.,u,v));
-    $(mixin mat_xform_hom(Anull,A,u) if(!Anull) mat_transform_hom(A.,u));
-    $(mixin mat_xform    (Anull,A,u) if(!Anull) mat_transform    (A.,u));
+    $(mixin global mat_xform_hom(Anull,A,u,v) if(Anull) vec_set(v,u) else mat_transform_hom(A.,u,v));
+    $(mixin global mat_xform    (Anull,A,u,v) if(Anull) vec_set(v,u) else mat_transform    (A.,u,v));
+    $(mixin global mat_xform_hom(Anull,A,u) if(!Anull) mat_transform_hom(A.,u));
+    $(mixin global mat_xform    (Anull,A,u) if(!Anull) mat_transform    (A.,u));
 
-#if (flash9||nme)
+#if (flash9||nme||ogl)
 
 class PR(Debug) {
     public static var internal = false;
 
     public var outer:Debug = null;
 
-    public var isbmp:Bool = false;
+    // 0 d_bmp
+    // 1 d_shape
+    // 2 d_ogl
+    public var type:Int = -1;
     #if flash10
     public var d_bmp  :PR(BitmapDebug) = null;
     #end
+    #if flash
     public var d_shape:PR(ShapeDebug) = null;
+    #end
+    #if ogl
+    public var d_ogl:PR(OGLDebug) = null;
+    #end
 
     ///---------------------------------------------------------------------------------------------
 
@@ -118,6 +126,10 @@ class PR(Debug) {
 ///_________________________________________________________________________________________________
 ///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 
+#end
+
+#if (flash||nme)
+
 class PR(ShapeDebug) extends PR(Debug) {
     public var outer_zn:ShapeDebug = null;
 
@@ -129,7 +141,7 @@ class PR(ShapeDebug) extends PR(Debug) {
         shape = new flash.display.Shape();
         graphics = shape.graphics;
 
-        isbmp = false;
+        type = 1;
         d_shape = this;
     }
 
@@ -209,7 +221,7 @@ class PR(BitmapDebug) extends PR(Debug) {
 
         bitmap = new flash.display.Bitmap(bit,flash.display.PixelSnapping.NEVER, false);
 
-        isbmp = true;
+        type = 0;
         d_bmp = this;
     }
 
@@ -505,7 +517,7 @@ class PR(BitmapDebug) extends PR(Debug) {
 ///_________________________________________________________________________________________________
 ///¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 
-$(mixin __colour(id,sleep) {
+$(mixin global __colour(id,sleep) {
     var idc:Int;
     if(outer.colour==null) idc = fastint(0xffffff*Math.exp(-(id%500)/1500));
     else                   idc = outer.colour(id);
@@ -522,7 +534,7 @@ $(mixin __colour(id,sleep) {
     0xff000000|((fastint(_r))<<16)|((fastint(_g))<<8)|(fastint(_b));
 });
 
-$(mixin __tint(__col,__ncol, __f) {
+$(mixin global __tint(__col,__ncol, __f) {
     var col = __col;
     var ncol = __ncol;
     var f = __f;

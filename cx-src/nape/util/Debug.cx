@@ -101,8 +101,9 @@ class Debug {
         static public var BROADTOTAL = 0;
     #end
 
-    #if (flash9||nme)
+    #if (flash9||nme||ogl)
 
+    #if (flash9||nme)
     !!/**
     !! * Create a flash/nme Shape representing the given Body.
     !! *
@@ -147,6 +148,7 @@ class Debug {
 
         return ret;
     }
+    #end
 
     !!/**
     !! * @private
@@ -214,15 +216,15 @@ class Debug {
     !! * This value does not have much use for ShapeDebug, or for
     !! * a transparent BitmapDebug but will still be used in tinting
     !! * object colours to better fit an idealised background colour.
+    !! * <br/><br/>
+    !! * This value is ignored for OGLDebug.
     !! */
     property(bgColour,Int,{
         return pr(inner).bg_col;
     },{
-        #if flash10
-            if(pr(inner).isbmp) pr(inner).d_bmp.setbg(bgColour);
-            else                pr(inner).d_shape.setbg(bgColour);
-        #else
-            pr(inner).d_shape.setbg(bgColour);
+        #if flash10 if (pr(inner).type == 0) pr(inner).d_bmp.setbg(bgColour); #end
+        #if flash
+        if (pr(inner).type == 1) pr(inner).d_shape.setbg(bgColour);
         #end
     })
 
@@ -266,16 +268,18 @@ class Debug {
     !! * <br/><br/>
     !! * When using debug drawer, you should add this to your display list.
     !! */
+    #if (flash||nme)
     property(display, flash.display.DisplayObject, {
         #if flash10
             var ret:flash.display.DisplayObject;
-            if(pr(inner).isbmp) ret = pr(inner).d_bmp.bitmap;
-            else                ret = pr(inner).d_shape.shape;
+            if(pr(inner).type == 0) ret = pr(inner).d_bmp.bitmap;
+            else ret = pr(inner).d_shape.shape;
             return ret;
         #else
             return pr(inner).d_shape.shape;
         #end
     })
+    #end
 
     !!/**
     !! * When true, objects outside the debug draw screen will not be drawn.
