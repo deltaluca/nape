@@ -4,6 +4,8 @@ $(import);
 #if ogl
 
 import ogl.GL;
+import ogl.GLArray;
+import ogl.GLM;
 
 class PR(OGLDebug) extends PR(Debug) {
     public var outer_zn:OGLDebug = null;
@@ -17,7 +19,7 @@ class PR(OGLDebug) extends PR(Debug) {
 
     var program:Int;
     var proj:Int;
-    var projMatrix:Mat2x3;
+    var projMatrix:Mat3x2;
 
     public function new(width:Int, height:Int) {
         super(width, height);
@@ -38,10 +40,10 @@ class PR(OGLDebug) extends PR(Debug) {
             #version 330 core\n
             layout(location = 0) in vec2 vPos;
             layout(location = 1) in vec4 vColour;
-            uniform mat2x3 proj;
+            uniform mat3x2 proj;
             out vec4 colour;
             void main() {
-                gl_Position = vec4(vec3(vPos, 1) * proj, 0, 1);
+                gl_Position = vec4(proj * vec3(vPos, 1), 0, 1);
                 colour = vColour;
             }
         ");
@@ -65,7 +67,7 @@ class PR(OGLDebug) extends PR(Debug) {
         GL.deleteShader(fragmentShader);
 
         proj = GL.getUniformLocation(program, "proj");
-        projMatrix = Mat2x3.viewportMap(width, height);
+        projMatrix = Mat3x2.viewportMap(width, height);
     }
 
     inline function vertex(vindex:Int, off:Int, x:Float, y:Float, r:Float, g:Float, b:Float, a:Float, dup=false) {
@@ -166,8 +168,8 @@ class PR(OGLDebug) extends PR(Debug) {
         GL.vertexAttribPointer(0, 2, GL.FLOAT, false, VERTEX_SIZE*4, 0);
         GL.vertexAttribPointer(1, 4, GL.FLOAT, false, VERTEX_SIZE*4, 2*4);
 
-        GL.bufferSubData(GL.ARRAY_BUFFER, 0, vertexData, numVertices*VERTEX_SIZE);
-        GL.uniformMatrix2x3fv(proj, 1, false, projMatrix);
+        GL.bufferSubData(GL.ARRAY_BUFFER, 0, GLfloatArray.view(vertexData, 0, numVertices*VERTEX_SIZE));
+        GL.uniformMatrix3x2fv(proj, false, projMatrix);
         GL.drawArrays(GL.LINES, 0, numVertices);
 
         GL.disableVertexAttribArray(0);
