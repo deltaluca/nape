@@ -52,7 +52,6 @@ class PR(LineJoint) extends PR(Constraint) {
         vec_new(dr); vec_add(d,r1,dr);
         dot1 = vec_dot(n,dr); cx1 = vec_cross(n,dr);
         dot2 = vec_dot(n,r2); cx2 = vec_cross(n,r2);
-
         K`a = b1.smass + b2.smass + dot1*dot1*b1.sinertia + dot2*dot2*b2.sinertia;
         K`b = -scale*(dot1*cx1*b1.sinertia + dot2*cx2*b2.sinertia);
         K`c = scale*scale*(b1.smass + b2.smass + cx1*cx1*b1.sinertia + cx2*cx2*b2.sinertia);
@@ -187,7 +186,6 @@ class PR(LineJoint) extends PR(Constraint) {
         //calculate positional error now to find d + scale
         vec_new(d); vec_new(C);
         Cerr(a1rel,a2rel,nrel,d, C);
-
         //effective mass
         Keff(a1rel,a2rel,nrel,d, kMass);
         var flag = mat2_invert(kMass);
@@ -251,7 +249,7 @@ class PR(LineJoint) extends PR(Constraint) {
         if(vec_lsq(E) < Config.constraintLinearSlop*Config.constraintLinearSlop) return false;
 
         vec_new(J);
-//        vec_muleq(E,0.5);
+        vec_muleq(E,0.5);
 
         //however for VERY large detachment it is necessary to help.
         if(vec_lsq(E) > 6) {
@@ -265,7 +263,7 @@ class PR(LineJoint) extends PR(Constraint) {
 
                 //recalculate error
                 Cerr(r1,r2,n,d,E);
-//                vec_muleq(E,0.5);
+                vec_muleq(E,0.5);
             }
         }
 
