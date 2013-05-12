@@ -186,6 +186,30 @@ $(import);
     !!/**
     !! * @inheritDoc
     !! */
+    public override function drawFilledPolygon (polygon:Dynamic, colour:Int) {
+        DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
+        DEBUG(if(polygon==null) throw "Error: Cannot draw null polygon!";)
+
+        var g = pr(inner_zn);
+        var poly = GeomPoly.get();
+        if(pr(inner).xnull)
+            PolyIter(p,polygon, poly.push(p));
+        else {
+            PolyIter(p,polygon, {
+                var v = pr(inner).xform.outer.transform(p);
+                poly.push(v);
+            });
+        }
+        g.drawFilledPolygon(poly, colour);
+        poly.dispose();
+
+        PolyWeak(polygon);
+    }
+
+
+    !!/**
+    !! * @inheritDoc
+    !! */
     public override function flush() {
         pr(inner_zn).flush();
     }
