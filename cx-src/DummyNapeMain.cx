@@ -8,86 +8,26 @@ class DummyNapeMain {
 
     function new() {
         var stage = flash.Lib.current.stage;
-        var viewport = new flash.geom.Rectangle(0, 0, stage.stageWidth, stage.stageHeight);
-        var game = new Game(viewport);
-        var debug = new ShapeDebug(Std.int(viewport.width), Std.int(viewport.height));
+        var debug = new ShapeDebug(1,1);
         stage.addChild(debug.display);
+
+        var space = new Space(new Vec2(0,500));
+        var ball = new Body();
+        ball.position.setxy(50,50);
+        ball.shapes.add(new Circle(10));
+        ball.space = space;
+        ball.allowRotation = false;
+
+        var line = new LineJoint(ball, space.world, Vec2.weak(), ball.position, new Vec2(0,100), -50,50);
+//        var line = new DistanceJoint(ball, space.world, Vec2.weak(), ball.position, 0, 50);
+        line.space = space;
+//ball.velocity.x =0.01;
         (new haxe.Timer(10)).run = function () {
-            game.step(1 / stage.frameRate);
+            space.step(1/60);
             debug.clear();
-            debug.draw(game.getSpace());
+            debug.draw(space);
+            debug.drawLine(line.anchor2.add(Vec2.weak(-10,50),true),line.anchor2.add(Vec2.weak(10,50),true),0xffffff);
             debug.flush();
         }
-    }
-}
-
-class Move {
-    dynamic public function step(dt:Float):Void { }
-    public function new (body:Body, center:flash.geom.Point, rad:Float, speed:Float) {
-        var curr:Float = 0;
-        step = function (dt:Float) {
-            curr += speed*dt;
-            var rel = flash.geom.Point.polar(rad, curr);
-            body.position.setxy(rel.x + center.x, rel.y + center.y);
-        }
-        step(0);
-    }
-}
-
-class Game {
-    static var BALL_CB:CbType;
-    static var BULLET_CB:CbType;
-
-    static var BALL_FILTER:InteractionFilter;
-    static var BULLET_FILTER:InteractionFilter;
-
-    dynamic public function getSpace():Space { return null; }
-    dynamic public function step(dt:Float):Void { }
-
-    public function new (viewport:flash.geom.Rectangle) {
-        var viewportCenter = new flash.geom.Point(viewport.x + viewport.width/2, viewport.x + viewport.height/2);
-        var space = new Space();
-        BALL_CB = new CbType();
-        function createKin(s:Float) {
-            var body = new Body(BodyType.KINEMATIC);
-            body.cbTypes.add(BALL_CB);
-            var shape = new Polygon(Polygon.box(s, s), null, new InteractionFilter(1,0,1,~1));
-            shape.sensorEnabled = true;
-            body.shapes.add(shape);
-            body.space = space;
-            return body;
-        }
-
-        var circle1 = createKin(20);
-        var circle2 = createKin(20);
-        var circle1Movement = new Move(circle1, viewportCenter, 100, Math.PI);
-        var circle2Movement = new Move(circle2, viewportCenter, 100, -Math.PI);
-
-        var body = new Body(BodyType.STATIC);
-        body.cbTypes.add(BULLET_CB = new CbType());
-        var shape = new Polygon(Polygon.box(80,80), null, BULLET_FILTER = new InteractionFilter(1,0,2,~2));
-        shape.sensorEnabled = true;
-        shape.body = body;
-        body.position.setxy(viewportCenter.x - 100, viewportCenter.y);
-        body.space = space;
-
-        space.listeners.add(new InteractionListener(CbEvent.BEGIN, InteractionType.ANY, BULLET_CB, BALL_CB, function (cv) {
-            trace(cv.toString());
-        }));
-        space.listeners.add(new InteractionListener(CbEvent.END, InteractionType.ANY, BULLET_CB, BALL_CB, function (cv) {
-            trace(cv.toString());
-        }));
-
-        getSpace = function () return space;
-        step = function (dt:Float) {
-            if (dt > 0) {
-                if (space.elapsedTime < 1) {
-                circle1Movement.step(dt);
-                circle2Movement.step(dt);
-                }
-                space.step(dt);
-            }
-        };
-
     }
 }
