@@ -110,12 +110,35 @@ $(import);
 
         if(pr(inner).xnull) {
             g.drawCircle(position.x,position.y,radius, colour);
-
             WEAK(position);
         }
         else {
             var v = pr(inner).xform.outer.transform(position);
             g.drawCircle(v.x,v.y,radius*pr(inner).xdet, colour);
+            v.dispose();
+        }
+    }
+
+    !!/**
+    !! * @inheritDoc
+    !! */
+    public override function drawFilledCircle(position:Vec2, radius:Float, colour:Int) {
+        DEBUG(if(pr(inner).xform!=null && !pr(inner).xform.outer.equiorthogonal()) throw "Error: Debug draw can only operate with an equiorthogonal transform!";)
+
+        Disposed(position,Vec2);
+        DEBUG(
+            if(position==null) throw "Error: drawFilledCircle::position cannot be null";
+            if(isNaN(radius) || radius<0) throw "Error: drawFilledCircle::radius must be >=0";
+        )
+
+        var g = pr(inner_zn);
+        if(pr(inner).xnull) {
+            g.drawFilledCircle(position.x,position.y,radius, colour);
+            WEAK(position);
+        }
+        else {
+            var v = pr(inner).xform.outer.transform(position);
+            g.drawFilledCircle(v.x,v.y,radius*pr(inner).xdet, colour);
             v.dispose();
         }
     }

@@ -12,6 +12,7 @@ class PR(OGLDebug) extends PR(Debug) {
 
     static inline var VERTEX_SIZE = 6; // x, y, r, g, b, a
 
+    var lines:Bool; // true when drawing lines, false when drawing triangles
     var vertexData:GLfloatArray;
     var vertexArray:Int;
     var vertexBuffer:Int;
@@ -68,6 +69,8 @@ class PR(OGLDebug) extends PR(Debug) {
 
         proj = GL.getUniformLocation(program, "proj");
         projMatrix = Mat3x2.viewportMap(width, height);
+
+        lines = true;
     }
 
     inline function vertex(vindex:Int, off:Int, x:Float, y:Float, r:Float, g:Float, b:Float, a:Float, dup=false) {
@@ -90,7 +93,17 @@ class PR(OGLDebug) extends PR(Debug) {
         }
     }
 
+    inline function swapLines() {
+        if (!lines) flush();
+        lines = true;
+    }
+    inline function swapFills() {
+        if (lines) flush();
+        lines = false;
+    }
+
     public function drawLine(x1:Float, y1:Float, x2:Float, y2:Float, colour:Int) {
+        swapLines();
         var r = cred(colour); var g = cgrn(colour); var b = cblu(colour); var a = calp(colour);
         var vindex = reserve(2);
         vertex(vindex,0, x1,y1, r,g,b,a);
@@ -98,6 +111,7 @@ class PR(OGLDebug) extends PR(Debug) {
     }
 
     public function drawRectangle(x1:Float, y1:Float, x2:Float, y2:Float, colour:Int) {
+        swapLines();
         var r = cred(colour); var g = cgrn(colour); var b = cblu(colour); var a = calp(colour);
         var vindex = reserve(8);
         vertex(vindex,0, x1,y1, r,g,b,a);
@@ -108,6 +122,7 @@ class PR(OGLDebug) extends PR(Debug) {
     }
 
     public function drawCircle(x:Float, y:Float, radius:Float, colour:Int) {
+        swapLines();
         var r = cred(colour); var g = cgrn(colour); var b = cblu(colour); var a = calp(colour);
         var maxError = 0.5; // px
         var vCount;
@@ -141,6 +156,45 @@ class PR(OGLDebug) extends PR(Debug) {
         vertex(vindex,vCount*2-1, x+radius,y, r,g,b,a);
     }
 
+    public function drawFilledCircle(x:Float, y:Float, radius:Float, colour:Int) {
+        swapFills();
+        var r = cred(colour); var g = cgrn(colour); var b = cblu(colour); var a = calp(colour);
+        var maxError = 0.5; // px
+        var vCount;
+        if (radius < maxError / 2) vCount = 3;
+        else {
+            // Error for given turn theta
+            // E = r(1-cos(t/2))
+            // We require E < maxError <=> t > 2.acos(1 - maxError/r)
+            // Requiring pi/acos(1 - maxError/r) vertices
+            vCount = Math.ceil(Math.PI / Math.acos(1 - maxError/radius));
+            if (vCount < 3) vCount = 3;
+        }
+
+        var tCount = vCount - 2;
+        var vindex = reserve(tCount * 3);
+
+        // Generate vertices via radial vector (radius, 0)
+        var dx = radius;
+        var dy = 0.0;
+
+        var angInc = Math.PI * 2 / vCount;
+        var cos = Math.cos(angInc);
+        var sin = Math.sin(angInc);
+
+        var nx = (dx * cos) - (dy * sin);
+        dy = (dx * sin) + (dy * cos);
+        dx = nx;
+        for (i in 0...tCount) {
+            vertex(vindex, i*3,   x+radius,y, r,g,b,a);
+            vertex(vindex, i*3+1, x+dx, y+dy, r,g,b,a);
+            var nx = (dx * cos) - (dy * sin);
+            dy = (dx * sin) + (dy * cos);
+            dx = nx;
+            vertex(vindex, i*3+2, x+dx, y+dy, r,g,b,a);
+        }
+    }
+
     inline function reserve(numVerts:Int) {
         var current = numVertices * VERTEX_SIZE;
         var newsize = current + (numVerts * VERTEX_SIZE);
@@ -160,6 +214,8 @@ class PR(OGLDebug) extends PR(Debug) {
     }
 
     public function flush() {
+        if (numVertices == 0) return;
+
         GL.useProgram(program);
         GL.enableVertexAttribArray(0);
         GL.enableVertexAttribArray(1);
@@ -170,7 +226,7 @@ class PR(OGLDebug) extends PR(Debug) {
 
         GL.bufferSubData(GL.ARRAY_BUFFER, 0, GLfloatArray.view(vertexData, 0, numVertices*VERTEX_SIZE));
         GL.uniformMatrix3x2fv(proj, false, projMatrix);
-        GL.drawArrays(GL.LINES, 0, numVertices);
+        GL.drawArrays(lines ? GL.LINES : GL.TRIANGLES, 0, numVertices);
 
         GL.disableVertexAttribArray(0);
         GL.disableVertexAttribArray(1);
@@ -179,8 +235,8 @@ class PR(OGLDebug) extends PR(Debug) {
     }
 
     inline function calp(c:Int) {
-        var alp = (c&0xff000000)/(255*0x1000000);
-        return alp == 0 ? 1 : alp;
+        var alp = c&0xff000000;
+        return if (alp == 0) 1 else (alp>>>24)/0xff;
     }
     inline function cred(c:Int) return (c&0x00ff0000)/(255*0x10000);
     inline function cgrn(c:Int) return (c&0x0000ff00)/(255*0x100);
