@@ -195,11 +195,31 @@ class PR(OGLDebug) extends PR(Debug) {
         }
     }
 
+    public var triList:GeomPolyList = null;
     public function drawFilledPolygon(poly:GeomPoly, colour:Int) {
         swapFills();
         var r = cred(colour); var g = cgrn(colour); var b = cblu(colour); var a = calp(colour);
         if (poly.isConvex())
             drawConvex(poly, r,g,b,a);
+        else {
+            if (triList == null) triList = new GeomPolyList();
+            poly.triangularDecomposition(false, triList);
+
+            var tCount = triList.length;
+            var vindex = reserve(tCount * 3);
+            var i = 0;
+            while (!triList.empty()) {
+                var p = triList.pop();
+                var pp = p.pr(inner).vertices;
+                vertex(vindex, i*3,   pp.x,pp.y, r,g,b,a);
+                pp = pp.next;
+                vertex(vindex, i*3+1, pp.x,pp.y, r,g,b,a);
+                pp = pp.next;
+                vertex(vindex, i*3+2, pp.x,pp.y, r,g,b,a);
+                p.dispose();
+                i++;
+            }
+        }
     }
     public function drawConvex(poly:GeomPoly, r,g,b,a) {
         var vCount = poly.size();
