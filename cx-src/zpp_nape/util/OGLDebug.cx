@@ -27,7 +27,7 @@ class PR(OGLDebug) extends PR(Debug) {
         type = 2;
         d_ogl = this;
 
-        vertexData = GL.allocBuffer(GL.FLOAT, VERTEX_SIZE*2);
+        vertexData = GL.allocBuffer(GL.FLOAT, VERTEX_SIZE*6); // 6 = lcf(line-vert-count,tri-vert-count)
         vertexArray = GL.genVertexArrays(1)[0];
         GL.bindVertexArray(vertexArray);
 
@@ -93,16 +93,16 @@ class PR(OGLDebug) extends PR(Debug) {
         }
     }
 
-    inline function swapLines() {
+    public inline function swapLines() {
         if (!lines) flush();
         lines = true;
     }
-    inline function swapFills() {
+    public inline function swapFills() {
         if (lines) flush();
         lines = false;
     }
 
-    inline function pushVertex(x:Float, y:Float, r:Float, g:Float, b:Float, a:Float) {
+    public inline function pushVertex(x:Float, y:Float, r:Float, g:Float, b:Float, a:Float) {
         var vindex = reserve(1);
         vertex(vindex,0, x,y, r,g,b,a);
     }
