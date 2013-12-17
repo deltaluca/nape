@@ -1,4 +1,4 @@
-![](http://deltaluca.me.uk/napelogo.jpg)
+![](https://github.com/deltaluca/www.napephys.com/blob/gh-pages/assets/nape.png?raw=true)
 
 # Where to download
 
