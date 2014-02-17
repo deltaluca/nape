@@ -133,10 +133,10 @@ class Arbiter {
     property(state,PreFlag,{
         DEBUG(if(pr(inner).inactiveme()) throw "Error: Arbiter not currently in use";)
         return switch(pr(inner).immState) {
-            case Flag(ImmState,ACCEPT) | Flag(ImmState,ALWAYS): PreFlag.ACCEPT;
-            case Flag(ImmState,ACCEPT)                        : PreFlag.ACCEPT_ONCE;
-            case Flag(ImmState,IGNORE) | Flag(ImmState,ALWAYS): PreFlag.IGNORE;
-            default                                           : PreFlag.IGNORE_ONCE;
+            case x if (x == Flag(ImmState,ACCEPT) | Flag(ImmState,ALWAYS)): PreFlag.ACCEPT;
+            case            Flag(ImmState,ACCEPT)                         : PreFlag.ACCEPT_ONCE;
+            case x if (x == Flag(ImmState,IGNORE) | Flag(ImmState,ALWAYS)): PreFlag.IGNORE;
+            default                                                       : PreFlag.IGNORE_ONCE;
         }
     })
 
