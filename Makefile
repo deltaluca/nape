@@ -74,6 +74,7 @@ pre_compile:
 	rm -rf src
 	mkdir src
 	caxe -o src cx-src -tc 2 --times $(DUMMYS)
+	find src -type f -print | xargs sed -i 's~^.*\<null\>\.[_a-zA-Z].*$$~/*silly null. issues*/~g'
 
 SWC_FLAGS = -cp src -dce full --macro "include('nape')" --macro "include('zpp_nape')" -D flib -D nape_swc
 
