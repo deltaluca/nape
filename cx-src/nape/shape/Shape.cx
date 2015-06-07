@@ -38,11 +38,12 @@ class Shape extends Interactor {
     !!/**
     !! * @private
     !! */
+    DEBUG(public static var pr(internalAlloc) = false;)
     function new() {
-        DEBUG(try { super(); } catch (e:Dynamic) {})
+        DEBUG(Interactor.pr(internalAlloc) = true; super(); Interactor.pr(internalAlloc) = false;)
         RELEASE(super();)
 
-        DEBUG(throw "Error: Shape cannot be instantiated derp!";)
+        DEBUG(if (!pr(internalAlloc)) throw "Error: Shape cannot be instantiated derp!";)
     }
 
     !!/**
